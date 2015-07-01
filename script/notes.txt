@@ -1,0 +1,14 @@
+Some notes here for installing packages that might be useful when writing whatever install scripts
+
+Atom:
+ with apt-get: http://www.ubuntuupdates.org/ppa/atom
+
+Docker:
+ Ubuntu 15.04 install issue - https://github.com/docker/docker/issues/12002#issuecomment-106759295
+
+Java:
+ Java 8 PPA installer https://launchpad.net/~webupd8team/+archive/ubuntu/java
+ sudo add-apt-repository ppa:webupd8team/java
+ sudo apt-get update
+ sudo apt-get install oracle-java8-installer
+ sudo apt-get  install oracle-java8-set-default
