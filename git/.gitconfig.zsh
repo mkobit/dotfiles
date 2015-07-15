@@ -19,3 +19,5 @@
 	br = branch
 [branch]
 	autosetuprebase = always
+[push]
+	default = simple
