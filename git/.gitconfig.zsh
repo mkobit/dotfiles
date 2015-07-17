@@ -17,6 +17,9 @@
 	cob = checkout -b
 	sync = pull --rebase
 	br = branch
+	au = add -u
+	unstage = reset HEAD --
+	diffc = diff --cached
 [branch]
 	autosetuprebase = always
 [push]
