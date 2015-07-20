@@ -2,7 +2,7 @@
 	email = mkobit@gmail.com
 	name = Mike Kobit
 [core]
-	editor = atom --wait
+	editor = vim
 	autocrlf = input
 [color]
 	ui = true
