@@ -20,6 +20,7 @@
 	au = add -u
 	unstage = reset HEAD --
 	diffc = diff --cached
+	amend = commit --amend
 [branch]
 	autosetuprebase = always
 [push]
