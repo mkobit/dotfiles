@@ -18,7 +18,8 @@ set tabstop=4
 set softtabstop=4
 " tabs are spaces
 set expandtab
-
+" disable physical line wrapping
+set textwidth=0 wrapmargin=0
 
 " " UI Config
 " show line numbers
