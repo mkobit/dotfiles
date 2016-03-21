@@ -1,17 +1,32 @@
-" " Colors
-" enable syntax processing
-syntax enable
+"""""""""""""""""""""""""""""""""""""""
+" => General
+"""""""""""""""""""""""""""""""""""""""
+" Amount of lines of history for VIM to remember
+set history=1000
+" Auto read when a file is changed from the outside
+set autoread
+" Disable annoying error sounds
+set noerrorbells
+set novisualbell
+" Set utf8 as standard encoding
+set encoding=utf8
 
-" Use case insensitive search, except when using capital letters
+"""""""""""""""""""""""""""""""""""""""
+" => Colors
+"""""""""""""""""""""""""""""""""""""""
+" Enable syntax highlighting
+syntax enable
 
 " Allow backspacing over autoindent, line breaks and start of insert action
 set backspace=indent,eol,start
-  
+
 set autoindent
 
 filetype plugin on
 
-" " Spaces and Tabs 
+"""""""""""""""""""""""""""""""""""""""
+" => Spaces and Tabs
+"""""""""""""""""""""""""""""""""""""""
 " number of visual spaces per TAB
 set tabstop=4
 " number of spaces in tab when editing
@@ -21,7 +36,9 @@ set expandtab
 " disable physical line wrapping
 set textwidth=0 wrapmargin=0
 
-" " UI Config
+"""""""""""""""""""""""""""""""""""""""
+" => UI Config
+"""""""""""""""""""""""""""""""""""""""
 " show line numbers
 set number
 " show command in bottom bar
@@ -34,17 +51,22 @@ set cursorline
 set showmatch
 " visual autocomplete for command menu
 set wildmenu
+" Height of the command bar
+set cmdheight=2
 
-" " Search
-" search as characters are entered
+"""""""""""""""""""""""""""""""""""""""
+" => Search
+"""""""""""""""""""""""""""""""""""""""
+" Makes search act like search in modern browsers
 set incsearch
-" highlight matches
+" Highlight search results
 set hlsearch
 set ignorecase
 set smartcase
 
-" " Movement
+"""""""""""""""""""""""""""""""""""""""
+" => Movement
+"""""""""""""""""""""""""""""""""""""""
 " move vertically by visual line
 nnoremap j gj
 nnoremap k gk
-
