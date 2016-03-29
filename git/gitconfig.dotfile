@@ -4,6 +4,7 @@
 [core]
 	editor = vim
 	autocrlf = input
+	excludesfile = /Users/mkobit/.gitignore_global
 [color]
 	ui = true
 [alias]
