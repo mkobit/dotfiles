@@ -1,0 +1,10 @@
+if type docker-machine > /dev/null 2>&1; then
+  function dminit() {
+    if [ $# -ne 1 ]; then
+      echo "Provide name of docker-machine"
+      return 1
+    fi
+    docker-machine start $1
+    eval $(docker-machine env $1)
+  }
+fi

@@ -1,2 +1,1 @@
-# Windows KeePass stored locally and ran with Mono
-alias keepass='mono ~/Programs/KeePass-2.29/KeePass.exe'
+alias mirror="wget --mirror -k --reject --page-requisites '*.pdf,*.zip,*.gz' --header='Accept-Language:en-US,en;'"
