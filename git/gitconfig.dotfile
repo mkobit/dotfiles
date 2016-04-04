@@ -1,28 +1,35 @@
 [user]
-	email = mkobit@gmail.com
-	name = Mike Kobit
+    email = mkobit@gmail.com
+    name = Mike Kobit
 [core]
-	editor = vim
-	autocrlf = input
-	excludesfile = /Users/mkobit/.gitignore_global
+    editor = vim
+    autocrlf = input
+    excludesfile = ~/.gitignore_global
 [color]
-	ui = true
+    ui = true
 [alias]
-	st = status
-	cm = commit -m
-	aa = add --all
-	ci = commit
-	lg = log --graph --pretty=format:'%C(yellow)%h%C(cyan)%d%Creset %s %C(white)- %an, %ar%Creset'
-	ll = log --stat --abbrev-commit
-	co = checkout
-	cob = checkout -b
-	sync = pull --rebase
-	br = branch
-	au = add -u
-	unstage = reset HEAD --
-	diffc = diff --cached
-	amend = commit --amend
+    st = status
+    cm = commit -m
+    aa = add --all
+    c = commit
+    lg = log --graph --pretty=format:'%C(yellow)%h%C(cyan)%d%Creset %s %C(white)- %an, %ar%Creset'
+    ll = log --stat --abbrev-commit
+    co = checkout
+    cob = checkout -b
+    sync = pull --rebase
+    br = branch
+    au = add -u
+    unstage = reset HEAD --
+    dc = diff --cached
+    amend = commit --amend
+    ai = add -i
+    a = add
+    d = diff
+    f = fetch
+    re = reset
+    rh = reset HEAD
+    clean-all = clean -d -x -f
 [branch]
-	autosetuprebase = always
+    autosetuprebase = always
 [push]
-	default = simple
+    default = simple
