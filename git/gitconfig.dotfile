@@ -29,6 +29,7 @@
     re = reset
     rh = reset HEAD
     clean-all = clean -d -x -f
+	wip = commit -am 'WIP'
 [branch]
     autosetuprebase = always
 [push]
