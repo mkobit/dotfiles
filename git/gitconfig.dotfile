@@ -10,6 +10,8 @@
 [alias]
     # Exec a command from root of git repository - http://stackoverflow.com/a/957978/627727
     exec = ! exec
+    root = ! pwd
+    # Abbreviation aliases
     st = status
     cm = commit -m
     aa = add --all
@@ -30,7 +32,6 @@
     f = fetch
     re = reset
     rh = reset HEAD
-    root = ! pwd
     clean-all = clean -d -x -f
 	wip = commit -am 'WIP'
 [branch]
