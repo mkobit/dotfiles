@@ -9,6 +9,7 @@
     ui = true
 [alias]
     # Exec a command from root of git repository - http://stackoverflow.com/a/957978/627727
+    branches = branch -a
     exec = ! exec
     root = ! pwd
     # Abbreviation aliases
