@@ -1,0 +1,63 @@
+= Dotfiles
+:toc: preamble
+:!toc-title:
+
+Utilities and dotfiles that I use across machines.
+
+== Setup
+
+The setup process is still very manual.
+
+. Clone repository
++
+[source,bash]
+----
+git clone git@github.com:mkobit/dotfiles.git
+----
+
+=== Git
+
+. Create a file in `$HOME` that points to the local configuration.
++
+[source]
+----
+[include]
+    path = ~/dotfiles/git/gitconfig.dotfile
+----
+
+=== Screen
+
+. Create symlink in `$HOME` to the local `vimrc.dotfile`
++
+[source, bash]
+----
+cd dotfiles
+ln -sf `pwd`/screen/screenrc.dotfile ~/.screenrc
+----
+
+=== VIM
+
+Assuming VIM is installed:
+
+. Create symlink in `$HOME` to the local `vimrc.dotfile`
++
+[source, bash]
+----
+cd dotfiles
+ln -sf `pwd`/vim/vimrc.dotfile ~/.vimrc
+----
+
+=== Zsh
+
+==== oh-my-zsh
+
+On Mac, I am currently using link:https://github.com/robbyrussell/oh-my-zsh[robbyrussell/oh-my-zsh]
+Assuming that Zsh is installed:
+
+. Add the following to the bottom of the `~/.zshrc`
++
+[source]
+----
+. ~/dotfiles/zsh/aliases.source
+. ~/dotfiles/zsh/functions.source
+----
