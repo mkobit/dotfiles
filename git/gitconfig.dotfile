@@ -28,6 +28,7 @@
     f = fetch
     re = reset
     rh = reset HEAD
+    root = ! pwd
     clean-all = clean -d -x -f
 	wip = commit -am 'WIP'
 [branch]
