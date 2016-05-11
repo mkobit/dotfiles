@@ -8,6 +8,8 @@
 [color]
     ui = true
 [alias]
+    # Exec a command from root of git repository - http://stackoverflow.com/a/957978/627727
+    exec = ! exec
     st = status
     cm = commit -m
     aa = add --all
