@@ -34,7 +34,8 @@ set softtabstop=4
 " tabs are spaces
 set expandtab
 " disable physical line wrapping
-set textwidth=0 wrapmargin=0
+" TODO: this is a tempoary workaround to deal with Mac VIM automatically setting textwidth when it is set to 0. It assumes it is unset.
+set textwidth=99999 wrapmargin=0
 
 """""""""""""""""""""""""""""""""""""""
 " => UI Config
