@@ -11,6 +11,8 @@
     # Exec a command from root of git repository - http://stackoverflow.com/a/957978/627727
     branches = branch -a
     exec = ! exec
+    # Rename the current branch. Get current branch
+    rename-branch = branch -mv
     root = ! pwd
     # Abbreviation aliases
     st = status
