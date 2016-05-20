@@ -10,6 +10,7 @@
 [alias]
     # Exec a command from root of git repository - http://stackoverflow.com/a/957978/627727
     branches = branch -a
+    delete-merged-branches = "!git checkout master && git branch --merged master | grep -v '* master' | xargs -n 1 git branch -d"
     exec = ! exec
     graph-all = log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all
     # Rename the current branch. Get current branch
