@@ -7,6 +7,8 @@
     excludesfile = ~/.gitignore_global
 [color]
     ui = true
+[diff]
+    compactionHeuristic = true
 [interactive]
     diffFilter = diff-highlight
 [pager]
