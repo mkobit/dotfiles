@@ -1,6 +1,7 @@
 = Dotfiles
 :toc: preamble
 :!toc-title:
+:uri-git-diff-highlight: https://github.com/git/git/tree/master/contrib/diff-highlight
 
 Utilities and dotfiles that I use across machines.
 
@@ -23,6 +24,18 @@ git clone git@github.com:mkobit/dotfiles.git
 ----
 [include]
     path = ~/dotfiles/git/gitconfig.dotfile
+----
+
+==== diff-highlight
+
+The {uri-git-diff-highlight}[diff-highlight] tool is used for heuristic highlights when using the pager or viewing a diff.
+
+To download a new version into this repository, run this:
+
+[source, bash]
+----
+cd dotfiles # change into repository root
+curl https://raw.githubusercontent.com/git/git/master/contrib/diff-highlight/diff-highlight > bin/diff-highlight && chmod +x bin/diff-highlight
 ----
 
 === Screen
@@ -52,12 +65,13 @@ ln -sf `pwd`/vim/vimrc.dotfile ~/.vimrc
 ==== oh-my-zsh
 
 On Mac, I am currently using link:https://github.com/robbyrussell/oh-my-zsh[robbyrussell/oh-my-zsh]
-Assuming that Zsh is installed:
+Assuming that Zsh is installed and this repository is cloned to `$HOME/dotfiles`:
 
 . Add the following to the bottom of the `~/.zshrc`
 +
 [source]
 ----
+export PATH="${PATH}:$HOME/dotfiles/bin"
 . ~/dotfiles/zsh/aliases.source
 . ~/dotfiles/zsh/functions.source
 ----

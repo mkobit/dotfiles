@@ -7,6 +7,12 @@
     excludesfile = ~/.gitignore_global
 [color]
     ui = true
+[interactive]
+    diffFilter = diff-highlight
+[pager]
+    log = diff-highlight | less
+    show = diff-highlight | less
+    diff = diff-highlight | less
 [alias]
     # Exec a command from root of git repository - http://stackoverflow.com/a/957978/627727
     branches = branch -a
