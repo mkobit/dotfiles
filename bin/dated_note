@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+
+readonly SUFFIX_PATTERN=^[a-z0-9-]+$
+TIME=$(date +"%Y-%m-%dT%H:%M:%SZ")
+if [[ ! "$1" =~ ${SUFFIX_PATTERN} ]]; then
+  printf 'Note must have a suffix and match pattern\n' >&2
+  exit 3
+fi
+SUFFIX="$1.txt"
+
+FILENAME="${TIME}-${SUFFIX}"
+# touch "$FILENAME"
+echo "Touched filename '$FILENAME'"
