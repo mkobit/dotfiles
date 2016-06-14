@@ -1,20 +1,3 @@
-[user]
-    email = mkobit@gmail.com
-    name = Mike Kobit
-[core]
-    editor = vim
-    autocrlf = input
-    excludesfile = ~/.gitignore_global
-[color]
-    ui = true
-[diff]
-    compactionHeuristic = true
-[interactive]
-    diffFilter = diff-highlight
-[pager]
-    log = diff-highlight | less
-    show = diff-highlight | less
-    diff = diff-highlight | less
 [alias]
     # Exec a command from root of git repository - http://stackoverflow.com/a/957978/627727
     branches = branch -a
@@ -46,8 +29,25 @@
     re = reset
     rh = reset HEAD
     clean-all = clean -d -x -f
-	wip = commit -am 'WIP'
+    wip = commit -am 'WIP'
 [branch]
     autosetuprebase = always
+[color]
+    ui = true
+[core]
+    editor = vim
+    autocrlf = input
+    excludesfile = ~/.gitignore_global
+[diff]
+    compactionHeuristic = true
+[interactive]
+    diffFilter = diff-highlight
+[pager]
+    log = diff-highlight | less
+    show = diff-highlight | less
+    diff = diff-highlight | less
 [push]
     default = simple
+    [user]
+    email = mkobit@gmail.com
+    name = Mike Kobit
