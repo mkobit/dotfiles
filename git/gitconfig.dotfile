@@ -4,30 +4,20 @@
     delete-merged-branches = "!git checkout master && git branch --merged master | grep -v '* master' | xargs -n 1 git branch -d"
     exec = ! exec
     graph-all = log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all
-    # Rename the current branch. Get current branch
+    # Rename the current branch.
     rename-branch = branch -mv
     root = ! pwd
     # Abbreviation aliases
     st = status
-    cm = commit -m
-    aa = add --all
-    c = commit
     lg = log --graph --pretty=format:'%C(yellow)%h%C(cyan)%d%Creset %s %C(white)- %an, %ar%Creset'
     ll = log --stat --abbrev-commit
     co = checkout
     cob = checkout -b
     sync = pull --rebase
-    br = branch
-    au = add -u
+    add-changed = add -u
     unstage = reset HEAD --
-    dc = diff --cached
+    diff-staged = diff --cached
     amend = commit --amend
-    ai = add -i
-    a = add
-    d = diff
-    f = fetch
-    re = reset
-    rh = reset HEAD
     clean-all = clean -d -x -f
     wip = commit -am 'WIP'
 [branch]
