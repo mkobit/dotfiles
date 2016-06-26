@@ -40,8 +40,10 @@ set textwidth=99999 wrapmargin=0
 """""""""""""""""""""""""""""""""""""""
 " => UI Config
 """""""""""""""""""""""""""""""""""""""
-" show line numbers
+" show absolute line number for current line, and relative for other lines
 set number
+set relativenumber
+
 " show command in bottom bar
 set showcmd
 set ruler
