@@ -48,6 +48,16 @@ cd dotfiles
 ln -sf `pwd`/screen/screenrc.dotfile ~/.screenrc
 ----
 
+=== Tmux
+
+. Create a symlink in `$HOME` to the local `tmux.conf.dotfile`
++
+[source, bash]
+----
+cd tmux
+ln -sf `pwd`/screen/tmux.conf.dotfile ~/.tmux.conf
+----
+
 === VIM
 
 Assuming VIM is installed:
