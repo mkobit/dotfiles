@@ -10,3 +10,9 @@ unbind-key h
 bind-key h select-pane -L
 unbind-key l
 bind-key l select-pane -R
+
+# Split panes using | and -
+bind | split-window -h
+bind - split-window -v
+unbind '"'
+unbind %
