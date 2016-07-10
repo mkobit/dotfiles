@@ -16,3 +16,9 @@ bind | split-window -h
 bind - split-window -v
 unbind '"'
 unbind %
+
+# Maximum number of lines held in window history.
+set-option -g history-limit 10000
+
+# UTF-8 support
+set-window-option -g utf8 on
