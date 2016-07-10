@@ -54,8 +54,8 @@ ln -sf `pwd`/screen/screenrc.dotfile ~/.screenrc
 +
 [source, bash]
 ----
-cd tmux
-ln -sf `pwd`/screen/tmux.conf.dotfile ~/.tmux.conf
+cd dotfiles
+ln -sf `pwd`/tmux/tmux.conf.dotfile ~/.tmux.conf
 ----
 
 === VIM
