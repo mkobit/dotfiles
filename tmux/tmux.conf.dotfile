@@ -20,10 +20,10 @@ unbind %
 # Maximum number of lines held in window history.
 set-option -g history-limit 10000
 
-# UTF-8 support
-set-window-option -g utf8 on
+# Automatically set window titles
+set-option -g set-titles on
+set-option -g set-titles-string '#H:#S.#I.#P #W #T' # window number,program name,active (or not)
 
 ############################################################################
 ## Status Bar
 #############################################################################
-set-option -g status-utf8 on
