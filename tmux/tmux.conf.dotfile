@@ -1,6 +1,10 @@
 # Bind r to refresh Tmux configuration
 bind r source-file ~/.tmux.conf
 
+# set Ctrl-a as the default prefix key combination and unbind C-b to free it up
+set -g prefix C-a
+unbind C-b
+
 # Remap window navigation to vim
 unbind-key j
 bind-key j select-pane -D
