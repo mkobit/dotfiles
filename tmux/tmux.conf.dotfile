@@ -1,7 +1,7 @@
 # Bind r to refresh Tmux configuration
 bind r source-file ~/.tmux.conf \; display "Reloaded ~/.tmux.conf"
 
-# set Ctrl-a as the default prefix key combination and unbind C-b to free it up
+# Set Ctrl-a as the default prefix key combination and unbind C-b to free it up
 set -g prefix C-a
 unbind C-b
 
@@ -14,6 +14,9 @@ unbind-key h
 bind-key h select-pane -L
 unbind-key l
 bind-key l select-pane -R
+
+# Use vim keybindings in copy mode
+setw -g mode-keys vi
 
 # Split panes using | and -
 bind | split-window -h
