@@ -10,6 +10,8 @@ set noerrorbells
 set novisualbell
 " Set utf8 as standard encoding
 set encoding=utf8
+" Set lines to show above and below the cursor
+set scrolloff=5
 
 """""""""""""""""""""""""""""""""""""""
 " => Colors
