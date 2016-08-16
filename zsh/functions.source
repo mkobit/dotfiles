@@ -8,3 +8,9 @@ if type docker-machine > /dev/null 2>&1; then
     eval $(docker-machine env $1)
   }
 fi
+
+# Gradle alias
+gw () 
+{ 
+  ./gradlew $@
+}
