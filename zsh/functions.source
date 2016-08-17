@@ -9,8 +9,3 @@ if type docker-machine > /dev/null 2>&1; then
   }
 fi
 
-# Gradle alias
-gw () 
-{ 
-  ./gradlew $@
-}
