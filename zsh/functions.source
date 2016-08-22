@@ -9,3 +9,11 @@ if type docker-machine > /dev/null 2>&1; then
   }
 fi
 
+# Run wrapper first if it is present
+gradle() {
+  if [ -f ./gradlew ]; then
+    ./gradlew "$@"
+  else
+    command gradle "$@"
+  fi
+}
