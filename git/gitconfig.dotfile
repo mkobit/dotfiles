@@ -4,7 +4,7 @@
     delete-merged-branches = "!git checkout master && git branch --merged master | grep -v '* master' | xargs -n 1 git branch -d"
     exec = ! exec
     graph-all = log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all
-    touch-up = !git add -u && git commit --amend
+    touch-up = !git add -u && git commit --amend --no-edit
     # Rename the current branch.
     rename-branch = branch -mv
     root = ! pwd
