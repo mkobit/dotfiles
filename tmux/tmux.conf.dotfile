@@ -26,6 +26,10 @@ bind -n M-Right select-pane -R
 bind -n M-Up select-pane -U
 bind -n M-Down select-pane -D
 
+# Enable mouse mode (tmux 2.1 and above)
+set -g mouse on
+set -g mouse-utf8 on
+
 # Use vim keybindings in copy mode
 set-window-option -g mode-keys vi
 
