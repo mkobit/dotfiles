@@ -5,6 +5,7 @@
     exec = ! exec
     graph-all = log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all
     touch-up = !git add -u && git commit --amend --no-edit
+    sync = pull --rebase --autostash
     # Rename the current branch.
     rename-branch = branch -mv
     root = ! pwd
@@ -14,7 +15,6 @@
     ll = log --stat --abbrev-commit
     co = checkout
     cob = checkout -b
-    sync = pull --rebase
     add-changed = add -u
     unstage = reset HEAD --
     diff-staged = diff --cached
@@ -39,6 +39,8 @@
     log = diff-highlight | less
     show = diff-highlight | less
     diff = diff-highlight | less
+[pull]
+    rebase = true
 [push]
     default = simple
     [user]
