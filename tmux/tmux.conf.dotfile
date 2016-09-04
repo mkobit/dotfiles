@@ -20,6 +20,12 @@ bind-key h select-pane -L
 unbind-key l
 bind-key l select-pane -R
 
+# Switch panes using Meta + Arrow
+bind -n M-Left select-pane -L
+bind -n M-Right select-pane -R
+bind -n M-Up select-pane -U
+bind -n M-Down select-pane -D
+
 # Use vim keybindings in copy mode
 set-window-option -g mode-keys vi
 
