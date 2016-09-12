@@ -46,3 +46,5 @@
     [user]
     email = mkobit@gmail.com
     name = Mike Kobit
+[stash]
+    showPatch = true

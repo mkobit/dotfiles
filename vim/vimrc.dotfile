@@ -2,7 +2,7 @@
 " => General
 """""""""""""""""""""""""""""""""""""""
 " Amount of lines of history for VIM to remember
-set history=1000
+set history=4000
 " Auto read when a file is changed from the outside
 set autoread
 " Disable annoying error sounds
