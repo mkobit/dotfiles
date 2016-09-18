@@ -1,14 +1,50 @@
-# Bind r to refresh Tmux configuration
+###################################
+###################################
+# Key bindings - key combiniations
+###################################
+###################################
+
 bind r source-file ~/.tmux.conf \; display "Reloaded ~/.tmux.conf"
 
 # Set Ctrl-a as the default prefix key combination and unbind C-b to free it up
 set -g prefix C-a
 unbind C-b
 
+# Enable mouse mode (tmux 2.1 and above)
+set -g mouse on
+
+# Use vim keybindings in copy mode
+set -w -g mode-keys vi
+
+# Split panes using | and - and unbind original keybindings
+bind | split-window -h
+bind - split-window -v
+unbind '"'
+unbind %
+
+# Maximum number of lines held in window history.
+set -g history-limit 10000
+
+# Automatically set window titles
+set -g set-titles on
+set -g set-titles-string '#H:#S.#I.#P #W #T' # window number,program name,active (or not)
+
+###################################
+###################################
+# Options - appearance and behavior
+###################################
+###################################
+
+####################
+# Navigation
+####################
+
 # Window indexing starts at 1
-set-option -g base-index 1
+set -g base-index 1
+# Renumber windows when any is closed (uses base-index)
+set -g renumber-windows on
 # Pane indexing starts at 1
-set-window-option -g pane-base-index 1
+set -w -g pane-base-index 1
 
 # Remap window navigation to vim
 unbind-key j
@@ -26,28 +62,14 @@ bind -n M-Right select-pane -R
 bind -n M-Up select-pane -U
 bind -n M-Down select-pane -D
 
-# Enable mouse mode (tmux 2.1 and above)
-set -g mouse on
-
-# Use vim keybindings in copy mode
-set-window-option -g mode-keys vi
-
-# Split panes using | and - and unbind original keybindings
-bind | split-window -h
-bind - split-window -v
-unbind '"'
-unbind %
-
-# Maximum number of lines held in window history.
-set-option -g history-limit 10000
-
-# Automatically set window titles
-set-option -g set-titles on
-set-option -g set-titles-string '#H:#S.#I.#P #W #T' # window number,program name,active (or not)
-
-############################################################################
-## Status Bar
-#############################################################################
+####################
+# Status Bar
+####################
+# Look at http://mjswensen.com/blog/2014/08/09/friendlier-tmux-status-bar/
+set -g status-left "#S"
 set -g status-justify left
 # Update status bar every 2 seconds
 set -g status-interval 2
+# Status Bar at top
+set -g status-position top
+
