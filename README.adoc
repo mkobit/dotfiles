@@ -2,6 +2,7 @@
 :toc: preamble
 :!toc-title:
 :uri-git-diff-highlight: https://github.com/git/git/tree/master/contrib/diff-highlight
+:uri-tmux-manual: http://man.openbsd.org/OpenBSD-current/man1/tmux.1
 
 Utilities and dotfiles that I use across machines.
 
@@ -57,6 +58,8 @@ ln -sf `pwd`/screen/screenrc.dotfile ~/.screenrc
 cd dotfiles
 ln -sf `pwd`/tmux/tmux.conf.dotfile ~/.tmux.conf
 ----
+
+See the {uri-tmux-manual}[tmux manual] for configuration details.
 
 === VIM
 
