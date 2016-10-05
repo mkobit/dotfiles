@@ -3,8 +3,8 @@
     branches = branch -a
     delete-merged-branches = "!git checkout master && git branch --merged master | grep -v '* master' | xargs -n 1 git branch -d"
     exec = ! exec
-    graph-all = log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all
-    touch-up = !git add -u && git commit --amend --no-edit
+    graphAll = log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all
+    touchUp = !git add -u && git commit --amend --no-edit
     sync = pull --rebase --autostash
     # Rename the current branch.
     rename-branch = branch -mv
@@ -19,7 +19,8 @@
     unstage = reset HEAD --
     diff-staged = diff --cached
     amend = commit --amend
-    clean-all = clean -d -x -f
+    amendit = commit --amend --no-edit
+    cleanAll = clean -d -x -f
     wip = commit -am 'WIP'
 [branch]
     autosetuprebase = always
