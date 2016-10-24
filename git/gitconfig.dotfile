@@ -7,6 +7,7 @@
     # Exec a command from root of git repository - http://stackoverflow.com/a/957978/627727
     exec = ! exec
     graphAll = log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all
+    please = push --force-with-lease
     touchUp = !git add -u && git commit --amend --no-edit
     sync = pull --rebase --autostash
     unstage = reset HEAD --
