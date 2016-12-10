@@ -2,6 +2,7 @@
 :toc: preamble
 :!toc-title:
 :uri-git-diff-highlight: https://github.com/git/git/tree/master/contrib/diff-highlight
+:uri-openssh-manual: http://man.openbsd.org/ssh_config
 :uri-tmux-manual: http://man.openbsd.org/OpenBSD-current/man1/tmux.1
 
 Utilities and dotfiles that I use across machines.
@@ -41,6 +42,8 @@ curl https://raw.githubusercontent.com/git/git/master/contrib/diff-highlight/dif
 
 === Screen
 
+NOTE: I no longer use `screen`, and instead use <<Tmux, `tmux`>>
+
 . Create symlink in `$HOME` to the local `vimrc.dotfile`
 +
 [source, bash]
@@ -48,6 +51,19 @@ curl https://raw.githubusercontent.com/git/git/master/contrib/diff-highlight/dif
 cd dotfiles
 ln -sf `pwd`/screen/screenrc.dotfile ~/.screenrc
 ----
+
+=== SSH
+
+. Create a symlink in `$HOME/.ssh/` to the SSH configuration folder
++
+[source, bash]
+----
+cd ssh
+ln -sf `pwd`/config.d ~/.ssh/config.d
+----
+. Add `Include config.d/*` to the top of the `~/.ssh/config` file
+
+See the {uri-openssh-manual}[openssh ssh_config manual] for configuration details.
 
 === Tmux
 
