@@ -10,7 +10,7 @@ if type docker-machine > /dev/null 2>&1; then
 fi
 
 # Run wrapper first if it is present
-gradle() {
+g() {
   if [ -f ./gradlew ]; then
     ./gradlew "$@"
   else
