@@ -1,5 +1,5 @@
 # Run wrapper first if it is present
-g() {
+function g() {
   if [ -f ./gradlew ]; then
     ./gradlew "$@"
   else
@@ -7,3 +7,4 @@ g() {
     command gradle "$@"
   fi
 }
+alias gradle="g"
