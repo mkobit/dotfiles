@@ -18,6 +18,7 @@
     cleanAll = clean -d -x -f
     wip = commit -am 'WIP'
     # Abbreviation aliases
+    au = add -u
     st = status
     lg = log --graph --pretty=format:'%C(yellow)%h%C(cyan)%d%Creset %s %C(white)- %an, %ar%Creset'
     ll = log --stat --abbrev-commit
