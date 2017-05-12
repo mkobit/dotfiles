@@ -37,15 +37,10 @@ open class Symlink : DefaultTask() {
   }
 }
 
-val homeDir = file(System.getProperty("user.home"))
-
-fun homeFile(filename: Any): File = project.file("$homeDir/$filename")
-
-fun projectFile(relativePath: Any): File = project.file("$rootDir/$relativePath")
-
 tasks {
   val synchronize by creating(Exec::class) {
     commandLine("git", "pull", "--rebase", "--autostash")
+    setWorkingDir(project.rootDir)
   }
   val gitIgnoreGlobal by creating(Symlink::class) {
     source = projectFile("git/gitignore_global.dotfile")
