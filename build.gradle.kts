@@ -1,41 +1,9 @@
 import org.gradle.api.tasks.Exec
-import org.gradle.api.tasks.InputFile
-import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.TaskAction
 import org.gradle.api.tasks.wrapper.Wrapper
-import java.nio.file.Files
+
+import files.Symlink
 
 description = "Dotfiles and package management of laptop"
-
-open class Symlink : DefaultTask() {
-
-  /**
-   * The source file of the link.
-   */
-  @get:InputFile
-  var source: File? = null
-
-  /**
-   * The destination where the link will be created.
-   */
-  @get:OutputFile
-  var destination: File? = null
-
-  @TaskAction
-  fun createLink() {
-    val sourcePath = source!!.toPath().toAbsolutePath()
-    val destinationPath = destination!!.toPath().toAbsolutePath()
-    if (Files.isSymbolicLink(destinationPath)) {
-      logger.info("{} is an existing symbolic link, delete before recreating", destinationPath)
-      Files.delete(destinationPath)
-    } else if (Files.exists(destinationPath)) {
-      throw InvalidUserDataException("$destinationPath already exists, and isn't a symlink.")
-    } else {
-      logger.debug("Creating symbolic link at {} for {}", destinationPath, sourcePath)
-      Files.createSymbolicLink(destinationPath, sourcePath)
-    }
-  }
-}
 
 tasks {
   val synchronize by creating(Exec::class) {
