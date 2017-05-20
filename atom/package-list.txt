@@ -1,12 +1,11 @@
-asciidoc-preview@2.5.1
-autocomplete-elixir@1.5.13
-build-elixir@0.6.0
-color-picker@2.1.1
-language-asciidoc@1.5.1
-language-docker@1.1.6
-language-elixir@0.13.1
+asciidoc-preview@2.10.1
+autocomplete-elixir@1.5.14
+build-elixir@0.7.0
+color-picker@2.2.5
+language-asciidoc@1.10.0
+language-docker@1.1.7
+language-elixir@0.17.0
 language-elm@1.5.0
-language-groovy@0.6.0
-pretty-json@1.4.1
-
+language-groovy@0.7.0
+pretty-json@1.6.3
 
