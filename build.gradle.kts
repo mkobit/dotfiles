@@ -35,13 +35,13 @@ tasks {
     val gitConfigPersonal = projectFile("git/gitconfig_personal.dotfile")
     inputs.files(gitConfigGeneral, gitConfigPersonal)
     text = """[include]
-  path = ${gitConfigGeneral.absolutePath}
+    path = ${gitConfigGeneral.absolutePath}
 [includeIf "gitdir:${project.rootDir.absolutePath}"]
-  path = ${gitConfigPersonal.absolutePath}
+    path = ${gitConfigPersonal.absolutePath}
 [includeIf "gitdir:${personalWorkspace.directory!!.absolutePath}"]
-  path = ${gitConfigPersonal.absolutePath}
+    path = ${gitConfigPersonal.absolutePath}
 [includeIf "gitdir:${workWorkspace.directory!!.absolutePath}"]
-  path = ${homeFile(".gitconfig_work")}
+    path = ${homeFile(".gitconfig_work")}
 """
     destination = homeFile(".gitconfig")
     dependsOn(workspace)
