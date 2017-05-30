@@ -1,3 +1,5 @@
+# Oh-My-Zsh aliases g to git
+unalias g
 # Run wrapper first if it is present
 function g() {
   if [ -f ./gradlew ]; then
