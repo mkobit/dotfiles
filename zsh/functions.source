@@ -1,5 +1,7 @@
 # Oh-My-Zsh aliases g to git
-unalias g
+if type g > /dev/null ; then
+  unalias g
+fi
 # Run wrapper first if it is present
 function g() {
   if [ -f ./gradlew ]; then
