@@ -40,6 +40,8 @@ tasks {
     path = ${gitConfigPersonal.absolutePath}
 [includeIf "gitdir:${personalWorkspace.directory!!.absolutePath}/"]
     path = ${gitConfigPersonal.absolutePath}
+[includeIf "gitdir:${codeLabWorkspace.directory!!.absolutePath}/"]
+    path = ${gitConfigPersonal.absolutePath}
 [includeIf "gitdir:${workWorkspace.directory!!.absolutePath}/"]
     path = ${homeFile(".gitconfig_work")}
 """
