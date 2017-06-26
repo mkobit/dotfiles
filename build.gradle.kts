@@ -97,7 +97,7 @@ tasks {
   }
 
   "wrapper"(Wrapper::class) {
-    gradleVersion = "3.5"
+    gradleVersion = "4.0"
   }
 
   "dotfiles" {
