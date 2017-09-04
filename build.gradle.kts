@@ -4,6 +4,8 @@ import org.gradle.api.tasks.wrapper.Wrapper
 import files.Symlink
 import files.Mkdir
 import files.WriteFile
+import git.CloneRepository
+import git.PullRepository
 import update.SelfUpdatePlugin
 
 apply {
@@ -114,5 +116,48 @@ tasks {
     description = "Sets up all dotfiles and packages"
     group = "Install"
     dependsOn(git, screen, ssh, tmux, vim, workspace)
+  }
+}
+
+// TODO: move all of this into some extension or buildSrc managed plugin
+val trackedRepositories: Map<String, List<String>> by extra
+val cloneAllTrackedRepositories by tasks.creating {
+  description = "Clones all tracked repositories"
+  group = "Repository Management"
+}
+val pullAllTrackedRepositories by tasks.creating {
+  description = "Pulls all tracked repositories"
+  group = "Repository Management"
+}
+trackedRepositories.forEach { grouping, urls ->
+  val repositoryGroupingDirectory: Directory = personalWorkspaceDirectory.dir(grouping)
+  val groupingTask = tasks.create("clone${grouping.capitalize()}RepositoryGroup", Mkdir::class.java) {
+    directoryProvider = repositoryGroupingDirectory
+  }
+  urls.forEach { url ->
+    val repositoryName = url.run {
+      val ofGit = lastIndexOf(".git").let {
+        if (it > 0) {
+          it
+        } else {
+          length
+        }
+      }
+      val ofSlash = lastIndexOf("/")
+      substring(ofSlash + 1, ofGit)
+    }
+    val repositoryDirectory = repositoryGroupingDirectory.dir(repositoryName)
+    val cloneTask = tasks.create("clone${grouping.capitalize()}Repository$repositoryName", CloneRepository::class.java) {
+      dependsOn(groupingTask)
+      repositoryDirectoryProvider = repositoryDirectory
+      repositoryUrlState.set(url)
+    }
+    cloneAllTrackedRepositories.dependsOn(cloneTask)
+
+    val syncTask = tasks.create("pull${grouping.capitalize()}Repository$repositoryName", PullRepository::class.java) {
+      dependsOn(cloneTask)
+      repositoryDirectoryProvider = repositoryDirectory
+    }
+    pullAllTrackedRepositories.dependsOn(syncTask)
   }
 }
