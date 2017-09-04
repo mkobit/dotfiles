@@ -108,6 +108,4 @@ tasks {
     group = "Install"
     dependsOn(git, screen, ssh, tmux, vim, workspace)
   }
-
-  project.defaultTasks(synchronize.name)
 }

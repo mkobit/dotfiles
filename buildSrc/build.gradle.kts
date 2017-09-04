@@ -1,6 +1,7 @@
 plugins {
   `java-library`
-  `kotlin-dsl`
+  // TODO: wait until next release to work properly
+//  `kotlin-dsl`
 }
 
 repositories {
