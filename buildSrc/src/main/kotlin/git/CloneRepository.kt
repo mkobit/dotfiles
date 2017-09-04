@@ -25,9 +25,7 @@ open class CloneRepository @Inject constructor(
   }
 
   init {
-    outputs.upToDateWhen {
-      Files.isDirectory(destinationDirectory!!.toPath())
-    }
+    outputs.upToDateWhen { doesDirExists() }
   }
 
   var repositoryDirectoryProvider: Directory? = null
@@ -44,11 +42,21 @@ open class CloneRepository @Inject constructor(
 
   @TaskAction
   fun cloneRepository() {
+    if (doesDirExists()) {
+      LOGGER.info { "Directory already exists at $destinationDirectory" }
+      didWork = false
+      return
+    }
     workerExecutor.submit(CloneAction::class.java) {
       it.apply {
         isolationMode = IsolationMode.NONE
         setParams(destinationDirectory!!, repositoryUrl!!)
       }
     }
+  }
+
+  private fun doesDirExists(): Boolean {
+    val repositoryPath = destinationDirectory!!.toPath()
+    return Files.isDirectory(repositoryPath)
   }
 }

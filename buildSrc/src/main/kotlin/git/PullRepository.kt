@@ -3,9 +3,6 @@ package git
 import mu.KotlinLogging
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.Directory
-import org.gradle.api.file.DirectoryVar
-import org.gradle.api.file.ProjectLayout
-import org.gradle.api.provider.PropertyState
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.workers.IsolationMode

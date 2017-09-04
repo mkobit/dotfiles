@@ -120,7 +120,8 @@ extra["trackedRepositories"] = mapOf(
     "mkobit" to listOf(
         "git@github.com:mkobit/gradle-test-kit-extensions.git",
         "git@github.com:mkobit/jenkins-pipeline-shared-library-example.git",
-        "git@github.com:mkobit/jenkins-pipeline-shared-libraries-gradle-plugin.git"
+        "git@github.com:mkobit/jenkins-pipeline-shared-libraries-gradle-plugin.git",
+        "git@gitlab.com:mkobit/blog.git"
     ),
     "square" to listOf(
         "https://github.com/square/okhttp.git",
