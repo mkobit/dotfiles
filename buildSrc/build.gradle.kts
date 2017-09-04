@@ -1,5 +1,6 @@
 plugins {
   `java-library`
+  kotlin("jvm")
   // TODO: wait until next release to work properly
 //  `kotlin-dsl`
 }

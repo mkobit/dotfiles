@@ -1,8 +1,16 @@
 import org.gradle.api.Project
-import java.io.File
+import org.gradle.api.file.Directory
+import org.gradle.api.file.RegularFile
 
-internal val userHome = System.getProperty("user.home")
+private val userHome: String = System.getProperty("user.home")
 
-fun Project.homeFile(filename: Any): File = project.file("$userHome/$filename")
+fun Project.home(): Directory = layout.newDirectoryVar().run {
+  set(this@home.file(userHome))
+  get()
+}
 
-fun Project.projectFile(relativePath: Any): File = project.file("$rootDir/$relativePath")
+fun Project.homeDir(path: String): Directory = home().dir(path)
+
+fun Project.homeFile(path: String): RegularFile = home().file(path)
+
+fun Project.projectFile(path: String): RegularFile = layout.projectDirectory.file(path)

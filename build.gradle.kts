@@ -4,20 +4,30 @@ import org.gradle.api.tasks.wrapper.Wrapper
 import files.Symlink
 import files.Mkdir
 import files.WriteFile
+import update.SelfUpdatePlugin
+
+apply {
+  plugin<SelfUpdatePlugin>()
+  from("gradle/trackedRepositories.gradle.kts")
+}
 
 description = "Dotfiles and package management"
 
+val personalWorkspaceDirectory: Directory = homeDir("Workspace/personal")
+val workWorkspaceDirectory: Directory = homeDir("Workspace/work")
+val codeLabWorkspaceDirectory: Directory = homeDir("Workspace/code_lab")
+
 tasks {
   val personalWorkspace by creating(Mkdir::class) {
-    directory = homeFile("Workspace/personal")
+    directoryProvider = personalWorkspaceDirectory
   }
 
   val workWorkspace by creating(Mkdir::class) {
-    directory = homeFile("Workspace/work")
+    directoryProvider = workWorkspaceDirectory
   }
 
   val codeLabWorkspace by creating(Mkdir::class) {
-    directory = homeFile("Workspace/code_lab")
+    directoryProvider = codeLabWorkspaceDirectory
   }
 
   val workspace by creating {
@@ -25,33 +35,30 @@ tasks {
     dependsOn(personalWorkspace, workWorkspace, codeLabWorkspace)
   }
 
-  val synchronize by creating(Exec::class) {
-    commandLine("git", "pull", "--rebase", "--autostash")
-    setWorkingDir(project.rootDir)
-  }
-
   val gitConfigGeneration by creating(WriteFile::class) {
     val gitConfigGeneral = projectFile("git/gitconfig_general.dotfile")
     val gitConfigPersonal = projectFile("git/gitconfig_personal.dotfile")
     inputs.files(gitConfigGeneral, gitConfigPersonal)
-    text = """[include]
-    path = ${gitConfigGeneral.absolutePath}
+    textState.set(provider {
+      """[include]
+    path = ${gitConfigGeneral.get().absolutePath}
 [includeIf "gitdir:${project.rootDir.absolutePath}/"]
-    path = ${gitConfigPersonal.absolutePath}
+    path = ${gitConfigPersonal.get().absolutePath}
 [includeIf "gitdir:${personalWorkspace.directory!!.absolutePath}/"]
-    path = ${gitConfigPersonal.absolutePath}
+    path = ${gitConfigPersonal.get().absolutePath}
 [includeIf "gitdir:${codeLabWorkspace.directory!!.absolutePath}/"]
-    path = ${gitConfigPersonal.absolutePath}
+    path = ${gitConfigPersonal.get().absolutePath}
 [includeIf "gitdir:${workWorkspace.directory!!.absolutePath}/"]
     path = ${homeFile(".gitconfig_work")}
 """
-    destination = homeFile(".gitconfig")
+    })
+    destinationProvider = homeFile(".gitconfig")
     dependsOn(workspace)
   }
 
   val gitIgnoreGlobal by creating(Symlink::class) {
-    source = projectFile("git/gitignore_global.dotfile")
-    destination = homeFile(".gitignore_global")
+    sourceProvider = projectFile("git/gitignore_global.dotfile")
+    destinationProvider = homeFile(".gitignore_global")
   }
 
   val git by creating {
@@ -60,8 +67,8 @@ tasks {
   }
 
   val screenRc by creating(Symlink::class) {
-    source = projectFile("screen/screenrc.dotfile")
-    destination = homeFile(".screenrc")
+    sourceProvider = projectFile("screen/screenrc.dotfile")
+    destinationProvider = homeFile(".screenrc")
   }
 
   val screen by creating {
@@ -70,12 +77,12 @@ tasks {
   }
 
   val tmuxConf by creating(Symlink::class) {
-    source = projectFile("tmux/tmux.conf.dotfile")
-    destination = homeFile(".tmux.conf")
+    sourceProvider = projectFile("tmux/tmux.conf.dotfile")
+    destinationProvider = homeFile(".tmux.conf")
   }
 
   val sshCms by creating(Mkdir::class) {
-    directory = homeFile(".ssh/controlMaster")
+    directoryProvider = homeDir(".ssh/controlMaster")
   }
 
   val ssh by creating {
@@ -89,8 +96,8 @@ tasks {
   }
 
   val vimRc by creating(Symlink::class) {
-    source = projectFile("vim/vimrc.dotfile")
-    destination = homeFile(".vimrc")
+    sourceProvider = projectFile("vim/vimrc.dotfile")
+    destinationProvider = homeFile(".vimrc")
   }
 
   val vim by creating {
