@@ -3,11 +3,8 @@ package git
 import mu.KotlinLogging
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.Directory
-import org.gradle.api.file.DirectoryVar
-import org.gradle.api.file.ProjectLayout
 import org.gradle.api.provider.PropertyState
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.workers.IsolationMode
@@ -25,7 +22,7 @@ open class CloneRepository @Inject constructor(
   }
 
   init {
-    outputs.upToDateWhen { doesDirExists() }
+    outputs.upToDateWhen { doesGitRepositoryExist() }
   }
 
   var repositoryDirectoryProvider: Directory? = null
@@ -42,7 +39,7 @@ open class CloneRepository @Inject constructor(
 
   @TaskAction
   fun cloneRepository() {
-    if (doesDirExists()) {
+    if (doesGitRepositoryExist()) {
       LOGGER.info { "Directory already exists at $destinationDirectory" }
       didWork = false
       return
@@ -55,8 +52,9 @@ open class CloneRepository @Inject constructor(
     }
   }
 
-  private fun doesDirExists(): Boolean {
-    val repositoryPath = destinationDirectory!!.toPath()
+  private fun doesGitRepositoryExist(): Boolean {
+    // TODO: better way to determine if git repository already exists
+    val repositoryPath = destinationDirectory!!.toPath().resolve(".git")
     return Files.isDirectory(repositoryPath)
   }
 }
