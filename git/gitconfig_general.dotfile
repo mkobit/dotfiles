@@ -51,3 +51,5 @@
     showPatch = true
 [merge]
 	ff = false
+[rebase]
+	autoSquash = true
