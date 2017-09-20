@@ -1,5 +1,6 @@
 package files
 
+import mu.KotlinLogging
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.Directory
 import org.gradle.api.tasks.Input
@@ -9,11 +10,15 @@ import java.nio.file.Files
 
 open class Mkdir : DefaultTask() {
 
+  companion object {
+    private val LOGGER = KotlinLogging.logger {}
+  }
+
   var directoryProvider: Directory? = null
 
   @get:Input
   val directory: File?
-    get() = directoryProvider?.get()
+    get() = directoryProvider?.asFile
 
   init {
     outputs.upToDateWhen {
@@ -23,7 +28,7 @@ open class Mkdir : DefaultTask() {
 
   @TaskAction
   fun createDir() {
-    logger.info("Creating directory at {}", directory)
+    LOGGER.info { "Creating directory at $directory" }
     Files.createDirectories(directory!!.toPath())
   }
 }

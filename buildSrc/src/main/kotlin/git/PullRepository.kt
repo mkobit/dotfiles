@@ -22,7 +22,7 @@ open class PullRepository @Inject constructor(
 
   @get:InputDirectory
   val repositoryDirectory: File?
-    get() = repositoryDirectoryProvider?.get()
+    get() = repositoryDirectoryProvider?.asFile
 
   @TaskAction
   fun pullRepository() {

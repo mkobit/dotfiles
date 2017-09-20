@@ -30,7 +30,7 @@ open class CloneRepository @Inject constructor(
 
   @get:OutputDirectory
   val destinationDirectory: File?
-    get() = repositoryDirectoryProvider?.get()
+    get() = repositoryDirectoryProvider?.asFile
 
   @get:Input
   var repositoryUrl: String?

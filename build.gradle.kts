@@ -43,13 +43,13 @@ tasks {
     inputs.files(gitConfigGeneral, gitConfigPersonal)
     textState.set(provider {
       """[include]
-    path = ${gitConfigGeneral.get().absolutePath}
+    path = ${gitConfigGeneral.asFile.absolutePath}
 [includeIf "gitdir:${project.rootDir.absolutePath}/"]
-    path = ${gitConfigPersonal.get().absolutePath}
+    path = ${gitConfigPersonal.asFile.absolutePath}
 [includeIf "gitdir:${personalWorkspace.directory!!.absolutePath}/"]
-    path = ${gitConfigPersonal.get().absolutePath}
+    path = ${gitConfigPersonal.asFile.absolutePath}
 [includeIf "gitdir:${codeLabWorkspace.directory!!.absolutePath}/"]
-    path = ${gitConfigPersonal.get().absolutePath}
+    path = ${gitConfigPersonal.asFile.absolutePath}
 [includeIf "gitdir:${workWorkspace.directory!!.absolutePath}/"]
     path = ${homeFile(".gitconfig_work")}
 """
@@ -108,7 +108,7 @@ tasks {
   }
 
   "wrapper"(Wrapper::class) {
-    gradleVersion = "4.1"
+    gradleVersion = "4.2"
     distributionType = Wrapper.DistributionType.ALL
   }
 

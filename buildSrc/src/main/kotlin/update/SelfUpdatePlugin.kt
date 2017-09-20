@@ -10,7 +10,7 @@ open class SelfUpdatePlugin : Plugin<Project> {
       it.apply {
         description = "Synchronizes the dotfiles source"
         commandLine("git", "pull", "--rebase", "--autostash")
-        setWorkingDir(project.rootDir)
+        workingDir = project.rootDir
         group = "Self update"
       }
     }

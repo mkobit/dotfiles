@@ -21,7 +21,7 @@ open class WriteFile : DefaultTask() {
 
   @get:OutputFile
   val destination: File?
-    get() = destinationProvider?.get()
+    get() = destinationProvider?.asFile
 
   @TaskAction
   fun writeText() {

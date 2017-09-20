@@ -25,14 +25,14 @@ open class Symlink @Inject constructor(
    */
   @get:InputFile
   val source: File?
-    get() = sourceProvider?.get()
+    get() = sourceProvider?.asFile
 
   /**
    * The destination where the link will be created.
    */
   @get:OutputFile
   val destination: File?
-    get() = destinationProvider?.get()
+    get() = destinationProvider?.asFile
 
   @TaskAction
   fun createLink() {
