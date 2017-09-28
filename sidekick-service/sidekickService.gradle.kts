@@ -6,6 +6,7 @@ plugins {
   id("io.ratpack.ratpack-java") version "1.5.0"
   id("com.github.ben-manes.versions") version "0.15.0"
   kotlin("jvm", "1.1.50")
+  kotlin("kapt", "1.1.50")
 }
 
 repositories {
@@ -13,7 +14,16 @@ repositories {
   mavenCentral()
 }
 
+val daggerVersion = "2.11"
+
+kapt {
+  generateStubs = true
+}
+
 dependencies {
+  kapt("com.google.dagger", "dagger-compiler", daggerVersion)
+
+  implementation("com.google.dagger", "dagger", daggerVersion)
   implementation(kotlin("stdlib-jre8", "1.1.50"))
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines:0.18")
   implementation("com.squareup.retrofit2:retrofit:2.3.0")
@@ -36,5 +46,5 @@ tasks.withType(KotlinCompile::class.java) {
 }
 
 application {
-  mainClassName = "com.mkobit.dev.Main"
+  mainClassName = "com.mkobit.personalassistant.Main"
 }

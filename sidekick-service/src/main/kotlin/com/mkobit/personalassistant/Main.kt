@@ -1,8 +1,7 @@
 @file:JvmName("Main")
 
-package com.mkobit.dev
+package com.mkobit.personalassistant
 
-import ratpack.handling.Handler
 import ratpack.server.RatpackServer
 import java.net.InetAddress
 
