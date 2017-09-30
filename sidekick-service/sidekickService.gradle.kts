@@ -5,8 +5,7 @@ plugins {
   `java`
   id("io.ratpack.ratpack-java") version "1.5.0"
   id("com.github.ben-manes.versions") version "0.15.0"
-  kotlin("jvm", "1.1.50")
-  kotlin("kapt", "1.1.50")
+  kotlin("jvm", "1.1.51")
 }
 
 repositories {
@@ -14,18 +13,19 @@ repositories {
   mavenCentral()
 }
 
-val daggerVersion = "2.11"
-
-kapt {
-  generateStubs = true
-}
+val kodeinVersion by extra { "4.1.0" }
 
 dependencies {
-  kapt("com.google.dagger", "dagger-compiler", daggerVersion)
+  // Maybe try out Kodein?
+  implementation("com.github.salomonbrys.kodein:kodein:$kodeinVersion")
+  implementation("com.github.salomonbrys.kodein:kodein-jxinject:$kodeinVersion")
 
-  implementation("com.google.dagger", "dagger", daggerVersion)
-  implementation(kotlin("stdlib-jre8", "1.1.50"))
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines:0.18")
+  implementation("org.funktionale", "funktionale-all", "1.1")
+  implementation("io.webfolder", "cdp4j", "2.0.0")
+
+  implementation(kotlin("stdlib-jre8", "1.1.51"))
+  // TODO: switch when publishing to JCenter finishes - https://bintray.com/kotlin/kotlinx/kotlinx.coroutines
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:0.19")
   implementation("com.squareup.retrofit2:retrofit:2.3.0")
   implementation("com.squareup.okhttp3:okhttp:3.9.0")
   implementation("io.github.microutils:kotlin-logging:1.4.6")
