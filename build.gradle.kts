@@ -108,7 +108,7 @@ tasks {
   }
 
   "wrapper"(Wrapper::class) {
-    gradleVersion = "4.2"
+    gradleVersion = "4.2.1"
     distributionType = Wrapper.DistributionType.ALL
   }
 
