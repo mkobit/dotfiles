@@ -30,9 +30,9 @@ filetype plugin on
 " => Spaces and Tabs
 """""""""""""""""""""""""""""""""""""""
 " number of visual spaces per TAB
-set tabstop=4
+set tabstop=2
 " number of spaces in tab when editing
-set softtabstop=4
+set softtabstop=2
 " tabs are spaces
 set expandtab
 " disable physical line wrapping
@@ -68,6 +68,13 @@ set incsearch
 set hlsearch
 set ignorecase
 set smartcase
+"
+"""""""""""""""""""""""""""""""""""""""
+" => Actions
+"""""""""""""""""""""""""""""""""""""""
+" Alternative escape sequences
+inoremap jk <Esc>
+inoremap kj <Esc>
 
 """""""""""""""""""""""""""""""""""""""
 " => Movement
