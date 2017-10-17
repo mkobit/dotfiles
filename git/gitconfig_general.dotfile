@@ -1,5 +1,6 @@
 [alias]
     add-changed = add -u
+    aliases = ! git var -l | grep --color=never -e '^alias' | sed -E 's/^alias.//g'
     amend = commit --amend
     branches = branch -a
     delete-merged-branches = "!git checkout master && git branch --merged master | grep -v '* master' | xargs --no-run-if-empty --max-args 1 git branch -d"
