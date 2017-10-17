@@ -2,23 +2,41 @@
 
 package com.mkobit.personalassistant
 
-import ratpack.server.RatpackServer
-import java.net.InetAddress
+import com.mkobit.personalassistant.chrome.chromeRouter
+import io.vertx.core.AbstractVerticle
+import io.vertx.core.Future
+import io.vertx.core.Handler
+import io.vertx.ext.web.Router
+import io.vertx.ext.web.RoutingContext
+import io.vertx.kotlin.core.http.HttpServerOptions
 
-object Main {
+@Suppress("UNUSED")
+class Main : AbstractVerticle() {
+//  @JvmStatic
+//  fun main(args: Array<String>) {
+//
+//  }
 
-  @JvmStatic
-  fun main(args: Array<String>) {
-    RatpackServer.start { server ->
-      server.serverConfig { serverConfigBuilder ->
-        serverConfigBuilder.address(InetAddress.getLoopbackAddress())
-        serverConfigBuilder.port(1337)
-      }
-      server.handlers { handlers ->
-        handlers.get { context ->
-          context.render("Hello world!")
-        }
+  override fun start(startFuture: Future<Void>) {
+    val router = createRouter()
+    vertx.createHttpServer(serverOptions).requestHandler(router::accept).listen { result ->
+      when {
+        result.succeeded() -> startFuture.complete()
+        else -> startFuture.fail(result.cause())
       }
     }
+  }
+
+  val serverOptions = HttpServerOptions(
+      port = 1337
+  )
+
+  fun createRouter(): Router = Router.router(vertx).apply {
+    get("/").handler(handlerRoot)
+    mountSubRouter("/browser/chrome", chromeRouter(vertx))
+  }
+
+  val handlerRoot = Handler<RoutingContext> { req ->
+    req.response().end("Hello World!")
   }
 }

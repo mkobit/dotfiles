@@ -1,10 +1,14 @@
+import org.gradle.kotlin.dsl.`embedded-kotlin`
 import org.jetbrains.kotlin.gradle.dsl.Coroutines
 
 plugins {
   `java-library`
-  kotlin("jvm")
+//  kotlin("jvm") version "1.1.51"
   // TODO: wait until next release to work properly
 //  `kotlin-dsl`
+//  `embedded-kotlin`
+  `kotlin-dsl`
+  `java-gradle-plugin`
 }
 
 repositories {
@@ -18,8 +22,8 @@ java {
 
 dependencies {
   implementation(gradleApi())
-  implementation(kotlin("stdlib-jre8"))
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines:0.18")
+//  implementation(kotlin("stdlib-jre8"))
+  implementation("org.jetbrains.kotlinx:kotlinx-coroutines:0.19.1")
   implementation("com.squareup.retrofit2:retrofit:2.3.0")
   implementation("com.squareup.okhttp3:okhttp:3.9.0")
   implementation("io.github.microutils:kotlin-logging:1.4.6")

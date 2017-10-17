@@ -8,6 +8,11 @@ import git.CloneRepository
 import git.PullRepository
 import update.SelfUpdatePlugin
 
+plugins {
+  id("com.github.ben-manes.versions") version "0.15.0"
+  kotlin("jvm") version "1.1.51" apply false
+}
+
 apply {
   plugin<SelfUpdatePlugin>()
   from("gradle/trackedRepositories.gradle.kts")
@@ -108,8 +113,10 @@ tasks {
   }
 
   "wrapper"(Wrapper::class) {
-    gradleVersion = "4.2.1"
+    // Temporary for Java 9
+    gradleVersion = "4.3-rc-1"
     distributionType = Wrapper.DistributionType.ALL
+//    distributionUrl = "https://repo.gradle.org/gradle/dist-snapshots/gradle-kotlin-dsl-4.3-20171004164220+0000-all.zip"
   }
 
   "dotfiles" {

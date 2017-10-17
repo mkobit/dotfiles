@@ -45,10 +45,8 @@ open class CloneRepository @Inject constructor(
       return
     }
     workerExecutor.submit(CloneAction::class.java) {
-      it.apply {
-        isolationMode = IsolationMode.NONE
-        setParams(destinationDirectory!!, repositoryUrl!!)
-      }
+      isolationMode = IsolationMode.NONE
+      setParams(destinationDirectory!!, repositoryUrl!!)
     }
   }
 

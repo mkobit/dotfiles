@@ -1,6 +1,6 @@
 package com.mkobit.personalassistant.process
 
-import kotlinx.coroutines.experimental.yield
+import kotlinx.coroutines.experimental.future.await
 import mu.KotlinLogging
 import java.io.File
 
@@ -9,7 +9,14 @@ data class CompletedProcess(
     val returnCode: Int,
     val stdOut: String,
     val stdErr: String
-)
+) {
+  fun throwIfNonZero(): CompletedProcess {
+    if (returnCode != 0) {
+      throw RuntimeException("Process $arguments exited with $returnCode\nStdErr: $stdErr")
+    }
+    return this
+  }
+}
 
 private val logger = KotlinLogging.logger {}
 
@@ -25,6 +32,7 @@ suspend fun runProcess(
     workingDir?.let { directory(it) }
   }
 
+  logger.debug { "Executing process with command $commandLine" }
   val process = processBuilder.start()
   try {
     stdIn?.let {
@@ -33,9 +41,7 @@ suspend fun runProcess(
         writer.flush()
       }
     }
-    while (process.isAlive) {
-      yield()
-    }
+    process.onExit().await()
 
     val exitCode = process.exitValue()
     val stdOutText = process.inputStream.bufferedReader().use { it.readText() }

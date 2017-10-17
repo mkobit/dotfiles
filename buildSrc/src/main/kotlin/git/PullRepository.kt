@@ -31,10 +31,8 @@ open class PullRepository @Inject constructor(
       return
     }
     workerExecutor.submit(PullAction::class.java) {
-      it.apply {
-        isolationMode = IsolationMode.NONE
-        setParams(repositoryDirectory!!)
-      }
+      isolationMode = IsolationMode.NONE
+      setParams(repositoryDirectory!!)
     }
   }
 }
