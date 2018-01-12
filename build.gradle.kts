@@ -10,7 +10,7 @@ import update.SelfUpdatePlugin
 
 plugins {
   id("com.github.ben-manes.versions") version "0.17.0"
-  kotlin("jvm") version "1.2.0" apply false
+  kotlin("jvm") version "1.2.10" apply false
 }
 
 apply {
@@ -113,7 +113,7 @@ tasks {
   }
 
   "wrapper"(Wrapper::class) {
-    gradleVersion = "4.4-rc-4"
+    gradleVersion = "4.5-rc-1"
     distributionType = Wrapper.DistributionType.ALL
   }
 

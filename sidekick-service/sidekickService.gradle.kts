@@ -12,16 +12,17 @@ repositories {
   mavenCentral()
 }
 
-val vertxVersion by extra { "3.4.2" }
+val jacksonVersion by extra { "2.9.3" }
+val vertxVersion by extra { "3.5.0" }
 val kodeinVersion by extra { "4.1.0" }
-val coroutinesVersion by extra { "0.19.1" }
+val coroutinesVersion by extra { "0.21" }
 val retrofitVersion by extra { "2.3.0" }
 
 dependencies {
-  implementation("com.google.guava:guava:23.0")
+  implementation("com.google.guava:guava:23.6-jre")
 
-  implementation("com.fasterxml.jackson.core:jackson-core:2.9.1")
-  implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.9.0")
+  implementation("com.fasterxml.jackson.core:jackson-core:$jacksonVersion")
+  implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
 
   // Maybe try out Kodein?
   implementation("com.github.salomonbrys.kodein:kodein:$kodeinVersion")
@@ -31,22 +32,20 @@ dependencies {
   implementation("io.vertx:vertx-web:$vertxVersion")
   implementation("io.vertx:vertx-lang-kotlin:$vertxVersion")
 //  implementation("io.vertx:vertx-lang-kotlin-coroutines:$vertxVersion")
-
-  implementation("ru.gildor.coroutines:kotlin-coroutines-retrofit:0.7.1")
+0
+  implementation("ru.gildor.coroutines:kotlin-coroutines-retrofit:0.9.0")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$coroutinesVersion")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$coroutinesVersion")
 
-  implementation("io.webfolder", "cdp4j", "2.0.0")
+  implementation("io.webfolder", "cdp4j", "2.1.5")
 
   implementation(kotlin("stdlib-jre8"))
   // TODO: switch when publishing to JCenter finishes - https://bintray.com/kotlin/kotlinx/kotlinx.coroutines
   implementation("com.squareup.retrofit2:retrofit:$retrofitVersion")
   implementation("com.squareup.retrofit2:converter-jackson:$retrofitVersion")
-  implementation("com.squareup.okhttp3:okhttp:3.9.0")
+  implementation("com.squareup.okhttp3:okhttp:3.9.1")
 
-  implementation("io.github.microutils:kotlin-logging:1.4.6")
-  implementation("org.funktionale", "funktionale-all", "1.1")
+  implementation("io.github.microutils:kotlin-logging:1.4.9")
 
   runtimeOnly("org.slf4j:slf4j-simple:1.7.25")
 }
