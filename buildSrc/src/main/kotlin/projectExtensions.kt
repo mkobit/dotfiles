@@ -6,10 +6,14 @@ import org.gradle.api.provider.ListProperty
 
 private val userHome: String = System.getProperty("user.home")
 
-fun Project.home(): Directory = layout.directoryProperty().run {
-  set(this@home.file(userHome))
-  get()
-}
+val Project.home: Directory
+  get() = layout.directoryProperty().run {
+    set(this@home.file(userHome))
+    get()
+  }
+
+@Deprecated("Use the home property instead")
+fun Project.home(): Directory = home
 
 fun Project.homeDir(path: String): Directory = home().dir(path)
 

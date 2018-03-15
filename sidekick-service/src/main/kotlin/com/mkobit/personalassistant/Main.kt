@@ -2,41 +2,23 @@
 
 package com.mkobit.personalassistant
 
-import com.mkobit.personalassistant.chrome.chromeRouter
-import io.vertx.core.AbstractVerticle
-import io.vertx.core.Future
-import io.vertx.core.Handler
-import io.vertx.ext.web.Router
-import io.vertx.ext.web.RoutingContext
-import io.vertx.kotlin.core.http.HttpServerOptions
+import io.ktor.application.call
+import io.ktor.application.install
+import io.ktor.http.ContentType
+import io.ktor.response.respondText
+import io.ktor.routing.Routing
+import io.ktor.routing.get
+import io.ktor.server.engine.embeddedServer
+import io.ktor.server.netty.Netty
 
-@Suppress("UNUSED")
-class Main : AbstractVerticle() {
-//  @JvmStatic
-//  fun main(args: Array<String>) {
-//
-//  }
 
-  override fun start(startFuture: Future<Void>) {
-    val router = createRouter()
-    vertx.createHttpServer(serverOptions).requestHandler(router::accept).listen { result ->
-      when {
-        result.succeeded() -> startFuture.complete()
-        else -> startFuture.fail(result.cause())
+fun main(args: Array<String>) {
+  val server = embeddedServer(Netty, 8080) {
+    install(Routing) {
+      get("/") {
+        call.respondText("Hello, world!", ContentType.Text.Html)
       }
     }
   }
-
-  val serverOptions = HttpServerOptions(
-      port = 1337
-  )
-
-  fun createRouter(): Router = Router.router(vertx).apply {
-    get("/").handler(handlerRoot)
-    mountSubRouter("/browser/chrome", chromeRouter(vertx))
-  }
-
-  val handlerRoot = Handler<RoutingContext> { req ->
-    req.response().end("Hello World!")
-  }
+  server.start(wait = true)
 }

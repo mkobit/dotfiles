@@ -10,11 +10,12 @@ import update.SelfUpdatePlugin
 
 plugins {
   id("com.github.ben-manes.versions") version "0.17.0"
-  kotlin("jvm") version "1.2.10" apply false
+  kotlin("jvm") version "1.2.30" apply false
+
+  id("mkobit.dotfiles.self-update")
 }
 
 apply {
-  plugin<SelfUpdatePlugin>()
   from("gradle/trackedRepositories.gradle.kts")
 }
 
@@ -47,17 +48,18 @@ tasks {
     val gitConfigPersonal = projectFile("git/gitconfig_personal.dotfile")
     inputs.files(gitConfigGeneral, gitConfigPersonal)
     textState.set(provider {
-      """[include]
-    path = ${gitConfigGeneral.asFile.absolutePath}
-[includeIf "gitdir:${project.rootDir.absolutePath}/"]
-    path = ${gitConfigPersonal.asFile.absolutePath}
-[includeIf "gitdir:${personalWorkspace.directory!!.absolutePath}/"]
-    path = ${gitConfigPersonal.asFile.absolutePath}
-[includeIf "gitdir:${codeLabWorkspace.directory!!.absolutePath}/"]
-    path = ${gitConfigPersonal.asFile.absolutePath}
-[includeIf "gitdir:${workWorkspace.directory!!.absolutePath}/"]
-    path = ${homeFile(".gitconfig_work")}
-"""
+      """
+        [include]
+            path = ${gitConfigGeneral.asFile.absolutePath}
+        [includeIf "gitdir:${project.rootDir.absolutePath}/"]
+            path = ${gitConfigPersonal.asFile.absolutePath}
+        [includeIf "gitdir:${personalWorkspace.directory!!.absolutePath}/"]
+            path = ${gitConfigPersonal.asFile.absolutePath}
+        [includeIf "gitdir:${codeLabWorkspace.directory!!.absolutePath}/"]
+            path = ${gitConfigPersonal.asFile.absolutePath}
+        [includeIf "gitdir:${workWorkspace.directory!!.absolutePath}/"]
+            path = ${homeFile(".gitconfig_work")}
+      """.trimIndent()
     })
     destinationProvider = homeFile(".gitconfig")
     dependsOn(workspace)
@@ -113,8 +115,7 @@ tasks {
   }
 
   "wrapper"(Wrapper::class) {
-    gradleVersion = "4.5-rc-1"
-    distributionType = Wrapper.DistributionType.ALL
+    gradleVersion = "4.6"
   }
 
   "dotfiles" {

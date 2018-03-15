@@ -1,3 +1,8 @@
 [user]
     email = mkobit@gmail.com
     name = Mike Kobit
+    signingkey = FC3EBFD40337F783
+[commit]
+    gpgsign = true
+[gpg]
+    program = gpg2
