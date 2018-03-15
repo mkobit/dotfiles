@@ -1,18 +1,16 @@
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.wrapper.Wrapper
-
-import files.Symlink
-import files.Mkdir
-import files.WriteFile
-import git.CloneRepository
-import git.PullRepository
-import update.SelfUpdatePlugin
+import dotfilesbuild.io.file.Symlink
+import dotfilesbuild.io.file.Mkdir
+import dotfilesbuild.io.file.WriteFile
+import dotfilesbuild.io.git.CloneRepository
+import dotfilesbuild.io.git.PullRepository
 
 plugins {
   id("com.github.ben-manes.versions") version "0.17.0"
   kotlin("jvm") version "1.2.30" apply false
 
-  id("mkobit.dotfiles.self-update")
+  id("dotfilesbuild.self-update")
 }
 
 apply {

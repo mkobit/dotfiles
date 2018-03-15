@@ -1,7 +1,6 @@
-package git
+package dotfilesbuild.io.git
 
 import mu.KotlinLogging
-import org.eclipse.jgit.api.Git
 import java.io.File
 import javax.inject.Inject
 

@@ -1,4 +1,4 @@
-package files
+package dotfilesbuild.io.file
 
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.RegularFile

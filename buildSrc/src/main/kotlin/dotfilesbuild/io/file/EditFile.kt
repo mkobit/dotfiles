@@ -1,9 +1,8 @@
-package files
+package dotfilesbuild.io.file
 
 import arrow.core.Either
 import arrow.effects.IO
-import arrow.syntax.comonad.coflatMap
-import files.content.TextEditAction
+import dotfilesbuild.io.file.content.TextEditAction
 import listProperty
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ProjectLayout

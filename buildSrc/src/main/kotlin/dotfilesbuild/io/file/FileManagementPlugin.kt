@@ -1,4 +1,4 @@
-package files
+package dotfilesbuild.io.file
 
 import org.gradle.api.Plugin
 import org.gradle.api.Project

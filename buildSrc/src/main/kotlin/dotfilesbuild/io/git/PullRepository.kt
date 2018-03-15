@@ -1,4 +1,4 @@
-package git
+package dotfilesbuild.io.git
 
 import mu.KotlinLogging
 import org.gradle.api.DefaultTask

@@ -86,12 +86,12 @@ tasks {
 gradlePlugin {
   plugins.invoke {
     "selfUpdate" {
-      id = "mkobit.dotfiles.self-update"
-      implementationClass = "update.SelfUpdatePlugin"
+      id = "dotfilesbuild.self-update"
+      implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"
     }
     "fileManagement" {
-      id = "mkobit.dotfiles.file-management"
-      implementationClass = "files.FileManagementPlugin"
+      id = "dotfilesbuild.file-management"
+      implementationClass = "dotfilesbuild.io.file.FileManagementPlugin"
     }
   }
 }

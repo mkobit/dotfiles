@@ -1,4 +1,4 @@
-package files.content
+package dotfilesbuild.io.file.content
 
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test

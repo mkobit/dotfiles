@@ -1,4 +1,4 @@
-package files
+package dotfilesbuild.io.file
 
 import com.mkobit.gradle.test.assertj.GradleAssertions.assertThat
 import com.mkobit.gradle.test.kotlin.io.Original
@@ -17,14 +17,14 @@ internal class EditFileTest {
     val result = gradleRunner.setupProjectDir {
       "build.gradle"(content = Original) {
         append("""
-          import files.EditFile
-          import files.content.AppendIfNoLinesMatch
-          import files.content.AppendTextIfNotFound
-          import files.content.SearchFileDeleteLine
+          import dotfilesbuild.io.file.EditFile
+          import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
+          import dotfilesbuild.io.file.content.AppendTextIfNotFound
+          import dotfilesbuild.io.file.content.SearchFileDeleteLine
           import kotlin.jvm.functions.Function0
 
           plugins {
-            id('mkobit.dotfiles.file-management')
+            id('dotfilesbuild.file-management')
           }
 
           tasks.create('convergeFile', EditFile) {
@@ -79,14 +79,14 @@ internal class EditFileTest {
     gradleRunner.setupProjectDir {
       "build.gradle"(content = Original) {
         append("""
-          import files.EditFile
-          import files.content.AppendIfNoLinesMatch
-          import files.content.AppendTextIfNotFound
-          import files.content.SearchFileDeleteLine
+          import dotfilesbuild.io.file.EditFile
+          import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
+          import dotfilesbuild.io.file.content.AppendTextIfNotFound
+          import dotfilesbuild.io.file.content.SearchFileDeleteLine
           import kotlin.jvm.functions.Function0
 
           plugins {
-            id('mkobit.dotfiles.file-management')
+            id('dotfilesbuild.file-management')
           }
 
           tasks.create('convergeFile', EditFile) {
