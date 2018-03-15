@@ -11,6 +11,7 @@ plugins {
   kotlin("jvm") version "1.2.30" apply false
 
   id("dotfilesbuild.self-update")
+  id("dotfilesbuild.locations")
 }
 
 apply {
@@ -19,9 +20,9 @@ apply {
 
 description = "Dotfiles and package management"
 
-val personalWorkspaceDirectory: Directory = homeDir("Workspace/personal")
-val workWorkspaceDirectory: Directory = homeDir("Workspace/work")
-val codeLabWorkspaceDirectory: Directory = homeDir("Workspace/code_lab")
+val personalWorkspaceDirectory: Directory = locations.workspace.dir("personal")
+val workWorkspaceDirectory: Directory = locations.workspace.dir("work")
+val codeLabWorkspaceDirectory: Directory = locations.workspace.dir("code_lab")
 
 tasks {
   val personalWorkspace by creating(Mkdir::class) {
@@ -56,16 +57,16 @@ tasks {
         [includeIf "gitdir:${codeLabWorkspace.directory!!.absolutePath}/"]
             path = ${gitConfigPersonal.asFile.absolutePath}
         [includeIf "gitdir:${workWorkspace.directory!!.absolutePath}/"]
-            path = ${homeFile(".gitconfig_work")}
+            path = ${locations.home.file(".gitconfig_work")}
       """.trimIndent()
     })
-    destinationProvider = homeFile(".gitconfig")
+    destinationProvider = locations.home.file(".gitconfig")
     dependsOn(workspace)
   }
 
   val gitIgnoreGlobal by creating(Symlink::class) {
     sourceProvider = projectFile("git/gitignore_global.dotfile")
-    destinationProvider = homeFile(".gitignore_global")
+    destinationProvider = locations.home.file(".gitignore_global")
   }
 
   val git by creating {
@@ -75,7 +76,7 @@ tasks {
 
   val screenRc by creating(Symlink::class) {
     sourceProvider = projectFile("screen/screenrc.dotfile")
-    destinationProvider = homeFile(".screenrc")
+    destinationProvider = locations.home.file(".screenrc")
   }
 
   val screen by creating {
@@ -85,11 +86,11 @@ tasks {
 
   val tmuxConf by creating(Symlink::class) {
     sourceProvider = projectFile("tmux/tmux.conf.dotfile")
-    destinationProvider = homeFile(".tmux.conf")
+    destinationProvider = locations.home.file(".tmux.conf")
   }
 
   val sshCms by creating(Mkdir::class) {
-    directoryProvider = homeDir(".ssh/controlMaster")
+    directoryProvider = locations.home.dir(".ssh/controlMaster")
   }
 
   val ssh by creating {
@@ -104,7 +105,7 @@ tasks {
 
   val vimRc by creating(Symlink::class) {
     sourceProvider = projectFile("vim/vimrc.dotfile")
-    destinationProvider = homeFile(".vimrc")
+    destinationProvider = locations.home.file(".vimrc")
   }
 
   val vim by creating {

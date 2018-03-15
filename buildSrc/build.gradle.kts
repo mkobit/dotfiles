@@ -85,6 +85,10 @@ tasks {
 
 gradlePlugin {
   plugins.invoke {
+    "home" {
+      id = "dotfilesbuild.locations"
+      implementationClass = "dotfilesbuild.LocationsPlugin"
+    }
     "selfUpdate" {
       id = "dotfilesbuild.self-update"
       implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"

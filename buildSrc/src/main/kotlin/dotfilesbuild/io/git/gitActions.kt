@@ -1,6 +1,7 @@
 package dotfilesbuild.io.git
 
 import mu.KotlinLogging
+import org.eclipse.jgit.api.Git
 import java.io.File
 import javax.inject.Inject
 
@@ -13,13 +14,13 @@ class CloneAction @Inject constructor(
   }
 
   override fun run() {
-//    Git.cloneRepository()
-//        .setRemote("origin")
-//        .setURI(remoteUrl)
-//        .setDirectory(directory)
-//        .call().use {
-//      LOGGER.info { "Cloned $directory to $remoteUrl" }
-//    }
+    Git.cloneRepository()
+        .setRemote("origin")
+        .setURI(remoteUrl)
+        .setDirectory(directory)
+        .call().use {
+      LOGGER.info { "Cloned $directory to $remoteUrl" }
+    }
   }
 }
 
@@ -31,12 +32,12 @@ class FetchAction @Inject constructor(
   }
 
   override fun run() {
-//    Git.open(repository).use {
-//      it.fetch()
-//          .setRemote("origin")
-//          .call()
-//      LOGGER.info { "Fetched origin for $repository" }
-//    }
+    Git.open(repository).use {
+      it.fetch()
+          .setRemote("origin")
+          .call()
+      LOGGER.info { "Fetched origin for $repository" }
+    }
   }
 }
 
@@ -48,12 +49,12 @@ class PullAction @Inject constructor(
   }
 
   override fun run() {
-//    Git.open(repository).use {
-//      it.pull()
-//          .setRebase(true)
-//          .setRemote("origin")
-//          .call()
-//      LOGGER.info { "Pulled origin for $repository" }
-//    }
+    Git.open(repository).use {
+      it.pull()
+          .setRebase(true)
+          .setRemote("origin")
+          .call()
+      LOGGER.info { "Pulled origin for $repository" }
+    }
   }
 }
