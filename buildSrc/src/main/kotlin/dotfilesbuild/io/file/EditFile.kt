@@ -30,7 +30,7 @@ open class EditFile @Inject constructor(
     }
   }
 
-  @get:InputFile
+  @get:Internal
   val file: RegularFileProperty = projectLayout.fileProperty()
 
   @get:OutputFile
@@ -49,12 +49,16 @@ open class EditFile @Inject constructor(
     }
   }
 
-  private fun readFileText(): String = file.get().asFile.readText()
+  private fun readFileText(): String = file.get().asFile.run {
+    if (exists()) {
+      readText()
+    } else {
+      ""
+    }
+  }
 
   private fun performTransformation(): Either<String, String> {
     require(editActions.get().isNotEmpty()) { "EditActions cannot be empty" }
-    val fileIo = IO { readFileText() }
-    val firstAction = editActions.get().first()
     val fileText = readFileText()
     val text: Either<String, String> = Either.left(fileText)
     val afterApplied = editActions.get().fold(text) { acc, action ->
@@ -81,20 +85,5 @@ open class EditFile @Inject constructor(
       }
     }
   }
-//
-//  private fun Collection<TextEditAction>.applyAll() {
-//    val initialText = readFileText()
-//    val initialState = State<String, Option<String>> { initialText toT None }
-//    val nelActions = Nel.fromListUnsafe(editActions.get())
-//    nelActions
-//    State().monad<String>().binding {
-//      val a = this@applyAll.first().execute().bind()
-//
-//      yields()
-//    }
-//    this.fold(initialState) { accumulator, action ->
-//      accumulator.ap()
-//    }
-// }
 }
 
