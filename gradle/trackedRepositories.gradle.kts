@@ -111,12 +111,6 @@ extra["trackedRepositories"] = mapOf(
     "Kotlin" to listOf(
         "https://github.com/Kotlin/KEEP.git"
     ),
-    "lagom" to listOf(
-        "https://github.com/lagom/activator-lagom-java-chirper.git",
-        "https://github.com/lagom/lagom.git",
-        "https://github.com/lagom/lagom.github.io.git",
-        "https://github.com/lagom/online-auction-java.git"
-    ),
     "mkobit" to listOf(
         "git@github.com:mkobit/gradle-test-kit-extensions.git",
         "git@github.com:mkobit/jenkins-pipeline-shared-library-example.git",
@@ -128,10 +122,5 @@ extra["trackedRepositories"] = mapOf(
         "https://github.com/square/retrofit.git",
         "https://github.com/square/javapoet.git",
         "https://github.com/square/kotlinpoet.git"
-    ),
-    "Supervisor" to listOf(
-        "https://github.com/Supervisor/initscripts.git",
-        "https://github.com/Supervisor/superlance.git",
-        "https://github.com/Supervisor/supervisor.git"
     )
 )

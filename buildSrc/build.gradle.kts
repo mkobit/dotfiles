@@ -97,5 +97,13 @@ gradlePlugin {
       id = "dotfilesbuild.file-management"
       implementationClass = "dotfilesbuild.io.file.FileManagementPlugin"
     }
+    "vcsManagement" {
+      id = "dotfilesbuild.vcs-management"
+      implementationClass = "dotfilesbuild.io.vcs.VersionControlManagementPlugin"
+    }
+    "gitVcs" {
+      id = "dotfilesbuild.git-vcs"
+      implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
+    }
   }
 }
