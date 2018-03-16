@@ -49,7 +49,7 @@ tasks {
   val gitConfigGeneration by creating(EditFile::class) {
     val gitConfigGeneral = projectFile("git/gitconfig_general.dotfile")
     val gitConfigPersonal = projectFile("git/gitconfig_personal.dotfile")
-    editActions.set(listOf(git 
+    editActions.set(listOf(
         SetContent {
           """
               [include]
@@ -382,18 +382,18 @@ trackedRepositories.forEach { grouping, urls ->
       val ofSlash = lastIndexOf("/")
       substring(ofSlash + 1, ofGit)
     }
-    val repositoryDirectory = repositoryGroupingDirectory.dir(repositoryName)
+    val repoDir = repositoryGroupingDirectory.dir(repositoryName)
     val cloneTask = tasks.create("clone${grouping.capitalize()}Repository$repositoryName",
         CloneRepository::class.java) {
       dependsOn(groupingTask)
-      repositoryDirectoryProvider = repositoryDirectory
-      repositoryUrlState.set(url)
+      repositoryDirectory.set(repoDir)
+      repositoryUrl.set(url)
     }
     cloneAllTrackedRepositories.dependsOn(cloneTask)
 
     val syncTask = tasks.create("pull${grouping.capitalize()}Repository$repositoryName", PullRepository::class.java) {
       dependsOn(cloneTask)
-      repositoryDirectoryProvider = repositoryDirectory
+      repositoryDirectory.set(repoDir)
     }
     pullAllTrackedRepositories.dependsOn(syncTask)
   }

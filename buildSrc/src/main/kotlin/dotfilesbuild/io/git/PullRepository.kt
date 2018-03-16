@@ -3,6 +3,7 @@ package dotfilesbuild.io.git
 import mu.KotlinLogging
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.Directory
+import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.workers.IsolationMode
@@ -18,11 +19,8 @@ open class PullRepository @Inject constructor(
     private val LOGGER = KotlinLogging.logger {}
   }
 
-  var repositoryDirectoryProvider: Directory? = null
-
   @get:InputDirectory
-  val repositoryDirectory: File?
-    get() = repositoryDirectoryProvider?.asFile
+  val repositoryDirectory: DirectoryProperty = newInputDirectory()
 
   @TaskAction
   fun pullRepository() {
@@ -32,7 +30,7 @@ open class PullRepository @Inject constructor(
     }
     workerExecutor.submit(PullAction::class.java) {
       isolationMode = IsolationMode.NONE
-      setParams(repositoryDirectory!!)
+      setParams(repositoryDirectory.asFile.get())
     }
   }
 }

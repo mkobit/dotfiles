@@ -16,7 +16,6 @@ open class Mkdir : DefaultTask() {
     private val LOGGER = KotlinLogging.logger {}
   }
 
-//  @get:Input
   @get:Internal
   val directory: DirectoryProperty = newInputDirectory()
 
