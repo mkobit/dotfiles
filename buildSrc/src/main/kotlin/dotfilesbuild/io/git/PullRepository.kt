@@ -5,6 +5,7 @@ import org.gradle.api.DefaultTask
 import org.gradle.api.file.Directory
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.InputDirectory
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.workers.IsolationMode
 import org.gradle.workers.WorkerExecutor
@@ -19,7 +20,7 @@ open class PullRepository @Inject constructor(
     private val LOGGER = KotlinLogging.logger {}
   }
 
-  @get:InputDirectory
+  @get:Internal
   val repositoryDirectory: DirectoryProperty = newInputDirectory()
 
   @TaskAction
@@ -30,7 +31,7 @@ open class PullRepository @Inject constructor(
     }
     workerExecutor.submit(PullAction::class.java) {
       isolationMode = IsolationMode.NONE
-      setParams(repositoryDirectory.asFile.get())
+      setParams(repositoryDirectory.asFile.get(), "origin")
     }
   }
 }

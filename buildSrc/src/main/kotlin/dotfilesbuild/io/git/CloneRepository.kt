@@ -8,6 +8,7 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.PropertyState
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
@@ -31,10 +32,10 @@ open class CloneRepository @Inject constructor(
     outputs.upToDateWhen { doesGitRepositoryExist() }
   }
 
-  @get:OutputDirectory
+  @get:Internal
   val repositoryDirectory: DirectoryProperty = newOutputDirectory()
 
-  @get:Input
+  @get:Internal
   val repositoryUrl: Property<String> = objectFactory.property()
 
   private val repositoryDirectoryFile: File

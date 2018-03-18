@@ -56,7 +56,6 @@ internal class EditFileTest {
 
     assertThat(result)
         .hasTaskSuccessAtPath(":convergeFile")
-    println(result.projectDir.resolve("myfile.txt").toFile().readText())
     assertThat(result.projectDir.resolve("myfile.txt"))
         .hasContent("""
           first

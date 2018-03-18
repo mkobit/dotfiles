@@ -25,7 +25,8 @@ class CloneAction @Inject constructor(
 }
 
 class FetchAction @Inject constructor(
-    private val repository: File
+    private val repository: File,
+    private val remote: String
 ) : Runnable {
   companion object {
     private val LOGGER = KotlinLogging.logger {}
@@ -34,7 +35,7 @@ class FetchAction @Inject constructor(
   override fun run() {
     Git.open(repository).use {
       it.fetch()
-          .setRemote("origin")
+          .setRemote(remote)
           .call()
       LOGGER.info { "Fetched origin for $repository" }
     }
@@ -42,7 +43,8 @@ class FetchAction @Inject constructor(
 }
 
 class PullAction @Inject constructor(
-    private val repository: File
+    private val repository: File,
+    private val remote: String
 ) : Runnable {
   companion object {
     private val LOGGER = KotlinLogging.logger {}
@@ -52,7 +54,7 @@ class PullAction @Inject constructor(
     Git.open(repository).use {
       it.pull()
           .setRebase(true)
-          .setRemote("origin")
+          .setRemote(remote)
           .call()
       LOGGER.info { "Pulled origin for $repository" }
     }
