@@ -3,6 +3,7 @@ import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.wrapper.Wrapper
 import dotfilesbuild.io.file.Symlink
 import dotfilesbuild.io.file.Mkdir
+import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
 import dotfilesbuild.io.file.content.SetContent
 import dotfilesbuild.io.git.CloneRepository
 import dotfilesbuild.io.git.GitVersionControlTarget
@@ -116,6 +117,27 @@ tasks {
   val vim by creating {
     group = "VIM"
     dependsOn(vimRc)
+  }
+
+  val zshrcFile by creating(EditFile::class) {
+    description = "Edits the .zshrc file"
+    file.set(locations.home.file(".zshrc"))
+    editActions.add(provider {
+      val functions = layout.projectDirectory.file("zsh/functions.source")
+      val text = ". ${functions.asFile.absolutePath} # dotfiles: functions.source"
+      AppendIfNoLinesMatch(
+        Regex(text, RegexOption.LITERAL),
+        { text }
+      )
+    })
+    editActions.add(provider {
+      val aliases = layout.projectDirectory.file("zsh/aliases.source")
+      val text = ". ${aliases.asFile.absolutePath} # dotfiles: aliases.source"
+      AppendIfNoLinesMatch(
+          Regex(text, RegexOption.LITERAL),
+          { text }
+      )
+    })
   }
 
   "wrapper"(Wrapper::class) {
@@ -354,47 +376,3 @@ versionControlTracking.invoke {
     }
   }
 }
-
-// TODO: move all of this into some extension or buildSrc managed plugin
-//val trackedRepositories: Map<String, List<String>> by extra
-//val cloneAllTrackedRepositories by tasks.creating {
-//  description = "Clones all tracked repositories"
-//  group = "Repository Management"
-//}
-//val pullAllTrackedRepositories by tasks.creating {
-//  description = "Pulls all tracked repositories"
-//  group = "Repository Management"
-//}
-//trackedRepositories.forEach { grouping, urls ->
-//  val repositoryGroupingDirectory: Directory = personalWorkspaceDirectory.dir(grouping)
-//  val groupingTask = tasks.create("clone${grouping.capitalize()}RepositoryGroup", Mkdir::class.java) {
-//    directory.set(repositoryGroupingDirectory)
-//  }
-//  urls.forEach { url ->
-//    val repositoryName = url.run {
-//      val ofGit = lastIndexOf(".git").let {
-//        if (it > 0) {
-//          it
-//        } else {
-//          length
-//        }
-//      }
-//      val ofSlash = lastIndexOf("/")
-//      substring(ofSlash + 1, ofGit)
-//    }
-//    val repoDir = repositoryGroupingDirectory.dir(repositoryName)
-//    val cloneTask = tasks.create("clone${grouping.capitalize()}Repository$repositoryName",
-//        CloneRepository::class.java) {
-//      dependsOn(groupingTask)
-//      repositoryDirectory.set(repoDir)
-//      repositoryUrl.set(url)
-//    }
-//    cloneAllTrackedRepositories.dependsOn(cloneTask)
-//
-//    val syncTask = tasks.create("pull${grouping.capitalize()}Repository$repositoryName", PullRepository::class.java) {
-//      dependsOn(cloneTask)
-//      repositoryDirectory.set(repoDir)
-//    }
-//    pullAllTrackedRepositories.dependsOn(syncTask)
-//  }
-//}
