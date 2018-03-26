@@ -218,6 +218,13 @@ versionControlTracking.invoke {
           "kotlin-dsl"(GitVersionControlTarget::class) { origin("https://github.com/gradle/kotlin-dsl.git") }
         }
       }
+      "grpc" {
+        vcs.invoke {
+          "grpc"(GitVersionControlTarget::class) { origin("https://github.com/grpc/grpc.git") }
+          "grpc-java"(GitVersionControlTarget::class) { origin("https://github.com/grpc/grpc-java.git") }
+          "grpc-go"(GitVersionControlTarget::class) { origin("https://github.com/grpc/grpc-go.git") }
+        }
+      }
       "jacoco" {
         vcs.invoke {
           "jacoco"(GitVersionControlTarget::class) { origin("https://github.com/jacoco/jacoco.git") }
@@ -359,6 +366,11 @@ versionControlTracking.invoke {
       "ratpack" {
         vcs.invoke {
           "ratpack"(GitVersionControlTarget::class) { origin("https://github.com/ratpack/ratpack.git") }
+        }
+      }
+      "salesforce" {
+        vcs.invoke {
+          "grpc-java-contrib"(GitVersionControlTarget::class) { origin("https://github.com/salesforce/grpc-java-contrib.git") }
         }
       }
       "square" {
