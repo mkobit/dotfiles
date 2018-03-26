@@ -19,10 +19,6 @@ plugins {
   id("dotfilesbuild.git-vcs")
 }
 
-apply {
-  from("gradle/trackedRepositories.gradle.kts")
-}
-
 description = "Dotfiles and package management"
 
 val personalWorkspaceDirectory: Directory = locations.workspace.dir("personal")
