@@ -58,6 +58,8 @@ dependencies {
   implementation("com.squareup.okhttp3:okhttp:3.10.0")
   implementation("io.github.microutils:kotlin-logging:1.5.3")
   implementation("org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r")
+  // https://mvnrepository.com/artifact/com.google.guava/guava
+  implementation("com.google.guava:guava:24.1-jre")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.3.0")
@@ -89,21 +91,25 @@ gradlePlugin {
       id = "dotfilesbuild.locations"
       implementationClass = "dotfilesbuild.LocationsPlugin"
     }
-    "selfUpdate" {
-      id = "dotfilesbuild.self-update"
-      implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"
-    }
     "fileManagement" {
       id = "dotfilesbuild.file-management"
       implementationClass = "dotfilesbuild.io.file.FileManagementPlugin"
     }
-    "vcsManagement" {
-      id = "dotfilesbuild.vcs-management"
-      implementationClass = "dotfilesbuild.io.vcs.VersionControlManagementPlugin"
-    }
     "gitVcs" {
       id = "dotfilesbuild.git-vcs"
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
+    }
+    "keepass" {
+      id = "dotfilesbuild.keepass"
+      implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
+    }
+    "selfUpdate" {
+      id = "dotfilesbuild.self-update"
+      implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"
+    }
+    "vcsManagement" {
+      id = "dotfilesbuild.vcs-management"
+      implementationClass = "dotfilesbuild.io.vcs.VersionControlManagementPlugin"
     }
   }
 }

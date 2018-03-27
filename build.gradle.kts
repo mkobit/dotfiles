@@ -1,7 +1,7 @@
 import dotfilesbuild.io.file.EditFile
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.wrapper.Wrapper
-import dotfilesbuild.io.file.Symlink
+import dotfilesbuild.io.file.SymlinkFile
 import dotfilesbuild.io.file.Mkdir
 import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
 import dotfilesbuild.io.file.content.SetContent
@@ -13,8 +13,9 @@ plugins {
   id("com.github.ben-manes.versions") version "0.17.0"
   kotlin("jvm") version "1.2.30" apply false
 
-  id("dotfilesbuild.self-update")
   id("dotfilesbuild.locations")
+  id("dotfilesbuild.keepass")
+  id("dotfilesbuild.self-update")
   id("dotfilesbuild.vcs-management")
   id("dotfilesbuild.git-vcs")
 }
@@ -66,7 +67,7 @@ tasks {
     dependsOn(workspace)
   }
 
-  val gitIgnoreGlobal by creating(Symlink::class) {
+  val gitIgnoreGlobal by creating(SymlinkFile::class) {
     source.set(projectFile("git/gitignore_global.dotfile"))
     destination.set(locations.home.file(".gitignore_global"))
   }
@@ -76,7 +77,7 @@ tasks {
     dependsOn(gitConfigGeneration, gitIgnoreGlobal)
   }
 
-  val screenRc by creating(Symlink::class) {
+  val screenRc by creating(SymlinkFile::class) {
     source.set(projectFile("screen/screenrc.dotfile"))
     destination.set(locations.home.file(".screenrc"))
   }
@@ -86,7 +87,7 @@ tasks {
     dependsOn(screenRc)
   }
 
-  val tmuxConf by creating(Symlink::class) {
+  val tmuxConf by creating(SymlinkFile::class) {
     source.set(projectFile("tmux/tmux.conf.dotfile"))
     destination.set(locations.home.file(".tmux.conf"))
   }
@@ -105,7 +106,7 @@ tasks {
     dependsOn(tmuxConf)
   }
 
-  val vimRc by creating(Symlink::class) {
+  val vimRc by creating(SymlinkFile::class) {
     source.set(projectFile("vim/vimrc.dotfile"))
     destination.set(locations.home.file(".vimrc"))
   }
@@ -145,6 +146,10 @@ tasks {
     group = "Install"
     dependsOn(git, screen, ssh, tmux, vim, workspace)
   }
+}
+
+keepass {
+  keepassVersion.set("2.38")
 }
 
 // IntelliJ Regex:
