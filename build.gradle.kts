@@ -283,6 +283,7 @@ versionControlTracking.invoke {
           "mesos-plugin"(GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/mesos-plugin.git") }
           "metrics-plugin"(GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/metrics-plugin.git") }
           "monitoring-plugin"(GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/monitoring-plugin.git") }
+          "pipeline-build-step-plugin"(GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/pipeline-build-step-plugin.git") }
           "pipeline-examples"(GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/pipeline-examples.git") }
           "pipeline-input-step-plugin"(GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/pipeline-input-step-plugin.git") }
           "pipeline-milestone-step-plugin"(GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/pipeline-milestone-step-plugin.git") }
