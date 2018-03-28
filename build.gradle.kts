@@ -11,8 +11,9 @@ import dotfilesbuild.io.git.PullRepository
 
 plugins {
   id("com.github.ben-manes.versions") version "0.17.0"
-  kotlin("jvm") version "1.2.30" apply false
+  kotlin("jvm") version "1.2.31" apply false
 
+  id("dotfilesbuild.intellij")
   id("dotfilesbuild.locations")
   id("dotfilesbuild.keepass")
   id("dotfilesbuild.self-update")
@@ -146,6 +147,10 @@ tasks {
     group = "Install"
     dependsOn(git, screen, ssh, tmux, vim, workspace)
   }
+}
+
+intellij {
+  intellijVersion.set("2018.1")
 }
 
 keepass {

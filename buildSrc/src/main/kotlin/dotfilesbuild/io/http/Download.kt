@@ -37,6 +37,12 @@ open class Download @Inject constructor(
 
   @TaskAction
   fun retrieveFile() {
+    val destinationFile = destination.asFile.get()
+    if (destinationFile.exists()) {
+      // TODO: up-to-date checking instead?
+      log.info { "File at $destinationFile already exists, skipping download" }
+      return
+    }
     val client = OkHttpClient.Builder()
         .build()
     val request = Request.Builder()
@@ -50,8 +56,11 @@ open class Download @Inject constructor(
       if (it.isNotSuccessful) {
         throw GradleException("Could not download file from ${it.request().url()} - exited with code ${it.code()} and message ${it.message()}")
       }
-      log.info { "Saving response from ${it.request().url()} to ${destination.asFile.get()}" }
-      Okio.buffer(Okio.sink(destination.asFile.get())).use { sink ->
+      it.header("Content-Length")?.let {
+        log.info { "Content-Length header value: $it" }
+      }
+      log.info { "Saving response from ${it.request().url()} to $destinationFile" }
+      Okio.buffer(Okio.sink(destinationFile)).use { sink ->
         sink.writeAll(it.body()!!.source())
       }
     }

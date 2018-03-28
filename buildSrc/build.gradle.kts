@@ -99,9 +99,13 @@ gradlePlugin {
       id = "dotfilesbuild.git-vcs"
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
     }
-    "keepass" {
+    "keepassProgram" {
       id = "dotfilesbuild.keepass"
       implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
+    }
+    "intellijProgram" {
+      id = "dotfilesbuild.intellij"
+      implementationClass = "dotfilesbuild.intellij.IntelliJProgramPlugin"
     }
     "selfUpdate" {
       id = "dotfilesbuild.self-update"
