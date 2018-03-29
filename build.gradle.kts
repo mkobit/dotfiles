@@ -392,6 +392,11 @@ versionControlTracking.invoke {
           "retrofit"(GitVersionControlTarget::class) { origin("https://github.com/square/retrofit.git") }
         }
       }
+      "willowtreeapps" {
+        vcs.invoke {
+          "assert"(GitVersionControlTarget::class) { origin("https://github.com/willowtreeapps/assertk.git") }
+        }
+      }
     }
   }
 }
