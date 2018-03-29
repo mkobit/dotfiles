@@ -4,8 +4,11 @@ import mu.KotlinLogging
 import org.gradle.api.DefaultTask
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.file.DirectoryProperty
+import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFileProperty
+import org.gradle.api.model.ObjectFactory
+import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.InputFile
@@ -13,6 +16,7 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputDirectory
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
+import org.gradle.kotlin.dsl.property
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -21,57 +25,41 @@ import javax.inject.Inject
 private val log = KotlinLogging.logger { }
 // TODO: figure out how to support symlink of dir and file in same task
 
-open class SymlinkFile @Inject constructor(
-    projectLayout: ProjectLayout
+
+open class Symlink @Inject constructor(
+    projectLayout: ProjectLayout,
+    objectFactory: ObjectFactory
 ) : DefaultTask() {
 
-  /**
-   * The source file of the link.
-   */
-  @get:Input
-  val source: RegularFileProperty = projectLayout.fileProperty()
-
-  /**
-   * The destination where the link will be created.
-   */
-  @get:OutputFile
-  val destination: RegularFileProperty = projectLayout.fileProperty()
-
-  @TaskAction
-  fun createLink() {
-    val sourcePath = source.asFile.get().toPath().toAbsolutePath()
-    val destinationPath = destination.asFile.get().toPath().toAbsolutePath()
-    symlink(sourcePath, destinationPath)
+  init {
+    outputs.upToDateWhen {
+      Files.isSymbolicLink(destination.get().asFile.toPath())
+    }
   }
-}
-
-open class SymlinkDirectory @Inject constructor(
-    projectLayout: ProjectLayout
-) : DefaultTask() {
 
   /**
-   * The source directory of the link.
+   * The source of the link.
    */
   @get:Internal
-  val source: DirectoryProperty = projectLayout.directoryProperty()
+  val source: Property<FileSystemLocation> = objectFactory.property()
 
-  // needed due to https://github.com/gradle/gradle/issues/4861
   @get:Input
-  val sourceAsDirFileProvider: Provider<File> = source.asFile
+  private val sourceAsDirFileProvider: Provider<File> = source.map(FileSystemLocation::getAsFile)
 
   /**
    * The destination where the link will be created.
    */
-  @get:OutputDirectory
-  val destination: DirectoryProperty = projectLayout.directoryProperty()
+  @get:Internal
+  val destination: Property<FileSystemLocation> = objectFactory.property()
 
   @TaskAction
   fun createLink() {
-    val sourcePath = source.asFile.get().toPath().toAbsolutePath()
-    val destinationPath = destination.asFile.get().toPath().toAbsolutePath()
+    val sourcePath = source.get().asFile.toPath().toAbsolutePath()
+    val destinationPath = destination.get().asFile.toPath().toAbsolutePath()
     symlink(sourcePath, destinationPath)
   }
 }
+
 private fun symlink(source: Path, destination: Path) {
   if (Files.exists(destination)) {
     if (Files.isSymbolicLink(destination)) {

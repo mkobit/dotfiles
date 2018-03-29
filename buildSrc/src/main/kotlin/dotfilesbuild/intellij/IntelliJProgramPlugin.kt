@@ -2,7 +2,6 @@ package dotfilesbuild.intellij
 
 import dotfilesbuild.LocationsExtension
 import dotfilesbuild.LocationsPlugin
-import dotfilesbuild.io.file.SymlinkDirectory
 import dotfilesbuild.io.http.Download
 import mu.KotlinLogging
 import org.gradle.api.Plugin

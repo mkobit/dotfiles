@@ -2,7 +2,7 @@ package dotfilesbuild.keepass
 
 import dotfilesbuild.LocationsExtension
 import dotfilesbuild.LocationsPlugin
-import dotfilesbuild.io.file.SymlinkDirectory
+import dotfilesbuild.io.file.Symlink
 import dotfilesbuild.io.http.Download
 import mu.KotlinLogging
 import org.gradle.api.Plugin
@@ -52,7 +52,7 @@ open class KeepassProgramPlugin : Plugin<Project> {
         from(Callable { zipTree(downloadKeepassZip.destination) })
         into(installDirectoryForVersion)
       }
-      val symlinkKeePassProgram = tasks.create("symlinkKeePassProgram", SymlinkDirectory::class.java) {
+      val symlinkKeePassProgram = tasks.create("symlinkKeePassProgram", Symlink::class.java) {
         description = "Creates a symlink to the KeePass directory"
         group = TASK_GROUP
         dependsOn(extractKeepassZip)
