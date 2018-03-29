@@ -394,7 +394,7 @@ versionControlTracking.invoke {
       }
       "willowtreeapps" {
         vcs.invoke {
-          "assert"(GitVersionControlTarget::class) { origin("https://github.com/willowtreeapps/assertk.git") }
+          "assertk"(GitVersionControlTarget::class) { origin("https://github.com/willowtreeapps/assertk.git") }
         }
       }
     }
