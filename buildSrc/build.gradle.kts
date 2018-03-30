@@ -21,9 +21,9 @@ val junitPlatformVersion: String = "1.1.0"
 val junitJupiterVersion: String = "5.1.0"
 val junit5Log4jVersion: String = "2.10.0"
 
-val junitPlatformRunner = mapOf("group" to "org.junit.platform", "name" to "junit-platform-runner", "version" to junitPlatformVersion)
-val junitJupiterApi = mapOf("group" to "org.junit.jupiter", "name" to "junit-jupiter-api", "version" to junitJupiterVersion)
-val junitJupiterParams = mapOf("group" to "org.junit.jupiter", "name" to "junit-jupiter-params", "version" to junitJupiterVersion)
+val junitPlatformRunner = "org.junit.platform:junit-platform-runner:$junitPlatformVersion"
+val junitJupiterApi = "org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion"
+val junitJupiterParams = "org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion"
 
 val junitTestImplementationArtifacts = listOf(
     junitPlatformRunner,
@@ -34,9 +34,9 @@ val junitTestImplementationArtifacts = listOf(
 val assertJCore = "org.assertj:assertj-core:3.9.1"
 val mockitoCore = "org.mockito:mockito-core:2.15.0"
 val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.5.0"
-val junitJupiterEngine = mapOf("group" to "org.junit.jupiter", "name" to "junit-jupiter-engine", "version" to junitJupiterVersion)
-val log4jCore = mapOf("group" to "org.apache.logging.log4j", "name" to "log4j-core", "version" to junit5Log4jVersion)
-val log4jJul = mapOf("group" to "org.apache.logging.log4j", "name" to "log4j-jul", "version" to junit5Log4jVersion)
+val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
+val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
+val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
 
 val junitTestRuntimeOnlyArtifacts = listOf(
     junitJupiterEngine,
@@ -46,8 +46,8 @@ val junitTestRuntimeOnlyArtifacts = listOf(
 
 
 val coroutinesVersion by extra { "0.22.5" }
+val arrowVersion by extra { "0.6.0" }
 dependencies {
-  val arrowVersion = "0.6.0"
   implementation("io.arrow-kt:arrow-core:$arrowVersion")
   implementation("io.arrow-kt:arrow-instances:$arrowVersion")
   implementation("io.arrow-kt:arrow-effects:$arrowVersion")
