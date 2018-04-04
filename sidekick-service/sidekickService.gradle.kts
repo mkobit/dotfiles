@@ -1,9 +1,10 @@
+import dotfilesbuild.DependencyInfo
 import org.jetbrains.kotlin.gradle.dsl.Coroutines
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  `java`
-  `application`
+  java
+  application
   kotlin("jvm")
 }
 
@@ -21,41 +22,33 @@ repositories {
   }
 }
 
-val ktorVersion by extra { "0.9.1" }
-val jacksonVersion by extra { "2.9.4" }
-val kodeinVersion by extra { "4.1.0" }
-val coroutinesVersion by extra { "0.22.5" }
-val retrofitVersion by extra { "2.3.0" }
-
 dependencies {
-  implementation("com.google.guava:guava:24.0-jre")
+  implementation(DependencyInfo.guava)
 
-  implementation("com.fasterxml.jackson.core:jackson-core:$jacksonVersion")
-  implementation("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
+  implementation(DependencyInfo.jacksonCore("core"))
+  implementation(DependencyInfo.jacksonModule("kotlin"))
 
   // Try out Kodein
-  implementation("com.github.salomonbrys.kodein:kodein:$kodeinVersion")
-  implementation("com.github.salomonbrys.kodein:kodein-jxinject:$kodeinVersion")
+  implementation(DependencyInfo.kodein)
+  implementation(DependencyInfo.kodein("jxinject"))
 
   // Ktor
-  implementation("io.ktor:ktor-server-core:$ktorVersion")
-  implementation("io.ktor:ktor-server-netty:$ktorVersion")
+  implementation(DependencyInfo.ktor("server-core"))
+  implementation(DependencyInfo.ktor("server-netty"))
 
-  implementation("ru.gildor.coroutines:kotlin-coroutines-retrofit:0.9.0")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-  implementation("org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:$coroutinesVersion")
+//  implementation("ru.gildor.coroutines:kotlin-coroutines-retrofit:0.9.0")
+  implementation(DependencyInfo.kotlinxCoroutines("core"))
+  implementation(DependencyInfo.kotlinxCoroutines("jdk8"))
 
-  implementation("io.webfolder", "cdp4j", "2.2.4")
+  implementation(DependencyInfo.cdp4j)
 
   implementation(kotlin("stdlib-jre8"))
-  // TODO: switch when publishing to JCenter finishes - https://bintray.com/kotlin/kotlinx/kotlinx.coroutines
-  implementation("com.squareup.retrofit2:retrofit:$retrofitVersion")
-  implementation("com.squareup.retrofit2:converter-jackson:$retrofitVersion")
-  implementation("com.squareup.okhttp3:okhttp:3.10.0")
+  implementation(DependencyInfo.retrofit2("retrofit"))
+  implementation(DependencyInfo.retrofit2("converter-jackson"))
+  implementation(DependencyInfo.okHttpClient)
 
-  implementation("io.github.microutils:kotlin-logging:1.5.3")
-
-  runtimeOnly("org.slf4j:slf4j-simple:1.7.25")
+  implementation(DependencyInfo.kotlinLogging)
+  runtimeOnly(DependencyInfo.slf4j("simple"))
 }
 
 java {

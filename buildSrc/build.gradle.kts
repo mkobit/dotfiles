@@ -44,7 +44,6 @@ val junitTestRuntimeOnlyArtifacts = listOf(
     log4jJul
 )
 
-
 val coroutinesVersion by extra { "0.22.5" }
 val arrowVersion by extra { "0.6.0" }
 dependencies {
