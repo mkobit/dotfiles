@@ -117,15 +117,15 @@ tasks {
     dependsOn(vimRc)
   }
 
-  val zshrcFile by creating(EditFile::class) {
-    description = "Edits the .zshrc file"
-    file.set(locations.home.file(".zshrc"))
+  val zshrcDotfiles by creating(EditFile::class) {
+    description = "Creates a ZSH file to be sourced that only contains "
+    file.set(locations.home.file(".zshrc_dotfiles"))
     editActions.add(provider {
       val functions = layout.projectDirectory.file("zsh/functions.source")
       val text = ". ${functions.asFile.absolutePath} # dotfiles: functions.source"
       AppendIfNoLinesMatch(
-        Regex(text, RegexOption.LITERAL),
-        { text }
+          Regex(text, RegexOption.LITERAL),
+          { text }
       )
     })
     editActions.add(provider {
@@ -138,6 +138,25 @@ tasks {
     })
   }
 
+  val zshrcFile by creating(EditFile::class) {
+    description = "Edits the .zshrc file"
+    file.set(locations.home.file(".zshrc"))
+    dependsOn(zshrcDotfiles)
+    editActions.add(provider {
+      val text = ". ${zshrcDotfiles.file.get().asFile.toPath().toAbsolutePath().toString()}"
+      AppendIfNoLinesMatch(
+          Regex(text, RegexOption.LITERAL),
+          { text }
+      )
+    })
+  }
+
+  val zsh by creating {
+    group = "ZSH"
+    description = "Sets up ZSH"
+    dependsOn(zshrcDotfiles, zshrcFile)
+  }
+
   "wrapper"(Wrapper::class) {
     gradleVersion = "4.7-rc-1"
   }
@@ -145,7 +164,7 @@ tasks {
   "dotfiles" {
     description = "Sets up all dotfiles and packages"
     group = "Install"
-    dependsOn(git, screen, ssh, tmux, vim, workspace)
+    dependsOn(git, screen, ssh, tmux, vim, workspace, zsh)
   }
 }
 
