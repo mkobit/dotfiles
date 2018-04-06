@@ -27,155 +27,6 @@ val personalWorkspaceDirectory: Directory = locations.workspace.dir("personal")
 val workWorkspaceDirectory: Directory = locations.workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = locations.workspace.dir("code_lab")
 
-tasks {
-  val personalWorkspace by creating(Mkdir::class) {
-    directory.set(personalWorkspaceDirectory)
-  }
-
-  val workWorkspace by creating(Mkdir::class) {
-    directory.set(workWorkspaceDirectory)
-  }
-
-  val codeLabWorkspace by creating(Mkdir::class) {
-    directory.set(codeLabWorkspaceDirectory)
-  }
-
-  val workspace by creating {
-    group = "Workspace"
-    dependsOn(personalWorkspace, workWorkspace, codeLabWorkspace)
-  }
-
-  val gitConfigGeneration by creating(EditFile::class) {
-    val gitConfigGeneral = projectFile("git/gitconfig_general.dotfile")
-    val gitConfigPersonal = projectFile("git/gitconfig_personal.dotfile")
-    editActions.set(listOf(
-        SetContent {
-          """
-              [include]
-                  path = ${gitConfigGeneral.asFile.absolutePath}
-              [includeIf "gitdir:${project.rootDir.absolutePath}/"]
-                  path = ${gitConfigPersonal.asFile.absolutePath}
-              [includeIf "gitdir:${personalWorkspace.directory.asFile.get().absolutePath}/"]
-                  path = ${gitConfigPersonal.asFile.absolutePath}
-              [includeIf "gitdir:${codeLabWorkspace.directory.asFile.get().absolutePath}/"]
-                  path = ${gitConfigPersonal.asFile.absolutePath}
-              [includeIf "gitdir:${workWorkspace.directory.asFile.get().absolutePath}/"]
-                  path = ${locations.home.file(".gitconfig_work")}
-          """.trimIndent()
-        }
-    ))
-    file.set(locations.home.file(".gitconfig"))
-    dependsOn(workspace)
-  }
-
-  val gitIgnoreGlobal by creating(Symlink::class) {
-    source.set(projectFile("git/gitignore_global.dotfile"))
-    destination.set(locations.home.file(".gitignore_global"))
-  }
-
-  val git by creating {
-    group = "Git"
-    dependsOn(gitConfigGeneration, gitIgnoreGlobal)
-  }
-
-  val screenRc by creating(Symlink::class) {
-    source.set(projectFile("screen/screenrc.dotfile"))
-    destination.set(locations.home.file(".screenrc"))
-  }
-
-  val screen by creating {
-    group = "Screen"
-    dependsOn(screenRc)
-  }
-
-  val tmuxConf by creating(Symlink::class) {
-    source.set(projectFile("tmux/tmux.conf.dotfile"))
-    destination.set(locations.home.file(".tmux.conf"))
-  }
-
-  val sshCms by creating(Mkdir::class) {
-    directory.set(locations.home.dir(".ssh/controlMaster"))
-  }
-
-  val ssh by creating {
-    group = "SSH"
-    dependsOn(sshCms)
-  }
-
-  val tmux by creating {
-    group = "Tmux"
-    dependsOn(tmuxConf)
-  }
-
-  val vimRc by creating(Symlink::class) {
-    source.set(projectFile("vim/vimrc.dotfile"))
-    destination.set(locations.home.file(".vimrc"))
-  }
-
-  val vim by creating {
-    group = "VIM"
-    dependsOn(vimRc)
-  }
-
-  val zshrcDotfiles by creating(EditFile::class) {
-    description = "Creates a ZSH file to be sourced that only contains "
-    file.set(locations.home.file(".zshrc_dotfiles"))
-    editActions.add(provider {
-      val functions = layout.projectDirectory.file("zsh/functions.source")
-      val text = ". ${functions.asFile.absolutePath} # dotfiles: functions.source"
-      AppendIfNoLinesMatch(
-          Regex(text, RegexOption.LITERAL),
-          { text }
-      )
-    })
-    editActions.add(provider {
-      val aliases = layout.projectDirectory.file("zsh/aliases.source")
-      val text = ". ${aliases.asFile.absolutePath} # dotfiles: aliases.source"
-      AppendIfNoLinesMatch(
-          Regex(text, RegexOption.LITERAL),
-          { text }
-      )
-    })
-  }
-
-  val zshrcFile by creating(EditFile::class) {
-    description = "Edits the .zshrc file"
-    file.set(locations.home.file(".zshrc"))
-    dependsOn(zshrcDotfiles)
-    editActions.add(provider {
-      val text = ". ${zshrcDotfiles.file.get().asFile.toPath().toAbsolutePath().toString()}"
-      AppendIfNoLinesMatch(
-          Regex(text, RegexOption.LITERAL),
-          { text }
-      )
-    })
-  }
-
-  val zsh by creating {
-    group = "ZSH"
-    description = "Sets up ZSH"
-    dependsOn(zshrcDotfiles, zshrcFile)
-  }
-
-  "wrapper"(Wrapper::class) {
-    gradleVersion = "4.7-rc-1"
-  }
-
-  "dotfiles" {
-    description = "Sets up all dotfiles and packages"
-    group = "Install"
-    dependsOn(git, screen, ssh, tmux, vim, workspace, zsh)
-  }
-}
-
-intellij {
-  intellijVersion.set("2018.1")
-}
-
-keepass {
-  keepassVersion.set("2.38")
-}
-
 // IntelliJ Regex:
 // ^(\w+[:@/]+\w+.com[:/]?([\w\d-]+)/([\w\d-\.]+)\.git)$
 // "$3"(GitVersionControlTarget::class) { origin("$1") }
@@ -243,6 +94,7 @@ versionControlTracking.invoke {
       "gradle" {
         vcs.invoke {
           "gradle"(GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle.git") }
+          "gradle-completion"(GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle-completion.git") }
           "gradle-profiler"(GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle-profiler.git") }
           "kotlin-dsl"(GitVersionControlTarget::class) { origin("https://github.com/gradle/kotlin-dsl.git") }
         }
@@ -418,4 +270,154 @@ versionControlTracking.invoke {
       }
     }
   }
+}
+
+
+tasks {
+  val personalWorkspace by creating(Mkdir::class) {
+    directory.set(personalWorkspaceDirectory)
+  }
+
+  val workWorkspace by creating(Mkdir::class) {
+    directory.set(workWorkspaceDirectory)
+  }
+
+  val codeLabWorkspace by creating(Mkdir::class) {
+    directory.set(codeLabWorkspaceDirectory)
+  }
+
+  val workspace by creating {
+    group = "Workspace"
+    dependsOn(personalWorkspace, workWorkspace, codeLabWorkspace)
+  }
+
+  val gitConfigGeneration by creating(EditFile::class) {
+    val gitConfigGeneral = projectFile("git/gitconfig_general.dotfile")
+    val gitConfigPersonal = projectFile("git/gitconfig_personal.dotfile")
+    editActions.set(listOf(
+        SetContent {
+          """
+              [include]
+                  path = ${gitConfigGeneral.asFile.absolutePath}
+              [includeIf "gitdir:${project.rootDir.absolutePath}/"]
+                  path = ${gitConfigPersonal.asFile.absolutePath}
+              [includeIf "gitdir:${personalWorkspace.directory.asFile.get().absolutePath}/"]
+                  path = ${gitConfigPersonal.asFile.absolutePath}
+              [includeIf "gitdir:${codeLabWorkspace.directory.asFile.get().absolutePath}/"]
+                  path = ${gitConfigPersonal.asFile.absolutePath}
+              [includeIf "gitdir:${workWorkspace.directory.asFile.get().absolutePath}/"]
+                  path = ${locations.home.file(".gitconfig_work")}
+          """.trimIndent()
+        }
+    ))
+    file.set(locations.home.file(".gitconfig"))
+    dependsOn(workspace)
+  }
+
+  val gitIgnoreGlobal by creating(Symlink::class) {
+    source.set(projectFile("git/gitignore_global.dotfile"))
+    destination.set(locations.home.file(".gitignore_global"))
+  }
+
+  val git by creating {
+    group = "Git"
+    dependsOn(gitConfigGeneration, gitIgnoreGlobal)
+  }
+
+  val screenRc by creating(Symlink::class) {
+    source.set(projectFile("screen/screenrc.dotfile"))
+    destination.set(locations.home.file(".screenrc"))
+  }
+
+  val screen by creating {
+    group = "Screen"
+    dependsOn(screenRc)
+  }
+
+  val tmuxConf by creating(Symlink::class) {
+    source.set(projectFile("tmux/tmux.conf.dotfile"))
+    destination.set(locations.home.file(".tmux.conf"))
+  }
+
+  val sshCms by creating(Mkdir::class) {
+    directory.set(locations.home.dir(".ssh/controlMaster"))
+  }
+
+  val ssh by creating {
+    group = "SSH"
+    dependsOn(sshCms)
+  }
+
+  val tmux by creating {
+    group = "Tmux"
+    dependsOn(tmuxConf)
+  }
+
+  val vimRc by creating(Symlink::class) {
+    source.set(projectFile("vim/vimrc.dotfile"))
+    destination.set(locations.home.file(".vimrc"))
+  }
+
+  val vim by creating {
+    group = "VIM"
+    dependsOn(vimRc)
+  }
+
+  val zshrcDotfiles by creating(EditFile::class) {
+    description = "Creates a ZSH file to be sourced that only contains "
+    file.set(locations.home.file(".zshrc_dotfiles"))
+    editActions.add(provider {
+      val functions = layout.projectDirectory.file("zsh/functions.source")
+      val text = ". ${functions.asFile.absolutePath} # dotfiles: functions.source"
+      AppendIfNoLinesMatch(
+          Regex(text, RegexOption.LITERAL),
+          { text }
+      )
+    })
+    editActions.add(provider {
+      val aliases = layout.projectDirectory.file("zsh/aliases.source")
+      val text = ". ${aliases.asFile.absolutePath} # dotfiles: aliases.source"
+      AppendIfNoLinesMatch(
+          Regex(text, RegexOption.LITERAL),
+          { text }
+      )
+    })
+  }
+
+  val zshrcFile by creating(EditFile::class) {
+    description = "Edits the .zshrc file"
+    file.set(locations.home.file(".zshrc"))
+    dependsOn(zshrcDotfiles)
+    editActions.add(provider {
+      val text = ". ${zshrcDotfiles.file.get().asFile.toPath().toAbsolutePath().toString()}"
+      AppendIfNoLinesMatch(
+          Regex(text, RegexOption.LITERAL),
+          { text }
+      )
+    })
+  }
+
+  val zsh by creating {
+    group = "ZSH"
+    description = "Sets up ZSH"
+    dependsOn(zshrcDotfiles, zshrcFile)
+  }
+
+  "wrapper"(Wrapper::class) {
+    gradleVersion = "4.7-rc-1"
+  }
+
+  "dotfiles" {
+    description = "Sets up all dotfiles and packages"
+    group = "Install"
+    dependsOn(git, screen, ssh, tmux, vim, workspace, zsh)
+  }
+}
+
+intellij {
+  intellijVersion.set("2018.1")
+}
+
+keepass {
+  keepassVersion.set("2.38")
 }
