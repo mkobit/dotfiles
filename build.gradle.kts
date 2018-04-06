@@ -272,7 +272,6 @@ versionControlTracking.invoke {
   }
 }
 
-
 tasks {
   val personalWorkspace by creating(Mkdir::class) {
     directory.set(personalWorkspaceDirectory)
@@ -364,8 +363,10 @@ tasks {
   }
 
   val zshrcDotfiles by creating(EditFile::class) {
-    description = "Creates a ZSH file to be sourced that only contains "
+    description = "Creates a ZSH file to be sourced that only contains dotfiles specific content"
     file.set(locations.home.file(".zshrc_dotfiles"))
+    // TODO: add Provider<Directory> to VersionControlTarget
+    val gradleCompletion = versionControlTracking["personal"].groups["gradle"].vcs["gradle-completion"]
     editActions.add(provider {
       val functions = layout.projectDirectory.file("zsh/functions.source")
       val text = ". ${functions.asFile.absolutePath} # dotfiles: functions.source"
@@ -389,7 +390,7 @@ tasks {
     file.set(locations.home.file(".zshrc"))
     dependsOn(zshrcDotfiles)
     editActions.add(provider {
-      val text = ". ${zshrcDotfiles.file.get().asFile.toPath().toAbsolutePath().toString()}"
+      val text = ". ${zshrcDotfiles.file.get().asFile.toPath().toAbsolutePath()}"
       AppendIfNoLinesMatch(
           Regex(text, RegexOption.LITERAL),
           { text }
