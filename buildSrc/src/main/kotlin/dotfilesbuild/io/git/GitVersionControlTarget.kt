@@ -1,10 +1,13 @@
 package dotfilesbuild.io.git
 
 import dotfilesbuild.io.vcs.VersionControlTarget
+import org.gradle.api.file.Directory
+import org.gradle.api.provider.Provider
 
 data class GitVersionControlTarget(
     private val repositoryName: String,
-    var remotes: Map<String, String>
+    var remotes: Map<String, String>,
+    override val directory: Provider<Directory>
 ) : VersionControlTarget {
 
   override fun getName(): String = repositoryName

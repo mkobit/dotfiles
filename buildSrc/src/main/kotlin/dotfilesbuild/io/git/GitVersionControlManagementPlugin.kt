@@ -7,7 +7,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.reflect.TypeOf
-// TODO: no start imports
+// TODO: remove star imports after getValue issue it resolved
 import org.gradle.kotlin.dsl.*
 import javax.inject.Inject
 
@@ -33,7 +33,7 @@ open class GitVersionControlManagementPlugin @Inject constructor(
             val versionControlGroup = this
             vcs.registerFactory(GitVersionControlTarget::class.java) { name ->
               // TODO: make the directory a part of this target
-              GitVersionControlTarget(name, emptyMap())
+              GitVersionControlTarget(name, emptyMap(), versionControlGroup.directory.map { it.dir(name) })
             }
             val groupClassifier = "Group${name.capitalize()}"
             val refreshGroup = tasks.create("refresh${organizationClassifier}${groupClassifier}GitRepositories") {
@@ -47,7 +47,7 @@ open class GitVersionControlManagementPlugin @Inject constructor(
               val cloneRepository = tasks.create("clone$organizationClassifier$groupClassifier$targetClassifier",
                   CloneRepository::class.java) {
                 description = "Clone Git repository ${gitVersionControlTarget.name}"
-                repositoryDirectory.set(versionControlGroup.directory.map { it.dir(gitVersionControlTarget.name) })
+                repositoryDirectory.set(gitVersionControlTarget.directory)
                 repositoryUrl.set(providerFactory.provider {
                   gitVersionControlTarget.remotes["origin"] ?: gitVersionControlTarget.remotes.entries.first().value
                 })
