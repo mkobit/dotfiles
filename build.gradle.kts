@@ -236,7 +236,6 @@ versionControlTracking.invoke {
           "jenkins-pipeline-shared-libraries-gradle-plugin"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/jenkins-pipeline-shared-libraries-gradle-plugin.git") }
           "jenkins-pipeline-shared-library-example"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/jenkins-pipeline-shared-library-example.git") }
           "jenkins-scripts"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/jenkins-scripts.git") }
-          "junit5-conditional-execution-extensions"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/junit5-conditional-execution-extensions.git") }
           "junit5-dynamodb-local-extension"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/junit5-dynamodb-local-extension.git") }
         }
       }
