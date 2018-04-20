@@ -89,6 +89,7 @@ versionControlTracking.invoke {
       "google" {
         vcs.invoke {
           "copybara"(GitVersionControlTarget::class) { origin("https://github.com/google/copybara.git") }
+          "protobuf-gradle-plugin"(GitVersionControlTarget::class) { origin("https://github.com/google/protobuf-gradle-plugin.git") }
         }
       }
       "gradle" {
