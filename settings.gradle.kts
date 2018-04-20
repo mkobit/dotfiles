@@ -2,6 +2,7 @@ rootProject.name = "dotfiles"
 rootProject.buildFileName = "build.gradle.kts"
 
 include("sidekick-service")
+include("contest-entry")
 
 rootProject.children.forEach { project ->
   val replacedName = project.name.run {

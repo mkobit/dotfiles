@@ -1,6 +1,5 @@
 package com.mkobit.personalassistant.inject
 
-import com.github.salomonbrys.kodein.Kodein
 import io.ktor.application.Application
 import io.ktor.application.ApplicationCall
 import io.ktor.application.ApplicationCallPipeline

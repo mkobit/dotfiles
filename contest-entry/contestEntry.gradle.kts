@@ -25,25 +25,24 @@ dependencies {
   implementation(DependencyInfo.jacksonCore("core"))
   implementation(DependencyInfo.jacksonModule("kotlin"))
 
-  // Try out Kodein
   implementation(DependencyInfo.kodeinJvm)
+  implementation(DependencyInfo.ktor("client-apache"))
 
-  // Ktor
-  implementation(DependencyInfo.ktor("server-core"))
-  implementation(DependencyInfo.ktor("server-netty"))
-
-//  implementation("ru.gildor.coroutines:kotlin-coroutines-retrofit:0.9.0")
   implementation(DependencyInfo.kotlinxCoroutines("core"))
   implementation(DependencyInfo.kotlinxCoroutines("jdk8"))
 
   implementation(DependencyInfo.cdp4j)
 
   implementation(kotlin("stdlib-jre8"))
-  implementation(DependencyInfo.retrofit2("retrofit"))
-  implementation(DependencyInfo.retrofit2("converter-jackson"))
-  implementation(DependencyInfo.okHttpClient)
 
   implementation(DependencyInfo.kotlinLogging)
+
+  DependencyInfo.junitTestImplementationArtifacts.forEach {
+    testImplementation(it)
+  }
+  DependencyInfo.junitTestRuntimeOnlyArtifacts.forEach {
+    testRuntimeOnly(it)
+  }
   runtimeOnly(DependencyInfo.slf4j("simple"))
 }
 
@@ -62,6 +61,9 @@ application {
 tasks {
   withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
+  }
+  "test"(Test::class) {
+    useJUnitPlatform()
   }
 }
 

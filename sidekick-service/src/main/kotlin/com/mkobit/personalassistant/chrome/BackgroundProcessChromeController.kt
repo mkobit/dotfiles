@@ -6,10 +6,9 @@ import com.mkobit.personalassistant.process.xargs
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.launch
 import mu.KotlinLogging
-import javax.inject.Inject
 import kotlin.coroutines.experimental.CoroutineContext
 
-class BackgroundProcessChromeController @Inject constructor(
+class BackgroundProcessChromeController constructor(
     private val debugPort: Int,
     private val processLauncherContext: CoroutineContext
 ) : ChromeController {
