@@ -1,3 +1,5 @@
+import com.github.benmanes.gradle.versions.updates.DependencyUpdates
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import dotfilesbuild.io.file.EditFile
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.wrapper.Wrapper
@@ -11,7 +13,7 @@ import dotfilesbuild.io.git.PullRepository
 
 plugins {
   id("com.github.ben-manes.versions") version "0.17.0"
-  kotlin("jvm") version "1.2.31" apply false
+  kotlin("jvm") version "1.2.40" apply false
 
   id("dotfilesbuild.intellij")
   id("dotfilesbuild.locations")
@@ -26,6 +28,21 @@ description = "Dotfiles and package management"
 val personalWorkspaceDirectory: Directory = locations.workspace.dir("personal")
 val workWorkspaceDirectory: Directory = locations.workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = locations.workspace.dir("code_lab")
+
+val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
+  val rejectPatterns = listOf("alpha", "beta", "rc", "cr", "m").map { qualifier ->
+    Regex("(?i).*[.-]$qualifier[.\\d-]*")
+  }
+  resolutionStrategy = closureOf<ResolutionStrategy> {
+    componentSelection {
+      all {
+        if (rejectPatterns.any { it.matches(this.candidate.version) }) {
+          this.reject("Release candidate")
+        }
+      }
+    }
+  }
+}
 
 // IntelliJ Regex:
 // ^(\w+[:@/]+\w+.com[:/]?([\w\d-]+)/([\w\d-\.]+)\.git)$

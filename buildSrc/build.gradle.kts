@@ -1,3 +1,4 @@
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.gradle.kotlin.dsl.`embedded-kotlin`
 import org.jetbrains.kotlin.gradle.dsl.Coroutines
 
@@ -18,8 +19,8 @@ java {
   targetCompatibility = JavaVersion.VERSION_1_9
 }
 
-val junitPlatformVersion: String = "1.1.0"
-val junitJupiterVersion: String = "5.1.0"
+val junitPlatformVersion: String = "1.1.1"
+val junitJupiterVersion: String = "5.1.1"
 val junit5Log4jVersion: String = "2.11.0"
 
 val junitPlatformRunner = "org.junit.platform:junit-platform-runner:$junitPlatformVersion"
@@ -44,6 +45,21 @@ val junitTestRuntimeOnlyArtifacts = listOf(
     log4jCore,
     log4jJul
 )
+
+val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
+  val rejectPatterns = listOf("alpha", "beta", "rc", "cr", "m").map { qualifier ->
+    Regex("(?i).*[.-]$qualifier[.\\d-]*")
+  }
+  resolutionStrategy = closureOf<ResolutionStrategy> {
+    componentSelection {
+      all {
+        if (rejectPatterns.any { it.matches(this.candidate.version) }) {
+          this.reject("Release candidate")
+        }
+      }
+    }
+  }
+}
 
 // uncomment when needed
 //val build by tasks.getting {

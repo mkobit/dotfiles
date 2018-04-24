@@ -2,18 +2,16 @@ package dotfilesbuild
 
 @Suppress("UNUSED", "MemberVisibilityCanBePrivate")
 object DependencyInfo {
-  const val arrowVersion = "0.6.0"
+  const val arrowVersion = "0.7.1"
   const val javapoetVersion = "1.10.0"
-  const val jacksonVersion = "2.9.4"
-  const val jsoup = "org.jsoup:jsoup:1.11.3"
-  const val junitGradlePluginVersion = "1.1.0"
-  const val junitPlatformVersion = "1.1.0"
-  const val junitJupiterVersion = "5.1.0"
+  const val jacksonVersion = "2.9.5"
+  const val junitPlatformVersion = "1.1.1"
+  const val junitJupiterVersion = "5.1.1"
   const val junit5Log4jVersion = "2.11.0"
   const val kodeinVersion = "5.0.0"
   const val kotlinLoggingVersion = "1.5.4"
   const val kotlinxCoroutinesVersion = "0.22.5"
-  const val ktorVersion = "0.9.1"
+  const val ktorVersion = "0.9.2"
   const val okHttpVersion = "3.10.0"
   const val retrofitVersion = "2.4.0"
   const val slf4jVersion = "1.7.25"
@@ -23,6 +21,7 @@ object DependencyInfo {
   const val guava = "com.google.guava:guava:24.1-jre"
   const val javapoet = "com.squareup:javapoet:$javapoetVersion"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
+  const val jsoup = "org.jsoup:jsoup:1.11.3"
   val kodeinJvm = kodein("di-generic-jvm")
   const val mockito = "org.mockito:mockito-core:2.17.0"
   const val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.5.0"
