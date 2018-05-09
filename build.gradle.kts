@@ -233,7 +233,7 @@ versionControlTracking.invoke {
           "blog"(GitVersionControlTarget::class) { origin("git@gitlab.com:mkobit/blog.git") }
           "gradle-assertions"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/gradle-assertions.git") }
           "gradle-junit-jupiter-extensions"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/gradle-junit-jupiter-extensions.git") }
-          "gradle-test-kotlin-extensions"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/gradle-test-kotlin-extensions.git") }
+          "gradle-junit-platform-tools"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/gradle-junit-platform-tools.git") }
           "jenkins-pipeline-shared-libraries-gradle-plugin"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/jenkins-pipeline-shared-libraries-gradle-plugin.git") }
           "jenkins-pipeline-shared-library-example"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/jenkins-pipeline-shared-library-example.git") }
           "jenkins-scripts"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/jenkins-scripts.git") }
