@@ -14,9 +14,11 @@ object DependencyInfo {
   const val ktorVersion = "0.9.2"
   const val okHttpVersion = "3.10.0"
   const val retrofitVersion = "2.4.0"
+  const val seleniumVersion = "3.11.0"
   const val slf4jVersion = "1.7.25"
 
   const val assertJCore = "org.assertj:assertj-core:3.9.1"
+  const val assertK = "com.willowtreeapps.assertk:assertk:0.10"
   const val cdp4j = "io.webfolder:cdp4j:2.2.4"
   const val guava = "com.google.guava:guava:24.1-jre"
   const val javapoet = "com.squareup:javapoet:$javapoetVersion"
@@ -60,5 +62,6 @@ object DependencyInfo {
   fun log4j(module: String) = "org.apache.logging.log4j:log4j-$module:$junit5Log4jVersion"
   fun okHttp(module: String) = "com.squareup.okhttp3:$module:$okHttpVersion"
   fun retrofit2(module: String) = "com.squareup.retrofit2:$module:$retrofitVersion"
+  fun selenium(module: String) = "org.seleniumhq.selenium:selenium-$module:$seleniumVersion"
   fun slf4j(module: String) = "org.slf4j:slf4j-$module:$slf4jVersion"
 }
