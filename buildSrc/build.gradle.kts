@@ -19,8 +19,8 @@ java {
   targetCompatibility = JavaVersion.VERSION_1_9
 }
 
-val junitPlatformVersion: String = "1.1.1"
-val junitJupiterVersion: String = "5.1.1"
+val junitPlatformVersion: String = "1.2.0"
+val junitJupiterVersion: String = "5.2.0"
 val junit5Log4jVersion: String = "2.11.0"
 
 val junitPlatformRunner = "org.junit.platform:junit-platform-runner:$junitPlatformVersion"
@@ -79,7 +79,7 @@ dependencies {
   implementation("io.github.microutils:kotlin-logging:1.5.4")
   implementation("org.eclipse.jgit:org.eclipse.jgit:4.11.0.201803080745-r")
   // https://mvnrepository.com/artifact/com.google.guava/guava
-  implementation("com.google.guava:guava:24.1-jre")
+  implementation("com.google.guava:guava:25.0-jre")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.5.0")

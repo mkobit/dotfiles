@@ -13,7 +13,7 @@ import dotfilesbuild.io.git.PullRepository
 
 plugins {
   id("com.github.ben-manes.versions") version "0.17.0"
-  kotlin("jvm") version "1.2.40" apply false
+  kotlin("jvm") version "1.2.41" apply false
 
   id("dotfilesbuild.intellij")
   id("dotfilesbuild.locations")
