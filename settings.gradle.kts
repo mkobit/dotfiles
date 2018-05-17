@@ -3,7 +3,6 @@ rootProject.buildFileName = "build.gradle.kts"
 
 include("sidekick-service")
 include("contest-entry")
-include("ktor-ws")
 
 rootProject.children.forEach { project ->
   val replacedName = project.name.run {
