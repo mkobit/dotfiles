@@ -422,7 +422,7 @@ tasks {
   }
 
   "wrapper"(Wrapper::class) {
-    gradleVersion = "4.7"
+    gradleVersion = "4.8-rc-1"
   }
 
   "dotfiles" {
