@@ -1,5 +1,4 @@
 rootProject.name = "dotfiles"
-rootProject.buildFileName = "build.gradle.kts"
 
 include("sidekick-service")
 include("contest-entry")

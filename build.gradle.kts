@@ -437,5 +437,5 @@ intellij {
 }
 
 keepass {
-  keepassVersion.set("2.38")
+  keepassVersion.set("2.39")
 }

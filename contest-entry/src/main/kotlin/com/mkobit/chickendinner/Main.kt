@@ -2,9 +2,11 @@ package com.mkobit.chickendinner
 
 import arrow.core.None
 import arrow.core.Some
+import arrow.core.orElse
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.mkobit.chickendinner.chrome.determineChromePortFromLog
+import com.mkobit.chickendinner.chrome.determineChromePortFromProfileFile
 import com.mkobit.chickendinner.json.JacksonSerializer
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngineFactory
@@ -57,7 +59,8 @@ object Main {
     val injector = newInjector()
     val client: HttpClient by injector.instance()
     val chromeLogs: Path by injector.instance(tag = ChromeOutputLog)
-    val chromeDebugPort = determineChromePortFromLog(chromeLogs.toFile().readText()).let {
+    val chromeDebugPort = determineChromePortFromLog(chromeLogs.toFile().readText())
+        .orElse { determineChromePortFromProfileFile() }.let {
       when (it) {
         is None -> throw RuntimeException("Could not determine Chrome debug port")
         is Some -> it.t

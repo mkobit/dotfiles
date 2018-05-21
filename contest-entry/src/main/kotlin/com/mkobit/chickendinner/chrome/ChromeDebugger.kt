@@ -8,6 +8,7 @@ import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.websocket.ws
 import io.ktor.client.request.get
 import io.ktor.client.request.post
+import kotlinx.coroutines.experimental.channels.map
 
 class ChromeDebugger(
     private val debugPort: Int,
@@ -62,12 +63,13 @@ class ChromeDebugger(
     }
   }
 
-  suspend fun withConnection(pageInfo: PageInfo, block: suspend ChromeDebuggerSession.() -> Unit) {
+  suspend fun withConnection(pageInfo: PageInfo, block: suspend ChromeWebsocketConnection.() -> Unit) {
     client.ws(
         host = this@ChromeDebugger.host,
         port = debugPort,
         path = pageInfo.debugUrlPath
     ) {
+//      ChromeWebsocketConnection()
     }
   }
 

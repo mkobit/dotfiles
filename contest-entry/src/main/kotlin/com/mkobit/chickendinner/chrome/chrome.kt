@@ -36,7 +36,15 @@ fun determineChromePortFromLog(errorLog: String): Option<Int> {
   }
 }
 
-fun determineChromePortFromProfileFile(profile: Path = Paths.get("/home", "/mkobit", ".config", "google-chrome", "DevToolsActivePort")): Option<Int> {
+fun determineChromePortFromProfileFile(
+    profile: Path = Paths.get(
+        System.getProperty("user.home")!!,
+        ".config",
+        ".config",
+        "google-chrome",
+        "DevToolsActivePort"
+    )
+): Option<Int> {
   return Try { Files.readLines(profile.toFile(), Charsets.UTF_8) }
       .map { it.first() }
       .map { it.toInt() }
