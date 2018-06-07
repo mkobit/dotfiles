@@ -1,5 +1,4 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
-import org.gradle.kotlin.dsl.`embedded-kotlin`
 import org.jetbrains.kotlin.gradle.dsl.Coroutines
 
 plugins {
@@ -33,8 +32,8 @@ val junitTestImplementationArtifacts = listOf(
     junitJupiterParams
 )
 
-val assertJCore = "org.assertj:assertj-core:3.9.1"
-val mockitoCore = "org.mockito:mockito-core:2.18.0"
+val assertJCore = "org.assertj:assertj-core:3.10.0"
+val mockitoCore = "org.mockito:mockito-core:2.18.3"
 val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.5.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
 val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
@@ -61,13 +60,13 @@ val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
   }
 }
 
-// uncomment when needed
-//val build by tasks.getting {
-//  dependsOn("dependencyUpdates")
-//}
+val build by tasks.getting {
+  // uncomment when needed
+  //  dependsOn("dependencyUpdates")
+}
 
 val coroutinesVersion by extra { "0.22.5" }
-val arrowVersion by extra { "0.7.1" }
+val arrowVersion by extra { "0.7.2" }
 dependencies {
   implementation("io.arrow-kt:arrow-core:$arrowVersion")
   implementation("io.arrow-kt:arrow-effects:$arrowVersion")
@@ -79,7 +78,7 @@ dependencies {
   implementation("io.github.microutils:kotlin-logging:1.5.4")
   implementation("org.eclipse.jgit:org.eclipse.jgit:4.11.0.201803080745-r")
   // https://mvnrepository.com/artifact/com.google.guava/guava
-  implementation("com.google.guava:guava:25.0-jre")
+  implementation("com.google.guava:guava:25.1-jre")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.5.0")

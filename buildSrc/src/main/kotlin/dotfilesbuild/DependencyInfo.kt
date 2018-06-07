@@ -2,7 +2,7 @@ package dotfilesbuild
 
 @Suppress("UNUSED", "MemberVisibilityCanBePrivate")
 object DependencyInfo {
-  const val arrowVersion = "0.7.1"
+  const val arrowVersion = "0.7.2"
   const val javapoetVersion = "1.10.0"
   const val jacksonVersion = "2.9.5"
   const val junitPlatformVersion = "1.2.0"
@@ -20,7 +20,7 @@ object DependencyInfo {
   const val assertJCore = "org.assertj:assertj-core:3.10.0"
   const val assertK = "com.willowtreeapps.assertk:assertk:0.10"
   const val cdp4j = "io.webfolder:cdp4j:3.0.0"
-  const val guava = "com.google.guava:guava:25.0-jre"
+  const val guava = "com.google.guava:guava:25.1-jre"
   const val javapoet = "com.squareup:javapoet:$javapoetVersion"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
   const val jsoup = "org.jsoup:jsoup:1.11.3"
