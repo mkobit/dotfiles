@@ -19,6 +19,7 @@ class ChromeDebugger(
     url {
       host = this@ChromeDebugger.host
       port = debugPort
+      path("json", "new")
       if (url != null) {
         parameters["url"] = url
       }
@@ -34,7 +35,7 @@ class ChromeDebugger(
         path("json")
       }
     }
-    return (client.feature(JsonFeature)!!.serializer as JacksonSerializer).objectMapper.readValue(responseData)
+    return client.jacksonSerializer.objectMapper.readValue(responseData)
   }
 
   // For valid targets, response body is "Target activated"
@@ -46,6 +47,8 @@ class ChromeDebugger(
     }
   }
 
+  suspend fun activate(pageInfo: PageInfo) = activate(pageInfo.id)
+
   // For valid targets, response body is "Target is closing"
   suspend fun close(pageId: String): String = client.post {
     url {
@@ -54,6 +57,8 @@ class ChromeDebugger(
       path("json", "close", pageId)
     }
   }
+
+  suspend fun close(pageInfo: PageInfo) = close(pageInfo.id)
 
   suspend fun version(): ProtocolVersion = client.get {
     url {
@@ -73,7 +78,6 @@ class ChromeDebugger(
     }
   }
 
-  private val PageInfo.debugUrlPath: String get() = webSocketDebuggerUrl.run {
-    substring(indexOf("/devtools"), length)
-  }
+  private val HttpClient.jacksonSerializer get() =
+      feature(JsonFeature)!!.serializer as JacksonSerializer
 }

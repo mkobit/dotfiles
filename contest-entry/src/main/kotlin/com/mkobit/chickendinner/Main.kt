@@ -5,6 +5,7 @@ import arrow.core.Some
 import arrow.core.orElse
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.mkobit.chickendinner.chrome.ChromeDebugger
 import com.mkobit.chickendinner.chrome.determineChromePortFromLog
 import com.mkobit.chickendinner.chrome.determineChromePortFromProfileFile
 import com.mkobit.chickendinner.json.JacksonSerializer
@@ -13,18 +14,12 @@ import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.websocket.WebSockets
-import io.ktor.client.features.websocket.webSocketRawSession
-import io.ktor.client.features.websocket.ws
-import io.ktor.http.HttpMethod
-import io.ktor.http.cio.websocket.Frame
-import io.ktor.http.cio.websocket.readText
-import kotlinx.coroutines.experimental.channels.filterNotNull
-import kotlinx.coroutines.experimental.channels.map
 import kotlinx.coroutines.experimental.runBlocking
 import kotlinx.coroutines.experimental.time.delay
 import mu.KotlinLogging
 import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
+import org.kodein.di.generic.factory
 import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
 import java.nio.file.Path
@@ -53,23 +48,36 @@ object Main {
         }
       }
     }
+    bind<ChromeDebugger>() with factory { debugPort: Int -> ChromeDebugger(debugPort, instance()) }
   }
 
-  @JvmStatic fun main(args: Array<String>) {
+  @JvmStatic
+  fun main(args: Array<String>) {
     val injector = newInjector()
-    val client: HttpClient by injector.instance()
     val chromeLogs: Path by injector.instance(tag = ChromeOutputLog)
     val chromeDebugPort = determineChromePortFromLog(chromeLogs.toFile().readText())
         .orElse { determineChromePortFromProfileFile() }.let {
-      when (it) {
-        is None -> throw RuntimeException("Could not determine Chrome debug port")
-        is Some -> it.t
-      }
-    }
+          when (it) {
+            is Some -> it.t
+            is None -> throw RuntimeException("Could not determine Chrome debug port")
+          }
+        }
     logger.info { "Chrome debug port determined to be running on $chromeDebugPort" }
 
+    val chromeDebugger = run {
+      val debuggerFactory: (Int) -> ChromeDebugger by injector.factory()
+      debuggerFactory(chromeDebugPort)
+    }
+
     runBlocking {
-//      val browserDebugUrl = retrieveVersion(client, chromeDebugPort).let { version ->
+      chromeDebugger.version().let { logger.info { "Chrome version: $it" } }
+      chromeDebugger.openedPages().forEach {
+        println("${it.title} -> ${it.id}")
+      }
+      val page = chromeDebugger.newPage()
+      delay(Duration.ofSeconds(5L))
+      chromeDebugger.close(page)
+//        chromeDebugger.withConnection()
 //        logger.info { "Chrome Version: $version" }
 //        version.webSocketDebuggerUrl
 //      }
@@ -93,7 +101,7 @@ object Main {
 //        for (message in incoming.map { it as? Frame.Text }.filterNotNull()) {
 //          logger.info { "Frame text from WS: ${message.readText()}" }
 //        }
-      }
+    }
 //      client.ws(host = "echo.websocket.org", path = "/") {
 //        send(Frame.Text("Rock it with HTML5 WebSocket"))
 //        incoming.receive().let {
