@@ -1,3 +1,5 @@
+import com.github.benmanes.gradle.versions.updates.DependencyUpdates
+import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import dotfilesbuild.io.file.EditFile
 import org.gradle.api.tasks.Exec
 import org.gradle.api.tasks.wrapper.Wrapper
@@ -10,8 +12,8 @@ import dotfilesbuild.io.git.GitVersionControlTarget
 import dotfilesbuild.io.git.PullRepository
 
 plugins {
-  id("com.github.ben-manes.versions") version "0.17.0"
-  kotlin("jvm") version "1.2.31" apply false
+  id("com.github.ben-manes.versions") version "0.20.0"
+  kotlin("jvm") version "1.2.50" apply false
 
   id("dotfilesbuild.intellij")
   id("dotfilesbuild.locations")
@@ -27,30 +29,45 @@ val personalWorkspaceDirectory: Directory = locations.workspace.dir("personal")
 val workWorkspaceDirectory: Directory = locations.workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = locations.workspace.dir("code_lab")
 
+val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
+  val rejectPatterns = listOf("alpha", "beta", "rc", "cr", "m").map { qualifier ->
+    Regex("(?i).*[.-]$qualifier[.\\d-]*")
+  }
+  resolutionStrategy = closureOf<ResolutionStrategy> {
+    componentSelection {
+      all {
+        if (rejectPatterns.any { it.matches(this.candidate.version) }) {
+          this.reject("Release candidate")
+        }
+      }
+    }
+  }
+}
+
 // IntelliJ Regex:
 // ^(\w+[:@/]+\w+.com[:/]?([\w\d-]+)/([\w\d-\.]+)\.git)$
 // "$3"(GitVersionControlTarget::class) { origin("$1") }
 versionControlTracking.invoke {
   "personal" {
     directory.set(locations.workspace.dir("personal"))
-    groups.invoke {
+    groups {
       "apache" {
-        vcs.invoke {
+        vcs {
           "flink"(GitVersionControlTarget::class) { origin("https://github.com/apache/flink.git") }
         }
       }
       "arrow-kt" {
-        vcs.invoke {
+        vcs {
           "arrow"(GitVersionControlTarget::class) { origin("https://github.com/arrow-kt/arrow.git") }
         }
       }
       "arturbosch" {
-        vcs.invoke {
+        vcs {
           "detekt"(GitVersionControlTarget::class) { origin("https://github.com/arturbosch/detekt.git") }
         }
       }
       "bazelbuild" {
-        vcs.invoke {
+        vcs {
           "bazel"(GitVersionControlTarget::class) { origin("https://github.com/bazelbuild/bazel.git") }
           "bazel-blog"(GitVersionControlTarget::class) { origin("https://github.com/bazelbuild/bazel-blog.git") }
           "bazel-skylib"(GitVersionControlTarget::class) { origin("https://github.com/bazelbuild/bazel-skylib.git") }
@@ -61,18 +78,18 @@ versionControlTracking.invoke {
         }
       }
       "buildkite" {
-        vcs.invoke {
+        vcs {
           "agent"(GitVersionControlTarget::class) { origin("https://github.com/buildkite/agent.git") }
         }
       }
       "cloudbees" {
-        vcs.invoke {
+        vcs {
           "groovy-cps"(GitVersionControlTarget::class) { origin("https://github.com/cloudbees/groovy-cps.git") }
           "jenkins-scripts"(GitVersionControlTarget::class) { origin("https://github.com/cloudbees/jenkins-scripts.git") }
         }
       }
       "ethereum" {
-        vcs.invoke {
+        vcs {
           "ethereumj"(GitVersionControlTarget::class) { origin("https://github.com/ethereum/ethereumj.git") }
           "go-ethereum"(GitVersionControlTarget::class) { origin("https://github.com/ethereum/go-ethereum.git") }
           "pyethereum"(GitVersionControlTarget::class) { origin("https://github.com/ethereum/pyethereum.git") }
@@ -82,18 +99,18 @@ versionControlTracking.invoke {
         }
       }
       "github" {
-        vcs.invoke {
+        vcs {
           "training-kit"(GitVersionControlTarget::class) { origin("https://github.com/github/training-kit.git") }
         }
       }
       "google" {
-        vcs.invoke {
+        vcs {
           "copybara"(GitVersionControlTarget::class) { origin("https://github.com/google/copybara.git") }
           "protobuf-gradle-plugin"(GitVersionControlTarget::class) { origin("https://github.com/google/protobuf-gradle-plugin.git") }
         }
       }
       "gradle" {
-        vcs.invoke {
+        vcs {
           "gradle"(GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle.git") }
           "gradle-completion"(GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle-completion.git") }
           "gradle-profiler"(GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle-profiler.git") }
@@ -101,19 +118,19 @@ versionControlTracking.invoke {
         }
       }
       "grpc" {
-        vcs.invoke {
+        vcs {
           "grpc"(GitVersionControlTarget::class) { origin("https://github.com/grpc/grpc.git") }
           "grpc-java"(GitVersionControlTarget::class) { origin("https://github.com/grpc/grpc-java.git") }
           "grpc-go"(GitVersionControlTarget::class) { origin("https://github.com/grpc/grpc-go.git") }
         }
       }
       "jacoco" {
-        vcs.invoke {
+        vcs {
           "jacoco"(GitVersionControlTarget::class) { origin("https://github.com/jacoco/jacoco.git") }
         }
       }
       "jenkins" {
-        vcs.invoke {
+        vcs {
           "amazon-ecs-plugin"(GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/amazon-ecs-plugin.git") }
           "analysis-core-plugin"(GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/analysis-core-plugin.git") }
           "authorize-project-plugin"(GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/authorize-project-plugin.git") }
@@ -190,7 +207,7 @@ versionControlTracking.invoke {
         }
       }
       "JetBrains" {
-        vcs.invoke {
+        vcs {
           "intellij-community"(GitVersionControlTarget::class) { origin("https://github.com/JetBrains/intellij-community.git") }
           "kotlin"(GitVersionControlTarget::class) { origin("https://github.com/JetBrains/kotlin.git") }
           "teamcity-achievements"(GitVersionControlTarget::class) { origin("https://github.com/JetBrains/teamcity-achievements.git") }
@@ -203,25 +220,25 @@ versionControlTracking.invoke {
         }
       }
       "joel-costigliola" {
-        vcs.invoke {
+        vcs {
 
         }
       }
       "junit-team" {
-        vcs.invoke {
+        vcs {
           "junit5"(GitVersionControlTarget::class) { origin("https://github.com/junit-team/junit5.git") }
           "junit5-samples"(GitVersionControlTarget::class) { origin("https://github.com/junit-team/junit5-samples.git") }
         }
       }
       "Kotlin" {
-        vcs.invoke {
+        vcs {
           "dokka"(GitVersionControlTarget::class) { origin("https://github.com/Kotlin/dokka.git") }
           "KEEP"(GitVersionControlTarget::class) { origin("https://github.com/Kotlin/KEEP.git") }
           "kotlinx.coroutines"(GitVersionControlTarget::class) { origin("https://github.com/Kotlin/kotlinx.coroutines.git") }
         }
       }
       "kubernetes" {
-        vcs.invoke {
+        vcs {
           "autoscaler"(GitVersionControlTarget::class) { origin("https://github.com/kubernetes/autoscaler.git") }
           "charts"(GitVersionControlTarget::class) { origin("https://github.com/kubernetes/charts.git") }
           "helm"(GitVersionControlTarget::class) { origin("https://github.com/kubernetes/helm.git") }
@@ -229,7 +246,7 @@ versionControlTracking.invoke {
         }
       }
       "mkobit" {
-        vcs.invoke {
+        vcs {
           "blog"(GitVersionControlTarget::class) { origin("git@gitlab.com:mkobit/blog.git") }
           "gradle-assertions"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/gradle-assertions.git") }
           "gradle-junit-jupiter-extensions"(GitVersionControlTarget::class) { origin("git@github.com:mkobit/gradle-junit-jupiter-extensions.git") }
@@ -241,22 +258,22 @@ versionControlTracking.invoke {
         }
       }
       "mesonbuild" {
-        vcs.invoke {
+        vcs {
           "meson"(GitVersionControlTarget::class) { origin("https://github.com/mesonbuild/meson.git") }
         }
       }
       "ratpack" {
-        vcs.invoke {
+        vcs {
           "ratpack"(GitVersionControlTarget::class) { origin("https://github.com/ratpack/ratpack.git") }
         }
       }
       "salesforce" {
-        vcs.invoke {
+        vcs {
           "grpc-java-contrib"(GitVersionControlTarget::class) { origin("https://github.com/salesforce/grpc-java-contrib.git") }
         }
       }
       "square" {
-        vcs.invoke {
+        vcs {
           "javapoet"(GitVersionControlTarget::class) { origin("https://github.com/square/javapoet.git") }
           "kotlinpoet"(GitVersionControlTarget::class) { origin("https://github.com/square/kotlinpoet.git") }
           "okhttp"(GitVersionControlTarget::class) { origin("https://github.com/square/okhttp.git") }
@@ -264,7 +281,7 @@ versionControlTracking.invoke {
         }
       }
       "willowtreeapps" {
-        vcs.invoke {
+        vcs {
           "assertk"(GitVersionControlTarget::class) { origin("https://github.com/willowtreeapps/assertk.git") }
         }
       }
@@ -405,7 +422,7 @@ tasks {
   }
 
   "wrapper"(Wrapper::class) {
-    gradleVersion = "4.7"
+    gradleVersion = "4.8"
   }
 
   "dotfiles" {
@@ -420,5 +437,5 @@ intellij {
 }
 
 keepass {
-  keepassVersion.set("2.38")
+  keepassVersion.set("2.39")
 }

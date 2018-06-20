@@ -21,22 +21,28 @@ repositories {
 
 dependencies {
   implementation(DependencyInfo.guava)
+  implementation(DependencyInfo.arrow("core"))
+  implementation(DependencyInfo.arrow("syntax"))
+  implementation(DependencyInfo.arrow("data"))
 
   implementation(DependencyInfo.jacksonCore("core"))
   implementation(DependencyInfo.jacksonModule("kotlin"))
 
   implementation(DependencyInfo.kodeinJvm)
   implementation(DependencyInfo.ktor("client-apache"))
+  implementation(DependencyInfo.ktor("client-cio"))
+  implementation(DependencyInfo.ktor("client-websocket"))
+  implementation(DependencyInfo.ktor("jackson"))
+  implementation(DependencyInfo.ktor("client-json"))
 
   implementation(DependencyInfo.kotlinxCoroutines("core"))
   implementation(DependencyInfo.kotlinxCoroutines("jdk8"))
 
-  implementation(DependencyInfo.cdp4j)
-
-  implementation(kotlin("stdlib-jre8"))
+  implementation(kotlin("stdlib-jdk8"))
 
   implementation(DependencyInfo.kotlinLogging)
 
+  testImplementation(DependencyInfo.assertK)
   DependencyInfo.junitTestImplementationArtifacts.forEach {
     testImplementation(it)
   }
@@ -47,7 +53,9 @@ dependencies {
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_1_9
+  // https://github.com/ktorio/ktor/issues/321
+//  sourceCompatibility = JavaVersion.VERSION_1_9
+  sourceCompatibility = JavaVersion.VERSION_1_8
 }
 
 kotlin {

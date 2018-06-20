@@ -2,27 +2,28 @@ package dotfilesbuild
 
 @Suppress("UNUSED", "MemberVisibilityCanBePrivate")
 object DependencyInfo {
-  const val arrowVersion = "0.6.0"
+  const val arrowVersion = "0.7.2"
   const val javapoetVersion = "1.10.0"
-  const val jacksonVersion = "2.9.4"
-  const val jsoup = "org.jsoup:jsoup:1.11.3"
-  const val junitGradlePluginVersion = "1.1.0"
-  const val junitPlatformVersion = "1.1.0"
-  const val junitJupiterVersion = "5.1.0"
+  const val jacksonVersion = "2.9.6"
+  const val junitPlatformVersion = "1.2.0"
+  const val junitJupiterVersion = "5.2.0"
   const val junit5Log4jVersion = "2.11.0"
-  const val kodeinVersion = "5.0.0"
+  const val kodeinVersion = "5.1.0"
   const val kotlinLoggingVersion = "1.5.4"
+//  const val kotlinxCoroutinesVersion = "0.23.1"
   const val kotlinxCoroutinesVersion = "0.22.5"
-  const val ktorVersion = "0.9.1"
+  const val ktorVersion = "0.9.2"
   const val okHttpVersion = "3.10.0"
   const val retrofitVersion = "2.4.0"
+  const val seleniumVersion = "3.11.0"
   const val slf4jVersion = "1.7.25"
 
-  const val assertJCore = "org.assertj:assertj-core:3.9.1"
-  const val cdp4j = "io.webfolder:cdp4j:2.2.4"
-  const val guava = "com.google.guava:guava:24.1-jre"
+  const val assertJCore = "org.assertj:assertj-core:3.10.0"
+  const val assertK = "com.willowtreeapps.assertk:assertk:0.10"
+  const val guava = "com.google.guava:guava:25.1-jre"
   const val javapoet = "com.squareup:javapoet:$javapoetVersion"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
+  const val jsoup = "org.jsoup:jsoup:1.11.3"
   val kodeinJvm = kodein("di-generic-jvm")
   const val mockito = "org.mockito:mockito-core:2.17.0"
   const val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.5.0"
@@ -51,8 +52,8 @@ object DependencyInfo {
   )
 
   fun arrow(module: String) = "io.arrow-kt:arrow-$module:$arrowVersion"
-  fun jacksonCore(module: String, version: String = jacksonVersion) = "com.fasterxml.jackson.core:jackson-$module:$jacksonVersion"
-  fun jacksonModule(module: String, version: String = jacksonVersion) = "com.fasterxml.jackson.module:jackson-module-$module:$jacksonVersion"
+  fun jacksonCore(module: String, version: String = jacksonVersion) = "com.fasterxml.jackson.core:jackson-$module:$version"
+  fun jacksonModule(module: String, version: String = jacksonVersion) = "com.fasterxml.jackson.module:jackson-module-$module:$version"
   fun junitJupiter(module: String) = "org.junit.jupiter:junit-jupiter-$module:$junitJupiterVersion"
   fun junitPlatform(module: String) = "org.junit.platform:junit-platform-$module:$junitPlatformVersion"
   fun kodein(module: String) = "org.kodein.di:kodein-$module:$kodeinVersion"
@@ -61,5 +62,6 @@ object DependencyInfo {
   fun log4j(module: String) = "org.apache.logging.log4j:log4j-$module:$junit5Log4jVersion"
   fun okHttp(module: String) = "com.squareup.okhttp3:$module:$okHttpVersion"
   fun retrofit2(module: String) = "com.squareup.retrofit2:$module:$retrofitVersion"
+  fun selenium(module: String) = "org.seleniumhq.selenium:selenium-$module:$seleniumVersion"
   fun slf4j(module: String) = "org.slf4j:slf4j-$module:$slf4jVersion"
 }

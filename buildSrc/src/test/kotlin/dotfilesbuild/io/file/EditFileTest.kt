@@ -7,7 +7,10 @@ import com.mkobit.gradle.test.kotlin.testkit.runner.setupProjectDir
 import org.assertj.core.api.Assertions.assertThat
 import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestInfo
+import org.junit.jupiter.api.extension.BeforeTestExecutionCallback
 import org.junit.jupiter.api.extension.ExtendWith
+import org.junit.jupiter.api.extension.ExtensionContext
 import testsupport.GradleRunnerExtension
 
 @ExtendWith(GradleRunnerExtension::class)
