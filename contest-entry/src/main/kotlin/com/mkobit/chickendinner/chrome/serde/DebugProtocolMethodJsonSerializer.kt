@@ -33,7 +33,7 @@ internal class DebugProtocolMethodJsonSerializer(
     jsonGenerator.writeStartObject()
     jsonGenerator.writeStringField("method", debugProtocolMethod.method)
     jsonGenerator.writeFieldName("params")
-    jsonGenerator.writeRaw(params)
+    provider.defaultSerializeValue(value, jsonGenerator)
     jsonGenerator.writeEndObject()
   }
 }

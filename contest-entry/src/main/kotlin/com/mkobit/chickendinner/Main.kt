@@ -8,6 +8,7 @@ import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.mkobit.chickendinner.chrome.ChromeDebugger
 import com.mkobit.chickendinner.chrome.determineChromePortFromLog
 import com.mkobit.chickendinner.chrome.determineChromePortFromProfileFile
+import com.mkobit.chickendinner.chrome.domain.page.NavigateRequest
 import com.mkobit.chickendinner.json.JacksonSerializer
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngineFactory
@@ -76,8 +77,10 @@ object Main {
       }
       val page = chromeDebugger.newPage()
       delay(Duration.ofSeconds(5L))
+        chromeDebugger.withConnection(page) {
+          send(NavigateRequest("https://google.com"))
+        }
       chromeDebugger.close(page)
-//        chromeDebugger.withConnection()
 //        logger.info { "Chrome Version: $version" }
 //        version.webSocketDebuggerUrl
 //      }

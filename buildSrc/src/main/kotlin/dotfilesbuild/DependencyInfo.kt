@@ -4,12 +4,13 @@ package dotfilesbuild
 object DependencyInfo {
   const val arrowVersion = "0.7.2"
   const val javapoetVersion = "1.10.0"
-  const val jacksonVersion = "2.9.5"
+  const val jacksonVersion = "2.9.6"
   const val junitPlatformVersion = "1.2.0"
   const val junitJupiterVersion = "5.2.0"
   const val junit5Log4jVersion = "2.11.0"
-  const val kodeinVersion = "5.0.0"
+  const val kodeinVersion = "5.1.0"
   const val kotlinLoggingVersion = "1.5.4"
+//  const val kotlinxCoroutinesVersion = "0.23.1"
   const val kotlinxCoroutinesVersion = "0.22.5"
   const val ktorVersion = "0.9.2"
   const val okHttpVersion = "3.10.0"
@@ -19,7 +20,6 @@ object DependencyInfo {
 
   const val assertJCore = "org.assertj:assertj-core:3.10.0"
   const val assertK = "com.willowtreeapps.assertk:assertk:0.10"
-  const val cdp4j = "io.webfolder:cdp4j:3.0.0"
   const val guava = "com.google.guava:guava:25.1-jre"
   const val javapoet = "com.squareup:javapoet:$javapoetVersion"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
@@ -52,8 +52,8 @@ object DependencyInfo {
   )
 
   fun arrow(module: String) = "io.arrow-kt:arrow-$module:$arrowVersion"
-  fun jacksonCore(module: String, version: String = jacksonVersion) = "com.fasterxml.jackson.core:jackson-$module:$jacksonVersion"
-  fun jacksonModule(module: String, version: String = jacksonVersion) = "com.fasterxml.jackson.module:jackson-module-$module:$jacksonVersion"
+  fun jacksonCore(module: String, version: String = jacksonVersion) = "com.fasterxml.jackson.core:jackson-$module:$version"
+  fun jacksonModule(module: String, version: String = jacksonVersion) = "com.fasterxml.jackson.module:jackson-module-$module:$version"
   fun junitJupiter(module: String) = "org.junit.jupiter:junit-jupiter-$module:$junitJupiterVersion"
   fun junitPlatform(module: String) = "org.junit.platform:junit-platform-$module:$junitPlatformVersion"
   fun kodein(module: String) = "org.kodein.di:kodein-$module:$kodeinVersion"

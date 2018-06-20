@@ -5,7 +5,7 @@ plugins {
   `java-library`
   `kotlin-dsl`
   `java-gradle-plugin`
-  id("com.github.ben-manes.versions") version "0.17.0"
+  id("com.github.ben-manes.versions") version "0.20.0"
 }
 
 repositories {
@@ -65,7 +65,7 @@ val build by tasks.getting {
   //  dependsOn("dependencyUpdates")
 }
 
-val coroutinesVersion by extra { "0.22.5" }
+val coroutinesVersion by extra { "0.23.0" }
 val arrowVersion by extra { "0.7.2" }
 dependencies {
   implementation("io.arrow-kt:arrow-core:$arrowVersion")

@@ -31,8 +31,9 @@ class GradleRunnerExtension : ParameterResolver, AfterEachCallback {
   }
 
   override fun afterEach(context: ExtensionContext) {
-    val temporaryDirectory: Path = context.store.get(context, Path::class.java)!!
-    temporaryDirectory.toFile().deleteRecursively()
+    context.store.get(context, Path::class.java)?.run {
+      toFile().deleteRecursively()
+    }
   }
 
   private val ExtensionContext.store: ExtensionContext.Store

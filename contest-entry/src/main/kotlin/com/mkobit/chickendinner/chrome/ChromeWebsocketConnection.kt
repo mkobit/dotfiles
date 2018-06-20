@@ -1,22 +1,23 @@
 package com.mkobit.chickendinner.chrome
 
-import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.SendChannel
+import com.fasterxml.jackson.databind.ObjectMapper
+import io.ktor.http.cio.websocket.WebSocketSession
 import mu.KotlinLogging
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 
 class ChromeWebsocketConnection(
-    val incoming: ReceiveChannel<Any>,
-    val outgoing: SendChannel<Any>
+    private val session: WebSocketSession,
+    private val objectMapper: ObjectMapper
 ) {
-  private val requestId = AtomicInteger()
+  private val requestId = AtomicLong()
 
   companion object {
     private val logger = KotlinLogging.logger { }
   }
 
   suspend fun send(message: Any) {
-
+//    val requestFrame = RequestFrame(requestId.incrementAndGet(), message)
+//    session.outgoing.send(Frame.Text(objectMapper.writeValueAsString(requestFrameand fix )))
   }
 }
 

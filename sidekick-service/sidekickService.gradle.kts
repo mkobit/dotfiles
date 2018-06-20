@@ -36,8 +36,6 @@ dependencies {
   implementation(DependencyInfo.kotlinxCoroutines("core"))
   implementation(DependencyInfo.kotlinxCoroutines("jdk8"))
 
-  implementation(DependencyInfo.cdp4j)
-
   implementation(kotlin("stdlib-jre8"))
   implementation(DependencyInfo.retrofit2("retrofit"))
   implementation(DependencyInfo.retrofit2("converter-jackson"))

@@ -12,8 +12,8 @@ import dotfilesbuild.io.git.GitVersionControlTarget
 import dotfilesbuild.io.git.PullRepository
 
 plugins {
-  id("com.github.ben-manes.versions") version "0.17.0"
-  kotlin("jvm") version "1.2.41" apply false
+  id("com.github.ben-manes.versions") version "0.20.0"
+  kotlin("jvm") version "1.2.50" apply false
 
   id("dotfilesbuild.intellij")
   id("dotfilesbuild.locations")
