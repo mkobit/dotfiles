@@ -28,16 +28,12 @@ class ChromeDebugger(
     }
   }
 
-  suspend fun openedPages(): List<PageInfo> {
-    // Can't use get<List<ChromePage>> right now https://github.com/ktorio/ktor/issues/346
-    val responseData = client.get<ByteArray> {
-      url {
-        host = this@ChromeDebugger.host
-        port = debugPort
-        path("json")
-      }
+  suspend fun openedPages(): List<PageInfo> = client.get {
+    url {
+      host = this@ChromeDebugger.host
+      port = debugPort
+      path("json")
     }
-    return client.jacksonSerializer.objectMapper.readValue(responseData)
   }
 
   // For valid targets, response body is "Target activated"
@@ -83,7 +79,4 @@ class ChromeDebugger(
 //      send(Frame.Text())
     }
   }
-
-  private val HttpClient.jacksonSerializer get() =
-      feature(JsonFeature)!!.serializer as JacksonSerializer
 }

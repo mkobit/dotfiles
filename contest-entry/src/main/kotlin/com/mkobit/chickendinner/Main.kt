@@ -42,7 +42,7 @@ object Main {
     bind<ObjectMapper>() with singleton { ObjectMapper().registerKotlinModule() }
     bind<HttpClientEngineFactory<*>>() with singleton { CIO }
     bind<HttpClient>() with singleton {
-      HttpClient(instance()) {
+      HttpClient(engineFactory = instance()) {
         install(WebSockets)
         install(JsonFeature) {
           serializer = JacksonSerializer(instance())
@@ -75,12 +75,12 @@ object Main {
       chromeDebugger.openedPages().forEach {
         println("${it.title} -> ${it.id}")
       }
-      val page = chromeDebugger.newPage()
-      delay(Duration.ofSeconds(5L))
-        chromeDebugger.withConnection(page) {
-          send(NavigateRequest("https://google.com"))
-        }
-      chromeDebugger.close(page)
+//      val page = chromeDebugger.newPage()
+//      delay(Duration.ofSeconds(5L))
+//        chromeDebugger.withConnection(page) {
+//          send(NavigateRequest("https://google.com"))
+//        }
+//      chromeDebugger.close(page)
 //        logger.info { "Chrome Version: $version" }
 //        version.webSocketDebuggerUrl
 //      }

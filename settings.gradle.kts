@@ -1,7 +1,8 @@
 rootProject.name = "dotfiles"
 
-include("sidekick-service")
 include("contest-entry")
+include("kotlin-script-experiment")
+include("sidekick-service")
 
 rootProject.children.forEach { project ->
   val replacedName = project.name.run {
