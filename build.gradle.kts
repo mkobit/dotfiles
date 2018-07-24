@@ -12,6 +12,7 @@ import dotfilesbuild.io.git.GitVersionControlTarget
 import dotfilesbuild.io.git.PullRepository
 
 plugins {
+  id("com.gradle.build-scan") version "1.15.1"
   id("com.github.ben-manes.versions") version "0.20.0"
   kotlin("jvm") version "1.2.51" apply false
 
@@ -21,6 +22,11 @@ plugins {
   id("dotfilesbuild.self-update")
   id("dotfilesbuild.vcs-management")
   id("dotfilesbuild.git-vcs")
+}
+
+buildScan {
+  setTermsOfServiceUrl("https://gradle.com/terms-of-service")
+  setTermsOfServiceAgree("yes")
 }
 
 description = "Dotfiles and package management"
