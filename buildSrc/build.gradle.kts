@@ -74,7 +74,7 @@ dependencies {
   implementation("io.arrow-kt:arrow-typeclasses:$arrowVersion")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
   implementation("com.squareup.retrofit2:retrofit:2.4.0")
-  implementation("com.squareup.okhttp3:okhttp:3.10.0")
+  implementation("com.squareup.okhttp3:okhttp:3.11.0")
   implementation("io.github.microutils:kotlin-logging:1.5.4")
   implementation("org.eclipse.jgit:org.eclipse.jgit:4.11.0.201803080745-r")
   // https://mvnrepository.com/artifact/com.google.guava/guava
