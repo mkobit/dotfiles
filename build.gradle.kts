@@ -439,7 +439,7 @@ tasks {
 }
 
 intellij {
-  intellijVersion.set("2018.1")
+  intellijVersion.set("2018.2")
 }
 
 keepass {
