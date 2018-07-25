@@ -36,7 +36,7 @@ open class IntelliJProgramPlugin : Plugin<Project> {
             set(locations.programs)
           }
       )
-      val downloadIntellijZip = tasks.create("downloadIntellijZip", Download::class.java) {
+      val downloadIntellijZip = tasks.register("downloadIntellijZip", Download::class.java) {
         description = "Downloads the IntelliJ ZIP distribution"
         group = TASK_GROUP
         destination.set(
@@ -54,16 +54,16 @@ open class IntelliJProgramPlugin : Plugin<Project> {
         }.map { it.get() })
       }
       // TODO: never up to date for some stupid reason
-      val extractIntellijZip = tasks.create("extractIntellijZip", Copy::class.java) {
+      val extractIntellijZip = tasks.register("extractIntellijZip", Copy::class.java) {
         description = "Extracts the IntelliJ ZIP distribution"
         group = TASK_GROUP
         dependsOn(downloadIntellijZip)
-        from(Callable { tarTree(downloadIntellijZip.destination) })
+        from(Callable { tarTree(downloadIntellijZip.map(Download::destination).get()) })
         into(intellij.installDirectory)
       }
       // TODO: figure out how to get the actual top-level dir of the extracted program and symlink it
       // TODO: SymlinkDirectory seems to create output directory even when we want it to be a symlink so need to fix that
-//      val symlinkIntellijProgram = tasks.create("symlinkIntellijProgram", SymlinkDirectory::class.java) {
+//      val symlinkIntellijProgram = tasks.register("symlinkIntellijProgram", SymlinkDirectory::class.java) {
 //        description = "Creates a symlink to the IntelliJ directory"
 //        group = TASK_GROUP
 //        dependsOn(extractIntellijZip)

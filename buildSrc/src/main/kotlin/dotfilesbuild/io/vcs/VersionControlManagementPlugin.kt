@@ -22,18 +22,21 @@ open class VersionControlManagementPlugin @Inject constructor(private val instan
       pluginManager.apply(LocationsPlugin::class.java)
       val locations = extensions.findByType(LocationsExtension::class.java)!!
       val topLevelContainer = container(VersionControlOrganization::class.java) { orgName ->
-        val createOrganization = tasks.create("createVersionControlOrganization${orgName.capitalize()}", Mkdir::class.java) {
+        val createOrganization = tasks.register("createVersionControlOrganization${orgName.capitalize()}", Mkdir::class.java) {
           description = "Create directory for organizational unit $orgName"
           directory.set(locations.workspace.dir(orgName))
         }
-        VersionControlOrganization(orgName, createOrganization.directory, container(VersionControlGroup::class.java) { groupName ->
-          val createGroup = tasks.create("createVersionControlGroup${groupName.capitalize()}", Mkdir::class.java) {
+        val m = createOrganization.map(Mkdir::directory).map { it.get() }
+          // TODO: determine how we can prevent eager configuration of the tasks
+        VersionControlOrganization(orgName, createOrganization.map(Mkdir::directory).get(), container(VersionControlGroup::class.java) { groupName ->
+          val createGroup = tasks.register("createVersionControlGroup${groupName.capitalize()}", Mkdir::class.java) {
             description = "Create directory for grouping unit $groupName"
-            directory.set(createOrganization.directory.dir(groupName))
+            directory.set(createOrganization.map { it.directory.dir(groupName) }.get())
           }
+          // TODO: determine how we can prevent eager configuration of the tasks
           VersionControlGroup(
               groupName,
-              createGroup.directory,
+              createGroup.map(Mkdir::directory).map { it.get() },
               objects.newInstance(DefaultVersionControlManagementContainer::class.java, instantiator)
           )
         })

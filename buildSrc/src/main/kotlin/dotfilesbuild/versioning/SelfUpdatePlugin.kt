@@ -6,7 +6,7 @@ import org.gradle.api.tasks.Exec
 
 open class SelfUpdatePlugin : Plugin<Project> {
   override fun apply(project: Project) {
-    project.tasks.create("synchronize", Exec::class.java) {
+    project.tasks.register("synchronize", Exec::class.java) {
       description = "Synchronizes the dotfiles source"
       commandLine("dotfilesbuild/io/git", "pull", "--rebase", "--autostash")
       workingDir = project.rootDir

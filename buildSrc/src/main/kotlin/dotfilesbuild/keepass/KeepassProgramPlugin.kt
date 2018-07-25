@@ -34,7 +34,7 @@ open class KeepassProgramPlugin : Plugin<Project> {
             set(locations.programs)
           }
       )
-      val downloadKeepassZip = tasks.create("downloadKeepassZip", Download::class.java) {
+      val downloadKeepassZip = tasks.register("downloadKeepassZip", Download::class.java) {
         description = "Downloads the KeePass ZIP distribution"
         group = TASK_GROUP
         destination.set(
@@ -45,14 +45,14 @@ open class KeepassProgramPlugin : Plugin<Project> {
         })
       }
       val installDirectoryForVersion = keepass.installDirectory.dir(keepass.keepassVersion.map { "KeePass-$it" })
-      val extractKeepassZip = tasks.create("extractKeepassZip", Copy::class.java) {
+      val extractKeepassZip = tasks.register("extractKeepassZip", Copy::class.java) {
         description = "Extracts the KeePass ZIP distribution"
         group = TASK_GROUP
         dependsOn(downloadKeepassZip)
-        from(Callable { zipTree(downloadKeepassZip.destination) })
+        from(Callable { zipTree(downloadKeepassZip.map(Download::destination).get()) })
         into(installDirectoryForVersion)
       }
-      val symlinkKeePassProgram = tasks.create("symlinkKeePassProgram", Symlink::class.java) {
+      tasks.register("symlinkKeePassProgram", Symlink::class.java) {
         description = "Creates a symlink to the KeePass directory"
         group = TASK_GROUP
         dependsOn(extractKeepassZip)
