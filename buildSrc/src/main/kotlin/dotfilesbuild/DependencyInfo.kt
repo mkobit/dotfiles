@@ -9,7 +9,7 @@ object DependencyInfo {
   const val junitJupiterVersion = "5.2.0"
   const val junit5Log4jVersion = "2.11.0"
   const val kodeinVersion = "5.2.0"
-  const val kotlinxCoroutinesVersion = "0.23.4"
+  const val kotlinxCoroutinesVersion = "0.24.0"
   const val kotlinLoggingVersion = "1.5.4"
   const val ktorVersion = "0.9.3"
   const val okHttpVersion = "3.11.0"

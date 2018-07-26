@@ -33,8 +33,8 @@ val junitTestImplementationArtifacts = listOf(
 )
 
 val assertJCore = "org.assertj:assertj-core:3.10.0"
-val mockitoCore = "org.mockito:mockito-core:2.18.3"
-val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.5.0"
+val mockitoCore = "org.mockito:mockito-core:2.20.1"
+val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.6.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
 val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
 val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
@@ -62,10 +62,10 @@ val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
 
 val build by tasks.getting {
   // uncomment when needed
-  //  dependsOn("dependencyUpdates")
+//    dependsOn("dependencyUpdates")
 }
 
-val coroutinesVersion by extra { "0.23.0" }
+val coroutinesVersion by extra { "0.24.0" }
 val arrowVersion by extra { "0.7.2" }
 dependencies {
   implementation("io.arrow-kt:arrow-core:$arrowVersion")
@@ -76,7 +76,7 @@ dependencies {
   implementation("com.squareup.retrofit2:retrofit:2.4.0")
   implementation("com.squareup.okhttp3:okhttp:3.11.0")
   implementation("io.github.microutils:kotlin-logging:1.5.4")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:4.11.0.201803080745-r")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.0.1.201806211838-r")
   // https://mvnrepository.com/artifact/com.google.guava/guava
   implementation("com.google.guava:guava:25.1-jre")
 
