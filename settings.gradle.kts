@@ -4,6 +4,12 @@ include("contest-entry")
 include("kotlin-script-experiment")
 include("sidekick-service")
 
+buildCache {
+  local {
+    isEnabled = true
+  }
+}
+
 rootProject.children.forEach { project ->
   val replacedName = project.name.run {
     val parts = split("-").toList()

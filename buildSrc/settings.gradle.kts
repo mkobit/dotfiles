@@ -1,0 +1,5 @@
+buildCache {
+  local {
+    isEnabled = true
+  }
+}
