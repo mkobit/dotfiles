@@ -23,7 +23,7 @@ unbind '"'
 unbind %
 
 # Maximum number of lines held in window history.
-set -g history-limit 10000
+set -g history-limit 50000
 
 # Automatically set window titles
 set -g set-titles on
