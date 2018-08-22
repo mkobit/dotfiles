@@ -14,7 +14,7 @@ import dotfilesbuild.io.git.PullRepository
 plugins {
   id("com.gradle.build-scan") version "1.15.1"
   id("com.github.ben-manes.versions") version "0.20.0"
-  kotlin("jvm") version "1.2.51" apply false
+  kotlin("jvm") version "1.2.61" apply false
 
   id("dotfilesbuild.intellij")
   id("dotfilesbuild.locations")

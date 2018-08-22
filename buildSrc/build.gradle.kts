@@ -66,7 +66,7 @@ val build by tasks.getting {
 }
 
 val coroutinesVersion by extra { "0.24.0" }
-val arrowVersion by extra { "0.7.2" }
+val arrowVersion by extra { "0.7.3" }
 dependencies {
   implementation("io.arrow-kt:arrow-core:$arrowVersion")
   implementation("io.arrow-kt:arrow-effects:$arrowVersion")
