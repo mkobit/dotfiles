@@ -10,6 +10,12 @@ data class GitVersionControlTarget(
     override val directory: Provider<Directory>
 ) : VersionControlTarget {
 
+  init {
+    require(repositoryName.trim() == repositoryName) {
+      "repositoryName '$name' must not begin or start with whitespace"
+    }
+  }
+
   override fun getName(): String = repositoryName
 
   fun remote(name: String, url: String) {

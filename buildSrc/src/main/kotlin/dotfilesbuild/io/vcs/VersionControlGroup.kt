@@ -10,5 +10,10 @@ class VersionControlGroup(
     val directory: Provider<Directory>,
     val vcs: ExtensiblePolymorphicDomainObjectContainer<VersionControlTarget>
 ) : ExtensiblePolymorphicDomainObjectContainer<VersionControlTarget> by vcs, Named {
+
+  init {
+    require(groupName.trim() == groupName) { "groupName '$name' must not begin or end with whitespace" }
+  }
+
   override fun getName(): String = groupName
 }

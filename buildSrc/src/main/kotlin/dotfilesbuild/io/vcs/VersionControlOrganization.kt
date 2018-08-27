@@ -9,5 +9,9 @@ class VersionControlOrganization(
     val directory: DirectoryProperty,
     val groups: NamedDomainObjectContainer<VersionControlGroup>
 ) : Named {
+  init {
+    require(organizationName.trim() == organizationName) { "organizationName '$name' must not begin or end with whitespace" }
+  }
+
   override fun getName(): String = organizationName
 }
