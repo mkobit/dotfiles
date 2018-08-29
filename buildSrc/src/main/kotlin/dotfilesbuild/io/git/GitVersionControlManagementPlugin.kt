@@ -44,7 +44,8 @@ open class GitVersionControlManagementPlugin @Inject constructor(
             refreshOrganization.configure {
               dependsOn(refreshGroup)
             }
-            vcs.withType<GitVersionControlTarget>().configureEach {
+            // TODO: make laziness actually work
+            vcs.withType<GitVersionControlTarget>().whenObjectAdded {
               val gitVersionControlTarget = this
               val targetClassifier = "GitRepository$name"
               // TODO: better handle multiple remotes
