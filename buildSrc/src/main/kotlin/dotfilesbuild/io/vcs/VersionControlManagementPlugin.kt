@@ -26,7 +26,6 @@ open class VersionControlManagementPlugin @Inject constructor(private val instan
           description = "Create directory for organizational unit $orgName"
           directory.set(locations.workspace.dir(orgName))
         }
-        val m = createOrganization.map(Mkdir::directory).map { it.get() }
           // TODO: determine how we can prevent eager configuration of the tasks
         VersionControlOrganization(orgName, createOrganization.map(Mkdir::directory).get(), container(VersionControlGroup::class.java) { groupName ->
           val createGroup = tasks.register("createVersionControlGroup${groupName.capitalize()}", Mkdir::class.java) {
