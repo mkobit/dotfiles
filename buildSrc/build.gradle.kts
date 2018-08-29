@@ -106,31 +106,31 @@ tasks {
 
 gradlePlugin {
   plugins.invoke {
-    "home" {
+    register("home") {
       id = "dotfilesbuild.locations"
       implementationClass = "dotfilesbuild.LocationsPlugin"
     }
-    "fileManagement" {
+    register("fileManagement") {
       id = "dotfilesbuild.file-management"
       implementationClass = "dotfilesbuild.io.file.FileManagementPlugin"
     }
-    "gitVcs" {
+    register("gitVcs") {
       id = "dotfilesbuild.git-vcs"
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
     }
-    "keepassProgram" {
+    register("keepassProgram") {
       id = "dotfilesbuild.keepass"
       implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
     }
-    "intellijProgram" {
+    register("intellijProgram") {
       id = "dotfilesbuild.intellij"
       implementationClass = "dotfilesbuild.intellij.IntelliJProgramPlugin"
     }
-    "selfUpdate" {
+    register("selfUpdate") {
       id = "dotfilesbuild.self-update"
       implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"
     }
-    "vcsManagement" {
+    register("vcsManagement") {
       id = "dotfilesbuild.vcs-management"
       implementationClass = "dotfilesbuild.io.vcs.VersionControlManagementPlugin"
     }
