@@ -20,7 +20,7 @@ java {
 
 val junitPlatformVersion: String = "1.2.0"
 val junitJupiterVersion: String = "5.2.0"
-val junit5Log4jVersion: String = "2.11.0"
+val junit5Log4jVersion: String = "2.11.1"
 
 val junitPlatformRunner = "org.junit.platform:junit-platform-runner:$junitPlatformVersion"
 val junitJupiterApi = "org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion"
@@ -49,7 +49,7 @@ val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
   val rejectPatterns = listOf("alpha", "beta", "rc", "cr", "m").map { qualifier ->
     Regex("(?i).*[.-]$qualifier[.\\d-]*")
   }
-  resolutionStrategy = closureOf<ResolutionStrategy> {
+  resolutionStrategy {
     componentSelection {
       all {
         if (rejectPatterns.any { it.matches(this.candidate.version) }) {
@@ -61,11 +61,10 @@ val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
 }
 
 val build by tasks.getting {
-  // uncomment when needed
-//    dependsOn("dependencyUpdates")
+//  dependsOn("dependencyUpdates") // uncomment when want to get dependency updates for buildSrc project
 }
 
-val coroutinesVersion by extra { "0.24.0" }
+val coroutinesVersion by extra { "0.25.0" }
 val arrowVersion by extra { "0.7.3" }
 dependencies {
   implementation("io.arrow-kt:arrow-core:$arrowVersion")
@@ -75,13 +74,13 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
   implementation("com.squareup.retrofit2:retrofit:2.4.0")
   implementation("com.squareup.okhttp3:okhttp:3.11.0")
-  implementation("io.github.microutils:kotlin-logging:1.5.4")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:5.0.1.201806211838-r")
+  implementation("io.github.microutils:kotlin-logging:1.5.9")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.0.2.201807311906-r")
   // https://mvnrepository.com/artifact/com.google.guava/guava
-  implementation("com.google.guava:guava:25.1-jre")
+  implementation("com.google.guava:guava:26.0-jre")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
-  testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.5.0")
+  testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.6.0")
   testImplementation(assertJCore)
   testImplementation(mockitoCore)
   testImplementation(mockitoKotlin)
