@@ -310,12 +310,12 @@ tasks {
     directory.set(codeLabWorkspaceDirectory)
   }
 
-  val workspace by creating {
+  val workspace by registering {
     group = "Workspace"
     dependsOn(personalWorkspace, workWorkspace, codeLabWorkspace)
   }
 
-  val gitConfigGeneration by creating(EditFile::class) {
+  val gitConfigGeneration by registering(EditFile::class) {
     val gitConfigGeneral = projectFile("git/gitconfig_general.dotfile")
     val gitConfigPersonal = projectFile("git/gitconfig_personal.dotfile")
     editActions.set(listOf(
@@ -338,56 +338,56 @@ tasks {
     dependsOn(workspace)
   }
 
-  val gitIgnoreGlobal by creating(Symlink::class) {
+  val gitIgnoreGlobal by registering(Symlink::class) {
     source.set(projectFile("git/gitignore_global.dotfile"))
     destination.set(locations.home.file(".gitignore_global"))
   }
 
-  val git by creating {
+  val git by registering {
     group = "Git"
     dependsOn(gitConfigGeneration, gitIgnoreGlobal)
   }
 
-  val screenRc by creating(Symlink::class) {
+  val screenRc by registering(Symlink::class) {
     source.set(projectFile("screen/screenrc.dotfile"))
     destination.set(locations.home.file(".screenrc"))
   }
 
-  val screen by creating {
+  val screen by registering {
     group = "Screen"
     dependsOn(screenRc)
   }
 
-  val tmuxConf by creating(Symlink::class) {
+  val tmuxConf by registering(Symlink::class) {
     source.set(projectFile("tmux/tmux.conf.dotfile"))
     destination.set(locations.home.file(".tmux.conf"))
   }
 
-  val sshCms by creating(Mkdir::class) {
+  val sshCms by registering(Mkdir::class) {
     directory.set(locations.home.dir(".ssh/controlMaster"))
   }
 
-  val ssh by creating {
+  val ssh by registering {
     group = "SSH"
     dependsOn(sshCms)
   }
 
-  val tmux by creating {
+  val tmux by registering {
     group = "Tmux"
     dependsOn(tmuxConf)
   }
 
-  val vimRc by creating(Symlink::class) {
+  val vimRc by registering(Symlink::class) {
     source.set(projectFile("vim/vimrc.dotfile"))
     destination.set(locations.home.file(".vimrc"))
   }
 
-  val vim by creating {
+  val vim by registering {
     group = "VIM"
     dependsOn(vimRc)
   }
 
-  val zshrcDotfiles by creating(EditFile::class) {
+  val zshrcDotfiles by registering(EditFile::class) {
     description = "Creates a ZSH file to be sourced that only contains dotfiles specific content"
     file.set(locations.home.file(".zshrc_dotfiles"))
     // TODO: add Provider<Directory> to VersionControlTarget
@@ -410,12 +410,12 @@ tasks {
     })
   }
 
-  val zshrcFile by creating(EditFile::class) {
+  val zshrcFile by registering(EditFile::class) {
     description = "Edits the .zshrc file"
     file.set(locations.home.file(".zshrc"))
     dependsOn(zshrcDotfiles)
     editActions.add(provider {
-      val text = ". ${zshrcDotfiles.file.get().asFile.toPath().toAbsolutePath()}"
+      val text = ". ${zshrcDotfiles.get().file.get().asFile.toPath().toAbsolutePath()}"
       AppendIfNoLinesMatch(
           Regex(text, RegexOption.LITERAL),
           { text }
@@ -423,7 +423,7 @@ tasks {
     })
   }
 
-  val zsh by creating {
+  val zsh by registering {
     group = "ZSH"
     description = "Sets up ZSH"
     dependsOn(zshrcDotfiles, zshrcFile)
