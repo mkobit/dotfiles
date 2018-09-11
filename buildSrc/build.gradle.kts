@@ -18,8 +18,8 @@ java {
   targetCompatibility = JavaVersion.VERSION_1_9
 }
 
-val junitPlatformVersion: String = "1.2.0"
-val junitJupiterVersion: String = "5.2.0"
+val junitPlatformVersion: String = "1.3.1"
+val junitJupiterVersion: String = "5.3.1"
 val junit5Log4jVersion: String = "2.11.1"
 
 val junitPlatformRunner = "org.junit.platform:junit-platform-runner:$junitPlatformVersion"
@@ -32,8 +32,8 @@ val junitTestImplementationArtifacts = listOf(
     junitJupiterParams
 )
 
-val assertJCore = "org.assertj:assertj-core:3.10.0"
-val mockitoCore = "org.mockito:mockito-core:2.20.1"
+val assertJCore = "org.assertj:assertj-core:3.11.1"
+val mockitoCore = "org.mockito:mockito-core:2.22.0"
 val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.6.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
 val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
@@ -74,8 +74,8 @@ dependencies {
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
   implementation("com.squareup.retrofit2:retrofit:2.4.0")
   implementation("com.squareup.okhttp3:okhttp:3.11.0")
-  implementation("io.github.microutils:kotlin-logging:1.5.9")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:5.0.2.201807311906-r")
+  implementation("io.github.microutils:kotlin-logging:1.6.10")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.0.3.201809091024-r")
   // https://mvnrepository.com/artifact/com.google.guava/guava
   implementation("com.google.guava:guava:26.0-jre")
 
