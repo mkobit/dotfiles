@@ -5,19 +5,17 @@ import com.mkobit.gradle.test.kotlin.io.Original
 import com.mkobit.gradle.test.kotlin.testkit.runner.build
 import com.mkobit.gradle.test.kotlin.testkit.runner.setupProjectDir
 import org.assertj.core.api.Assertions.assertThat
-import org.gradle.testkit.runner.GradleRunner
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestInfo
-import org.junit.jupiter.api.extension.BeforeTestExecutionCallback
 import org.junit.jupiter.api.extension.ExtendWith
-import org.junit.jupiter.api.extension.ExtensionContext
-import testsupport.GradleRunnerExtension
+import org.junitpioneer.jupiter.TempDirectory
+import testsupport.newGradleRunner
+import java.nio.file.Path
 
-@ExtendWith(GradleRunnerExtension::class)
+@ExtendWith(TempDirectory::class)
 internal class EditFileTest {
   @Test
-  internal fun `edit the content of a file with multiple actions`(gradleRunner: GradleRunner) {
-    val result = gradleRunner.setupProjectDir {
+  internal fun `edit the content of a file with multiple actions`(@TempDirectory.TempDir projectDir: Path) {
+    val result = newGradleRunner(projectDir).setupProjectDir {
       "build.gradle"(content = Original) {
         append("""
           import dotfilesbuild.io.file.EditFile
@@ -72,12 +70,14 @@ internal class EditFileTest {
   }
 
   @Test
-  internal fun `editing a file where no actions are applied result in an UP-TO-DATE task and the file is unchanged`(gradleRunner: GradleRunner) {
+  internal fun `editing a file where no actions are applied result in an UP-TO-DATE task and the file is unchanged`(@TempDirectory.TempDir projectDir: Path) {
     val originalText = """
       first
       second
       third
     """.trimIndent()
+    val gradleRunner = newGradleRunner(projectDir)
+
     gradleRunner.setupProjectDir {
       "build.gradle"(content = Original) {
         append("""

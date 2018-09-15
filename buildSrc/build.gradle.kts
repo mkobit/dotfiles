@@ -33,6 +33,7 @@ val junitTestImplementationArtifacts = listOf(
 )
 
 val assertJCore = "org.assertj:assertj-core:3.11.1"
+val junitPioneer = "org.junit-pioneer:junit-pioneer:0.1.2"
 val mockitoCore = "org.mockito:mockito-core:2.22.0"
 val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.6.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
@@ -84,6 +85,7 @@ dependencies {
   testImplementation(assertJCore)
   testImplementation(mockitoCore)
   testImplementation(mockitoKotlin)
+  testImplementation(junitPioneer)
   junitTestImplementationArtifacts.forEach {
     testImplementation(it)
   }
