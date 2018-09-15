@@ -6,6 +6,7 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.transport.JschConfigSessionFactory
 import org.eclipse.jgit.transport.OpenSshConfig
 import org.eclipse.jgit.transport.SshTransport
+import org.eclipse.jgit.transport.URIish
 import java.io.File
 import javax.inject.Inject
 
@@ -39,6 +40,47 @@ class CloneAction @Inject constructor(
         }
         .call().use {
       LOGGER.info { "Cloned $directory to $remoteUrl" }
+    }
+  }
+}
+
+class ConfigureRemotesAction @Inject constructor(
+    private val repository: File,
+    private val remotes: Map<String, String>
+) : Runnable {
+  companion object {
+    private val LOGGER = KotlinLogging.logger {}
+  }
+
+  override fun run() {
+    Git.open(repository).use { git ->
+      val currentRemotes = git.remoteList().call()
+          .onEach { require(it.urIs.size == 1) { "Only supports single URL from each remote" } }
+          .associate { it.name to it.urIs.first().host }
+      val toRemove = currentRemotes.filter { it.key !in remotes }
+      val toAdd = remotes.filter { it.key !in currentRemotes }
+      val toUpdate = remotes.filter { it.key in currentRemotes && currentRemotes[it.key] != it.value }
+
+      toRemove.forEach { (name, _) ->
+        LOGGER.debug { "Revmoiing remote named $name from repository ${git.repository.directory}" }
+        git.remoteRemove().apply {
+          setName(name)
+        }.call()
+      }
+      toAdd.forEach { (name, uri) ->
+        LOGGER.debug { "Add remote named $name with URI $uri to repository ${git.repository.directory}" }
+        git.remoteAdd()
+            .setName(name)
+            .setUri(URIish(uri))
+            .call()
+      }
+      toUpdate.forEach { (name, uri) ->
+        LOGGER.debug { "Updating remote with name $name from URI ${currentRemotes[name]} to URI $uri in repository ${git.repository.directory}" }
+        git.remoteSetUrl().apply {
+          setName(name)
+          setUri(URIish(uri))
+        }.call()
+      }
     }
   }
 }
