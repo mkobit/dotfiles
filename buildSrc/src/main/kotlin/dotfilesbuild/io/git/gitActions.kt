@@ -98,7 +98,7 @@ class FetchAction @Inject constructor(
       it.fetch()
           .setRemote(remote)
           .call()
-      LOGGER.info { "Fetched origin for $repository" }
+      LOGGER.info { "Fetched remote $remote for $repository" }
     }
   }
 }
@@ -122,7 +122,7 @@ class PullAction @Inject constructor(
             }
           }
           .call()
-      LOGGER.info { "Pulled origin for $repository" }
+      LOGGER.info { "Pulled $remote for $repository" }
     }
   }
 }
