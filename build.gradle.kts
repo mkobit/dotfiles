@@ -253,7 +253,7 @@ versionControlTracking.invoke {
       }
       register("mkobit") {
         vcs {
-          register("android-app", GitVersionControlTarget::class) { origin("git@gitlab.com:ultimatepwner/bill-splitter-android.git") }
+          register("android-app", GitVersionControlTarget::class) { origin("git@gitlab.com:ultimatepwner/android-app.git") }
           register("blog", GitVersionControlTarget::class) { origin("git@gitlab.com:mkobit/blog.git") }
           register("gradle-assertions", GitVersionControlTarget::class) { origin("git@github.com:mkobit/gradle-assertions.git") }
           register("gradle-junit-jupiter-extensions", GitVersionControlTarget::class) { origin("git@github.com:mkobit/gradle-junit-jupiter-extensions.git") }
