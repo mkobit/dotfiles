@@ -10,7 +10,7 @@ import org.eclipse.jgit.transport.URIish
 import java.io.File
 import javax.inject.Inject
 
-private val sessionConfigFactory = object : JschConfigSessionFactory() {
+private val nonHostKeyCheckingConfigFactory = object : JschConfigSessionFactory() {
   override fun configure(hc: OpenSshConfig.Host, session: Session) {
     if (hc.hostName.contains("gitlab.com")) {
       // TODO: Hack for host key checking for GitLab on laptop not doing what I expect
@@ -35,7 +35,7 @@ internal class CloneAction @Inject constructor(
         .setDirectory(directory)
         .setTransportConfigCallback { transport ->
           if (transport is SshTransport) {
-            transport.sshSessionFactory = sessionConfigFactory
+            transport.sshSessionFactory = nonHostKeyCheckingConfigFactory
           }
         }
         .call().use {
@@ -91,8 +91,7 @@ internal class ConfigureRemotesAction @Inject constructor(
 }
 
 internal class FetchAction @Inject constructor(
-    private val repository: File,
-    private val remote: String
+    private val repository: File
 ) : Runnable {
   companion object {
     private val LOGGER = KotlinLogging.logger {}
@@ -100,10 +99,18 @@ internal class FetchAction @Inject constructor(
 
   override fun run() {
     Git.open(repository).use { git ->
-      git.fetch()
-          .setRemote(remote)
-          .call()
-      LOGGER.info { "Fetched remote $remote for ${git.repository.directory}" }
+      LOGGER.debug { "Fetching remotes for ${git.repository.directory}" }
+      git.remoteList().call().forEach { remote ->
+        git.fetch()
+            .setRemote(remote.name)
+            .setTransportConfigCallback { transport ->
+              if (transport is SshTransport) {
+                transport.sshSessionFactory = nonHostKeyCheckingConfigFactory
+              }
+            }
+            .call()
+        LOGGER.debug { "Fetched remote ${remote.name} ref specs ${remote.fetchRefSpecs} for ${git.repository.directory}" }
+      }
     }
   }
 }
@@ -123,7 +130,7 @@ internal class PullAction @Inject constructor(
           .setRemote(remote)
           .setTransportConfigCallback { transport ->
             if (transport is SshTransport) {
-              transport.sshSessionFactory = sessionConfigFactory
+              transport.sshSessionFactory = nonHostKeyCheckingConfigFactory
             }
           }
           .call()

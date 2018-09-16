@@ -48,8 +48,9 @@ open class GitVersionControlManagementPlugin @Inject constructor(
             vcs.withType<GitVersionControlTarget>().whenObjectAdded {
               val gitVersionControlTarget = this
               val targetClassifier = "GitRepository$name"
+              val fullClassifier = "$organizationClassifier$groupClassifier$targetClassifier"
               // TODO: better handle multiple remotes
-              val cloneRepository = tasks.register("clone$organizationClassifier$groupClassifier$targetClassifier",
+              val cloneRepository = tasks.register("clone$fullClassifier",
                   CloneRepository::class) {
                 description = "Clone Git repository ${gitVersionControlTarget.name}"
                 repositoryDirectory.set(gitVersionControlTarget.directory)
@@ -57,15 +58,21 @@ open class GitVersionControlManagementPlugin @Inject constructor(
                   gitVersionControlTarget.remotes["origin"] ?: gitVersionControlTarget.remotes.entries.first().value
                 })
               }
-              val configureRemotes = tasks.register("configureRemotes$organizationClassifier$groupClassifier$targetClassifier", ConfigureRemotes::class) {
+              val configureRemotes = tasks.register("configureRemotes$fullClassifier", ConfigureRemotes::class) {
                 dependsOn(cloneRepository)
+                description = "Configure remotes for Git repository ${gitVersionControlTarget.name}"
                 repositoryDirectory.set(cloneRepository.map(CloneRepository::repositoryDirectory).get())
                 remotes.set(providerFactory.provider { gitVersionControlTarget.remotes })
               }
-              val pullRepository = tasks.register("pull$organizationClassifier$groupClassifier$targetClassifier",
+              val fetchRemotes = tasks.register("fetchRemotes$fullClassifier", FetchRemotes::class) {
+                dependsOn(configureRemotes)
+                description = "Fetch remotes for Git repository ${gitVersionControlTarget.name}"
+                repositoryDirectory.set(cloneRepository.map(CloneRepository::repositoryDirectory).get())
+              }
+              val pullRepository = tasks.register("pull$fullClassifier",
                   PullRepository::class) {
+                dependsOn(fetchRemotes)
                 description = "Pull Git repository ${gitVersionControlTarget.name}"
-                dependsOn(cloneRepository, configureRemotes)
                 repositoryDirectory.set(cloneRepository.map(CloneRepository::repositoryDirectory).get())
               }
               refreshGroup.configure {
