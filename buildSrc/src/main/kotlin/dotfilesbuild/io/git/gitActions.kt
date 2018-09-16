@@ -20,7 +20,7 @@ private val sessionConfigFactory = object : JschConfigSessionFactory() {
   }
 }
 
-class CloneAction @Inject constructor(
+internal class CloneAction @Inject constructor(
     private val directory: File,
     private val remoteUrl: String
 ) : Runnable {
@@ -44,7 +44,7 @@ class CloneAction @Inject constructor(
   }
 }
 
-class ConfigureRemotesAction @Inject constructor(
+internal class ConfigureRemotesAction @Inject constructor(
     private val repository: File,
     private val remotes: Map<String, String>
 ) : Runnable {
@@ -85,7 +85,7 @@ class ConfigureRemotesAction @Inject constructor(
   }
 }
 
-class FetchAction @Inject constructor(
+internal class FetchAction @Inject constructor(
     private val repository: File,
     private val remote: String
 ) : Runnable {
@@ -103,7 +103,7 @@ class FetchAction @Inject constructor(
   }
 }
 
-class PullAction @Inject constructor(
+internal class PullAction @Inject constructor(
     private val repository: File,
     private val remote: String
 ) : Runnable {
@@ -127,7 +127,7 @@ class PullAction @Inject constructor(
   }
 }
 
-class StashAction @Inject constructor(
+internal class StashAction @Inject constructor(
     private val repository: File
 ) : Runnable {
   companion object {
@@ -144,7 +144,7 @@ class StashAction @Inject constructor(
   }
 }
 
-class UnstashAction @Inject constructor(
+internal class UnstashAction @Inject constructor(
     private val repository: File
 ) : Runnable {
   companion object {
