@@ -53,7 +53,7 @@ val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
 // IntelliJ Regex:
 // ^(\w+[:@/]+\w+.com[:/]?([\w\d-]+)/([\w\d-\.]+)\.git)$
 // "$3"(GitVersionControlTarget::class) { origin("$1") }
-versionControlTracking.invoke {
+versionControlTracking {
   register("personal") {
     directory.set(locations.workspace.dir("personal"))
     groups {
