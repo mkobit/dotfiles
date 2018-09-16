@@ -8,6 +8,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
+import org.gradle.kotlin.dsl.submit
 import org.gradle.workers.IsolationMode
 import org.gradle.workers.WorkerExecutor
 import java.io.File
@@ -47,7 +48,7 @@ open class CloneRepository @Inject constructor(
       LOGGER.info { "Directory already exists at $asFile" }
       return
     }
-    workerExecutor.submit(CloneAction::class.java) {
+    workerExecutor.submit(CloneAction::class) {
       isolationMode = IsolationMode.NONE
       setParams(asFile, repositoryUrl.get())
     }

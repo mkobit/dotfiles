@@ -9,6 +9,7 @@ import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
+import org.gradle.kotlin.dsl.submit
 import org.gradle.workers.IsolationMode
 import org.gradle.workers.WorkerExecutor
 import javax.inject.Inject
@@ -30,7 +31,7 @@ open class ConfigureRemotes @Inject constructor(
 
   @TaskAction
   fun configureRemotes() {
-    workerExecutor.submit(ConfigureRemotesAction::class.java) {
+    workerExecutor.submit(ConfigureRemotesAction::class) {
       isolationMode = IsolationMode.NONE
       setParams(repositoryDirectory.get().asFile, remotes.get().toMap())
     }

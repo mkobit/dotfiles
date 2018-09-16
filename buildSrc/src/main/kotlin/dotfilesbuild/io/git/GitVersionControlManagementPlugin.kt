@@ -20,7 +20,7 @@ open class GitVersionControlManagementPlugin @Inject constructor(
         group = "Git Management"
         description = "Refreshes all Git repositories"
       }
-      pluginManager.apply(VersionControlManagementPlugin::class.java)
+      apply<VersionControlManagementPlugin>()
       val containerType = object : TypeOf<NamedDomainObjectContainer<VersionControlOrganization>>() {}
       extensions.configure(containerType) {
         whenObjectAdded {
