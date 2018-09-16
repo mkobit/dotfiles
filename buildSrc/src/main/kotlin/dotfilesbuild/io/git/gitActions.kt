@@ -55,14 +55,19 @@ internal class ConfigureRemotesAction @Inject constructor(
   override fun run() {
     Git.open(repository).use { git ->
       val currentRemotes = git.remoteList().call()
+          .asSequence()
           .onEach { require(it.urIs.size == 1) { "Only supports single URL from each remote" } }
-          .associate { it.name to it.urIs.first().host }
+          .associate { it.name to it.urIs.first().toASCIIString() }
       val toRemove = currentRemotes.filter { it.key !in remotes }
       val toAdd = remotes.filter { it.key !in currentRemotes }
       val toUpdate = remotes.filter { it.key in currentRemotes && currentRemotes[it.key] != it.value }
 
+      if (toRemove.isEmpty() && toAdd.isEmpty() && toUpdate.isEmpty()) {
+        LOGGER.debug { "No remotes configuration needed for ${git.repository.directory}" }
+      }
+
       toRemove.forEach { (name, _) ->
-        LOGGER.debug { "Revmoiing remote named $name from repository ${git.repository.directory}" }
+        LOGGER.debug { "Removing remote named $name from repository ${git.repository.directory}" }
         git.remoteRemove().apply {
           setName(name)
         }.call()

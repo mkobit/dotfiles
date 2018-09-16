@@ -117,7 +117,10 @@ versionControlTracking.invoke {
       }
       register("gradle") {
         vcs {
-          register("gradle", GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle.git") }
+          register("gradle", GitVersionControlTarget::class) {
+            origin("https://github.com/gradle/gradle.git")
+            remote("personal", "git@github.com:mkobit/gradle.git")
+          }
           register("gradle-completion", GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle-completion.git") }
           register("gradle-profiler", GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle-profiler.git") }
           register("kotlin-dsl", GitVersionControlTarget::class) { origin("https://github.com/gradle/kotlin-dsl.git") }

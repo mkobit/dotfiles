@@ -19,10 +19,10 @@ data class GitVersionControlTarget(
   override fun getName(): String = repositoryName
 
   fun remote(name: String, url: String) {
-    remotes += mapOf(name to url)
+    require(name.trim() == name) { "remote name '$name' must not begin or end with whitespace" }
+    require(url.trim() == url) { "remote url '$url' must not begin or end with whitespace" }
+    remotes += name to url
   }
 
-  fun origin(url: String) {
-    remotes += mapOf("origin" to url)
-  }
+  fun origin(url: String) = remote("origin", url)
 }

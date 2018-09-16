@@ -50,17 +50,22 @@ open class GitVersionControlManagementPlugin @Inject constructor(
               val targetClassifier = "GitRepository$name"
               // TODO: better handle multiple remotes
               val cloneRepository = tasks.register("clone$organizationClassifier$groupClassifier$targetClassifier",
-                  CloneRepository::class.java) {
+                  CloneRepository::class) {
                 description = "Clone Git repository ${gitVersionControlTarget.name}"
                 repositoryDirectory.set(gitVersionControlTarget.directory)
                 repositoryUrl.set(providerFactory.provider {
                   gitVersionControlTarget.remotes["origin"] ?: gitVersionControlTarget.remotes.entries.first().value
                 })
               }
-              val pullRepository = tasks.register("pull$organizationClassifier$groupClassifier$targetClassifier",
-                  PullRepository::class.java) {
-                description = "Pull Git repository ${gitVersionControlTarget.name}"
+              val configureRemotes = tasks.register("configureRemotes$organizationClassifier$groupClassifier$targetClassifier", ConfigureRemotes::class) {
                 dependsOn(cloneRepository)
+                repositoryDirectory.set(cloneRepository.map(CloneRepository::repositoryDirectory).get())
+                remotes.set(providerFactory.provider { gitVersionControlTarget.remotes })
+              }
+              val pullRepository = tasks.register("pull$organizationClassifier$groupClassifier$targetClassifier",
+                  PullRepository::class) {
+                description = "Pull Git repository ${gitVersionControlTarget.name}"
+                dependsOn(cloneRepository, configureRemotes)
                 repositoryDirectory.set(cloneRepository.map(CloneRepository::repositoryDirectory).get())
               }
               refreshGroup.configure {
