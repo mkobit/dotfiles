@@ -94,11 +94,11 @@ class FetchAction @Inject constructor(
   }
 
   override fun run() {
-    Git.open(repository).use {
-      it.fetch()
+    Git.open(repository).use { git ->
+      git.fetch()
           .setRemote(remote)
           .call()
-      LOGGER.info { "Fetched remote $remote for $repository" }
+      LOGGER.info { "Fetched remote $remote for ${git.repository.directory}" }
     }
   }
 }
@@ -112,8 +112,8 @@ class PullAction @Inject constructor(
   }
 
   override fun run() {
-    Git.open(repository).use {
-      it.pull()
+    Git.open(repository).use { git ->
+      git.pull()
           .setRebase(true)
           .setRemote(remote)
           .setTransportConfigCallback { transport ->
@@ -122,7 +122,40 @@ class PullAction @Inject constructor(
             }
           }
           .call()
-      LOGGER.info { "Pulled $remote for $repository" }
+      LOGGER.info { "Pulled $remote for ${git.repository.directory}" }
+    }
+  }
+}
+
+class StashAction @Inject constructor(
+    private val repository: File
+) : Runnable {
+  companion object {
+    private val LOGGER = KotlinLogging.logger {}
+  }
+
+  override fun run() {
+    Git.open(repository).use { git ->
+      val stash = git.stashCreate()
+          .setIndexMessage("Stashed from Gradle")
+          .call()
+      LOGGER.info { "Created stash ${stash.id} for ${git.repository.directory}" }
+    }
+  }
+}
+
+class UnstashAction @Inject constructor(
+    private val repository: File
+) : Runnable {
+  companion object {
+    private val LOGGER = KotlinLogging.logger {}
+  }
+
+  override fun run() {
+    Git.open(repository).use { git ->
+      git.stashApply()
+          .call()
+      LOGGER.info { "Applied stash to ${git.repository.directory}" }
     }
   }
 }
