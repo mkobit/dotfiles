@@ -127,7 +127,7 @@ internal class PullAction @Inject constructor(
             }
           }
           .call()
-      LOGGER.info { "Pulled $remote for ${git.repository.directory}" }
+      LOGGER.debug { "Pulled $remote for ${git.repository.directory}" }
     }
   }
 }
@@ -144,7 +144,7 @@ internal class StashAction @Inject constructor(
       val stash = git.stashCreate()
           .setIndexMessage("Stashed from Gradle")
           .call()
-      LOGGER.info { "Created stash ${stash.id} for ${git.repository.directory}" }
+      LOGGER.debug { "Created stash ${stash.id} for ${git.repository.directory}" }
     }
   }
 }
@@ -160,7 +160,7 @@ internal class UnstashAction @Inject constructor(
     Git.open(repository).use { git ->
       git.stashApply()
           .call()
-      LOGGER.info { "Applied stash to ${git.repository.directory}" }
+      LOGGER.debug { "Applied stash to ${git.repository.directory}" }
     }
   }
 }
