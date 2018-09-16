@@ -39,7 +39,7 @@ val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
   val rejectPatterns = listOf("alpha", "beta", "rc", "cr", "m").map { qualifier ->
     Regex("(?i).*[.-]$qualifier[.\\d-]*")
   }
-  resolutionStrategy = closureOf<ResolutionStrategy> {
+  resolutionStrategy {
     componentSelection {
       all {
         if (rejectPatterns.any { it.matches(this.candidate.version) }) {
