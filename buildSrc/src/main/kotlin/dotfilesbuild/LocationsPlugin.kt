@@ -8,7 +8,6 @@ open class LocationsPlugin : Plugin<Project> {
   override fun apply(target: Project) {
     target.run {
       val userHome: String = System.getProperty("user.home")
-      providers.provider {  }
       val homeDirectory: Directory = layout.directoryProperty().let {
         it.set(file(userHome))
         it.get()
