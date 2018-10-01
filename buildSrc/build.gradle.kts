@@ -65,7 +65,7 @@ val build by tasks.getting {
 //  dependsOn("dependencyUpdates") // uncomment when want to get dependency updates for buildSrc project
 }
 
-val coroutinesVersion by extra { "0.25.0" }
+val coroutinesVersion by extra { "0.30.0" }
 val arrowVersion by extra { "0.7.3" }
 dependencies {
   implementation("io.arrow-kt:arrow-core:$arrowVersion")
@@ -76,7 +76,7 @@ dependencies {
   implementation("com.squareup.retrofit2:retrofit:2.4.0")
   implementation("com.squareup.okhttp3:okhttp:3.11.0")
   implementation("io.github.microutils:kotlin-logging:1.6.10")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:5.0.3.201809091024-r")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.1.1.201809181055-r")
   // https://mvnrepository.com/artifact/com.google.guava/guava
   implementation("com.google.guava:guava:26.0-jre")
 
