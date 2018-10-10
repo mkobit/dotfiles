@@ -123,7 +123,10 @@ versionControlTracking {
           }
           register("gradle-completion", GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle-completion.git") }
           register("gradle-profiler", GitVersionControlTarget::class) { origin("https://github.com/gradle/gradle-profiler.git") }
-          register("kotlin-dsl", GitVersionControlTarget::class) { origin("https://github.com/gradle/kotlin-dsl.git") }
+          register("kotlin-dsl", GitVersionControlTarget::class) {
+            origin("https://github.com/gradle/kotlin-dsl.git")
+            remote("personal", "git@github.com:mkobit/kotlin-dsl.git")
+          }
         }
       }
       register("grpc") {

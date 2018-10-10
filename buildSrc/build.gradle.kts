@@ -106,7 +106,7 @@ tasks {
 }
 
 gradlePlugin {
-  plugins.invoke {
+  plugins {
     register("home") {
       id = "dotfilesbuild.locations"
       implementationClass = "dotfilesbuild.LocationsPlugin"
