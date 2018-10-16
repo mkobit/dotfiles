@@ -436,8 +436,8 @@ tasks {
     dependsOn(zshrcDotfiles, zshrcFile)
   }
 
-  register("wrapper", Wrapper::class) {
-    gradleVersion = "4.10.2"
+  named("wrapper", Wrapper::class) {
+    gradleVersion = "5.0-milestone-1"
   }
 
   register("dotfiles") {
