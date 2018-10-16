@@ -1,28 +1,27 @@
 package dotfilesbuild.io.http
 
 import mu.KotlinLogging
-import okhttp3.HttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
 import okio.Okio
 import org.gradle.api.DefaultTask
 import org.gradle.api.GradleException
-import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
-import org.gradle.api.provider.ProviderFactory
+import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.OutputFile
+import org.gradle.api.tasks.PathSensitive
+import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
 import javax.inject.Inject
 
+@CacheableTask
 open class Download @Inject constructor(
-    objectFactory: ObjectFactory,
-    providerFactory: ProviderFactory,
-    projectLayout: ProjectLayout
+    objectFactory: ObjectFactory
 ) : DefaultTask() {
 
   companion object {
@@ -33,7 +32,8 @@ open class Download @Inject constructor(
   val url: Property<String> = objectFactory.property()
 
   @get:OutputFile
-  val destination: RegularFileProperty = projectLayout.fileProperty()
+  @get:PathSensitive(PathSensitivity.NAME_ONLY)
+  val destination: RegularFileProperty = objectFactory.fileProperty()
 
   @TaskAction
   fun retrieveFile() {
