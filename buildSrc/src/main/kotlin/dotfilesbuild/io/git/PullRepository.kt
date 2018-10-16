@@ -7,6 +7,7 @@ import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.tasks.InputDirectory
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
+import org.gradle.kotlin.dsl.submit
 import org.gradle.workers.IsolationMode
 import org.gradle.workers.WorkerExecutor
 import java.io.File
@@ -29,7 +30,7 @@ open class PullRepository @Inject constructor(
       LOGGER.warn { "Can not pull repository $repositoryDirectory when offline" }
       return
     }
-    workerExecutor.submit(PullAction::class.java) {
+    workerExecutor.submit(PullAction::class) {
       isolationMode = IsolationMode.NONE
       setParams(repositoryDirectory.asFile.get(), "origin")
     }

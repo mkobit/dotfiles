@@ -7,6 +7,8 @@ import mu.KotlinLogging
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
+import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.register
@@ -21,12 +23,12 @@ open class IntelliJProgramPlugin : Plugin<Project> {
 
   override fun apply(target: Project) {
     target.run {
-      pluginManager.apply(LocationsPlugin::class.java)
+      apply<LocationsPlugin>()
 
       val locations = extensions.getByType(LocationsExtension::class)
       val intellij = extensions.create(
           "intellij",
-          IntelliJExtension::class.java,
+          IntelliJExtension::class,
           objects.property<String>(),
           objects.property<Distribution>().apply {
             set(Distribution.ULTIMATE)

@@ -3,6 +3,7 @@ package dotfilesbuild
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
+import org.gradle.kotlin.dsl.add
 
 open class LocationsPlugin : Plugin<Project> {
   override fun apply(target: Project) {
@@ -21,7 +22,7 @@ open class LocationsPlugin : Plugin<Project> {
       )
 
       extensions.add(
-          LocationsExtension::class.java,
+          LocationsExtension::class,
           "locations",
           home
       )

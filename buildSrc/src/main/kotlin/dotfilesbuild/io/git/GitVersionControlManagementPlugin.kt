@@ -1,5 +1,6 @@
 package dotfilesbuild.io.git
 
+// TODO: remove star imports after getValue issue it resolved
 import dotfilesbuild.io.vcs.VersionControlManagementPlugin
 import dotfilesbuild.io.vcs.VersionControlOrganization
 import org.gradle.api.NamedDomainObjectContainer
@@ -7,8 +8,9 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.provider.ProviderFactory
 import org.gradle.api.reflect.TypeOf
-// TODO: remove star imports after getValue issue it resolved
-import org.gradle.kotlin.dsl.*
+import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.register
+import org.gradle.kotlin.dsl.withType
 import javax.inject.Inject
 
 open class GitVersionControlManagementPlugin @Inject constructor(
@@ -16,11 +18,11 @@ open class GitVersionControlManagementPlugin @Inject constructor(
 ) : Plugin<Project> {
   override fun apply(target: Project) {
     target.run {
+      apply<VersionControlManagementPlugin>()
       val refreshAllGitRepositories= tasks.register("refreshAllGitRepositories") {
         group = "Git Management"
         description = "Refreshes all Git repositories"
       }
-      apply<VersionControlManagementPlugin>()
       val containerType = object : TypeOf<NamedDomainObjectContainer<VersionControlOrganization>>() {}
       extensions.configure(containerType) {
         whenObjectAdded {
@@ -45,7 +47,7 @@ open class GitVersionControlManagementPlugin @Inject constructor(
               dependsOn(refreshGroup)
             }
             // TODO: make laziness actually work
-            vcs.withType<GitVersionControlTarget>().whenObjectAdded {
+            vcs.withType<GitVersionControlTarget>().all {
               val gitVersionControlTarget = this
               val targetClassifier = "GitRepository$name"
               val fullClassifier = "$organizationClassifier$groupClassifier$targetClassifier"

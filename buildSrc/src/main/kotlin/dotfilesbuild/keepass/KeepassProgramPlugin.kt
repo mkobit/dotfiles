@@ -8,7 +8,11 @@ import mu.KotlinLogging
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
+import org.gradle.kotlin.dsl.apply
+import org.gradle.kotlin.dsl.create
+import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.property
+import org.gradle.kotlin.dsl.register
 import java.util.concurrent.Callable
 
 open class KeepassProgramPlugin : Plugin<Project> {
@@ -20,12 +24,12 @@ open class KeepassProgramPlugin : Plugin<Project> {
 
   override fun apply(target: Project) {
     target.run {
-      pluginManager.apply(LocationsPlugin::class.java)
+      apply<LocationsPlugin>()
 
-      val locations = extensions.findByType(LocationsExtension::class.java)!!
+      val locations = extensions.getByType(LocationsExtension::class)
       val keepass = extensions.create(
           "keepass",
-          KeepassExtension::class.java,
+          KeepassExtension::class,
           objects.property<String>(),
           layout.directoryProperty().apply {
             set(locations.downloads)
@@ -34,7 +38,7 @@ open class KeepassProgramPlugin : Plugin<Project> {
             set(locations.programs)
           }
       )
-      val downloadKeepassZip = tasks.register("downloadKeepassZip", Download::class.java) {
+      val downloadKeepassZip = tasks.register("downloadKeepassZip", Download::class) {
         description = "Downloads the KeePass ZIP distribution"
         group = TASK_GROUP
         destination.set(
@@ -45,14 +49,14 @@ open class KeepassProgramPlugin : Plugin<Project> {
         })
       }
       val installDirectoryForVersion = keepass.installDirectory.dir(keepass.keepassVersion.map { "KeePass-$it" })
-      val extractKeepassZip = tasks.register("extractKeepassZip", Copy::class.java) {
+      val extractKeepassZip = tasks.register("extractKeepassZip", Copy::class) {
         description = "Extracts the KeePass ZIP distribution"
         group = TASK_GROUP
         dependsOn(downloadKeepassZip)
         from(Callable { zipTree(downloadKeepassZip.map(Download::destination).get()) })
         into(installDirectoryForVersion)
       }
-      tasks.register("symlinkKeePassProgram", Symlink::class.java) {
+      tasks.register("symlinkKeePassProgram", Symlink::class) {
         description = "Creates a symlink to the KeePass directory"
         group = TASK_GROUP
         dependsOn(extractKeepassZip)
