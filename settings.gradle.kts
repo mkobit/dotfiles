@@ -5,8 +5,9 @@ include("kotlin-script-experiment")
 include("sidekick-service")
 
 buildCache {
-  local {
+  local(DirectoryBuildCache::class) {
     isEnabled = true
+    setDirectory(file(".gradle-build-cache"))
   }
 }
 
