@@ -7,7 +7,9 @@ import mu.KotlinLogging
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.tasks.Copy
+import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.property
+import org.gradle.kotlin.dsl.register
 import java.util.concurrent.Callable
 
 open class IntelliJProgramPlugin : Plugin<Project> {
@@ -21,7 +23,7 @@ open class IntelliJProgramPlugin : Plugin<Project> {
     target.run {
       pluginManager.apply(LocationsPlugin::class.java)
 
-      val locations = extensions.findByType(LocationsExtension::class.java)!!
+      val locations = extensions.getByType(LocationsExtension::class)
       val intellij = extensions.create(
           "intellij",
           IntelliJExtension::class.java,
@@ -29,14 +31,14 @@ open class IntelliJProgramPlugin : Plugin<Project> {
           objects.property<Distribution>().apply {
             set(Distribution.ULTIMATE)
           },
-          layout.directoryProperty().apply {
+          objects.directoryProperty().apply {
             set(locations.downloads)
           },
-          layout.directoryProperty().apply {
+          objects.directoryProperty().apply {
             set(locations.programs)
           }
       )
-      val downloadIntellijZip = tasks.register("downloadIntellijZip", Download::class.java) {
+      val downloadIntellijZip = tasks.register("downloadIntellijZip", Download::class) {
         description = "Downloads the IntelliJ ZIP distribution"
         group = TASK_GROUP
         destination.set(
@@ -54,7 +56,7 @@ open class IntelliJProgramPlugin : Plugin<Project> {
         }.map { it.get() })
       }
       // TODO: never up to date for some stupid reason
-      val extractIntellijZip = tasks.register("extractIntellijZip", Copy::class.java) {
+      val extractIntellijZip = tasks.register("extractIntellijZip", Copy::class) {
         description = "Extracts the IntelliJ ZIP distribution"
         group = TASK_GROUP
         dependsOn(downloadIntellijZip)

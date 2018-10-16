@@ -34,7 +34,7 @@ val junitTestImplementationArtifacts = listOf(
 
 val assertJCore = "org.assertj:assertj-core:3.11.1"
 val junitPioneer = "org.junit-pioneer:junit-pioneer:0.1.2"
-val mockitoCore = "org.mockito:mockito-core:2.22.0"
+val mockitoCore = "org.mockito:mockito-core:2.23.0"
 val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.6.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
 val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
@@ -76,7 +76,7 @@ dependencies {
   implementation("com.squareup.retrofit2:retrofit:2.4.0")
   implementation("com.squareup.okhttp3:okhttp:3.11.0")
   implementation("io.github.microutils:kotlin-logging:1.6.10")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:5.1.1.201809181055-r")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.1.1.201810061102-r")
   // https://mvnrepository.com/artifact/com.google.guava/guava
   implementation("com.google.guava:guava:26.0-jre")
 
