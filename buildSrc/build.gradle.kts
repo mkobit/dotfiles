@@ -78,7 +78,7 @@ dependencies {
   implementation("io.github.microutils:kotlin-logging:1.6.10")
   implementation("org.eclipse.jgit:org.eclipse.jgit:5.1.2.201810061102-r")
   // https://mvnrepository.com/artifact/com.google.guava/guava
-  implementation("com.google.guava:guava:26.0-jre")
+  implementation("com.google.guava:guava:27.0-jre")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.6.0")
@@ -92,10 +92,6 @@ dependencies {
   junitTestRuntimeOnlyArtifacts.forEach {
     testRuntimeOnly(it)
   }
-}
-
-kotlin {
-  experimental.coroutines = Coroutines.ENABLE
 }
 
 tasks {
