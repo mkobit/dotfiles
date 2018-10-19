@@ -112,7 +112,10 @@ versionControlTracking {
       register("google") {
         vcs {
           register("copybara", GitVersionControlTarget::class) { origin("https://github.com/google/copybara.git") }
-          register("protobuf-gradle-plugin", GitVersionControlTarget::class) { origin("https://github.com/google/protobuf-gradle-plugin.git") }
+          register("protobuf-gradle-plugin", GitVersionControlTarget::class) {
+            origin("https://github.com/google/protobuf-gradle-plugin.git")
+            remote("personal", "git@github.com:mkobit/protobuf-gradle-plugin.git")
+          }
         }
       }
       register("gradle") {
