@@ -239,6 +239,14 @@ versionControlTracking {
 
         }
       }
+      register("johnrengelman") {
+        vcs {
+          register("shadow", GitVersionControlTarget::class) {
+            origin("https://github.com/johnrengelman/shadow.git")
+            remote("personal", "git@github.com:mkobit/shadow.git")
+          }
+        }
+      }
       register("junit-team") {
         vcs {
           register("junit5", GitVersionControlTarget::class) { origin("https://github.com/junit-team/junit5.git") }
