@@ -9,7 +9,7 @@ object DependencyInfo {
   const val junitJupiterVersion = "5.3.1"
   const val junit5Log4jVersion = "2.11.1"
   const val kodeinVersion = "5.2.0"
-  const val kotlinxCoroutinesVersion = "0.30.0"
+  const val kotlinxCoroutinesVersion = "1.0.0"
   const val kotlinLoggingVersion = "1.6.10"
   const val ktorVersion = "0.9.5"
   const val okHttpVersion = "3.11.0"
@@ -19,7 +19,7 @@ object DependencyInfo {
 
   const val assertJCore = "org.assertj:assertj-core:3.10.0"
   const val assertK = "com.willowtreeapps.assertk:assertk:0.10"
-  const val guava = "com.google.guava:guava:26.0-jre"
+  const val guava = "com.google.guava:guava:27.0-jre"
   const val javapoet = "com.squareup:javapoet:$javapoetVersion"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
   const val jsoup = "org.jsoup:jsoup:1.11.3"

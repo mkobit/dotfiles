@@ -33,7 +33,7 @@ val junitTestImplementationArtifacts = listOf(
 )
 
 val assertJCore = "org.assertj:assertj-core:3.11.1"
-val junitPioneer = "org.junit-pioneer:junit-pioneer:0.1.2"
+val junitPioneer = "org.junit-pioneer:junit-pioneer:0.2.2"
 val mockitoCore = "org.mockito:mockito-core:2.23.0"
 val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.6.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
@@ -53,7 +53,7 @@ val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
   resolutionStrategy {
     componentSelection {
       all {
-        if (rejectPatterns.any { it.matches(this.candidate.version) }) {
+        if (rejectPatterns.any { it.matches(candidate.version) }) {
           this.reject("Release candidate")
         }
       }
@@ -65,7 +65,7 @@ val build by tasks.getting {
 //  dependsOn("dependencyUpdates") // uncomment when want to get dependency updates for buildSrc project
 }
 
-val coroutinesVersion by extra { "0.30.0" }
+val coroutinesVersion by extra { "1.0.0" }
 val arrowVersion by extra { "0.7.3" }
 dependencies {
   implementation("io.arrow-kt:arrow-core:$arrowVersion")
@@ -76,7 +76,7 @@ dependencies {
   implementation("com.squareup.retrofit2:retrofit:2.4.0")
   implementation("com.squareup.okhttp3:okhttp:3.11.0")
   implementation("io.github.microutils:kotlin-logging:1.6.10")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:5.1.2.201810061102-r")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.1.3.201810200350-r")
   // https://mvnrepository.com/artifact/com.google.guava/guava
   implementation("com.google.guava:guava:27.0-jre")
 

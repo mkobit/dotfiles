@@ -12,9 +12,9 @@ import dotfilesbuild.io.git.GitVersionControlTarget
 import dotfilesbuild.io.git.PullRepository
 
 plugins {
-  id("com.gradle.build-scan") version "1.16"
+  id("com.gradle.build-scan") version "2.0.1"
   id("com.github.ben-manes.versions") version "0.20.0"
-  kotlin("jvm") version "1.2.71" apply false
+  kotlin("jvm") version "1.3.0" apply false
 
   id("dotfilesbuild.intellij")
   id("dotfilesbuild.locations")
@@ -43,7 +43,7 @@ val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
     componentSelection {
       all {
         if (rejectPatterns.any { it.matches(this.candidate.version) }) {
-          this.reject("Release candidate")
+          reject("Release candidate")
         }
       }
     }
@@ -448,7 +448,7 @@ tasks {
   }
 
   named("wrapper", Wrapper::class) {
-    gradleVersion = "5.0-milestone-1"
+    gradleVersion = "5.0-rc-1"
   }
 
   register("dotfiles") {

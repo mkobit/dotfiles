@@ -58,16 +58,12 @@ java {
   sourceCompatibility = JavaVersion.VERSION_1_8
 }
 
-kotlin {
-  experimental.coroutines = Coroutines.ENABLE
-}
-
 application {
   mainClassName = "com.mkobit.personalassistant.Main"
 }
 
 tasks {
-  withType<KotlinCompile> {
+  withType<KotlinCompile>().configureEach {
     kotlinOptions.jvmTarget = "1.8"
   }
   "test"(Test::class) {
