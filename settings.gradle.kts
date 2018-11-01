@@ -1,5 +1,6 @@
 rootProject.name = "dotfiles"
 
+include("chrome-debug-protocol")
 include("contest-entry")
 include("kotlin-script-experiment")
 include("sidekick-service")
