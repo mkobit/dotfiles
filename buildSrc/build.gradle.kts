@@ -4,7 +4,9 @@ import org.jetbrains.kotlin.gradle.dsl.Coroutines
 plugins {
   `java-library`
   `kotlin-dsl`
+  `kotlin-dsl-precompiled-script-plugins`
   `java-gradle-plugin`
+
   id("com.github.ben-manes.versions") version "0.20.0"
 }
 
@@ -33,9 +35,9 @@ val junitTestImplementationArtifacts = listOf(
 )
 
 val assertJCore = "org.assertj:assertj-core:3.11.1"
-val junitPioneer = "org.junit-pioneer:junit-pioneer:0.2.2"
+val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
 val mockitoCore = "org.mockito:mockito-core:2.23.0"
-val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.6.0"
+val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
 val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
 val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"

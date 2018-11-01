@@ -6,13 +6,20 @@ import com.mkobit.chickendinner.chrome.domain.DebugProtocolMethod
 typealias FrameId = String
 typealias LoaderId = String
 
-@DebugProtocolMethod("Page.navigate")
+interface PageDomain {
+  suspend fun 
+}
+
 data class NavigateRequest(
     val url: String,
     val referrer: String? = null,
     val transitionType: TransitionType? = null,
     val frameId: FrameId? = null
-)
+) : DebugProtocolMethod {
+  override val method: String
+    get() = "Page.navigate"
+
+}
 
 data class NavigateResponse(
     val frameId: FrameId,

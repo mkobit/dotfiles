@@ -3,30 +3,30 @@ package dotfilesbuild
 @Suppress("UNUSED", "MemberVisibilityCanBePrivate")
 object DependencyInfo {
   const val arrowVersion = "0.7.3"
-  const val javapoetVersion = "1.10.0"
   const val jacksonVersion = "2.9.7"
   const val junitPlatformVersion = "1.3.1"
   const val junitJupiterVersion = "5.3.1"
   const val junit5Log4jVersion = "2.11.1"
-  const val kodeinVersion = "5.2.0"
+  const val kodeinVersion = "5.3.0"
   const val kotlinxCoroutinesVersion = "1.0.0"
   const val kotlinLoggingVersion = "1.6.10"
-  const val ktorVersion = "0.9.5"
+  const val ktorVersion = "1.0.0-beta-3"
   const val okHttpVersion = "3.11.0"
   const val retrofitVersion = "2.4.0"
   const val seleniumVersion = "3.11.0"
   const val slf4jVersion = "1.7.25"
 
   const val assertJCore = "org.assertj:assertj-core:3.10.0"
-  const val assertK = "com.willowtreeapps.assertk:assertk:0.10"
+  const val assertK = "com.willowtreeapps.assertk:assertk-jvm:0.12"
+  const val strikt = "io.strikt:strikt-core:0.16.3"
   const val guava = "com.google.guava:guava:27.0-jre"
-  const val javapoet = "com.squareup:javapoet:$javapoetVersion"
+  const val javapoet = "com.squareup:javapoet:1.10.0"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
   const val jsoup = "org.jsoup:jsoup:1.11.3"
-  const val kotlinPoet = "com.squareup:kotlinpoet:0.7.0"
+  const val kotlinPoet = "com.squareup:kotlinpoet:1.0.0-RC2"
   val kodeinJvm = kodein("di-generic-jvm")
   const val mockito = "org.mockito:mockito-core:2.17.0"
-  const val mockitoKotlin = "com.nhaarman:mockito-kotlin:1.5.0"
+  const val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0"
   val junitPlatformRunner = junitPlatform("runner")
   val junitJupiterApi = junitJupiter("api")
   val junitJupiterEngine = junitJupiter("engine")
