@@ -33,6 +33,43 @@ data class ChromeDebugProtocolGenerationRequest(
   }
 }
 
+//
+private fun escapeIfKeyword(value: String): String = if (value.isKeyword) "`$value`" else value
+
+private val String.isKeyword get() = KEYWORDS.contains(this)
+
+private val KEYWORDS = setOf(
+    "package",
+    "as",
+    "typealias",
+    "class",
+    "this",
+    "super",
+    "val",
+    "var",
+    "fun",
+    "for",
+    "null",
+    "true",
+    "false",
+    "is",
+    "in",
+    "throw",
+    "return",
+    "break",
+    "continue",
+    "object",
+    "if",
+    "try",
+    "else",
+    "while",
+    "do",
+    "when",
+    "interface",
+    "typeof"
+)
+
+
 private fun TypeAliasSpec.Builder.maybeAddKdoc(format: String?) = apply {
   if (format != null) {
     addKdoc(format)
@@ -63,23 +100,6 @@ private fun ChromeDebugProtocolGenerationRequest.packageNameForDomain(domain: St
 
 private fun ChromeDebugProtocolGenerationRequest.pathForDomain(domain: String): Path = protocolJsonFile.resolve(
     packageToPath(packageNameForDomain(domain)))
-//
-//internal fun generateDomainProcessingGraph(json: JsonNode): ImmutableGraph<String> {
-//  val dependencyGraph = GraphBuilder
-//      .directed()
-//      .allowsSelfLoops(false)
-//      .build<String>()
-//  json["domains"].map { domainNode ->
-//    val dependencies = (domainNode["dependencies"] as ArrayNode?)?.map { it.asText() } ?: emptyList()
-//    domainNode["domain"].asText()!! to dependencies
-//  }.flatMap { (domain, dependencies) ->
-//    dependencies.map { d -> domain to d }
-//  }.forEach { (domain, dependency) ->
-//    dependencyGraph.putEdge(domain, dependency)
-//  }
-//
-//  return ImmutableGraph.copyOf(dependencyGraph)
-//}
 
 // https://raw.githubusercontent.com/chromium/chromium/1011f64b2bab81798342a15508cb7c053e252ded/third_party/blink/renderer/core/inspector/browser_protocol-1.3.json
 fun generateChromeDebugProtocol(request: ChromeDebugProtocolGenerationRequest) {
@@ -168,8 +188,6 @@ private fun generateCommands(domain: String, request: ChromeDebugProtocolGenerat
               .build()
       )
     }
-    domainInterfaceTypeSpecBuilder.addFunction(commandFunSpecBuilder.build())
-
     commandRequestResponseFileSpec.build().let {
       if (it.members.isNotEmpty()) {
         it.writeTo(request.destinationBaseDirectory)
@@ -193,15 +211,10 @@ private fun generateTypes(domain: String, request: ChromeDebugProtocolGeneration
       "string" -> {
         val enum = typeNode["enum"]?.map { it.asText() }
         if (enum != null) {
-          fun escapedEnumKey(enumValue: String): String = if (enumValue in setOf("continue")) {
-            "`$enumValue`"
-          } else {
-            enumValue
-          }
 
           val enumBuilder = TypeSpec.enumBuilder(typeName)
               .maybeAddKdoc(typeDescription)
-          enum.forEach { enumBuilder.addEnumConstant(escapedEnumKey(it)) }
+          enum.forEach { enumBuilder.addEnumConstant(escapeIfKeyword(it)) }
           fileSpecBuilder.addType(enumBuilder.build())
         } else {
           val stringTypeAlias = TypeAliasSpec
@@ -228,17 +241,16 @@ private fun generateTypes(domain: String, request: ChromeDebugProtocolGeneration
         fileSpecBuilder.addTypeAlias(integerTypeAlias)
       }
       "object" -> {
-        val objectTypeSpecBuilder = TypeSpec.classBuilder(typeName)
-            .addModifiers(KModifier.DATA)
-            .maybeAddKdoc(typeDescription)
-
-        val constructorSpecBuilder = FunSpec.constructorBuilder()
         val propertiesNode: JsonNode? = typeNode["properties"]
         when {
           propertiesNode != null -> {
+            val objectTypeSpecBuilder = TypeSpec.classBuilder(typeName)
+                .addModifiers(KModifier.DATA)
+                .maybeAddKdoc(typeDescription)
+            val constructorSpecBuilder = FunSpec.constructorBuilder()
             propertiesNode.forEach { propertyNode ->
               val propertyDescription = propertyNode["description"]?.asText()
-              val propertyName = propertyNode["name"].asText()
+              val propertyName = escapeIfKeyword(propertyNode["name"].asText())
               val propertyTypeName: TypeName = determineTypeForNode(domain, request, propertyNode)
               val propertySpec = PropertySpec.builder(propertyName, propertyTypeName)
                   .initializer(propertyName)
@@ -247,6 +259,8 @@ private fun generateTypes(domain: String, request: ChromeDebugProtocolGeneration
               constructorSpecBuilder.addParameter(propertyName, propertyTypeName)
               objectTypeSpecBuilder.addProperty(propertySpec)
             }
+            val objectTypeSpec = objectTypeSpecBuilder.primaryConstructor(constructorSpecBuilder.build()).build()
+            fileSpecBuilder.addType(objectTypeSpec)
           }
           typeName in setOf("Headers", "MemoryDumpConfig") -> {
             // special case some special 'object' types
@@ -259,8 +273,6 @@ private fun generateTypes(domain: String, request: ChromeDebugProtocolGeneration
           }
           else -> throw IllegalArgumentException("unknown/unsupported type $typeNode")
         }
-        val objectTypeSpec = objectTypeSpecBuilder.primaryConstructor(constructorSpecBuilder.build()).build()
-        fileSpecBuilder.addType(objectTypeSpec)
       }
       "array" -> {
         val arrayItemsTypeName: TypeName = determineTypeForNode(domain, request, typeNode["items"])
@@ -299,7 +311,7 @@ private fun determineTypeForNode(domain: String,
         "string" -> String::class.asTypeName().asMaybeNullable()
         "integer" -> INT.asMaybeNullable()
         "number" -> Number::class.asTypeName().asMaybeNullable()
-        "boolean" -> BOOLEAN::class.asTypeName().asMaybeNullable()
+        "boolean" -> BOOLEAN.asMaybeNullable()
         "array" -> {
           val arrayItemsType = determineTypeForNode(domain, request, node["items"])
           ClassName("kotlin.collections", "List")
@@ -308,7 +320,7 @@ private fun determineTypeForNode(domain: String,
         "object" -> {
           // special case for 'auxAttributes' and 'featureStatus'
           val propertyName: String = node["name"].asText()
-          require(propertyName in setOf("auxAttributes", "featureStatus")) {
+          require(propertyName in setOf("executionContextAuxData", "executionContextAuxData", "auxData")) {
             "Unsupported property type '$propertyType' for node $node"
           }
           ClassName("kotlin.collections", "Map")

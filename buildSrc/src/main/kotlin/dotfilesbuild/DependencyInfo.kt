@@ -18,13 +18,16 @@ object DependencyInfo {
 
   const val assertJCore = "org.assertj:assertj-core:3.10.0"
   const val assertK = "com.willowtreeapps.assertk:assertk-jvm:0.12"
-  const val strikt = "io.strikt:strikt-core:0.16.3"
+  val coroutinesxCore = kotlinxCoroutines("core")
+  val coroutinesxJdk8 = kotlinxCoroutines("jdk8")
   const val guava = "com.google.guava:guava:27.0-jre"
   const val javapoet = "com.squareup:javapoet:1.10.0"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
   const val jsoup = "org.jsoup:jsoup:1.11.3"
   const val kotlinPoet = "com.squareup:kotlinpoet:1.0.0-RC2"
   val kodeinJvm = kodein("di-generic-jvm")
+  val log4jCore = log4j("core")
+  val log4jJul = log4j("jul")
   const val mockito = "org.mockito:mockito-core:2.17.0"
   const val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0"
   val junitPlatformRunner = junitPlatform("runner")
@@ -32,13 +35,11 @@ object DependencyInfo {
   val junitJupiterEngine = junitJupiter("engine")
   val junitJupiterParams = junitJupiter("params")
   const val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
-  val coroutinesxCore = kotlinxCoroutines("core")
-  val coroutinesxJdk8 = kotlinxCoroutines("jdk8")
   val okHttpClient = okHttp("okhttp")
   val okHttpMockServer = okHttp("mockwebserver")
+  const val picoCli = "info.picocli:picocli:3.7.0"
   const val kotlinLogging = "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
-  val log4jCore = log4j("core")
-  val log4jJul = log4j("jul")
+  const val strikt = "io.strikt:strikt-core:0.16.3"
 
   val junitTestImplementationArtifacts = listOf(
       junitPlatformRunner,
