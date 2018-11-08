@@ -31,6 +31,7 @@ object DependencyInfo {
   val junitJupiterApi = junitJupiter("api")
   val junitJupiterEngine = junitJupiter("engine")
   val junitJupiterParams = junitJupiter("params")
+  const val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
   val coroutinesxCore = kotlinxCoroutines("core")
   val coroutinesxJdk8 = kotlinxCoroutines("jdk8")
   val okHttpClient = okHttp("okhttp")
