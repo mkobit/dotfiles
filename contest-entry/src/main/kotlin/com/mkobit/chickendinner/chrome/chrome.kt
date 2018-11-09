@@ -4,7 +4,7 @@ import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
 import arrow.core.Try
-import com.google.common.io.Files
+import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
@@ -40,12 +40,11 @@ fun determineChromePortFromProfileFile(
     profile: Path = Paths.get(
         System.getProperty("user.home")!!,
         ".config",
-        ".config",
         "google-chrome",
         "DevToolsActivePort"
     )
 ): Option<Int> {
-  return Try { Files.readLines(profile.toFile(), Charsets.UTF_8) }
+  return Try { Files.readAllLines(profile, Charsets.UTF_8) }
       .map { it.first() }
       .map { it.toInt() }
       .toOption()
