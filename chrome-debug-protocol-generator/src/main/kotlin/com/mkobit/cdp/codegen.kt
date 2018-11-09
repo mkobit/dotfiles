@@ -131,7 +131,7 @@ private fun generateCommands(domain: String, request: ChromeDebugProtocolGenerat
     val commandName = commandNode["name"].asText()
     val commandDescription = commandNode["description"]?.asText()
     val commandParameters: JsonNode? = commandNode["parameters"]
-    val commandReturns: JsonNode? = commandNode["parameters"]
+    val commandReturns: JsonNode? = commandNode["returns"]
     val commandFunSpecBuilder = FunSpec.builder(commandName)
         .maybeAddKdoc(commandDescription)
         .addModifiers(KModifier.SUSPEND, KModifier.ABSTRACT)
@@ -142,6 +142,7 @@ private fun generateCommands(domain: String, request: ChromeDebugProtocolGenerat
       val commandRequestTypeName = ClassName(request.packageNameForDomain(domain), "${commandName.capitalize()}Request")
       commandFunSpecBuilder.addParameter(ParameterSpec.builder("request", commandRequestTypeName).build())
       val commandParameterRequestTypeSpecBuilder = TypeSpec.classBuilder(commandRequestTypeName)
+          .addModifiers(KModifier.DATA)
       val commandParameterRequestConstructorBuilder = FunSpec.constructorBuilder()
       commandParameters.forEach { commandParameter ->
         val parameterName = commandParameter["name"].asText()
@@ -168,6 +169,7 @@ private fun generateCommands(domain: String, request: ChromeDebugProtocolGenerat
       val commandReplyTypeName = ClassName(request.packageNameForDomain(domain), "${commandName.capitalize()}Reply")
       commandFunSpecBuilder.returns(commandReplyTypeName)
       val commandParameterReplyTypeSpecBuilder = TypeSpec.classBuilder(commandReplyTypeName)
+          .addModifiers(KModifier.DATA)
       val commandParameterReplyConstructorBuilder = FunSpec.constructorBuilder()
       commandReturns.forEach { commandReturn ->
         val returnName = commandReturn["name"].asText()
@@ -211,10 +213,18 @@ private fun generateTypes(domain: String, request: ChromeDebugProtocolGeneration
       "string" -> {
         val enum = typeNode["enum"]?.map { it.asText() }
         if (enum != null) {
+          fun escapeForEnumValue(value: String) = if (setOf("-").any { it in value }) {
+            "`$value`"
+          } else if (value.isKeyword) {
+            escapeIfKeyword(value)
+          } else {
+            value
+          }
 
           val enumBuilder = TypeSpec.enumBuilder(typeName)
               .maybeAddKdoc(typeDescription)
-          enum.forEach { enumBuilder.addEnumConstant(escapeIfKeyword(it)) }
+          enum.map { escapeForEnumValue(it) }
+              .forEach { enumBuilder.addEnumConstant(it) }
           fileSpecBuilder.addType(enumBuilder.build())
         } else {
           val stringTypeAlias = TypeAliasSpec
@@ -250,13 +260,15 @@ private fun generateTypes(domain: String, request: ChromeDebugProtocolGeneration
             val constructorSpecBuilder = FunSpec.constructorBuilder()
             propertiesNode.forEach { propertyNode ->
               val propertyDescription = propertyNode["description"]?.asText()
-              val propertyName = escapeIfKeyword(propertyNode["name"].asText())
+              val propertyName = propertyNode["name"].asText()
               val propertyTypeName: TypeName = determineTypeForNode(domain, request, propertyNode)
-              val propertySpec = PropertySpec.builder(propertyName, propertyTypeName)
+              // TODO: issues with keyword named variables at https://github.com/square/kotlinpoet/issues/483
+              val propertySpec = PropertySpec.builder(escapeIfKeyword(propertyName), propertyTypeName)
                   .initializer(propertyName)
                   .maybeAddKdoc(propertyDescription)
                   .build()
-              constructorSpecBuilder.addParameter(propertyName, propertyTypeName)
+              val parameterSpec = ParameterSpec.builder(escapeIfKeyword(propertyName), propertyTypeName).build()
+              constructorSpecBuilder.addParameter(parameterSpec)
               objectTypeSpecBuilder.addProperty(propertySpec)
             }
             val objectTypeSpec = objectTypeSpecBuilder.primaryConstructor(constructorSpecBuilder.build()).build()

@@ -5,6 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
   java
   application
+
   kotlin("jvm")
 }
 
@@ -25,15 +26,20 @@ dependencies {
   implementation(DependencyInfo.arrow("syntax"))
   implementation(DependencyInfo.arrow("data"))
 
+  implementation(DependencyInfo.googleApiClient)
+  implementation(DependencyInfo.googleGmailServiceClient)
+  implementation(DependencyInfo.googleOauthClient)
+
   implementation(DependencyInfo.jacksonCore("core"))
   implementation(DependencyInfo.jacksonModule("kotlin"))
 
   implementation(DependencyInfo.kodeinJvm)
   implementation(DependencyInfo.ktor("client-apache"))
   implementation(DependencyInfo.ktor("client-cio"))
+  implementation(DependencyInfo.ktor("client-json"))
+  implementation(DependencyInfo.ktor("client-jackson"))
   implementation(DependencyInfo.ktor("client-websocket"))
   implementation(DependencyInfo.ktor("jackson"))
-  implementation(DependencyInfo.ktor("client-json"))
 
   implementation(DependencyInfo.kotlinxCoroutines("core"))
   implementation(DependencyInfo.kotlinxCoroutines("jdk8"))
@@ -68,6 +74,12 @@ tasks {
   }
   "test"(Test::class) {
     useJUnitPlatform()
+  }
+  "run"(JavaExec::class) {
+    systemProperties(
+        "com.mkobit.chickendinner.gmailClientJsonPath" to rootProject.file(".config/contest-entry/gmail_client_id.json"),
+        "com.mkobit.chickendinner.workspaceDirectory" to file("$buildDir/contest-entry-workspace")
+    )
   }
 }
 

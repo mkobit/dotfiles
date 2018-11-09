@@ -2,24 +2,27 @@ package dotfilesbuild
 
 @Suppress("UNUSED", "MemberVisibilityCanBePrivate")
 object DependencyInfo {
-  const val arrowVersion = "0.7.3"
-  const val jacksonVersion = "2.9.7"
-  const val junitPlatformVersion = "1.3.1"
-  const val junitJupiterVersion = "5.3.1"
-  const val junit5Log4jVersion = "2.11.1"
-  const val kodeinVersion = "5.3.0"
-  const val kotlinxCoroutinesVersion = "1.0.0"
-  const val kotlinLoggingVersion = "1.6.10"
-  const val ktorVersion = "1.0.0-beta-3"
-  const val okHttpVersion = "3.11.0"
-  const val retrofitVersion = "2.4.0"
-  const val seleniumVersion = "3.11.0"
-  const val slf4jVersion = "1.7.25"
+  private const val arrowVersion = "0.8.0"
+  private const val jacksonVersion = "2.9.7"
+  private const val junitPlatformVersion = "1.3.1"
+  private const val junitJupiterVersion = "5.3.1"
+  private const val junit5Log4jVersion = "2.11.1"
+  private const val kodeinVersion = "5.3.0"
+  private const val kotlinxCoroutinesVersion = "1.0.1"
+  private const val kotlinLoggingVersion = "1.6.20"
+  private const val ktorVersion = "1.0.0-beta-3"
+  private const val okHttpVersion = "3.11.0"
+  private const val retrofitVersion = "2.4.0"
+  private const val seleniumVersion = "3.11.0"
+  private const val slf4jVersion = "1.7.25"
 
   const val assertJCore = "org.assertj:assertj-core:3.10.0"
   const val assertK = "com.willowtreeapps.assertk:assertk-jvm:0.12"
   val coroutinesxCore = kotlinxCoroutines("core")
   val coroutinesxJdk8 = kotlinxCoroutines("jdk8")
+  const val googleApiClient = "com.google.api-client:google-api-client:1.23.0"
+  const val googleGmailServiceClient = "com.google.apis:google-api-services-gmail:v1-rev83-1.23.0"
+  const val googleOauthClient = "com.google.oauth-client:google-oauth-client-jetty:1.23.0"
   const val guava = "com.google.guava:guava:27.0-jre"
   const val javapoet = "com.squareup:javapoet:1.10.0"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
@@ -39,7 +42,7 @@ object DependencyInfo {
   val okHttpMockServer = okHttp("mockwebserver")
   const val picoCli = "info.picocli:picocli:3.7.0"
   const val kotlinLogging = "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
-  const val strikt = "io.strikt:strikt-core:0.16.3"
+  const val strikt = "io.strikt:strikt-core:0.17.0"
 
   val junitTestImplementationArtifacts = listOf(
       junitPlatformRunner,

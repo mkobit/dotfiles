@@ -1,16 +1,10 @@
 package com.mkobit.chickendinner.chrome
 
-import com.fasterxml.jackson.module.kotlin.readValue
-import com.mkobit.chickendinner.json.JacksonSerializer
 import io.ktor.client.HttpClient
-import io.ktor.client.features.feature
-import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.websocket.ws
 import io.ktor.client.request.get
 import io.ktor.client.request.post
-import io.ktor.http.cio.websocket.Frame
-import io.ktor.http.encodeURLPart
-import kotlinx.coroutines.experimental.channels.map
+import io.ktor.http.encodeURLPath
 
 class ChromeDebugger(
     private val debugPort: Int,
@@ -73,7 +67,7 @@ class ChromeDebugger(
     client.ws(
         host = this@ChromeDebugger.host,
         port = debugPort,
-        path = listOf("devtools", "page", pageId).joinToString("/", prefix = "/") { encodeURLPart(it) }
+        path = listOf("devtools", "page", pageId).joinToString("/", prefix = "/").encodeURLPath()
     ) {
       //      ChromeWebsocketConnection()
 //      send(Frame.Text())

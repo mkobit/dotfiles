@@ -12,7 +12,7 @@ import dotfilesbuild.io.git.GitVersionControlTarget
 import dotfilesbuild.io.git.PullRepository
 
 plugins {
-  id("com.gradle.build-scan") version "2.0.1"
+  id("com.gradle.build-scan") version "2.0.2"
   id("com.github.ben-manes.versions") version "0.20.0"
   kotlin("jvm") version "1.3.0" apply false
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.4.2" apply false
