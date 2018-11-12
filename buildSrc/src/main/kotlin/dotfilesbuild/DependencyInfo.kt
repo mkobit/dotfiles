@@ -10,7 +10,7 @@ object DependencyInfo {
   private const val kodeinVersion = "5.3.0"
   private const val kotlinxCoroutinesVersion = "1.0.1"
   private const val kotlinLoggingVersion = "1.6.20"
-  private const val ktorVersion = "1.0.0-beta-3"
+  private const val ktorVersion = "1.0.0-beta-4"
   private const val okHttpVersion = "3.11.0"
   private const val retrofitVersion = "2.4.0"
   private const val seleniumVersion = "3.11.0"

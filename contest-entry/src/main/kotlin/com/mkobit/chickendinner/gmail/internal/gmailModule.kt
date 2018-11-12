@@ -13,44 +13,49 @@ import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.factory
 import org.kodein.di.generic.instance
-import org.kodein.di.generic.singleton
 import java.nio.file.Path
 
-private val SCOPES = listOf(
-    GmailScopes.GMAIL_LABELS,
-    GmailScopes.MAIL_GOOGLE_COM
-)
+object Gmail {
 
-/**
- * Tag for working directory to store files.
- */
-object WorkspaceDirectory
+  private val SCOPES = listOf(
+      GmailScopes.GMAIL_LABELS,
+      GmailScopes.MAIL_GOOGLE_COM
+  )
 
-/**
- * Tag for Gmail credentials location.
- */
-object CredentialsLocation
+  val Module = Kodein.Module(name = "Gmail") {
+    bind<Gmail>() with factory { userId: String ->
+      val localResourcesWorkingDirectory: Path = instance(tag = Tag.WorkspaceDirectory)
+      val credentialsLocation: Path = instance(tag = Tag.CredentialsLocation)
+      val transport = GoogleNetHttpTransport.newTrustedTransport()
+      val jsonFactory = JacksonFactory.getDefaultInstance()
+      val clientSecrets = GoogleClientSecrets.load(jsonFactory, credentialsLocation.toFile().reader())
+      val localReciever = LocalServerReceiver.Builder().build()
+      val authFlow = GoogleAuthorizationCodeFlow.Builder(
+          transport,
+          jsonFactory,
+          clientSecrets,
+          SCOPES
+      ).setDataStoreFactory(FileDataStoreFactory(localResourcesWorkingDirectory.toFile()))
+          .setAccessType("offline")
+          .build()
+      val authorizationApp = AuthorizationCodeInstalledApp(authFlow, localReciever)
+      val credentials = authorizationApp.authorize(userId)
+      Gmail.Builder(transport, jsonFactory, credentials)
+          .setApplicationName("Contest Entry")
+          .build()
+    }
+  }
 
-val gmailModule = Kodein.Module(name = "Gmail") {
-  bind<Gmail>() with factory { userId: String ->
-    val localResourcesWorkingDirectory: Path = instance(tag = WorkspaceDirectory)
-    val credentialsLocation: Path = instance(tag = CredentialsLocation)
-    val transport = GoogleNetHttpTransport.newTrustedTransport()
-    val jsonFactory = JacksonFactory.getDefaultInstance()
-    val clientSecrets = GoogleClientSecrets.load(jsonFactory, credentialsLocation.toFile().reader())
-    val localReciever = LocalServerReceiver.Builder().build()
-    val authFlow = GoogleAuthorizationCodeFlow.Builder(
-        transport,
-        jsonFactory,
-        clientSecrets,
-        SCOPES
-    ).setDataStoreFactory(FileDataStoreFactory(localResourcesWorkingDirectory.toFile()))
-        .setAccessType("offline")
-        .build()
-    val authorizationApp = AuthorizationCodeInstalledApp(authFlow, localReciever)
-    val credentials = authorizationApp.authorize(userId)
-    Gmail.Builder(transport, jsonFactory, credentials)
-        .setApplicationName("Contest Entry")
-        .build()
+  object Tag {
+
+    /**
+     * Tag for working directory to store files.
+     */
+    object WorkspaceDirectory
+
+    /**
+     * Tag for Gmail credentials location.
+     */
+    object CredentialsLocation
   }
 }

@@ -6,17 +6,15 @@ import arrow.core.orElse
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.mkobit.chickendinner.chrome.ChromeDebugger
-import io.ktor.client.features.json.JsonFeature
 import com.mkobit.chickendinner.chrome.determineChromePortFromLog
 import com.mkobit.chickendinner.chrome.determineChromePortFromProfileFile
-import com.mkobit.chickendinner.gmail.internal.CredentialsLocation
-import com.mkobit.chickendinner.gmail.internal.WorkspaceDirectory
+import com.mkobit.chickendinner.gmail.internal.Gmail
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.json.JacksonSerializer
+import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.websocket.WebSockets
-import io.ktor.features.ContentNegotiation
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import org.kodein.di.Kodein
@@ -29,9 +27,10 @@ import java.nio.file.Paths
 
 object Main {
 
-  private val ProjectDataRoot = Any()
-  private val ChromeOutputLog = Any()
-  private val ChromeUserData = Any()
+  private object ProjetWorkspaceRoot
+
+  private object ChromeOutputLog
+  private object ChromeUserData
 
   private val logger = KotlinLogging.logger { }
 
@@ -39,16 +38,23 @@ object Main {
 //  private fun runtimePropertyFor(name: String) = System.getProperty("${Main::class.java.packageName}.$name")
 
   private fun newInjector(): Kodein = Kodein {
-    bind<Path>(tag = CredentialsLocation) with singleton {
+    bind<Path>(tag = ProjetWorkspaceRoot) with singleton {
+      Paths.get(runtimePropertyFor("workspaceDirectory"))
+    }
+    import(Gmail.Module)
+    bind<Path>(tag = Gmail.Tag.CredentialsLocation) with singleton {
       Paths.get(runtimePropertyFor("gmailClientJsonPath"))
     }
-    bind<Path>(tag = WorkspaceDirectory) with singleton {
+    bind<Path>(tag = Gmail.Tag.WorkspaceDirectory) with singleton {
       // Gmail workspace directory
-      Paths.get(runtimePropertyFor("workspaceDirectory")).resolve("gmail")
+      instance<Path>(tag = ProjetWorkspaceRoot).resolve("gmail")
     }
-    bind<Path>(tag = ProjectDataRoot) with singleton { Paths.get("/tmp/.contestant") }
-    bind<Path>(tag = ChromeOutputLog) with singleton { Paths.get("/tmp/startup_google-chrome.log") }
-    bind<Path>(tag = ChromeUserData) with singleton { instance<Path>(tag = ProjectDataRoot).resolve("google-chrome-user-data") }
+    bind<Path>(tag = ChromeOutputLog) with singleton {
+      instance<Path>(tag = ProjetWorkspaceRoot).resolve("/tmp/startup_google-chrome.log")
+    }
+    bind<Path>(tag = ChromeUserData) with singleton {
+      instance<Path>(tag = ProjetWorkspaceRoot).resolve("google-chrome-user-data")
+    }
     bind<ObjectMapper>() with singleton { ObjectMapper().registerKotlinModule() }
     bind<HttpClientEngineFactory<*>>() with singleton { CIO }
     bind<HttpClient>() with singleton {
