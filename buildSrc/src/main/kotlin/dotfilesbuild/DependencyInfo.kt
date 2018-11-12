@@ -24,6 +24,7 @@ object DependencyInfo {
   const val googleGmailServiceClient = "com.google.apis:google-api-services-gmail:v1-rev83-1.23.0"
   const val googleOauthClient = "com.google.oauth-client:google-oauth-client-jetty:1.23.0"
   const val guava = "com.google.guava:guava:27.0-jre"
+  const val hocon = "com.typesafe:config:1.3.3"
   const val javapoet = "com.squareup:javapoet:1.10.0"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
   const val jsoup = "org.jsoup:jsoup:1.11.3"

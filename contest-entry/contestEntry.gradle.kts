@@ -1,4 +1,7 @@
 import dotfilesbuild.DependencyInfo
+import org.jetbrains.gradle.ext.Application
+import org.jetbrains.gradle.ext.ProjectSettings
+import org.jetbrains.gradle.ext.RunConfiguration
 import org.jetbrains.kotlin.gradle.dsl.Coroutines
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -7,6 +10,7 @@ plugins {
   application
 
   kotlin("jvm")
+  id("org.jetbrains.gradle.plugin.idea-ext")
 }
 
 repositories {
@@ -29,6 +33,8 @@ dependencies {
   implementation(DependencyInfo.googleApiClient)
   implementation(DependencyInfo.googleGmailServiceClient)
   implementation(DependencyInfo.googleOauthClient)
+
+  implementation(DependencyInfo.hocon)
 
   implementation(DependencyInfo.jacksonCore("core"))
   implementation(DependencyInfo.jacksonModule("kotlin"))

@@ -15,14 +15,14 @@ import org.kodein.di.generic.factory
 import org.kodein.di.generic.instance
 import java.nio.file.Path
 
-object Gmail {
+object GmailModule {
 
   private val SCOPES = listOf(
       GmailScopes.GMAIL_LABELS,
       GmailScopes.MAIL_GOOGLE_COM
   )
 
-  val Module = Kodein.Module(name = "Gmail") {
+  val Module = Kodein.Module(name = GmailModule::class.qualifiedName!!) {
     bind<Gmail>() with factory { userId: String ->
       val localResourcesWorkingDirectory: Path = instance(tag = Tag.WorkspaceDirectory)
       val credentialsLocation: Path = instance(tag = Tag.CredentialsLocation)
@@ -47,14 +47,13 @@ object Gmail {
   }
 
   object Tag {
-
     /**
      * Tag for working directory to store files.
      */
     object WorkspaceDirectory
 
     /**
-     * Tag for Gmail credentials location.
+     * Tag for GmailModule credentials location.
      */
     object CredentialsLocation
   }
