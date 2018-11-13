@@ -3,8 +3,10 @@ package com.mkobit.chickendinner
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.google.api.services.gmail.Gmail
+import com.google.api.services.gmail.model.Message
 import com.mkobit.chickendinner.chrome.ChromeDebugger
 import com.mkobit.chickendinner.chrome.internal.ChromeModule
+import com.mkobit.chickendinner.gmail.EmailRetriever
 import com.mkobit.chickendinner.gmail.internal.GmailModule
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
@@ -14,14 +16,24 @@ import io.ktor.client.engine.cio.CIO
 import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.websocket.WebSockets
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ticker
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.time.delay
 import mu.KotlinLogging
 import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.factory
 import org.kodein.di.generic.instance
+import org.kodein.di.generic.provider
 import org.kodein.di.generic.singleton
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.time.Duration
 
 object Main {
 
@@ -42,6 +54,9 @@ object Main {
       val configFile = Paths.get(runtimePropertyFor("appConfiguration"))
       ConfigFactory.parseFile(configFile.toFile())
     }
+    bind<String>(tag = GmailModule.Tag.GmailUserId) with provider {
+      instance<Config>(tag = Tag.ApplicationConfig).getString(applicationPropertyNameFor("gmail.userId"))
+    }
     bind<Path>(tag = Tag.ProjectWorkspaceRoot) with singleton {
       Paths.get(runtimePropertyFor("workspaceDirectory"))
     }
@@ -53,29 +68,11 @@ object Main {
       // GmailModule workspace directory
       instance<Path>(tag = Tag.ProjectWorkspaceRoot).resolve(".gmail")
     }
-    bind<Gmail>() with singleton {
-      val appConfiguration: Config = instance(tag = Tag.ApplicationConfig)
-      val userId = appConfiguration.getString(applicationPropertyNameFor("gmail.userId"))
-      val gmailFactory: (String) -> Gmail = factory()
-      gmailFactory(userId)
-    }
     import(ChromeModule.Module)
-    bind<Path>(tag = ChromeModule) with singleton {
+    bind<Path>(tag = ChromeModule.Tag.ChromeWorkspaceDirectory) with singleton {
       instance<Path>(tag = Tag.ProjectWorkspaceRoot).resolve(".chrome")
     }
-    bind<ObjectMapper>() with singleton { ObjectMapper().registerKotlinModule() }
-    bind<HttpClientEngineFactory<*>>() with singleton { CIO }
-    bind<HttpClient>() with singleton {
-      HttpClient(engineFactory = instance<HttpClientEngineFactory<*>>()) {
-        install(WebSockets)
-        install(JsonFeature) {
-          serializer = JacksonSerializer()
-        }
-      }
-    }
-    bind<ChromeDebugger>() with factory { debugPort: Int -> ChromeDebugger(debugPort, instance()) }
   }
-
 
   private val logger = KotlinLogging.logger { }
 
@@ -85,6 +82,18 @@ object Main {
   @JvmStatic
   fun main(args: Array<String>) {
     ensureGmailLabelsPresent(injector)
+    val retriever: EmailRetriever by injector.instance()
+    runBlocking {
+      launch(Dispatchers.Default) {
+        val emailMessages = retriever.retrieveEmails()
+        for (message in emailMessages) {
+          println(message)
+        }
+      }.join()
+    }
+//    runBlocking(Dispatchers.Default) {
+//      val emailsChannel = Channel<>()
+//    }
 //    val chromeLogs: Path by injector.instance(tag = ChromeOutputLog)
 //    val chromeDebugPort = determineChromePortFromLog(chromeLogs.toFile().readText())
 //        .orElse { determineChromePortFromProfileFile() }.let {
@@ -151,8 +160,7 @@ object Main {
 
   private fun ensureGmailLabelsPresent(kodein: Kodein) {
     val gmail: Gmail by kodein.instance()
-    val appConfiguration: Config by kodein.instance(tag = Tag.ApplicationConfig)
-    val gmailUserId: String = appConfiguration.getString(applicationPropertyNameFor("gmail.userId"))
+    val gmailUserId: String by kodein.instance(tag = GmailModule.Tag.GmailUserId)
     val currentLabels = gmail.users().labels().list(gmailUserId).execute().labels
 
     currentLabels.forEach {

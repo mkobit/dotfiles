@@ -84,6 +84,7 @@ tasks {
   "run"(JavaExec::class) {
     systemProperties(
         "com.mkobit.chickendinner.gmailClientJsonPath" to rootProject.file(".config/contest-entry/gmail_client_id.json"),
+        "com.mkobit.chickendinner.appConfiguration" to rootProject.file(".config/contest-entry/app-config.conf"),
         "com.mkobit.chickendinner.workspaceDirectory" to file("$buildDir/contest-entry-workspace")
     )
   }

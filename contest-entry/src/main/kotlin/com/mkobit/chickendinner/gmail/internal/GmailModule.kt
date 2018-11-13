@@ -9,11 +9,16 @@ import com.google.api.client.json.jackson2.JacksonFactory
 import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.gmail.Gmail
 import com.google.api.services.gmail.GmailScopes
+import com.mkobit.chickendinner.gmail.EmailRetriever
+import kotlinx.coroutines.asCoroutineDispatcher
+import kotlinx.coroutines.newFixedThreadPoolContext
 import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.factory
 import org.kodein.di.generic.instance
+import org.kodein.di.generic.singleton
 import java.nio.file.Path
+import java.util.concurrent.Executors
 
 object GmailModule {
 
@@ -23,7 +28,7 @@ object GmailModule {
   )
 
   val Module = Kodein.Module(name = GmailModule::class.qualifiedName!!) {
-    bind<Gmail>() with factory { userId: String ->
+    bind<Gmail>() with singleton {
       val localResourcesWorkingDirectory: Path = instance(tag = Tag.WorkspaceDirectory)
       val credentialsLocation: Path = instance(tag = Tag.CredentialsLocation)
       val transport = GoogleNetHttpTransport.newTrustedTransport()
@@ -39,10 +44,17 @@ object GmailModule {
           .setAccessType("offline")
           .build()
       val authorizationApp = AuthorizationCodeInstalledApp(authFlow, localReciever)
-      val credentials = authorizationApp.authorize(userId)
+      val credentials = authorizationApp.authorize(instance(tag = Tag.GmailUserId))
       Gmail.Builder(transport, jsonFactory, credentials)
           .setApplicationName("Contest Entry")
           .build()
+    }
+
+    bind<EmailRetriever>() with singleton {
+      DefaultBatchingEmailRetriever(
+          instance(),
+          instance(tag = Tag.GmailUserId)
+      )
     }
   }
 
@@ -53,8 +65,13 @@ object GmailModule {
     object WorkspaceDirectory
 
     /**
-     * Tag for GmailModule credentials location.
+     * Tag for Gmail credentials location.
      */
     object CredentialsLocation
+
+    /**
+     * User Id of the Gmail user.
+     */
+    object GmailUserId
   }
 }
