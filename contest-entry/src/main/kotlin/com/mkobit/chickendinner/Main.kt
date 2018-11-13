@@ -34,6 +34,8 @@ import org.kodein.di.generic.singleton
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.Duration
+import java.util.Base64
+import kotlin.text.Charsets.UTF_8
 
 object Main {
 
@@ -81,13 +83,25 @@ object Main {
 
   @JvmStatic
   fun main(args: Array<String>) {
-    ensureGmailLabelsPresent(injector)
+//    ensureGmailLabelsPresent(injector)
     val retriever: EmailRetriever by injector.instance()
     runBlocking {
       launch(Dispatchers.Default) {
         val emailMessages = retriever.retrieveEmails()
         for (message in emailMessages) {
-          println(message)
+//          println(message)
+          if (message.payload?.parts == null) {
+            println("empty parts - ${message.snippet}")
+          }
+          message.payload?.parts?.let { parts ->
+            for (part in parts) {
+//              println("${part.mimeType} - ${message.snippet}: ${part.body.decodeData().toString(UTF_8)}")
+              println("(parts = ${parts.size}) ${part.mimeType} - ${message.snippet}")
+//              println(part.)
+//              println("${message.snippet}")
+            }
+
+          }
         }
       }.join()
     }
