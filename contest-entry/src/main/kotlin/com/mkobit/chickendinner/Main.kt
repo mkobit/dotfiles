@@ -1,80 +1,133 @@
 package com.mkobit.chickendinner
 
-import arrow.core.None
-import arrow.core.Some
-import arrow.core.orElse
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.kotlin.registerKotlinModule
+import com.google.api.services.gmail.Gmail
+import com.google.api.services.gmail.model.Message
 import com.mkobit.chickendinner.chrome.ChromeDebugger
-import com.mkobit.chickendinner.chrome.determineChromePortFromLog
-import com.mkobit.chickendinner.chrome.determineChromePortFromProfileFile
-import com.mkobit.chickendinner.chrome.domain.page.NavigateRequest
-import com.mkobit.chickendinner.json.JacksonSerializer
+import com.mkobit.chickendinner.chrome.internal.ChromeModule
+import com.mkobit.chickendinner.gmail.EmailRetriever
+import com.mkobit.chickendinner.gmail.internal.GmailModule
+import com.typesafe.config.Config
+import com.typesafe.config.ConfigFactory
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.HttpClientEngineFactory
 import io.ktor.client.engine.cio.CIO
+import io.ktor.client.features.json.JacksonSerializer
 import io.ktor.client.features.json.JsonFeature
 import io.ktor.client.features.websocket.WebSockets
-import kotlinx.coroutines.experimental.runBlocking
-import kotlinx.coroutines.experimental.time.delay
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.channels.ticker
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.time.delay
 import mu.KotlinLogging
 import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
 import org.kodein.di.generic.factory
 import org.kodein.di.generic.instance
+import org.kodein.di.generic.provider
 import org.kodein.di.generic.singleton
 import java.nio.file.Path
 import java.nio.file.Paths
 import java.time.Duration
+import java.util.Base64
+import kotlin.text.Charsets.UTF_8
 
 object Main {
 
-  private val ProjectDataRoot = Any()
-  private val ChromeOutputLog = Any()
-  private val ChromeUserData = Any()
+  private object Tag {
+    /**
+     * Workspace root for all components.
+     */
+    object ProjectWorkspaceRoot
+
+    /**
+     * HOCON application configuration.
+     */
+    object ApplicationConfig
+  }
+
+  private val injector = Kodein {
+    bind<Config>(tag = Tag.ApplicationConfig) with singleton {
+      val configFile = Paths.get(runtimePropertyFor("appConfiguration"))
+      ConfigFactory.parseFile(configFile.toFile())
+    }
+    bind<String>(tag = GmailModule.Tag.GmailUserId) with provider {
+      instance<Config>(tag = Tag.ApplicationConfig).getString(applicationPropertyNameFor("gmail.userId"))
+    }
+    bind<Path>(tag = Tag.ProjectWorkspaceRoot) with singleton {
+      Paths.get(runtimePropertyFor("workspaceDirectory"))
+    }
+    import(GmailModule.Module)
+    bind<Path>(tag = GmailModule.Tag.CredentialsLocation) with singleton {
+      Paths.get(runtimePropertyFor("gmailClientJsonPath"))
+    }
+    bind<Path>(tag = GmailModule.Tag.WorkspaceDirectory) with singleton {
+      // GmailModule workspace directory
+      instance<Path>(tag = Tag.ProjectWorkspaceRoot).resolve(".gmail")
+    }
+    import(ChromeModule.Module)
+    bind<Path>(tag = ChromeModule.Tag.ChromeWorkspaceDirectory) with singleton {
+      instance<Path>(tag = Tag.ProjectWorkspaceRoot).resolve(".chrome")
+    }
+  }
 
   private val logger = KotlinLogging.logger { }
 
-  private fun newInjector(): Kodein = Kodein {
-    bind<Path>(tag = ProjectDataRoot) with singleton { Paths.get("/tmp/.contestant") }
-    bind<Path>(tag = ChromeOutputLog) with singleton { Paths.get("/tmp/startup_google-chrome.log") }
-    bind<Path>(tag = ChromeUserData) with singleton { instance<Path>(tag = ProjectDataRoot).resolve("google-chrome-user-data") }
-    bind<ObjectMapper>() with singleton { ObjectMapper().registerKotlinModule() }
-    bind<HttpClientEngineFactory<*>>() with singleton { CIO }
-    bind<HttpClient>() with singleton {
-      HttpClient(engineFactory = instance()) {
-        install(WebSockets)
-        install(JsonFeature) {
-          serializer = JacksonSerializer(instance())
-        }
-      }
-    }
-    bind<ChromeDebugger>() with factory { debugPort: Int -> ChromeDebugger(debugPort, instance()) }
-  }
+  private fun applicationPropertyNameFor(name: String) = "com.mkobit.chickendinner.$name"
+  private fun runtimePropertyFor(name: String) = System.getProperty(applicationPropertyNameFor(name))
 
   @JvmStatic
   fun main(args: Array<String>) {
-    val injector = newInjector()
-    val chromeLogs: Path by injector.instance(tag = ChromeOutputLog)
-    val chromeDebugPort = determineChromePortFromLog(chromeLogs.toFile().readText())
-        .orElse { determineChromePortFromProfileFile() }.let {
-          when (it) {
-            is Some -> it.t
-            is None -> throw RuntimeException("Could not determine Chrome debug port")
+//    ensureGmailLabelsPresent(injector)
+    val retriever: EmailRetriever by injector.instance()
+    runBlocking {
+      launch(Dispatchers.Default) {
+        val emailMessages = retriever.retrieveEmails()
+        for (message in emailMessages) {
+//          println(message)
+          if (message.payload?.parts == null) {
+            println("empty parts - ${message.snippet}")
+          }
+          message.payload?.parts?.let { parts ->
+            for (part in parts) {
+//              println("${part.mimeType} - ${message.snippet}: ${part.body.decodeData().toString(UTF_8)}")
+              println("(parts = ${parts.size}) ${part.mimeType} - ${message.snippet}")
+//              println(part.)
+//              println("${message.snippet}")
+            }
+
           }
         }
-    logger.info { "Chrome debug port determined to be running on $chromeDebugPort" }
-
-    val chromeDebugger = run {
-      val debuggerFactory: (Int) -> ChromeDebugger by injector.factory()
-      debuggerFactory(chromeDebugPort)
+      }.join()
     }
-
-    runBlocking {
-      chromeDebugger.version().let { logger.info { "Chrome version: $it" } }
-      chromeDebugger.openedPages().forEach {
-        println("${it.title} -> ${it.id}")
-      }
+//    runBlocking(Dispatchers.Default) {
+//      val emailsChannel = Channel<>()
+//    }
+//    val chromeLogs: Path by injector.instance(tag = ChromeOutputLog)
+//    val chromeDebugPort = determineChromePortFromLog(chromeLogs.toFile().readText())
+//        .orElse { determineChromePortFromProfileFile() }.let {
+//          when (it) {
+//            is Some -> it.t
+//            is None -> throw RuntimeException("Could not determine Chrome debug port")
+//          }
+//        }
+//    logger.info { "Chrome debug port determined to be running on $chromeDebugPort" }
+//
+//    val chromeDebugger = run {
+//      val debuggerFactory: (Int) -> ChromeDebugger by injector.factory()
+//      debuggerFactory(chromeDebugPort)
+//    }
+//
+//    runBlocking {
+//      chromeDebugger.version().let { logger.info { "Chrome version: $it" } }
+//      chromeDebugger.openedPages().forEach {
+//        println("${it.title} -> ${it.id}")
+//      }
 //      val page = chromeDebugger.newPage()
 //      delay(Duration.ofSeconds(5L))
 //        chromeDebugger.withConnection(page) {
@@ -104,7 +157,7 @@ object Main {
 //        for (message in incoming.map { it as? Frame.Text }.filterNotNull()) {
 //          logger.info { "Frame text from WS: ${message.readText()}" }
 //        }
-    }
+//    }
 //      client.ws(host = "echo.websocket.org", path = "/") {
 //        send(Frame.Text("Rock it with HTML5 WebSocket"))
 //        incoming.receive().let {
@@ -117,5 +170,15 @@ object Main {
 ////        }
 //      }
 //    }
+  }
+
+  private fun ensureGmailLabelsPresent(kodein: Kodein) {
+    val gmail: Gmail by kodein.instance()
+    val gmailUserId: String by kodein.instance(tag = GmailModule.Tag.GmailUserId)
+    val currentLabels = gmail.users().labels().list(gmailUserId).execute().labels
+
+    currentLabels.forEach {
+      logger.info { "Gmail label: $it" }
+    }
   }
 }
