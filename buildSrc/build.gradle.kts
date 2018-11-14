@@ -36,11 +36,12 @@ val junitTestImplementationArtifacts = listOf(
 
 val assertJCore = "org.assertj:assertj-core:3.11.1"
 val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
+val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
+val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
 val mockitoCore = "org.mockito:mockito-core:2.23.0"
 val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
-val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
-val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
+val strikt = "io.strikt:strikt-core:0.17.0"
 
 val junitTestRuntimeOnlyArtifacts = listOf(
     junitJupiterEngine,
@@ -88,6 +89,7 @@ dependencies {
   testImplementation(mockitoCore)
   testImplementation(mockitoKotlin)
   testImplementation(junitPioneer)
+  testImplementation(strikt)
   junitTestImplementationArtifacts.forEach {
     testImplementation(it)
   }

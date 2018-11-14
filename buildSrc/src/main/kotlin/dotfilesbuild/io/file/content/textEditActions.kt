@@ -66,7 +66,32 @@ class AppendTextIfNotFound(
   }
 }
 
-class SearchFileDeleteLine(
+class SearchTextReplaceLine(
+    private val regex: Regex,
+    private val content: () -> CharSequence
+) : TextEditAction {
+
+  constructor(pattern: Pattern, content: () -> CharSequence): this(pattern.toRegex(), content)
+
+  override fun applyTo(text: String): Either<String, String> {
+    val newText = text.split(newline).joinToString(System.lineSeparator()) {
+      val match = regex.matchEntire(it)
+      if (match != null) {
+        content()
+      } else {
+        it
+      }
+    }
+    return if (newText != text) {
+      Either.right(newText)
+    } else {
+      Either.left(text)
+    }
+  }
+}
+
+
+class SearchTextDeleteLine(
     private val regex: Regex
 ) : TextEditAction {
 

@@ -21,7 +21,7 @@ internal class EditFileTest {
           import dotfilesbuild.io.file.EditFile
           import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
           import dotfilesbuild.io.file.content.AppendTextIfNotFound
-          import dotfilesbuild.io.file.content.SearchFileDeleteLine
+          import dotfilesbuild.io.file.content.SearchTextDeleteLine
           import kotlin.jvm.functions.Function0
 
           plugins {
@@ -35,8 +35,8 @@ internal class EditFileTest {
               new AppendIfNoLinesMatch(~/^seventh${'$'}/, { 'seventh' } as Function0),
               new AppendTextIfNotFound({ 'first' } as Function0),
               new AppendTextIfNotFound({ 'eighth' } as Function0),
-              new SearchFileDeleteLine(~/^ninth${'$'}/),
-              new SearchFileDeleteLine(~/^forth${'$'}/),
+              new SearchTextDeleteLine(~/^ninth${'$'}/),
+              new SearchTextDeleteLine(~/^forth${'$'}/),
             ]
           }
         """.trimIndent())
@@ -84,7 +84,7 @@ internal class EditFileTest {
           import dotfilesbuild.io.file.EditFile
           import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
           import dotfilesbuild.io.file.content.AppendTextIfNotFound
-          import dotfilesbuild.io.file.content.SearchFileDeleteLine
+          import dotfilesbuild.io.file.content.SearchTextDeleteLine
           import kotlin.jvm.functions.Function0
 
           plugins {
@@ -96,7 +96,7 @@ internal class EditFileTest {
             editActions = [
               new AppendIfNoLinesMatch(~/^first${'$'}/, { 'first' } as Function0),
               new AppendTextIfNotFound({ 'second' } as Function0),
-              new SearchFileDeleteLine(~/^tenth${'$'}/),
+              new SearchTextDeleteLine(~/^tenth${'$'}/),
             ]
           }
         """.trimIndent())
