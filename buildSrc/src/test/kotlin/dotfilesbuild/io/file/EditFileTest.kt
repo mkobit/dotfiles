@@ -8,7 +8,7 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junitpioneer.jupiter.TempDirectory
-import testsupport.newGradleRunner
+import testsupport.gradle.newGradleRunner
 import java.nio.file.Path
 
 @ExtendWith(TempDirectory::class)
@@ -111,5 +111,36 @@ internal class EditFileTest {
         .hasTaskUpToDateAtPath(":convergeFile")
     assertThat(result.projectDir.resolve("myfile.txt"))
         .hasContent(originalText)
+  }
+
+  @Test
+  internal fun `editing a file with no actions results in empty file being created`(@TempDirectory.TempDir projectDir: Path) {
+    val gradleRunner = newGradleRunner(projectDir)
+
+    gradleRunner.setupProjectDir {
+      "build.gradle"(content = Original) {
+        append("""
+          import dotfilesbuild.io.file.EditFile
+          import kotlin.jvm.functions.Function0
+
+          plugins {
+            id('dotfilesbuild.file-management')
+          }
+
+          tasks.create('convergeFile', EditFile) {
+            file = layout.projectDirectory.file('myfile.txt')
+          }
+        """.trimIndent())
+        appendNewline()
+      }
+    }.build("convergeFile")
+
+    val result = gradleRunner.build("convergeFile")
+
+    assertThat(result)
+        .hasTaskUpToDateAtPath(":convergeFile")
+    assertThat(result.projectDir.resolve("myfile.txt"))
+        .isRegularFile()
+        .hasContent("")
   }
 }

@@ -107,9 +107,17 @@ tasks {
 
 gradlePlugin {
   plugins {
-    register("home") {
-      id = "dotfilesbuild.locations"
-      implementationClass = "dotfilesbuild.LocationsPlugin"
+    register("binManaged") {
+      id = "dotfilesbuild.shell.managed-bin"
+      implementationClass = "dotfilesbuild.shell.ManagedBinPlugin"
+    }
+    register("binSourceControlled") {
+      id = "dotfilesbuild.shell.source-bin"
+      implementationClass = "dotfilesbuild.shell.SourceControlledBinPlugin"
+    }
+    register("binUnmanaged") {
+      id = "dotfilesbuild.shell.unmanaged-bin"
+      implementationClass = "dotfilesbuild.shell.UnmanagedBinPlugin"
     }
     register("fileManagement") {
       id = "dotfilesbuild.file-management"
@@ -119,13 +127,17 @@ gradlePlugin {
       id = "dotfilesbuild.git-vcs"
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
     }
-    register("keepassProgram") {
-      id = "dotfilesbuild.keepass"
-      implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
-    }
     register("intellijProgram") {
       id = "dotfilesbuild.intellij"
       implementationClass = "dotfilesbuild.intellij.IntelliJProgramPlugin"
+    }
+    register("locations") {
+      id = "dotfilesbuild.locations"
+      implementationClass = "dotfilesbuild.LocationsPlugin"
+    }
+    register("keepassProgram") {
+      id = "dotfilesbuild.keepass"
+      implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
     }
     register("selfUpdate") {
       id = "dotfilesbuild.self-update"
@@ -134,6 +146,10 @@ gradlePlugin {
     register("vcsManagement") {
       id = "dotfilesbuild.vcs-management"
       implementationClass = "dotfilesbuild.io.vcs.VersionControlManagementPlugin"
+    }
+    register("binGeneratedZsh") {
+      id = "dotfilesbuild.shell.generated-zsh"
+      implementationClass = "dotfilesbuild.shell.GeneratedZshrcSourceFilePlugin"
     }
   }
 }
