@@ -12,11 +12,14 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
+import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.PathSensitive
 import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
+import java.nio.file.Files
+import java.nio.file.attribute.PosixFilePermission
 import javax.inject.Inject
 
 @CacheableTask
@@ -34,6 +37,9 @@ open class Download @Inject constructor(
   @get:OutputFile
   @get:PathSensitive(PathSensitivity.NAME_ONLY)
   val destination: RegularFileProperty = objectFactory.fileProperty()
+
+  @get:Optional
+  val executable: Property<Boolean> = objectFactory.property()
 
   @TaskAction
   fun retrieveFile() {
@@ -63,6 +69,17 @@ open class Download @Inject constructor(
       Okio.buffer(Okio.sink(destinationFile)).use { sink ->
         sink.writeAll(it.body()!!.source())
       }
+    }
+    if (executable.get()) {
+      val destinationPath = destinationFile.toPath()
+      val currentPermission = Files.getPosixFilePermissions(destinationPath)
+      Files.setPosixFilePermissions(
+          destinationPath,
+          currentPermission + setOf(
+              PosixFilePermission.OWNER_EXECUTE,
+              PosixFilePermission.GROUP_EXECUTE
+          )
+      )
     }
   }
 
