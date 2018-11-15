@@ -151,5 +151,9 @@ gradlePlugin {
       id = "dotfilesbuild.shell.generated-zsh"
       implementationClass = "dotfilesbuild.shell.GeneratedZshrcSourceFilePlugin"
     }
+    register("zshAliasesAndFunctions") {
+      id = "dotfilesbuild.shell.zsh-aliases-and-functions"
+      implementationClass = "dotfilesbuild.shell.ZshAliasesAndFunctionsPlugin"
+    }
   }
 }
