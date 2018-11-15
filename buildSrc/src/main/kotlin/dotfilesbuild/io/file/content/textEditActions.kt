@@ -74,6 +74,7 @@ class SearchTextReplaceLine(
   constructor(pattern: Pattern, content: () -> CharSequence): this(pattern.toRegex(), content)
 
   override fun applyTo(text: String): Either<String, String> {
+
     val newText = text.split(newline).joinToString(System.lineSeparator()) {
       val match = regex.matchEntire(it)
       if (match != null) {
@@ -90,6 +91,27 @@ class SearchTextReplaceLine(
   }
 }
 
+class ReplaceText(
+    private val regex: Regex,
+    private val appendIfNoLinesMatch: Boolean,
+    private val content: () -> CharSequence
+) : TextEditAction {
+
+  override fun applyTo(text: String): Either<String, String> {
+    val replacementText = content().toString()
+    val newText = if (!regex.containsMatchIn(text) && appendIfNoLinesMatch) {
+      text + System.lineSeparator() + replacementText
+    } else {
+      regex.replace(text, replacementText)
+    }
+
+    return if (newText != text) {
+      Either.right(newText)
+    } else {
+      Either.left(text)
+    }
+  }
+}
 
 class SearchTextDeleteLine(
     private val regex: Regex

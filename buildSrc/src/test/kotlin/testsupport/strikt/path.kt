@@ -32,7 +32,7 @@ fun Assertion.Builder<out Path>.isDirectory() =
     }
 
 val Assertion.Builder<out Path>.content: Assertion.Builder<String>
-  get() = get { Files.readAllLines(this).joinToString(System.lineSeparator()) }
+  get() = get("file content") { Files.readAllLines(this).joinToString(System.lineSeparator()) }
 
 fun Assertion.Builder<out Path>.resolvePath(path: Path): Assertion.Builder<Path> =
     get { resolve(path) }

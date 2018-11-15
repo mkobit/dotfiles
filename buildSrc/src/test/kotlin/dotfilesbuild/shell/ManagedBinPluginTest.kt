@@ -10,7 +10,7 @@ import java.nio.file.Path
 @ExtendWith(TempDirectory::class)
 internal class ManagedBinPluginTest {
   @Test
-  internal fun `managed bin directory is created and exported into the zshell configuration file`(@TempDirectory.TempDir projectDir: Path) {
+  internal fun `managed bin directory is created and exported in the PATH in zshell file`(@TempDirectory.TempDir projectDir: Path) {
     val runner = newGradleRunner(projectDir) {
       setupProjectDir {
         "build.gradle.kts" {

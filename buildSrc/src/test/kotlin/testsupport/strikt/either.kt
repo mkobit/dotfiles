@@ -4,7 +4,7 @@ import arrow.core.Either
 import strikt.api.Assertion
 
 fun <L, R> Assertion.Builder<Either<L, R>>.rightWithValue(value: R) =
-    assert("is right with value", value) {
+    assert("is right with value %s", value) {
       when(it) {
         is Either.Right -> {
           if (it.b == value) {

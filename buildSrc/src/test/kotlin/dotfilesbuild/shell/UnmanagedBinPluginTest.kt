@@ -19,7 +19,7 @@ import java.nio.file.Path
 @ExtendWith(TempDirectory::class)
 internal class UnmanagedBinPluginTest {
   @Test
-  internal fun `directory is created and not removed by clean`(@TempDirectory.TempDir tempDir: Path) {
+  internal fun `directory is created, exported in the PATH in zshell file, and not removed by clean`(@TempDirectory.TempDir tempDir: Path) {
     val runner = newGradleRunner(tempDir) {
       setupProjectDir {
         "build.gradle.kts" {
