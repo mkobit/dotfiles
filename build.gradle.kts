@@ -23,6 +23,12 @@ plugins {
   id("dotfilesbuild.self-update")
   id("dotfilesbuild.vcs-management")
   id("dotfilesbuild.git-vcs")
+
+  id("dotfilesbuild.shell.generated-zsh")
+  id("dotfilesbuild.shell.managed-bin")
+  id("dotfilesbuild.shell.source-bin")
+  id("dotfilesbuild.shell.unmanaged-bin")
+  id("dotfilesbuild.shell.zsh-aliases-and-functions")
 }
 
 buildScan {
