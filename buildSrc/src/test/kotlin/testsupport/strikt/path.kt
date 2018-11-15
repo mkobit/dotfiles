@@ -1,6 +1,7 @@
 package testsupport.strikt
 
 import strikt.api.Assertion
+import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
 
@@ -30,6 +31,12 @@ fun <T : Path> Assertion.Builder<T>.isDirectory() =
         fail("is not directory")
       }
     }
+
+val <T : Path> Assertion.Builder<T>.lines: Assertion.Builder<List<String>>
+  get() = lines(Charsets.UTF_8)
+
+fun <T : Path> Assertion.Builder<T>.lines(charset: Charset): Assertion.Builder<List<String>> =
+  get("lines ($charset)") { Files.readAllLines(this, charset) }
 
 val <T : Path> Assertion.Builder<T>.content: Assertion.Builder<String>
   get() = get("file content") { Files.readAllLines(this).joinToString(System.lineSeparator()) }

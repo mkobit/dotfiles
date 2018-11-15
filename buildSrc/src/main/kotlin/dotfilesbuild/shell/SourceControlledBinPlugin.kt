@@ -17,19 +17,20 @@ class SourceControlledBinPlugin : Plugin<Project> {
   companion object {
     private const val COMMENT = "# dotfiles: source controlled bin files"
   }
+
   override fun apply(target: Project) {
     target.run {
       apply<GeneratedZshrcSourceFilePlugin>()
       apply<BasePlugin>()
 
       val generateZshrcFile by tasks.existing(EditFile::class) {
-        val sourceControlledBinDir = target.layout.projectDirectory.dir("bin").asFile
+        val sourceControlledBinDir = target.layout.projectDirectory.dir("bin").asFile.absolutePath
         editActions.add(
             ReplaceText(
                 Regex("export PATH=.*\\s+$COMMENT"),
                 true
             ) {
-              "export PATH=\"\$PATH:${sourceControlledBinDir.absolutePath}\" $COMMENT"
+              "export PATH=\"\$PATH:${sourceControlledBinDir}\" $COMMENT"
             }
         )
       }
