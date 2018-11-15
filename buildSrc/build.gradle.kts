@@ -65,7 +65,7 @@ val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
 }
 
 val build by tasks.getting {
-//  dependsOn("dependencyUpdates") // uncomment when want to get dependency updates for buildSrc project
+  //  dependsOn("dependencyUpdates") // uncomment when want to get dependency updates for buildSrc project
 }
 
 val coroutinesVersion by extra { "1.0.0" }

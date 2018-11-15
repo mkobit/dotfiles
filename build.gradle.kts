@@ -412,46 +412,11 @@ tasks {
     dependsOn(vimRc)
   }
 
-  val zshrcDotfiles by registering(EditFile::class) {
-    description = "Creates a ZSH file to be sourced that only contains dotfiles specific content"
-    file.set(locations.home.file(".zshrc_dotfiles"))
-    // TODO: add Provider<Directory> to VersionControlTarget
-    val gradleCompletion = versionControlTracking["personal"].groups["gradle"].vcs["gradle-completion"]
-    editActions.add(provider {
-      val functions = layout.projectDirectory.file("zsh/functions.source")
-      val text = ". ${functions.asFile.absolutePath} # dotfiles: functions.source"
-      AppendIfNoLinesMatch(
-          Regex(text, RegexOption.LITERAL),
-          { text }
-      )
-    })
-    editActions.add(provider {
-      val aliases = layout.projectDirectory.file("zsh/aliases.source")
-      val text = ". ${aliases.asFile.absolutePath} # dotfiles: aliases.source"
-      AppendIfNoLinesMatch(
-          Regex(text, RegexOption.LITERAL),
-          { text }
-      )
-    })
-  }
-
-  val zshrcFile by registering(EditFile::class) {
-    description = "Edits the .zshrc file"
-    file.set(locations.home.file(".zshrc"))
-    dependsOn(zshrcDotfiles)
-    editActions.add(provider {
-      val text = ". ${zshrcDotfiles.get().file.get().asFile.toPath().toAbsolutePath()}"
-      AppendIfNoLinesMatch(
-          Regex(text, RegexOption.LITERAL),
-          { text }
-      )
-    })
-  }
-
+  val generateZshrcFile by existing
   val zsh by registering {
     group = "ZSH"
     description = "Sets up ZSH"
-    dependsOn(zshrcDotfiles, zshrcFile)
+    dependsOn(generateZshrcFile)
   }
 
   named("wrapper", Wrapper::class) {
