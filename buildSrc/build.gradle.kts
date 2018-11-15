@@ -107,52 +107,52 @@ tasks {
 
 gradlePlugin {
   plugins {
-    register("binManaged") {
-      id = "dotfilesbuild.shell.managed-bin"
+    register("dotfilesbuild.shell.managed-bin") {
+      id = name
       implementationClass = "dotfilesbuild.shell.ManagedBinPlugin"
     }
-    register("binSourceControlled") {
-      id = "dotfilesbuild.shell.source-bin"
+    register("dotfilesbuild.shell.source-bin") {
+      id = name
       implementationClass = "dotfilesbuild.shell.SourceControlledBinPlugin"
     }
-    register("binUnmanaged") {
-      id = "dotfilesbuild.shell.unmanaged-bin"
+    register("dotfilesbuild.shell.unmanaged-bin") {
+      id = name
       implementationClass = "dotfilesbuild.shell.UnmanagedBinPlugin"
     }
-    register("fileManagement") {
-      id = "dotfilesbuild.file-management"
+    register("dotfilesbuild.file-management") {
+      id = name
       implementationClass = "dotfilesbuild.io.file.FileManagementPlugin"
     }
-    register("gitVcs") {
-      id = "dotfilesbuild.git-vcs"
+    register("dotfilesbuild.git-vcs") {
+      id = name
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
     }
-    register("intellijProgram") {
-      id = "dotfilesbuild.intellij"
+    register("dotfilesbuild.intellij") {
+      id = name
       implementationClass = "dotfilesbuild.intellij.IntelliJProgramPlugin"
     }
-    register("locations") {
-      id = "dotfilesbuild.locations"
+    register("dotfilesbuild.locations") {
+      id = name
       implementationClass = "dotfilesbuild.LocationsPlugin"
     }
-    register("keepassProgram") {
-      id = "dotfilesbuild.keepass"
+    register("dotfilesbuild.keepass") {
+      id = name
       implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
     }
-    register("selfUpdate") {
-      id = "dotfilesbuild.self-update"
+    register("dotfilesbuild.self-update") {
+      id = name
       implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"
     }
-    register("vcsManagement") {
-      id = "dotfilesbuild.vcs-management"
+    register("dotfilesbuild.vcs-management") {
+      id = name
       implementationClass = "dotfilesbuild.io.vcs.VersionControlManagementPlugin"
     }
-    register("binGeneratedZsh") {
-      id = "dotfilesbuild.shell.generated-zsh"
+    register("dotfilesbuild.shell.generated-zsh") {
+      id = name
       implementationClass = "dotfilesbuild.shell.GeneratedZshrcSourceFilePlugin"
     }
-    register("zshAliasesAndFunctions") {
-      id = "dotfilesbuild.shell.zsh-aliases-and-functions"
+    register("dotfilesbuild.shell.zsh-aliases-and-functions") {
+      id = name
       implementationClass = "dotfilesbuild.shell.ZshAliasesAndFunctionsPlugin"
     }
   }
