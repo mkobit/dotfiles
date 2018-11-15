@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtendWith
 import org.junitpioneer.jupiter.TempDirectory
 import strikt.api.expectThat
+import strikt.assertions.contains
 import strikt.assertions.isEmpty
 import testsupport.gradle.newGradleRunner
 import testsupport.strikt.content
@@ -32,11 +33,15 @@ internal class UnmanagedBinPluginTest {
       }
     }
 
-    runner.build("makeUnmanagedBinDirectory").let { result ->
+    runner.build("generateZshrcFile").let { result ->
       expectThat(result) {
         projectDir.resolvePath(".unmanaged_bin")
             .exists()
             .isDirectory()
+        projectDir.resolvePath("build/zsh/generated_zshrc")
+            .exists()
+            .content
+            .contains("""export PATH="${'$'}PATH:${result.projectDir.resolve(".unmanaged_bin").toAbsolutePath()}" # dotfiles: dotfiles unmanaged bin files""")
       }
     }
 
