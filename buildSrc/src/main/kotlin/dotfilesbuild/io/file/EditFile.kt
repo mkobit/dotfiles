@@ -1,9 +1,7 @@
 package dotfilesbuild.io.file
 
 import arrow.core.Either
-import arrow.effects.IO
 import dotfilesbuild.io.file.content.TextEditAction
-import listProperty
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFile
@@ -11,24 +9,23 @@ import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Provider
-import org.gradle.api.provider.ProviderFactory
-import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
+import org.gradle.kotlin.dsl.listProperty
 import javax.inject.Inject
 
+// TODO: improve up-to-date and simplify this
 open class EditFile @Inject constructor(
     objectFactory: ObjectFactory,
-    providerFactory: ProviderFactory,
     projectLayout: ProjectLayout
 ) : DefaultTask() {
 
-  init {
-    outputs.upToDateWhen {
-      performTransformation().isLeft()
-    }
-  }
+//  init {
+//    outputs.upToDateWhen {
+//      performTransformation().isLeft()
+//    }
+//  }
 
   @get:Internal
   val file: RegularFileProperty = projectLayout.fileProperty()
@@ -37,19 +34,22 @@ open class EditFile @Inject constructor(
   val output: Provider<RegularFile> = file
 
   @get:Internal
-  val editActions: ListProperty<TextEditAction> = objectFactory.listProperty()
+  val editActions: ListProperty<TextEditAction> = objectFactory.listProperty<TextEditAction>().empty()
 
   @TaskAction
   fun convergeFile() {
-    val targetFile = output.get().asFile
     val transformation = performTransformation()
-    when(transformation) {
-      is Either.Left -> logger.debug("No transformations needed for {}", targetFile)
-      is Either.Right -> targetFile.writeText(transformation.b)
+    val textToWrite = when(transformation) {
+      is Either.Left -> {
+        logger.debug("No transformations needed for {}", output.get().asFile)
+        transformation.a
+      }
+      is Either.Right -> transformation.b
     }
+    output.get().asFile.writeText(textToWrite)
   }
 
-  private fun readFileText(): String = file.get().asFile.run {
+  private fun readFileTextOrDefault(): String = file.get().asFile.run {
     if (exists()) {
       readText()
     } else {
@@ -58,8 +58,7 @@ open class EditFile @Inject constructor(
   }
 
   private fun performTransformation(): Either<String, String> {
-    require(editActions.get().isNotEmpty()) { "EditActions cannot be empty" }
-    val fileText = readFileText()
+    val fileText = readFileTextOrDefault()
     val text: Either<String, String> = Either.left(fileText)
     val afterApplied = editActions.get().fold(text) { acc, action ->
       when(acc) {

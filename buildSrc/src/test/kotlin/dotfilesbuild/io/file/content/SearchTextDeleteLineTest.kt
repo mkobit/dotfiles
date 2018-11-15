@@ -4,16 +4,15 @@ import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import testsupport.assertThat
 
-internal class SearchFileDeleteLineTest {
+internal class SearchTextDeleteLineTest {
 
   companion object {
     private val regex = Regex("^a|b$")
-    private val content = { "content" }
   }
 
   @Test
   internal fun `text is removed when a match is found`() {
-    val editAction = SearchFileDeleteLine(regex)
+    val editAction = SearchTextDeleteLine(regex)
     val either = editAction.applyTo("a")
     assertThat(either)
         .isRightSatisfying {
@@ -24,7 +23,7 @@ internal class SearchFileDeleteLineTest {
 
   @Test
   internal fun `all matches are removed`() {
-    val editAction = SearchFileDeleteLine(regex)
+    val editAction = SearchTextDeleteLine(regex)
     val either = editAction.applyTo("""
         a
         b
@@ -43,7 +42,7 @@ internal class SearchFileDeleteLineTest {
 
   @Test
   internal fun `text is unchanged when a match is not found`() {
-    val editAction = SearchFileDeleteLine(regex)
+    val editAction = SearchTextDeleteLine(regex)
     val either = editAction.applyTo("c")
     assertThat(either)
         .isLeftSatisfying {

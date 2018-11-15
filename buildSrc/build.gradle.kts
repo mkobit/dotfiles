@@ -36,11 +36,12 @@ val junitTestImplementationArtifacts = listOf(
 
 val assertJCore = "org.assertj:assertj-core:3.11.1"
 val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
+val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
+val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
 val mockitoCore = "org.mockito:mockito-core:2.23.0"
 val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
-val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
-val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
+val strikt = "io.strikt:strikt-core:0.17.0"
 
 val junitTestRuntimeOnlyArtifacts = listOf(
     junitJupiterEngine,
@@ -64,7 +65,7 @@ val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
 }
 
 val build by tasks.getting {
-//  dependsOn("dependencyUpdates") // uncomment when want to get dependency updates for buildSrc project
+  //  dependsOn("dependencyUpdates") // uncomment when want to get dependency updates for buildSrc project
 }
 
 val coroutinesVersion by extra { "1.0.0" }
@@ -88,6 +89,7 @@ dependencies {
   testImplementation(mockitoCore)
   testImplementation(mockitoKotlin)
   testImplementation(junitPioneer)
+  testImplementation(strikt)
   junitTestImplementationArtifacts.forEach {
     testImplementation(it)
   }
@@ -105,32 +107,52 @@ tasks {
 
 gradlePlugin {
   plugins {
-    register("home") {
-      id = "dotfilesbuild.locations"
-      implementationClass = "dotfilesbuild.LocationsPlugin"
-    }
-    register("fileManagement") {
-      id = "dotfilesbuild.file-management"
+    register("dotfilesbuild.file-management") {
+      id = name
       implementationClass = "dotfilesbuild.io.file.FileManagementPlugin"
     }
-    register("gitVcs") {
-      id = "dotfilesbuild.git-vcs"
+    register("dotfilesbuild.git-vcs") {
+      id = name
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
     }
-    register("keepassProgram") {
-      id = "dotfilesbuild.keepass"
-      implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
-    }
-    register("intellijProgram") {
-      id = "dotfilesbuild.intellij"
+    register("dotfilesbuild.intellij") {
+      id = name
       implementationClass = "dotfilesbuild.intellij.IntelliJProgramPlugin"
     }
-    register("selfUpdate") {
-      id = "dotfilesbuild.self-update"
+    register("dotfilesbuild.locations") {
+      id = name
+      implementationClass = "dotfilesbuild.LocationsPlugin"
+    }
+    register("dotfilesbuild.keepass") {
+      id = name
+      implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
+    }
+    register("dotfilesbuild.self-update") {
+      id = name
       implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"
     }
-    register("vcsManagement") {
-      id = "dotfilesbuild.vcs-management"
+    register("dotfilesbuild.shell.generated-zsh") {
+      id = name
+      implementationClass = "dotfilesbuild.shell.GeneratedZshrcSourceFilePlugin"
+    }
+    register("dotfilesbuild.shell.managed-bin") {
+      id = name
+      implementationClass = "dotfilesbuild.shell.ManagedBinPlugin"
+    }
+    register("dotfilesbuild.shell.source-bin") {
+      id = name
+      implementationClass = "dotfilesbuild.shell.SourceControlledBinPlugin"
+    }
+    register("dotfilesbuild.shell.unmanaged-bin") {
+      id = name
+      implementationClass = "dotfilesbuild.shell.UnmanagedBinPlugin"
+    }
+    register("dotfilesbuild.shell.zsh-aliases-and-functions") {
+      id = name
+      implementationClass = "dotfilesbuild.shell.ZshAliasesAndFunctionsPlugin"
+    }
+    register("dotfilesbuild.vcs-management") {
+      id = name
       implementationClass = "dotfilesbuild.io.vcs.VersionControlManagementPlugin"
     }
   }
