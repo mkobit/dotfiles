@@ -9,6 +9,7 @@ import strikt.api.expectThat
 import strikt.assertions.contains
 import testsupport.gradle.newGradleRunner
 import testsupport.strikt.content
+import testsupport.strikt.doesNotExist
 import testsupport.strikt.exists
 import testsupport.strikt.isDirectory
 import testsupport.strikt.projectDir
@@ -40,6 +41,13 @@ internal class ManagedBinPluginTest {
             .exists()
             .content
             .contains("""export PATH="${'$'}PATH:${result.projectDir.resolve("build/managed_bin").toAbsolutePath()}" # dotfiles: dotfiles managed bin files""")
+      }
+    }
+
+    runner.build("clean").let { result ->
+      expectThat(result) {
+        projectDir.resolvePath("build/managed_bin")
+            .doesNotExist()
       }
     }
   }

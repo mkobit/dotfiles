@@ -5,6 +5,15 @@ import java.nio.charset.Charset
 import java.nio.file.Files
 import java.nio.file.Path
 
+fun <T : Path> Assertion.Builder<T>.doesNotExist() =
+    assert("does not exist") {
+      if (!Files.exists(it)) {
+        pass()
+      } else {
+        fail("exists")
+      }
+    }
+
 fun <T : Path> Assertion.Builder<T>.exists() =
     assert("exists") {
       if (Files.exists(it)) {
