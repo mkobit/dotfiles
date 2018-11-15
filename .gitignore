@@ -312,3 +312,4 @@ gradle-app.setting
 # Personal ignores
 
 .config/
+.unmanaged_bin
