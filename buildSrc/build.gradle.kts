@@ -127,6 +127,10 @@ gradlePlugin {
       id = name
       implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
     }
+    register("dotfilesbuild.kubernetes.kubectl-managed-binary") {
+      id = name
+      implementationClass = "dotfilesbuild.kubernetes.KubectlProgramPlugin"
+    }
     register("dotfilesbuild.self-update") {
       id = name
       implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"
