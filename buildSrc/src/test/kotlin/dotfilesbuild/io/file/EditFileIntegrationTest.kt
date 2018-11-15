@@ -12,7 +12,7 @@ import testsupport.gradle.newGradleRunner
 import java.nio.file.Path
 
 @ExtendWith(TempDirectory::class)
-internal class EditFileTest {
+internal class EditFileIntegrationTest {
   @Test
   internal fun `edit the content of a file with multiple actions`(@TempDirectory.TempDir projectDir: Path) {
     val result = newGradleRunner(projectDir).setupProjectDir {
