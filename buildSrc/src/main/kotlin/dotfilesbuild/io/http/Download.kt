@@ -71,6 +71,7 @@ open class Download @Inject constructor(
       }
     }
     if (executable.get()) {
+      log.info { "Marking $destinationFile as executable" }
       val destinationPath = destinationFile.toPath()
       val currentPermission = Files.getPosixFilePermissions(destinationPath)
       Files.setPosixFilePermissions(

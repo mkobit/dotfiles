@@ -30,7 +30,7 @@ class KubectlProgramPlugin : Plugin<Project> {
         description = "Download kubectl and make it executable"
         url.set(
             kubectl.version.map {
-              "https://storage.googleapis.com/kubernetes-release/release/$it/bin/darwin/amd64/kubectl" // TODO: determine arch before download
+              "https://storage.googleapis.com/kubernetes-release/release/$it/bin/linux/amd64/kubectl" // TODO: determine arch before download
             }
         )
         destination.set(
