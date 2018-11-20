@@ -24,6 +24,8 @@ plugins {
   id("dotfilesbuild.vcs-management")
   id("dotfilesbuild.git-vcs")
 
+  id("dotfilesbuild.kubernetes.kubectl-managed-binary")
+
   id("dotfilesbuild.shell.generated-zsh")
   id("dotfilesbuild.shell.managed-bin")
   id("dotfilesbuild.shell.source-bin")
@@ -436,4 +438,8 @@ intellij {
 
 keepass {
   keepassVersion.set("2.40")
+}
+
+kubectl {
+  version.set("v1.12.2")
 }
