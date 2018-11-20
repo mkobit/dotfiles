@@ -422,7 +422,7 @@ tasks {
   }
 
   named("wrapper", Wrapper::class) {
-    gradleVersion = "5.0-rc-3"
+    gradleVersion = "5.0-rc-4"
   }
 
   register("dotfiles") {
