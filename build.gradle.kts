@@ -17,20 +17,20 @@ plugins {
   kotlin("jvm") version "1.3.10" apply false
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.4.2" apply false
 
-  id("dotfilesbuild.intellij")
-  id("dotfilesbuild.locations")
-  id("dotfilesbuild.keepass")
-  id("dotfilesbuild.self-update")
-  id("dotfilesbuild.vcs-management")
-  id("dotfilesbuild.git-vcs")
+  dotfilesbuild.intellij
+  dotfilesbuild.locations
+  dotfilesbuild.keepass
+  dotfilesbuild.`self-update`
+  dotfilesbuild.`vcs-management`
+  dotfilesbuild.`git-vcs`
 
-  id("dotfilesbuild.kubernetes.kubectl-managed-binary")
+  dotfilesbuild.kubernetes.`kubectl-managed-binary`
 
-  id("dotfilesbuild.shell.generated-zsh")
-  id("dotfilesbuild.shell.managed-bin")
-  id("dotfilesbuild.shell.source-bin")
-  id("dotfilesbuild.shell.unmanaged-bin")
-  id("dotfilesbuild.shell.zsh-aliases-and-functions")
+  dotfilesbuild.shell.`generated-zsh`
+  dotfilesbuild.shell.`managed-bin`
+  dotfilesbuild.shell.`source-bin`
+  dotfilesbuild.shell.`unmanaged-bin`
+  dotfilesbuild.shell.`zsh-aliases-and-functions`
 }
 
 buildScan {
