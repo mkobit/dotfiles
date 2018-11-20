@@ -49,39 +49,18 @@ val junitTestRuntimeOnlyArtifacts = listOf(
     log4jJul
 )
 
-val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
-  val rejectPatterns = listOf("alpha", "beta", "rc", "cr", "m").map { qualifier ->
-    Regex("(?i).*[.-]$qualifier[.\\d-]*")
-  }
-  resolutionStrategy {
-    componentSelection {
-      all {
-        if (rejectPatterns.any { it.matches(candidate.version) }) {
-          this.reject("Release candidate")
-        }
-      }
-    }
-  }
-}
-
-val build by tasks.getting {
-  //  dependsOn("dependencyUpdates") // uncomment when want to get dependency updates for buildSrc project
-}
-
-val coroutinesVersion by extra { "1.0.0" }
-val arrowVersion by extra { "0.7.3" }
+val coroutinesVersion by extra { "1.0.1" }
+val arrowVersion by extra { "0.8.1" }
 dependencies {
   implementation("io.arrow-kt:arrow-core:$arrowVersion")
   implementation("io.arrow-kt:arrow-effects:$arrowVersion")
   implementation("io.arrow-kt:arrow-syntax:$arrowVersion")
   implementation("io.arrow-kt:arrow-typeclasses:$arrowVersion")
   implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:$coroutinesVersion")
-  implementation("com.squareup.retrofit2:retrofit:2.4.0")
-  implementation("com.squareup.okhttp3:okhttp:3.11.0")
+  implementation("com.squareup.retrofit2:retrofit:2.5.0")
+  implementation("com.squareup.okhttp3:okhttp:3.12.0")
   implementation("io.github.microutils:kotlin-logging:1.6.10")
   implementation("org.eclipse.jgit:org.eclipse.jgit:5.1.3.201810200350-r")
-  // https://mvnrepository.com/artifact/com.google.guava/guava
-  implementation("com.google.guava:guava:27.0-jre")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.6.0")
@@ -99,7 +78,26 @@ dependencies {
 }
 
 tasks {
-  "test"(Test::class) {
+  dependencyUpdates {
+    val rejectPatterns = listOf("alpha", "beta", "rc", "cr", "m").map { qualifier ->
+      Regex("(?i).*[.-]$qualifier[.\\d-]*")
+    }
+    resolutionStrategy {
+      componentSelection {
+        all {
+          if (rejectPatterns.any { it.matches(candidate.version) }) {
+            this.reject("Release candidate")
+          }
+        }
+      }
+    }
+  }
+
+  build {
+//    dependsOn("dependencyUpdates") // uncomment when want to get dependency updates for buildSrc project
+  }
+
+  test {
     useJUnitPlatform()
     systemProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager")
   }
