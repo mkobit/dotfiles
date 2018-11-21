@@ -34,8 +34,8 @@ plugins {
 }
 
 buildScan {
-  setTermsOfServiceUrl("https://gradle.com/terms-of-service")
-  setTermsOfServiceAgree("yes")
+  termsOfServiceUrl = "https://gradle.com/terms-of-service"
+  termsOfServiceAgree = "yes"
 }
 
 description = "Dotfiles and package management"
