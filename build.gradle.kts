@@ -44,21 +44,6 @@ val personalWorkspaceDirectory: Directory = locations.workspace.dir("personal")
 val workWorkspaceDirectory: Directory = locations.workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = locations.workspace.dir("code_lab")
 
-val dependencyUpdates by tasks.getting(DependencyUpdatesTask::class) {
-  val rejectPatterns = listOf("alpha", "beta", "rc", "cr", "m").map { qualifier ->
-    Regex("(?i).*[.-]$qualifier[.\\d-]*")
-  }
-  resolutionStrategy {
-    componentSelection {
-      all {
-        if (rejectPatterns.any { it.matches(this.candidate.version) }) {
-          reject("Release candidate")
-        }
-      }
-    }
-  }
-}
-
 // IntelliJ Regex:
 // ^(\w+[:@/]+\w+.com[:/]?([\w\d-]+)/([\w\d-\.]+)\.git)$
 // "$3"(GitVersionControlTarget::class) { origin("$1") }
@@ -325,6 +310,25 @@ versionControlTracking {
 }
 
 tasks {
+  dependencyUpdates {
+    val rejectPatterns = listOf("alpha", "beta", "rc", "cr", "m").map { qualifier ->
+      Regex("(?i).*[.-]$qualifier[.\\d-]*")
+    }
+    resolutionStrategy {
+      componentSelection {
+        all {
+          if (rejectPatterns.any { it.matches(this.candidate.version) }) {
+            reject("Release candidate")
+          }
+        }
+      }
+    }
+  }
+
+  wrapper {
+    gradleVersion = "5.0-rc-4"
+  }
+
   val personalWorkspace by creating(Mkdir::class) {
     directory.set(personalWorkspaceDirectory)
   }
@@ -419,10 +423,6 @@ tasks {
     group = "ZSH"
     description = "Sets up ZSH"
     dependsOn(generateZshrcFile)
-  }
-
-  named("wrapper", Wrapper::class) {
-    gradleVersion = "5.0-rc-4"
   }
 
   register("dotfiles") {
