@@ -55,7 +55,7 @@ dependencies {
 
   implementation(DependencyInfo.kotlinLogging)
 
-  testImplementation(DependencyInfo.assertK)
+  testImplementation(DependencyInfo.strikt)
   DependencyInfo.junitTestImplementationArtifacts.forEach {
     testImplementation(it)
   }
