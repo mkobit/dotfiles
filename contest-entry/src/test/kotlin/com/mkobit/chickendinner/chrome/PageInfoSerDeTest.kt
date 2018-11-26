@@ -7,7 +7,6 @@ import com.google.common.io.Resources
 import org.junit.jupiter.api.Test
 import strikt.api.catching
 import strikt.api.expectThat
-import strikt.assertions.isNotNull
 import strikt.assertions.isNull
 
 internal class PageInfoSerDeTest {
