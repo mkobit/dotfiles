@@ -27,6 +27,7 @@ dependencies {
 
   // Try out Kodein
   implementation(DependencyInfo.kodeinJvm)
+  implementation(DependencyInfo.kodeinJvmCore)
 
   // Ktor
   implementation(DependencyInfo.ktor("server-core"))

@@ -1,41 +1,22 @@
 package com.mkobit.chickendinner
 
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.google.api.services.gmail.Gmail
-import com.google.api.services.gmail.model.Message
-import com.mkobit.chickendinner.chrome.ChromeDebugger
 import com.mkobit.chickendinner.chrome.internal.ChromeModule
 import com.mkobit.chickendinner.gmail.EmailRetriever
 import com.mkobit.chickendinner.gmail.internal.GmailModule
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
-import io.ktor.client.HttpClient
-import io.ktor.client.engine.HttpClientEngineFactory
-import io.ktor.client.engine.cio.CIO
-import io.ktor.client.features.json.JacksonSerializer
-import io.ktor.client.features.json.JsonFeature
-import io.ktor.client.features.websocket.WebSockets
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.async
-import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.channels.ticker
-import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.time.delay
 import mu.KotlinLogging
 import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
-import org.kodein.di.generic.factory
 import org.kodein.di.generic.instance
 import org.kodein.di.generic.provider
 import org.kodein.di.generic.singleton
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.time.Duration
-import java.util.Base64
-import kotlin.text.Charsets.UTF_8
 
 object Main {
 

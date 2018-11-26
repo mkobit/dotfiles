@@ -4,13 +4,13 @@ package dotfilesbuild
 object DependencyInfo {
   private const val arrowVersion = "0.8.1"
   private const val jacksonVersion = "2.9.7"
-  private const val googleClientVersion = "1.23.0"
-  private const val junitPlatformVersion = "1.3.1"
-  private const val junitJupiterVersion = "5.3.1"
+  private const val googleClientVersion = "1.27.0"
+  private const val junitPlatformVersion = "1.3.2"
+  private const val junitJupiterVersion = "5.3.2"
   private const val junit5Log4jVersion = "2.11.1"
   private const val kodeinVersion = "6.0.0"
   private const val kotlinxCoroutinesVersion = "1.0.1"
-  private const val kotlinLoggingVersion = "1.6.20"
+  private const val kotlinLoggingVersion = "1.6.22"
   private const val ktorVersion = "1.0.0"
   private const val okHttpVersion = "3.12.0"
   private const val retrofitVersion = "2.5.0"
@@ -22,7 +22,7 @@ object DependencyInfo {
   val coroutinesxCore = kotlinxCoroutines("core")
   val coroutinesxJdk8 = kotlinxCoroutines("jdk8")
   const val googleApiClient = "com.google.api-client:google-api-client:$googleClientVersion"
-  const val googleGmailServiceClient = "com.google.apis:google-api-services-gmail:v1-rev83-$googleClientVersion"
+  const val googleGmailServiceClient = "com.google.apis:google-api-services-gmail:v1-rev20180904-$googleClientVersion"
   const val googleOauthClient = "com.google.oauth-client:google-oauth-client-jetty:$googleClientVersion"
   const val guava = "com.google.guava:guava:27.0.1-jre"
   const val hocon = "com.typesafe:config:1.3.3"
@@ -31,6 +31,7 @@ object DependencyInfo {
   const val jsoup = "org.jsoup:jsoup:1.11.3"
   const val kotlinPoet = "com.squareup:kotlinpoet:1.0.0-RC2"
   val kodeinJvm = kodein("di-generic-jvm")
+  val kodeinJvmCore = kodein("di-core-jvm") // https://github.com/Kodein-Framework/Kodein-DI/issues/165
   val log4jCore = log4j("core")
   val log4jJul = log4j("jul")
   const val mockito = "org.mockito:mockito-core:2.17.0"

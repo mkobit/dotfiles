@@ -40,6 +40,7 @@ dependencies {
   implementation(DependencyInfo.jacksonModule("kotlin"))
 
   implementation(DependencyInfo.kodeinJvm)
+  implementation(DependencyInfo.kodeinJvmCore)
   implementation(DependencyInfo.ktor("client-apache"))
   implementation(DependencyInfo.ktor("client-cio"))
   implementation(DependencyInfo.ktor("client-json"))
