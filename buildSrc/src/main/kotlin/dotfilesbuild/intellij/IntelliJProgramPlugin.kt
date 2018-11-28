@@ -18,7 +18,7 @@ open class IntelliJProgramPlugin : Plugin<Project> {
 
   companion object {
     private val log = KotlinLogging.logger { }
-    private const val TASK_GROUP = "KeePass"
+    private const val TASK_GROUP = "IntelliJ"
   }
 
   override fun apply(target: Project) {
