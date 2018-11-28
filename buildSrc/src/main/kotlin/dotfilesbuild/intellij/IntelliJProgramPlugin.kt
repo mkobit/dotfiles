@@ -44,18 +44,18 @@ open class IntelliJProgramPlugin : Plugin<Project> {
         description = "Downloads the IntelliJ ZIP distribution"
         group = TASK_GROUP
         destination.set(
-            intellij.downloadDirectory.file(intellij.intellijVersion.map { version ->
+            intellij.downloadDirectory.file(intellij.intellijVersion.flatMap { version ->
               intellij.distributionType.map { type ->
                 "https://download.jetbrains.com/idea/idea${type.code}-$version.tar.gz"
                 "idea${type.code}-$version.tar.gz"
               }
-            }.map { it.get() })
+            })
         )
-        url.set(intellij.intellijVersion.map { version ->
+        url.set(intellij.intellijVersion.flatMap { version ->
           intellij.distributionType.map { type ->
             "https://download.jetbrains.com/idea/idea${type.code}-$version.tar.gz"
           }
-        }.map { it.get() })
+        })
       }
       // TODO: never up to date for some stupid reason
       val extractIntellijZip = tasks.register("extractIntellijZip", Copy::class) {
