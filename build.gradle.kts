@@ -247,6 +247,14 @@ versionControlTracking {
           register("junit5-samples", GitVersionControlTarget::class) { origin("https://github.com/junit-team/junit5-samples.git") }
         }
       }
+      register("junit-pioneer") {
+        vcs {
+          register("junit-pioneer", GitVersionControlTarget::class) {
+            origin("https://github.com/junit-pioneer/junit-pioneer.git")
+            remote("personal", "git@github.com:mkobit/junit-pioneer.git")
+          }
+        }
+      }
       register("Kotlin") {
         vcs {
           register("dokka", GitVersionControlTarget::class) { origin("https://github.com/Kotlin/dokka.git") }
@@ -285,6 +293,14 @@ versionControlTracking {
       register("ratpack") {
         vcs {
           register("ratpack", GitVersionControlTarget::class) { origin("https://github.com/ratpack/ratpack.git") }
+        }
+      }
+      register("robfletcher") {
+        vcs {
+          register("strikt", GitVersionControlTarget::class) {
+            origin("https://github.com/robfletcher/strikt.git")
+            remote("personal", "git@github.com:mkobit/strikt.git")
+          }
         }
       }
       register("salesforce") {
