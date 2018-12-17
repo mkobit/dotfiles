@@ -15,10 +15,6 @@ plugins {
 
 repositories {
   jcenter()
-  mavenCentral()
-  maven(url = "http://dl.bintray.com/kotlin/ktor") {
-    name = "ktor"
-  }
   maven(url = "https://dl.bintray.com/kotlin/kotlinx") {
     name = "kotlinx"
   }
@@ -81,16 +77,20 @@ tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions.jvmTarget = "1.8"
   }
-  "test"(Test::class) {
+  test {
     useJUnitPlatform()
   }
-  "run"(JavaExec::class) {
+  (run) {
     systemProperties(
         "com.mkobit.chickendinner.gmailClientJsonPath" to rootProject.file(".config/contest-entry/gmail_client_id.json"),
         "com.mkobit.chickendinner.appConfiguration" to rootProject.file(".config/contest-entry/app-config.conf"),
         "com.mkobit.chickendinner.workspaceDirectory" to file("$buildDir/contest-entry-workspace")
     )
   }
+  distTar {
+    enabled = false
+  }
+  distZip {
+    enabled = false
+  }
 }
-
-listOf("distTar", "distZip").forEach { tasks[it].enabled = false }
