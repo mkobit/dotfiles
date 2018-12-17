@@ -3,6 +3,7 @@ package com.mkobit.cdp
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.squareup.kotlinpoet.ANY
+import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
 import com.squareup.kotlinpoet.FileSpec
@@ -114,18 +115,29 @@ fun generateChromeDebugProtocol(request: ChromeDebugProtocolGenerationRequest) {
 private fun generateDomain(request: ChromeDebugProtocolGenerationRequest, domainNode: JsonNode) {
   val domain = domainNode["domain"].asText()
   LOGGER.debug { "Generating domain $domain" }
-  val description = domainNode["description"]?.asText()
-  val isExperimental = domainNode["experimental"]?.asBoolean() ?: false
   domainNode["types"]?.let { typesNode ->
     generateTypes(domain, request, typesNode)
   }
-  generateCommands(domain, request, domainNode["commands"])
+  generateCommands(domainNode, request)
   // TODO: generate things for 'events'
 }
 
-private fun generateCommands(domain: String, request: ChromeDebugProtocolGenerationRequest, domainsNode: JsonNode) {
+private fun generateCommands(domainNode: JsonNode, request: ChromeDebugProtocolGenerationRequest) {
+  val domain = domainNode["domain"].asText()
+  val domainsNode = domainNode["commands"]
+//  val isExperimental = domainNode["experimental"]?.asBoolean() ?: false
   val domainInterfaceTypeName = ClassName(request.packageNameForDomain(domain), "${domain.capitalize()}Domain")
-  val domainInterfaceTypeSpecBuilder = TypeSpec.interfaceBuilder(domainInterfaceTypeName)
+  val domainInterfaceTypeSpecBuilder = TypeSpec.interfaceBuilder(domainInterfaceTypeName).apply {
+    val description = domainNode["description"]?.asText()
+    val isDeprecated = domainNode["deprecated"]?.asBoolean() ?: false
+    if (isDeprecated) {
+      val deprecatedSpec = AnnotationSpec.builder(Deprecated::class)
+          .addMember("message = %S", "deprecated in protocol definition")
+          .build()
+      addAnnotation(deprecatedSpec)
+    }
+    maybeAddKdoc(description)
+  }
   domainsNode.forEach { commandNode ->
     val commandName = commandNode["name"].asText()
     val commandDescription = commandNode["description"]?.asText()
