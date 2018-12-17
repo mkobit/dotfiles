@@ -34,41 +34,40 @@ data class ChromeDebugProtocolGenerationRequest(
 }
 
 //
-private fun escapeIfKeyword(value: String): String = if (value.isKeyword) "`$value`" else value
-
-private val String.isKeyword get() = KEYWORDS.contains(this)
-
-private val KEYWORDS = setOf(
-    "package",
-    "as",
-    "typealias",
-    "class",
-    "this",
-    "super",
-    "val",
-    "var",
-    "fun",
-    "for",
-    "null",
-    "true",
-    "false",
-    "is",
-    "in",
-    "throw",
-    "return",
-    "break",
-    "continue",
-    "object",
-    "if",
-    "try",
-    "else",
-    "while",
-    "do",
-    "when",
-    "interface",
-    "typeof"
-)
-
+//private fun escapeIfKeyword(value: String): String = if (value.isKeyword) "`$value`" else value
+//
+//private val String.isKeyword get() = KEYWORDS.contains(this)
+//
+//private val KEYWORDS = setOf(
+//    "package",
+//    "as",
+//    "typealias",
+//    "class",
+//    "this",
+//    "super",
+//    "val",
+//    "var",
+//    "fun",
+//    "for",
+//    "null",
+//    "true",
+//    "false",
+//    "is",
+//    "in",
+//    "throw",
+//    "return",
+//    "break",
+//    "continue",
+//    "object",
+//    "if",
+//    "try",
+//    "else",
+//    "while",
+//    "do",
+//    "when",
+//    "interface",
+//    "typeof"
+//)
 
 private fun TypeAliasSpec.Builder.maybeAddKdoc(format: String?) = apply {
   if (format != null) {
@@ -215,8 +214,6 @@ private fun generateTypes(domain: String, request: ChromeDebugProtocolGeneration
         if (enum != null) {
           fun escapeForEnumValue(value: String) = if (setOf("-").any { it in value }) {
             "`$value`"
-          } else if (value.isKeyword) {
-            escapeIfKeyword(value)
           } else {
             value
           }
@@ -263,11 +260,11 @@ private fun generateTypes(domain: String, request: ChromeDebugProtocolGeneration
               val propertyName = propertyNode["name"].asText()
               val propertyTypeName: TypeName = determineTypeForNode(domain, request, propertyNode)
               // TODO: issues with keyword named variables at https://github.com/square/kotlinpoet/issues/483
-              val propertySpec = PropertySpec.builder(escapeIfKeyword(propertyName), propertyTypeName)
+              val propertySpec = PropertySpec.builder(propertyName, propertyTypeName)
                   .initializer(propertyName)
                   .maybeAddKdoc(propertyDescription)
                   .build()
-              val parameterSpec = ParameterSpec.builder(escapeIfKeyword(propertyName), propertyTypeName).build()
+              val parameterSpec = ParameterSpec.builder(propertyName, propertyTypeName).build()
               constructorSpecBuilder.addParameter(parameterSpec)
               objectTypeSpecBuilder.addProperty(propertySpec)
             }
@@ -310,20 +307,14 @@ private fun determineTypeForNode(domain: String,
   val propertyRef: String? = node["\$ref"]?.asText()
   val isPropertyOptional = node["optional"]?.asBoolean() ?: false
 
-  fun TypeName.asMaybeNullable() = if (isPropertyOptional) {
-    asNullable()
-  } else {
-    asNonNull()
-  }
-
   return when {
     propertyType != null -> {
       // actual type is specified
       when (propertyType) {
-        "string" -> String::class.asTypeName().asMaybeNullable()
-        "integer" -> INT.asMaybeNullable()
-        "number" -> Number::class.asTypeName().asMaybeNullable()
-        "boolean" -> BOOLEAN.asMaybeNullable()
+        "string" -> String::class.asTypeName().copy(nullable = isPropertyOptional)
+        "integer" -> INT.copy(nullable = isPropertyOptional)
+        "number" -> Number::class.asTypeName().copy(nullable = isPropertyOptional)
+        "boolean" -> BOOLEAN.copy(nullable = isPropertyOptional)
         "array" -> {
           val arrayItemsType = determineTypeForNode(domain, request, node["items"])
           ClassName("kotlin.collections", "List")
@@ -338,7 +329,7 @@ private fun determineTypeForNode(domain: String,
           ClassName("kotlin.collections", "Map")
               .parameterizedBy(String::class.asTypeName(), ANY)
         }
-        "any" -> ANY.asMaybeNullable()
+        "any" -> ANY.copy(nullable = isPropertyOptional)
         else -> throw java.lang.IllegalArgumentException("Unable to handle property type $propertyType for $node")
       }
     }
@@ -346,10 +337,10 @@ private fun determineTypeForNode(domain: String,
       if ("." in propertyRef) {
         // located in different domain
         val (propertyRefDomain, propertyRefTypeName) = propertyRef.split(".")
-        ClassName(request.packageNameForDomain(propertyRefDomain), propertyRefTypeName).asMaybeNullable()
+        ClassName(request.packageNameForDomain(propertyRefDomain), propertyRefTypeName).copy(nullable = isPropertyOptional)
       } else {
         // located in same domain
-        ClassName(request.packageNameForDomain(domain), propertyRef).asMaybeNullable()
+        ClassName(request.packageNameForDomain(domain), propertyRef).copy(nullable = isPropertyOptional)
       }
     }
     else -> throw IllegalArgumentException("Unknown how to determine type for domain $domain node $node")

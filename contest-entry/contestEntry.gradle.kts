@@ -39,6 +39,8 @@ dependencies {
   implementation(DependencyInfo.jacksonCore("core"))
   implementation(DependencyInfo.jacksonModule("kotlin"))
 
+  implementation(DependencyInfo.jsoup)
+
   implementation(DependencyInfo.kodeinJvm)
   implementation(DependencyInfo.kodeinJvmCore)
   implementation(DependencyInfo.ktor("client-apache"))

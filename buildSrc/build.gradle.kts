@@ -1,4 +1,3 @@
-import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.jetbrains.kotlin.gradle.dsl.Coroutines
 
 plugins {
@@ -20,8 +19,8 @@ java {
   targetCompatibility = JavaVersion.VERSION_1_9
 }
 
-val junitPlatformVersion: String = "1.3.1"
-val junitJupiterVersion: String = "5.3.1"
+val junitPlatformVersion: String = "1.3.2"
+val junitJupiterVersion: String = "5.3.2"
 val junit5Log4jVersion: String = "2.11.1"
 
 val junitPlatformRunner = "org.junit.platform:junit-platform-runner:$junitPlatformVersion"
@@ -38,7 +37,7 @@ val assertJCore = "org.assertj:assertj-core:3.11.1"
 val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
 val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
 val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
-val mockitoCore = "org.mockito:mockito-core:2.23.0"
+val mockitoCore = "org.mockito:mockito-core:2.23.4"
 val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
 val strikt = "io.strikt:strikt-core:0.17.0"
@@ -60,7 +59,7 @@ dependencies {
   implementation("com.squareup.retrofit2:retrofit:2.5.0")
   implementation("com.squareup.okhttp3:okhttp:3.12.0")
   implementation("io.github.microutils:kotlin-logging:1.6.10")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:5.1.3.201810200350-r")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.2.0.201812061821-r")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.6.0")
@@ -94,7 +93,7 @@ tasks {
   }
 
   build {
-//    dependsOn("dependencyUpdates") // uncomment when want to get dependency updates for buildSrc project
+//    dependsOn(dependencyUpdates) // uncomment when want to get dependency updates for buildSrc project
   }
 
   test {

@@ -4,6 +4,7 @@ import arrow.core.None
 import arrow.core.Option
 import arrow.core.Some
 import arrow.core.Try
+import arrow.core.toOption
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
@@ -24,14 +25,13 @@ fun launchChrome(
 private val CHROME_PORT_LOG_REGEX = Regex("^DevTools listening on [\\w]+://\\d+\\.\\d\\.\\d\\.\\d:(\\d+).*$")
 
 fun determineChromePortFromLog(errorLog: String): Option<Int> {
-  val matchResult = errorLog.lineSequence()
+  println(errorLog.lines().size)
+  return errorLog.lineSequence()
       .map { CHROME_PORT_LOG_REGEX.matchEntire(it) }
+      .filterNotNull()
       .firstOrNull()
-  return if (matchResult == null) {
-    None
-  } else {
-    Some(matchResult.groupValues[1].toInt())
-  }
+      .toOption()
+      .map { it.groupValues[1].toInt() }
 }
 
 fun determineChromePortFromProfileFile(

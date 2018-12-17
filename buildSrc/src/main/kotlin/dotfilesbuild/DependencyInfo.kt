@@ -3,15 +3,15 @@ package dotfilesbuild
 @Suppress("UNUSED", "MemberVisibilityCanBePrivate")
 object DependencyInfo {
   private const val arrowVersion = "0.8.1"
-  private const val jacksonVersion = "2.9.7"
+  private const val jacksonVersion = "2.9.8"
   private const val googleClientVersion = "1.27.0"
   private const val junitPlatformVersion = "1.3.2"
   private const val junitJupiterVersion = "5.3.2"
   private const val junit5Log4jVersion = "2.11.1"
-  private const val kodeinVersion = "6.0.0"
+  private const val kodeinVersion = "6.0.1"
   private const val kotlinxCoroutinesVersion = "1.0.1"
   private const val kotlinLoggingVersion = "1.6.22"
-  private const val ktorVersion = "1.0.0"
+  private const val ktorVersion = "1.0.1"
   private const val okHttpVersion = "3.12.0"
   private const val retrofitVersion = "2.5.0"
   private const val seleniumVersion = "3.11.0"
@@ -27,9 +27,9 @@ object DependencyInfo {
   const val guava = "com.google.guava:guava:27.0.1-jre"
   const val hocon = "com.typesafe:config:1.3.3"
   const val javapoet = "com.squareup:javapoet:1.10.0"
-  const val jgit = "org.eclipse.jgit:org.eclipse.jgit:4.10.0.201712302008-r"
+  const val jgit = "org.eclipse.jgit:org.eclipse.jgit:5.2.0.201812061821-r"
   const val jsoup = "org.jsoup:jsoup:1.11.3"
-  const val kotlinPoet = "com.squareup:kotlinpoet:1.0.0-RC2"
+  const val kotlinPoet = "com.squareup:kotlinpoet:1.0.0"
   val kodeinJvm = kodein("di-generic-jvm")
   val kodeinJvmCore = kodein("di-core-jvm") // https://github.com/Kodein-Framework/Kodein-DI/issues/165
   val log4jCore = log4j("core")
@@ -43,9 +43,9 @@ object DependencyInfo {
   const val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
   val okHttpClient = okHttp("okhttp")
   val okHttpMockServer = okHttp("mockwebserver")
-  const val picoCli = "info.picocli:picocli:3.8.0"
+  const val picoCli = "info.picocli:picocli:3.8.2"
   const val kotlinLogging = "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
-  const val strikt = "io.strikt:strikt-core:0.17.0"
+  const val strikt = "io.strikt:strikt-core:0.17.1"
 
   val junitTestImplementationArtifacts = listOf(
       junitPlatformRunner,
