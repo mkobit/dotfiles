@@ -11,8 +11,8 @@ object DependencyInfo {
   private const val kodeinVersion = "6.0.1"
   private const val kotlinxCoroutinesVersion = "1.0.1"
   private const val kotlinLoggingVersion = "1.6.22"
-  private const val ktorVersion = "1.0.1"
-  private const val okHttpVersion = "3.12.0"
+  private const val ktorVersion = "1.1.1"
+  private const val okHttpVersion = "3.12.1"
   private const val retrofitVersion = "2.5.0"
   private const val seleniumVersion = "3.11.0"
   private const val slf4jVersion = "1.7.25"
@@ -22,7 +22,7 @@ object DependencyInfo {
   val coroutinesxCore = kotlinxCoroutines("core")
   val coroutinesxJdk8 = kotlinxCoroutines("jdk8")
   const val googleApiClient = "com.google.api-client:google-api-client:$googleClientVersion"
-  const val googleGmailServiceClient = "com.google.apis:google-api-services-gmail:v1-rev20180904-$googleClientVersion"
+  const val googleGmailServiceClient = "com.google.apis:google-api-services-gmail:v1-rev20181202-$googleClientVersion"
   const val googleOauthClient = "com.google.oauth-client:google-oauth-client-jetty:$googleClientVersion"
   const val guava = "com.google.guava:guava:27.0.1-jre"
   const val hocon = "com.typesafe:config:1.3.3"
@@ -43,7 +43,7 @@ object DependencyInfo {
   const val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
   val okHttpClient = okHttp("okhttp")
   val okHttpMockServer = okHttp("mockwebserver")
-  const val picoCli = "info.picocli:picocli:3.8.2"
+  const val picoCli = "info.picocli:picocli:3.9.0"
   const val kotlinLogging = "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
   const val strikt = "io.strikt:strikt-core:0.17.1"
 

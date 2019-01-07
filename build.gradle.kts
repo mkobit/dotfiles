@@ -342,7 +342,7 @@ tasks {
   }
 
   wrapper {
-    gradleVersion = "5.0"
+    gradleVersion = "5.1"
   }
 
   val personalWorkspace by creating(Mkdir::class) {
