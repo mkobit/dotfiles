@@ -14,7 +14,7 @@ import dotfilesbuild.io.git.PullRepository
 plugins {
   id("com.gradle.build-scan") version "2.1"
   id("com.github.ben-manes.versions") version "0.20.0"
-  kotlin("jvm") version "1.3.11" apply false
+  kotlin("jvm") version "1.3.20" apply false
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.4.2" apply false
 
   dotfilesbuild.intellij
@@ -342,7 +342,7 @@ tasks {
   }
 
   wrapper {
-    gradleVersion = "5.1"
+    gradleVersion = "5.1.1"
   }
 
   val personalWorkspace by creating(Mkdir::class) {

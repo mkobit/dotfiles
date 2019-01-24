@@ -4,21 +4,21 @@ package dotfilesbuild
 object DependencyInfo {
   private const val arrowVersion = "0.8.1"
   private const val jacksonVersion = "2.9.8"
-  private const val googleClientVersion = "1.27.0"
+  private const val googleClientVersion = "1.28.0"
   private const val junitPlatformVersion = "1.3.2"
   private const val junitJupiterVersion = "5.3.2"
   private const val junit5Log4jVersion = "2.11.1"
   private const val kodeinVersion = "6.0.1"
   private const val kotlinxCoroutinesVersion = "1.0.1"
   private const val kotlinLoggingVersion = "1.6.22"
-  private const val ktorVersion = "1.1.1"
+  private const val ktorVersion = "1.1.2"
   private const val okHttpVersion = "3.12.1"
   private const val retrofitVersion = "2.5.0"
   private const val seleniumVersion = "3.11.0"
   private const val slf4jVersion = "1.7.25"
 
   const val assertJCore = "org.assertj:assertj-core:3.10.0"
-  const val assertK = "com.willowtreeapps.assertk:assertk-jvm:0.12"
+  const val assertK = "com.willowtreeapps.assertk:assertk-jvm:0.13"
   val coroutinesxCore = kotlinxCoroutines("core")
   val coroutinesxJdk8 = kotlinxCoroutines("jdk8")
   const val googleApiClient = "com.google.api-client:google-api-client:$googleClientVersion"
@@ -29,9 +29,8 @@ object DependencyInfo {
   const val javapoet = "com.squareup:javapoet:1.10.0"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:5.2.0.201812061821-r"
   const val jsoup = "org.jsoup:jsoup:1.11.3"
-  const val kotlinPoet = "com.squareup:kotlinpoet:1.0.0"
+  const val kotlinPoet = "com.squareup:kotlinpoet:1.0.1"
   val kodeinJvm = kodein("di-generic-jvm")
-  val kodeinJvmCore = kodein("di-core-jvm") // https://github.com/Kodein-Framework/Kodein-DI/issues/165
   val log4jCore = log4j("core")
   val log4jJul = log4j("jul")
   const val mockito = "org.mockito:mockito-core:2.17.0"
@@ -43,7 +42,7 @@ object DependencyInfo {
   const val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
   val okHttpClient = okHttp("okhttp")
   val okHttpMockServer = okHttp("mockwebserver")
-  const val picoCli = "info.picocli:picocli:3.9.0"
+  const val picoCli = "info.picocli:picocli:3.9.2"
   const val kotlinLogging = "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
   const val strikt = "io.strikt:strikt-core:0.17.1"
 
