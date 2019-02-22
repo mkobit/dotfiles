@@ -4,6 +4,7 @@ include("chrome-debug-protocol")
 include("chrome-debug-protocol-generator")
 include("contest-entry")
 include("kotlin-script-experiment")
+include("java-platform")
 include("sidekick-service")
 
 buildCache {

@@ -3,10 +3,11 @@ package com.mkobit.personalassistant.chrome
 import com.mkobit.personalassistant.process.pgrep
 import com.mkobit.personalassistant.process.runProcess
 import com.mkobit.personalassistant.process.xargs
-import kotlinx.coroutines.experimental.Job
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import mu.KotlinLogging
-import kotlin.coroutines.experimental.CoroutineContext
+import kotlin.coroutines.CoroutineContext
 
 class BackgroundProcessChromeController constructor(
     private val debugPort: Int,
@@ -22,7 +23,7 @@ class BackgroundProcessChromeController constructor(
   }
 
   override suspend fun start(): Job {
-    return launch(processLauncherContext) {
+    return GlobalScope.launch(processLauncherContext) {
       val chromeRunning = pgrep(pattern = "chrome")
       if (chromeRunning.returnCode != 0) {
         logger.debug { "No chrome process appears to be running, starting a new one on $debugPort" }

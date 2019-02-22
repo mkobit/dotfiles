@@ -1,5 +1,4 @@
 import dotfilesbuild.DependencyInfo
-import org.jetbrains.kotlin.gradle.dsl.Coroutines
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -46,11 +45,10 @@ dependencies {
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_1_9
+  sourceCompatibility = JavaVersion.VERSION_11
 }
 
 kotlin {
-  experimental.coroutines = Coroutines.ENABLE
 }
 
 application {

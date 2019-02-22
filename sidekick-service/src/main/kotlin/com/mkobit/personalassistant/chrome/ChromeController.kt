@@ -1,6 +1,6 @@
 package com.mkobit.personalassistant.chrome
 
-import kotlinx.coroutines.experimental.Job
+import kotlinx.coroutines.Job
 
 interface ChromeController {
 

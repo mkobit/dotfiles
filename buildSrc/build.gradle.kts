@@ -12,6 +12,10 @@ repositories {
   mavenCentral()
 }
 
+kotlinDslPluginOptions {
+  experimentalWarning.set(false)
+}
+
 java {
   sourceCompatibility = JavaVersion.VERSION_11
   targetCompatibility = JavaVersion.VERSION_11

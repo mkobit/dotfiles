@@ -1,15 +1,9 @@
-import com.github.benmanes.gradle.versions.updates.DependencyUpdates
-import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import dotfilesbuild.io.file.EditFile
-import org.gradle.api.tasks.Exec
-import org.gradle.api.tasks.wrapper.Wrapper
-import dotfilesbuild.io.file.Symlink
 import dotfilesbuild.io.file.Mkdir
-import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
+import dotfilesbuild.io.file.Symlink
 import dotfilesbuild.io.file.content.SetContent
-import dotfilesbuild.io.git.CloneRepository
 import dotfilesbuild.io.git.GitVersionControlTarget
-import dotfilesbuild.io.git.PullRepository
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   id("com.gradle.build-scan") version "2.1"
@@ -458,4 +452,12 @@ keepass {
 
 kubectl {
   version.set("v1.12.2")
+}
+
+allprojects {
+  tasks.withType<KotlinCompile>().configureEach {
+    kotlinOptions{
+      freeCompilerArgs += listOf("-progressive") 
+    }
+  }
 }

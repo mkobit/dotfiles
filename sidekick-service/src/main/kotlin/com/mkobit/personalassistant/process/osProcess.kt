@@ -1,6 +1,6 @@
 package com.mkobit.personalassistant.process
 
-import kotlinx.coroutines.experimental.future.await
+import kotlinx.coroutines.future.await
 import mu.KotlinLogging
 import java.io.File
 
