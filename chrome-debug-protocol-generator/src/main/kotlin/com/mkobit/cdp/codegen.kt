@@ -6,6 +6,7 @@ import com.squareup.kotlinpoet.ANY
 import com.squareup.kotlinpoet.AnnotationSpec
 import com.squareup.kotlinpoet.BOOLEAN
 import com.squareup.kotlinpoet.ClassName
+import com.squareup.kotlinpoet.CodeBlock
 import com.squareup.kotlinpoet.FileSpec
 import com.squareup.kotlinpoet.FunSpec
 import com.squareup.kotlinpoet.INT
@@ -20,117 +21,93 @@ import com.squareup.kotlinpoet.asTypeName
 import mu.KotlinLogging
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.Paths
 
 private val LOGGER = KotlinLogging.logger { }
 
 data class ChromeDebugProtocolGenerationRequest(
     val basePackage: String,
-    val protocolJsonFile: Path,
+    val protocolJsonFiles: List<Path>,
     val destinationBaseDirectory: Path
 ) {
   init {
-    require(Files.isRegularFile(protocolJsonFile))
+    protocolJsonFiles.forEach {
+      require(Files.isRegularFile(it))
+    }
   }
 }
 
-//
-//private fun escapeIfKeyword(value: String): String = if (value.isKeyword) "`$value`" else value
-//
-//private val String.isKeyword get() = KEYWORDS.contains(this)
-//
-//private val KEYWORDS = setOf(
-//    "package",
-//    "as",
-//    "typealias",
-//    "class",
-//    "this",
-//    "super",
-//    "val",
-//    "var",
-//    "fun",
-//    "for",
-//    "null",
-//    "true",
-//    "false",
-//    "is",
-//    "in",
-//    "throw",
-//    "return",
-//    "break",
-//    "continue",
-//    "object",
-//    "if",
-//    "try",
-//    "else",
-//    "while",
-//    "do",
-//    "when",
-//    "interface",
-//    "typeof"
-//)
-
 private fun TypeAliasSpec.Builder.maybeAddKdoc(format: String?) = apply {
   if (format != null) {
-    addKdoc(format)
+    addKdoc(CodeBlock.of("%L", format))
   }
 }
 
 private fun FunSpec.Builder.maybeAddKdoc(format: String?) = apply {
   if (format != null) {
-    addKdoc(format)
+    addKdoc(CodeBlock.of("%L", format))
   }
 }
 
 private fun TypeSpec.Builder.maybeAddKdoc(format: String?) = apply {
   if (format != null) {
-    addKdoc(format)
+    addKdoc(CodeBlock.of("%L", format))
   }
 }
 
 private fun PropertySpec.Builder.maybeAddKdoc(format: String?) = apply {
   if (format != null) {
-    addKdoc(format)
+    addKdoc(CodeBlock.of("%L", format))
   }
 }
-
-private fun packageToPath(packageName: String): Path = Paths.get(packageName.replace(".", "/"))
 
 private fun ChromeDebugProtocolGenerationRequest.packageNameForDomain(domain: String): String = "$basePackage.domain.${domain.toLowerCase()}"
 
-private fun ChromeDebugProtocolGenerationRequest.pathForDomain(domain: String): Path = protocolJsonFile.resolve(
-    packageToPath(packageNameForDomain(domain)))
-
 // https://raw.githubusercontent.com/chromium/chromium/1011f64b2bab81798342a15508cb7c053e252ded/third_party/blink/renderer/core/inspector/browser_protocol-1.3.json
 fun generateChromeDebugProtocol(request: ChromeDebugProtocolGenerationRequest) {
-  val json = ObjectMapper().readTree(request.protocolJsonFile.toFile())
-  val version = json["version"]
-  val major = version["major"]
-  val minor = version["minor"]
-  // TODO: generate experimental annotation
-  json["domains"]
-      .map { generateDomain(request, it) }
+  val mapper = ObjectMapper()
+  val experimentalClassName = ClassName(request.basePackage, "ExperimentalChromeApi")
+  val experimentalChromeApi = TypeSpec.annotationBuilder(experimentalClassName)
+      .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "Experimental"))
+          .addMember(CodeBlock.of("level = Experimental.Level.WARNING"))
+          .build())
+      .addKdoc("Marks an experimental Chrome API.")
+      .build()
+  FileSpec.get(request.basePackage, experimentalChromeApi)
+      .writeTo(request.destinationBaseDirectory)
+  request.protocolJsonFiles.forEach {
+    val json = mapper.readTree(it.toFile())
+    val version = json["version"]
+    val major = version["major"]
+    val minor = version["minor"]
+    json["domains"]
+        .map { domainNode -> generateDomain(request, domainNode, AnnotationSpec.builder(experimentalClassName).build()) }
+  }
 }
 
-private fun generateDomain(request: ChromeDebugProtocolGenerationRequest, domainNode: JsonNode) {
+private fun generateDomain(request: ChromeDebugProtocolGenerationRequest, domainNode: JsonNode, experimental: AnnotationSpec) {
   val domain = domainNode["domain"].asText()
   LOGGER.debug { "Generating domain $domain" }
   domainNode["types"]?.let { typesNode ->
-    generateTypes(domain, request, typesNode)
+    generateTypes(domain, request, typesNode, experimental)
   }
-  generateCommands(domainNode, request)
+  generateCommands(domainNode, request, experimental)
   // TODO: generate things for 'events'
 }
 
-private fun generateCommands(domainNode: JsonNode, request: ChromeDebugProtocolGenerationRequest) {
+private fun generateCommands(
+    domainNode: JsonNode,
+    request: ChromeDebugProtocolGenerationRequest,
+    experimental: AnnotationSpec
+) {
   val domain = domainNode["domain"].asText()
   val domainsNode = domainNode["commands"]
-//  val isExperimental = domainNode["experimental"]?.asBoolean() ?: false
   val domainInterfaceTypeName = ClassName(request.packageNameForDomain(domain), "${domain.capitalize()}Domain")
   val domainInterfaceTypeSpecBuilder = TypeSpec.interfaceBuilder(domainInterfaceTypeName).apply {
     val description = domainNode["description"]?.asText()
-    val isDeprecated = domainNode["deprecated"]?.asBoolean() ?: false
-    if (isDeprecated) {
+    if (domainNode["experimental"]?.asBoolean() == true) {
+      addAnnotation(experimental)
+    }
+    if (domainNode["deprecated"]?.asBoolean() == true) {
       val deprecatedSpec = AnnotationSpec.builder(Deprecated::class)
           .addMember("message = %S", "deprecated in protocol definition")
           .build()
@@ -214,7 +191,12 @@ private fun generateCommands(domainNode: JsonNode, request: ChromeDebugProtocolG
   domainFile.writeTo(request.destinationBaseDirectory)
 }
 
-private fun generateTypes(domain: String, request: ChromeDebugProtocolGenerationRequest, typesNode: JsonNode) {
+private fun generateTypes(
+    domain: String,
+    request: ChromeDebugProtocolGenerationRequest,
+    typesNode: JsonNode,
+    experimental: AnnotationSpec
+) {
   val fileSpecBuilder = FileSpec.builder(request.packageNameForDomain(domain), "types")
 
   typesNode.forEach { typeNode ->
@@ -224,7 +206,7 @@ private fun generateTypes(domain: String, request: ChromeDebugProtocolGeneration
       "string" -> {
         val enum = typeNode["enum"]?.map { it.asText() }
         if (enum != null) {
-          fun escapeForEnumValue(value: String) = if (setOf("-").any { it in value }) {
+          fun escapeForEnumValue(value: String) = if (value == "continue" || setOf("-").any { it in value }) {
             "`$value`"
           } else {
             value
@@ -240,7 +222,7 @@ private fun generateTypes(domain: String, request: ChromeDebugProtocolGeneration
               .builder(typeName, String::class.asTypeName())
               .apply {
                 if (typeDescription != null) {
-                  addKdoc(typeDescription)
+                  addKdoc(CodeBlock.of("%L", typeDescription))
                 }
               }
               .build()
@@ -333,13 +315,27 @@ private fun determineTypeForNode(domain: String,
               .parameterizedBy(arrayItemsType)
         }
         "object" -> {
-          // special case for 'auxAttributes' and 'featureStatus'
-          val propertyName: String = node["name"].asText()
-          require(propertyName in setOf("executionContextAuxData", "executionContextAuxData", "auxData")) {
-            "Unsupported property type '$propertyType' for node $node"
+          // special case for some things
+          val propertyName: String? = node["name"]?.asText()
+          if (propertyName == null) {
+            ClassName("kotlin.collections", "List")
+                .parameterizedBy(ANY)
+          } else if (propertyName in setOf("highlight")) {
+            ANY
+          } else {
+            require(propertyName in
+                setOf(
+                    "executionContextAuxData",
+                    "auxData",
+                    "auxAttributes",
+                    "featureStatus"
+                )
+            ) {
+              "Unsupported property type '$propertyType' for node $node"
+            }
+            ClassName("kotlin.collections", "Map")
+                .parameterizedBy(String::class.asTypeName(), ANY)
           }
-          ClassName("kotlin.collections", "Map")
-              .parameterizedBy(String::class.asTypeName(), ANY)
         }
         "any" -> ANY.copy(nullable = isPropertyOptional)
         else -> throw java.lang.IllegalArgumentException("Unable to handle property type $propertyType for $node")

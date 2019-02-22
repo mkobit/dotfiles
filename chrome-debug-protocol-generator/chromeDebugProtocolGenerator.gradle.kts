@@ -29,7 +29,6 @@ dependencies {
 
   implementation(DependencyInfo.kotlinLogging)
 
-  testImplementation(DependencyInfo.junitPioneer)
   testImplementation(DependencyInfo.strikt)
   DependencyInfo.junitTestImplementationArtifacts.forEach {
     testImplementation(it)

@@ -16,7 +16,7 @@ object Main {
 private class Generate : Runnable {
   override fun run() {
     generateChromeDebugProtocol(
-        ChromeDebugProtocolGenerationRequest(basePackage, protocolJson, generationDirectory)
+        ChromeDebugProtocolGenerationRequest(basePackage, protocolJson.toList(), generationDirectory)
     )
   }
 
@@ -24,7 +24,7 @@ private class Generate : Runnable {
   var basePackage: String = ""
 
   @CommandLine.Option(names = ["--protocolJson"], required = true, converter = [PathConverter::class])
-  var protocolJson: Path = Paths.get("")
+  var protocolJson: Array<Path> = emptyArray()
 
   @CommandLine.Option(names = ["--generationDir"], required = true, converter = [PathConverter::class])
   var generationDirectory: Path = Paths.get("")
