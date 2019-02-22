@@ -30,8 +30,8 @@ dependencies {
 
 java {
   // https://github.com/ktorio/ktor/issues/321
-//  sourceCompatibility = JavaVersion.VERSION_1_9
   sourceCompatibility = JavaVersion.VERSION_1_8
+//  sourceCompatibility = JavaVersion.VERSION_11
 }
 
 tasks {
@@ -39,27 +39,33 @@ tasks {
     kotlinOptions.jvmTarget = "1.8"
   }
 
-  val protocolV3 = layout.buildDirectory.file("chrome-protocol-schema/browser_protocol-1.3.json")
+  val browserProtocol = layout.buildDirectory.file("chrome-protocol-schema/browser_protocol-1.3.json")
+  val jsProtocol = layout.buildDirectory.file("chrome-protocol-schema/js_protocol-1.3.json")
   val retrieveProtocolV3 by registering {
-    val url = "https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/650362400cdcc47040fb23d5d911d91b747a77c4/json/js_protocol.json"
-    outputs.file(protocolV3)
-    inputs.property("url", url)
-    doFirst("download browser protocol") {
-      ant.invokeMethod("get", mapOf("src" to url, "dest" to protocolV3.get().asFile))
+    val commitSha = "650362400cdcc47040fb23d5d911d91b747a77c4"
+    val jsUrl = "https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/$commitSha/json/js_protocol.json"
+    val browserUrl = "https://raw.githubusercontent.com/ChromeDevTools/devtools-protocol/$commitSha/json/browser_protocol.json"
+    inputs.property("jsUrl", jsUrl)
+    inputs.property("browserUrl", browserUrl)
+    outputs.files(browserProtocol, jsProtocol)
+    doFirst("download protocols") {
+      ant.invokeMethod("get", mapOf("src" to jsUrl, "dest" to browserProtocol.get().asFile))
+      ant.invokeMethod("get", mapOf("src" to browserUrl, "dest" to jsProtocol.get().asFile))
     }
   }
 
   val generateCDP by registering(JavaExec::class) {
     val basePackage = "com.mkobit.cdp"
     dependsOn(retrieveProtocolV3)
-    inputs.file(protocolV3)
+    inputs.files(browserProtocol, jsProtocol)
     inputs.property("basePackage", basePackage)
     outputs.dir(generationDir)
     classpath = generatorClasspath
     main = "com.mkobit.cdp.Main"
     args(
         "--basePackage", "com.mkobit.cdp",
-        "--protocolJson", protocolV3.get().asFile,
+        "--protocolJson", browserProtocol.get().asFile,
+        "--protocolJson", jsProtocol.get().asFile,
         "--generationDir", generationDir
     )
   }

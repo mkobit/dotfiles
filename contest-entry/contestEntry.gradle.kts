@@ -64,8 +64,8 @@ dependencies {
 
 java {
   // https://github.com/ktorio/ktor/issues/321
-//  sourceCompatibility = JavaVersion.VERSION_1_9
-  sourceCompatibility = JavaVersion.VERSION_1_8
+//  sourceCompatibility = JavaVersion.VERSION_11
+  sourceCompatibility = JavaVersion.VERSION_11
 }
 
 application {
@@ -77,7 +77,9 @@ tasks {
     kotlinOptions.jvmTarget = "1.8"
   }
   test {
-    useJUnitPlatform()
+    useJUnitPlatform {
+      excludeTags("ChromeIntegration")
+    }
   }
   (run) {
     systemProperties(

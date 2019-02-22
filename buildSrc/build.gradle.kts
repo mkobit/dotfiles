@@ -15,13 +15,13 @@ repositories {
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_1_9
-  targetCompatibility = JavaVersion.VERSION_1_9
+  sourceCompatibility = JavaVersion.VERSION_11
+  targetCompatibility = JavaVersion.VERSION_11
 }
 
-val junitPlatformVersion: String = "1.3.2"
-val junitJupiterVersion: String = "5.3.2"
-val junit5Log4jVersion: String = "2.11.1"
+val junitPlatformVersion: String = "1.4.0"
+val junitJupiterVersion: String = "5.4.0"
+val junit5Log4jVersion: String = "2.11.2"
 
 val junitPlatformRunner = "org.junit.platform:junit-platform-runner:$junitPlatformVersion"
 val junitJupiterApi = "org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion"
@@ -37,7 +37,7 @@ val assertJCore = "org.assertj:assertj-core:3.11.1"
 val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
 val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
 val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
-val mockitoCore = "org.mockito:mockito-core:2.24.0"
+val mockitoCore = "org.mockito:mockito-core:2.24.5"
 val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.1.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
 val strikt = "io.strikt:strikt-core:0.17.1"
@@ -56,7 +56,7 @@ dependencies {
   implementation("io.arrow-kt:arrow-typeclasses:$arrowVersion")
   implementation("com.squareup.retrofit2:retrofit:2.5.0")
   implementation("com.squareup.okhttp3:okhttp:3.13.1")
-  implementation("io.github.microutils:kotlin-logging:1.6.22")
+  implementation("io.github.microutils:kotlin-logging:1.6.25")
   implementation("org.eclipse.jgit:org.eclipse.jgit:5.2.1.201812262042-r")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
@@ -91,7 +91,7 @@ tasks {
   }
 
   build {
-    dependsOn(dependencyUpdates) // uncomment when want to get dependency updates for buildSrc project
+//    dependsOn(dependencyUpdates) // uncomment when want to get dependency updates for buildSrc project
   }
 
   test {
