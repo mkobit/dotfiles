@@ -2,7 +2,7 @@ package dotfilesbuild
 
 @Suppress("UNUSED", "MemberVisibilityCanBePrivate")
 object DependencyInfo {
-  private const val arrowVersion = "0.8.1"
+  private const val arrowVersion = "0.8.2"
   private const val jacksonVersion = "2.9.8"
   private const val googleClientVersion = "1.28.0"
   private const val junitPlatformVersion = "1.4.0"
