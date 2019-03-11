@@ -42,7 +42,7 @@ val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
 val mockitoCore = "org.mockito:mockito-core:2.24.5"
 val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.1.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
-val strikt = "io.strikt:strikt-core:0.17.1"
+val strikt = "io.strikt:strikt-core:0.19.0"
 
 val junitTestRuntimeOnlyArtifacts = listOf(
     junitJupiterEngine,
@@ -92,8 +92,12 @@ tasks {
     }
   }
 
+  dependencyUpdates {
+    onlyIf { project.hasProperty("updateBuildSrc") }
+  }
+
   build {
-//    dependsOn(dependencyUpdates) // uncomment when want to get dependency updates for buildSrc project
+    dependsOn(dependencyUpdates)
   }
 
   test {

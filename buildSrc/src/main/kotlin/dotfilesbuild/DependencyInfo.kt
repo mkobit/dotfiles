@@ -24,12 +24,12 @@ object DependencyInfo {
   const val googleApiClient = "com.google.api-client:google-api-client:$googleClientVersion"
   const val googleGmailServiceClient = "com.google.apis:google-api-services-gmail:v1-rev20190120-$googleClientVersion"
   const val googleOauthClient = "com.google.oauth-client:google-oauth-client-jetty:$googleClientVersion"
-  const val guava = "com.google.guava:guava:27.0.1-jre"
+  const val guava = "com.google.guava:guava:27.1-jre"
   const val hocon = "com.typesafe:config:1.3.3"
   const val javapoet = "com.squareup:javapoet:1.10.0"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:5.2.0.201812061821-r"
   const val jsoup = "org.jsoup:jsoup:1.11.3"
-  const val kotlinPoet = "com.squareup:kotlinpoet:1.0.1"
+  const val kotlinPoet = "com.squareup:kotlinpoet:1.1.0"
   val kodeinJvm = kodein("di-generic-jvm")
   val log4jCore = log4j("core")
   val log4jJul = log4j("jul")
@@ -44,7 +44,7 @@ object DependencyInfo {
   val okHttpMockServer = okHttp("mockwebserver")
   const val picoCli = "info.picocli:picocli:3.9.5"
   const val kotlinLogging = "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
-  const val strikt = "io.strikt:strikt-core:0.17.2"
+  const val strikt = "io.strikt:strikt-core:0.19.0"
 
   val junitTestImplementationArtifacts = listOf(
       junitPlatformRunner,

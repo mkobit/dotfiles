@@ -25,7 +25,8 @@ val generatorClasspath by configurations.creating
 
 dependencies {
   generatorClasspath(project(":chrome-debug-protocol-generator"))
-  implementation(kotlin("stdlib-jdk8"))
+  api(kotlin("stdlib-jdk8"))
+  api(DependencyInfo.jacksonCore("annotations"))
 }
 
 java {
@@ -35,10 +36,6 @@ java {
 }
 
 tasks {
-  withType<KotlinCompile>().configureEach {
-    kotlinOptions.jvmTarget = "1.8"
-  }
-
   val browserProtocol = layout.buildDirectory.file("chrome-protocol-schema/browser_protocol-1.3.json")
   val jsProtocol = layout.buildDirectory.file("chrome-protocol-schema/js_protocol-1.3.json")
   val retrieveProtocolV3 by registering {

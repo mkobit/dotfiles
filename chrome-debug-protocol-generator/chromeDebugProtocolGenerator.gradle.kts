@@ -41,14 +41,10 @@ dependencies {
 
 java {
   // https://github.com/ktorio/ktor/issues/321
-//  sourceCompatibility = JavaVersion.VERSION_11
-  sourceCompatibility = JavaVersion.VERSION_11
+  sourceCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks {
-  withType<KotlinCompile>().configureEach {
-    kotlinOptions.jvmTarget = "1.8"
-  }
   withType<Test>().configureEach {
     useJUnitPlatform()
   }

@@ -6,8 +6,8 @@ import dotfilesbuild.io.git.GitVersionControlTarget
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  id("com.gradle.build-scan") version "2.1"
-  id("com.github.ben-manes.versions") version "0.20.0"
+  id("com.gradle.build-scan") version "2.2.1"
+  id("com.github.ben-manes.versions") version "0.21.0"
   kotlin("jvm") version "1.3.21" apply false
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.5" apply false
 
@@ -457,7 +457,8 @@ kubectl {
 allprojects {
   tasks.withType<KotlinCompile>().configureEach {
     kotlinOptions{
-      freeCompilerArgs += listOf("-progressive") 
+      freeCompilerArgs += listOf("-progressive")
+      jvmTarget = "1.8"
     }
   }
 }

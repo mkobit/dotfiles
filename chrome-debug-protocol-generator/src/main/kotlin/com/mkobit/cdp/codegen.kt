@@ -1,5 +1,6 @@
 package com.mkobit.cdp
 
+import com.fasterxml.jackson.annotation.JsonProperty
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.squareup.kotlinpoet.ANY
@@ -17,6 +18,7 @@ import com.squareup.kotlinpoet.PropertySpec
 import com.squareup.kotlinpoet.TypeAliasSpec
 import com.squareup.kotlinpoet.TypeName
 import com.squareup.kotlinpoet.TypeSpec
+import com.squareup.kotlinpoet.asClassName
 import com.squareup.kotlinpoet.asTypeName
 import mu.KotlinLogging
 import java.nio.file.Files
@@ -206,16 +208,17 @@ private fun generateTypes(
       "string" -> {
         val enum = typeNode["enum"]?.map { it.asText() }
         if (enum != null) {
-          fun escapeForEnumValue(value: String) = if (value == "continue" || setOf("-").any { it in value }) {
-            "`$value`"
-          } else {
-            value
-          }
+          fun nameToEnumValue(value: String) = value.toUpperCase().replace("-", "_")
 
           val enumBuilder = TypeSpec.enumBuilder(typeName)
               .maybeAddKdoc(typeDescription)
-          enum.map { escapeForEnumValue(it) }
-              .forEach { enumBuilder.addEnumConstant(it) }
+          enum
+              .forEach {
+                val jsonProperty = AnnotationSpec.builder(JsonProperty::class.asClassName())
+                    .addMember(CodeBlock.of("value = %S", it))
+                    .build()
+                enumBuilder.addEnumConstant(nameToEnumValue(it), TypeSpec.anonymousClassBuilder().addAnnotation(jsonProperty).build())
+              }
           fileSpecBuilder.addType(enumBuilder.build())
         } else {
           val stringTypeAlias = TypeAliasSpec
