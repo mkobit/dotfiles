@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
   id("com.gradle.build-scan") version "2.2.1"
   id("com.github.ben-manes.versions") version "0.21.0"
-  kotlin("jvm") version "1.3.21" apply false
+  kotlin("jvm") version "1.3.30" apply false
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.5" apply false
 
   dotfilesbuild.intellij
@@ -336,7 +336,7 @@ tasks {
   }
 
   wrapper {
-    gradleVersion = "5.2.1"
+    gradleVersion = "5.3.1"
   }
 
   val personalWorkspace by creating(Mkdir::class) {

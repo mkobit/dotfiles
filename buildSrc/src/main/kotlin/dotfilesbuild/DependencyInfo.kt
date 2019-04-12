@@ -5,14 +5,13 @@ object DependencyInfo {
   private const val arrowVersion = "0.8.2"
   private const val jacksonVersion = "2.9.8"
   private const val googleClientVersion = "1.28.0"
-  private const val junitPlatformVersion = "1.4.0"
-  private const val junitJupiterVersion = "5.4.0"
+  private const val junitPlatformVersion = "1.4.2"
+  private const val junitJupiterVersion = "5.4.2"
   private const val junit5Log4jVersion = "2.11.2"
   private const val kodeinVersion = "6.1.0"
-  private const val kotlinxCoroutinesVersion = "1.0.1"
-  private const val kotlinLoggingVersion = "1.6.25"
+  private const val kotlinxCoroutinesVersion = "1.2.0"
   private const val ktorVersion = "1.1.3"
-  private const val okHttpVersion = "3.13.1"
+  private const val okHttpVersion = "3.14.1"
   private const val retrofitVersion = "2.5.0"
   private const val seleniumVersion = "3.11.0"
   private const val slf4jVersion = "1.7.26"
@@ -29,7 +28,7 @@ object DependencyInfo {
   const val javapoet = "com.squareup:javapoet:1.10.0"
   const val jgit = "org.eclipse.jgit:org.eclipse.jgit:5.2.0.201812061821-r"
   const val jsoup = "org.jsoup:jsoup:1.11.3"
-  const val kotlinPoet = "com.squareup:kotlinpoet:1.1.0"
+  const val kotlinPoet = "com.squareup:kotlinpoet:1.2.0"
   val kodeinJvm = kodein("di-generic-jvm")
   val log4jCore = log4j("core")
   val log4jJul = log4j("jul")
@@ -42,9 +41,9 @@ object DependencyInfo {
   const val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
   val okHttpClient = okHttp("okhttp")
   val okHttpMockServer = okHttp("mockwebserver")
-  const val picoCli = "info.picocli:picocli:3.9.5"
-  const val kotlinLogging = "io.github.microutils:kotlin-logging:$kotlinLoggingVersion"
-  const val strikt = "io.strikt:strikt-core:0.19.0"
+  const val picoCli = "info.picocli:picocli:3.9.6"
+  const val kotlinLogging = "io.github.microutils:kotlin-logging:1.6.26"
+  const val strikt = "io.strikt:strikt-core:0.19.7"
 
   val junitTestImplementationArtifacts = listOf(
       junitPlatformRunner,

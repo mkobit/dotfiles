@@ -4,7 +4,7 @@ plugins {
   `kotlin-dsl-precompiled-script-plugins`
   `java-gradle-plugin`
 
-  id("com.github.ben-manes.versions") version "0.20.0"
+  id("com.github.ben-manes.versions") version "0.21.0"
 }
 
 repositories {
@@ -21,8 +21,8 @@ java {
   targetCompatibility = JavaVersion.VERSION_11
 }
 
-val junitPlatformVersion: String = "1.4.0"
-val junitJupiterVersion: String = "5.4.0"
+val junitPlatformVersion: String = "1.4.2"
+val junitJupiterVersion: String = "5.4.2"
 val junit5Log4jVersion: String = "2.11.2"
 
 val junitPlatformRunner = "org.junit.platform:junit-platform-runner:$junitPlatformVersion"
@@ -35,14 +35,14 @@ val junitTestImplementationArtifacts = listOf(
     junitJupiterParams
 )
 
-val assertJCore = "org.assertj:assertj-core:3.11.1"
+val assertJCore = "org.assertj:assertj-core:3.12.2"
 val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
 val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
 val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
-val mockitoCore = "org.mockito:mockito-core:2.24.5"
+val mockitoCore = "org.mockito:mockito-core:2.27.0"
 val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.1.0"
 val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
-val strikt = "io.strikt:strikt-core:0.19.0"
+val strikt = "io.strikt:strikt-core:0.19.7"
 
 val junitTestRuntimeOnlyArtifacts = listOf(
     junitJupiterEngine,
@@ -57,9 +57,9 @@ dependencies {
   implementation("io.arrow-kt:arrow-syntax:$arrowVersion")
   implementation("io.arrow-kt:arrow-typeclasses:$arrowVersion")
   implementation("com.squareup.retrofit2:retrofit:2.5.0")
-  implementation("com.squareup.okhttp3:okhttp:3.13.1")
-  implementation("io.github.microutils:kotlin-logging:1.6.25")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:5.2.1.201812262042-r")
+  implementation("com.squareup.okhttp3:okhttp:3.14.1")
+  implementation("io.github.microutils:kotlin-logging:1.6.26")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.3.0.201903130848-r")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.6.0")

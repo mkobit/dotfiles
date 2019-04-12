@@ -21,6 +21,8 @@ repositories {
 }
 
 dependencies {
+  implementation(project(":chrome-debug-protocol"))
+
   implementation(DependencyInfo.guava)
   implementation(DependencyInfo.arrow("core"))
   implementation(DependencyInfo.arrow("syntax"))
@@ -64,8 +66,8 @@ dependencies {
 
 java {
   // https://github.com/ktorio/ktor/issues/321
+  sourceCompatibility = JavaVersion.VERSION_1_8
 //  sourceCompatibility = JavaVersion.VERSION_11
-  sourceCompatibility = JavaVersion.VERSION_11
 }
 
 application {
