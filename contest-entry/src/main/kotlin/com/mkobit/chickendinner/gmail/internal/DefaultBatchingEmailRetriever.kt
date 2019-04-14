@@ -8,14 +8,12 @@ import com.google.api.services.gmail.model.Message
 import com.mkobit.chickendinner.gmail.EmailRetriever
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicInteger
-import kotlin.coroutines.CoroutineContext
 
 class DefaultBatchingEmailRetriever(
     private val gmail: Gmail,
@@ -50,11 +48,12 @@ class DefaultBatchingEmailRetriever(
   private class ChannelMessageBatchCallback(
       private val totalElements: Int
   ) : JsonBatchCallback<Message>() {
-    private val messageReceieveCounter = AtomicInteger()
+    private val messageReceiveCounter = AtomicInteger()
 
     val values: Channel<Message> = Channel()
 
     override fun onSuccess(message: Message, responseHeaders: HttpHeaders) {
+      // GlobalScope is 100% wrong, figure out right way to deal with this
       GlobalScope.launch {
         try {
           values.send(message)
@@ -70,7 +69,7 @@ class DefaultBatchingEmailRetriever(
     }
 
     private fun incrementAndMaybeCloseChannel() {
-      if (messageReceieveCounter.incrementAndGet() == totalElements) {
+      if (messageReceiveCounter.incrementAndGet() == totalElements) {
         values.close()
       }
     }

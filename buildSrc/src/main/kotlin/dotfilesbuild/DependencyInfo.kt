@@ -1,6 +1,5 @@
 package dotfilesbuild
 
-@Suppress("UNUSED", "MemberVisibilityCanBePrivate")
 object DependencyInfo {
   private const val arrowVersion = "0.8.2"
   private const val jacksonVersion = "2.9.8"
@@ -16,31 +15,22 @@ object DependencyInfo {
   private const val seleniumVersion = "3.11.0"
   private const val slf4jVersion = "1.7.26"
 
-  const val assertJCore = "org.assertj:assertj-core:3.10.0"
-  const val assertK = "com.willowtreeapps.assertk:assertk-jvm:0.13"
-  val coroutinesxCore = kotlinxCoroutines("core")
-  val coroutinesxJdk8 = kotlinxCoroutines("jdk8")
   const val googleApiClient = "com.google.api-client:google-api-client:$googleClientVersion"
   const val googleGmailServiceClient = "com.google.apis:google-api-services-gmail:v1-rev20190120-$googleClientVersion"
   const val googleOauthClient = "com.google.oauth-client:google-oauth-client-jetty:$googleClientVersion"
   const val guava = "com.google.guava:guava:27.1-jre"
   const val hocon = "com.typesafe:config:1.3.3"
-  const val javapoet = "com.squareup:javapoet:1.10.0"
-  const val jgit = "org.eclipse.jgit:org.eclipse.jgit:5.2.0.201812061821-r"
   const val jsoup = "org.jsoup:jsoup:1.11.3"
   const val kotlinPoet = "com.squareup:kotlinpoet:1.2.0"
   val kodeinJvm = kodein("di-generic-jvm")
   val log4jCore = log4j("core")
   val log4jJul = log4j("jul")
-  const val mockito = "org.mockito:mockito-core:2.24.0"
-  const val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.0.0"
   val junitPlatformRunner = junitPlatform("runner")
   val junitJupiterApi = junitJupiter("api")
   val junitJupiterEngine = junitJupiter("engine")
   val junitJupiterParams = junitJupiter("params")
-  const val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
+  const val minutest = "dev.minutest:minutest:1.5.0"
   val okHttpClient = okHttp("okhttp")
-  val okHttpMockServer = okHttp("mockwebserver")
   const val picoCli = "info.picocli:picocli:3.9.6"
   const val kotlinLogging = "io.github.microutils:kotlin-logging:1.6.26"
   const val strikt = "io.strikt:strikt-core:0.19.7"
