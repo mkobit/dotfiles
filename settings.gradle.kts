@@ -7,15 +7,12 @@ include("kotlin-script-experiment")
 include("java-platform")
 include("sidekick-service")
 
-buildCache {
-  local(DirectoryBuildCache::class) {
-    isEnabled = true
-    setDirectory(file(".gradle-build-cache"))
-  }
-}
-
 fun String.toKebabCase(): String = split("-").toList().let {
-  val suffix = it.drop(1).joinToString("") { "${it[0].toUpperCase()}${it.substring(1)}" }
+  val suffix = it
+    .drop(1)
+    .joinToString("") { part ->
+      "${part[0].toUpperCase()}${part.substring(1)}"
+    }
   "${it.first()}$suffix"
 }
 
@@ -24,3 +21,5 @@ rootProject.children.forEach { project ->
   project.projectDir = file("subprojects/${project.name}")
   project.buildFileName = "$replacedName.gradle.kts"
 }
+
+apply(from = file("gradle/buildCache.settings.gradle.kts"))
