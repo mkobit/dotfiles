@@ -22,7 +22,6 @@ includeExperimental(
   "chrome-debug-protocol",
   "chrome-debug-protocol-generator",
   "contest-entry",
-  "java-platform",
   "kotlin-script-experiment",
   "sidekick-service"
 )
