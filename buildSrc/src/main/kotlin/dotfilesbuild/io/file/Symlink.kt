@@ -3,18 +3,13 @@ package dotfilesbuild.io.file
 import mu.KotlinLogging
 import org.gradle.api.DefaultTask
 import org.gradle.api.InvalidUserDataException
-import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.file.FileSystemLocation
 import org.gradle.api.file.ProjectLayout
-import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
 import org.gradle.api.tasks.Input
-import org.gradle.api.tasks.InputFile
 import org.gradle.api.tasks.Internal
-import org.gradle.api.tasks.OutputDirectory
-import org.gradle.api.tasks.OutputFile
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
 import java.io.File
@@ -25,10 +20,9 @@ import javax.inject.Inject
 private val log = KotlinLogging.logger { }
 // TODO: figure out how to support symlink of dir and file in same task
 
-
 open class Symlink @Inject constructor(
-    projectLayout: ProjectLayout,
-    objectFactory: ObjectFactory
+  projectLayout: ProjectLayout,
+  objectFactory: ObjectFactory
 ) : DefaultTask() {
 
   init {

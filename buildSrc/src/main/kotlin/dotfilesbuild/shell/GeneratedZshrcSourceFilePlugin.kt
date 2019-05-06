@@ -3,17 +3,13 @@
 package dotfilesbuild.shell
 
 import dotfilesbuild.io.file.EditFile
-import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.get
-import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.getValue
-import org.gradle.kotlin.dsl.provideDelegate
 import org.gradle.kotlin.dsl.registering
-import org.gradle.kotlin.dsl.the
 
 class GeneratedZshrcSourceFilePlugin : Plugin<Project> {
   companion object {

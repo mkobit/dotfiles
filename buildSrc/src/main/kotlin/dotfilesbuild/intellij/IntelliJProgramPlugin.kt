@@ -75,7 +75,7 @@ open class IntelliJProgramPlugin : Plugin<Project> {
 //          println("tar first name: ${tarTree(downloadIntellijZip.destination).first().name}")
 //          tarTree(downloadIntellijZip.destination).first().name
 //        }))
-////        destination.set(intellij.installDirectory.dir("intellij"))
+// //        destination.set(intellij.installDirectory.dir("intellij"))
 //        destination.set(layout.buildDirectory.dir("intellij"))
 //      }
     }

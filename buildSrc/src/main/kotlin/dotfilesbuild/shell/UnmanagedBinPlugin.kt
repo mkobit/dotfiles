@@ -11,7 +11,6 @@ import org.gradle.api.plugins.BasePlugin
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.existing
 import org.gradle.kotlin.dsl.getValue
-import org.gradle.kotlin.dsl.provideDelegate
 import org.gradle.kotlin.dsl.registering
 
 class UnmanagedBinPlugin : Plugin<Project> {
@@ -37,10 +36,10 @@ class UnmanagedBinPlugin : Plugin<Project> {
             .map { it.absolutePath }
         editActions.add(
             ReplaceText(
-                Regex("export PATH=.*\\s+${COMMENT}"),
+                Regex("export PATH=.*\\s+$COMMENT"),
                 true
             ) {
-              "export PATH=\"\$PATH:${managedBinDirectory.get()}\" ${COMMENT}"
+              "export PATH=\"\$PATH:${managedBinDirectory.get()}\" $COMMENT"
             }
         )
       }

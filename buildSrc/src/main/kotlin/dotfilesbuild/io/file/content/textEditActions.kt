@@ -13,7 +13,7 @@ interface TextEditAction {
 }
 
 class SetContent(
-    private val content: () -> CharSequence
+  private val content: () -> CharSequence
 ) : TextEditAction {
   override fun applyTo(text: String): Either<String, String> {
     val newText = content().toString()
@@ -26,11 +26,11 @@ class SetContent(
 }
 
 class AppendIfNoLinesMatch(
-    private val regex: Regex,
-    private val content: () -> CharSequence
+  private val regex: Regex,
+  private val content: () -> CharSequence
 ) : TextEditAction {
 
-  constructor(pattern: Pattern, content: () -> CharSequence): this(pattern.toRegex(), content)
+  constructor(pattern: Pattern, content: () -> CharSequence) : this(pattern.toRegex(), content)
 
   override fun applyTo(text: String): Either<String, String> {
     val textToInsert = content().toString()
@@ -49,7 +49,7 @@ class AppendIfNoLinesMatch(
 }
 
 class AppendTextIfNotFound(
-    private val content: () -> CharSequence
+  private val content: () -> CharSequence
 ) : TextEditAction {
   override fun applyTo(text: String): Either<String, String> {
     val textToInsert = content()
@@ -67,11 +67,11 @@ class AppendTextIfNotFound(
 }
 
 class SearchTextReplaceLine(
-    private val regex: Regex,
-    private val content: () -> CharSequence
+  private val regex: Regex,
+  private val content: () -> CharSequence
 ) : TextEditAction {
 
-  constructor(pattern: Pattern, content: () -> CharSequence): this(pattern.toRegex(), content)
+  constructor(pattern: Pattern, content: () -> CharSequence) : this(pattern.toRegex(), content)
 
   override fun applyTo(text: String): Either<String, String> {
 
@@ -92,9 +92,9 @@ class SearchTextReplaceLine(
 }
 
 class ReplaceText(
-    private val regex: Regex,
-    private val appendIfNoLinesMatch: Boolean,
-    private val content: () -> CharSequence
+  private val regex: Regex,
+  private val appendIfNoLinesMatch: Boolean,
+  private val content: () -> CharSequence
 ) : TextEditAction {
 
   override fun applyTo(text: String): Either<String, String> {
@@ -114,10 +114,10 @@ class ReplaceText(
 }
 
 class SearchTextDeleteLine(
-    private val regex: Regex
+  private val regex: Regex
 ) : TextEditAction {
 
-  constructor(pattern: Pattern): this(pattern.toRegex())
+  constructor(pattern: Pattern) : this(pattern.toRegex())
 
   override fun applyTo(text: String): Either<String, String> {
     val newText = text.split(newline)

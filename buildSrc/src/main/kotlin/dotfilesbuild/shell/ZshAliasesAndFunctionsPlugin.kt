@@ -8,7 +8,6 @@ import org.gradle.api.plugins.BasePlugin
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.existing
 import org.gradle.kotlin.dsl.getValue
-import org.gradle.kotlin.dsl.provideDelegate
 
 class ZshAliasesAndFunctionsPlugin : Plugin<Project> {
 

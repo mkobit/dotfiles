@@ -19,4 +19,3 @@ fun <T : BuildResult> Assertion.Builder<T>.taskPaths(outcome: TaskOutcome): Asse
 
 fun <T : BuildResult> Assertion.Builder<T>.tasks(outcome: TaskOutcome): Assertion.Builder<List<BuildTask>> =
     get("task paths with outcome $outcome") { tasks(outcome) }
-

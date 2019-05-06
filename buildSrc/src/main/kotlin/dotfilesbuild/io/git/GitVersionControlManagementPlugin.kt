@@ -14,12 +14,12 @@ import org.gradle.kotlin.dsl.withType
 import javax.inject.Inject
 
 open class GitVersionControlManagementPlugin @Inject constructor(
-    private val providerFactory: ProviderFactory
+  private val providerFactory: ProviderFactory
 ) : Plugin<Project> {
   override fun apply(target: Project) {
     target.run {
       apply<VersionControlManagementPlugin>()
-      val refreshAllGitRepositories= tasks.register("refreshAllGitRepositories") {
+      val refreshAllGitRepositories = tasks.register("refreshAllGitRepositories") {
         group = "Git Management"
         description = "Refreshes all Git repositories"
       }

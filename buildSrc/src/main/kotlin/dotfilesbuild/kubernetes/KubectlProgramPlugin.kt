@@ -7,15 +7,11 @@ import dotfilesbuild.io.http.Download
 import dotfilesbuild.shell.ManagedBinPlugin
 import org.gradle.api.Plugin
 import org.gradle.api.Project
-import org.gradle.api.file.Directory
-import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.existing
 import org.gradle.kotlin.dsl.getValue
-import org.gradle.kotlin.dsl.provideDelegate
 import org.gradle.kotlin.dsl.registering
-import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.property
 
 class KubectlProgramPlugin : Plugin<Project> {

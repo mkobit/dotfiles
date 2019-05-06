@@ -17,8 +17,8 @@ import javax.inject.Inject
 
 // TODO: improve up-to-date and simplify this
 open class EditFile @Inject constructor(
-    objectFactory: ObjectFactory,
-    projectLayout: ProjectLayout
+  objectFactory: ObjectFactory,
+  projectLayout: ProjectLayout
 ) : DefaultTask() {
 
 //  init {
@@ -39,7 +39,7 @@ open class EditFile @Inject constructor(
   @TaskAction
   fun convergeFile() {
     val transformation = performTransformation()
-    val textToWrite = when(transformation) {
+    val textToWrite = when (transformation) {
       is Either.Left -> {
         logger.debug("No transformations needed for {}", output.get().asFile)
         transformation.a
@@ -61,13 +61,13 @@ open class EditFile @Inject constructor(
     val fileText = readFileTextOrDefault()
     val text: Either<String, String> = Either.left(fileText)
     val afterApplied = editActions.get().fold(text) { acc, action ->
-      when(acc) {
+      when (acc) {
         is Either.Left -> action.applyTo(acc.a)
         is Either.Right -> action.applyTo(acc.b)
       }
     }
 
-    return when(afterApplied) {
+    return when (afterApplied) {
       is Either.Left -> {
         if (afterApplied.a == fileText) {
           afterApplied
@@ -85,4 +85,3 @@ open class EditFile @Inject constructor(
     }
   }
 }
-

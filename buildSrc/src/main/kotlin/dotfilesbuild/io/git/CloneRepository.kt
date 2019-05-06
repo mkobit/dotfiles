@@ -17,8 +17,8 @@ import java.nio.file.Path
 import javax.inject.Inject
 
 open class CloneRepository @Inject constructor(
-    private val workerExecutor: WorkerExecutor,
-    objectFactory: ObjectFactory
+  private val workerExecutor: WorkerExecutor,
+  objectFactory: ObjectFactory
 ) : DefaultTask() {
 
   companion object {

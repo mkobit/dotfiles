@@ -6,9 +6,9 @@ import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
 
 class VersionControlGroup(
-    private val groupName: String,
-    val directory: Provider<Directory>,
-    val vcs: ExtensiblePolymorphicDomainObjectContainer<VersionControlTarget>
+  private val groupName: String,
+  val directory: Provider<Directory>,
+  val vcs: ExtensiblePolymorphicDomainObjectContainer<VersionControlTarget>
 ) : ExtensiblePolymorphicDomainObjectContainer<VersionControlTarget> by vcs, Named {
 
   init {

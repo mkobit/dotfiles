@@ -5,9 +5,9 @@ import org.gradle.api.file.Directory
 import org.gradle.api.provider.Provider
 
 data class GitVersionControlTarget(
-    private val repositoryName: String,
-    var remotes: Map<String, String>,
-    override val directory: Provider<Directory>
+  private val repositoryName: String,
+  var remotes: Map<String, String>,
+  override val directory: Provider<Directory>
 ) : VersionControlTarget {
 
   init {

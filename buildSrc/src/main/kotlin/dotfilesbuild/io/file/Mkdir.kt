@@ -11,7 +11,7 @@ import java.nio.file.Files
 import javax.inject.Inject
 
 open class Mkdir @Inject constructor(
-    objectFactory: ObjectFactory
+  objectFactory: ObjectFactory
 ) : DefaultTask() {
 
   companion object {

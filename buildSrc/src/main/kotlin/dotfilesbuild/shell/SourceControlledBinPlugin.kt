@@ -4,14 +4,12 @@ package dotfilesbuild.shell
 
 import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.content.ReplaceText
-import dotfilesbuild.io.file.content.SearchTextReplaceLine
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.plugins.BasePlugin
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.existing
 import org.gradle.kotlin.dsl.getValue
-import org.gradle.kotlin.dsl.provideDelegate
 
 class SourceControlledBinPlugin : Plugin<Project> {
   companion object {

@@ -21,8 +21,8 @@ private val nonHostKeyCheckingConfigFactory = object : JschConfigSessionFactory(
 }
 
 internal class CloneAction @Inject constructor(
-    private val directory: File,
-    private val remoteUrl: String
+  private val directory: File,
+  private val remoteUrl: String
 ) : Runnable {
   companion object {
     private val LOGGER = KotlinLogging.logger {}
@@ -45,8 +45,8 @@ internal class CloneAction @Inject constructor(
 }
 
 internal class ConfigureRemotesAction @Inject constructor(
-    private val repository: File,
-    private val remotes: Map<String, String>
+  private val repository: File,
+  private val remotes: Map<String, String>
 ) : Runnable {
   companion object {
     private val LOGGER = KotlinLogging.logger {}
@@ -91,7 +91,7 @@ internal class ConfigureRemotesAction @Inject constructor(
 }
 
 internal class FetchAction @Inject constructor(
-    private val repository: File
+  private val repository: File
 ) : Runnable {
   companion object {
     private val LOGGER = KotlinLogging.logger {}
@@ -116,8 +116,8 @@ internal class FetchAction @Inject constructor(
 }
 
 internal class PullAction @Inject constructor(
-    private val repository: File,
-    private val remote: String
+  private val repository: File,
+  private val remote: String
 ) : Runnable {
   companion object {
     private val LOGGER = KotlinLogging.logger {}
@@ -140,7 +140,7 @@ internal class PullAction @Inject constructor(
 }
 
 internal class StashAction @Inject constructor(
-    private val repository: File
+  private val repository: File
 ) : Runnable {
   companion object {
     private val LOGGER = KotlinLogging.logger {}
@@ -157,7 +157,7 @@ internal class StashAction @Inject constructor(
 }
 
 internal class UnstashAction @Inject constructor(
-    private val repository: File
+  private val repository: File
 ) : Runnable {
   companion object {
     private val LOGGER = KotlinLogging.logger {}

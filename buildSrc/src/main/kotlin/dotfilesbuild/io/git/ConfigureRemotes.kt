@@ -15,8 +15,8 @@ import org.gradle.workers.WorkerExecutor
 import javax.inject.Inject
 
 open class ConfigureRemotes @Inject constructor(
-    private val workerExecutor: WorkerExecutor,
-    objectFactory: ObjectFactory
+  private val workerExecutor: WorkerExecutor,
+  objectFactory: ObjectFactory
 ) : DefaultTask() {
 
   companion object {

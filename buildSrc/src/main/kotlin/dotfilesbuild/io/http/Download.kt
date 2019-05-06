@@ -24,7 +24,7 @@ import javax.inject.Inject
 
 @CacheableTask
 open class Download @Inject constructor(
-    objectFactory: ObjectFactory
+  objectFactory: ObjectFactory
 ) : DefaultTask() {
 
   companion object {

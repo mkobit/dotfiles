@@ -10,8 +10,8 @@ import org.gradle.api.file.Directory
  * @property downloads the directory for downloading files
  */
 class LocationsExtension(
-    val home: Directory,
-    val workspace: Directory,
-    val programs: Directory,
-    val downloads: Directory
+  val home: Directory,
+  val workspace: Directory,
+  val programs: Directory,
+  val downloads: Directory
 )

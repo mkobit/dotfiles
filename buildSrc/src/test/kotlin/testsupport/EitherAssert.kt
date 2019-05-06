@@ -36,7 +36,6 @@ class EitherAssert<A, B>(actual: Either<A, B>) : AbstractAssert<EitherAssert<A, 
     (actual as Either.Left).a.let(requirements)
   }
 
-
   fun isRightSatisfying(requirements: (B) -> Unit): EitherAssert<A, B> = apply {
     if (actual is Either.Left) {
       failWithMessage("Value is not right, but left with %s", actual.a)
