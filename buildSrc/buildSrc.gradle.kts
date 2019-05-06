@@ -19,22 +19,10 @@ java {
   targetCompatibility = JavaVersion.VERSION_11
 }
 
-
-val junitTestImplementationArtifacts = listOf(
-  "org.junit.platform:junit-platform-runner",
-  "org.junit.jupiter:junit-jupiter-api",
-  "org.junit.jupiter:junit-jupiter-params"
-)
-
-val junitTestRuntimeOnlyArtifacts = listOf(
-  "org.junit.jupiter:junit-jupiter-engine",
-  "org.apache.logging.log4j:log4j-core",
-  "org.apache.logging.log4j:log4j-jul"
-)
-
 configurations.all {
   resolutionStrategy.eachDependency {
     when (requested.group) {
+      "dev.minutest" -> useVersion("1.6.0")
       "io.arrow-kt" -> useVersion("0.8.2")
       "org.junit.jupiter" -> useVersion("5.4.2")
       "org.junit.platform" -> useVersion("1.4.2")
@@ -45,27 +33,32 @@ configurations.all {
 }
 
 dependencies {
+  implementation("io.github.microutils:kotlin-logging:1.6.26")
+
   implementation("io.arrow-kt:arrow-core")
   implementation("io.arrow-kt:arrow-effects")
   implementation("io.arrow-kt:arrow-syntax")
   implementation("io.arrow-kt:arrow-typeclasses")
+
   implementation("com.squareup.retrofit2:retrofit:2.5.0")
   implementation("com.squareup.okhttp3:okhttp:3.14.1")
-  implementation("io.github.microutils:kotlin-logging:1.6.26")
   implementation("org.eclipse.jgit:org.eclipse.jgit:5.3.1.201904271842-r")
+
+  testImplementation("io.mockk:mockk:1.9.3")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.6.0")
   testImplementation("org.assertj:assertj-core:3.12.2")
-  testImplementation("io.mockk:mockk:1.9.3")
   testImplementation("io.strikt:strikt-core")
   testImplementation("io.strikt:strikt-gradle")
-  junitTestImplementationArtifacts.forEach {
-    testImplementation(it)
-  }
-  junitTestRuntimeOnlyArtifacts.forEach {
-    testRuntimeOnly(it)
-  }
+
+  testImplementation("dev.minutest:minutest")
+  testImplementation("org.junit.jupiter:junit-jupiter-api")
+  testImplementation("org.junit.jupiter:junit-jupiter-params")
+
+  testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine")
+  testRuntimeOnly("org.apache.logging.log4j:log4j-core")
+  testRuntimeOnly("org.apache.logging.log4j:log4j-jul")
 }
 
 tasks {
@@ -77,7 +70,7 @@ tasks {
       componentSelection {
         all {
           if (rejectPatterns.any { it.matches(candidate.version) }) {
-            this.reject("Release candidate")
+            reject("Release candidate")
           }
         }
       }
