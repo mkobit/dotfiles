@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
+
 plugins {
   `java-library`
   `kotlin-dsl`
@@ -83,6 +85,12 @@ tasks {
 
   build {
     dependsOn(dependencyUpdates)
+  }
+
+  withType<KotlinCompile>().configureEach {
+    kotlinOptions {
+      jvmTarget = "11"
+    }
   }
 
   test {
