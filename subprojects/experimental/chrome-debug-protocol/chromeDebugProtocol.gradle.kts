@@ -1,15 +1,23 @@
 import dotfilesbuild.DependencyInfo
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   `java-library`
+  id("org.jlleitschuh.gradle.ktlint")
   kotlin("jvm")
 }
 
 repositories {
   jcenter()
   mavenCentral()
+}
+
+ktlint {
+  version.set("0.32.0")
+  filter {
+//    exclude("**/generated-source/**") Don't know why this isn't working
+    exclude("**/*")
+  }
 }
 
 val generationDir = file("$buildDir/generated-source")

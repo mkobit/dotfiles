@@ -2,10 +2,7 @@ package com.mkobit.chickendinner.gmail
 
 import com.google.api.services.gmail.model.Message
 import com.google.api.services.gmail.model.MessagePart
-import com.google.api.services.gmail.model.MessagePartBody
 import java.time.Instant
-import java.util.Base64
-import kotlin.text.Charsets.UTF_8
 
 private fun MessagePart.findHeaderValueForName(name: String): String {
   val header = headers.find { it.name == name }

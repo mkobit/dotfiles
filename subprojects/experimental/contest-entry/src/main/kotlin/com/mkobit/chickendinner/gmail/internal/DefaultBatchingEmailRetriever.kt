@@ -16,8 +16,8 @@ import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicInteger
 
 class DefaultBatchingEmailRetriever(
-    private val gmail: Gmail,
-    private val userId: String
+  private val gmail: Gmail,
+  private val userId: String
 ) : EmailRetriever {
 
   companion object {
@@ -46,7 +46,7 @@ class DefaultBatchingEmailRetriever(
   }
 
   private class ChannelMessageBatchCallback(
-      private val totalElements: Int
+    private val totalElements: Int
   ) : JsonBatchCallback<Message>() {
     private val messageReceiveCounter = AtomicInteger()
 

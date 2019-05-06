@@ -1,14 +1,10 @@
 import dotfilesbuild.DependencyInfo
-import org.jetbrains.gradle.ext.Application
-import org.jetbrains.gradle.ext.ProjectSettings
-import org.jetbrains.gradle.ext.RunConfiguration
-import org.jetbrains.kotlin.gradle.dsl.Coroutines
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   java
   application
 
+  id("org.jlleitschuh.gradle.ktlint")
   kotlin("jvm")
   id("org.jetbrains.gradle.plugin.idea-ext")
 }

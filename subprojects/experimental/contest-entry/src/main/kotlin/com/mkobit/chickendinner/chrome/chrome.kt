@@ -1,8 +1,6 @@
 package com.mkobit.chickendinner.chrome
 
-import arrow.core.None
 import arrow.core.Option
-import arrow.core.Some
 import arrow.core.Try
 import arrow.core.toOption
 import java.nio.file.Files
@@ -10,9 +8,9 @@ import java.nio.file.Path
 import java.nio.file.Paths
 
 fun launchChrome(
-    userDataDirectory: Path,
-    executable: Path = Paths.get("/usr/bin/google-chrome"),
-    debugPort: Int = 0
+  userDataDirectory: Path,
+  executable: Path = Paths.get("/usr/bin/google-chrome"),
+  debugPort: Int = 0
 ): Process = ProcessBuilder().apply {
   command(
       executable.toAbsolutePath().toString(),
@@ -35,12 +33,12 @@ fun determineChromePortFromLog(errorLog: String): Option<Int> {
 }
 
 fun determineChromePortFromProfileFile(
-    profile: Path = Paths.get(
-        System.getProperty("user.home")!!,
-        ".config",
-        "google-chrome",
-        "DevToolsActivePort"
-    )
+  profile: Path = Paths.get(
+      System.getProperty("user.home")!!,
+      ".config",
+      "google-chrome",
+      "DevToolsActivePort"
+  )
 ): Option<Int> {
   return Try { Files.readAllLines(profile, Charsets.UTF_8) }
       .map { it.first() }

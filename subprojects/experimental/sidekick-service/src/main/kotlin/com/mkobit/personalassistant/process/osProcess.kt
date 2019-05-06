@@ -5,10 +5,10 @@ import mu.KotlinLogging
 import java.io.File
 
 data class CompletedProcess(
-    val arguments: List<String>,
-    val returnCode: Int,
-    val stdOut: String,
-    val stdErr: String
+  val arguments: List<String>,
+  val returnCode: Int,
+  val stdOut: String,
+  val stdErr: String
 ) {
   fun throwIfNonZero(): CompletedProcess {
     if (returnCode != 0) {
@@ -21,11 +21,11 @@ data class CompletedProcess(
 private val logger = KotlinLogging.logger {}
 
 suspend fun runProcess(
-    commandLine: List<String>,
-    environment: Map<String, String> = mapOf(),
-    workingDir: File? = null,
-    stdIn: String? = null
-): CompletedProcess  {
+  commandLine: List<String>,
+  environment: Map<String, String> = mapOf(),
+  workingDir: File? = null,
+  stdIn: String? = null
+): CompletedProcess {
   val processBuilder = ProcessBuilder().apply {
     command(commandLine)
     environment().putAll(environment)

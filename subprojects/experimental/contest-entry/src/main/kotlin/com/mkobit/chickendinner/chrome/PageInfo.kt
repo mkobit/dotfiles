@@ -12,58 +12,58 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
   JsonSubTypes.Type(PageInfo.OtherPageInfo::class, name = "other")
 ])
 sealed class PageInfo(
-    val description: String,
-    val devtoolsFrontendUrl: String,
-    val id: String,
-    val title: String,
-    val url: String,
-    val webSocketDebuggerUrl: String
+  val description: String,
+  val devtoolsFrontendUrl: String,
+  val id: String,
+  val title: String,
+  val url: String,
+  val webSocketDebuggerUrl: String
 ) {
   class BackGroundPageInfo(
-      description: String,
-      devtoolsFrontendUrl: String,
-      id: String,
-      title: String,
-      url: String,
-      webSocketDebuggerUrl: String
+    description: String,
+    devtoolsFrontendUrl: String,
+    id: String,
+    title: String,
+    url: String,
+    webSocketDebuggerUrl: String
   ) : PageInfo(description, devtoolsFrontendUrl, id, title, url, webSocketDebuggerUrl)
 
   class WebPageInfo(
-      description: String,
-      devtoolsFrontendUrl: String,
-      id: String,
-      title: String,
-      url: String,
-      webSocketDebuggerUrl: String,
-      val faviconUrl: String?
+    description: String,
+    devtoolsFrontendUrl: String,
+    id: String,
+    title: String,
+    url: String,
+    webSocketDebuggerUrl: String,
+    val faviconUrl: String?
   ) : PageInfo(description, devtoolsFrontendUrl, id, title, url, webSocketDebuggerUrl)
 
   class IframePageInfo(
-      description: String,
-      devtoolsFrontendUrl: String,
-      id: String,
-      title: String,
-      url: String,
-      webSocketDebuggerUrl: String,
-      val faviconUrl: String?,
-      val parentId: String
+    description: String,
+    devtoolsFrontendUrl: String,
+    id: String,
+    title: String,
+    url: String,
+    webSocketDebuggerUrl: String,
+    val faviconUrl: String?,
+    val parentId: String
   ) : PageInfo(description, devtoolsFrontendUrl, id, title, url, webSocketDebuggerUrl)
 
   class ServiceWorkerPageInfo(
-      description: String,
-      devtoolsFrontendUrl: String,
-      id: String,
-      title: String,
-      url: String,
-      webSocketDebuggerUrl: String
+    description: String,
+    devtoolsFrontendUrl: String,
+    id: String,
+    title: String,
+    url: String,
+    webSocketDebuggerUrl: String
   ) : PageInfo(description, devtoolsFrontendUrl, id, title, url, webSocketDebuggerUrl)
 
   class OtherPageInfo(
-      description: String,
-      devtoolsFrontendUrl: String,
-      id: String,
-      title: String,
-      url: String,
-      webSocketDebuggerUrl: String
+    description: String,
+    devtoolsFrontendUrl: String,
+    id: String,
+    title: String,
+    url: String,
+    webSocketDebuggerUrl: String
   ) : PageInfo(description, devtoolsFrontendUrl, id, title, url, webSocketDebuggerUrl)
 }

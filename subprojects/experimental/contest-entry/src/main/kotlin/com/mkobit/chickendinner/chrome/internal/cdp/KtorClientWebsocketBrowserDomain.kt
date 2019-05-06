@@ -24,45 +24,44 @@ internal class KtorClientWebsocketBrowserDomain(
   requestIdGenerator: AtomicLong
 ) : BaseKtorWebsocketDomain(session, objectMapper, requestIdGenerator), BrowserDomain {
   override suspend fun grantPermissions(request: GrantPermissionsRequest) {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
 
   override suspend fun resetPermissions(request: ResetPermissionsRequest) {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
 
   override suspend fun close() {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
 
   override suspend fun crash() {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
 
   override suspend fun getVersion(): GetVersionReply = sendAndAwait(null)
 
   override suspend fun getBrowserCommandLine(): GetBrowserCommandLineReply {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
 
   override suspend fun getHistograms(request: GetHistogramsRequest): GetHistogramsReply {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
 
   override suspend fun getHistogram(request: GetHistogramRequest): GetHistogramReply {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
 
   override suspend fun getWindowBounds(request: GetWindowBoundsRequest): GetWindowBoundsReply {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
 
   override suspend fun getWindowForTarget(request: GetWindowForTargetRequest): GetWindowForTargetReply {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
 
   override suspend fun setWindowBounds(request: SetWindowBoundsRequest) {
-    TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
-
 }

@@ -10,15 +10,11 @@ import com.google.api.client.util.store.FileDataStoreFactory
 import com.google.api.services.gmail.Gmail
 import com.google.api.services.gmail.GmailScopes
 import com.mkobit.chickendinner.gmail.EmailRetriever
-import kotlinx.coroutines.asCoroutineDispatcher
-import kotlinx.coroutines.newFixedThreadPoolContext
 import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
-import org.kodein.di.generic.factory
 import org.kodein.di.generic.instance
 import org.kodein.di.generic.singleton
 import java.nio.file.Path
-import java.util.concurrent.Executors
 
 object GmailModule {
 

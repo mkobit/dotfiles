@@ -5,12 +5,10 @@ import picocli.CommandLine
 import java.nio.file.Path
 import java.nio.file.Paths
 
-
 object Main {
   @JvmStatic
   fun main(args: Array<String>) = CommandLine.run(Generate(), *args)
 }
-
 
 @CommandLine.Command(name = "Generate Chrome Debug Protocol")
 private class Generate : Runnable {

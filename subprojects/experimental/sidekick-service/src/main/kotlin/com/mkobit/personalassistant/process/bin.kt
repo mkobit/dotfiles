@@ -5,8 +5,8 @@ package com.mkobit.personalassistant.process
  * Follows same semantics as [pkill].
  */
 suspend fun pgrep(
-    full: Boolean = false,
-    pattern: String? = null
+  full: Boolean = false,
+  pattern: String? = null
 ): CompletedProcess {
   val arguments = mutableListOf("pgrep")
   if (full) {
@@ -24,8 +24,8 @@ suspend fun pgrep(
  * Follows same semantics as [pgrep].
  */
 suspend fun pkill(
-    full: Boolean = false,
-    pattern: String? = null
+  full: Boolean = false,
+  pattern: String? = null
 ): CompletedProcess {
   val arguments = mutableListOf("pkill")
   if (full) {
@@ -41,9 +41,9 @@ suspend fun pkill(
  * xargs - build and execute command lines from standard input
  */
 suspend fun xargs(
-    stdInput: String,
-    noRunIfEmpty: Boolean = false,
-    command: String
+  stdInput: String,
+  noRunIfEmpty: Boolean = false,
+  command: String
 ): CompletedProcess {
   val arguments = mutableListOf("xargs")
   if (noRunIfEmpty) {
@@ -52,15 +52,14 @@ suspend fun xargs(
   arguments.add(command)
 
   return runProcess(arguments, stdIn = stdInput)
-
 }
 
 /**
  * ps - report a snapshot of the current processes.
  */
 suspend fun ps(
-    format: String? = null,
-    noHeaders: Boolean = false
+  format: String? = null,
+  noHeaders: Boolean = false
 ): CompletedProcess {
   val arguments = mutableListOf("ps")
   if (format != null) {

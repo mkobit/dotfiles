@@ -2,7 +2,6 @@ package com.mkobit.cdp.pdl
 
 import java.nio.file.Path
 
-
 private val domainRegex = Regex("^(experimental )?(deprecated )?domain (.*)")
 private val domainDependencyRegex = Regex("^ {2}depends on ([^\\s]+)")
 private val typeRegex = Regex("^ {2}(experimental )?(deprecated )?type (.*) extends (array of )?([^\\s]+)")
@@ -19,7 +18,6 @@ fun parse(path: Path) {
   // read comment header
   val (_, headerCommentOffset) = parseSection(lines, 0)
   val (version, versionOffset) = parseSection(lines, headerCommentOffset)
-
 
   TODO()
 }
@@ -68,9 +66,9 @@ private fun parseCommentSection(lines: List<String>, offset: Int): Pair<PdlSecti
 private sealed class PdlSection {
   data class CommentSection(val comment: String) : PdlSection()
   data class DomainSection(
-      val name: String,
-      val comment: CommentSection?,
-      val dependsOnReferences: List<String>
+    val name: String,
+    val comment: CommentSection?,
+    val dependsOnReferences: List<String>
   ) : PdlSection()
   data class TypeSection(val name: String) : PdlSection()
   data class CommandSection(val paramaters: List<CommandParamater>) {
@@ -78,20 +76,19 @@ private sealed class PdlSection {
   }
 }
 
-
 data class Definitions(
-    val version: Version,
-    val domains: Set<Domain>
+  val version: Version,
+  val domains: Set<Domain>
 )
 
 data class Version(val major: String, val minor: String)
 
 data class Domain(
-    val name: String,
-    val dependsOn: Set<Domain>,
-    val types: Set<Type>
+  val name: String,
+  val dependsOn: Set<Domain>,
+  val types: Set<Type>
 )
 
 data class Type(
-    val name: String
+  val name: String
 )

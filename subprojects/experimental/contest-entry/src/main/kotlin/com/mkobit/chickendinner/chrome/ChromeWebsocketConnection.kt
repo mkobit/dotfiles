@@ -10,8 +10,8 @@ import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicLong
 
 class ChromeWebsocketConnection(
-    private val session: WebSocketSession,
-    private val objectMapper: ObjectMapper
+  private val session: WebSocketSession,
+  private val objectMapper: ObjectMapper
 ) {
 
   private val counter = AtomicLong()

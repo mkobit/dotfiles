@@ -3,8 +3,6 @@ package com.mkobit.chickendinner.chrome.internal
 import arrow.core.None
 import arrow.core.Some
 import arrow.core.orElse
-import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.registerKotlinModule
 import com.mkobit.chickendinner.chrome.ChromeDebugger
 import com.mkobit.chickendinner.chrome.determineChromePortFromLog
 import com.mkobit.chickendinner.chrome.determineChromePortFromProfileFile
@@ -25,7 +23,7 @@ import java.nio.file.Paths
 
 object ChromeModule {
 
-  private val LOGGER = KotlinLogging.logger {  }
+  private val LOGGER = KotlinLogging.logger { }
 
   object Tag {
     /**

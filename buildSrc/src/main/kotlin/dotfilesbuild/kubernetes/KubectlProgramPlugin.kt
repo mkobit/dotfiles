@@ -11,6 +11,7 @@ import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.create
 import org.gradle.kotlin.dsl.existing
 import org.gradle.kotlin.dsl.getValue
+import org.gradle.kotlin.dsl.provideDelegate // ktlint-disable no-unused-imports
 import org.gradle.kotlin.dsl.registering
 import org.gradle.kotlin.dsl.property
 

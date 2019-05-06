@@ -11,7 +11,6 @@ import io.ktor.routing.get
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 
-
 fun main(args: Array<String>) {
   val server = embeddedServer(Netty, 8080) {
     install(Routing) {

@@ -1,8 +1,8 @@
 package com.mkobit.personalassistant.process
 
-//class ProcessModule(
+// class ProcessModule(
 //    private val launcherPoolSize: Int = 10
-//) : AbstractModule () {
+// ) : AbstractModule () {
 //  override fun configure() {
 //    bind(ChromeController::class.java).to(BackgroundProcessChromeController::class.java)
 //  }
@@ -11,7 +11,7 @@ package com.mkobit.personalassistant.process
 //  @Singleton
 //  @ProcessLauncherContext
 //  fun coroutinePool(): CoroutineContext = newFixedThreadPoolContext(launcherPoolSize, "ProcessLauncher pool")
-//}
+// }
 
 @Target(AnnotationTarget.VALUE_PARAMETER, AnnotationTarget.FUNCTION)
 annotation class ProcessLauncherContext

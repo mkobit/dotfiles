@@ -11,6 +11,7 @@ import org.gradle.api.plugins.BasePlugin
 import org.gradle.kotlin.dsl.apply
 import org.gradle.kotlin.dsl.existing
 import org.gradle.kotlin.dsl.getValue
+import org.gradle.kotlin.dsl.provideDelegate // ktlint-disable no-unused-imports
 import org.gradle.kotlin.dsl.registering
 
 class UnmanagedBinPlugin : Plugin<Project> {

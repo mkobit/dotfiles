@@ -10,8 +10,8 @@ import mu.KotlinLogging
 import kotlin.coroutines.CoroutineContext
 
 class BackgroundProcessChromeController constructor(
-    private val debugPort: Int,
-    private val processLauncherContext: CoroutineContext
+  private val debugPort: Int,
+  private val processLauncherContext: CoroutineContext
 ) : ChromeController {
 
   init {

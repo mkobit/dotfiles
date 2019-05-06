@@ -3,7 +3,6 @@ package com.mkobit.chickendinner
 import arrow.core.None
 import arrow.core.Some
 import com.google.api.services.gmail.Gmail
-import com.mkobit.cdp.domain.page.NavigateRequest
 import com.mkobit.chickendinner.chrome.ChromeDebugger
 import com.mkobit.chickendinner.chrome.determineChromePortFromProfileFile
 import com.mkobit.chickendinner.chrome.internal.ChromeModule
@@ -77,16 +76,16 @@ object Main {
 //      launch(Dispatchers.Default) {
 //        val emailMessages = retriever.retrieveEmails()
 //        for (message in emailMessages) {
-////          println(message)
+// //          println(message)
 //          if (message.payload?.parts == null) {
 //            println("empty parts - ${message.snippet}")
 //          }
 //          message.payload?.parts?.let { parts ->
 //            for (part in parts) {
-////              println("${part.mimeType} - ${message.snippet}: ${part.body.decodeData().toString(UTF_8)}")
+// //              println("${part.mimeType} - ${message.snippet}: ${part.body.decodeData().toString(UTF_8)}")
 //              println("(parts = ${parts.size}) ${part.mimeType} - ${message.snippet}")
-////              println(part.)
-////              println("${message.snippet}")
+// //              println(part.)
+// //              println("${message.snippet}")
 //            }
 //
 //          }
@@ -135,7 +134,7 @@ object Main {
 //        logger.info { "Chrome Version: $version" }
 //        version.webSocketDebuggerUrl
 //      val path = retrievePages(client, chromeDebugPort).let { pages ->
-////        logger.debug { "Current open pages: $pages" }
+// //        logger.debug { "Current open pages: $pages" }
 //        pages.first().webSocketDebuggerUrl.run {
 //          subSequence(indexOf("/devtools"), length)
 //        }

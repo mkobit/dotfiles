@@ -27,9 +27,9 @@ import java.nio.file.Path
 private val LOGGER = KotlinLogging.logger { }
 
 data class ChromeDebugProtocolGenerationRequest(
-    val basePackage: String,
-    val protocolJsonFiles: List<Path>,
-    val destinationBaseDirectory: Path
+  val basePackage: String,
+  val protocolJsonFiles: List<Path>,
+  val destinationBaseDirectory: Path
 ) {
   init {
     protocolJsonFiles.forEach {
@@ -97,9 +97,9 @@ private fun generateDomain(request: ChromeDebugProtocolGenerationRequest, domain
 }
 
 private fun generateCommands(
-    domainNode: JsonNode,
-    request: ChromeDebugProtocolGenerationRequest,
-    experimental: AnnotationSpec
+  domainNode: JsonNode,
+  request: ChromeDebugProtocolGenerationRequest,
+  experimental: AnnotationSpec
 ) {
   val domain = domainNode["domain"].asText()
   val domainsNode = domainNode["commands"]
@@ -194,10 +194,10 @@ private fun generateCommands(
 }
 
 private fun generateTypes(
-    domain: String,
-    request: ChromeDebugProtocolGenerationRequest,
-    typesNode: JsonNode,
-    experimental: AnnotationSpec
+  domain: String,
+  request: ChromeDebugProtocolGenerationRequest,
+  typesNode: JsonNode,
+  experimental: AnnotationSpec
 ) {
   val fileSpecBuilder = FileSpec.builder(request.packageNameForDomain(domain), "types")
 
@@ -297,9 +297,11 @@ private fun generateTypes(
   fileSpec.writeTo(request.destinationBaseDirectory)
 }
 
-private fun determineTypeForNode(domain: String,
-                                 request: ChromeDebugProtocolGenerationRequest,
-                                 node: JsonNode): TypeName {
+private fun determineTypeForNode(
+  domain: String,
+  request: ChromeDebugProtocolGenerationRequest,
+  node: JsonNode
+): TypeName {
   val propertyType: String? = node["type"]?.asText()
   val propertyRef: String? = node["\$ref"]?.asText()
   val isPropertyOptional = node["optional"]?.asBoolean() ?: false

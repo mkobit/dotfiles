@@ -7,5 +7,4 @@ package com.mkobit.chickendinner.gmail
 // 4) registered handler runs business logic for specific email type
 //   4.a) parse email, send to downstream commands,
 // 5) archive email, store results whatever
-interface EmailHandler {
-}
+interface EmailHandler

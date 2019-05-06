@@ -4,6 +4,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
   java
   application
+  id("org.jlleitschuh.gradle.ktlint")
   kotlin("jvm")
 }
 
@@ -16,6 +17,10 @@ repositories {
   maven(url = "https://dl.bintray.com/kotlin/kotlinx") {
     name = "kotlinx"
   }
+}
+
+ktlint {
+  version.set("0.32.0")
 }
 
 dependencies {

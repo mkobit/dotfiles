@@ -8,6 +8,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
   id("com.gradle.build-scan") version "2.3"
   id("com.github.ben-manes.versions") version "0.21.0"
+  id("org.jlleitschuh.gradle.ktlint") version "7.4.0"
   kotlin("jvm") version "1.3.31" apply false
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.5" apply false
 
@@ -37,6 +38,14 @@ description = "Dotfiles and package management"
 val personalWorkspaceDirectory: Directory = locations.workspace.dir("personal")
 val workWorkspaceDirectory: Directory = locations.workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = locations.workspace.dir("code_lab")
+
+ktlint {
+  version.set("0.32.0")
+}
+
+repositories {
+  jcenter()
+}
 
 // IntelliJ Regex:
 // ^(\w+[:@/]+\w+.com[:/]?([\w\d-]+)/([\w\d-\.]+)\.git)$
@@ -224,7 +233,6 @@ versionControlTracking {
       }
       register("joel-costigliola") {
         vcs {
-
         }
       }
       register("johnrengelman") {
@@ -456,7 +464,7 @@ kubectl {
 
 allprojects {
   tasks.withType<KotlinCompile>().configureEach {
-    kotlinOptions{
+    kotlinOptions {
       freeCompilerArgs += listOf("-progressive")
       jvmTarget = "1.8"
     }
