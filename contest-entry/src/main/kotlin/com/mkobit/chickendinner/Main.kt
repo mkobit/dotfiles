@@ -1,22 +1,29 @@
 package com.mkobit.chickendinner
 
+import arrow.core.None
+import arrow.core.Some
 import com.google.api.services.gmail.Gmail
+import com.mkobit.cdp.domain.page.NavigateRequest
+import com.mkobit.chickendinner.chrome.ChromeDebugger
+import com.mkobit.chickendinner.chrome.determineChromePortFromProfileFile
 import com.mkobit.chickendinner.chrome.internal.ChromeModule
 import com.mkobit.chickendinner.gmail.EmailRetriever
 import com.mkobit.chickendinner.gmail.internal.GmailModule
 import com.typesafe.config.Config
 import com.typesafe.config.ConfigFactory
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.time.delay
 import mu.KotlinLogging
 import org.kodein.di.Kodein
 import org.kodein.di.generic.bind
+import org.kodein.di.generic.factory
 import org.kodein.di.generic.instance
 import org.kodein.di.generic.provider
 import org.kodein.di.generic.singleton
+import java.lang.Exception
 import java.nio.file.Path
 import java.nio.file.Paths
+import java.time.Duration
 
 object Main {
 
@@ -66,58 +73,67 @@ object Main {
   fun main(args: Array<String>) {
 //    ensureGmailLabelsPresent(injector)
     val retriever: EmailRetriever by injector.instance()
-    runBlocking {
-      launch(Dispatchers.Default) {
-        val emailMessages = retriever.retrieveEmails()
-        for (message in emailMessages) {
-//          println(message)
-          if (message.payload?.parts == null) {
-            println("empty parts - ${message.snippet}")
-          }
-          message.payload?.parts?.let { parts ->
-            for (part in parts) {
-//              println("${part.mimeType} - ${message.snippet}: ${part.body.decodeData().toString(UTF_8)}")
-              println("(parts = ${parts.size}) ${part.mimeType} - ${message.snippet}")
-//              println(part.)
-//              println("${message.snippet}")
-            }
-
-          }
-        }
-      }.join()
-    }
-//    runBlocking(Dispatchers.Default) {
-//      val emailsChannel = Channel<>()
+//    runBlocking {
+//      launch(Dispatchers.Default) {
+//        val emailMessages = retriever.retrieveEmails()
+//        for (message in emailMessages) {
+////          println(message)
+//          if (message.payload?.parts == null) {
+//            println("empty parts - ${message.snippet}")
+//          }
+//          message.payload?.parts?.let { parts ->
+//            for (part in parts) {
+////              println("${part.mimeType} - ${message.snippet}: ${part.body.decodeData().toString(UTF_8)}")
+//              println("(parts = ${parts.size}) ${part.mimeType} - ${message.snippet}")
+////              println(part.)
+////              println("${message.snippet}")
+//            }
+//
+//          }
+//        }
+//      }.join()
 //    }
-//    val chromeLogs: Path by injector.instance(tag = ChromeOutputLog)
-//    val chromeDebugPort = determineChromePortFromLog(chromeLogs.toFile().readText())
+
+    runBlocking {
+      val chromeLogs: Path by injector.instance()
+//      val chromeDebugPort = determineChromePortFromLog(chromeLogs.toFile().readText())
 //        .orElse { determineChromePortFromProfileFile() }.let {
 //          when (it) {
 //            is Some -> it.t
 //            is None -> throw RuntimeException("Could not determine Chrome debug port")
 //          }
 //        }
-//    logger.info { "Chrome debug port determined to be running on $chromeDebugPort" }
-//
-//    val chromeDebugger = run {
-//      val debuggerFactory: (Int) -> ChromeDebugger by injector.factory()
-//      debuggerFactory(chromeDebugPort)
-//    }
-//
-//    runBlocking {
-//      chromeDebugger.version().let { logger.info { "Chrome version: $it" } }
-//      chromeDebugger.openedPages().forEach {
-//        println("${it.title} -> ${it.id}")
-//      }
-//      val page = chromeDebugger.newPage()
-//      delay(Duration.ofSeconds(5L))
-//        chromeDebugger.withConnection(page) {
-//          send(NavigateRequest("https://google.com"))
-//        }
-//      chromeDebugger.close(page)
+      val chromeDebugPort = determineChromePortFromProfileFile().let {
+          when (it) {
+            is Some -> it.t
+            is None -> throw RuntimeException("Could not determine Chrome debug port")
+          }
+        }
+      logger.info { "Chrome debug port determined to be running on $chromeDebugPort" }
+
+      val chromeDebugger = run {
+        val debuggerFactory: (Int) -> ChromeDebugger by injector.factory()
+        debuggerFactory(chromeDebugPort)
+      }
+
+      chromeDebugger.version().let { logger.info { "Chrome version: $it" } }
+      chromeDebugger.openedPages().forEach {
+        println("${it.title} -> ${it.id}")
+      }
+      val page = chromeDebugger.newPage()
+      chromeDebugger.withConnection(page) {
+//        pageDomain.navigate(NavigateRequest("https://google.com", null, null, null))
+        try {
+          val version = browserDomain.getVersion()
+          logger.info { "Version: $version" }
+        } catch (exception: Exception) {
+          logger.error(exception) { "wtf" }
+        }
+      }
+      delay(Duration.ofSeconds(5L))
+      chromeDebugger.close(page)
 //        logger.info { "Chrome Version: $version" }
 //        version.webSocketDebuggerUrl
-//      }
 //      val path = retrievePages(client, chromeDebugPort).let { pages ->
 ////        logger.debug { "Current open pages: $pages" }
 //        pages.first().webSocketDebuggerUrl.run {
@@ -146,11 +162,7 @@ object Main {
 //            is Frame.Text -> println(it.readText())
 //          }
 //        }
-////        for (message in incoming) {
-////          println(message)
-////        }
-//      }
-//    }
+    }
   }
 
   private fun ensureGmailLabelsPresent(kodein: Kodein) {

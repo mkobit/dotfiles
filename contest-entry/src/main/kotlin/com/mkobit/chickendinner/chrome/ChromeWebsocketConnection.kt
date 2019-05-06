@@ -1,8 +1,10 @@
 package com.mkobit.chickendinner.chrome
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.fasterxml.jackson.module.kotlin.readValue
-import io.ktor.http.cio.websocket.Frame
+import com.mkobit.cdp.domain.browser.BrowserDomain
+import com.mkobit.cdp.domain.page.PageDomain
+import com.mkobit.chickendinner.chrome.internal.cdp.KtorClientWebsocketBrowserDomain
+import com.mkobit.chickendinner.chrome.internal.cdp.KtorClientWebsocketPageDomain
 import io.ktor.http.cio.websocket.WebSocketSession
 import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicLong
@@ -18,14 +20,9 @@ class ChromeWebsocketConnection(
     private val logger = KotlinLogging.logger { }
   }
 
-  suspend fun send(method: String, params: Any?): ResponseFrame {
-//    val requestFrame = RequestFrame(counter.incrementAndGet(), method, params)
-//    session.outgoing.send(Frame.Text(objectMapper.writeValueAsString(requestFrame)))
-//    for (frame in session.incoming) {
-//      if (frame is Frame.Text) {
-//        return objectMapper.readValue<ResponseFrame>(frame.buffer.array())
-//      }
-//    }
-    TODO()
-  }
+  val pageDomain: PageDomain
+    get() = KtorClientWebsocketPageDomain(session, objectMapper, counter)
+
+  val browserDomain: BrowserDomain
+    get() = KtorClientWebsocketBrowserDomain(session, objectMapper, counter)
 }
