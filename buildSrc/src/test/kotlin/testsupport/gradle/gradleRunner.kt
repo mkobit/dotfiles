@@ -4,7 +4,7 @@ import com.mkobit.gradle.test.kotlin.testkit.runner.projectDirPath
 import org.gradle.testkit.runner.GradleRunner
 import java.nio.file.Path
 
-fun newGradleRunner(path: Path, configuration: GradleRunner.() -> Unit = {}) = GradleRunner.create().apply {
+fun newGradleRunner(path: Path, configuration: GradleRunner.() -> Unit = {}): GradleRunner = GradleRunner.create().apply {
   projectDirPath = path
   withPluginClasspath()
   configuration()

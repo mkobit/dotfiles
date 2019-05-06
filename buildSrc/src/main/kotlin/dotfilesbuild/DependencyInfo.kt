@@ -33,7 +33,9 @@ object DependencyInfo {
   val okHttpClient = okHttp("okhttp")
   const val picoCli = "info.picocli:picocli:3.9.6"
   const val kotlinLogging = "io.github.microutils:kotlin-logging:1.6.26"
-  const val strikt = "io.strikt:strikt-core:0.19.7"
+  private const val striktVersion = "0.20.0"
+  const val strikt = "io.strikt:strikt-core:$striktVersion"
+  const val striktGradle = "io.strikt:strikt-gradle:$striktVersion"
 
   val junitTestImplementationArtifacts = listOf(
       junitPlatformRunner,

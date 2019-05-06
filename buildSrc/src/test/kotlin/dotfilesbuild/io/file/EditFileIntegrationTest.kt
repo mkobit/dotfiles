@@ -6,15 +6,13 @@ import com.mkobit.gradle.test.kotlin.testkit.runner.build
 import com.mkobit.gradle.test.kotlin.testkit.runner.setupProjectDir
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.junitpioneer.jupiter.TempDirectory
+import org.junit.jupiter.api.io.TempDir
 import testsupport.gradle.newGradleRunner
 import java.nio.file.Path
 
-@ExtendWith(TempDirectory::class)
 internal class EditFileIntegrationTest {
   @Test
-  internal fun `edit the content of a file with multiple actions`(@TempDirectory.TempDir projectDir: Path) {
+  internal fun `edit the content of a file with multiple actions`(@TempDir projectDir: Path) {
     val result = newGradleRunner(projectDir).setupProjectDir {
       "build.gradle"(content = Original) {
         append("""
@@ -70,7 +68,7 @@ internal class EditFileIntegrationTest {
   }
 
   @Test
-  internal fun `editing a file where no actions are applied result in an UP-TO-DATE task and the file is unchanged`(@TempDirectory.TempDir projectDir: Path) {
+  internal fun `editing a file where no actions are applied result in an UP-TO-DATE task and the file is unchanged`(@TempDir projectDir: Path) {
     val originalText = """
       first
       second
@@ -114,7 +112,7 @@ internal class EditFileIntegrationTest {
   }
 
   @Test
-  internal fun `editing a file with no actions results in empty file being created`(@TempDirectory.TempDir projectDir: Path) {
+  internal fun `editing a file with no actions results in empty file being created`(@TempDir projectDir: Path) {
     val gradleRunner = newGradleRunner(projectDir)
 
     gradleRunner.setupProjectDir {

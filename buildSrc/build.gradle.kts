@@ -19,53 +19,49 @@ java {
   targetCompatibility = JavaVersion.VERSION_11
 }
 
-val junitPlatformVersion: String = "1.4.2"
-val junitJupiterVersion: String = "5.4.2"
-val junit5Log4jVersion: String = "2.11.2"
-
-val junitPlatformRunner = "org.junit.platform:junit-platform-runner:$junitPlatformVersion"
-val junitJupiterApi = "org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion"
-val junitJupiterParams = "org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion"
 
 val junitTestImplementationArtifacts = listOf(
-    junitPlatformRunner,
-    junitJupiterApi,
-    junitJupiterParams
+  "org.junit.platform:junit-platform-runner",
+  "org.junit.jupiter:junit-jupiter-api",
+  "org.junit.jupiter:junit-jupiter-params"
 )
-
-val assertJCore = "org.assertj:assertj-core:3.12.2"
-val junitPioneer = "org.junit-pioneer:junit-pioneer:0.3.0"
-val log4jCore = "org.apache.logging.log4j:log4j-core:$junit5Log4jVersion"
-val log4jJul = "org.apache.logging.log4j:log4j-jul:$junit5Log4jVersion"
-val mockitoCore = "org.mockito:mockito-core:2.27.0"
-val mockitoKotlin = "com.nhaarman.mockitokotlin2:mockito-kotlin:2.1.0"
-val junitJupiterEngine = "org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion"
-val strikt = "io.strikt:strikt-core:0.19.7"
 
 val junitTestRuntimeOnlyArtifacts = listOf(
-    junitJupiterEngine,
-    log4jCore,
-    log4jJul
+  "org.junit.jupiter:junit-jupiter-engine",
+  "org.apache.logging.log4j:log4j-core",
+  "org.apache.logging.log4j:log4j-jul"
 )
 
-val arrowVersion by extra { "0.8.2" }
+configurations.all {
+  resolutionStrategy.eachDependency {
+    when (requested.group) {
+      "io.arrow-kt" -> useVersion("0.8.2")
+      "org.junit.jupiter" -> useVersion("5.4.2")
+      "org.junit.platform" -> useVersion("1.4.2")
+      "io.strikt" -> useVersion("0.20.0")
+      "org.apache.logging.log4j" -> useVersion("2.11.2")
+    }
+  }
+}
+
 dependencies {
-  implementation("io.arrow-kt:arrow-core:$arrowVersion")
-  implementation("io.arrow-kt:arrow-effects:$arrowVersion")
-  implementation("io.arrow-kt:arrow-syntax:$arrowVersion")
-  implementation("io.arrow-kt:arrow-typeclasses:$arrowVersion")
+  implementation("io.arrow-kt:arrow-core")
+  implementation("io.arrow-kt:arrow-effects")
+  implementation("io.arrow-kt:arrow-syntax")
+  implementation("io.arrow-kt:arrow-typeclasses")
   implementation("com.squareup.retrofit2:retrofit:2.5.0")
   implementation("com.squareup.okhttp3:okhttp:3.14.1")
   implementation("io.github.microutils:kotlin-logging:1.6.26")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:5.3.0.201903130848-r")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.3.1.201904271842-r")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.6.0")
-  testImplementation(assertJCore)
-  testImplementation(mockitoCore)
-  testImplementation(mockitoKotlin)
-  testImplementation(junitPioneer)
-  testImplementation(strikt)
+  testImplementation("org.assertj:assertj-core:3.12.2")
+  testImplementation("org.mockito:mockito-core:2.27.0")
+  testImplementation("com.nhaarman.mockitokotlin2:mockito-kotlin:2.1.0")
+  testImplementation("io.mockk:mockk:1.9.3")
+  testImplementation("io.strikt:strikt-core")
+  testImplementation("io.strikt:strikt-gradle")
   junitTestImplementationArtifacts.forEach {
     testImplementation(it)
   }

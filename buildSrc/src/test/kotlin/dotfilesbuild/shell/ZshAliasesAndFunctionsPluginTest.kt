@@ -3,24 +3,19 @@ package dotfilesbuild.shell
 import com.mkobit.gradle.test.kotlin.testkit.runner.build
 import com.mkobit.gradle.test.kotlin.testkit.runner.setupProjectDir
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.extension.ExtendWith
-import org.junitpioneer.jupiter.TempDirectory
+import org.junit.jupiter.api.io.TempDir
 import strikt.api.expectThat
 import strikt.assertions.contains
 import testsupport.gradle.newGradleRunner
-import testsupport.jupiter.NotImplementedYet
 import testsupport.strikt.content
-import testsupport.strikt.doesNotExist
 import testsupport.strikt.exists
-import testsupport.strikt.isDirectory
 import testsupport.strikt.projectDir
 import testsupport.strikt.resolvePath
 import java.nio.file.Path
 
-@ExtendWith(TempDirectory::class)
 internal class ZshAliasesAndFunctionsPluginTest {
   @Test
-  internal fun `source functions of source controlled files added to generated zsh file`(@TempDirectory.TempDir tempDir: Path) {
+  internal fun `source functions of source controlled files added to generated zsh file`(@TempDir tempDir: Path) {
     val runner = newGradleRunner(tempDir) {
       setupProjectDir {
         "build.gradle.kts" {
