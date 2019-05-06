@@ -5,7 +5,7 @@ import org.gradle.api.Project
 import org.gradle.api.file.Directory
 import org.gradle.kotlin.dsl.add
 
-open class LocationsPlugin : Plugin<Project> {
+class LocationsPlugin : Plugin<Project> {
   override fun apply(target: Project) {
     target.run {
       val userHome: String = System.getProperty("user.home")

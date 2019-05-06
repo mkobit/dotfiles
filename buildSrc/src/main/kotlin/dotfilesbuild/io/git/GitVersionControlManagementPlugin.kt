@@ -13,7 +13,7 @@ import org.gradle.kotlin.dsl.register
 import org.gradle.kotlin.dsl.withType
 import javax.inject.Inject
 
-open class GitVersionControlManagementPlugin @Inject constructor(
+class GitVersionControlManagementPlugin @Inject constructor(
   private val providerFactory: ProviderFactory
 ) : Plugin<Project> {
   override fun apply(target: Project) {

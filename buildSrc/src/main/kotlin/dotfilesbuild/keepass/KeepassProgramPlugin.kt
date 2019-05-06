@@ -15,7 +15,7 @@ import org.gradle.kotlin.dsl.property
 import org.gradle.kotlin.dsl.register
 import java.util.concurrent.Callable
 
-open class KeepassProgramPlugin : Plugin<Project> {
+class KeepassProgramPlugin : Plugin<Project> {
 
   companion object {
     private val log = KotlinLogging.logger { }

@@ -16,7 +16,7 @@ import org.gradle.kotlin.dsl.newInstance
 import org.gradle.kotlin.dsl.register
 import javax.inject.Inject
 
-open class VersionControlManagementPlugin @Inject constructor(private val instantiator: Instantiator) : Plugin<Project> {
+class VersionControlManagementPlugin @Inject constructor(private val instantiator: Instantiator) : Plugin<Project> {
 
   companion object {
     private const val EXTENSION_NAME = "versionControlTracking"
