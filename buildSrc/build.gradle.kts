@@ -1,8 +1,6 @@
 plugins {
   `java-library`
   `kotlin-dsl`
-  `kotlin-dsl-precompiled-script-plugins`
-  `java-gradle-plugin`
 
   id("com.github.ben-manes.versions") version "0.21.0"
 }
