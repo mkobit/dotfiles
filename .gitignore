@@ -1,3 +1,5 @@
+.gradle-build-cache/
+
 # Created by https://www.gitignore.io/api/vim,osx,java,linux,gradle,windows,intellij,intellij+iml,intellij+all
 # Edit at https://www.gitignore.io/?templates=vim,osx,java,linux,gradle,windows,intellij,intellij+iml,intellij+all
 

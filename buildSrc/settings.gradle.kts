@@ -1,6 +1,1 @@
-buildCache {
-  local(DirectoryBuildCache::class) {
-    isEnabled = true
-    setDirectory(file(".gradle-buildsrc-cache"))
-  }
-}
+apply(from = file("../gradle/buildCache.settings.gradle.kts"))
