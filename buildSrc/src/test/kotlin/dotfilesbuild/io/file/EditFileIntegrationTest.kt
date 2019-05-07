@@ -66,9 +66,6 @@ internal class EditFileIntegrationTest {
       }
     }.build("convergeFile")
 
-    println(Files.readAllLines(directory.resolve("myfile.txt")))
-    println(Files.readAllBytes(directory.resolve("myfile.txt")).toString(Charsets.UTF_8))
-
     expectThat(result) {
       task(":convergeFile")
         .isNotNull()
