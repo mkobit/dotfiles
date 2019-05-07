@@ -6,11 +6,11 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import strikt.api.expectThat
 import strikt.assertions.contains
+import strikt.assertions.exists
+import strikt.assertions.resolve
 import testsupport.gradle.newGradleRunner
 import testsupport.strikt.content
-import testsupport.strikt.exists
 import testsupport.strikt.projectDir
-import testsupport.strikt.resolvePath
 import java.nio.file.Path
 
 internal class SourceControlledBinPluginTest {
@@ -30,10 +30,11 @@ internal class SourceControlledBinPluginTest {
 
     runner.build("generateZshrcFile").let { result ->
       expectThat(result) {
-        projectDir.resolvePath("build/zsh/generated_zshrc")
-            .exists()
-            .content
-            .contains("""export PATH="${'$'}PATH:${result.projectDir.resolve("bin").toAbsolutePath()}" # dotfiles: source controlled bin files""")
+        projectDir
+          .resolve("build/zsh/generated_zshrc")
+          .exists()
+          .content
+          .contains("""export PATH="${'$'}PATH:${result.projectDir.resolve("bin").toAbsolutePath()}" # dotfiles: source controlled bin files""")
       }
     }
   }

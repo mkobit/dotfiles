@@ -1,19 +1,30 @@
 package dotfilesbuild.io.file
 
-import com.mkobit.gradle.test.assertj.GradleAssertions.assertThat
 import com.mkobit.gradle.test.kotlin.io.Original
 import com.mkobit.gradle.test.kotlin.testkit.runner.build
 import com.mkobit.gradle.test.kotlin.testkit.runner.setupProjectDir
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import strikt.api.expectThat
+import strikt.assertions.allLines
+import strikt.assertions.containsExactly
+import strikt.assertions.isEqualTo
+import strikt.assertions.isNotNull
+import strikt.assertions.isRegularFile
+import strikt.assertions.resolve
+import strikt.gradle.testkit.isSuccess
+import strikt.gradle.testkit.isUpToDate
+import strikt.gradle.testkit.task
 import testsupport.gradle.newGradleRunner
+import testsupport.strikt.content
+import testsupport.strikt.projectDir
+import java.nio.file.Files
 import java.nio.file.Path
 
 internal class EditFileIntegrationTest {
   @Test
-  internal fun `edit the content of a file with multiple actions`(@TempDir projectDir: Path) {
-    val result = newGradleRunner(projectDir).setupProjectDir {
+  internal fun `edit the content of a file with multiple actions`(@TempDir directory: Path) {
+    val result = newGradleRunner(directory).setupProjectDir {
       "build.gradle"(content = Original) {
         append("""
           import dotfilesbuild.io.file.EditFile
@@ -41,40 +52,50 @@ internal class EditFileIntegrationTest {
         appendNewline()
       }
       "myfile.txt"(content = Original) {
-        append("""
-          first
-          second
-          third
-          forth
-          fifth
-          sixth
-        """.trimIndent())
+        append(
+          """
+            first
+            second
+            third
+            forth
+            fifth
+            sixth
+          """.trimIndent()
+        )
         appendNewline()
       }
     }.build("convergeFile")
 
-    assertThat(result)
-        .hasTaskSuccessAtPath(":convergeFile")
-    assertThat(result.projectDir.resolve("myfile.txt"))
-        .hasContent("""
-          first
-          second
-          third
-          fifth
-          sixth
-          seventh
-          eighth
-        """.trimIndent() + System.lineSeparator())
+    println(Files.readAllLines(directory.resolve("myfile.txt")))
+    println(Files.readAllBytes(directory.resolve("myfile.txt")).toString(Charsets.UTF_8))
+
+    expectThat(result) {
+      task(":convergeFile")
+        .isNotNull()
+        .isSuccess()
+      projectDir
+        .resolve("myfile.txt")
+        .allLines()
+        .containsExactly(
+          "first",
+          "second",
+          "third",
+          "fifth",
+          "sixth",
+          "seventh",
+          "eighth"
+        )
+    }
   }
 
   @Test
-  internal fun `editing a file where no actions are applied result in an UP-TO-DATE task and the file is unchanged`(@TempDir projectDir: Path) {
+  internal fun `editing a file where no actions are applied result in an UP-TO-DATE task and the file is unchanged`(@TempDir directory: Path) {
     val originalText = """
       first
       second
       third
     """.trimIndent()
-    val gradleRunner = newGradleRunner(projectDir)
+    val gradleRunner = newGradleRunner(directory)
 
     gradleRunner.setupProjectDir {
       "build.gradle"(content = Original) {
@@ -103,17 +124,22 @@ internal class EditFileIntegrationTest {
       "myfile.txt"(content = originalText)
     }.build("convergeFile")
 
-    val result = gradleRunner.build("convergeFile")
+    expectThat(gradleRunner.build("convergeFile")) {
+      task(":convergeFile")
+        .isNotNull()
+        .isUpToDate()
 
-    assertThat(result)
-        .hasTaskUpToDateAtPath(":convergeFile")
-    assertThat(result.projectDir.resolve("myfile.txt"))
-        .hasContent(originalText)
+      projectDir
+        .resolve("myfile.txt")
+        .isRegularFile()
+        .content
+        .isEqualTo(originalText)
+    }
   }
 
   @Test
-  internal fun `editing a file with no actions results in empty file being created`(@TempDir projectDir: Path) {
-    val gradleRunner = newGradleRunner(projectDir)
+  internal fun `editing a file with no actions results in empty file being created`(@TempDir directory: Path) {
+    val gradleRunner = newGradleRunner(directory)
 
     gradleRunner.setupProjectDir {
       "build.gradle"(content = Original) {
@@ -133,12 +159,16 @@ internal class EditFileIntegrationTest {
       }
     }.build("convergeFile")
 
-    val result = gradleRunner.build("convergeFile")
+    expectThat(gradleRunner.build("convergeFile")) {
+      task(":convergeFile")
+        .isNotNull()
+        .isUpToDate()
 
-    assertThat(result)
-        .hasTaskUpToDateAtPath(":convergeFile")
-    assertThat(result.projectDir.resolve("myfile.txt"))
+      projectDir
+        .resolve("myfile.txt")
         .isRegularFile()
-        .hasContent("")
+        .content
+        .isEqualTo("")
+    }
   }
 }

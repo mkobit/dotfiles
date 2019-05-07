@@ -6,13 +6,12 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import strikt.api.expectThat
 import strikt.assertions.contains
+import strikt.assertions.exists
+import strikt.assertions.isDirectory
+import strikt.assertions.resolve
 import testsupport.gradle.newGradleRunner
 import testsupport.strikt.content
-import testsupport.strikt.doesNotExist
-import testsupport.strikt.exists
-import testsupport.strikt.isDirectory
 import testsupport.strikt.projectDir
-import testsupport.strikt.resolvePath
 import java.nio.file.Path
 
 internal class ManagedBinPluginTest {
@@ -30,23 +29,22 @@ internal class ManagedBinPluginTest {
       }
     }
 
-    runner.build("generateZshrcFile").let { result ->
-      expectThat(result) {
-        projectDir.resolvePath("build/managed_bin")
-            .exists()
-            .isDirectory()
-        projectDir.resolvePath("build/zsh/generated_zshrc")
-            .exists()
-            .content
-            .contains("""export PATH="${'$'}PATH:${result.projectDir.resolve("build/managed_bin").toAbsolutePath()}" # dotfiles: dotfiles managed bin files""")
-      }
+    expectThat(runner.build("generateZshrcFile")) {
+      projectDir
+        .resolve("build/managed_bin")
+        .exists()
+        .isDirectory()
+      projectDir
+        .resolve("build/zsh/generated_zshrc")
+        .exists()
+        .content
+        .contains("""export PATH="${'$'}PATH:${tempDir.resolve("build/managed_bin").toAbsolutePath()}" # dotfiles: dotfiles managed bin files""")
     }
 
-    runner.build("clean").let { result ->
-      expectThat(result) {
-        projectDir.resolvePath("build/managed_bin")
-            .doesNotExist()
-      }
+    expectThat(runner.build("clean")) {
+      projectDir
+        .resolve("build/managed_bin")
+        .not { exists() }
     }
   }
 }

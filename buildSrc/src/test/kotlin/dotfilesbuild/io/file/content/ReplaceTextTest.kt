@@ -2,8 +2,9 @@ package dotfilesbuild.io.file.content
 
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
-import testsupport.strikt.leftWithValue
-import testsupport.strikt.rightWithValue
+import strikt.assertions.isEqualTo
+import testsupport.strikt.isLeft
+import testsupport.strikt.isRight
 
 internal class ReplaceTextTest {
 
@@ -15,7 +16,8 @@ internal class ReplaceTextTest {
     val result = replaceText.applyTo(text)
 
     expectThat(result)
-        .rightWithValue(replacementText)
+      .isRight()
+      .isEqualTo(replacementText)
   }
 
   @Test
@@ -25,7 +27,8 @@ internal class ReplaceTextTest {
     val result = replaceText.applyTo(text)
 
     expectThat(result)
-        .leftWithValue(text)
+      .isLeft()
+      .isEqualTo(text)
   }
 
   @Test
@@ -36,10 +39,13 @@ internal class ReplaceTextTest {
     val result = replaceText.applyTo(text)
 
     expectThat(result)
-        .rightWithValue("""
+      .isRight()
+      .isEqualTo(
+        """
           $text
           $replacementText
-        """.trimIndent())
+        """.trimIndent()
+      )
   }
 
   @Test
@@ -50,6 +56,7 @@ internal class ReplaceTextTest {
     val result = replaceText.applyTo(text)
 
     expectThat(result)
-        .leftWithValue(text)
+      .isLeft()
+      .isEqualTo(text)
   }
 }

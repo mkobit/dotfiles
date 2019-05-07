@@ -3,30 +3,22 @@ package testsupport.strikt
 import arrow.core.Either
 import strikt.api.Assertion
 
-fun <L, R> Assertion.Builder<Either<L, R>>.rightWithValue(value: R) =
-    assert("is right with value %s", value) {
-      when (it) {
-        is Either.Right -> {
-          if (it.b == value) {
-            pass()
-          } else {
-            fail(actual = it.b, description = "right value was actually %s")
-          }
-        }
-        is Either.Left -> fail(actual = it.a, description = "was right with value %s")
-      }
+@Suppress("UNCHECKED_CAST")
+fun <L, R, E : Either<L, R>> Assertion.Builder<E>.isRight(): Assertion.Builder<R> =
+  assert("is right") {
+    when {
+      it.isRight() -> pass()
+      it.isLeft() -> fail(actual = it, description = "was left")
     }
+  }.get { this as Either.Right<R> }
+    .get { b }
 
-fun <L, R> Assertion.Builder<Either<L, R>>.leftWithValue(value: R) =
-    assert("is left with value", value) {
-      when (it) {
-        is Either.Right -> fail(actual = it.b, description = "was right with value %s")
-        is Either.Left -> {
-          if (it.a == value) {
-            pass()
-          } else {
-            fail(actual = it.a, description = "left value was actually %s")
-          }
-        }
-      }
+@Suppress("UNCHECKED_CAST")
+fun <L, R, E : Either<L, R>> Assertion.Builder<E>.isLeft(): Assertion.Builder<L> =
+  assert("is right") {
+    when {
+      it.isRight() -> fail(actual = it, description = "was right")
+      it.isLeft() -> pass()
     }
+  }.get { this as Either.Left<L> }
+    .get { a }

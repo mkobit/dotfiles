@@ -6,11 +6,11 @@ import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import strikt.api.expectThat
 import strikt.assertions.contains
+import strikt.assertions.exists
+import strikt.assertions.resolve
 import testsupport.gradle.newGradleRunner
 import testsupport.strikt.content
-import testsupport.strikt.exists
 import testsupport.strikt.projectDir
-import testsupport.strikt.resolvePath
 import java.nio.file.Path
 
 internal class ZshAliasesAndFunctionsPluginTest {
@@ -28,14 +28,13 @@ internal class ZshAliasesAndFunctionsPluginTest {
       }
     }
 
-    runner.build("generateZshrcFile").let { result ->
-      expectThat(result) {
-        projectDir.resolvePath("build/zsh/generated_zshrc")
-            .exists()
-            .content
-            .contains(""". "${result.projectDir.resolve("zsh/aliases.source").toAbsolutePath()}" # dotfiles: aliases.source""")
-            .contains(""". "${result.projectDir.resolve("zsh/functions.source").toAbsolutePath()}" # dotfiles: functions.source""")
-      }
+    expectThat(runner.build("generateZshrcFile")) {
+      projectDir
+        .resolve("build/zsh/generated_zshrc")
+        .exists()
+        .content
+        .contains(""". "${tempDir.resolve("zsh/aliases.source").toAbsolutePath()}" # dotfiles: aliases.source""")
+        .contains(""". "${tempDir.resolve("zsh/functions.source").toAbsolutePath()}" # dotfiles: functions.source""")
     }
   }
 }

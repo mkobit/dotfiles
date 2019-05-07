@@ -2,9 +2,10 @@ package dotfilesbuild.io.file.content
 
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
+import strikt.assertions.isEqualTo
 import testsupport.jupiter.NotImplementedYet
-import testsupport.strikt.leftWithValue
-import testsupport.strikt.rightWithValue
+import testsupport.strikt.isLeft
+import testsupport.strikt.isRight
 
 internal class SearchTextReplaceLineTest {
 
@@ -14,7 +15,8 @@ internal class SearchTextReplaceLineTest {
     val action = SearchTextReplaceLine(Regex(".* # lunch")) { text }
     val result = action.applyTo("sandwich # lunch")
     expectThat(result)
-        .rightWithValue(text)
+      .isRight()
+      .isEqualTo(text)
   }
 
   @NotImplementedYet
@@ -34,11 +36,14 @@ internal class SearchTextReplaceLineTest {
       """.trimIndent()
     )
     expectThat(result)
-        .rightWithValue("""
-          $text
-          $text
-          $text
-        """.trimIndent())
+      .isRight()
+      .isEqualTo(
+          """
+            $text
+            $text
+            $text
+          """.trimIndent()
+      )
   }
 
   @Test
@@ -47,7 +52,8 @@ internal class SearchTextReplaceLineTest {
     val action = SearchTextReplaceLine(Regex(".* # dinner")) { "pizza # dinner" }
     val result = action.applyTo(originalText)
     expectThat(result)
-        .leftWithValue(originalText)
+      .isLeft()
+      .isEqualTo(originalText)
   }
 
   @Test
@@ -60,6 +66,7 @@ internal class SearchTextReplaceLineTest {
     val action = SearchTextReplaceLine(Regex(".* # dinner")) { "pizza # dinner" }
     val result = action.applyTo(originalText)
     expectThat(result)
-        .leftWithValue(originalText)
+      .isLeft()
+      .isEqualTo(originalText)
   }
 }
