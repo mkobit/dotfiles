@@ -2,7 +2,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jlleitschuh.gradle.ktlint.KtlintFormatTask
 
 plugins {
-  `java-library`
   `kotlin-dsl`
   id("org.jlleitschuh.gradle.ktlint") version "7.4.0"
 

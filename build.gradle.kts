@@ -284,7 +284,7 @@ versionControlTracking {
           register("jenkins-pipeline-shared-library-example", GitVersionControlTarget::class) { origin("git@github.com:mkobit/jenkins-pipeline-shared-library-example.git") }
           register("jenkins-scripts", GitVersionControlTarget::class) { origin("git@github.com:mkobit/jenkins-scripts.git") }
           register("junit5-dynamodb-local-extension", GitVersionControlTarget::class) { origin("git@github.com:mkobit/junit5-dynamodb-local-extension.git") }
-          register("python-envs-gradle-plugin", GitVersionControlTarget::class) { origin("git@github.com:mkobit/python-envs-gradle-plugin.git") }
+          register("python-envs-gradle-plugin", GitVersionControlTarget::class) { origin("git@github.com:mkobit/toolchains-gradle-plugin.git") }
         }
       }
       register("mesonbuild") {
