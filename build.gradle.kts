@@ -8,7 +8,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
   id("com.gradle.build-scan") version "2.3"
   id("com.github.ben-manes.versions") version "0.21.0"
-  id("org.jlleitschuh.gradle.ktlint") version "7.4.0"
+  id("org.jlleitschuh.gradle.ktlint") version "8.0.0"
   kotlin("jvm") version "1.3.31" apply false
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.5" apply false
 

@@ -20,7 +20,7 @@ object DependencyInfo {
   const val googleOauthClient = "com.google.oauth-client:google-oauth-client-jetty:$googleClientVersion"
   const val guava = "com.google.guava:guava:27.1-jre"
   const val hocon = "com.typesafe:config:1.3.4"
-  const val jsoup = "org.jsoup:jsoup:1.11.3"
+  const val jsoup = "org.jsoup:jsoup:1.12.1"
   const val kotlinPoet = "com.squareup:kotlinpoet:1.2.0"
   val kodeinJvm = kodein("di-generic-jvm")
   val log4jCore = log4j("core")
@@ -29,11 +29,11 @@ object DependencyInfo {
   val junitJupiterApi = junitJupiter("api")
   val junitJupiterEngine = junitJupiter("engine")
   val junitJupiterParams = junitJupiter("params")
-  const val minutest = "dev.minutest:minutest:1.6.0"
+  const val minutest = "dev.minutest:minutest:1.7.0"
   val okHttpClient = okHttp("okhttp")
   const val picoCli = "info.picocli:picocli:3.9.6"
   const val kotlinLogging = "io.github.microutils:kotlin-logging:1.6.26"
-  private const val striktVersion = "0.20.0"
+  private const val striktVersion = "0.20.1"
   const val strikt = "io.strikt:strikt-core:$striktVersion"
   const val striktGradle = "io.strikt:strikt-gradle:$striktVersion"
 

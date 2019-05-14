@@ -3,7 +3,7 @@ import org.jlleitschuh.gradle.ktlint.KtlintFormatTask
 
 plugins {
   `kotlin-dsl`
-  id("org.jlleitschuh.gradle.ktlint") version "7.4.0"
+  id("org.jlleitschuh.gradle.ktlint") version "8.0.0"
 
   id("com.github.ben-manes.versions") version "0.21.0"
 }
@@ -29,11 +29,11 @@ java {
 configurations.all {
   resolutionStrategy.eachDependency {
     when (requested.group) {
-      "dev.minutest" -> useVersion("1.6.0")
+      "dev.minutest" -> useVersion("1.7.0")
       "io.arrow-kt" -> useVersion("0.8.2")
       "org.junit.jupiter" -> useVersion("5.4.2")
       "org.junit.platform" -> useVersion("1.4.2")
-      "io.strikt" -> useVersion("0.20.0")
+      "io.strikt" -> useVersion("0.20.1")
       "org.apache.logging.log4j" -> useVersion("2.11.2")
     }
   }

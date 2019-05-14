@@ -18,7 +18,6 @@ import strikt.gradle.testkit.task
 import testsupport.gradle.newGradleRunner
 import testsupport.strikt.content
 import testsupport.strikt.projectDir
-import java.nio.file.Files
 import java.nio.file.Path
 
 internal class EditFileIntegrationTest {
