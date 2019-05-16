@@ -84,10 +84,12 @@ tasks {
     }
   }
 
-  if (hasProperty("ktlintFormatBuildSrc")) {
-    assemble {
-      dependsOn(withType<KtlintFormatTask>())
-    }
+  assemble {
+    dependsOn(withType<KtlintFormatTask>())
+  }
+
+  withType<KtlintFormatTask>().configureEach {
+    onlyIf { hasProperty("ktlintFormatBuildSrc") }
   }
 
   dependencyUpdates {
