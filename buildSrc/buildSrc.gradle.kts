@@ -89,7 +89,7 @@ tasks {
   }
 
   withType<KtlintFormatTask>().configureEach {
-    onlyIf { hasProperty("ktlintFormatBuildSrc") }
+    onlyIf { project.hasProperty("ktlintFormatBuildSrc") }
   }
 
   dependencyUpdates {
