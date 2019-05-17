@@ -20,9 +20,8 @@ dependencies {
   implementation(project(":chrome-debug-protocol"))
 
   implementation(DependencyInfo.guava)
-  implementation(DependencyInfo.arrow("core"))
-  implementation(DependencyInfo.arrow("syntax"))
-  implementation(DependencyInfo.arrow("data"))
+  implementation(DependencyInfo.arrow("core-data"))
+  implementation(DependencyInfo.arrow("core-extensions"))
 
   implementation(DependencyInfo.googleApiClient)
   implementation(DependencyInfo.googleGmailServiceClient)

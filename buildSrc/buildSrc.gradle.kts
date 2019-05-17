@@ -30,7 +30,7 @@ configurations.all {
   resolutionStrategy.eachDependency {
     when (requested.group) {
       "dev.minutest" -> useVersion("1.7.0")
-      "io.arrow-kt" -> useVersion("0.8.2")
+      "io.arrow-kt" -> useVersion("0.9.0")
       "org.junit.jupiter" -> useVersion("5.4.2")
       "org.junit.platform" -> useVersion("1.4.2")
       "io.strikt" -> useVersion("0.20.1")
@@ -42,10 +42,8 @@ configurations.all {
 dependencies {
   implementation("io.github.microutils:kotlin-logging:1.6.26")
 
-  implementation("io.arrow-kt:arrow-core")
-  implementation("io.arrow-kt:arrow-effects")
-  implementation("io.arrow-kt:arrow-syntax")
-  implementation("io.arrow-kt:arrow-typeclasses")
+  implementation("io.arrow-kt:arrow-core-data")
+  implementation("io.arrow-kt:arrow-core-extensions")
 
   implementation("com.squareup.retrofit2:retrofit:2.5.0")
   implementation("com.squareup.okhttp3:okhttp:3.14.1")
