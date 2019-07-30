@@ -24,28 +24,27 @@ internal class EditFileIntegrationTest {
   @Test
   internal fun `edit the content of a file with multiple actions`(@TempDir directory: Path) {
     val result = newGradleRunner(directory).setupProjectDir {
-      "build.gradle"(content = Original) {
+      "build.gradle.kts"(content = Original) {
         append("""
           import dotfilesbuild.io.file.EditFile
           import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
           import dotfilesbuild.io.file.content.AppendTextIfNotFound
           import dotfilesbuild.io.file.content.SearchTextDeleteLine
-          import kotlin.jvm.functions.Function0
 
           plugins {
-            id('dotfilesbuild.file-management')
+            id("dotfilesbuild.file-management")
           }
 
-          tasks.create('convergeFile', EditFile) {
-            file = layout.projectDirectory.file('myfile.txt')
-            editActions = [
-              new AppendIfNoLinesMatch(~/^sixth${'$'}/, { 'sixth' } as Function0),
-              new AppendIfNoLinesMatch(~/^seventh${'$'}/, { 'seventh' } as Function0),
-              new AppendTextIfNotFound({ 'first' } as Function0),
-              new AppendTextIfNotFound({ 'eighth' } as Function0),
-              new SearchTextDeleteLine(~/^ninth${'$'}/),
-              new SearchTextDeleteLine(~/^forth${'$'}/),
-            ]
+          val convergeFile by tasks.creating(EditFile::class) {
+            file.set(layout.projectDirectory.file("myfile.txt"))
+            editActions.set(listOf(
+              AppendIfNoLinesMatch(Regex("^sixth${"$"}"), { "sixth" }),
+              AppendIfNoLinesMatch(Regex("^seventh${"$"}"), { "seventh" }),
+              AppendTextIfNotFound({ "first" }),
+              AppendTextIfNotFound({ "eighth" }),
+              SearchTextDeleteLine(Regex("^ninth${"$"}")),
+              SearchTextDeleteLine(Regex("^forth${"$"}"))
+            ))
           }
         """.trimIndent())
         appendNewline()
@@ -109,8 +108,8 @@ internal class EditFileIntegrationTest {
           tasks.create('convergeFile', EditFile) {
             file = layout.projectDirectory.file('myfile.txt')
             editActions = [
-              new AppendIfNoLinesMatch(~/^first${'$'}/, { 'first' } as Function0),
-              new AppendTextIfNotFound({ 'second' } as Function0),
+              new AppendIfNoLinesMatch(~/^first${'$'}/, { 'first' }),
+              new AppendTextIfNotFound({ 'second' }),
               new SearchTextDeleteLine(~/^tenth${'$'}/),
             ]
           }
