@@ -3,13 +3,14 @@ import org.jlleitschuh.gradle.ktlint.KtlintFormatTask
 
 plugins {
   `kotlin-dsl`
-  id("org.jlleitschuh.gradle.ktlint") version "8.0.0"
+  id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
 
   id("com.github.ben-manes.versions") version "0.21.0"
 }
 
 repositories {
   jcenter()
+  gradlePluginPortal()
   mavenCentral()
 }
 
@@ -27,32 +28,62 @@ java {
 }
 
 configurations.all {
+  // copy/paste from dependencyRecommendations.kt for now
+  val arrowKtVersion = "0.9.0"
+  val jacksonVersion = "2.9.9"
+  val junitJupiterVersion = "5.4.2"
+  val junitPlatformVersion = "1.4.2"
+  val kodeinDiVersion = "6.3.3"
+  val kotlinxCoroutinesVersion = "1.2.1"
+  val ktorVersion = "1.2.2"
+  val okHttpVersion = "4.0.1"
+  val log4jVersion = "2.12.0"
+  val minutestVersion = "1.7.0"
+  val retrofitVersion = "2.5.0"
+  val slf4jVersion = "1.7.26"
+  val striktVersion = "0.21.1"
   resolutionStrategy.eachDependency {
     when (requested.group) {
-      "dev.minutest" -> useVersion("1.7.0")
-      "io.arrow-kt" -> useVersion("0.9.0")
-      "org.junit.jupiter" -> useVersion("5.4.2")
-      "org.junit.platform" -> useVersion("1.4.2")
-      "io.strikt" -> useVersion("0.20.1")
-      "org.apache.logging.log4j" -> useVersion("2.11.2")
+      "com.squareup.okhttp3" -> useVersion(okHttpVersion)
+      "com.fasterxml.jackson.datatype" -> useVersion(jacksonVersion)
+      "com.fasterxml.jackson.core" -> useVersion(jacksonVersion)
+      "com.fasterxml.jackson.module" -> useVersion(jacksonVersion)
+      "com.squareup.retrofit2" -> useVersion(retrofitVersion)
+      "dev.minutest" -> useVersion(minutestVersion)
+      "io.arrow-kt" -> useVersion(arrowKtVersion)
+      "io.ktor" -> useVersion(ktorVersion)
+      "io.strikt" -> useVersion(striktVersion)
+      "org.apache.logging.log4j" -> useVersion(log4jVersion)
+      "org.jetbrains.kotlinx" -> when {
+        requested.name.startsWith("kotlinx-coroutines") && !requested.name.contains("io") -> useVersion(
+          kotlinxCoroutinesVersion)
+      }
+      "org.kodein.di" -> useVersion(kodeinDiVersion)
+      "org.junit.jupiter" -> useVersion(junitJupiterVersion)
+      "org.junit.platform" -> useVersion(junitPlatformVersion)
+      "org.slf4j" -> useVersion(slf4jVersion)
     }
   }
 }
 
 dependencies {
+  // https://github.com/gradle/kotlin-dsl/issues/430
+  fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$version"
+  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.3.41"))
+
   implementation("io.github.microutils:kotlin-logging:1.6.26")
 
   implementation("io.arrow-kt:arrow-core-data")
   implementation("io.arrow-kt:arrow-core-extensions")
 
   implementation("com.squareup.retrofit2:retrofit:2.5.0")
-  implementation("com.squareup.okhttp3:okhttp:3.14.1")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:5.3.1.201904271842-r")
+  implementation("com.squareup.okhttp3:okhttp")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.4.0.201906121030-r")
 
   testImplementation("io.mockk:mockk:1.9.3")
 
   testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
-  testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.6.0")
+  testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.7.0")
   testImplementation("org.assertj:assertj-core:3.12.2")
   testImplementation("io.strikt:strikt-core")
   testImplementation("io.strikt:strikt-gradle")
@@ -101,6 +132,7 @@ tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
       jvmTarget = "11"
+      freeCompilerArgs += listOf("-progressive")
     }
   }
 

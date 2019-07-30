@@ -1,63 +1,73 @@
-import dotfilesbuild.DependencyInfo
+import dotfilesbuild.dependencies.defaultDotfilesRepositories
+import dotfilesbuild.dependencies.guava
+import dotfilesbuild.dependencies.jacksonCore
+import dotfilesbuild.dependencies.jacksonModule
+import dotfilesbuild.dependencies.kodein
+import dotfilesbuild.dependencies.kotlinLogging
+import dotfilesbuild.dependencies.kotlinx
+import dotfilesbuild.dependencies.kotlinxCoroutines
+import dotfilesbuild.dependencies.ktor
+import dotfilesbuild.dependencies.okHttp
+import dotfilesbuild.dependencies.retrofit2
+import dotfilesbuild.dependencies.slf4j
+import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   java
   application
   id("org.jlleitschuh.gradle.ktlint")
-  kotlin("jvm")
-}
-
-repositories {
-  jcenter()
-  mavenCentral()
-  maven(url = "http://dl.bintray.com/kotlin/ktor") {
-    name = "ktor"
-  }
-  maven(url = "https://dl.bintray.com/kotlin/kotlinx") {
-    name = "kotlinx"
-  }
+  dotfilesbuild.kotlin.convention
 }
 
 ktlint {
   version.set("0.32.0")
 }
 
-dependencies {
-  implementation(DependencyInfo.guava)
+repositories {
+  defaultDotfilesRepositories()
+  maven(url = "http://dl.bintray.com/kotlin/ktor") {
+    name = "ktor"
+  }
+  kotlinx()
+}
 
-  implementation(DependencyInfo.jacksonCore("core"))
-  implementation(DependencyInfo.jacksonModule("kotlin"))
+configurations.all {
+  useDotfilesDependencyRecommendations()
+}
+
+dependencies {
+  implementation(guava)
+
+  implementation(jacksonCore("core"))
+  implementation(jacksonModule("kotlin"))
 
   // Try out Kodein
-  implementation(DependencyInfo.kodeinJvm)
+  implementation(kodein("di-generic-jvm"))
 
   // Ktor
-  implementation(DependencyInfo.ktor("server-core"))
-  implementation(DependencyInfo.ktor("server-netty"))
+  implementation(ktor("server-core"))
+  implementation(ktor("server-netty"))
 
-//  implementation("ru.gildor.coroutines:kotlin-coroutines-retrofit:0.9.0")
-  implementation(DependencyInfo.kotlinxCoroutines("core"))
-  implementation(DependencyInfo.kotlinxCoroutines("jdk8"))
+  implementation(kotlinxCoroutines("core"))
+  implementation(kotlinxCoroutines("jdk8"))
 
   implementation(kotlin("stdlib-jdk8"))
-  implementation(DependencyInfo.retrofit2("retrofit"))
-  implementation(DependencyInfo.retrofit2("converter-jackson"))
-  implementation(DependencyInfo.okHttpClient)
+  implementation(retrofit2("retrofit"))
+  implementation(retrofit2("converter-jackson"))
+  implementation(okHttp("okhttp"))
 
-  implementation(DependencyInfo.kotlinLogging)
-  runtimeOnly(DependencyInfo.slf4j("simple"))
-}
-
-java {
-  sourceCompatibility = JavaVersion.VERSION_11
-}
-
-kotlin {
+  implementation(kotlinLogging)
+  runtimeOnly(slf4j("simple"))
 }
 
 application {
   mainClassName = "com.mkobit.personalassistant.Main"
+}
+
+java {
+  // https://github.com/ktorio/ktor/issues/321
+  sourceCompatibility = JavaVersion.VERSION_1_8
 }
 
 tasks {

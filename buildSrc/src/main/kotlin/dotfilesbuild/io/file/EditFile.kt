@@ -72,12 +72,12 @@ open class EditFile @Inject constructor(
         if (afterApplied.a == fileText) {
           afterApplied
         } else {
-          Either.right(afterApplied.a)
+          Either.right(afterApplied.a) as Either<String, String>
         }
       }
       is Either.Right -> {
         if (afterApplied.b == fileText) {
-          Either.left(afterApplied.b)
+          Either.left(afterApplied.b) as Either<String, String>
         } else {
           afterApplied
         }

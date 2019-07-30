@@ -1,15 +1,11 @@
-import dotfilesbuild.DependencyInfo
+import dotfilesbuild.dependencies.jacksonCore
+import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 plugins {
   `java-library`
   id("org.jlleitschuh.gradle.ktlint")
-  kotlin("jvm")
-}
-
-repositories {
-  jcenter()
-  mavenCentral()
+  dotfilesbuild.kotlin.convention
 }
 
 ktlint {
@@ -31,10 +27,13 @@ sourceSets {
 
 val generatorClasspath by configurations.creating
 
+configurations.all {
+  useDotfilesDependencyRecommendations()
+}
+
 dependencies {
   generatorClasspath(project(":chrome-debug-protocol-generator"))
-  api(kotlin("stdlib-jdk8"))
-  api(DependencyInfo.jacksonCore("annotations"))
+  api(jacksonCore("annotations"))
 }
 
 java {

@@ -10,8 +10,8 @@ internal class GenerateChromeDebugProtocolTest {
 
   @Test
   internal fun `generate 1_3`(
-      @TempDir generationDirectory: Path,
-      @TempDir tempDirectory: Path
+    @TempDir generationDirectory: Path,
+    @TempDir tempDirectory: Path
   ) {
     val browserFileName = "browser_protocol-1.3.json"
     val jsFileName = "js_protocol-1.3.json"

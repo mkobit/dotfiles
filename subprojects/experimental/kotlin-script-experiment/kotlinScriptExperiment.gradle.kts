@@ -1,15 +1,19 @@
-import dotfilesbuild.DependencyInfo
+import dotfilesbuild.dependencies.kotlinLogging
+import dotfilesbuild.dependencies.jacksonCore
+import dotfilesbuild.dependencies.jacksonModule
+import dotfilesbuild.dependencies.junitTestImplementationArtifacts
+import dotfilesbuild.dependencies.junitTestRuntimeOnlyArtifacts
+import dotfilesbuild.dependencies.slf4j
+import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 
 plugins {
   java
   application
   id("org.jlleitschuh.gradle.ktlint")
-  kotlin("jvm")
+  dotfilesbuild.kotlin.convention
 }
 
 repositories {
-  jcenter()
-  mavenCentral()
   maven(url = "https://dl.bintray.com/kotlin/kotlinx") {
     name = "kotlinx"
   }
@@ -19,9 +23,13 @@ ktlint {
   version.set("0.32.0")
 }
 
+configurations.all {
+  useDotfilesDependencyRecommendations()
+}
+
 dependencies {
-  implementation(DependencyInfo.jacksonCore("core"))
-  implementation(DependencyInfo.jacksonModule("kotlin"))
+  implementation(jacksonCore("core"))
+  implementation(jacksonModule("kotlin"))
 
   implementation(kotlin("compiler-embeddable"))
   implementation(kotlin("stdlib-jdk8"))
@@ -29,22 +37,16 @@ dependencies {
   implementation(kotlin("scripting-jvm"))
   implementation(kotlin("scripting-jvm-host"))
 
-  implementation(DependencyInfo.kotlinLogging)
-  implementation(DependencyInfo.kotlinPoet)
+  implementation(kotlinLogging)
+  implementation("com.squareup:kotlinpoet:1.3.0")
 
-  DependencyInfo.junitTestImplementationArtifacts.forEach {
+  junitTestImplementationArtifacts.forEach {
     testImplementation(it)
   }
-  DependencyInfo.junitTestRuntimeOnlyArtifacts.forEach {
+  junitTestRuntimeOnlyArtifacts.forEach {
     testRuntimeOnly(it)
   }
-  runtimeOnly(DependencyInfo.slf4j("simple"))
-}
-
-java {
-  // https://github.com/ktorio/ktor/issues/321
-//  sourceCompatibility = JavaVersion.VERSION_11
-  sourceCompatibility = JavaVersion.VERSION_11
+  runtimeOnly(slf4j("simple"))
 }
 
 application {

@@ -1,14 +1,22 @@
-import dotfilesbuild.DependencyInfo
+import dotfilesbuild.dependencies.guava
+import dotfilesbuild.dependencies.kotlinLogging
+import dotfilesbuild.dependencies.jacksonCore
+import dotfilesbuild.dependencies.jacksonModule
+import dotfilesbuild.dependencies.junitTestImplementationArtifacts
+import dotfilesbuild.dependencies.junitTestRuntimeOnlyArtifacts
+import dotfilesbuild.dependencies.picoCli
+import dotfilesbuild.dependencies.slf4j
+import dotfilesbuild.dependencies.strikt
+import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   `java-library`
   id("org.jlleitschuh.gradle.ktlint")
-  kotlin("jvm")
+  dotfilesbuild.kotlin.convention
 }
 
 repositories {
-  jcenter()
-  mavenCentral()
   maven(url = "http://dl.bintray.com/kotlin/ktor") {
     name = "ktor"
   }
@@ -21,26 +29,30 @@ ktlint {
   version.set("0.32.0")
 }
 
-dependencies {
-  implementation(DependencyInfo.guava)
-  implementation(DependencyInfo.kotlinPoet)
-  implementation(DependencyInfo.picoCli)
+configurations.all {
+  useDotfilesDependencyRecommendations()
+}
 
-  implementation(DependencyInfo.jacksonCore("core"))
-  implementation(DependencyInfo.jacksonModule("kotlin"))
+dependencies {
+  implementation(guava)
+  implementation("com.squareup:kotlinpoet:1.3.0")
+  implementation(picoCli)
+
+  implementation(jacksonCore("core"))
+  implementation(jacksonModule("kotlin"))
 
   implementation(kotlin("stdlib-jdk8"))
 
-  implementation(DependencyInfo.kotlinLogging)
+  implementation(kotlinLogging)
 
-  testImplementation(DependencyInfo.strikt)
-  DependencyInfo.junitTestImplementationArtifacts.forEach {
+  testImplementation(strikt("core"))
+  junitTestImplementationArtifacts.forEach {
     testImplementation(it)
   }
-  DependencyInfo.junitTestRuntimeOnlyArtifacts.forEach {
+  junitTestRuntimeOnlyArtifacts.forEach {
     testRuntimeOnly(it)
   }
-  runtimeOnly(DependencyInfo.slf4j("simple"))
+  runtimeOnly(slf4j("simple"))
 }
 
 java {
@@ -49,6 +61,10 @@ java {
 }
 
 tasks {
+  withType<KotlinCompile> {
+    kotlinOptions.jvmTarget = "1.8"
+  }
+
   withType<Test>().configureEach {
     useJUnitPlatform()
   }
