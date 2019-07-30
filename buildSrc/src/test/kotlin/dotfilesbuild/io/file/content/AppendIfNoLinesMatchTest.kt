@@ -1,8 +1,13 @@
 package dotfilesbuild.io.file.content
 
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import testsupport.assertThat
+import strikt.api.expectThat
+import strikt.assertions.isEqualTo
+import testsupport.strikt.a
+import testsupport.strikt.b
+import testsupport.strikt.isLeft
+import testsupport.strikt.isRight
+
 internal class AppendIfNoLinesMatchTest {
 
   companion object {
@@ -15,11 +20,10 @@ internal class AppendIfNoLinesMatchTest {
     val original = "a"
     val editAction = AppendIfNoLinesMatch(regex, content)
     val either = editAction.applyTo(original)
-    assertThat(either)
-        .isLeftSatisfying {
-          assertThat(it)
-              .isEqualTo(original)
-        }
+    expectThat(either)
+      .isLeft()
+      .a
+      .isEqualTo(original)
   }
 
   @Test
@@ -31,24 +35,24 @@ internal class AppendIfNoLinesMatchTest {
     """.trimIndent() + System.lineSeparator()
     val editAction = AppendIfNoLinesMatch(regex, content)
     val either = editAction.applyTo(original)
-    assertThat(either)
-        .isLeftSatisfying {
-          assertThat(it)
-              .isEqualTo(original)
-        }
+    expectThat(either)
+      .isLeft()
+      .a
+      .isEqualTo(original)
   }
 
   @Test
   internal fun `text is appended when a match is found`() {
     val editAction = AppendIfNoLinesMatch(regex, content)
     val either = editAction.applyTo("c")
-    assertThat(either)
-        .isRightSatisfying {
-          assertThat(it)
-              .isEqualTo("""
+    expectThat(either)
+      .isRight()
+      .b
+      .isEqualTo(
+        """
                 c
                 ${content()}
-              """.trimIndent())
-        }
+              """.trimIndent()
+      )
   }
 }

@@ -1,8 +1,14 @@
 package dotfilesbuild.io.file.content
 
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import testsupport.assertThat
+import strikt.api.expectThat
+import strikt.assertions.containsExactly
+import strikt.assertions.isBlank
+import strikt.assertions.isEqualTo
+import testsupport.strikt.a
+import testsupport.strikt.b
+import testsupport.strikt.isLeft
+import testsupport.strikt.isRight
 
 internal class SearchTextDeleteLineTest {
 
@@ -14,11 +20,10 @@ internal class SearchTextDeleteLineTest {
   internal fun `text is removed when a match is found`() {
     val editAction = SearchTextDeleteLine(regex)
     val either = editAction.applyTo("a")
-    assertThat(either)
-        .isRightSatisfying {
-          assertThat(it)
-              .isBlank()
-        }
+    expectThat(either)
+      .isRight()
+      .b
+      .isBlank()
   }
 
   @Test
@@ -32,22 +37,22 @@ internal class SearchTextDeleteLineTest {
         b
         c
       """.trimIndent())
-    assertThat(either)
-        .isRightSatisfying {
-          assertThat(it)
-              .hasLineCount(2)
-              .isEqualToIgnoringNewLines("cc")
-        }
+    expectThat(either)
+      .isRight()
+      .b
+      .get { split("\n") }.and {
+        get { count() }.isEqualTo(2)
+        containsExactly("c", "c")
+      }
   }
 
   @Test
   internal fun `text is unchanged when a match is not found`() {
     val editAction = SearchTextDeleteLine(regex)
     val either = editAction.applyTo("c")
-    assertThat(either)
-        .isLeftSatisfying {
-          assertThat(it)
-              .isEqualTo("c")
-        }
+    expectThat(either)
+      .isLeft()
+      .a
+      .isEqualTo("c")
   }
 }

@@ -1,8 +1,12 @@
 package dotfilesbuild.io.file.content
 
-import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
-import testsupport.assertThat
+import strikt.api.expectThat
+import strikt.assertions.isEqualTo
+import testsupport.strikt.a
+import testsupport.strikt.b
+import testsupport.strikt.isLeft
+import testsupport.strikt.isRight
 
 internal class SetContentTest {
 
@@ -11,25 +15,23 @@ internal class SetContentTest {
   }
   @Test
   internal fun `text is updated and right when it is changed`() {
-    val editAction = SetContent({ text })
+    val editAction = SetContent { text }
 
     val either = editAction.applyTo("different")
-    assertThat(either)
-        .isRightSatisfying {
-          assertThat(it)
-              .isEqualTo(text)
-        }
+    expectThat(either)
+      .isRight()
+      .b
+      .isEqualTo(text)
   }
 
   @Test
   internal fun `text is left when it is unchanged`() {
-    val editAction = SetContent({ text })
+    val editAction = SetContent { text }
 
     val either = editAction.applyTo(text)
-    assertThat(either)
-        .isLeftSatisfying {
-          assertThat(it)
-              .isEqualTo(text)
-        }
+    expectThat(either)
+      .isLeft()
+      .a
+      .isEqualTo(text)
   }
 }

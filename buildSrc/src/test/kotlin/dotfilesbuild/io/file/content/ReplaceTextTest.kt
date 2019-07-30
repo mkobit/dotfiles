@@ -3,6 +3,8 @@ package dotfilesbuild.io.file.content
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
+import testsupport.strikt.a
+import testsupport.strikt.b
 import testsupport.strikt.isLeft
 import testsupport.strikt.isRight
 
@@ -17,6 +19,7 @@ internal class ReplaceTextTest {
 
     expectThat(result)
       .isRight()
+      .b
       .isEqualTo(replacementText)
   }
 
@@ -28,6 +31,7 @@ internal class ReplaceTextTest {
 
     expectThat(result)
       .isLeft()
+      .a
       .isEqualTo(text)
   }
 
@@ -40,6 +44,7 @@ internal class ReplaceTextTest {
 
     expectThat(result)
       .isRight()
+      .b
       .isEqualTo(
         """
           $text
@@ -57,6 +62,7 @@ internal class ReplaceTextTest {
 
     expectThat(result)
       .isLeft()
+      .a
       .isEqualTo(text)
   }
 }

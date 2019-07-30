@@ -82,9 +82,7 @@ dependencies {
 
   testImplementation("io.mockk:mockk:1.9.3")
 
-  testImplementation("com.mkobit.gradle.test:assertj-gradle:0.2.0")
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.7.0")
-  testImplementation("org.assertj:assertj-core:3.12.2")
   testImplementation("io.strikt:strikt-core")
   testImplementation("io.strikt:strikt-gradle")
 

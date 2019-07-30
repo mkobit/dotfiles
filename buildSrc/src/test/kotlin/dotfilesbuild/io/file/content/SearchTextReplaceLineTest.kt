@@ -4,6 +4,8 @@ import org.junit.jupiter.api.Test
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
 import testsupport.jupiter.NotImplementedYet
+import testsupport.strikt.a
+import testsupport.strikt.b
 import testsupport.strikt.isLeft
 import testsupport.strikt.isRight
 
@@ -16,6 +18,7 @@ internal class SearchTextReplaceLineTest {
     val result = action.applyTo("sandwich # lunch")
     expectThat(result)
       .isRight()
+      .b
       .isEqualTo(text)
   }
 
@@ -37,6 +40,7 @@ internal class SearchTextReplaceLineTest {
     )
     expectThat(result)
       .isRight()
+      .b
       .isEqualTo(
           """
             $text
@@ -53,6 +57,7 @@ internal class SearchTextReplaceLineTest {
     val result = action.applyTo(originalText)
     expectThat(result)
       .isLeft()
+      .a
       .isEqualTo(originalText)
   }
 
@@ -67,6 +72,7 @@ internal class SearchTextReplaceLineTest {
     val result = action.applyTo(originalText)
     expectThat(result)
       .isLeft()
+      .a
       .isEqualTo(originalText)
   }
 }
