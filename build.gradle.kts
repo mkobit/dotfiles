@@ -11,6 +11,8 @@ plugins {
   id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.5" apply false
 
+  dotfilesbuild.`dotfiles-lifecycle`
+
   dotfilesbuild.intellij
   dotfilesbuild.locations
   dotfilesbuild.keepass
@@ -442,9 +444,7 @@ tasks {
     dependsOn(generateZshrcFile)
   }
 
-  register("dotfiles") {
-    description = "Sets up all dotfiles and packages"
-    group = "Install"
+  dotfiles {
     dependsOn(git, screen, ssh, tmux, vim, workspace, zsh)
   }
 }
