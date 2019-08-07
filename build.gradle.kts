@@ -1,3 +1,4 @@
+import dotfilesbuild.projectFile
 import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.Mkdir
 import dotfilesbuild.io.file.Symlink
@@ -15,7 +16,6 @@ plugins {
 
   dotfilesbuild.intellij
   dotfilesbuild.locations
-  dotfilesbuild.keepass.program
   dotfilesbuild.`self-update`
   dotfilesbuild.`vcs-management`
   dotfilesbuild.`git-vcs`
@@ -451,10 +451,6 @@ tasks {
 
 intellij {
   intellijVersion.set("2018.3")
-}
-
-keepass {
-  keepassVersion.set("2.40")
 }
 
 kubectl {
