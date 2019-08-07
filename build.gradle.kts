@@ -15,7 +15,7 @@ plugins {
 
   dotfilesbuild.intellij
   dotfilesbuild.locations
-  dotfilesbuild.keepass
+  dotfilesbuild.keepass.program
   dotfilesbuild.`self-update`
   dotfilesbuild.`vcs-management`
   dotfilesbuild.`git-vcs`
