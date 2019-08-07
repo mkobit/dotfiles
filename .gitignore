@@ -1,3 +1,6 @@
+# Personal ignores
+.config/
+.unmanaged_bin
 .gradle-build-cache/
 
 # Created by https://www.gitignore.io/api/vim,osx,java,linux,gradle,windows,intellij,intellij+iml,intellij+all
@@ -310,8 +313,3 @@ gradle-app.setting
 **/build/
 
 # End of https://www.gitignore.io/api/vim,osx,java,linux,gradle,windows,intellij,intellij+iml,intellij+all
-
-# Personal ignores
-
-.config/
-.unmanaged_bin
