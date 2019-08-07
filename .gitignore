@@ -1,5 +1,6 @@
 # Personal ignores
 .config/
+.unmanaged/
 .unmanaged_bin
 .gradle-build-cache/
 
