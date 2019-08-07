@@ -19,8 +19,6 @@ plugins {
   dotfilesbuild.`vcs-management`
   dotfilesbuild.`git-vcs`
 
-  dotfilesbuild.kubernetes.`kubectl-managed-binary`
-
   dotfilesbuild.shell.`generated-zsh`
   dotfilesbuild.shell.`managed-bin`
   dotfilesbuild.shell.`source-bin`
@@ -446,10 +444,6 @@ tasks {
   dotfiles {
     dependsOn(git, screen, ssh, tmux, vim, workspace, zsh)
   }
-}
-
-kubectl {
-  version.set("v1.12.2")
 }
 
 allprojects {

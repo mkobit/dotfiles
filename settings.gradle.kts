@@ -35,7 +35,8 @@ includeShell(
 
 includePrograms(
   "intellij",
-  "keepass"
+  "keepass",
+  "kubectl"
 )
 
 includeExperimental(
