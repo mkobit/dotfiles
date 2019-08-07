@@ -154,10 +154,6 @@ gradlePlugin {
       id = name
       implementationClass = "dotfilesbuild.intellij.IntelliJProgramPlugin"
     }
-    register("dotfilesbuild.locations") {
-      id = name
-      implementationClass = "dotfilesbuild.LocationsPlugin"
-    }
     register("dotfilesbuild.keepass") {
       id = name
       implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
