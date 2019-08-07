@@ -150,10 +150,6 @@ gradlePlugin {
       id = name
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
     }
-    register("dotfilesbuild.intellij") {
-      id = name
-      implementationClass = "dotfilesbuild.intellij.IntelliJProgramPlugin"
-    }
     register("dotfilesbuild.kubernetes.kubectl-managed-binary") {
       id = name
       implementationClass = "dotfilesbuild.kubernetes.KubectlProgramPlugin"

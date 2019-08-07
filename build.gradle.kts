@@ -14,7 +14,6 @@ plugins {
 
   dotfilesbuild.`dotfiles-lifecycle`
 
-  dotfilesbuild.intellij
   dotfilesbuild.locations
   dotfilesbuild.`self-update`
   dotfilesbuild.`vcs-management`
@@ -447,10 +446,6 @@ tasks {
   dotfiles {
     dependsOn(git, screen, ssh, tmux, vim, workspace, zsh)
   }
-}
-
-intellij {
-  intellijVersion.set("2018.3")
 }
 
 kubectl {

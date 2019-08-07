@@ -5,7 +5,6 @@ import dotfilesbuild.io.file.content.SetContent
 import dotfilesbuild.io.http.Download
 
 plugins {
-  base
   id("dotfilesbuild.dotfiles-lifecycle")
 }
 
@@ -19,7 +18,9 @@ val keepass = extensions.create(
 )
 
 val keepassDirectory = layout.buildDirectory.dir("keepass")
-val versionDirectory = keepassDirectory.flatMap { it.dir(keepass.keepassVersion.map { "KeePass-$it" }) }
+val versionDirectory = keepassDirectory.flatMap {
+  it.dir(keepass.keepassVersion.map { version -> "KeePass-$version" })
+}
 val installDirectory = versionDirectory.map { it.dir("installation") }
 
 tasks {
@@ -32,7 +33,7 @@ tasks {
       }
     )
     destination.set(
-      keepassDirectory.flatMap {
+      versionDirectory.flatMap {
         it.file(keepass.keepassVersion.map { version -> "KeePass-$version.zip" })
       }
     )

@@ -1,8 +1,6 @@
 import dotfilesbuild.homeFile
 
 plugins {
-  dotfilesbuild.`dotfiles-lifecycle`
-
   dotfilesbuild.keepass.program
 }
 
