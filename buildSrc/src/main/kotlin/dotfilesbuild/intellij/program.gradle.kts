@@ -2,7 +2,6 @@ package dotfilesbuild.intellij
 
 import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.content.SetContent
-import dotfilesbuild.io.http.Download
 
 plugins {
   id("dotfilesbuild.dotfiles-lifecycle")
@@ -31,35 +30,60 @@ val versionDirectory = intellijDirectory.flatMap {
 }
 val installDirectory = versionDirectory.map { it.dir("installation") }
 
-tasks {
-  val downloadIntellijZip by registering(Download::class) {
-    description = "Downloads the IntelliJ ZIP distribution"
-    group = taskGroup
-    url.set(intellij.intellijVersion.flatMap { version ->
+val dependencyHandler = dependencies
+// dependency similar to https://github.com/JetBrains/gradle-intellij-plugin/blob/5499f90e0a033a11990cf834d3e43b7604b1e9d9/src/main/groovy/org/jetbrains/intellij/dependency/IdeaDependencyManager.groovy
+val idea by configurations.creating {
+  isCanBeResolved = true
+  isCanBeConsumed = false
+  withDependencies {
+    repositories {
+      maven {
+        url = uri("https://cache-redirector.jetbrains.com/www.jetbrains.com/intellij-repository/releases")
+        name = "IntelliJ Repository"
+      }
+    }
+    val dependencyNotation = intellij.intellijVersion.flatMap { version ->
       intellij.distributionType.map { type ->
-        "https://download.jetbrains.com/idea/idea${type.code}-$version.tar.gz"
-      }
-    })
-
-    destination.set(
-      versionDirectory.flatMap { directory ->
-        intellij.intellijVersion.flatMap { version ->
-          intellij.distributionType.map { type ->
-            directory.file("idea${type.code}-$version.tar.gz")
-          }
+        val dependencyName = when (type) {
+          Distribution.COMMUNITY -> "ideaIC"
+          Distribution.ULTIMATE -> "ideaIU"
         }
+        "com.jetbrains.intellij.idea:$dependencyName:$version"
       }
-    )
+    }.get()
+    dependencyHandler.add(this@creating.name, dependencyNotation)
   }
+}
 
-  // TODO: never up to date for some stupid reason
+tasks {
+  // unused since dependency resolution is utilized
+  //  val downloadIntellijZip by registering(Download::class) {
+  //    description = "Downloads the IntelliJ ZIP distribution"
+  //    group = taskGroup
+  //    url.set(intellij.intellijVersion.flatMap { version ->
+  //      intellij.distributionType.map { type ->
+  //        "https://download.jetbrains.com/idea/idea${type.code}-$version.tar.gz"
+  //      }
+  //    })
+
+  //  destination.set(
+  //    versionDirectory.flatMap { directory ->
+  //      intellij.intellijVersion.flatMap { version ->
+  //        intellij.distributionType.map { type ->
+  //          directory.file("idea${type.code}-$version.tar.gz")
+  //        }
+  //      }
+  //    }
+  //  )
+  // }
+
   val extractIntellijZip by registering(Copy::class) {
     description = "Extracts the IntelliJ ZIP distribution"
     group = taskGroup
     from(
-      downloadIntellijZip
-        .flatMap { it.destination }
-        .map { tarTree(it) }
+      Callable {
+        zipTree(idea.singleFile)
+      }
     )
     into(installDirectory)
   }
@@ -72,8 +96,7 @@ tasks {
         """
           #!/usr/bin/env bash
           set -euo pipefail
-          readonly intellij_home=$(ls -1 "${installDirectory.get()}" | head -n 1)
-          nohup mono "${'$'}{intellij_home}" > ${versionDirectory.map { it.file("output.log") }.get()} 2>&1 & disown
+          nohup "${installDirectory.map { "$it/bin/idea.sh" }.get()}" > ${versionDirectory.map { it.file("output.log") }.get()} 2>&1 & disown
         """.trimIndent()
       }
     )
