@@ -4,7 +4,6 @@ import dotfilesbuild.io.file.Mkdir
 import dotfilesbuild.io.file.Symlink
 import dotfilesbuild.io.file.content.SetContent
 import dotfilesbuild.io.git.GitVersionControlTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   id("com.gradle.build-scan") version "2.3"
@@ -443,14 +442,5 @@ tasks {
 
   dotfiles {
     dependsOn(git, screen, ssh, tmux, vim, workspace, zsh)
-  }
-}
-
-allprojects {
-  tasks.withType<KotlinCompile>().configureEach {
-    kotlinOptions {
-      freeCompilerArgs += listOf("-progressive")
-      jvmTarget = "1.8"
-    }
   }
 }
