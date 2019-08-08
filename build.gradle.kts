@@ -1,9 +1,9 @@
+import dotfilesbuild.projectFile
 import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.Mkdir
 import dotfilesbuild.io.file.Symlink
 import dotfilesbuild.io.file.content.SetContent
 import dotfilesbuild.io.git.GitVersionControlTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   id("com.gradle.build-scan") version "2.3"
@@ -11,14 +11,12 @@ plugins {
   id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.5" apply false
 
-  dotfilesbuild.intellij
+  dotfilesbuild.`dotfiles-lifecycle`
+
   dotfilesbuild.locations
-  dotfilesbuild.keepass
   dotfilesbuild.`self-update`
   dotfilesbuild.`vcs-management`
   dotfilesbuild.`git-vcs`
-
-  dotfilesbuild.kubernetes.`kubectl-managed-binary`
 
   dotfilesbuild.shell.`generated-zsh`
   dotfilesbuild.shell.`managed-bin`
@@ -442,30 +440,7 @@ tasks {
     dependsOn(generateZshrcFile)
   }
 
-  register("dotfiles") {
-    description = "Sets up all dotfiles and packages"
-    group = "Install"
+  dotfiles {
     dependsOn(git, screen, ssh, tmux, vim, workspace, zsh)
-  }
-}
-
-intellij {
-  intellijVersion.set("2018.3")
-}
-
-keepass {
-  keepassVersion.set("2.40")
-}
-
-kubectl {
-  version.set("v1.12.2")
-}
-
-allprojects {
-  tasks.withType<KotlinCompile>().configureEach {
-    kotlinOptions {
-      freeCompilerArgs += listOf("-progressive")
-      jvmTarget = "1.8"
-    }
   }
 }

@@ -150,22 +150,6 @@ gradlePlugin {
       id = name
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
     }
-    register("dotfilesbuild.intellij") {
-      id = name
-      implementationClass = "dotfilesbuild.intellij.IntelliJProgramPlugin"
-    }
-    register("dotfilesbuild.locations") {
-      id = name
-      implementationClass = "dotfilesbuild.LocationsPlugin"
-    }
-    register("dotfilesbuild.keepass") {
-      id = name
-      implementationClass = "dotfilesbuild.keepass.KeepassProgramPlugin"
-    }
-    register("dotfilesbuild.kubernetes.kubectl-managed-binary") {
-      id = name
-      implementationClass = "dotfilesbuild.kubernetes.KubectlProgramPlugin"
-    }
     register("dotfilesbuild.self-update") {
       id = name
       implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"

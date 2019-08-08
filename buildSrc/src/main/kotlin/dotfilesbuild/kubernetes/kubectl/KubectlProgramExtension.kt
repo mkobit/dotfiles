@@ -1,4 +1,4 @@
-package dotfilesbuild.kubernetes
+package dotfilesbuild.kubernetes.kubectl
 
 import org.gradle.api.provider.Property
 

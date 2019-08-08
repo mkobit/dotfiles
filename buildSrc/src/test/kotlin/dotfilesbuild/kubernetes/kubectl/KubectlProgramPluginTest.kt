@@ -1,13 +1,16 @@
-package dotfilesbuild.kubernetes
+package dotfilesbuild.kubernetes.kubectl
 
 import com.mkobit.gradle.test.kotlin.testkit.runner.build
 import com.mkobit.gradle.test.kotlin.testkit.runner.setupProjectDir
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
+import strikt.api.expectCatching
+import strikt.assertions.succeeded
 import testsupport.gradle.newGradleRunner
 import java.nio.file.Path
 
 internal class KubectlProgramPluginTest {
+
   @Test
   internal fun `can configure kubectl version`(@TempDir tempDir: Path) {
     val runner = newGradleRunner(tempDir) {
@@ -15,8 +18,9 @@ internal class KubectlProgramPluginTest {
         "build.gradle.kts" {
           content = """
             plugins {
-              id("dotfilesbuild.kubernetes.kubectl-managed-binary")
+              id("dotfilesbuild.kubernetes.kubectl.program")
             }
+
             kubectl {
               version.set("v1.12.2")
             }
@@ -25,10 +29,8 @@ internal class KubectlProgramPluginTest {
       }
     }
 
-//    expectThat(
-//        catching {
-          runner.build("help")
-//        }
-//    ).isNull()
+    expectCatching {
+      runner.build("help")
+    }.succeeded()
   }
 }

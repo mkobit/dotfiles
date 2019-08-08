@@ -71,7 +71,7 @@ open class Download @Inject constructor(
         sink.writeAll(it.body!!.source())
       }
     }
-    if (executable.get()) {
+    if (executable.getOrElse(false)) {
       log.info { "Marking $destinationFile as executable" }
       val destinationPath = destinationFile.toPath()
       val currentPermission = Files.getPosixFilePermissions(destinationPath)

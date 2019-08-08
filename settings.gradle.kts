@@ -1,5 +1,7 @@
 rootProject.name = "dotfiles"
 
+fun subprojectFile(group: String, name: String) = file("subprojects/$group/$name")
+
 fun String.toKebabCase(): String = split("-").toList().let {
   val suffix = it
     .drop(1)
@@ -9,14 +11,33 @@ fun String.toKebabCase(): String = split("-").toList().let {
   "${it.first()}$suffix"
 }
 
-fun includeExperimental(vararg names: String) {
+fun includeGroup(group: String, vararg names: String) {
   include(*names)
   names.forEach { name ->
     project(":$name").apply {
-      projectDir = file("subprojects/experimental/$name")
+      projectDir = subprojectFile(group, name)
     }
   }
 }
+
+fun includeExperimental(vararg names: String) = includeGroup("experimental", *names)
+fun includePrograms(vararg names: String) = includeGroup("programs", *names)
+fun includeShell(vararg names: String) = includeGroup("shell", *names)
+
+includeShell(
+  "aggregator",
+  "bin-managed",
+  "bin-unmanaged",
+  "git",
+  "ssh",
+  "vim"
+)
+
+includePrograms(
+  "intellij",
+  "keepass",
+  "kubectl"
+)
 
 includeExperimental(
   "chrome-debug-protocol",
