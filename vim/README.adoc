@@ -1,6 +1,0 @@
-= VIM
-:everyday-vim: https://spin.atomicobject.com/2016/04/19/vim-commands-cheat-sheet
-
-== Resources
-
-- 2016-04-19 - {everyday-vim}[Everyday Vim – A Basic Vim Commands Cheat Sheet]
