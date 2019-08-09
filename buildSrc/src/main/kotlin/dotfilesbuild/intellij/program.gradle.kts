@@ -3,10 +3,6 @@ package dotfilesbuild.intellij
 import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.content.SetContent
 
-plugins {
-  id("dotfilesbuild.dotfiles-lifecycle")
-}
-
 val taskGroup = "IntelliJ"
 
 val intellij = extensions.create(
@@ -29,6 +25,14 @@ val versionDirectory = intellijDirectory.flatMap {
   )
 }
 val installDirectory = versionDirectory.map { it.dir("installation") }
+
+val bin by configurations.creating {
+  isCanBeConsumed = true
+  isCanBeResolved = false
+  attributes {
+    attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class, "bin"))
+  }
+}
 
 val dependencyHandler = dependencies
 // dependency similar to https://github.com/JetBrains/gradle-intellij-plugin/blob/5499f90e0a033a11990cf834d3e43b7604b1e9d9/src/main/groovy/org/jetbrains/intellij/dependency/IdeaDependencyManager.groovy
@@ -100,11 +104,11 @@ tasks {
         """.trimIndent()
       }
     )
-    file.set(versionDirectory.map { it.file("intellij") })
+    file.set(versionDirectory.map { it.file("generated-bin/intellij") })
     executable.set(true)
   }
 
-  "dotfiles" {
-    dependsOn(extractIntellijZip, generateIntelliJExecutable)
+  bin.outgoing.artifact(generateIntelliJExecutable.flatMap { task -> task.output.map { it.asFile.parentFile } }) {
+    builtBy(extractIntellijZip, generateIntelliJExecutable)
   }
 }
