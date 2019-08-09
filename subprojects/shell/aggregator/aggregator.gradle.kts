@@ -42,4 +42,3 @@ tasks {
     dependsOn(generatePathZshrcFile)
   }
 }
-
