@@ -4,8 +4,12 @@ import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.content.SetContent
 import dotfilesbuild.io.http.Download
 
-plugins {
-  id("dotfilesbuild.dotfiles-lifecycle")
+val bin by configurations.creating {
+  isCanBeConsumed = true
+  isCanBeResolved = false
+  attributes {
+    attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class, "bin"))
+  }
 }
 
 val taskGroup = "KeePass"
@@ -63,11 +67,11 @@ tasks {
         """.trimIndent()
       }
     )
-    file.set(versionDirectory.map { it.file("keepass") })
+    file.set(versionDirectory.map { it.file("generated-bin/keepass") })
     executable.set(true)
   }
 
-  "dotfiles" {
-    dependsOn(extractKeePassZip, generateKeePassExecutable)
+  bin.outgoing.artifact(generateKeePassExecutable.flatMap { task -> task.output.map { it.asFile.parentFile } }) {
+    builtBy(extractKeePassZip, generateKeePassExecutable)
   }
 }
