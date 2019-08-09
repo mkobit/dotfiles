@@ -2,6 +2,14 @@ package dotfilesbuild.kubernetes.kubectl
 
 import dotfilesbuild.io.http.Download
 
+val executable by configurations.creating {
+  isCanBeConsumed = true
+  isCanBeResolved = false
+  attributes {
+    attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class, "executable"))
+  }
+}
+
 val bin by configurations.creating {
   isCanBeConsumed = true
   isCanBeResolved = false
@@ -24,6 +32,10 @@ val downloadKubeCtl by tasks.registering(Download::class) {
   executable.set(true)
 }
 
-bin.outgoing.artifact(downloadKubeCtl.map { it.destination }.get()) {
+executable.outgoing.artifact(downloadKubeCtl.map { it.destination }.get()) {
+  builtBy(downloadKubeCtl)
+}
+
+bin.outgoing.artifact(downloadKubeCtl.map { task -> task.destination.map { it.asFile.parentFile } }.get()) {
   builtBy(downloadKubeCtl)
 }
