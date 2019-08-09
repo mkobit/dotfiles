@@ -361,39 +361,6 @@ tasks {
     dependsOn(personalWorkspace, workWorkspace, codeLabWorkspace)
   }
 
-  val gitConfigGeneration by registering(EditFile::class) {
-    val gitConfigGeneral = projectFile("git/gitconfig_general.dotfile")
-    val gitConfigPersonal = projectFile("git/gitconfig_personal.dotfile")
-    editActions.set(listOf(
-        SetContent {
-          """
-              [include]
-                  path = ${gitConfigGeneral.asFile.absolutePath}
-              [includeIf "gitdir:${project.rootDir.absolutePath}/"]
-                  path = ${gitConfigPersonal.asFile.absolutePath}
-              [includeIf "gitdir:${personalWorkspace.directory.asFile.get().absolutePath}/"]
-                  path = ${gitConfigPersonal.asFile.absolutePath}
-              [includeIf "gitdir:${codeLabWorkspace.directory.asFile.get().absolutePath}/"]
-                  path = ${gitConfigPersonal.asFile.absolutePath}
-              [includeIf "gitdir:${workWorkspace.directory.asFile.get().absolutePath}/"]
-                  path = ${locations.home.file(".gitconfig_work")}
-          """.trimIndent()
-        }
-    ))
-    file.set(locations.home.file(".gitconfig"))
-    dependsOn(workspace)
-  }
-
-  val gitIgnoreGlobal by registering(Symlink::class) {
-    source.set(projectFile("git/gitignore_global.dotfile"))
-    destination.set(locations.home.file(".gitignore_global"))
-  }
-
-  val git by registering {
-    group = "Git"
-    dependsOn(gitConfigGeneration, gitIgnoreGlobal)
-  }
-
   val screenRc by registering(Symlink::class) {
     source.set(projectFile("screen/screenrc.dotfile"))
     destination.set(locations.home.file(".screenrc"))
@@ -441,6 +408,6 @@ tasks {
   }
 
   dotfiles {
-    dependsOn(git, screen, ssh, tmux, vim, workspace, zsh)
+    dependsOn(screen, ssh, tmux, vim, workspace, zsh)
   }
 }

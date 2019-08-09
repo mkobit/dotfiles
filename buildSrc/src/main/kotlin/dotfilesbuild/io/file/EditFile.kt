@@ -20,16 +20,15 @@ import java.nio.file.Files
 import java.nio.file.attribute.PosixFilePermission
 import javax.inject.Inject
 
-// TODO: improve up-to-date and simplify this
+// TODO: fix up-to-date and simplify this
 open class EditFile @Inject constructor(
   objectFactory: ObjectFactory,
   projectLayout: ProjectLayout
 ) : DefaultTask() {
 
 //  init {
-//    outputs.upToDateWhen {
-//      performTransformation().isLeft()
-//    }
+// TODO: fix up-to-dat
+//    outputs.upToDateWhen { false }
 //  }
 
   @get:Internal

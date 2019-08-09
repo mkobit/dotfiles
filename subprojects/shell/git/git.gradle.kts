@@ -15,8 +15,8 @@ val codeLabWorkspaceDirectory: Directory = locations.workspace.dir("code_lab")
 
 tasks {
   val gitConfigGeneration by registering(EditFile::class) {
-    val gitConfigGeneral = projectFile("git/gitconfig_general.dotfile")
-    val gitConfigPersonal = projectFile("git/gitconfig_personal.dotfile")
+    val gitConfigGeneral = projectFile("gitconfig/gitconfig_general.dotfile")
+    val gitConfigPersonal = projectFile("gitconfig/gitconfig_personal.dotfile")
     editActions.set(listOf(
       SetContent {
         """
@@ -33,12 +33,21 @@ tasks {
             """.trimIndent()
       }
     ))
-    file.set(layout.buildDirectory.file(".gitconfig"))
+    file.set(layout.buildDirectory.file("generated/.gitconfig"))
   }
 
-  val gitIgnoreGlobal by registering(Symlink::class) {
+  val symlinkGeneratedGitFile  by registering(Symlink::class) {
+    dependsOn(gitConfigGeneration)
+    source.set(gitConfigGeneration.flatMap { it.output })
+    destination.set(locations.home.file(".gitconfig"))
+  }
+
+  val symlinkGitIgnoreGlobal by registering(Symlink::class) {
     source.set(projectFile("git/gitignore_global.dotfile"))
     destination.set(locations.home.file(".gitignore_global"))
   }
-}
 
+  dotfiles {
+    dependsOn(symlinkGeneratedGitFile, symlinkGitIgnoreGlobal)
+  }
+}

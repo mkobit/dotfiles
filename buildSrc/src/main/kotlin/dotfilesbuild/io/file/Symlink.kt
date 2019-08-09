@@ -14,6 +14,7 @@ import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
 import java.io.File
 import java.nio.file.Files
+import java.nio.file.LinkOption
 import java.nio.file.Path
 import javax.inject.Inject
 
@@ -52,17 +53,17 @@ open class Symlink @Inject constructor(
     val destinationPath = destination.get().asFile.toPath().toAbsolutePath()
     symlink(sourcePath, destinationPath)
   }
-}
 
-private fun symlink(source: Path, destination: Path) {
-  if (Files.exists(destination)) {
+  private fun symlink(source: Path, destination: Path) {
+    println("exists: ${Files.exists(destination)}")
+    println("is symlink: ${Files.isSymbolicLink(destination)}")
     if (Files.isSymbolicLink(destination)) {
       log.info("{} is an existing symbolic link, deleting before recreating", destination)
       Files.delete(destination)
-    } else {
+    } else if (Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
       throw InvalidUserDataException("$destination already exists, and isn't a symlink.")
     }
+    log.info("Creating symbolic link at {} for {}", destination, source)
+    Files.createSymbolicLink(destination, source)
   }
-  log.info("Creating symbolic link at {} for {}", destination, source)
-  Files.createSymbolicLink(destination, source)
 }
