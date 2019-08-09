@@ -55,8 +55,6 @@ open class Symlink @Inject constructor(
   }
 
   private fun symlink(source: Path, destination: Path) {
-    println("exists: ${Files.exists(destination)}")
-    println("is symlink: ${Files.isSymbolicLink(destination)}")
     if (Files.isSymbolicLink(destination)) {
       log.info("{} is an existing symbolic link, deleting before recreating", destination)
       Files.delete(destination)

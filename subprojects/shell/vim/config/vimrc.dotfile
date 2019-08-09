@@ -1,0 +1,84 @@
+"""""""""""""""""""""""""""""""""""""""
+" => General
+"""""""""""""""""""""""""""""""""""""""
+" Amount of lines of history for VIM to remember
+set history=4000
+" Auto read when a file is changed from the outside
+set autoread
+" Disable annoying error sounds
+set noerrorbells
+set novisualbell
+" Set utf8 as standard encoding
+set encoding=utf8
+" Set lines to show above and below the cursor
+set scrolloff=5
+
+"""""""""""""""""""""""""""""""""""""""
+" => Colors
+"""""""""""""""""""""""""""""""""""""""
+" Enable syntax highlighting
+syntax enable
+
+" Allow backspacing over autoindent, line breaks and start of insert action
+set backspace=indent,eol,start
+
+set autoindent
+
+filetype plugin on
+
+"""""""""""""""""""""""""""""""""""""""
+" => Spaces and Tabs
+"""""""""""""""""""""""""""""""""""""""
+" number of visual spaces per TAB
+set tabstop=2
+" number of spaces in tab when editing
+set softtabstop=2
+" tabs are spaces
+set expandtab
+" disable physical line wrapping
+" TODO: this is a tempoary workaround to deal with Mac VIM automatically setting textwidth when it is set to 0. It assumes it is unset.
+set textwidth=99999 wrapmargin=0
+
+"""""""""""""""""""""""""""""""""""""""
+" => UI Config
+"""""""""""""""""""""""""""""""""""""""
+" show absolute line number for current line, and relative for other lines
+set number
+set relativenumber
+
+" show command in bottom bar
+set showcmd
+set ruler
+set laststatus=2
+" highlight current line
+set cursorline
+" highlight matching brackets, braces, and parenthesis
+set showmatch
+" visual autocomplete for command menu
+set wildmenu
+" Height of the command bar
+set cmdheight=2
+
+"""""""""""""""""""""""""""""""""""""""
+" => Search
+"""""""""""""""""""""""""""""""""""""""
+" Makes search act like search in modern browsers
+set incsearch
+" Highlight search results
+set hlsearch
+set ignorecase
+set smartcase
+"
+"""""""""""""""""""""""""""""""""""""""
+" => Actions
+"""""""""""""""""""""""""""""""""""""""
+" Alternative escape sequences
+inoremap jk <Esc>
+inoremap kj <Esc>
+
+"""""""""""""""""""""""""""""""""""""""
+" => Movement
+"""""""""""""""""""""""""""""""""""""""
+" move vertically by visual line
+nnoremap j gj
+nnoremap k gk

@@ -1,9 +1,7 @@
-import dotfilesbuild.projectFile
-import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.Mkdir
 import dotfilesbuild.io.file.Symlink
-import dotfilesbuild.io.file.content.SetContent
 import dotfilesbuild.io.git.GitVersionControlTarget
+import dotfilesbuild.projectFile
 
 plugins {
   id("com.gradle.build-scan") version "2.3"
@@ -385,11 +383,6 @@ tasks {
     destination.set(locations.home.file(".vimrc"))
   }
 
-  val vim by registering {
-    group = "VIM"
-    dependsOn(vimRc)
-  }
-
   val generateZshrcFile by existing
   val zsh by registering {
     group = "ZSH"
@@ -398,6 +391,6 @@ tasks {
   }
 
   dotfiles {
-    dependsOn(screen, ssh, vim, workspace, zsh)
+    dependsOn(screen, ssh, workspace, zsh)
   }
 }
