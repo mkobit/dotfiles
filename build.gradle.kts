@@ -371,11 +371,6 @@ tasks {
     dependsOn(screenRc)
   }
 
-  val tmuxConf by registering(Symlink::class) {
-    source.set(projectFile("tmux/tmux.conf.dotfile"))
-    destination.set(locations.home.file(".tmux.conf"))
-  }
-
   val sshCms by registering(Mkdir::class) {
     directory.set(locations.home.dir(".ssh/controlMaster"))
   }
@@ -383,11 +378,6 @@ tasks {
   val ssh by registering {
     group = "SSH"
     dependsOn(sshCms)
-  }
-
-  val tmux by registering {
-    group = "Tmux"
-    dependsOn(tmuxConf)
   }
 
   val vimRc by registering(Symlink::class) {
@@ -408,6 +398,6 @@ tasks {
   }
 
   dotfiles {
-    dependsOn(screen, ssh, tmux, vim, workspace, zsh)
+    dependsOn(screen, ssh, vim, workspace, zsh)
   }
 }

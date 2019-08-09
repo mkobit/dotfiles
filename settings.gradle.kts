@@ -30,6 +30,7 @@ includeShell(
   "bin-unmanaged",
   "git",
   "ssh",
+  "tmux",
   "vim"
 )
 
