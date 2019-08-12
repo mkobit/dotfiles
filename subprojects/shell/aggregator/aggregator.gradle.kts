@@ -23,7 +23,7 @@ tasks {
   val generatePathZshrcFile by registering(EditFile::class) {
     inputs.files(bin)
     description = "Generates a ZSH file than be sourced to expand the path to include "
-    file.set(layout.buildDirectory.file("zsh/extend_path"))
+    file.set(layout.buildDirectory.file("zsh/dotfiles_zsh"))
     editActions.set(
       listOf(
         SetContent {
