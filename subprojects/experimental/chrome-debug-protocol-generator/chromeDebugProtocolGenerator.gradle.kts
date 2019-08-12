@@ -2,11 +2,7 @@ import dotfilesbuild.dependencies.guava
 import dotfilesbuild.dependencies.kotlinLogging
 import dotfilesbuild.dependencies.jacksonCore
 import dotfilesbuild.dependencies.jacksonModule
-import dotfilesbuild.dependencies.junitTestImplementationArtifacts
-import dotfilesbuild.dependencies.junitTestRuntimeOnlyArtifacts
 import dotfilesbuild.dependencies.picoCli
-import dotfilesbuild.dependencies.slf4j
-import dotfilesbuild.dependencies.strikt
 import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -44,15 +40,6 @@ dependencies {
   implementation(kotlin("stdlib-jdk8"))
 
   implementation(kotlinLogging)
-
-  testImplementation(strikt("core"))
-  junitTestImplementationArtifacts.forEach {
-    testImplementation(it)
-  }
-  junitTestRuntimeOnlyArtifacts.forEach {
-    testRuntimeOnly(it)
-  }
-  runtimeOnly(slf4j("simple"))
 }
 
 java {
@@ -63,9 +50,5 @@ java {
 tasks {
   withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
-  }
-
-  withType<Test>().configureEach {
-    useJUnitPlatform()
   }
 }

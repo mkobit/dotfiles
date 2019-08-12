@@ -4,14 +4,11 @@ import dotfilesbuild.dependencies.guava
 import dotfilesbuild.dependencies.kotlinLogging
 import dotfilesbuild.dependencies.jacksonCore
 import dotfilesbuild.dependencies.jacksonModule
-import dotfilesbuild.dependencies.junitTestImplementationArtifacts
-import dotfilesbuild.dependencies.junitTestRuntimeOnlyArtifacts
 import dotfilesbuild.dependencies.kodein
 import dotfilesbuild.dependencies.kotlinx
 import dotfilesbuild.dependencies.kotlinxCoroutines
 import dotfilesbuild.dependencies.ktor
 import dotfilesbuild.dependencies.slf4j
-import dotfilesbuild.dependencies.strikt
 import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -69,14 +66,6 @@ dependencies {
 
   implementation(kotlinLogging)
 
-  testImplementation(strikt("core"))
-  testImplementation("dev.minutest:minutest:1.7.0")
-  junitTestImplementationArtifacts.forEach {
-    testImplementation(it)
-  }
-  junitTestRuntimeOnlyArtifacts.forEach {
-    testRuntimeOnly(it)
-  }
   runtimeOnly(slf4j("simple"))
 }
 
