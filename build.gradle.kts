@@ -384,14 +384,7 @@ tasks {
     destination.set(locations.home.file(".vimrc"))
   }
 
-  val generateZshrcFile by existing
-  val zsh by registering {
-    group = "ZSH"
-    description = "Sets up ZSH"
-    dependsOn(generateZshrcFile)
-  }
-
   dotfiles {
-    dependsOn(screen, ssh, workspace, zsh)
+    dependsOn(screen, ssh, workspace)
   }
 }

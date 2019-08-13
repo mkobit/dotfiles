@@ -12,9 +12,9 @@ fun String.toKebabCase(): String = split("-").toList().let {
 }
 
 fun includeGroup(group: String, vararg names: String) {
-  include(*names)
   names.forEach { name ->
-    project(":$name").apply {
+    include("$group:$name")
+    project(":$group:$name").apply {
       projectDir = subprojectFile(group, name)
     }
   }
@@ -54,8 +54,11 @@ includeExperimental(
   "sidekick-service"
 )
 
-rootProject.children.forEach { project ->
-  project.buildFileName = "${project.name.toKebabCase()}.gradle.kts"
+fun configureBuildfiles(projectDescriptor: ProjectDescriptor) {
+  projectDescriptor.buildFileName = "${projectDescriptor.name.toKebabCase()}.gradle.kts"
+  projectDescriptor.children.forEach { configureBuildfiles(it) }
 }
+
+rootProject.children.forEach { project -> configureBuildfiles(project) }
 
 apply(from = file("gradle/buildCache.settings.gradle.kts"))

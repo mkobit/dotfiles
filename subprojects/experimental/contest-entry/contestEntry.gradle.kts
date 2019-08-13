@@ -31,7 +31,7 @@ configurations.all {
 }
 
 dependencies {
-  implementation(project(":chrome-debug-protocol"))
+  implementation(project(":experimental:chrome-debug-protocol"))
 
   implementation(guava)
   implementation(arrow("core-data"))

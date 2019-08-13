@@ -14,9 +14,9 @@ val bin by configurations.creating {
 }
 
 dependencies {
-  bin(project(":intellij"))
-  bin(project(":keepass"))
-  bin(project(":kubectl"))
+  bin(project(":programs:intellij"))
+  bin(project(":programs:keepass"))
+  bin(project(":programs:kubectl"))
 }
 
 tasks {
