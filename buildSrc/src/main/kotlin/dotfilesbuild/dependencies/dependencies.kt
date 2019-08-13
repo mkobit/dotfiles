@@ -15,6 +15,7 @@ fun DependencyHandler.kodein(module: String, version: String? = null) = "org.kod
 fun DependencyHandler.ktor(module: String, version: String? = null) = "io.ktor:ktor-$module${version?.let { ":$version" } ?: ""}"
 fun DependencyHandler.kotlinxCoroutines(module: String, version: String? = null) = "org.jetbrains.kotlinx:kotlinx-coroutines-$module${version?.let { ":$version" } ?: ""}"
 fun DependencyHandler.log4j(module: String, version: String? = null) = "org.apache.logging.log4j:log4j-$module${version?.let { ":$version" } ?: ""}"
+fun DependencyHandler.minutest(module: String, version: String? = null) = "dev.minutest:$module$module${version?.let { ":$version" } ?: ""}"
 fun DependencyHandler.okHttp(module: String, version: String? = null) = "com.squareup.okhttp3:$module${version?.let { ":$version" } ?: ""}"
 fun DependencyHandler.retrofit2(module: String, version: String? = null) = "com.squareup.retrofit2:$module${version?.let { ":$version" } ?: ""}"
 fun DependencyHandler.selenium(module: String, version: String? = null) = "org.seleniumhq.selenium:selenium-$module${version?.let { ":$version" } ?: ""}"

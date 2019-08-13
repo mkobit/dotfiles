@@ -3,6 +3,7 @@ package dotfilesbuild.kotlin
 import dotfilesbuild.dependencies.defaultDotfilesRepositories
 import dotfilesbuild.dependencies.junitTestImplementationArtifacts
 import dotfilesbuild.dependencies.junitTestRuntimeOnlyArtifacts
+import dotfilesbuild.dependencies.minutest
 import dotfilesbuild.dependencies.strikt
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
@@ -35,8 +36,8 @@ dependencies {
   implementation(kotlin("stdlib"))
   implementation(kotlin("stdlib-jdk8"))
 
-  testImplementation("dev.minutest:minutest:1.7.0")
   testImplementation(strikt("core"))
+  testImplementation(minutest("minutest"))
   junitTestImplementationArtifacts.forEach {
     testImplementation(it)
   }
