@@ -21,6 +21,7 @@ fun includeGroup(group: String, vararg names: String) {
 }
 
 fun includeExperimental(vararg names: String) = includeGroup("experimental", *names)
+fun includeLocalLibraries(vararg names: String) = includeGroup("local-libraries", *names)
 fun includePrograms(vararg names: String) = includeGroup("programs", *names)
 fun includeShell(vararg names: String) = includeGroup("shell", *names)
 
@@ -30,8 +31,13 @@ includeShell(
   "bin-unmanaged",
   "git",
   "ssh",
+  "take-note",
   "tmux",
   "vim"
+)
+
+includeLocalLibraries(
+  "cli-utils"
 )
 
 includePrograms(

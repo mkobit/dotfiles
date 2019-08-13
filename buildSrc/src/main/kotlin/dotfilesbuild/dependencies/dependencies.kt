@@ -2,7 +2,7 @@ package dotfilesbuild.dependencies
 
 import org.gradle.api.artifacts.dsl.DependencyHandler
 
-const val picoCli = "info.picocli:picocli:4.0.1"
+const val picoCli = "info.picocli:picocli:4.0.2"
 const val guava = "com.google.guava:guava:28.0-jre"
 const val kotlinLogging = "io.github.microutils:kotlin-logging:1.7.2"
 
