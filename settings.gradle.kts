@@ -29,6 +29,7 @@ includeShell(
   "aggregator",
   "bin-managed",
   "bin-unmanaged",
+  "diff-highlight",
   "git",
   "ssh",
   "take-note",
