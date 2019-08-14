@@ -9,6 +9,7 @@ import kotlin.system.exitProcess
   mixinStandardHelpOptions = true
 )
 internal class TakeNote : Runnable {
+
   override fun run() {
     println("hello")
   }

@@ -37,7 +37,7 @@ includeShell(
 )
 
 includeLocalLibraries(
-  "cli-utils"
+  "pico-cli-utils"
 )
 
 includePrograms(
