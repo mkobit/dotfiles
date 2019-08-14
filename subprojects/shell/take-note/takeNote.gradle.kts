@@ -1,11 +1,7 @@
-import dotfilesbuild.dependencies.guava
-import dotfilesbuild.dependencies.jacksonCore
-import dotfilesbuild.dependencies.jacksonModule
 import dotfilesbuild.dependencies.kotlinLogging
 import dotfilesbuild.dependencies.kotlinxCoroutines
 import dotfilesbuild.dependencies.picoCli
 import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
-import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 plugins {
   id("org.jlleitschuh.gradle.ktlint")
@@ -15,9 +11,13 @@ plugins {
 
 ktlint {
   version.set("0.32.0")
-  filter {
-//    exclude("**/generated-source/**") Don't know why this isn't working
-    exclude("**/*")
+}
+
+val bin by configurations.creating {
+  isCanBeConsumed = true
+  isCanBeResolved = false
+  attributes {
+    attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage::class, "bin"))
   }
 }
 
@@ -26,7 +26,6 @@ configurations.all {
 }
 
 dependencies {
-  implementation(guava)
   implementation(picoCli)
 
   implementation(kotlin("stdlib-jdk8"))
@@ -36,7 +35,18 @@ dependencies {
   implementation(kotlinLogging)
 }
 
-
 application {
-  mainClassName = "dotfiles.note/com.mkobit.dotfiles.note.Main"
+  mainClassName = "dotfiles.mkobit.cli.note.Main"
 }
+
+tasks {
+  distZip {
+    enabled = false
+  }
+
+  distTar {
+    enabled = false
+  }
+}
+
+bin.outgoing.artifact(tasks.installDist.map { it.destinationDir }.map { it.resolve("bin") })

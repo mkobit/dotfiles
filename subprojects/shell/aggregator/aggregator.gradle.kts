@@ -14,6 +14,7 @@ val bin by configurations.creating {
 }
 
 dependencies {
+  bin(project(":shell:take-note"))
   bin(project(":programs:intellij"))
   bin(project(":programs:keepass"))
   bin(project(":programs:kubectl"))

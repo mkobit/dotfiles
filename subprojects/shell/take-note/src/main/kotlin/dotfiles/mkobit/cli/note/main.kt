@@ -1,5 +1,5 @@
 @file:JvmName("Main")
-package com.mkobit.dotfiles.note
+package dotfiles.mkobit.cli.note
 
 import picocli.CommandLine
 import kotlin.system.exitProcess
