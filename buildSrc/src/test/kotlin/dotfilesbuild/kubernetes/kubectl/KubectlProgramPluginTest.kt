@@ -22,7 +22,7 @@ internal class KubectlProgramPluginTest {
             }
 
             kubectl {
-              version.set("v1.12.2")
+              version.set("v1.15.2")
             }
           """.trimIndent().toByteArray()
         }
