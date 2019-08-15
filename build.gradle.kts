@@ -325,7 +325,7 @@ tasks {
     resolutionStrategy {
       componentSelection {
         all {
-          if (rejectPatterns.any { it.matches(this.candidate.version) }) {
+          if (rejectPatterns.any { it.matches(candidate.version) }) {
             reject("Release candidate")
           }
         }
@@ -354,16 +354,6 @@ tasks {
     dependsOn(personalWorkspace, workWorkspace, codeLabWorkspace)
   }
 
-  val screenRc by registering(Symlink::class) {
-    source.set(projectFile("screen/screenrc.dotfile"))
-    destination.set(locations.home.file(".screenrc"))
-  }
-
-  val screen by registering {
-    group = "Screen"
-    dependsOn(screenRc)
-  }
-
   val sshCms by registering(Mkdir::class) {
     directory.set(locations.home.dir(".ssh/controlMaster"))
   }
@@ -373,12 +363,7 @@ tasks {
     dependsOn(sshCms)
   }
 
-  val vimRc by registering(Symlink::class) {
-    source.set(projectFile("vim/vimrc.dotfile"))
-    destination.set(locations.home.file(".vimrc"))
-  }
-
   dotfiles {
-    dependsOn(screen, ssh, workspace)
+    dependsOn(ssh, workspace)
   }
 }
