@@ -16,12 +16,6 @@ plugins {
   dotfilesbuild.`self-update`
   dotfilesbuild.`vcs-management`
   dotfilesbuild.`git-vcs`
-
-  dotfilesbuild.shell.`generated-zsh`
-  dotfilesbuild.shell.`managed-bin`
-  dotfilesbuild.shell.`source-bin`
-  dotfilesbuild.shell.`unmanaged-bin`
-  dotfilesbuild.shell.`zsh-aliases-and-functions`
 }
 
 buildScan {

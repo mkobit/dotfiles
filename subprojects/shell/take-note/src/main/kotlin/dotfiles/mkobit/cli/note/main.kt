@@ -5,7 +5,6 @@ import picocli.CommandLine
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
-import java.time.format.DateTimeFormatter
 import java.time.format.DateTimeFormatterBuilder
 import kotlin.system.exitProcess
 
@@ -57,7 +56,7 @@ internal class TakeNote : Runnable {
       require(Files.isDirectory(directory)) { "${directory.toAbsolutePath()} must be an existing directory" }
     }
 
-    val filename ="${FORMATTER.format(Instant.now())}-$noteName.adoc"
+    val filename = "${FORMATTER.format(Instant.now())}-$noteName.adoc"
     Files.createFile(directory.resolve(filename))
   }
 }

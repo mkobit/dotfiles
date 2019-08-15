@@ -154,26 +154,6 @@ gradlePlugin {
       id = name
       implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"
     }
-    register("dotfilesbuild.shell.generated-zsh") {
-      id = name
-      implementationClass = "dotfilesbuild.shell.GeneratedZshrcSourceFilePlugin"
-    }
-    register("dotfilesbuild.shell.managed-bin") {
-      id = name
-      implementationClass = "dotfilesbuild.shell.ManagedBinPlugin"
-    }
-    register("dotfilesbuild.shell.source-bin") {
-      id = name
-      implementationClass = "dotfilesbuild.shell.SourceControlledBinPlugin"
-    }
-    register("dotfilesbuild.shell.unmanaged-bin") {
-      id = name
-      implementationClass = "dotfilesbuild.shell.UnmanagedBinPlugin"
-    }
-    register("dotfilesbuild.shell.zsh-aliases-and-functions") {
-      id = name
-      implementationClass = "dotfilesbuild.shell.ZshAliasesAndFunctionsPlugin"
-    }
     register("dotfilesbuild.vcs-management") {
       id = name
       implementationClass = "dotfilesbuild.io.vcs.VersionControlManagementPlugin"
