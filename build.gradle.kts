@@ -1,7 +1,5 @@
 import dotfilesbuild.io.file.Mkdir
-import dotfilesbuild.io.file.Symlink
 import dotfilesbuild.io.git.GitVersionControlTarget
-import dotfilesbuild.projectFile
 
 plugins {
   id("com.gradle.build-scan") version "2.4"

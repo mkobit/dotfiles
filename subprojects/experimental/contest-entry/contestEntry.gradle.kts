@@ -9,6 +9,7 @@ import dotfilesbuild.dependencies.kotlinx
 import dotfilesbuild.dependencies.kotlinxCoroutines
 import dotfilesbuild.dependencies.ktor
 import dotfilesbuild.dependencies.slf4j
+import dotfilesbuild.dependencies.testContainers
 import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -65,6 +66,10 @@ dependencies {
   implementation(kotlin("stdlib-jdk8"))
 
   implementation(kotlinLogging)
+
+  testImplementation(kotlinxCoroutines("test"))
+  testImplementation(testContainers("junit-jupiter"))
+  testImplementation(testContainers("testcontainers"))
 
   runtimeOnly(slf4j("simple"))
 }

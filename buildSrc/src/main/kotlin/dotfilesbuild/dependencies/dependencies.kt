@@ -21,6 +21,7 @@ fun DependencyHandler.retrofit2(module: String, version: String? = null) = "com.
 fun DependencyHandler.selenium(module: String, version: String? = null) = "org.seleniumhq.selenium:selenium-$module${version?.let { ":$version" } ?: ""}"
 fun DependencyHandler.slf4j(module: String, version: String? = null) = "org.slf4j:slf4j-$module${version?.let { ":$version" } ?: ""}"
 fun DependencyHandler.strikt(module: String, version: String? = null) = "io.strikt:strikt-$module${version?.let { ":$version" } ?: ""}"
+fun DependencyHandler.testContainers(module: String, version: String? = null) = "org.testcontainers:$module${version?.let { ":$version" } ?: ""}"
 
 val DependencyHandler.junitTestImplementationArtifacts get() = listOf(
   junitPlatform("runner"),

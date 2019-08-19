@@ -16,6 +16,7 @@ fun Configuration.useDotfilesDependencyRecommendations() {
   val retrofitVersion = "2.5.0"
   val slf4jVersion = "1.7.26"
   val striktVersion = "0.21.1"
+  val testContainersVersion = "1.12.0"
   resolutionStrategy.eachDependency {
     when (requested.group) {
       "com.squareup.okhttp3" -> useVersion(okHttpVersion)
@@ -36,6 +37,7 @@ fun Configuration.useDotfilesDependencyRecommendations() {
       "org.junit.jupiter" -> useVersion(junitJupiterVersion)
       "org.junit.platform" -> useVersion(junitPlatformVersion)
       "org.slf4j" -> useVersion(slf4jVersion)
+      "org.testcontainers" -> useVersion(testContainersVersion)
     }
   }
 }

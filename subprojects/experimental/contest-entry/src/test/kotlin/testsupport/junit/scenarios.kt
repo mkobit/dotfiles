@@ -38,7 +38,6 @@ private class StepwiseExtension : ExecutionCondition, TestExecutionExceptionHand
     context.parent.get().getStore(namespace)
 }
 
-
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 @TestMethodOrder(MethodOrderer.OrderAnnotation::class)
 @ExtendWith(StepwiseExtension::class)

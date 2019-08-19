@@ -11,59 +11,59 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo
   JsonSubTypes.Type(PageInfo.ServiceWorkerPageInfo::class, name = "service_worker"),
   JsonSubTypes.Type(PageInfo.OtherPageInfo::class, name = "other")
 ])
-sealed class PageInfo(
-  val description: String,
-  val devtoolsFrontendUrl: String,
-  val id: String,
-  val title: String,
-  val url: String,
-  val webSocketDebuggerUrl: String
-) {
-  class BackGroundPageInfo(
-    description: String,
-    devtoolsFrontendUrl: String,
-    id: String,
-    title: String,
-    url: String,
-    webSocketDebuggerUrl: String
-  ) : PageInfo(description, devtoolsFrontendUrl, id, title, url, webSocketDebuggerUrl)
+sealed class PageInfo {
+  abstract val description: String
+  abstract val devtoolsFrontendUrl: String
+  abstract val id: String
+  abstract val title: String
+  abstract val url: String
+  abstract val webSocketDebuggerUrl: String
 
-  class WebPageInfo(
-    description: String,
-    devtoolsFrontendUrl: String,
-    id: String,
-    title: String,
-    url: String,
-    webSocketDebuggerUrl: String,
+  data class BackGroundPageInfo(
+    override val description: String,
+    override val devtoolsFrontendUrl: String,
+    override val id: String,
+    override val title: String,
+    override val url: String,
+    override val webSocketDebuggerUrl: String
+  ) : PageInfo()
+
+  data class WebPageInfo(
+    override val description: String,
+    override val devtoolsFrontendUrl: String,
+    override val id: String,
+    override val title: String,
+    override val url: String,
+    override val webSocketDebuggerUrl: String,
     val faviconUrl: String?
-  ) : PageInfo(description, devtoolsFrontendUrl, id, title, url, webSocketDebuggerUrl)
+  ) : PageInfo()
 
-  class IframePageInfo(
-    description: String,
-    devtoolsFrontendUrl: String,
-    id: String,
-    title: String,
-    url: String,
-    webSocketDebuggerUrl: String,
+  data class IframePageInfo(
+    override val description: String,
+    override val devtoolsFrontendUrl: String,
+    override val id: String,
+    override val title: String,
+    override val url: String,
+    override val webSocketDebuggerUrl: String,
     val faviconUrl: String?,
     val parentId: String
-  ) : PageInfo(description, devtoolsFrontendUrl, id, title, url, webSocketDebuggerUrl)
+  ) : PageInfo()
 
-  class ServiceWorkerPageInfo(
-    description: String,
-    devtoolsFrontendUrl: String,
-    id: String,
-    title: String,
-    url: String,
-    webSocketDebuggerUrl: String
-  ) : PageInfo(description, devtoolsFrontendUrl, id, title, url, webSocketDebuggerUrl)
+  data class ServiceWorkerPageInfo(
+    override val description: String,
+    override val devtoolsFrontendUrl: String,
+    override val id: String,
+    override val title: String,
+    override val url: String,
+    override val webSocketDebuggerUrl: String
+  ) : PageInfo()
 
-  class OtherPageInfo(
-    description: String,
-    devtoolsFrontendUrl: String,
-    id: String,
-    title: String,
-    url: String,
-    webSocketDebuggerUrl: String
-  ) : PageInfo(description, devtoolsFrontendUrl, id, title, url, webSocketDebuggerUrl)
+  data class OtherPageInfo(
+    override val description: String,
+    override val devtoolsFrontendUrl: String,
+    override val id: String,
+    override val title: String,
+    override val url: String,
+    override val webSocketDebuggerUrl: String
+  ) : PageInfo()
 }
