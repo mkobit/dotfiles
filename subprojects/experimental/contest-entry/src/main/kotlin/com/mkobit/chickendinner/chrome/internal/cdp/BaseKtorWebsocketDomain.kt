@@ -25,7 +25,7 @@ internal abstract class BaseKtorWebsocketDomain(
   private val requestIdGenerator: AtomicLong
 ) {
 
-  protected suspend inline fun <reified T> sendAndAwait(requestParameters: Any?): T {
+  protected suspend inline fun <reified T> sendAndAwait(requestParameters: Any? = null): T {
     val callingFrame = Thread.currentThread().stackTrace[1]
     // TODO: hacky
 

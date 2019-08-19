@@ -56,8 +56,8 @@ internal class KtorClientWebsocketPageDomain(
   private val session: WebSocketSession,
   private val objectMapper: ObjectMapper,
   private val requestIdGenerator: AtomicLong
-
 ) : BaseKtorWebsocketDomain(session, objectMapper, requestIdGenerator), PageDomain {
+
   override suspend fun addScriptToEvaluateOnLoad(request: AddScriptToEvaluateOnLoadRequest): AddScriptToEvaluateOnLoadReply {
     TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }

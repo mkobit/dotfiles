@@ -39,7 +39,7 @@ internal class KtorClientWebsocketBrowserDomain(
     TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
   }
 
-  override suspend fun getVersion(): GetVersionReply = sendAndAwait(null)
+  override suspend fun getVersion(): GetVersionReply = sendAndAwait()
 
   override suspend fun getBrowserCommandLine(): GetBrowserCommandLineReply {
     TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
