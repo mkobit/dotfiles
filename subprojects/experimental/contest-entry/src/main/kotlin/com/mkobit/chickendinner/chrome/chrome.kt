@@ -23,7 +23,6 @@ fun launchChrome(
 private val CHROME_PORT_LOG_REGEX = Regex("^DevTools listening on [\\w]+://\\d+\\.\\d\\.\\d\\.\\d:(\\d+).*$")
 
 fun determineChromePortFromLog(errorLog: String): Option<Int> {
-  println(errorLog.lines().size)
   return errorLog.lineSequence()
       .map { CHROME_PORT_LOG_REGEX.matchEntire(it) }
       .filterNotNull()
