@@ -53,206 +53,110 @@ import io.ktor.http.cio.websocket.WebSocketSession
 import java.util.concurrent.atomic.AtomicLong
 
 internal class KtorClientWebsocketPageDomain(
-  private val session: WebSocketSession,
-  private val objectMapper: ObjectMapper,
-  private val requestIdGenerator: AtomicLong
+  session: WebSocketSession,
+  objectMapper: ObjectMapper,
+  requestIdGenerator: AtomicLong
 ) : BaseKtorWebsocketDomain(session, objectMapper, requestIdGenerator), PageDomain {
 
-  override suspend fun addScriptToEvaluateOnLoad(request: AddScriptToEvaluateOnLoadRequest): AddScriptToEvaluateOnLoadReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun addScriptToEvaluateOnLoad(request: AddScriptToEvaluateOnLoadRequest): AddScriptToEvaluateOnLoadReply =
+    sendAndAwait(request)
 
-  override suspend fun addScriptToEvaluateOnNewDocument(request: AddScriptToEvaluateOnNewDocumentRequest): AddScriptToEvaluateOnNewDocumentReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun addScriptToEvaluateOnNewDocument(request: AddScriptToEvaluateOnNewDocumentRequest): AddScriptToEvaluateOnNewDocumentReply =
+    sendAndAwait(request)
 
-  override suspend fun bringToFront() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun bringToFront() = sendAndAwait<Unit>()
 
-  override suspend fun captureScreenshot(request: CaptureScreenshotRequest): CaptureScreenshotReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun captureScreenshot(request: CaptureScreenshotRequest): CaptureScreenshotReply = sendAndAwait(request)
 
-  override suspend fun captureSnapshot(request: CaptureSnapshotRequest): CaptureSnapshotReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun captureSnapshot(request: CaptureSnapshotRequest): CaptureSnapshotReply = sendAndAwait(request)
 
-  override suspend fun clearDeviceMetricsOverride() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun clearDeviceMetricsOverride() = sendAndAwait<Unit>()
 
-  override suspend fun clearDeviceOrientationOverride() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun clearDeviceOrientationOverride() = sendAndAwait<Unit>()
 
-  override suspend fun clearGeolocationOverride() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun clearGeolocationOverride() = sendAndAwait<Unit>()
 
-  override suspend fun createIsolatedWorld(request: CreateIsolatedWorldRequest): CreateIsolatedWorldReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun createIsolatedWorld(request: CreateIsolatedWorldRequest): CreateIsolatedWorldReply = sendAndAwait(request)
 
-  override suspend fun deleteCookie(request: DeleteCookieRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun deleteCookie(request: DeleteCookieRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun disable() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun disable() = sendAndAwait<Unit>()
 
-  override suspend fun enable() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun enable() = sendAndAwait<Unit>()
 
-  override suspend fun getAppManifest(): GetAppManifestReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getAppManifest(): GetAppManifestReply = sendAndAwait()
 
-  override suspend fun getCookies(): GetCookiesReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getCookies(): GetCookiesReply = sendAndAwait()
 
-  override suspend fun getFrameTree(): GetFrameTreeReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getFrameTree(): GetFrameTreeReply = sendAndAwait()
 
-  override suspend fun getLayoutMetrics(): GetLayoutMetricsReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getLayoutMetrics(): GetLayoutMetricsReply = sendAndAwait()
 
-  override suspend fun getNavigationHistory(): GetNavigationHistoryReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getNavigationHistory(): GetNavigationHistoryReply = sendAndAwait()
 
-  override suspend fun getResourceContent(request: GetResourceContentRequest): GetResourceContentReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getResourceContent(request: GetResourceContentRequest): GetResourceContentReply = sendAndAwait(request)
 
-  override suspend fun getResourceTree(): GetResourceTreeReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getResourceTree(): GetResourceTreeReply = sendAndAwait()
 
-  override suspend fun handleJavaScriptDialog(request: HandleJavaScriptDialogRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun handleJavaScriptDialog(request: HandleJavaScriptDialogRequest) = sendAndAwait<Unit>(request)
 
   override suspend fun navigate(request: NavigateRequest): NavigateReply = sendAndAwait(request)
 
-  override suspend fun navigateToHistoryEntry(request: NavigateToHistoryEntryRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun navigateToHistoryEntry(request: NavigateToHistoryEntryRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun printToPDF(request: PrintToPDFRequest): PrintToPDFReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun printToPDF(request: PrintToPDFRequest): PrintToPDFReply = sendAndAwait(request)
 
-  override suspend fun reload(request: ReloadRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun reload(request: ReloadRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun removeScriptToEvaluateOnLoad(request: RemoveScriptToEvaluateOnLoadRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun removeScriptToEvaluateOnLoad(request: RemoveScriptToEvaluateOnLoadRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun removeScriptToEvaluateOnNewDocument(request: RemoveScriptToEvaluateOnNewDocumentRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun removeScriptToEvaluateOnNewDocument(request: RemoveScriptToEvaluateOnNewDocumentRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun requestAppBanner() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun requestAppBanner() = sendAndAwait<Unit>()
 
-  override suspend fun screencastFrameAck(request: ScreencastFrameAckRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun screencastFrameAck(request: ScreencastFrameAckRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun searchInResource(request: SearchInResourceRequest): SearchInResourceReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun searchInResource(request: SearchInResourceRequest): SearchInResourceReply = sendAndAwait(request)
 
-  override suspend fun setAdBlockingEnabled(request: SetAdBlockingEnabledRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setAdBlockingEnabled(request: SetAdBlockingEnabledRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun setBypassCSP(request: SetBypassCSPRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setBypassCSP(request: SetBypassCSPRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun setDeviceMetricsOverride(request: SetDeviceMetricsOverrideRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setDeviceMetricsOverride(request: SetDeviceMetricsOverrideRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun setDeviceOrientationOverride(request: SetDeviceOrientationOverrideRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setDeviceOrientationOverride(request: SetDeviceOrientationOverrideRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun setFontFamilies(request: SetFontFamiliesRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setFontFamilies(request: SetFontFamiliesRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun setFontSizes(request: SetFontSizesRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setFontSizes(request: SetFontSizesRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun setDocumentContent(request: SetDocumentContentRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setDocumentContent(request: SetDocumentContentRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun setDownloadBehavior(request: SetDownloadBehaviorRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setDownloadBehavior(request: SetDownloadBehaviorRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun setGeolocationOverride(request: SetGeolocationOverrideRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setGeolocationOverride(request: SetGeolocationOverrideRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun setLifecycleEventsEnabled(request: SetLifecycleEventsEnabledRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setLifecycleEventsEnabled(request: SetLifecycleEventsEnabledRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun setTouchEmulationEnabled(request: SetTouchEmulationEnabledRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setTouchEmulationEnabled(request: SetTouchEmulationEnabledRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun startScreencast(request: StartScreencastRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun startScreencast(request: StartScreencastRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun stopLoading() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun stopLoading() = sendAndAwait<Unit>()
 
-  override suspend fun crash() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun crash() = sendAndAwait<Unit>()
 
-  override suspend fun close() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun close() = sendAndAwait<Unit>()
 
-  override suspend fun setWebLifecycleState(request: SetWebLifecycleStateRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setWebLifecycleState(request: SetWebLifecycleStateRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun stopScreencast() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun stopScreencast() = sendAndAwait<Unit>()
 
-  override suspend fun setProduceCompilationCache(request: SetProduceCompilationCacheRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setProduceCompilationCache(request: SetProduceCompilationCacheRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun addCompilationCache(request: AddCompilationCacheRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun addCompilationCache(request: AddCompilationCacheRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun clearCompilationCache() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun clearCompilationCache() = sendAndAwait<Unit>()
 
-  override suspend fun generateTestReport(request: GenerateTestReportRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun generateTestReport(request: GenerateTestReportRequest) = sendAndAwait<Unit>(request)
 }
