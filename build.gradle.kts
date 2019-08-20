@@ -188,19 +188,6 @@ versionControlTracking {
           register("teamcity-google-agent", GitVersionControlTarget::class) { origin("https://github.com/JetBrains/teamcity-google-agent.git") }
           register("teamcity-local-cloud", GitVersionControlTarget::class) { origin("https://github.com/JetBrains/teamcity-local-cloud.git") }
           register("TeamCity.QueueManager", GitVersionControlTarget::class) { origin("https://github.com/JetBrains/TeamCity.QueueManager.git") }
-          register("teamcity-sdk-maven-plugin", GitVersionControlTarget::class) { origin("https://github.com/JetBrains/teamcity-sdk-maven-plugin.git") }
-        }
-      }
-      register("joel-costigliola") {
-        vcs {
-        }
-      }
-      register("johnrengelman") {
-        vcs {
-          register("shadow", GitVersionControlTarget::class) {
-            origin("https://github.com/johnrengelman/shadow.git")
-            remote("personal", "git@github.com:mkobit/shadow.git")
-          }
         }
       }
       register("junit-team") {
@@ -276,11 +263,6 @@ versionControlTracking {
           register("kotlinpoet", GitVersionControlTarget::class) { origin("https://github.com/square/kotlinpoet.git") }
           register("okhttp", GitVersionControlTarget::class) { origin("https://github.com/square/okhttp.git") }
           register("retrofit", GitVersionControlTarget::class) { origin("https://github.com/square/retrofit.git") }
-        }
-      }
-      register("willowtreeapps") {
-        vcs {
-          register("assertk", GitVersionControlTarget::class) { origin("https://github.com/willowtreeapps/assertk.git") }
         }
       }
     }
