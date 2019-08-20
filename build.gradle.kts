@@ -306,16 +306,7 @@ tasks {
     dependsOn(personalWorkspace, workWorkspace, codeLabWorkspace)
   }
 
-  val sshCms by registering(Mkdir::class) {
-    directory.set(locations.home.dir(".ssh/controlMaster"))
-  }
-
-  val ssh by registering {
-    group = "SSH"
-    dependsOn(sshCms)
-  }
-
   dotfiles {
-    dependsOn(ssh, workspace)
+    dependsOn(workspace)
   }
 }

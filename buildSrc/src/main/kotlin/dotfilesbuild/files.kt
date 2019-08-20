@@ -6,7 +6,7 @@ import org.gradle.api.file.RegularFile
 
 private val userHome: String = System.getProperty("user.home")
 
-private val Project.home: Directory
+val Project.home: Directory
   get() = layout.directoryProperty().run {
     set(this@home.file(userHome))
     get()
@@ -14,4 +14,5 @@ private val Project.home: Directory
 
 fun Project.projectFile(path: String): RegularFile = layout.projectDirectory.file(path)
 
+@Deprecated("superseded", ReplaceWith("home", "dotfilesbuild.home"))
 fun Project.homeFile(path: String): RegularFile = home.file(path)
