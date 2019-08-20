@@ -181,7 +181,6 @@ versionControlTracking {
       }
       register("JetBrains") {
         vcs {
-          register("intellij-community", GitVersionControlTarget::class) { origin("https://github.com/JetBrains/intellij-community.git") }
           register("kotlin", GitVersionControlTarget::class) { origin("https://github.com/JetBrains/kotlin.git") }
           register("teamcity-achievements", GitVersionControlTarget::class) { origin("https://github.com/JetBrains/teamcity-achievements.git") }
           register("teamcity-commit-hooks", GitVersionControlTarget::class) { origin("https://github.com/JetBrains/teamcity-commit-hooks.git") }
