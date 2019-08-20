@@ -23,45 +23,25 @@ internal class KtorClientWebsocketBrowserDomain(
   objectMapper: ObjectMapper,
   requestIdGenerator: AtomicLong
 ) : BaseKtorWebsocketDomain(session, objectMapper, requestIdGenerator), BrowserDomain {
-  override suspend fun grantPermissions(request: GrantPermissionsRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun grantPermissions(request: GrantPermissionsRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun resetPermissions(request: ResetPermissionsRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun resetPermissions(request: ResetPermissionsRequest) = sendAndAwait<Unit>(request)
 
-  override suspend fun close() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun close() = sendAndAwait<Unit>()
 
-  override suspend fun crash() {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun crash() = sendAndAwait<Unit>()
 
   override suspend fun getVersion(): GetVersionReply = sendAndAwait()
 
-  override suspend fun getBrowserCommandLine(): GetBrowserCommandLineReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getBrowserCommandLine(): GetBrowserCommandLineReply = sendAndAwait()
 
-  override suspend fun getHistograms(request: GetHistogramsRequest): GetHistogramsReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getHistograms(request: GetHistogramsRequest): GetHistogramsReply = sendAndAwait(request)
 
-  override suspend fun getHistogram(request: GetHistogramRequest): GetHistogramReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getHistogram(request: GetHistogramRequest): GetHistogramReply = sendAndAwait(request)
 
-  override suspend fun getWindowBounds(request: GetWindowBoundsRequest): GetWindowBoundsReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getWindowBounds(request: GetWindowBoundsRequest): GetWindowBoundsReply = sendAndAwait(request)
 
-  override suspend fun getWindowForTarget(request: GetWindowForTargetRequest): GetWindowForTargetReply {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun getWindowForTarget(request: GetWindowForTargetRequest): GetWindowForTargetReply = sendAndAwait(request)
 
-  override suspend fun setWindowBounds(request: SetWindowBoundsRequest) {
-    TODO("not implemented") // To change body of created functions use File | Settings | File Templates.
-  }
+  override suspend fun setWindowBounds(request: SetWindowBoundsRequest) = sendAndAwait<Unit>(request)
 }
