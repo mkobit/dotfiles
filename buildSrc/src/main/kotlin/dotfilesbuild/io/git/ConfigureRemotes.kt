@@ -14,6 +14,7 @@ import org.gradle.workers.IsolationMode
 import org.gradle.workers.WorkerExecutor
 import javax.inject.Inject
 
+@Deprecated("Simplification in-progress")
 open class ConfigureRemotes @Inject constructor(
   private val workerExecutor: WorkerExecutor,
   objectFactory: ObjectFactory

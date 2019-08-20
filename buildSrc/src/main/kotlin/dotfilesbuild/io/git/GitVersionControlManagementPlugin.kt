@@ -52,33 +52,12 @@ class GitVersionControlManagementPlugin @Inject constructor(
               val targetClassifier = "GitRepository$name"
               val fullClassifier = "$organizationClassifier$groupClassifier$targetClassifier"
               // TODO: better handle multiple remotes
-              val cloneRepository = tasks.register("clone$fullClassifier",
-                  CloneRepository::class) {
-                description = "Clone Git repository ${gitVersionControlTarget.name}"
-                repositoryDirectory.set(gitVersionControlTarget.directory)
-                repositoryUrl.set(providerFactory.provider {
-                  gitVersionControlTarget.remotes["origin"] ?: gitVersionControlTarget.remotes.entries.first().value
-                })
-              }
-              val configureRemotes = tasks.register("configureRemotes$fullClassifier", ConfigureRemotes::class) {
-                dependsOn(cloneRepository)
-                description = "Configure remotes for Git repository ${gitVersionControlTarget.name}"
-                repositoryDirectory.set(cloneRepository.map(CloneRepository::repositoryDirectory).get())
-                remotes.set(providerFactory.provider { gitVersionControlTarget.remotes })
-              }
-              val fetchRemotes = tasks.register("fetchRemotes$fullClassifier", FetchRemotes::class) {
-                dependsOn(configureRemotes)
-                description = "Fetch remotes for Git repository ${gitVersionControlTarget.name}"
-                repositoryDirectory.set(cloneRepository.map(CloneRepository::repositoryDirectory).get())
-              }
-              val pullRepository = tasks.register("pull$fullClassifier",
-                  PullRepository::class) {
-                dependsOn(fetchRemotes)
-                description = "Pull Git repository ${gitVersionControlTarget.name}"
-                repositoryDirectory.set(cloneRepository.map(CloneRepository::repositoryDirectory).get())
+              val configureRepository = tasks.register("configure$fullClassifier", ManageGitRepository::class) {
+                description = "Synchronizes and configures Git repository ${gitVersionControlTarget.name}"
+                gitRepositorySpec.set(gitVersionControlTarget)
               }
               refreshGroup.configure {
-                dependsOn(pullRepository)
+                dependsOn(configureRepository)
               }
             }
           }

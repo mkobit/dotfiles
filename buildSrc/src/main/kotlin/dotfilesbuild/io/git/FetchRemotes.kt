@@ -10,6 +10,7 @@ import org.gradle.workers.IsolationMode
 import org.gradle.workers.WorkerExecutor
 import javax.inject.Inject
 
+@Deprecated("Simplification in-progress")
 open class FetchRemotes @Inject constructor(
   private val workerExecutor: WorkerExecutor
 ) : DefaultTask() {

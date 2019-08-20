@@ -16,6 +16,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import javax.inject.Inject
 
+@Deprecated("Simplification in-progress")
 open class CloneRepository @Inject constructor(
   private val workerExecutor: WorkerExecutor,
   objectFactory: ObjectFactory
