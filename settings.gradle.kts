@@ -27,8 +27,6 @@ fun includeShell(vararg names: String) = includeGroup("shell", *names)
 
 includeShell(
   "aggregator",
-  "bin-managed",
-  "bin-unmanaged",
   "diff-highlight",
   "git",
   "ssh",
