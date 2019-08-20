@@ -1,4 +1,5 @@
 import dotfilesbuild.dependencies.defaultDotfilesRepositories
+import dotfilesbuild.home
 import dotfilesbuild.io.git.GitVersionControlTarget
 
 plugins {
@@ -7,7 +8,6 @@ plugins {
   id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.5" apply false
 
-  dotfilesbuild.locations
   dotfilesbuild.`self-update`
   dotfilesbuild.`vcs-management`
   dotfilesbuild.`git-vcs`
@@ -20,9 +20,10 @@ buildScan {
 
 description = "Dotfiles and package management"
 
-val personalWorkspaceDirectory: Directory = locations.workspace.dir("personal")
-val workWorkspaceDirectory: Directory = locations.workspace.dir("work")
-val codeLabWorkspaceDirectory: Directory = locations.workspace.dir("code_lab")
+val workspace = home.dir("Workspace")
+val personalWorkspaceDirectory: Directory = workspace.dir("personal")
+val workWorkspaceDirectory: Directory = workspace.dir("work")
+val codeLabWorkspaceDirectory: Directory = workspace.dir("code_lab")
 
 ktlint {
   version.set("0.32.0")
@@ -35,7 +36,7 @@ repositories.defaultDotfilesRepositories()
 // "$3"(GitVersionControlTarget::class) { origin("$1") }
 versionControlTracking {
   register("personal") {
-    directory.set(locations.workspace.dir("personal"))
+    directory.set(personalWorkspaceDirectory)
     groups {
       register("apache") {
         vcs {

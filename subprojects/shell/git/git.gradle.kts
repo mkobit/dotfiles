@@ -1,3 +1,4 @@
+import dotfilesbuild.home
 import dotfilesbuild.projectFile
 import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.Symlink
@@ -5,13 +6,12 @@ import dotfilesbuild.io.file.content.SetContent
 
 plugins {
   dotfilesbuild.`dotfiles-lifecycle`
-
-  dotfilesbuild.locations
 }
 
-val personalWorkspaceDirectory: Directory = locations.workspace.dir("personal")
-val workWorkspaceDirectory: Directory = locations.workspace.dir("work")
-val codeLabWorkspaceDirectory: Directory = locations.workspace.dir("code_lab")
+val workspace = home.dir("Workspace")
+val personalWorkspaceDirectory: Directory = workspace.dir("personal")
+val workWorkspaceDirectory: Directory = workspace.dir("work")
+val codeLabWorkspaceDirectory: Directory = workspace.dir("code_lab")
 
 tasks {
   val gitConfigGeneration by registering(EditFile::class) {
@@ -29,7 +29,7 @@ tasks {
                 [includeIf "gitdir:${codeLabWorkspaceDirectory.asFile.absolutePath}/"]
                     path = ${gitConfigPersonal.asFile.absolutePath}
                 [includeIf "gitdir:${workWorkspaceDirectory.asFile.absolutePath}/"]
-                    path = ${locations.home.file(".gitconfig_work")}
+                    path = ${home.file(".gitconfig_work").asFile.absolutePath}
             """.trimIndent()
       }
     ))
@@ -39,12 +39,12 @@ tasks {
   val symlinkGeneratedGitFile  by registering(Symlink::class) {
     dependsOn(gitConfigGeneration)
     source.set(gitConfigGeneration.flatMap { it.output })
-    destination.set(locations.home.file(".gitconfig"))
+    destination.set(home.file(".gitconfig"))
   }
 
   val symlinkGitIgnoreGlobal by registering(Symlink::class) {
     source.set(projectFile("git/gitignore_global.dotfile"))
-    destination.set(locations.home.file(".gitignore_global"))
+    destination.set(home.file(".gitignore_global"))
   }
 
   dotfiles {
