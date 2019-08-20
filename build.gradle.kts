@@ -1,4 +1,4 @@
-import dotfilesbuild.io.file.Mkdir
+import dotfilesbuild.dependencies.defaultDotfilesRepositories
 import dotfilesbuild.io.git.GitVersionControlTarget
 
 plugins {
@@ -28,9 +28,7 @@ ktlint {
   version.set("0.32.0")
 }
 
-repositories {
-  jcenter()
-}
+repositories.defaultDotfilesRepositories()
 
 // IntelliJ Regex:
 // ^(\w+[:@/]+\w+.com[:/]?([\w\d-]+)/([\w\d-\.]+)\.git)$
