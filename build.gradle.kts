@@ -6,9 +6,6 @@ plugins {
   id("com.github.ben-manes.versions") version "0.22.0"
   id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.5" apply false
-//  id("org.beryx.jlink") version "2.14.1" apply false
-
-  dotfilesbuild.`dotfiles-lifecycle`
 
   dotfilesbuild.locations
   dotfilesbuild.`self-update`
@@ -287,26 +284,5 @@ tasks {
 
   wrapper {
     gradleVersion = "5.6"
-  }
-
-  val personalWorkspace by creating(Mkdir::class) {
-    directory.set(personalWorkspaceDirectory)
-  }
-
-  val workWorkspace by creating(Mkdir::class) {
-    directory.set(workWorkspaceDirectory)
-  }
-
-  val codeLabWorkspace by creating(Mkdir::class) {
-    directory.set(codeLabWorkspaceDirectory)
-  }
-
-  val workspace by registering {
-    group = "Workspace"
-    dependsOn(personalWorkspace, workWorkspace, codeLabWorkspace)
-  }
-
-  dotfiles {
-    dependsOn(workspace)
   }
 }
