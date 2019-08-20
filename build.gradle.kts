@@ -131,52 +131,27 @@ versionControlTracking {
       }
       register("jenkins") {
         vcs {
-          register("amazon-ecs-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/amazon-ecs-plugin.git") }
           register("analysis-core-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/analysis-core-plugin.git") }
           register("authorize-project-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/authorize-project-plugin.git") }
-          register("bitbucket-branch-source-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/bitbucket-branch-source-plugin.git") }
-          register("bitbucket-pullrequest-builder-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/bitbucket-pullrequest-builder-plugin.git") }
           register("blueocean-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/blueocean-plugin.git") }
           register("branch-api-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/branch-api-plugin.git") }
           register("cloudbees-folder-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/cloudbees-folder-plugin.git") }
           register("credentials-binding-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/credentials-binding-plugin.git") }
           register("credentials-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/credentials-plugin.git") }
-          register("docker-build-publish-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/docker-build-publish-plugin.git") }
           register("docker-build-step-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/docker-build-step-plugin.git") }
-          register("docker-commons-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/docker-commons-plugin.git") }
-          register("docker-custom-build-environment-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/docker-custom-build-environment-plugin.git") }
-          register("docker", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/docker.git") }
-          register("docker-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/docker-plugin.git") }
           register("docker-ssh-slave", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/docker-ssh-slave.git") }
-          register("docker-traceability-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/docker-traceability-plugin.git") }
-          register("docker-workflow-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/docker-workflow-plugin.git") }
           register("durable-task-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/durable-task-plugin.git") }
           register("extended-choice-parameter-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/extended-choice-parameter-plugin.git") }
           register("external-workspace-manager-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/external-workspace-manager-plugin.git") }
-          register("extras-executable-war", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/extras-executable-war.git") }
           register("git-client-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/git-client-plugin.git") }
           register("gitea-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/gitea-plugin.git") }
-          register("github-branch-source-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/github-branch-source-plugin.git") }
-          register("gitlab-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/gitlab-plugin.git") }
           register("git-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/git-plugin.git") }
           register("gradle-jpi-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/gradle-jpi-plugin.git") }
-          register("gradle-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/gradle-plugin.git") }
-          register("groovy-events-listener-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/groovy-events-listener-plugin.git") }
-          register("jenkins-design-language", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/jenkins-design-language.git") }
           register("jenkins", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/jenkins.git") }
           register("jenkins-test-harness", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/jenkins-test-harness.git") }
           register("job-dsl-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/job-dsl-plugin.git") }
-          register("job-dsl-plugin.wiki", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/job-dsl-plugin.wiki.git") }
-          register("junit-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/junit-plugin.git") }
-          register("kubernetes-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/kubernetes-plugin.git") }
-          register("ldap-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/ldap-plugin.git") }
           register("lockable-resources-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/lockable-resources-plugin.git") }
-          register("matrix-auth-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/matrix-auth-plugin.git") }
           register("maven-hpi-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/maven-hpi-plugin.git") }
-          register("mercurial-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/mercurial-plugin.git") }
-          register("mesos-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/mesos-plugin.git") }
-          register("metrics-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/metrics-plugin.git") }
-          register("monitoring-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/monitoring-plugin.git") }
           register("pipeline-build-step-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/pipeline-build-step-plugin.git") }
           register("pipeline-examples", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/pipeline-examples.git") }
           register("pipeline-input-step-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/pipeline-input-step-plugin.git") }
@@ -190,8 +165,6 @@ versionControlTracking {
           register("scm-api-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/scm-api-plugin.git") }
           register("script-security-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/script-security-plugin.git") }
           register("ssh-slaves-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/ssh-slaves-plugin.git") }
-          register("swarm-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/swarm-plugin.git") }
-          register("throttle-concurrent-builds-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/throttle-concurrent-builds-plugin.git") }
           register("workflow-aggregator-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/workflow-aggregator-plugin.git") }
           register("workflow-api-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/workflow-api-plugin.git") }
           register("workflow-basic-steps-plugin", GitVersionControlTarget::class) { origin("https://github.com/jenkinsci/workflow-basic-steps-plugin.git") }
