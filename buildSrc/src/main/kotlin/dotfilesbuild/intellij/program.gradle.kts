@@ -3,6 +3,10 @@ package dotfilesbuild.intellij
 import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.content.SetContent
 
+plugins {
+  base
+}
+
 val taskGroup = "IntelliJ"
 
 val intellij = extensions.create(

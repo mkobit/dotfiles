@@ -4,6 +4,10 @@ import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.content.SetContent
 import dotfilesbuild.io.http.Download
 
+plugins {
+  base
+}
+
 val bin by configurations.creating {
   isCanBeConsumed = true
   isCanBeResolved = false
