@@ -17,6 +17,7 @@ dependencies {
   bin(project(":shell:take-note"))
   bin(project(":shell:diff-highlight"))
   bin(project(":programs:intellij"))
+  bin(project(":programs:jq"))
   bin(project(":programs:keepass"))
   bin(project(":programs:kubectl"))
 }
