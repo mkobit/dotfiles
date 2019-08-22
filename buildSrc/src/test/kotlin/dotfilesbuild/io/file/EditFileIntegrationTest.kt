@@ -34,7 +34,7 @@ internal class EditFileIntegrationTest {
           import dotfilesbuild.io.file.content.SearchTextDeleteLine
 
           plugins {
-            id("dotfilesbuild.file-management")
+            id("dotfilesbuild.internal.noop")
           }
 
           val convergeFile by tasks.creating(EditFile::class) {
@@ -104,7 +104,7 @@ internal class EditFileIntegrationTest {
           import kotlin.jvm.functions.Function0
 
           plugins {
-            id('dotfilesbuild.file-management')
+            id('dotfilesbuild.internal.noop')
           }
 
           tasks.create('convergeFile', EditFile) {
@@ -145,7 +145,7 @@ internal class EditFileIntegrationTest {
           import kotlin.jvm.functions.Function0
 
           plugins {
-            id('dotfilesbuild.file-management')
+            id('dotfilesbuild.internal.noop')
           }
 
           tasks.create('convergeFile', EditFile) {

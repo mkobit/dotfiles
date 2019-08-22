@@ -142,10 +142,6 @@ tasks {
 
 gradlePlugin {
   plugins {
-    register("dotfilesbuild.file-management") {
-      id = name
-      implementationClass = "dotfilesbuild.io.file.FileManagementPlugin"
-    }
     register("dotfilesbuild.git-vcs") {
       id = name
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
