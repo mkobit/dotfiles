@@ -69,9 +69,9 @@ configurations.all {
 dependencies {
   // https://github.com/gradle/kotlin-dsl/issues/430
   fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$version"
-  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.3.41"))
+  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.3.50"))
 
-  implementation("io.github.microutils:kotlin-logging:1.6.26")
+  implementation("io.github.microutils:kotlin-logging:1.7.6")
 
   implementation("io.arrow-kt:arrow-core-data")
   implementation("io.arrow-kt:arrow-core-extensions")

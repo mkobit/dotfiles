@@ -4,7 +4,7 @@ import org.gradle.api.artifacts.dsl.DependencyHandler
 
 const val picoCli = "info.picocli:picocli:4.0.2"
 const val guava = "com.google.guava:guava:28.0-jre"
-const val kotlinLogging = "io.github.microutils:kotlin-logging:1.7.2"
+const val kotlinLogging = "io.github.microutils:kotlin-logging:1.7.6"
 
 fun DependencyHandler.arrow(module: String, version: String? = null) = "io.arrow-kt:arrow-$module${version?.let { ":$version" } ?: ""}"
 fun DependencyHandler.jacksonCore(module: String, version: String? = null) = "com.fasterxml.jackson.core:jackson-$module${version?.let { ":$version" } ?: ""}"
