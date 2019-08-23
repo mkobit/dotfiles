@@ -24,7 +24,9 @@ val jq = extensions.create(
   objects.property<String>()
 )
 
-val jqDirectory = layout.buildDirectory.dir("jq")
+val jqVersionDirectory = layout.buildDirectory.dir("jq").flatMap { dir ->
+  dir.dir(jq.jqVersion.map { version -> "$version/bin/jq" })
+}
 val taskGroup = "jq"
 val distribution = "jq-linux64"
 
@@ -35,10 +37,8 @@ val downloadJq by tasks.registering(Download::class) {
     jq.jqVersion.map { "https://github.com/stedolan/jq/releases/download/jq-$it/$distribution" }
   )
   destination.set(
-    jqDirectory.flatMap { dir ->
-      dir.file(
-        jq.jqVersion.map { version -> "$version/bin/jq" }
-      )
+    jqVersionDirectory.map { dir ->
+      dir.file("bin/jq")
     }
   )
   executable.set(true)
@@ -49,10 +49,8 @@ val checksumJq by tasks.registering(CalculateChecksum::class) {
   description = "Calculates checksum for jq binary"
   digestFiles.from(downloadJq.flatMap { it.destination })
   checksums.set(
-    jqDirectory.flatMap { dir ->
-      dir.dir(
-        jq.jqVersion.map { version -> "$version/checksums" }
-      )
+    jqVersionDirectory.map { dir ->
+      dir.dir("checksums")
     }
   )
 }
@@ -65,10 +63,8 @@ val downloadOfficialJqChecksum by tasks.registering(Download::class) {
     jq.jqVersion.map { "https://raw.githubusercontent.com/stedolan/jq/$downloadSha/sig/v$it/sha256sum.txt" }
   )
   destination.set(
-    jqDirectory.flatMap { dir ->
-      dir.file(
-        jq.jqVersion.map { version -> "$version/release-checksums/sha256sum.txt" }
-      )
+    jqVersionDirectory.map { dir ->
+      dir.file("release-checksums/sha256sum.txt")
     }
   )
 }
