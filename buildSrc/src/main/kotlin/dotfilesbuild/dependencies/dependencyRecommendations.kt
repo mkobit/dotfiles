@@ -8,7 +8,7 @@ fun Configuration.useDotfilesDependencyRecommendations() {
   val junitJupiterVersion = "5.4.2"
   val junitPlatformVersion = "1.4.2"
   val kodeinDiVersion = "6.3.3"
-  val kotlinxCoroutinesVersion = "1.2.1"
+  val kotlinxCoroutinesVersion = "1.3.0"
   val ktorVersion = "1.2.3"
   val okHttpVersion = "4.0.1"
   val log4jVersion = "2.12.0"
