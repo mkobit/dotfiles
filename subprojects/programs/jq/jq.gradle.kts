@@ -3,5 +3,5 @@ plugins {
 }
 
 jq {
-  jqVersion.set("1.5")
+  jqVersion.set("1.6")
 }
