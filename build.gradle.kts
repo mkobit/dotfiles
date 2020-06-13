@@ -3,10 +3,9 @@ import dotfilesbuild.home
 import dotfilesbuild.io.git.GitVersionControlTarget
 
 plugins {
-  id("com.gradle.build-scan") version "2.4.1"
-  id("com.github.ben-manes.versions") version "0.22.0"
-  id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
-  id("org.jetbrains.gradle.plugin.idea-ext") version "0.5" apply false
+  id("com.github.ben-manes.versions") version "0.28.0"
+  id("org.jlleitschuh.gradle.ktlint") version "9.2.1"
+  id("org.jetbrains.gradle.plugin.idea-ext") version "0.7" apply false
 
   dotfilesbuild.`self-update`
   dotfilesbuild.`vcs-management`
@@ -205,6 +204,6 @@ tasks {
   }
 
   wrapper {
-    gradleVersion = "5.6"
+    gradleVersion = "6.5"
   }
 }

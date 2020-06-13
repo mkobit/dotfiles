@@ -10,6 +10,7 @@ import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.provider.Provider
+import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
@@ -32,7 +33,7 @@ open class EditFile @Inject constructor(
 //  }
 
   @get:Internal
-  val file: RegularFileProperty = projectLayout.fileProperty()
+  val file: RegularFileProperty = objectFactory.fileProperty()
 
   @get:OutputFile
   val output: Provider<RegularFile> = file
@@ -40,6 +41,7 @@ open class EditFile @Inject constructor(
   @get:Internal
   val editActions: ListProperty<TextEditAction> = objectFactory.listProperty<TextEditAction>().empty()
 
+  @get:Input
   @get:Optional
   val executable: Property<Boolean> = objectFactory.property()
 

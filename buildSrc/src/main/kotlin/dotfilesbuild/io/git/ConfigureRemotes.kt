@@ -25,7 +25,7 @@ open class ConfigureRemotes @Inject constructor(
   }
 
   @get:Internal
-  val repositoryDirectory: DirectoryProperty = newOutputDirectory()
+  val repositoryDirectory: DirectoryProperty = objectFactory.directoryProperty()
 
   @get:Input
   val remotes: Property<Map<String, String>> = objectFactory.property()

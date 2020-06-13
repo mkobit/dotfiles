@@ -19,7 +19,7 @@ open class FetchRemotes @Inject constructor(
   }
 
   @get:Internal
-  val repositoryDirectory: DirectoryProperty = newOutputDirectory()
+  val repositoryDirectory: DirectoryProperty = project.objects.directoryProperty()
 
   @TaskAction
   fun fetchRemotes() {

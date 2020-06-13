@@ -7,7 +7,7 @@ import org.gradle.api.file.RegularFile
 private val userHome: String = System.getProperty("user.home")
 
 val Project.home: Directory
-  get() = layout.directoryProperty().run {
+  get() = objects.directoryProperty().run {
     set(this@home.file(userHome))
     get()
   }

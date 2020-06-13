@@ -3,5 +3,5 @@ plugins {
 }
 
 intellij {
-  intellijVersion.set("2020.1")
+  intellijVersion.set("2020.1.2")
 }
