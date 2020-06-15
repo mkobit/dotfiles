@@ -1,10 +1,10 @@
 import dotfilesbuild.dependencies.arrow
 import dotfilesbuild.dependencies.defaultDotfilesRepositories
 import dotfilesbuild.dependencies.guava
-import dotfilesbuild.dependencies.kotlinLogging
 import dotfilesbuild.dependencies.jacksonCore
 import dotfilesbuild.dependencies.jacksonModule
 import dotfilesbuild.dependencies.kodein
+import dotfilesbuild.dependencies.kotlinLogging
 import dotfilesbuild.dependencies.kotlinx
 import dotfilesbuild.dependencies.kotlinxCoroutines
 import dotfilesbuild.dependencies.ktor
