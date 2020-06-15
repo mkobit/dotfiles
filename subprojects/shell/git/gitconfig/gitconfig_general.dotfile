@@ -33,7 +33,6 @@
 [color]
     ui = true
 [commit]
-    gpgsign = true
     verbose = true
 [core]
     editor = vim

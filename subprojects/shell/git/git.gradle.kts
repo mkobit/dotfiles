@@ -22,6 +22,8 @@ tasks {
         """
                 [include]
                     path = ${gitConfigGeneral.asFile.absolutePath}
+                [includeIf "gitdir:${home.dir("dotfiles").asFile.absolutePath}/"]
+                    path = ${gitConfigPersonal.asFile.absolutePath}
                 [includeIf "gitdir:${project.rootDir.absolutePath}/"]
                     path = ${gitConfigPersonal.asFile.absolutePath}
                 [includeIf "gitdir:${personalWorkspaceDirectory.asFile.absolutePath}/"]
