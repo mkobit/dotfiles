@@ -45,7 +45,7 @@ tasks {
   }
 
   val symlinkGitIgnoreGlobal by registering(Symlink::class) {
-    source.set(projectFile("git/gitignore_global.dotfile"))
+    source.set(projectFile("gitconfig/gitignore_global.dotfile"))
     destination.set(home.file(".gitignore_global"))
   }
 
