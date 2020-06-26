@@ -27,7 +27,8 @@ internal class EditFileIntegrationTest {
   internal fun `edit the content of a file with multiple actions`(@TempDir directory: Path) {
     val result = newGradleRunner(directory).setupProjectDir {
       "build.gradle.kts"(content = Original) {
-        append("""
+        append(
+          """
           import dotfilesbuild.io.file.EditFile
           import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
           import dotfilesbuild.io.file.content.AppendTextIfNotFound
@@ -48,7 +49,8 @@ internal class EditFileIntegrationTest {
               SearchTextDeleteLine(Regex("^forth${"$"}"))
             ))
           }
-        """.trimIndent())
+          """.trimIndent()
+        )
         appendNewline()
       }
       "myfile.txt"(content = Original) {
@@ -87,16 +89,18 @@ internal class EditFileIntegrationTest {
 
   @Test
   internal fun `editing a file where no actions are applied result in an UP-TO-DATE task and the file is unchanged`(@TempDir directory: Path) {
-    val originalText = """
+    val originalText =
+      """
       first
       second
       third
-    """.trimIndent()
+      """.trimIndent()
     val gradleRunner = newGradleRunner(directory)
 
     gradleRunner.setupProjectDir {
       "build.gradle"(content = Original) {
-        append("""
+        append(
+          """
           import dotfilesbuild.io.file.EditFile
           import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
           import dotfilesbuild.io.file.content.AppendTextIfNotFound
@@ -115,7 +119,8 @@ internal class EditFileIntegrationTest {
               new SearchTextDeleteLine(~/^tenth${'$'}/),
             ]
           }
-        """.trimIndent())
+          """.trimIndent()
+        )
         appendNewline()
       }
       "myfile.txt"(content = originalText)
@@ -140,7 +145,8 @@ internal class EditFileIntegrationTest {
 
     gradleRunner.setupProjectDir {
       "build.gradle"(content = Original) {
-        append("""
+        append(
+          """
           import dotfilesbuild.io.file.EditFile
           import kotlin.jvm.functions.Function0
 
@@ -151,7 +157,8 @@ internal class EditFileIntegrationTest {
           tasks.create('convergeFile', EditFile) {
             file = layout.projectDirectory.file('myfile.txt')
           }
-        """.trimIndent())
+          """.trimIndent()
+        )
         appendNewline()
       }
     }.build("convergeFile")

@@ -121,8 +121,8 @@ class SearchTextDeleteLine(
 
   override fun applyTo(text: String): Either<String, String> {
     val newText = text.split(newline)
-        .filter { !it.matches(regex) }
-        .joinToString(System.lineSeparator())
+      .filter { !it.matches(regex) }
+      .joinToString(System.lineSeparator())
     return if (newText != text) {
       Either.right(newText)
     } else {

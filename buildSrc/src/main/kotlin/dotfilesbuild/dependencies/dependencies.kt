@@ -23,14 +23,16 @@ fun DependencyHandler.slf4j(module: String, version: String? = null) = "org.slf4
 fun DependencyHandler.strikt(module: String, version: String? = null) = "io.strikt:strikt-$module${version?.let { ":$version" } ?: ""}"
 fun DependencyHandler.testContainers(module: String, version: String? = null) = "org.testcontainers:$module${version?.let { ":$version" } ?: ""}"
 
-val DependencyHandler.junitTestImplementationArtifacts get() = listOf(
-  junitPlatform("runner"),
-  junitJupiter("api"),
-  junitJupiter("params")
-)
+val DependencyHandler.junitTestImplementationArtifacts
+  get() = listOf(
+    junitPlatform("runner"),
+    junitJupiter("api"),
+    junitJupiter("params")
+  )
 
-val DependencyHandler.junitTestRuntimeOnlyArtifacts get() = listOf(
-  junitJupiter("engine"),
-  log4j("core"),
-  log4j("jul")
-)
+val DependencyHandler.junitTestRuntimeOnlyArtifacts
+  get() = listOf(
+    junitJupiter("engine"),
+    log4j("core"),
+    log4j("jul")
+  )

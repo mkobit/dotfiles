@@ -16,7 +16,8 @@ internal class KubectlProgramPluginTest {
     val runner = newGradleRunner(tempDir) {
       setupProjectDir {
         "build.gradle.kts" {
-          content = """
+          content =
+            """
             plugins {
               id("dotfilesbuild.kubernetes.kubectl.program")
             }
@@ -24,7 +25,7 @@ internal class KubectlProgramPluginTest {
             kubectl {
               version.set("v1.15.2")
             }
-          """.trimIndent().toByteArray()
+            """.trimIndent().toByteArray()
         }
       }
     }

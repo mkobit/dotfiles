@@ -22,7 +22,8 @@ internal class CalculateChecksumTest {
   companion object {
     private fun FileContext.DirectoryContext.kotlinBuildFile() {
       "build.gradle.kts" {
-        content = """
+        content =
+          """
           import dotfilesbuild.io.file.CalculateChecksum
           
           plugins {
@@ -33,7 +34,7 @@ internal class CalculateChecksumTest {
             digestFiles.from(files("files"))
             checksums.set(layout.buildDirectory.dir("checksums"))
           }
-        """.trimIndent().toByteArray()
+          """.trimIndent().toByteArray()
       }
     }
   }

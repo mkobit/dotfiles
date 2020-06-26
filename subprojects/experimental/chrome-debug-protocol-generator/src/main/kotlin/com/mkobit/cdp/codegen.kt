@@ -69,20 +69,22 @@ fun generateChromeDebugProtocol(request: ChromeDebugProtocolGenerationRequest) {
   val mapper = ObjectMapper()
   val experimentalClassName = ClassName(request.basePackage, "ExperimentalChromeApi")
   val experimentalChromeApi = TypeSpec.annotationBuilder(experimentalClassName)
-      .addAnnotation(AnnotationSpec.builder(ClassName("kotlin", "RequiresOptIn"))
-          .addMember(CodeBlock.of("level = RequiresOptIn.Level.WARNING"))
-          .build())
-      .addKdoc("Marks an experimental Chrome API.")
-      .build()
+    .addAnnotation(
+      AnnotationSpec.builder(ClassName("kotlin", "RequiresOptIn"))
+        .addMember(CodeBlock.of("level = RequiresOptIn.Level.WARNING"))
+        .build()
+    )
+    .addKdoc("Marks an experimental Chrome API.")
+    .build()
   FileSpec.get(request.basePackage, experimentalChromeApi)
-      .writeTo(request.destinationBaseDirectory)
+    .writeTo(request.destinationBaseDirectory)
   request.protocolJsonFiles.forEach {
     val json = mapper.readTree(it.toFile())
     val version = json["version"]
     val major = version["major"]
     val minor = version["minor"]
     json["domains"]
-        .map { domainNode -> generateDomain(request, domainNode, AnnotationSpec.builder(experimentalClassName).build()) }
+      .map { domainNode -> generateDomain(request, domainNode, AnnotationSpec.builder(experimentalClassName).build()) }
   }
 }
 
@@ -111,8 +113,8 @@ private fun generateCommands(
     }
     if (domainNode["deprecated"]?.asBoolean() == true) {
       val deprecatedSpec = AnnotationSpec.builder(Deprecated::class)
-          .addMember("message = %S", "deprecated in protocol definition")
-          .build()
+        .addMember("message = %S", "deprecated in protocol definition")
+        .build()
       addAnnotation(deprecatedSpec)
     }
     maybeAddKdoc(description)
@@ -123,8 +125,8 @@ private fun generateCommands(
     val commandParameters: JsonNode? = commandNode["parameters"]
     val commandReturns: JsonNode? = commandNode["returns"]
     val commandFunSpecBuilder = FunSpec.builder(commandName)
-        .maybeAddKdoc(commandDescription)
-        .addModifiers(KModifier.SUSPEND, KModifier.ABSTRACT)
+      .maybeAddKdoc(commandDescription)
+      .addModifiers(KModifier.SUSPEND, KModifier.ABSTRACT)
 
     val commandRequestResponseFileSpec = FileSpec.builder(request.packageNameForDomain(domain), "${commandName}Command")
 
@@ -132,26 +134,26 @@ private fun generateCommands(
       val commandRequestTypeName = ClassName(request.packageNameForDomain(domain), "${commandName.capitalize()}Request")
       commandFunSpecBuilder.addParameter(ParameterSpec.builder("request", commandRequestTypeName).build())
       val commandParameterRequestTypeSpecBuilder = TypeSpec.classBuilder(commandRequestTypeName)
-          .addModifiers(KModifier.DATA)
+        .addModifiers(KModifier.DATA)
       val commandParameterRequestConstructorBuilder = FunSpec.constructorBuilder()
       commandParameters.forEach { commandParameter ->
         val parameterName = commandParameter["name"].asText()
         val parameterDescription = commandParameter["description"]?.asText()
         val parameterTypeName = determineTypeForNode(domain, request, commandParameter)
         val commandRequestProperty = PropertySpec.builder(parameterName, parameterTypeName)
-            .initializer(parameterName)
-            .maybeAddKdoc(parameterDescription)
-            .build()
+          .initializer(parameterName)
+          .maybeAddKdoc(parameterDescription)
+          .build()
         val commandRequestParameter = ParameterSpec.builder(parameterName, parameterTypeName)
-            .build()
+          .build()
 
         commandParameterRequestTypeSpecBuilder.addProperty(commandRequestProperty)
         commandParameterRequestConstructorBuilder.addParameter(commandRequestParameter)
       }
       commandRequestResponseFileSpec.addType(
-          commandParameterRequestTypeSpecBuilder
-              .primaryConstructor(commandParameterRequestConstructorBuilder.build())
-              .build()
+        commandParameterRequestTypeSpecBuilder
+          .primaryConstructor(commandParameterRequestConstructorBuilder.build())
+          .build()
       )
     }
 
@@ -159,25 +161,25 @@ private fun generateCommands(
       val commandReplyTypeName = ClassName(request.packageNameForDomain(domain), "${commandName.capitalize()}Reply")
       commandFunSpecBuilder.returns(commandReplyTypeName)
       val commandParameterReplyTypeSpecBuilder = TypeSpec.classBuilder(commandReplyTypeName)
-          .addModifiers(KModifier.DATA)
+        .addModifiers(KModifier.DATA)
       val commandParameterReplyConstructorBuilder = FunSpec.constructorBuilder()
       commandReturns.forEach { commandReturn ->
         val returnName = commandReturn["name"].asText()
         val returnTypeName = determineTypeForNode(domain, request, commandReturn)
         val returnDescription = commandReturn["description"]?.asText()
         val returnProperty = PropertySpec.builder(returnName, returnTypeName)
-            .initializer(returnName)
-            .maybeAddKdoc(returnDescription)
-            .build()
+          .initializer(returnName)
+          .maybeAddKdoc(returnDescription)
+          .build()
         val returnParameter = ParameterSpec.builder(returnName, returnTypeName)
-            .build()
+          .build()
         commandParameterReplyTypeSpecBuilder.addProperty(returnProperty)
         commandParameterReplyConstructorBuilder.addParameter(returnParameter)
       }
       commandRequestResponseFileSpec.addType(
-          commandParameterReplyTypeSpecBuilder
-              .primaryConstructor(commandParameterReplyConstructorBuilder.build())
-              .build()
+        commandParameterReplyTypeSpecBuilder
+          .primaryConstructor(commandParameterReplyConstructorBuilder.build())
+          .build()
       )
     }
     commandRequestResponseFileSpec.build().let {
@@ -211,37 +213,37 @@ private fun generateTypes(
           fun nameToEnumValue(value: String) = value.toUpperCase().replace("-", "_")
 
           val enumBuilder = TypeSpec.enumBuilder(typeName)
-              .maybeAddKdoc(typeDescription)
+            .maybeAddKdoc(typeDescription)
           enum
-              .forEach {
-                val jsonProperty = AnnotationSpec.builder(JsonProperty::class.asClassName())
-                    .addMember(CodeBlock.of("value = %S", it))
-                    .build()
-                enumBuilder.addEnumConstant(nameToEnumValue(it), TypeSpec.anonymousClassBuilder().addAnnotation(jsonProperty).build())
-              }
+            .forEach {
+              val jsonProperty = AnnotationSpec.builder(JsonProperty::class.asClassName())
+                .addMember(CodeBlock.of("value = %S", it))
+                .build()
+              enumBuilder.addEnumConstant(nameToEnumValue(it), TypeSpec.anonymousClassBuilder().addAnnotation(jsonProperty).build())
+            }
           fileSpecBuilder.addType(enumBuilder.build())
         } else {
           val stringTypeAlias = TypeAliasSpec
-              .builder(typeName, String::class.asTypeName())
-              .apply {
-                if (typeDescription != null) {
-                  addKdoc(CodeBlock.of("%L", typeDescription))
-                }
+            .builder(typeName, String::class.asTypeName())
+            .apply {
+              if (typeDescription != null) {
+                addKdoc(CodeBlock.of("%L", typeDescription))
               }
-              .build()
+            }
+            .build()
           fileSpecBuilder.addTypeAlias(stringTypeAlias)
         }
       }
       "number" -> {
         val numberTypeAlias = TypeAliasSpec.builder(typeName, Number::class.asTypeName())
-            .maybeAddKdoc(typeDescription)
-            .build()
+          .maybeAddKdoc(typeDescription)
+          .build()
         fileSpecBuilder.addTypeAlias(numberTypeAlias)
       }
       "integer" -> {
         val integerTypeAlias = TypeAliasSpec.builder(typeName, Int::class.asTypeName())
-            .maybeAddKdoc(typeDescription)
-            .build()
+          .maybeAddKdoc(typeDescription)
+          .build()
         fileSpecBuilder.addTypeAlias(integerTypeAlias)
       }
       "object" -> {
@@ -249,8 +251,8 @@ private fun generateTypes(
         when {
           propertiesNode != null -> {
             val objectTypeSpecBuilder = TypeSpec.classBuilder(typeName)
-                .addModifiers(KModifier.DATA)
-                .maybeAddKdoc(typeDescription)
+              .addModifiers(KModifier.DATA)
+              .maybeAddKdoc(typeDescription)
             val constructorSpecBuilder = FunSpec.constructorBuilder()
             propertiesNode.forEach { propertyNode ->
               val propertyDescription = propertyNode["description"]?.asText()
@@ -258,9 +260,9 @@ private fun generateTypes(
               val propertyTypeName: TypeName = determineTypeForNode(domain, request, propertyNode)
               // TODO: issues with keyword named variables at https://github.com/square/kotlinpoet/issues/483
               val propertySpec = PropertySpec.builder(propertyName, propertyTypeName)
-                  .initializer(propertyName)
-                  .maybeAddKdoc(propertyDescription)
-                  .build()
+                .initializer(propertyName)
+                .maybeAddKdoc(propertyDescription)
+                .build()
               val parameterSpec = ParameterSpec.builder(propertyName, propertyTypeName).build()
               constructorSpecBuilder.addParameter(parameterSpec)
               objectTypeSpecBuilder.addProperty(propertySpec)
@@ -271,10 +273,10 @@ private fun generateTypes(
           typeName in setOf("Headers", "MemoryDumpConfig") -> {
             // special case some special 'object' types
             val mapTypeName = ClassName("kotlin.collections", "Map")
-                .parameterizedBy(String::class.asTypeName(), ANY)
+              .parameterizedBy(String::class.asTypeName(), ANY)
             val mapTypeAliasSpec = TypeAliasSpec.builder(typeName, mapTypeName)
-                .maybeAddKdoc(typeDescription)
-                .build()
+              .maybeAddKdoc(typeDescription)
+              .build()
             fileSpecBuilder.addTypeAlias(mapTypeAliasSpec)
           }
           else -> throw IllegalArgumentException("unknown/unsupported type $typeNode")
@@ -283,10 +285,10 @@ private fun generateTypes(
       "array" -> {
         val arrayItemsTypeName: TypeName = determineTypeForNode(domain, request, typeNode["items"])
         val arrayTypeName = ClassName("kotlin.collections", "List")
-            .parameterizedBy(arrayItemsTypeName)
+          .parameterizedBy(arrayItemsTypeName)
         val arrayTypeAliasSpec = TypeAliasSpec.builder(typeName, arrayTypeName)
-            .maybeAddKdoc(typeDescription)
-            .build()
+          .maybeAddKdoc(typeDescription)
+          .build()
         fileSpecBuilder.addTypeAlias(arrayTypeAliasSpec)
       }
       else -> TODO("unsupported type $type -> $typeNode")
@@ -317,29 +319,30 @@ private fun determineTypeForNode(
         "array" -> {
           val arrayItemsType = determineTypeForNode(domain, request, node["items"])
           ClassName("kotlin.collections", "List")
-              .parameterizedBy(arrayItemsType)
+            .parameterizedBy(arrayItemsType)
         }
         "object" -> {
           // special case for some things
           val propertyName: String? = node["name"]?.asText()
           if (propertyName == null) {
             ClassName("kotlin.collections", "List")
-                .parameterizedBy(ANY)
+              .parameterizedBy(ANY)
           } else if (propertyName in setOf("highlight")) {
             ANY
           } else {
-            require(propertyName in
+            require(
+              propertyName in
                 setOf(
-                    "executionContextAuxData",
-                    "auxData",
-                    "auxAttributes",
-                    "featureStatus"
+                  "executionContextAuxData",
+                  "auxData",
+                  "auxAttributes",
+                  "featureStatus"
                 )
             ) {
               "Unsupported property type '$propertyType' for node $node"
             }
             ClassName("kotlin.collections", "Map")
-                .parameterizedBy(String::class.asTypeName(), ANY)
+              .parameterizedBy(String::class.asTypeName(), ANY)
           }
         }
         "any" -> ANY.copy(nullable = isPropertyOptional)

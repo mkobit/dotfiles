@@ -31,7 +31,8 @@ fun Configuration.useDotfilesDependencyRecommendations() {
       "org.apache.logging.log4j" -> useVersion(log4jVersion)
       "org.jetbrains.kotlinx" -> when {
         requested.name.startsWith("kotlinx-coroutines") && !requested.name.contains("io") -> useVersion(
-          kotlinxCoroutinesVersion)
+          kotlinxCoroutinesVersion
+        )
       }
       "org.kodein.di" -> useVersion(kodeinDiVersion)
       "org.junit.jupiter" -> useVersion(junitJupiterVersion)

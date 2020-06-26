@@ -49,11 +49,11 @@ open class Download @Inject constructor(
       return
     }
     val client = OkHttpClient.Builder()
-        .build()
+      .build()
     val request = Request.Builder()
-        .get()
-        .url(url.get())
-        .build()
+      .get()
+      .url(url.get())
+      .build()
 
     log.info { "Issuing ${request.method} to ${request.url}" }
     client.newCall(request).execute().use {
@@ -74,11 +74,11 @@ open class Download @Inject constructor(
       val destinationPath = destinationFile.toPath()
       val currentPermission = Files.getPosixFilePermissions(destinationPath)
       Files.setPosixFilePermissions(
-          destinationPath,
-          currentPermission + setOf(
-              PosixFilePermission.OWNER_EXECUTE,
-              PosixFilePermission.GROUP_EXECUTE
-          )
+        destinationPath,
+        currentPermission + setOf(
+          PosixFilePermission.OWNER_EXECUTE,
+          PosixFilePermission.GROUP_EXECUTE
+        )
       )
     }
   }

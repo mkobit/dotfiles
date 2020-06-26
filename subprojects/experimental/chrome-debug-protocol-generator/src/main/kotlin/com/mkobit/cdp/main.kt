@@ -14,7 +14,7 @@ object Main {
 private class Generate : Runnable {
   override fun run() {
     generateChromeDebugProtocol(
-        ChromeDebugProtocolGenerationRequest(basePackage, protocolJson.toList(), generationDirectory)
+      ChromeDebugProtocolGenerationRequest(basePackage, protocolJson.toList(), generationDirectory)
     )
   }
 

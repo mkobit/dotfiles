@@ -111,7 +111,7 @@ versionControlTracking {
       }
       register("JetBrains") {
         vcs {
-          //register("kotlin", GitVersionControlTarget::class) { origin("https://github.com/JetBrains/kotlin.git") }
+          // register("kotlin", GitVersionControlTarget::class) { origin("https://github.com/JetBrains/kotlin.git") }
         }
       }
       register("junit-team") {

@@ -40,7 +40,7 @@ open class CloneRepository @Inject constructor(
     get() = repositoryDirectory.asFile.get()
 
   private val repositoryDirectoryPath: Path
-      get() = repositoryDirectoryFile.toPath()
+    get() = repositoryDirectoryFile.toPath()
 
   @TaskAction
   fun cloneRepository() {

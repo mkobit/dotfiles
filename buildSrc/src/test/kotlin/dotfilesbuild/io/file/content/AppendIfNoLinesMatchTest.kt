@@ -28,11 +28,12 @@ internal class AppendIfNoLinesMatchTest {
 
   @Test
   internal fun `text is not appended when last line matches`() {
-    val original = """
+    val original =
+      """
       c
       d
       a
-    """.trimIndent() + System.lineSeparator()
+      """.trimIndent() + System.lineSeparator()
     val editAction = AppendIfNoLinesMatch(regex, content)
     val either = editAction.applyTo(original)
     expectThat(either)
@@ -52,7 +53,7 @@ internal class AppendIfNoLinesMatchTest {
         """
                 c
                 ${content()}
-              """.trimIndent()
+        """.trimIndent()
       )
   }
 }

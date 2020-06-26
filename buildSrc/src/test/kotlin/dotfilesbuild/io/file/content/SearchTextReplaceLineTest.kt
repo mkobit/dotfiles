@@ -32,7 +32,8 @@ internal class SearchTextReplaceLineTest {
   internal fun `all multiple matching lines are replaced`() {
     val text = "pizza # lunch"
     val action = SearchTextReplaceLine(Regex(".* # lunch")) { text }
-    val result = action.applyTo("""
+    val result = action.applyTo(
+      """
         sandwich # lunch
         salad # lunch
         pasta # lunch
@@ -42,11 +43,11 @@ internal class SearchTextReplaceLineTest {
       .isRight()
       .b
       .isEqualTo(
-          """
+        """
             $text
             $text
             $text
-          """.trimIndent()
+        """.trimIndent()
       )
   }
 
@@ -63,11 +64,12 @@ internal class SearchTextReplaceLineTest {
 
   @Test
   internal fun `unmatched lines are not replaced`() {
-    val originalText = """
+    val originalText =
+      """
       sandwich # lunch
       salad # lunch
       pasta # lunch
-    """.trimIndent()
+      """.trimIndent()
     val action = SearchTextReplaceLine(Regex(".* # dinner")) { "pizza # dinner" }
     val result = action.applyTo(originalText)
     expectThat(result)

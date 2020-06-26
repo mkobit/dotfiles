@@ -21,7 +21,7 @@ internal class GenerateChromeDebugProtocolTest {
     Files.write(tempJsProtocolJson, Resources.readLines(Resources.getResource(jsFileName), Charsets.UTF_8))
 
     generateChromeDebugProtocol(
-        ChromeDebugProtocolGenerationRequest("com.mkobit.chromedebugprotocol", listOf(tempBrowserJson, tempJsProtocolJson), generationDirectory)
+      ChromeDebugProtocolGenerationRequest("com.mkobit.chromedebugprotocol", listOf(tempBrowserJson, tempJsProtocolJson), generationDirectory)
     )
   }
 }

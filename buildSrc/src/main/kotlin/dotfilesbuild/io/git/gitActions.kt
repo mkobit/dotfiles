@@ -30,17 +30,17 @@ internal class CloneAction @Inject constructor(
 
   override fun run() {
     Git.cloneRepository()
-        .setRemote("origin")
-        .setURI(remoteUrl)
-        .setDirectory(directory)
-        .setTransportConfigCallback { transport ->
-          if (transport is SshTransport) {
-            transport.sshSessionFactory = nonHostKeyCheckingConfigFactory
-          }
+      .setRemote("origin")
+      .setURI(remoteUrl)
+      .setDirectory(directory)
+      .setTransportConfigCallback { transport ->
+        if (transport is SshTransport) {
+          transport.sshSessionFactory = nonHostKeyCheckingConfigFactory
         }
-        .call().use {
-      LOGGER.info { "Cloned $directory to $remoteUrl" }
-    }
+      }
+      .call().use {
+        LOGGER.info { "Cloned $directory to $remoteUrl" }
+      }
   }
 }
 
@@ -55,9 +55,9 @@ internal class ConfigureRemotesAction @Inject constructor(
   override fun run() {
     Git.open(repository).use { git ->
       val currentRemotes = git.remoteList().call()
-          .asSequence()
-          .onEach { require(it.urIs.size == 1) { "Only supports single URL from each remote" } }
-          .associate { it.name to it.urIs.first().toASCIIString() }
+        .asSequence()
+        .onEach { require(it.urIs.size == 1) { "Only supports single URL from each remote" } }
+        .associate { it.name to it.urIs.first().toASCIIString() }
       val toRemove = currentRemotes.filter { it.key !in remotes }
       val toAdd = remotes.filter { it.key !in currentRemotes }
       val toUpdate = remotes.filter { it.key in currentRemotes && currentRemotes[it.key] != it.value }
@@ -75,9 +75,9 @@ internal class ConfigureRemotesAction @Inject constructor(
       toAdd.forEach { (name, uri) ->
         LOGGER.debug { "Add remote named $name with URI $uri to repository ${git.repository.directory}" }
         git.remoteAdd()
-            .setName(name)
-            .setUri(URIish(uri))
-            .call()
+          .setName(name)
+          .setUri(URIish(uri))
+          .call()
       }
       toUpdate.forEach { (name, uri) ->
         LOGGER.debug { "Updating remote with name $name from URI ${currentRemotes[name]} to URI $uri in repository ${git.repository.directory}" }
@@ -102,13 +102,13 @@ internal class FetchAction @Inject constructor(
       LOGGER.debug { "Fetching remotes for ${git.repository.directory}" }
       git.remoteList().call().forEach { remote ->
         git.fetch()
-            .setRemote(remote.name)
-            .setTransportConfigCallback { transport ->
-              if (transport is SshTransport) {
-                transport.sshSessionFactory = nonHostKeyCheckingConfigFactory
-              }
+          .setRemote(remote.name)
+          .setTransportConfigCallback { transport ->
+            if (transport is SshTransport) {
+              transport.sshSessionFactory = nonHostKeyCheckingConfigFactory
             }
-            .call()
+          }
+          .call()
         LOGGER.debug { "Fetched remote ${remote.name} ref specs ${remote.fetchRefSpecs} for ${git.repository.directory}" }
       }
     }
@@ -126,14 +126,14 @@ internal class PullAction @Inject constructor(
   override fun run() {
     Git.open(repository).use { git ->
       git.pull()
-          .setRebase(true)
-          .setRemote(remote)
-          .setTransportConfigCallback { transport ->
-            if (transport is SshTransport) {
-              transport.sshSessionFactory = nonHostKeyCheckingConfigFactory
-            }
+        .setRebase(true)
+        .setRemote(remote)
+        .setTransportConfigCallback { transport ->
+          if (transport is SshTransport) {
+            transport.sshSessionFactory = nonHostKeyCheckingConfigFactory
           }
-          .call()
+        }
+        .call()
       LOGGER.debug { "Pulled $remote for ${git.repository.directory}" }
     }
   }
@@ -149,8 +149,8 @@ internal class StashAction @Inject constructor(
   override fun run() {
     Git.open(repository).use { git ->
       val stash = git.stashCreate()
-          .setIndexMessage("Stashed from Gradle")
-          .call()
+        .setIndexMessage("Stashed from Gradle")
+        .call()
       LOGGER.debug { "Created stash ${stash.id} for ${git.repository.directory}" }
     }
   }
@@ -166,7 +166,7 @@ internal class UnstashAction @Inject constructor(
   override fun run() {
     Git.open(repository).use { git ->
       git.stashApply()
-          .call()
+        .call()
       LOGGER.debug { "Applied stash to ${git.repository.directory}" }
     }
   }

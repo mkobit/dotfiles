@@ -26,19 +26,22 @@ class VersionControlManagementPlugin @Inject constructor(private val instantiato
           description = "Create directory for organizational unit $orgName"
           directory.set(home.dir("Workspace").dir(orgName))
         }
-          // TODO: determine how we can prevent eager configuration of the tasks
-        VersionControlOrganization(orgName, createOrganization.map(Mkdir::directory).get(), container(VersionControlGroup::class) { groupName ->
-          val createGroup = tasks.register("createVersionControlGroup${groupName.capitalize()}", Mkdir::class) {
-            description = "Create directory for grouping unit $groupName"
-            directory.set(createOrganization.map { it.directory.dir(groupName) }.get())
-          }
-          // TODO: determine how we can prevent eager configuration of the tasks
-          VersionControlGroup(
+        // TODO: determine how we can prevent eager configuration of the tasks
+        VersionControlOrganization(
+          orgName, createOrganization.map(Mkdir::directory).get(),
+          container(VersionControlGroup::class) { groupName ->
+            val createGroup = tasks.register("createVersionControlGroup${groupName.capitalize()}", Mkdir::class) {
+              description = "Create directory for grouping unit $groupName"
+              directory.set(createOrganization.map { it.directory.dir(groupName) }.get())
+            }
+            // TODO: determine how we can prevent eager configuration of the tasks
+            VersionControlGroup(
               groupName,
               createGroup.map(Mkdir::directory).map { it.get() },
               objects.newInstance(DefaultVersionControlManagementContainer::class, instantiator)
-          )
-        })
+            )
+          }
+        )
       }
 
       val extensionType = object : TypeOf<NamedDomainObjectContainer<VersionControlOrganization>>() {}

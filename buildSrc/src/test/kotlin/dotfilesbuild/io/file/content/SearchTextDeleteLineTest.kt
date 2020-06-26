@@ -29,14 +29,16 @@ internal class SearchTextDeleteLineTest {
   @Test
   internal fun `all matches are removed`() {
     val editAction = SearchTextDeleteLine(regex)
-    val either = editAction.applyTo("""
+    val either = editAction.applyTo(
+      """
         a
         b
         c
         a
         b
         c
-      """.trimIndent())
+      """.trimIndent()
+    )
     expectThat(either)
       .isRight()
       .b

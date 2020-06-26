@@ -12,14 +12,16 @@ import testsupport.strikt.isRight
 
 internal class AppendTextIfNotFoundTest {
   companion object {
-    private const val text = """hello
+    private const val text =
+      """hello
 there
 my
 sweetest
 friend"""
 
     private const val singleLine = "single line of text"
-    private const val multiLine = """multi
+    private const val multiLine =
+      """multi
 line
 text"""
   }

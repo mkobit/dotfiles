@@ -54,11 +54,11 @@ private fun parseEventSection(lines: List<String>, offset: Int): Pair<PdlSection
 private fun parseCommentSection(lines: List<String>, offset: Int): Pair<PdlSection, Int> {
   check(lines[offset].trim().startsWith("# ")) { "First line must start with a #" }
   val commentLines = lines.asSequence()
-      .drop(offset)
-      .map { it.trim() }
-      .takeWhile { it.startsWith("# ") }
-      .map { it.substring(2) } // remove the '# ' beginning
-      .toList()
+    .drop(offset)
+    .map { it.trim() }
+    .takeWhile { it.startsWith("# ") }
+    .map { it.substring(2) } // remove the '# ' beginning
+    .toList()
 
   return PdlSection.CommentSection(commentLines.joinToString(separator = " ")) to (offset + commentLines.size)
 }
