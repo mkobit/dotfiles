@@ -3,9 +3,9 @@ import org.jlleitschuh.gradle.ktlint.KtlintFormatTask
 
 plugins {
   `kotlin-dsl`
-  id("org.jlleitschuh.gradle.ktlint") version "8.2.0"
+  id("org.jlleitschuh.gradle.ktlint") version "9.2.1"
 
-  id("com.github.ben-manes.versions") version "0.22.0"
+  id("com.github.ben-manes.versions") version "0.28.0"
 }
 
 repositories {
@@ -72,18 +72,18 @@ configurations.all { useDotfilesDependencyRecommendations() }
 dependencies {
   // https://github.com/gradle/kotlin-dsl/issues/430
   fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$version"
-  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.3.50"))
+  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.3.72"))
 
-  implementation("io.github.microutils:kotlin-logging:1.7.6")
+  implementation("io.github.microutils:kotlin-logging:1.7.10")
 
   implementation("io.arrow-kt:arrow-core-data")
   implementation("io.arrow-kt:arrow-core-extensions")
 
   implementation("com.squareup.retrofit2:retrofit:2.5.0")
   implementation("com.squareup.okhttp3:okhttp")
-  implementation("org.eclipse.jgit:org.eclipse.jgit:5.4.0.201906121030-r")
+  implementation("org.eclipse.jgit:org.eclipse.jgit:5.7.0.202003110725-r")
 
-  testImplementation("io.mockk:mockk:1.9.3")
+  testImplementation("io.mockk:mockk:1.10.0")
 
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.7.0")
   testImplementation("io.strikt:strikt-core")

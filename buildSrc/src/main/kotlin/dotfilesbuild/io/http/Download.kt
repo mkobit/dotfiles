@@ -15,8 +15,6 @@ import org.gradle.api.tasks.CacheableTask
 import org.gradle.api.tasks.Input
 import org.gradle.api.tasks.Optional
 import org.gradle.api.tasks.OutputFile
-import org.gradle.api.tasks.PathSensitive
-import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
 import java.nio.file.Files
@@ -36,9 +34,9 @@ open class Download @Inject constructor(
   val url: Property<String> = objectFactory.property()
 
   @get:OutputFile
-  @get:PathSensitive(PathSensitivity.NAME_ONLY)
   val destination: RegularFileProperty = objectFactory.fileProperty()
 
+  @get:Input
   @get:Optional
   val executable: Property<Boolean> = objectFactory.property()
 

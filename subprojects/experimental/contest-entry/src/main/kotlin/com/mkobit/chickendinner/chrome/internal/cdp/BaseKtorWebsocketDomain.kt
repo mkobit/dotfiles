@@ -8,6 +8,7 @@ import com.mkobit.chickendinner.chrome.ResponseFrame
 import io.ktor.http.cio.websocket.Frame
 import io.ktor.http.cio.websocket.WebSocketSession
 import io.ktor.http.cio.websocket.readBytes
+import java.util.concurrent.atomic.AtomicLong
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.broadcast
 import kotlinx.coroutines.channels.consume
@@ -16,7 +17,6 @@ import kotlinx.coroutines.channels.first
 import kotlinx.coroutines.channels.map
 import kotlinx.coroutines.channels.mapNotNull
 import kotlinx.coroutines.withContext
-import java.util.concurrent.atomic.AtomicLong
 import kotlin.reflect.full.functions
 
 internal abstract class BaseKtorWebsocketDomain(

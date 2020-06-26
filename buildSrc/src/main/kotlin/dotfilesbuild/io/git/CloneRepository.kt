@@ -31,7 +31,7 @@ open class CloneRepository @Inject constructor(
   }
 
   @get:Internal
-  val repositoryDirectory: DirectoryProperty = newOutputDirectory()
+  val repositoryDirectory: DirectoryProperty = objectFactory.directoryProperty()
 
   @get:Internal
   val repositoryUrl: Property<String> = objectFactory.property()

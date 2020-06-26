@@ -14,7 +14,7 @@ val intellij = extensions.create(
   IntelliJExtension::class,
   objects.property<String>(),
   objects.property<Distribution>().apply {
-    set(Distribution.ULTIMATE)
+    set(Distribution.COMMUNITY)
   }
 )
 

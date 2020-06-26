@@ -22,6 +22,8 @@ tasks {
         """
                 [include]
                     path = ${gitConfigGeneral.asFile.absolutePath}
+                [includeIf "gitdir:${home.dir("dotfiles").asFile.absolutePath}/"]
+                    path = ${gitConfigPersonal.asFile.absolutePath}
                 [includeIf "gitdir:${project.rootDir.absolutePath}/"]
                     path = ${gitConfigPersonal.asFile.absolutePath}
                 [includeIf "gitdir:${personalWorkspaceDirectory.asFile.absolutePath}/"]
@@ -43,7 +45,7 @@ tasks {
   }
 
   val symlinkGitIgnoreGlobal by registering(Symlink::class) {
-    source.set(projectFile("git/gitignore_global.dotfile"))
+    source.set(projectFile("gitconfig/gitignore_global.dotfile"))
     destination.set(home.file(".gitignore_global"))
   }
 

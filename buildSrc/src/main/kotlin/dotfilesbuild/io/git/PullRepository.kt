@@ -20,7 +20,7 @@ open class PullRepository @Inject constructor(
   }
 
   @get:Internal
-  val repositoryDirectory: DirectoryProperty = newInputDirectory()
+  val repositoryDirectory: DirectoryProperty = project.objects.directoryProperty()
 
   @TaskAction
   fun pullRepository() {

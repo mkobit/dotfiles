@@ -1,10 +1,10 @@
 import dotfilesbuild.dependencies.arrow
 import dotfilesbuild.dependencies.defaultDotfilesRepositories
 import dotfilesbuild.dependencies.guava
-import dotfilesbuild.dependencies.kotlinLogging
 import dotfilesbuild.dependencies.jacksonCore
 import dotfilesbuild.dependencies.jacksonModule
 import dotfilesbuild.dependencies.kodein
+import dotfilesbuild.dependencies.kotlinLogging
 import dotfilesbuild.dependencies.kotlinx
 import dotfilesbuild.dependencies.kotlinxCoroutines
 import dotfilesbuild.dependencies.ktor
@@ -45,12 +45,12 @@ dependencies {
   implementation("com.google.apis:google-api-services-gmail:v1-rev20190602-$googleClientVersion")
   implementation("com.google.oauth-client:google-oauth-client-jetty:$googleClientVersion")
 
-  implementation("com.typesafe:config:1.3.4")
+  implementation("com.typesafe:config:1.4.0")
 
   implementation(jacksonCore("core"))
   implementation(jacksonModule("kotlin"))
 
-  implementation("org.jsoup:jsoup:1.12.1")
+  implementation("org.jsoup:jsoup:1.13.1")
 
   implementation(kodein("di-generic-jvm"))
   implementation(ktor("client-apache"))
