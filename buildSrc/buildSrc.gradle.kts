@@ -15,7 +15,7 @@ repositories {
 }
 
 ktlint {
-  version.set("0.32.0")
+  version.set("0.37.2")
 }
 
 kotlinDslPluginOptions {
@@ -55,8 +55,8 @@ fun Configuration.useDotfilesDependencyRecommendations() {
       "io.strikt" -> useVersion(striktVersion)
       "org.apache.logging.log4j" -> useVersion(log4jVersion)
       "org.jetbrains.kotlinx" -> when {
-        requested.name.startsWith("kotlinx-coroutines") && !requested.name.contains("io") -> useVersion(
-          kotlinxCoroutinesVersion)
+        requested.name.startsWith("kotlinx-coroutines") && !requested.name.contains("io") ->
+          useVersion(kotlinxCoroutinesVersion)
       }
       "org.kodein.di" -> useVersion(kodeinDiVersion)
       "org.junit.jupiter" -> useVersion(junitJupiterVersion)
@@ -74,7 +74,7 @@ dependencies {
   fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$version"
   implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.3.72"))
 
-  implementation("io.github.microutils:kotlin-logging:1.7.10")
+  implementation("io.github.microutils:kotlin-logging:1.8.0.1")
 
   implementation("io.arrow-kt:arrow-core-data")
   implementation("io.arrow-kt:arrow-core-extensions")

@@ -22,7 +22,7 @@ repositories {
 }
 
 ktlint {
-  version.set("0.32.0")
+  version.set("0.37.2")
 }
 
 configurations.all {

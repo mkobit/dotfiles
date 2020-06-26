@@ -9,7 +9,7 @@ plugins {
 }
 
 ktlint {
-  version.set("0.32.0")
+  version.set("0.37.2")
   filter {
 //    exclude("**/generated-source/**") Don't know why this isn't working
     exclude("**/*")

@@ -25,7 +25,7 @@ val workWorkspaceDirectory: Directory = workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = workspace.dir("code_lab")
 
 ktlint {
-  version.set("0.32.0")
+  version.set("0.37.2")
 }
 
 repositories.defaultDotfilesRepositories()

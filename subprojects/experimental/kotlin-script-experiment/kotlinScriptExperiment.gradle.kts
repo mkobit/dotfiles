@@ -20,7 +20,7 @@ repositories {
 }
 
 ktlint {
-  version.set("0.32.0")
+  version.set("0.37.2")
 }
 
 configurations.all {
@@ -38,7 +38,7 @@ dependencies {
   implementation(kotlin("scripting-jvm-host"))
 
   implementation(kotlinLogging)
-  implementation("com.squareup:kotlinpoet:1.3.0")
+  implementation("com.squareup:kotlinpoet:1.6.0")
 
   junitTestImplementationArtifacts.forEach {
     testImplementation(it)
