@@ -16,6 +16,9 @@ repositories {
 
 ktlint {
   version.set("0.37.2")
+  filter {
+    exclude { element -> element.file.path.contains("generated-sources/") }
+  }
 }
 
 kotlinDslPluginOptions {

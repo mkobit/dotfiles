@@ -13,6 +13,7 @@ internal class SetContentTest {
   companion object {
     private const val text = "text"
   }
+
   @Test
   internal fun `text is updated and right when it is changed`() {
     val editAction = SetContent { text }
