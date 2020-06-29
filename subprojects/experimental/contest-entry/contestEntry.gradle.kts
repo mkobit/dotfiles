@@ -42,8 +42,8 @@ dependencies {
 
   val googleClientVersion = "1.30.9"
   implementation("com.google.api-client:google-api-client:$googleClientVersion")
-  implementation("com.google.apis:google-api-services-gmail:v1-rev20190602-$googleClientVersion")
-  implementation("com.google.oauth-client:google-oauth-client-jetty:$googleClientVersion")
+  implementation("com.google.apis:google-api-services-gmail:v1-rev20200601-$googleClientVersion")
+  implementation("com.google.oauth-client:google-oauth-client-jetty:1.30.6")
 
   implementation("com.typesafe:config:1.4.0")
 
