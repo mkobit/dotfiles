@@ -3,9 +3,9 @@ import dotfilesbuild.home
 import dotfilesbuild.io.git.GitVersionControlTarget
 
 plugins {
-  id("com.github.ben-manes.versions") version "0.28.0"
-  id("org.jlleitschuh.gradle.ktlint") version "9.2.1"
-  id("org.jetbrains.gradle.plugin.idea-ext") version "0.7" apply false
+  id("com.github.ben-manes.versions") version "0.33.0"
+  id("org.jlleitschuh.gradle.ktlint") version "9.4.0"
+  id("org.jetbrains.gradle.plugin.idea-ext") version "0.9" apply false
 
   dotfilesbuild.`self-update`
   dotfilesbuild.`vcs-management`
@@ -25,7 +25,7 @@ val workWorkspaceDirectory: Directory = workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = workspace.dir("code_lab")
 
 ktlint {
-  version.set("0.37.2")
+  version.set("0.39.1")
 }
 
 repositories.defaultDotfilesRepositories()
