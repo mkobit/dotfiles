@@ -1,6 +1,8 @@
 package dotfilesbuild.io.git
 
 import mu.KotlinLogging
+import org.eclipse.jgit.lib.RepositoryCache
+import org.eclipse.jgit.util.FS
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.model.ObjectFactory
@@ -8,12 +10,7 @@ import org.gradle.api.provider.Property
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.kotlin.dsl.property
-import org.gradle.kotlin.dsl.submit
-import org.gradle.workers.IsolationMode
 import org.gradle.workers.WorkerExecutor
-import java.io.File
-import java.nio.file.Files
-import java.nio.file.Path
 import javax.inject.Inject
 
 @Deprecated("Simplification in-progress")
@@ -36,12 +33,6 @@ open class CloneRepository @Inject constructor(
   @get:Internal
   val repositoryUrl: Property<String> = objectFactory.property()
 
-  private val repositoryDirectoryFile: File
-    get() = repositoryDirectory.asFile.get()
-
-  private val repositoryDirectoryPath: Path
-    get() = repositoryDirectoryFile.toPath()
-
   @TaskAction
   fun cloneRepository() {
     val asFile = repositoryDirectory.asFile.get()
@@ -49,14 +40,17 @@ open class CloneRepository @Inject constructor(
       LOGGER.info { "Directory already exists at $asFile" }
       return
     }
-    workerExecutor.submit(CloneAction::class) {
-      isolationMode = IsolationMode.NONE
-      setParams(asFile, repositoryUrl.get())
-    }
+//    workerExecutor.noIsolation().submit(CloneAction::class) {
+//      isolationMode = IsolationMode.NONE
+//      setParams(asFile, repositoryUrl.get())
+//    }
   }
 
   private fun doesGitRepositoryExist(): Boolean {
-    // TODO: better way to determine if git repository already exists
-    return Files.isDirectory(repositoryDirectoryPath)
+    // Both below are in regards to "How to Check if A Git Clone Has Been Done Already with JGit"
+    // https://stackoverflow.com/questions/13586502/how-to-check-if-a-git-clone-has-been-done-already-with-jgit
+    // https://www.eclipse.org/lists/jgit-dev/msg01892.html
+
+    return RepositoryCache.FileKey.isGitRepository(repositoryDirectory.asFile.get(), FS.DETECTED)
   }
 }
