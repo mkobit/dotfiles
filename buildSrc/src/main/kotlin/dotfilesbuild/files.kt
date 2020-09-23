@@ -13,6 +13,3 @@ val Project.home: Directory
   }
 
 fun Project.projectFile(path: String): RegularFile = layout.projectDirectory.file(path)
-
-@Deprecated("superseded", ReplaceWith("home", "dotfilesbuild.home"))
-fun Project.homeFile(path: String): RegularFile = home.file(path)

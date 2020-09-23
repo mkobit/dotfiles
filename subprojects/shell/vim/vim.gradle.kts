@@ -1,4 +1,4 @@
-import dotfilesbuild.homeFile
+import dotfilesbuild.home
 import dotfilesbuild.projectFile
 import dotfilesbuild.io.file.Symlink
 
@@ -9,7 +9,7 @@ plugins {
 tasks {
   val symlinkVimrcConf by registering(Symlink::class) {
     source.set(projectFile("config/vimrc.dotfile"))
-    destination.set(homeFile(".vimrc"))
+    destination.set(home.file(".vimrc"))
   }
 
   dotfiles {
