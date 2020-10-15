@@ -53,7 +53,6 @@ includePrograms(
 includeExperimental(
   "chrome-debug-protocol",
   "chrome-debug-protocol-generator",
-  "contest-entry",
   "kotlin-script-experiment",
   "sidekick-service"
 )

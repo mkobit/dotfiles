@@ -1,4 +1,4 @@
-import dotfilesbuild.homeFile
+import dotfilesbuild.home
 
 plugins {
   dotfilesbuild.keepass.program
@@ -6,5 +6,5 @@ plugins {
 
 keepass {
   keepassVersion.set("2.42.1")
-  secretFile.set(homeFile("/home/mkobit/Programs/kobit.kdbx"))
+  secretFile.set(home.file("/home/mkobit/Programs/kobit.kdbx"))
 }

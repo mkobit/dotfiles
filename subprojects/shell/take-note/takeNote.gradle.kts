@@ -10,7 +10,7 @@ plugins {
 }
 
 ktlint {
-  version.set("0.37.2")
+  version.set("0.39.0")
 }
 
 val bin by configurations.creating {

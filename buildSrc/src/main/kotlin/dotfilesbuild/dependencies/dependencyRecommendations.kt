@@ -3,20 +3,19 @@ package dotfilesbuild.dependencies
 import org.gradle.api.artifacts.Configuration
 
 fun Configuration.useDotfilesDependencyRecommendations() {
-  val arrowKtVersion = "0.9.0"
+  val arrowKtVersion = "0.10.0"
   val jacksonVersion = "2.9.9"
-  val junitJupiterVersion = "5.4.2"
-  val junitPlatformVersion = "1.4.2"
+  val junitJupiterVersion = "5.7.0"
+  val junitPlatformVersion = "1.7.0"
   val kodeinDiVersion = "6.3.3"
   val kotlinxCoroutinesVersion = "1.3.0"
-  val ktorVersion = "1.2.3"
-  val okHttpVersion = "4.0.1"
+  val ktorVersion = "1.4.0"
+  val okHttpVersion = "4.9.0"
   val log4jVersion = "2.12.0"
-  val minutestVersion = "1.7.0"
-  val retrofitVersion = "2.5.0"
+  val minutestVersion = "1.11.0"
+  val retrofitVersion = "2.9.0"
   val slf4jVersion = "1.7.26"
   val striktVersion = "0.21.1"
-  val testContainersVersion = "1.12.0"
   resolutionStrategy.eachDependency {
     when (requested.group) {
       "com.squareup.okhttp3" -> useVersion(okHttpVersion)
@@ -38,7 +37,6 @@ fun Configuration.useDotfilesDependencyRecommendations() {
       "org.junit.jupiter" -> useVersion(junitJupiterVersion)
       "org.junit.platform" -> useVersion(junitPlatformVersion)
       "org.slf4j" -> useVersion(slf4jVersion)
-      "org.testcontainers" -> useVersion(testContainersVersion)
     }
   }
 }
