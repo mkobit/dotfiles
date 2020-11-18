@@ -60,7 +60,7 @@ internal class CalculateChecksumTest {
   }
 
   @Test
-  internal fun `can calculate sha256 checksum for multiple files in diferent nested contexts`(@TempDir directory: Path) {
+  internal fun `can calculate sha256 checksum for multiple files in different nested contexts`(@TempDir directory: Path) {
     val result = newGradleRunner(directory).setupProjectDir {
       "files" / {
         "file1.txt" {
