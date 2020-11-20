@@ -61,6 +61,8 @@ dependencies {
   fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$version"
   implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.4.10"))
 
+  implementation("com.typesafe:config:1.4.1")
+
   implementation("io.github.microutils:kotlin-logging:1.12.0")
 
   implementation("io.arrow-kt:arrow-core")
@@ -131,6 +133,10 @@ tasks {
 
 gradlePlugin {
   plugins {
+    register("dotfilesbuild.configuration") {
+      id = name
+      implementationClass = "dotfilesbuild.config.ConfigurationPlugin"
+    }
     register("dotfilesbuild.git-vcs") {
       id = name
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
