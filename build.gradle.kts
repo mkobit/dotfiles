@@ -3,7 +3,7 @@ import dotfilesbuild.home
 import dotfilesbuild.io.git.GitVersionControlTarget
 
 plugins {
-  id("com.github.ben-manes.versions") version "0.33.0"
+  id("com.github.ben-manes.versions") version "0.36.0"
   id("org.jlleitschuh.gradle.ktlint") version "9.4.0"
   id("org.jetbrains.gradle.plugin.idea-ext") version "0.9" apply false
 

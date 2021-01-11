@@ -40,7 +40,8 @@ includeShell(
 )
 
 includeLocalLibraries(
-  "pico-cli-utils"
+  "pico-cli-utils",
+  "ssh-config-generator"
 )
 
 includePrograms(
