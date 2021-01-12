@@ -6,7 +6,7 @@ plugins {
   dotfilesbuild.kotlin.convention
 }
 
-group = "io.mkobit.ssh.generator"
+group = "io.mkobit.ssh.config"
 
 ktlint {
   version.set("0.39.0")
