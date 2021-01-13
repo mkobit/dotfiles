@@ -5,7 +5,7 @@ plugins {
   `kotlin-dsl`
   id("org.jlleitschuh.gradle.ktlint") version "9.4.0"
 
-  id("com.github.ben-manes.versions") version "0.33.0"
+  id("com.github.ben-manes.versions") version "0.36.0"
 }
 
 repositories {
@@ -59,7 +59,7 @@ configurations.all { useBuildSrcDependencies() }
 dependencies {
   // https://github.com/gradle/kotlin-dsl/issues/430
   fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$version"
-  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.4.10"))
+  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.4.21-2"))
 
   implementation("com.typesafe:config:1.4.1")
 
