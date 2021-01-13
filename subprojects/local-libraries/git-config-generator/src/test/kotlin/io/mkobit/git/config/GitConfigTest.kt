@@ -1,8 +1,11 @@
 package io.mkobit.git.config
 
+import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
 import strikt.assertions.containsExactly
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.Path
 
 internal class GitConfigTest {
   @Test
@@ -41,5 +44,42 @@ internal class GitConfigTest {
         "    soft-reset = !git reset --soft HEAD~1 && git reset HEAD .",
         "    wip = commit -am 'WIP'",
       )
+  }
+
+  @ExperimentalPathApi
+  @Nested
+  internal inner class IncludeTest {
+
+    @Test
+    internal fun `include path`() {
+      val subject = Include(Path("~/.my_git_config"))
+      expectThat(subject.asText().lines())
+        .containsExactly(
+          "[include]",
+          "    include = ~/.my_git_config"
+        )
+    }
+
+    @Test
+    internal fun `includeIf gitdir`() {
+      val subject = Include(Path("~/.my_git_config")).ifGitDir(Path("/path/to/group"))
+
+      expectThat(subject.asText().lines())
+        .containsExactly(
+          "[include \"gitdir:/path/to/group\"]",
+          "    include = ~/.my_git_config"
+        )
+    }
+
+    @Test
+    internal fun `includeIf onbranch`() {
+      val subject = Include(Path("~/.my_git_config")).ifOnBranch("mybranch/**")
+
+      expectThat(subject.asText().lines())
+        .containsExactly(
+          "[include \"onbranch:mybranch/**\"]",
+          "    include = ~/.my_git_config"
+        )
+    }
   }
 }

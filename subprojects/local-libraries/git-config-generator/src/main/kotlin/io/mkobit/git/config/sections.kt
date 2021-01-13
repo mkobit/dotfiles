@@ -3,6 +3,8 @@
  */
 package io.mkobit.git.config
 
+import java.nio.file.Path
+
 private fun prunedMapOf(
   vararg pairs: Pair<String, Any?>
 ): Map<String, Any> {
@@ -155,6 +157,22 @@ data class Gpg(
     get() = prunedMapOf(
       "program" to program
     )
+}
+
+data class Include(
+  val path: Path
+) : Section {
+
+  override val name: String
+    get() = "include"
+
+  override val options: Map<String, Any>
+    get() = mapOf(
+      "path" to path
+    )
+
+  fun ifGitDir(pattern: Path): NamedSection = NamedSection(this, "gitdir:$pattern")
+  fun ifOnBranch(branchPattern: String): NamedSection = NamedSection(this, "onbranch:$branchPattern")
 }
 
 data class Merge(
