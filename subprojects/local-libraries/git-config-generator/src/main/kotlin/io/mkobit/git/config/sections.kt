@@ -159,20 +159,36 @@ data class Gpg(
     )
 }
 
-data class Include(
-  val path: Path
-) : Section {
+// TODO: escape paths in output
+sealed class Include : Section {
+  abstract val path: Path
 
-  override val name: String
-    get() = "include"
+  companion object {
+    operator fun invoke(path: Path): Include = IncludePattern(path)
+  }
 
   override val options: Map<String, Any>
     get() = mapOf(
       "path" to path
     )
 
-  fun ifGitDir(pattern: Path): NamedSection = NamedSection(this, "gitdir:$pattern")
-  fun ifOnBranch(branchPattern: String): NamedSection = NamedSection(this, "onbranch:$branchPattern")
+  private data class IncludePattern(override val path: Path) : Include() {
+    override val name: String
+      get() = "include"
+  }
+
+  private data class IncludeIfGitDir(override val path: Path, val gitDirPattern: Path) : Include() {
+    override val name: String
+      get() = "includeIf"
+  }
+
+  private data class IncludeIfOnBranch(override val path: Path, val branchPattern: String) : Include() {
+    override val name: String
+      get() = "includeIf"
+  }
+
+  fun ifGitDir(gitDirPattern: Path): NamedSection = NamedSection(IncludeIfGitDir(path, gitDirPattern), "gitdir:$gitDirPattern")
+  fun ifOnBranch(branchPattern: String): NamedSection = NamedSection(IncludeIfOnBranch(path, branchPattern), "onbranch:$branchPattern")
 }
 
 data class Merge(

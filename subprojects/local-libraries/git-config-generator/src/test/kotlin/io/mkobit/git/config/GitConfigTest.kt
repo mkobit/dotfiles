@@ -56,7 +56,7 @@ internal class GitConfigTest {
       expectThat(subject.asText().lines())
         .containsExactly(
           "[include]",
-          "    include = ~/.my_git_config"
+          "    path = ~/.my_git_config"
         )
     }
 
@@ -66,8 +66,8 @@ internal class GitConfigTest {
 
       expectThat(subject.asText().lines())
         .containsExactly(
-          "[include \"gitdir:/path/to/group\"]",
-          "    include = ~/.my_git_config"
+          "[includeIf \"gitdir:/path/to/group\"]",
+          "    path = ~/.my_git_config"
         )
     }
 
@@ -77,8 +77,8 @@ internal class GitConfigTest {
 
       expectThat(subject.asText().lines())
         .containsExactly(
-          "[include \"onbranch:mybranch/**\"]",
-          "    include = ~/.my_git_config"
+          "[includeIf \"onbranch:mybranch/**\"]",
+          "    path = ~/.my_git_config"
         )
     }
   }
