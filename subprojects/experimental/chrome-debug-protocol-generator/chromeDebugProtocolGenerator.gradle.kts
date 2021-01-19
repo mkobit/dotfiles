@@ -31,7 +31,7 @@ configurations.all {
 
 dependencies {
   implementation(guava)
-  implementation("com.squareup:kotlinpoet:1.6.0")
+  implementation("com.squareup:kotlinpoet:1.7.2")
   implementation(picoCli)
 
   implementation(jacksonCore("core"))

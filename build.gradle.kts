@@ -4,7 +4,7 @@ import dotfilesbuild.home
 plugins {
   id("com.github.ben-manes.versions") version "0.36.0"
   id("org.jlleitschuh.gradle.ktlint") version "9.4.0"
-  id("org.jetbrains.gradle.plugin.idea-ext") version "0.9" apply false
+  id("org.jetbrains.gradle.plugin.idea-ext") version "0.10" apply false
 
   dotfilesbuild.`self-update`
 }
