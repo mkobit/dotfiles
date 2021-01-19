@@ -141,10 +141,6 @@ gradlePlugin {
       id = name
       implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
     }
-    register("dotfilesbuild.self-update") {
-      id = name
-      implementationClass = "dotfilesbuild.versioning.SelfUpdatePlugin"
-    }
     register("dotfilesbuild.vcs-management") {
       id = name
       implementationClass = "dotfilesbuild.io.vcs.VersionControlManagementPlugin"
