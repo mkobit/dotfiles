@@ -47,6 +47,7 @@ data class Commit(
  */
 data class Core(
   val editor: String? = null,
+  val excludesFile: Path? = null,
   val eol: String? = null,
   val safecrlf: String? = null
 ) : Section {
@@ -55,8 +56,9 @@ data class Core(
   override val options: Map<String, Any>
     get() = prunedMapOf(
       "editor" to editor,
+      "excludesFile" to excludesFile,
       "eol" to eol,
-      "safecrlf" to safecrlf
+      "safecrlf" to safecrlf,
     )
 }
 
