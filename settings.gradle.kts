@@ -46,7 +46,6 @@ includeLocalLibraries(
 )
 
 includePrograms(
-  "intellij",
   "jq",
   "keepass",
   "kubectl"
