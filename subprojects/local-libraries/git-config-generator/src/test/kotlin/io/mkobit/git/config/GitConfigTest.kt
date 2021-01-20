@@ -1,12 +1,15 @@
 package io.mkobit.git.config
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Nested
 import org.junit.jupiter.api.Test
 import strikt.api.expectThat
+import strikt.assertions.contains
 import strikt.assertions.containsExactly
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.Path
 
+@ExperimentalPathApi
 internal class GitConfigTest {
   @Test
   internal fun `named section as text`() {
@@ -46,7 +49,6 @@ internal class GitConfigTest {
       )
   }
 
-  @ExperimentalPathApi
   @Nested
   internal inner class IncludeTest {
 
@@ -79,6 +81,19 @@ internal class GitConfigTest {
         .containsExactly(
           "[includeIf \"onbranch:mybranch/**\"]",
           "    path = ~/.my_git_config"
+        )
+    }
+  }
+
+  @Disabled("not implemented yet")
+  @Nested
+  internal inner class PathEscapeTest {
+    @Test
+    internal fun `include path with double quotes`() {
+      val subject = Include(Path("""~/"My Workspace"/\"Work\"/superteam"""))
+      expectThat(subject.asText().lines())
+        .contains(
+          """    path = "~/\"My Workspace\"/\"Work\"/superteam""""
         )
     }
   }
