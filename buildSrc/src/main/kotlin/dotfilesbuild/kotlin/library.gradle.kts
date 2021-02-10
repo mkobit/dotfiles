@@ -9,7 +9,7 @@ import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  java
+  `java-library`
   kotlin("jvm")
 }
 
@@ -33,8 +33,8 @@ tasks {
 }
 
 dependencies {
-  implementation(kotlin("stdlib"))
-  implementation(kotlin("stdlib-jdk8"))
+  api(kotlin("stdlib"))
+  api(kotlin("stdlib-jdk8"))
 
   testImplementation(strikt("core"))
   testImplementation(minutest("minutest"))

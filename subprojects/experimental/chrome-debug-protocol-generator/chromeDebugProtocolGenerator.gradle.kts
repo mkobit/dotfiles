@@ -9,7 +9,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
   `java-library`
   id("org.jlleitschuh.gradle.ktlint")
-  dotfilesbuild.kotlin.convention
+  dotfilesbuild.kotlin.library
 }
 
 repositories {

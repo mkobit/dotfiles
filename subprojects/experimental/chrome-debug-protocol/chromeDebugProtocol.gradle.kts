@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 plugins {
   `java-library`
   id("org.jlleitschuh.gradle.ktlint")
-  dotfilesbuild.kotlin.convention
+  dotfilesbuild.kotlin.library
 }
 
 ktlint {

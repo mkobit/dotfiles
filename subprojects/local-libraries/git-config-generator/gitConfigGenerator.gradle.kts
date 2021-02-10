@@ -3,7 +3,7 @@ import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 plugins {
   `java-library`
   id("org.jlleitschuh.gradle.ktlint")
-  dotfilesbuild.kotlin.convention
+  dotfilesbuild.kotlin.library
 }
 
 group = "io.mkobit.git.generator"

@@ -10,7 +10,7 @@ plugins {
   java
   application
   id("org.jlleitschuh.gradle.ktlint")
-  dotfilesbuild.kotlin.convention
+  dotfilesbuild.kotlin.library
 }
 
 repositories {
