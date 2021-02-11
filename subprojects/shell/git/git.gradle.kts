@@ -6,12 +6,19 @@ import dotfilesbuild.io.file.content.SetContent
 
 plugins {
   dotfilesbuild.`dotfiles-lifecycle`
+  dotfilesbuild.kotlin.`picocli-script`
 }
+
+group = "shell.git.config"
 
 val workspace = home.dir("Workspace")
 val personalWorkspaceDirectory: Directory = workspace.dir("personal")
 val workWorkspaceDirectory: Directory = workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = workspace.dir("code_lab")
+
+application {
+  mainClass.set("shell.git.config.Main")
+}
 
 tasks {
   val gitConfigGeneration by registering(EditFile::class) {
@@ -49,7 +56,20 @@ tasks {
     destination.set(home.file(".gitignore_global"))
   }
 
+  (run) {
+    val outputDir = layout.buildDirectory.dir("generated-git")
+    outputs.dir(outputDir)
+    args(
+      "--outputDir", outputDir.get()
+    )
+
+  }
+
   dotfiles {
     dependsOn(symlinkGeneratedGitFile, symlinkGitIgnoreGlobal)
   }
+}
+
+dependencies {
+  implementation(project(":local-libraries:git-config-generator"))
 }

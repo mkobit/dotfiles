@@ -1,5 +1,4 @@
 [alias]
-    add-changed = add -u
     aliases = ! git var -l | grep --color=never -e '^alias' | sed -E 's/^alias.//g'
     amend = commit --amend
     branches = branch -a
@@ -18,7 +17,7 @@
     root = ! pwd
     amendit = commit --amend --no-edit
     clean-all = clean -d -x -f
-    wip = commit -am 'WIP'
+    wip = commit -anm 'WIP'
     # Abbreviation aliases
     a = add
     au = add -u

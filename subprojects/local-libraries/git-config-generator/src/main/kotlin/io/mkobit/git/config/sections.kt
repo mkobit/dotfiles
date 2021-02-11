@@ -35,6 +35,8 @@ interface Section {
   fun asText(): String = convertSectionToText(this, null)
 }
 
+fun Section.named(subsectionName: String) = NamedSection(this, subsectionName)
+
 data class NamedSection(val section: Section, val subsectionName: String) : Section by section {
   override fun asText(): String = convertSectionToText(section, subsectionName)
 }
@@ -51,21 +53,25 @@ fun Collection<Section>.asText(): String =
  */
 data class Commit(
   val gpgSign: Boolean? = null,
-  val status: Boolean? = null
+  val status: Boolean? = null,
+  val verbose: Boolean? = null
 ) : Section {
   override val name: String
-    get() = "core"
+    get() = "commit"
   override val options: Map<String, Any>
     get() = prunedMapOf(
       "gpgSign" to gpgSign,
-      "status" to status
+      "status" to status,
+      "verbose" to verbose
     )
 }
 
 /**
+ * @param autoCrlf
  * @param eol `auto`, `native`, `true`, `input` or `false`
  */
 data class Core(
+  val autoCrlf: AutoCrlf? = null,
   val editor: String? = null,
   val excludesFile: Path? = null,
   val eol: String? = null,
@@ -73,8 +79,22 @@ data class Core(
 ) : Section {
   override val name: String
     get() = "core"
+
+  /**
+   * Setting this variable to "true" is the same as setting the text attribute to "auto" on all files and core.eol to "crlf".
+   * Set to true if you want to have CRLF line endings in your working directory and the repository has LF line endings.
+   * This variable can be set to input, in which case no output conversion is performed.
+   */
+  enum class AutoCrlf {
+    TRUE,
+    FALSE,
+    AUTO,
+    INPUT,
+  }
+
   override val options: Map<String, Any>
     get() = prunedMapOf(
+      "autocrlf" to autoCrlf?.name?.toLowerCase(),
       "editor" to editor,
       "excludesFile" to excludesFile,
       "eol" to eol,
@@ -213,6 +233,17 @@ sealed class Include : Section {
   fun ifOnBranch(branchPattern: String): NamedSection = NamedSection(IncludeIfOnBranch(path, branchPattern), "onbranch:$branchPattern")
 }
 
+data class Interactive(
+  val diffFilter: String? = null
+) : Section {
+  override val name: String
+    get() = "interactive"
+  override val options: Map<String, Any>
+    get() = prunedMapOf(
+      "diffFilter" to diffFilter
+    )
+}
+
 data class Merge(
   val fastForward: FastForward? = null
 ) : Section {
@@ -274,14 +305,86 @@ data class Pull(
     )
 }
 
+data class Push(
+  val default: Default? = null
+) : Section {
+  override val name: String
+    get() = "push"
+
+  /**
+   * Defines the action `git push` should take if no refspec is given (whether from the command-line, config, or elsewhere).
+   * Different values are well-suited for specific workflows; for instance, in a purely central workflow (i.e. the fetch source is equal to the push destination), `upstream` is probably what you want.
+   *
+   */
+  enum class Default {
+    /**
+     * do not push anything (error out) unless a refspec is given.
+     * This is primarily meant for people who want to avoid mistakes by always being explicit.
+     */
+    NOTHING,
+
+    /**
+     * push the current branch to update a branch with the same name on the receiving end.
+     * Works in both central and non-central workflows.
+     */
+    CURRENT,
+
+    /**
+     * push the current branch back to the branch whose changes are usually integrated into the current branch (which is called `@{upstream}`).
+     * This mode only makes sense if you are pushing to the same repository you would normally pull from (i.e. central workflow).
+     */
+    UPSTREAM,
+
+    /**
+     * This is a deprecated synonym for [UPSTREAM].
+     */
+    TRACKING,
+
+    /**
+     * in centralized workflow, work like upstream with an added safety to refuse to push if the upstream branch’s name is different from the local one.
+     * When pushing to a remote that is different from the remote you normally pull from, work as current.
+     * This is the safest option and is suited for beginners.
+     *
+     * This mode has become the default in Git 2.0.
+     */
+    SIMPLE,
+
+    /**
+     * push all branches having the same name on both ends.
+     * This makes the repository you are pushing to remember the set of branches that will be pushed out (e.g. if you always push maint and master there and no other branches, the repository you push to will have these two branches, and your local maint and master will be pushed there).
+     * To use this mode effectively, you have to make sure all the branches you would push out are ready to be pushed out before running git push, as the whole point of this mode is to allow you to push all of the branches in one go. If you usually finish work on only one branch and push out the result, while other branches are unfinished, this mode is not for you. Also this mode is not suitable for pushing into a shared central repository, as other people may add new branches there, or update the tip of existing branches outside your control.
+     * This used to be the default, but not since Git 2.0 ([SIMPLE] is the new default).
+     */
+    MATCHING
+  }
+
+  override val options: Map<String, Any>
+    get() = prunedMapOf(
+      "default" to default?.name?.toLowerCase()
+    )
+}
+
 data class Rebase(
-  val autoStash: Boolean? = null
+  val autoStash: Boolean? = null,
+  val autoSquash: Boolean? = null
 ) : Section {
   override val name: String
     get() = "rebase"
   override val options: Map<String, Any>
     get() = prunedMapOf(
+      "autoSquash" to autoSquash,
       "autoStash" to autoStash
+    )
+}
+
+data class Rerere(
+  val enabled: Boolean? = null
+) : Section {
+  override val name: String
+    get() = "rerere"
+  override val options: Map<String, Any>
+    get() = prunedMapOf(
+      "enabled" to enabled
     )
 }
 
