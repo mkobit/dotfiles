@@ -1,5 +1,4 @@
 import dotfilesbuild.home
-import dotfilesbuild.projectFile
 
 plugins {
   dotfilesbuild.`dotfiles-lifecycle`
