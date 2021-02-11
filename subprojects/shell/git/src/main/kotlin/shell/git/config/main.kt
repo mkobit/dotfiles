@@ -9,6 +9,7 @@ import io.mkobit.git.config.Commit
 import io.mkobit.git.config.Core
 import io.mkobit.git.config.Diff
 import io.mkobit.git.config.Fetch
+import io.mkobit.git.config.Gpg
 import io.mkobit.git.config.Interactive
 import io.mkobit.git.config.Merge
 import io.mkobit.git.config.Pager
@@ -18,8 +19,8 @@ import io.mkobit.git.config.Rebase
 import io.mkobit.git.config.Rerere
 import io.mkobit.git.config.Section
 import io.mkobit.git.config.Stash
+import io.mkobit.git.config.User
 import io.mkobit.git.config.asText
-import io.mkobit.git.config.named
 import picocli.CommandLine
 import java.nio.file.Path
 import java.util.concurrent.Callable
@@ -43,8 +44,10 @@ internal class GenerateGitConfig : Callable<Int> {
   lateinit var outputDir: Path
 
   override fun call(): Int {
-    val personal = outputDir / "gitconfig_general"
-    personal.writeText(generalGitConfig().asText())
+    val general = outputDir / "gitconfig_general"
+    general.writeText(generalGitConfig().asText())
+    val personal = outputDir / "gitconfig_personal"
+    personal.writeText(personalGitConfig().asText())
     return 0
   }
 }
@@ -130,6 +133,21 @@ private fun generalGitConfig(): List<Section> = listOf(
   ),
   Stash(
     showPatch = true
+  )
+)
+
+@ExperimentalPathApi
+private fun personalGitConfig(): List<Section> = listOf(
+  Commit(
+    gpgSign = true
+  ),
+  Gpg(
+    program = "gpg2"
+  ),
+  User(
+    email = "mkobit@gmail.com",
+    userName = "Mike Kobit",
+    signingKey = "1698254E135D7ADE!"
   )
 )
 
