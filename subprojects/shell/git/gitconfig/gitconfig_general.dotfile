@@ -4,7 +4,6 @@
     branches = branch -a
     delete-merged-branches = "!git checkout master && git branch --merged master | sed -E 's/^\\*//;s/\\s*//' | grep -v 'master' | xargs --no-run-if-empty --max-args 1 git branch -d"
     diff-staged = diff --cached
-    # Exec a command from root of git repository - http://stackoverflow.com/a/957978/627727
     exec = ! exec
     graph-all = log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all
     please = push --force-with-lease
@@ -12,13 +11,12 @@
     touchup = !git add -u && git commit --amend --no-edit
     sync = pull --rebase --autostash
     unstage = reset HEAD --
-    # Rename the current branch.
     rename-branch = branch -mv
     root = ! pwd
     amendit = commit --amend --no-edit
     clean-all = clean -d -x -f
     wip = commit -anm 'WIP'
-    # Abbreviation aliases
+[alias]
     a = add
     au = add -u
     st = status
@@ -28,34 +26,35 @@
     co = checkout
     cob = checkout -b
 [branch]
-    autosetuprebase = always
+    autoSetupRebase = always
 [color]
     ui = true
 [commit]
     verbose = true
 [core]
-    editor = vim
     autocrlf = input
-    excludesfile = ~/.gitignore_global
+    editor = vim
+    excludesFile = ~/.gitignore_global
 [diff]
     compactionHeuristic = true
+[fetch]
+    prune = true
 [interactive]
     diffFilter = diff-highlight
+[merge]
+    ff = false
 [pager]
+    diff = diff-highlight | less
     log = diff-highlight | less
     show = diff-highlight | less
-    diff = diff-highlight | less
 [pull]
     rebase = true
 [push]
     default = simple
+[rebase]
+    autoSquash = true
+    autoStash = true
+[rerere]
+    enabled = true
 [stash]
     showPatch = true
-[merge]
-	ff = false
-[rebase]
-	autoSquash = true
-[rerere]
-	enabled = true
-[fetch]
-	prune = true

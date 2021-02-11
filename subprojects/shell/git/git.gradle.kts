@@ -62,7 +62,6 @@ tasks {
     args(
       "--outputDir", outputDir.get()
     )
-
   }
 
   dotfiles {

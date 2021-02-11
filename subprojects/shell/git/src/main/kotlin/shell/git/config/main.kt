@@ -56,7 +56,7 @@ private fun generalGitConfig(): List<Section> = listOf(
       "aliases" to "! git var -l | grep --color=never -e '^alias' | sed -E 's/^alias.//g'",
       "amend" to "commit --amend",
       "branches" to "branch -a",
-      "delete-merged-branches" to "\"!git checkout master && git branch --merged master | sed -E 's/^\\*//;s/\\s*//' | grep -v 'master' | xargs --no-run-if-empty --max-args 1 git branch -d\"",
+      "delete-merged-branches" to "\"!git checkout master && git branch --merged master | sed -E 's/^\\\\*//;s/\\\\s*//' | grep -v 'master' | xargs --no-run-if-empty --max-args 1 git branch -d\"",
       "diff-staged" to "diff --cached",
       "exec" to "! exec", // Exec a command from root of git repository - http://stackoverflow.com/a/957978/627727
       "graph-all" to "log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all",
@@ -83,7 +83,7 @@ private fun generalGitConfig(): List<Section> = listOf(
       "co" to "checkout",
       "cob" to "checkout -b"
     )
-  ).named("abbreviations"),
+  ),
   Branch(
     autoSetUpRebase = Branch.AutoSetUpRebase.ALWAYS
   ),
@@ -94,7 +94,7 @@ private fun generalGitConfig(): List<Section> = listOf(
     verbose = true
   ),
   Core(
-    autoCrlf = Core.AutoCrlf.AUTO,
+    autoCrlf = Core.AutoCrlf.INPUT,
     editor = "vim",
     excludesFile = Path("~/.gitignore_global")
   ),

@@ -88,7 +88,6 @@ data class Core(
   enum class AutoCrlf {
     TRUE,
     FALSE,
-    AUTO,
     INPUT,
   }
 
