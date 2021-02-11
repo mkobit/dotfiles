@@ -9,10 +9,6 @@ plugins {
   application
 }
 
-ktlint {
-  version.set("0.39.0")
-}
-
 val bin by configurations.creating {
   isCanBeConsumed = true
   isCanBeResolved = false

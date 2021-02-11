@@ -83,7 +83,7 @@ internal class GenerateGitConfig : Callable<Int> {
   override fun call(): Int {
     val generalConfig = gitConfigFor(outputDir / "general")
     generalConfig.writeText(generalGitConfig(globalExcludesFile).asText())
-    val personalConfig = gitConfigFor( outputDir / "personal")
+    val personalConfig = gitConfigFor(outputDir / "personal")
     personalConfig.writeText(personalGitConfig().asText())
     val includes = gitConfigFor(outputDir / "includes")
     includes.writeText(

@@ -8,10 +8,6 @@ plugins {
 
 group = "io.mkobit.ssh.config"
 
-ktlint {
-  version.set("0.39.0")
-}
-
 configurations.all {
   useDotfilesDependencyRecommendations()
 }

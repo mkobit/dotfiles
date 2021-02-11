@@ -20,10 +20,6 @@ plugins {
   dotfilesbuild.kotlin.library
 }
 
-ktlint {
-  version.set("0.39.0")
-}
-
 repositories {
   defaultDotfilesRepositories()
   maven(url = "http://dl.bintray.com/kotlin/ktor") {

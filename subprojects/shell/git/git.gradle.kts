@@ -3,6 +3,7 @@ import dotfilesbuild.home
 plugins {
   dotfilesbuild.`dotfiles-lifecycle`
   dotfilesbuild.kotlin.`picocli-script`
+  id("org.jlleitschuh.gradle.ktlint")
 }
 
 group = "shell.git.config"
