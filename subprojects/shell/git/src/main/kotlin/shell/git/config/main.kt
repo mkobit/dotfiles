@@ -10,6 +10,7 @@ import io.mkobit.git.config.Core
 import io.mkobit.git.config.Diff
 import io.mkobit.git.config.Fetch
 import io.mkobit.git.config.Gpg
+import io.mkobit.git.config.Include
 import io.mkobit.git.config.Interactive
 import io.mkobit.git.config.Merge
 import io.mkobit.git.config.Pager
@@ -25,7 +26,7 @@ import picocli.CommandLine
 import java.nio.file.Path
 import java.util.concurrent.Callable
 import kotlin.io.path.ExperimentalPathApi
-import kotlin.io.path.Path
+import kotlin.io.path.createDirectories
 import kotlin.io.path.div
 import kotlin.io.path.writeText
 import kotlin.system.exitProcess
@@ -38,22 +39,73 @@ import kotlin.system.exitProcess
 internal class GenerateGitConfig : Callable<Int> {
 
   @CommandLine.Option(
-    names = ["--outputDir"],
+    names = ["--output-dir"],
     required = true
   )
   lateinit var outputDir: Path
 
+  @CommandLine.Option(
+    names = ["--global-excludes-file"],
+    required = true
+  )
+  lateinit var globalExcludesFile: Path
+
+  @CommandLine.Option(
+    names = ["--work-dir"],
+    required = true
+  )
+  lateinit var workDir: Path
+
+  @CommandLine.Option(
+    names = ["--code-lab-dir"],
+    required = true
+  )
+  lateinit var codeLabDir: Path
+
+  @CommandLine.Option(
+    names = ["--personal-dir"],
+    required = true
+  )
+  lateinit var personalDir: Path
+
+  @CommandLine.Option(
+    names = ["--work-config"],
+    required = true
+  )
+  lateinit var workConfig: Path
+
+  @CommandLine.Option(
+    names = ["--dotfiles-dir"],
+    required = true
+  )
+  lateinit var dotfilesDir: Path
+
   override fun call(): Int {
-    val general = outputDir / "gitconfig_general"
-    general.writeText(generalGitConfig().asText())
-    val personal = outputDir / "gitconfig_personal"
-    personal.writeText(personalGitConfig().asText())
+    val generalConfig = gitConfigFor(outputDir / "general")
+    generalConfig.writeText(generalGitConfig(globalExcludesFile).asText())
+    val personalConfig = gitConfigFor( outputDir / "personal")
+    personalConfig.writeText(personalGitConfig().asText())
+    val includes = gitConfigFor(outputDir / "includes")
+    includes.writeText(
+      includesConfig(
+        generalConfig,
+        personalConfig,
+        workConfig,
+        dotfilesDir,
+        personalDir,
+        codeLabDir,
+        workDir
+      ).asText()
+    )
     return 0
   }
+
+  private fun gitConfigFor(path: Path): Path =
+    path.createDirectories() / ".gitconfig"
 }
 
 @ExperimentalPathApi
-private fun generalGitConfig(): List<Section> = listOf(
+private fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
   Alias(
     mapOf(
       "aliases" to "! git var -l | grep --color=never -e '^alias' | sed -E 's/^alias.//g'",
@@ -72,7 +124,8 @@ private fun generalGitConfig(): List<Section> = listOf(
       "root" to "! pwd",
       "amendit" to "commit --amend --no-edit",
       "clean-all" to "clean -d -x -f",
-      "wip" to "commit -anm 'WIP'"
+      "wip" to "commit -anm 'WIP'",
+      "hi" to "! echo 'main generated'",
     )
   ),
   Alias(
@@ -99,7 +152,7 @@ private fun generalGitConfig(): List<Section> = listOf(
   Core(
     autoCrlf = Core.AutoCrlf.INPUT,
     editor = "vim",
-    excludesFile = Path("~/.gitignore_global")
+    excludesFile = excludesFile
   ),
   Diff(
     compactionHeuristic = true
@@ -149,6 +202,22 @@ private fun personalGitConfig(): List<Section> = listOf(
     userName = "Mike Kobit",
     signingKey = "1698254E135D7ADE!"
   )
+)
+
+private fun includesConfig(
+  generalConfig: Path,
+  personalConfig: Path,
+  workConfig: Path,
+  dotfilesDir: Path,
+  personalDir: Path,
+  codeLabDir: Path,
+  workDir: Path,
+): List<Section> = listOf(
+  Include(path = generalConfig),
+  Include(personalConfig).ifGitDir(dotfilesDir),
+  Include(personalConfig).ifGitDir(personalDir),
+  Include(personalConfig).ifGitDir(codeLabDir),
+  Include(workConfig).ifGitDir(workDir)
 )
 
 @ExperimentalPathApi

@@ -201,6 +201,7 @@ data class Gpg(
 }
 
 // TODO: escape paths in output
+// TODO: better handle include dirs that should be suffixed with '/' since that translates to '/**'
 sealed class Include : Section {
   abstract val path: Path
 
