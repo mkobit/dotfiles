@@ -15,12 +15,29 @@ private fun prunedMapOf(
   return result.toMap()
 }
 
+private fun convertSectionToText(section: Section, subsectionName: String?): String =
+  "[${section.name}${subsectionName?.let { sn -> " \"$sn\"" } ?: ""}]" +
+    if (section.options.isNotEmpty()) {
+      section.options.entries.joinToString(
+        separator = System.lineSeparator(),
+        prefix = System.lineSeparator(),
+      ) {
+        "${it.key} = ${it.value}".prependIndent(" ".repeat(4))
+      }
+    } else {
+      System.lineSeparator()
+    }
+
 interface Section {
   val name: String
   val options: Map<String, Any>
+
+  fun asText(): String = convertSectionToText(this, null)
 }
 
-data class NamedSection(val section: Section, val name: String)
+data class NamedSection(val section: Section, val subsectionName: String) : Section by section {
+  override fun asText(): String = convertSectionToText(section, subsectionName)
+}
 
 /**
  * @param gpgSign A boolean to specify whether all commits should be GPG signed.
