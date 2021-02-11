@@ -15,7 +15,7 @@ fun String.toKebabCase(): String = split("-").toList().let {
   "${it.first()}$suffix"
 }
 
-fun includeGroup(group: String, vararg names: String) {
+fun includeGroup(group: String, names: Collection<String>) {
   names.forEach { name ->
     include("$group:$name")
     project(":$group:$name").apply {
@@ -24,38 +24,45 @@ fun includeGroup(group: String, vararg names: String) {
   }
 }
 
-fun includeExperimental(vararg names: String) = includeGroup("experimental", *names)
-fun includeLocalLibraries(vararg names: String) = includeGroup("local-libraries", *names)
-fun includePrograms(vararg names: String) = includeGroup("programs", *names)
-fun includeShell(vararg names: String) = includeGroup("shell", *names)
-
-includeShell(
-  "aggregator",
-  "diff-highlight",
-  "git",
-  "ssh",
-  "take-note",
-  "tmux",
-  "vim"
+includeGroup(
+  "shell",
+  listOf(
+    "aggregator",
+    "diff-highlight",
+    "git",
+    "ssh",
+    "take-note",
+    "tmux",
+    "vim"
+  )
 )
 
-includeLocalLibraries(
-  "pico-cli-utils",
-  "git-config-generator",
-  "ssh-config-generator"
+includeGroup(
+  "local-libraries",
+  listOf(
+    "pico-cli-utils",
+    "git-config-generator",
+    "ssh-config-generator"
+  )
 )
 
-includePrograms(
-  "jq",
-  "keepass",
-  "kubectl"
+includeGroup(
+  "programs",
+  listOf(
+    "jq",
+    "keepass",
+    "kubectl"
+  )
 )
 
-includeExperimental(
-  "chrome-debug-protocol",
-  "chrome-debug-protocol-generator",
-  "kotlin-script-experiment",
-  "sidekick-service"
+includeGroup(
+  "experimental",
+  listOf(
+    "chrome-debug-protocol",
+    "chrome-debug-protocol-generator",
+    "kotlin-script-experiment",
+    "sidekick-service"
+  )
 )
 
 fun configureBuildfiles(projectDescriptor: ProjectDescriptor) {
