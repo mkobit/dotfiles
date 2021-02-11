@@ -125,7 +125,6 @@ private fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
       "amendit" to "commit --amend --no-edit",
       "clean-all" to "clean -d -x -f",
       "wip" to "commit -anm 'WIP'",
-      "hi" to "! echo 'main generated'",
     )
   ),
   Alias(
