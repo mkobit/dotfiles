@@ -32,7 +32,7 @@ dependencies {
 }
 
 application {
-  mainClassName = "dotfiles.mkobit.cli.note.Main"
+  mainClass.set("dotfiles.mkobit.cli.note.Main")
 }
 
 tasks {

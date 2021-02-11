@@ -6,7 +6,6 @@ plugins {
 }
 
 tasks {
-
   val sshCms by registering(Mkdir::class) {
     directory.set(home.dir(".ssh/controlMaster"))
   }
