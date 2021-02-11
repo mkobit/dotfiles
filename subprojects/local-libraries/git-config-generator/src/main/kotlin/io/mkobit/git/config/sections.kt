@@ -378,12 +378,14 @@ data class Rebase(
 }
 
 data class Rerere(
-  val enabled: Boolean? = null
+  val enabled: Boolean? = null,
+  val autoUpdate: Boolean? = null
 ) : Section {
   override val name: String
     get() = "rerere"
   override val options: Map<String, Any>
     get() = prunedMapOf(
+      "autoUpdate" to autoUpdate,
       "enabled" to enabled
     )
 }

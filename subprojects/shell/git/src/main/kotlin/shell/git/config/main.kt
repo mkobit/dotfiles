@@ -181,6 +181,7 @@ private fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
     autoStash = true,
   ),
   Rerere(
+    autoUpdate = true,
     enabled = true
   ),
   Stash(
