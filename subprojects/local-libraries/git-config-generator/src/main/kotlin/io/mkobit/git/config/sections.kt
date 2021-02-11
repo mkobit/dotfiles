@@ -39,6 +39,9 @@ data class NamedSection(val section: Section, val subsectionName: String) : Sect
   override fun asText(): String = convertSectionToText(section, subsectionName)
 }
 
+fun Collection<Section>.asText(): String =
+  joinToString(separator = System.lineSeparator(), postfix = System.lineSeparator()) { it.asText() }
+
 /**
  * @param gpgSign A boolean to specify whether all commits should be GPG signed.
  * Use of this option when doing operations such as rebase can result in a large number of commits being signed.

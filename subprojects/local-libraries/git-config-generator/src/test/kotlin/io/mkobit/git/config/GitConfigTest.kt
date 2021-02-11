@@ -51,7 +51,6 @@ internal class GitConfigTest {
 
   @Nested
   internal inner class IncludeTest {
-
     @Test
     internal fun `include path`() {
       val subject = Include(Path("~/.my_git_config"))
@@ -96,5 +95,36 @@ internal class GitConfigTest {
           """    path = "~/\"My Workspace\"/\"Work\"/superteam""""
         )
     }
+  }
+
+  @Test
+  internal fun `section collection as text`() {
+    val sections = listOf(
+      Alias(
+        mapOf(
+          "a" to "1"
+        )
+      ),
+      NamedSection(
+        Alias(
+          mapOf(
+            "b" to "2"
+          )
+        ),
+        "subsectionName"
+      ),
+      Include(Path("~/.my_git_config"))
+    )
+
+    expectThat(sections.asText().lines())
+      .containsExactly(
+        "[alias]",
+        "    a = 1",
+        "[alias \"subsectionName\"]",
+        "    b = 2",
+        "[include]",
+        "    path = ~/.my_git_config",
+        ""
+      )
   }
 }
