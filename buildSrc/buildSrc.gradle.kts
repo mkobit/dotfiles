@@ -1,11 +1,11 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
-import org.jlleitschuh.gradle.ktlint.KtlintFormatTask
+import org.jlleitschuh.gradle.ktlint.tasks.KtLintFormatTask
 
 plugins {
   `kotlin-dsl`
-  id("org.jlleitschuh.gradle.ktlint") version "9.4.0"
+  id("org.jlleitschuh.gradle.ktlint") version "10.0.0"
 
-  id("com.github.ben-manes.versions") version "0.36.0"
+  id("com.github.ben-manes.versions") version "0.38.0"
 }
 
 repositories {
@@ -15,20 +15,20 @@ repositories {
 }
 
 ktlint {
-  version.set("0.39.0")
+  version.set("0.41.0")
   filter {
     exclude { element -> element.file.path.contains("generated-sources/") }
   }
 }
 
 kotlinDslPluginOptions {
-  jvmTarget.set("11")
+  jvmTarget.set("1.8")
   experimentalWarning.set(false)
 }
 
 java {
-  sourceCompatibility = JavaVersion.VERSION_11
-  targetCompatibility = JavaVersion.VERSION_11
+  sourceCompatibility = JavaVersion.VERSION_1_8
+  targetCompatibility = JavaVersion.VERSION_1_8
 }
 
 fun Configuration.useBuildSrcDependencies() {
@@ -103,10 +103,10 @@ tasks {
   }
 
   assemble {
-    dependsOn(withType<KtlintFormatTask>())
+    dependsOn(withType<KtLintFormatTask>())
   }
 
-  withType<KtlintFormatTask>().configureEach {
+  withType<KtLintFormatTask>().configureEach {
     onlyIf { project.hasProperty("ktlintFormatBuildSrc") }
   }
 
@@ -120,7 +120,6 @@ tasks {
 
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
-      jvmTarget = "11"
       freeCompilerArgs += listOf("-progressive")
     }
   }

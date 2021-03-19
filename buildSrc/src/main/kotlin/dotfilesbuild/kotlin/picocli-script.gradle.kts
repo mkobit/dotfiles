@@ -31,6 +31,10 @@ tasks {
   withType<Test>().configureEach {
     useJUnitPlatform()
   }
+
+  (run) {
+    mainClass.set(provider { "$group.Main" })
+  }
 }
 
 dependencies {
