@@ -33,7 +33,7 @@ tasks {
   }
 
   (run) {
-    mainClass.set(provider { "$group.Main" })
+    mainClass.set(provider { "${project.group}.${project.name}.Main" })
   }
 }
 

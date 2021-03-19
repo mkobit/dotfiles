@@ -28,6 +28,7 @@ includeGroup(
   "shell",
   listOf(
     "aggregator",
+    "external-configuration",
     "diff-highlight",
     "git",
     "ssh",

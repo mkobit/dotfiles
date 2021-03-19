@@ -1,6 +1,6 @@
 @file:JvmName("Main")
 
-package shell.git.config
+package dotfiles.shell.git
 
 import io.mkobit.git.config.Alias
 import io.mkobit.git.config.Branch
@@ -80,7 +80,14 @@ internal class GenerateGitConfig : Callable<Int> {
   )
   lateinit var dotfilesDir: Path
 
+  @CommandLine.Option(
+    names = ["--config-file"],
+    required = false,
+  )
+  lateinit var configFiles: Array<Path>
+
   override fun call(): Int {
+    println("CONFIG:" + configFiles)
     val generalConfig = gitConfigFor(outputDir / "general")
     generalConfig.writeText(generalGitConfig(globalExcludesFile).asText())
     val personalConfig = gitConfigFor(outputDir / "personal")

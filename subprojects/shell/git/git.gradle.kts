@@ -1,4 +1,6 @@
 import dotfilesbuild.home
+import dotfilesbuild.property
+import dotfilesbuild.process.FileTreeExpandingCommandLineArgumentProvider
 
 plugins {
   dotfilesbuild.`dotfiles-lifecycle`
@@ -6,22 +8,34 @@ plugins {
   id("org.jlleitschuh.gradle.ktlint")
 }
 
-group = "shell.git.config"
-
-val workspace = home.dir("Workspace")
+val workspace: Directory = home.dir("Workspace")
 val personalWorkspaceDirectory: Directory = workspace.dir("personal")
 val workWorkspaceDirectory: Directory = workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = workspace.dir("code_lab")
 
-application {
-  mainClass.set("shell.git.config.Main")
+val shell = Attribute.of("shell.config", Usage::class.java)
+
+val external by configurations.creating {
+  attributes {
+    attribute(shell, objects.named(Usage::class, "ssh"))
+  }
+}
+
+dependencies {
+  implementation(project(":local-libraries:git-config-generator"))
+  external(project(":shell:external-configuration"))
 }
 
 tasks {
   (run) {
     val outputDir = layout.buildDirectory.dir("generated-git")
     outputs.dir(outputDir)
-    // todo: ** kind of messy
+    argumentProviders.add(
+      FileTreeExpandingCommandLineArgumentProvider(
+        objects.property("--config-file"),
+        external.asFileTree
+      )
+    )
     args(
       "--output-dir", outputDir.get(),
       "--global-excludes-file", layout.projectDirectory.file("gitconfig/gitignore_global.dotfile"),
@@ -36,8 +50,4 @@ tasks {
   dotfiles {
     dependsOn(run)
   }
-}
-
-dependencies {
-  implementation(project(":local-libraries:git-config-generator"))
 }
