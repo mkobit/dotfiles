@@ -7,8 +7,6 @@ plugins {
   id("org.jlleitschuh.gradle.ktlint")
 }
 
-group = "shell.ssh.config"
-
 tasks {
   val sshCms by registering(Mkdir::class) {
     directory.set(home.dir(".ssh/controlMaster"))
@@ -17,7 +15,6 @@ tasks {
   (run) {
     val outputDir = layout.buildDirectory.dir("generated-ssh")
     outputs.dir(outputDir)
-    mainClass.set("shell.ssh.config.Main")
     args(
       "--output-dir", outputDir.get()
     )
