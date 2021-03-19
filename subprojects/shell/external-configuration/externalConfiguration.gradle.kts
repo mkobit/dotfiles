@@ -23,9 +23,22 @@ val aggregateSshFiles by tasks.registering(Sync::class) {
   }
 }
 
+val aggregateGitFiles by tasks.registering(Sync::class) {
+  from(syncHomeFiles)
+  into(layout.buildDirectory.dir("shell/git"))
+  include("**/*.hocon")
+  include {
+    it.name.contains("git") || it.path.contains("git")
+  }
+}
+
 configurations {
-  val shellConfiguration by creating {
+  val sshConfiguration by creating {
     setupAsOutput(aggregateSshFiles, "ssh")
+  }
+
+  val gitConfiguration by creating {
+    setupAsOutput(aggregateGitFiles, "git")
   }
 }
 

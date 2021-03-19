@@ -17,7 +17,7 @@ val shell = Attribute.of("shell.config", Usage::class.java)
 
 val external by configurations.creating {
   attributes {
-    attribute(shell, objects.named(Usage::class, "ssh"))
+    attribute(shell, objects.named(Usage::class, "git"))
   }
 }
 
