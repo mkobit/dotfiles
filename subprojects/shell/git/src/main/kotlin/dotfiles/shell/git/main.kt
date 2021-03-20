@@ -3,10 +3,8 @@
 package dotfiles.shell.git
 
 import com.typesafe.config.Config
-import com.typesafe.config.ConfigException
 import com.typesafe.config.ConfigFactory
 import io.mkobit.git.config.Include
-import io.mkobit.git.config.Section
 import io.mkobit.git.config.asText
 import picocli.CommandLine
 import java.nio.file.Path
@@ -95,7 +93,7 @@ internal class GenerateGitConfig : Callable<Int> {
         ) + listOfNotNull(work).map {
           Include(it).ifGitDir(workDir)
         }
-      ).asText()
+        ).asText()
     )
     return 0
   }

@@ -27,6 +27,9 @@ ktlint {
 subprojects {
   plugins.withId("org.jlleitschuh.gradle.ktlint") {
     the<org.jlleitschuh.gradle.ktlint.KtlintExtension>().version.set(ktlintVersion)
+    repositories {
+      mavenCentral()
+    }
   }
 }
 

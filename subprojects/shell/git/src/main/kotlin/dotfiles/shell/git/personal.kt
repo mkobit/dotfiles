@@ -5,7 +5,6 @@ import io.mkobit.git.config.Gpg
 import io.mkobit.git.config.Section
 import io.mkobit.git.config.User
 
-
 internal fun personalGitConfig(): List<Section> = listOf(
   Commit(
     gpgSign = true

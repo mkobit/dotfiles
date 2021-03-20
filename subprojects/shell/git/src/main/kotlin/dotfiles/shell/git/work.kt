@@ -11,8 +11,8 @@ internal fun workGitConfig(config: Config): List<Section> {
     val workSettings = config.getConfig("git.configurations.work")
     val userSettings = workSettings.getConfig("user")
     val signingKey = if (userSettings.hasPath("signingKey")) {
-      userSettings.getString("signingKey") }
-    else {
+      userSettings.getString("signingKey")
+    } else {
       null
     }
     val user = User(
