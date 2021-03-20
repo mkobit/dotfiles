@@ -23,6 +23,7 @@ val external by configurations.creating {
 
 dependencies {
   implementation(project(":local-libraries:git-config-generator"))
+  implementation("com.typesafe:config:1.4.1")
   external(project(":shell:external-configuration"))
 }
 
@@ -42,7 +43,6 @@ tasks {
       "--work-dir", workWorkspaceDirectory.dir("**"),
       "--code-lab-dir", codeLabWorkspaceDirectory.dir("**"),
       "--personal-dir", personalWorkspaceDirectory.dir("**"),
-      "--work-config", home.file(".gitconfig_work"),
       "--dotfiles-dir", rootProject.layout.projectDirectory.dir("**")
     )
   }

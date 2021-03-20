@@ -107,6 +107,13 @@ data class User(
   val signingKey: String? = null,
   val useConfigOnly: Boolean? = null
 ) : Section {
+
+  init {
+    email?.let { require(it.isNotBlank()) }
+    userName?.let { require(it.isNotBlank()) }
+    signingKey?.let { require(it.isNotBlank()) }
+  }
+
   override val name: String
     get() = "user"
   override val options: Map<String, Any>
