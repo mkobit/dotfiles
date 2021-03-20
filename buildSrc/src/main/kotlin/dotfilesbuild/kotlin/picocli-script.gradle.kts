@@ -4,6 +4,7 @@ import dotfilesbuild.dependencies.defaultDotfilesRepositories
 import dotfilesbuild.dependencies.junitTestImplementationArtifacts
 import dotfilesbuild.dependencies.junitTestRuntimeOnlyArtifacts
 import dotfilesbuild.dependencies.minutest
+import dotfilesbuild.dependencies.hocon
 import dotfilesbuild.dependencies.picoCli
 import dotfilesbuild.dependencies.strikt
 import org.gradle.kotlin.dsl.withType
@@ -39,6 +40,7 @@ tasks {
 
 dependencies {
   implementation(picoCli)
+  implementation(hocon)
   implementation(kotlin("stdlib"))
   implementation(kotlin("stdlib-jdk8"))
 

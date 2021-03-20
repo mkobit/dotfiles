@@ -15,7 +15,7 @@ val codeLabWorkspaceDirectory: Directory = workspace.dir("code_lab")
 
 val shell = Attribute.of("shell.config", Usage::class.java)
 
-val external by configurations.creating {
+val scriptConfig by configurations.creating {
   attributes {
     attribute(shell, objects.named(Usage::class, "git"))
   }
@@ -24,7 +24,7 @@ val external by configurations.creating {
 dependencies {
   implementation(project(":local-libraries:git-config-generator"))
   implementation("com.typesafe:config:1.4.1")
-  external(project(":shell:external-configuration"))
+  scriptConfig(project(":shell:external-configuration"))
 }
 
 tasks {
@@ -34,7 +34,7 @@ tasks {
     argumentProviders.add(
       FileTreeExpandingCommandLineArgumentProvider(
         objects.property("--config-file"),
-        external.asFileTree
+        scriptConfig.asFileTree
       )
     )
     args(
