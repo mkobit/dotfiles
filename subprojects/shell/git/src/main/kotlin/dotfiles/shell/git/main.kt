@@ -62,7 +62,7 @@ internal class GenerateGitConfig : Callable<Int> {
     names = ["--config-file"],
     required = false,
   )
-  lateinit var configFiles: List<Path>
+  var configFiles: List<Path> = emptyList()
 
   override fun call(): Int {
     val hocon = hoconConfig(configFiles)
