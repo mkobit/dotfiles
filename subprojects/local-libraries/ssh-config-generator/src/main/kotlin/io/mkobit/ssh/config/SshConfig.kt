@@ -100,12 +100,3 @@ data class SshConfig(
     AUTO
   }
 }
-
-// fun main() {
-//  sshConfigFile(path) {
-//    include(sshConfigFile)
-//    host("") {
-//
-//    }
-//  }
-// }
