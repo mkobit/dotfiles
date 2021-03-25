@@ -59,7 +59,7 @@ configurations.all { useBuildSrcDependencies() }
 dependencies {
   // https://github.com/gradle/kotlin-dsl/issues/430
   fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$version"
-  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.4.21-2"))
+  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.4.32"))
 
   implementation("com.typesafe:config:1.4.1")
 

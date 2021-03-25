@@ -5,6 +5,7 @@ import org.gradle.kotlin.dsl.maven
 
 fun RepositoryHandler.defaultDotfilesRepositories() {
   mavenCentral()
+  kotlinx()
   jcenter()
 }
 
