@@ -33,6 +33,7 @@ fun String.toKebabCase(): String = split("-").toList().let {
   "$it:ssh".let { ssh ->
     include("$ssh:config-generator")
     include("$ssh:script-definition")
+    include("$ssh:script-host")
   }
 }
 

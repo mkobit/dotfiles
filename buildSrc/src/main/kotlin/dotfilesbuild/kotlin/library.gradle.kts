@@ -5,6 +5,7 @@ import dotfilesbuild.dependencies.junitTestImplementationArtifacts
 import dotfilesbuild.dependencies.junitTestRuntimeOnlyArtifacts
 import dotfilesbuild.dependencies.minutest
 import dotfilesbuild.dependencies.strikt
+import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
@@ -30,6 +31,10 @@ tasks {
   withType<Test>().configureEach {
     useJUnitPlatform()
   }
+}
+
+configurations.all {
+  useDotfilesDependencyRecommendations()
 }
 
 dependencies {
