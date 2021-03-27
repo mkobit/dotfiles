@@ -26,8 +26,14 @@ fun String.toKebabCase(): String = split("-").toList().let {
 
 "local-libraries".let {
   include("$it:pico-cli-utils")
-  include("$it:git-config-generator")
-  include("$it:ssh-config-generator")
+  "$it:git".let { git ->
+    include("$git:config-generator")
+    include("$git:script-definition")
+  }
+  "$it:ssh".let { ssh ->
+    include("$ssh:config-generator")
+    include("$ssh:script-definition")
+  }
 }
 
 "programs".let {

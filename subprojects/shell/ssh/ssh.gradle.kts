@@ -26,5 +26,5 @@ tasks {
 }
 
 dependencies {
-  implementation(project(":local-libraries:ssh-config-generator"))
+  implementation(project(":local-libraries:ssh:config-generator"))
 }
