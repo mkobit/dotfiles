@@ -13,34 +13,34 @@ fun String.toKebabCase(): String = split("-").toList().let {
   "${it.first()}$suffix"
 }
 
-"shell".let { p ->
-  include("$p:aggregator")
-  include("$p:external-configuration")
-  include("$p:diff-highlight")
-  include("$p:git")
-  include("$p:ssh")
-  include("$p:take-note")
-  include("$p:tmux")
-  include("$p:vim")
+"shell".let {
+  include("$it:aggregator")
+  include("$it:external-configuration")
+  include("$it:diff-highlight")
+  include("$it:git")
+  include("$it:ssh")
+  include("$it:take-note")
+  include("$it:tmux")
+  include("$it:vim")
 }
 
-"local-libraries".let { p ->
-  include("$p:pico-cli-utils")
-  include("$p:git-config-generator")
-  include("$p:ssh-config-generator")
+"local-libraries".let {
+  include("$it:pico-cli-utils")
+  include("$it:git-config-generator")
+  include("$it:ssh-config-generator")
 }
 
-"programs".let { p ->
-  include("$p:jq")
-  include("$p:keepass")
-  include("$p:kubectl")
+"programs".let {
+  include("$it:jq")
+  include("$it:keepass")
+  include("$it:kubectl")
 }
 
-"experimental".let { p ->
-  include("$p:chrome-debug-protocol")
-  include("$p:chrome-debug-protocol-generator")
-  include("$p:kotlin-script-experiment")
-  include("$p:sidekick-service")
+"experimental".let {
+  include("$it:chrome-debug-protocol")
+  include("$it:chrome-debug-protocol-generator")
+  include("$it:kotlin-script-experiment")
+  include("$it:sidekick-service")
 }
 
 fun configureSubproject(projectDescriptor: ProjectDescriptor) {
