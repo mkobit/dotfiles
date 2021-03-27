@@ -4,8 +4,6 @@ plugins {
 
 rootProject.name = "dotfiles"
 
-fun subprojectFile(group: String, name: String) = file("subprojects/$group/$name")
-
 fun String.toKebabCase(): String = split("-").toList().let {
   val suffix = it
     .drop(1)
@@ -15,62 +13,43 @@ fun String.toKebabCase(): String = split("-").toList().let {
   "${it.first()}$suffix"
 }
 
-fun includeGroup(group: String, names: Collection<String>) {
-  names.forEach { name ->
-    include("$group:$name")
-    project(":$group:$name").apply {
-      projectDir = subprojectFile(group, name)
-    }
-  }
+"shell".let { p ->
+  include("$p:aggregator")
+  include("$p:external-configuration")
+  include("$p:diff-highlight")
+  include("$p:git")
+  include("$p:ssh")
+  include("$p:take-note")
+  include("$p:tmux")
+  include("$p:vim")
 }
 
-includeGroup(
-  "shell",
-  listOf(
-    "aggregator",
-    "external-configuration",
-    "diff-highlight",
-    "git",
-    "ssh",
-    "take-note",
-    "tmux",
-    "vim"
-  )
-)
+"local-libraries".let { p ->
+  include("$p:pico-cli-utils")
+  include("$p:git-config-generator")
+  include("$p:ssh-config-generator")
+}
 
-includeGroup(
-  "local-libraries",
-  listOf(
-    "pico-cli-utils",
-    "git-config-generator",
-    "ssh-config-generator"
-  )
-)
+"programs".let { p ->
+  include("$p:jq")
+  include("$p:keepass")
+  include("$p:kubectl")
+}
 
-includeGroup(
-  "programs",
-  listOf(
-    "jq",
-    "keepass",
-    "kubectl"
-  )
-)
+"experimental".let { p ->
+  include("$p:chrome-debug-protocol")
+  include("$p:chrome-debug-protocol-generator")
+  include("$p:kotlin-script-experiment")
+  include("$p:sidekick-service")
+}
 
-includeGroup(
-  "experimental",
-  listOf(
-    "chrome-debug-protocol",
-    "chrome-debug-protocol-generator",
-    "kotlin-script-experiment",
-    "sidekick-service"
-  )
-)
-
-fun configureBuildfiles(projectDescriptor: ProjectDescriptor) {
+fun configureSubproject(projectDescriptor: ProjectDescriptor) {
   projectDescriptor.buildFileName = "${projectDescriptor.name.toKebabCase()}.gradle.kts"
-  projectDescriptor.children.forEach { configureBuildfiles(it) }
+  projectDescriptor.projectDir =
+    file("subprojects/${projectDescriptor.path.replace(":", "/")}")
+  projectDescriptor.children.forEach { configureSubproject(it) }
 }
 
-rootProject.children.forEach { project -> configureBuildfiles(project) }
+rootProject.children.forEach { project -> configureSubproject(project) }
 
 apply(from = file("gradle/buildCache.settings.gradle.kts"))
