@@ -35,6 +35,9 @@ fun String.toKebabCase(): String = split("-").toList().let {
     include("$ssh:script-definition")
     include("$ssh:script-host")
   }
+  "$it:testing".let { testing ->
+    include("$testing:strikt-kotlin-scripting")
+  }
 }
 
 "programs".let {

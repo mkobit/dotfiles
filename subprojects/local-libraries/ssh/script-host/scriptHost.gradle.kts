@@ -8,9 +8,10 @@ group = "io.mkobit.ssh.host"
 
 dependencies {
   implementation(project(":local-libraries:ssh:script-definition"))
-  implementation("org.jetbrains.kotlin:kotlin-scripting-common")
-  implementation("org.jetbrains.kotlin:kotlin-scripting-jvm")
-  implementation("org.jetbrains.kotlin:kotlin-scripting-jvm-host")
+  implementation(kotlin("scripting-common"))
+  implementation(kotlin("scripting-jvm"))
+  implementation(kotlin("scripting-jvm-host"))
+  testImplementation(project(":local-libraries:testing:strikt-kotlin-scripting"))
 }
 
 tasks {
