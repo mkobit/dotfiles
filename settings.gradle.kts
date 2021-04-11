@@ -63,3 +63,5 @@ fun configureSubproject(projectDescriptor: ProjectDescriptor) {
 rootProject.children.forEach { project -> configureSubproject(project) }
 
 apply(from = file("gradle/buildCache.settings.gradle.kts"))
+
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")

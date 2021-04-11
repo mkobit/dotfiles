@@ -31,7 +31,7 @@ configurations.all {
 }
 
 dependencies {
-  generatorClasspath(project(":experimental:chrome-debug-protocol-generator"))
+  generatorClasspath(projects.experimental.chromeDebugProtocolGenerator)
   api(jacksonCore("annotations"))
 }
 

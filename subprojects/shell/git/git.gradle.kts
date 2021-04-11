@@ -22,9 +22,9 @@ val scriptConfig by configurations.creating {
 }
 
 dependencies {
-  implementation(project(":local-libraries:git:config-generator"))
+  implementation(projects.localLibraries.git.configGenerator)
   implementation("com.typesafe:config:1.4.1")
-  scriptConfig(project(":shell:external-configuration"))
+  scriptConfig(projects.shell.externalConfiguration)
 }
 
 tasks {
