@@ -12,15 +12,6 @@ plugins {
   dotfilesbuild.kotlin.library
 }
 
-repositories {
-  maven(url = "http://dl.bintray.com/kotlin/ktor") {
-    name = "ktor"
-  }
-  maven(url = "https://dl.bintray.com/kotlin/kotlinx") {
-    name = "kotlinx"
-  }
-}
-
 configurations.all {
   useDotfilesDependencyRecommendations()
 }

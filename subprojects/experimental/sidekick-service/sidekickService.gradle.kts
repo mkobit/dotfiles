@@ -4,7 +4,6 @@ import dotfilesbuild.dependencies.jacksonCore
 import dotfilesbuild.dependencies.jacksonModule
 import dotfilesbuild.dependencies.kodein
 import dotfilesbuild.dependencies.kotlinLogging
-import dotfilesbuild.dependencies.kotlinx
 import dotfilesbuild.dependencies.kotlinxCoroutines
 import dotfilesbuild.dependencies.ktor
 import dotfilesbuild.dependencies.okHttp
@@ -22,10 +21,6 @@ plugins {
 
 repositories {
   defaultDotfilesRepositories()
-  maven(url = "http://dl.bintray.com/kotlin/ktor") {
-    name = "ktor"
-  }
-  kotlinx()
 }
 
 configurations.all {

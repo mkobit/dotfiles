@@ -2,7 +2,7 @@ import dotfilesbuild.dependencies.defaultDotfilesRepositories
 import dotfilesbuild.home
 
 plugins {
-  id("com.github.ben-manes.versions") version "0.36.0"
+  id("com.github.ben-manes.versions") version "0.38.0"
   id("org.jlleitschuh.gradle.ktlint") version "10.0.0"
   id("org.jetbrains.gradle.plugin.idea-ext") version "1.0" apply false
 }
@@ -52,6 +52,6 @@ tasks {
   }
 
   wrapper {
-    gradleVersion = "6.8.3"
+    gradleVersion = "7.0"
   }
 }

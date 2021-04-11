@@ -94,6 +94,6 @@ val assertChecksums by tasks.registering {
   }
 }
 
-bin.outgoing.artifact(downloadJq.flatMap { task -> task.destination }.map { it.asFile.parentFile }) {
+bin.outgoing.artifact(downloadJq.map { task -> task.destination.asFile.get().parentFile }) {
   builtBy(assertChecksums)
 }
