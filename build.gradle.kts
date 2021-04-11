@@ -1,4 +1,3 @@
-import dotfilesbuild.dependencies.defaultDotfilesRepositories
 import dotfilesbuild.home
 
 plugins {
@@ -32,8 +31,6 @@ subprojects {
     }
   }
 }
-
-repositories.defaultDotfilesRepositories()
 
 tasks {
   dependencyUpdates {

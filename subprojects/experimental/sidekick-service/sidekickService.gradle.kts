@@ -1,4 +1,3 @@
-import dotfilesbuild.dependencies.defaultDotfilesRepositories
 import dotfilesbuild.dependencies.guava
 import dotfilesbuild.dependencies.jacksonCore
 import dotfilesbuild.dependencies.jacksonModule
@@ -17,10 +16,6 @@ plugins {
   application
   id("org.jlleitschuh.gradle.ktlint")
   dotfilesbuild.kotlin.library
-}
-
-repositories {
-  defaultDotfilesRepositories()
 }
 
 configurations.all {

@@ -33,12 +33,12 @@ java {
 
 fun Configuration.useBuildSrcDependencies() {
   val arrowKtVersion = "0.10.0"
-  val junitJupiterVersion = "5.7.0"
-  val junitPlatformVersion = "1.7.0"
-  val okHttpVersion = "4.9.0"
-  val log4jVersion = "2.12.0"
-  val minutestVersion = "1.11.0"
-  val slf4jVersion = "1.7.26"
+  val junitJupiterVersion = "5.7.1"
+  val junitPlatformVersion = "1.7.1"
+  val okHttpVersion = "4.9.1"
+  val log4jVersion = "2.14.1"
+  val minutestVersion = "1.13.0"
+  val slf4jVersion = "1.7.30"
   val striktVersion = "0.26.1"
   resolutionStrategy.eachDependency {
     when (requested.group) {
@@ -71,7 +71,7 @@ dependencies {
   implementation("com.squareup.okhttp3:okhttp")
   implementation("org.eclipse.jgit:org.eclipse.jgit:5.9.0.202009080501-r")
 
-  testImplementation("io.mockk:mockk:1.10.0")
+  testImplementation("io.mockk:mockk:1.11.0")
 
   testImplementation("com.mkobit.gradle.test:gradle-test-kotlin-extensions:0.8.0")
   testImplementation("io.strikt:strikt-core")

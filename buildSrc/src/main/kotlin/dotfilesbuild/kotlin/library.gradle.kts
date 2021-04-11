@@ -1,6 +1,5 @@
 package dotfilesbuild.kotlin
 
-import dotfilesbuild.dependencies.defaultDotfilesRepositories
 import dotfilesbuild.dependencies.junitTestImplementationArtifacts
 import dotfilesbuild.dependencies.junitTestRuntimeOnlyArtifacts
 import dotfilesbuild.dependencies.minutest
@@ -13,8 +12,6 @@ plugins {
   `java-library`
   kotlin("jvm")
 }
-
-repositories.defaultDotfilesRepositories()
 
 java {
   sourceCompatibility = JavaVersion.VERSION_11

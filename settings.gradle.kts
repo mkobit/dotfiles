@@ -2,6 +2,15 @@ plugins {
   id("com.gradle.enterprise") version "3.3.4"
 }
 
+dependencyResolutionManagement {
+  repositories {
+    mavenCentral()
+    jcenter()
+  }
+}
+
+includeBuild("build-logic")
+
 rootProject.name = "dotfiles"
 
 fun String.toKebabCase(): String = split("-").toList().let {

@@ -1,3 +1,4 @@
+import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 import dotfilesbuild.home
 import dotfilesbuild.property
 import dotfilesbuild.process.FileTreeExpandingCommandLineArgumentProvider
@@ -19,6 +20,10 @@ val scriptConfig by configurations.creating {
   attributes {
     attribute(shell, objects.named(Usage::class, "git"))
   }
+}
+
+configurations.all {
+  useDotfilesDependencyRecommendations()
 }
 
 dependencies {
