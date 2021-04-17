@@ -2,6 +2,8 @@ plugins {
   id("com.gradle.enterprise") version "3.3.4"
 }
 
+rootProject.name = "dotfiles"
+
 dependencyResolutionManagement {
   repositories {
     mavenCentral()
@@ -10,8 +12,6 @@ dependencyResolutionManagement {
 }
 
 includeBuild("build-logic")
-
-rootProject.name = "dotfiles"
 
 fun String.toKebabCase(): String = split("-").toList().let {
   val suffix = it
