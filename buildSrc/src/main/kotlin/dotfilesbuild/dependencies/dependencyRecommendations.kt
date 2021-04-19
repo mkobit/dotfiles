@@ -2,7 +2,7 @@ package dotfilesbuild.dependencies
 
 import org.gradle.api.artifacts.Configuration
 
-fun Configuration.useDotfilesDependencyRecommendations() {
+private fun Configuration.useDotfilesDependencyRecommendations() {
   val arrowKtVersion = "0.10.0"
   val jacksonVersion = "2.12.0"
   val junitJupiterVersion = "5.7.1"

@@ -1,5 +1,3 @@
-import dotfilesbuild.dependencies.strikt
-
 plugins {
   `java-library`
   id("org.jlleitschuh.gradle.ktlint")
@@ -9,7 +7,7 @@ plugins {
 group = "io.mkobit.strikt.scripting"
 
 dependencies {
-  api(strikt("core"))
+  api(testLibs.strikt.core)
   api(kotlin("scripting-common"))
   api(kotlin("stdlib"))
   api(kotlin("stdlib-jdk8"))

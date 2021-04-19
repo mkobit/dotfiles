@@ -1,5 +1,10 @@
+pluginManagement {
+  includeBuild("build-logic-settings")
+}
+
 plugins {
-  id("com.gradle.enterprise") version "3.3.4"
+  id("com.gradle.enterprise") version "3.6.1"
+  id("dotfilesbuild.version-catalog")
 }
 
 rootProject.name = "dotfiles"
@@ -12,15 +17,6 @@ dependencyResolutionManagement {
 }
 
 includeBuild("build-logic")
-
-fun String.toKebabCase(): String = split("-").toList().let {
-  val suffix = it
-    .drop(1)
-    .joinToString("") { part ->
-      "${part[0].toUpperCase()}${part.substring(1)}"
-    }
-  "${it.first()}$suffix"
-}
 
 "shell".let {
   include("$it:aggregator")
@@ -62,15 +58,25 @@ fun String.toKebabCase(): String = split("-").toList().let {
   include("$it:sidekick-service")
 }
 
+rootProject.children.forEach { project -> configureSubproject(project) }
+
+apply(from = file("gradle/buildCache.settings.gradle.kts"))
+
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
+enableFeaturePreview("VERSION_CATALOGS")
+
+fun String.toKebabCase(): String = split("-").toList().let {
+  val suffix = it
+    .drop(1)
+    .joinToString("") { part ->
+      "${part[0].toUpperCase()}${part.substring(1)}"
+    }
+  "${it.first()}$suffix"
+}
+
 fun configureSubproject(projectDescriptor: ProjectDescriptor) {
   projectDescriptor.buildFileName = "${projectDescriptor.name.toKebabCase()}.gradle.kts"
   projectDescriptor.projectDir =
     file("subprojects/${projectDescriptor.path.replace(":", "/")}")
   projectDescriptor.children.forEach { configureSubproject(it) }
 }
-
-rootProject.children.forEach { project -> configureSubproject(project) }
-
-apply(from = file("gradle/buildCache.settings.gradle.kts"))
-
-enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")

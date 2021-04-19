@@ -17,7 +17,6 @@ val workspace = home.dir("Workspace")
 val personalWorkspaceDirectory: Directory = workspace.dir("personal")
 val workWorkspaceDirectory: Directory = workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = workspace.dir("code_lab")
-
 val ktlintVersion = "0.40.0"
 ktlint {
   version.set(ktlintVersion)

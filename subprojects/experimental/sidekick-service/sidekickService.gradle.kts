@@ -1,14 +1,3 @@
-import dotfilesbuild.dependencies.guava
-import dotfilesbuild.dependencies.jacksonCore
-import dotfilesbuild.dependencies.jacksonModule
-import dotfilesbuild.dependencies.kodein
-import dotfilesbuild.dependencies.kotlinLogging
-import dotfilesbuild.dependencies.kotlinxCoroutines
-import dotfilesbuild.dependencies.ktor
-import dotfilesbuild.dependencies.okHttp
-import dotfilesbuild.dependencies.retrofit2
-import dotfilesbuild.dependencies.slf4j
-import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
@@ -18,33 +7,29 @@ plugins {
   dotfilesbuild.kotlin.library
 }
 
-configurations.all {
-  useDotfilesDependencyRecommendations()
-}
-
 dependencies {
-  implementation(guava)
+  implementation(libs.guava)
 
-  implementation(jacksonCore("core"))
-  implementation(jacksonModule("kotlin"))
+  implementation(libs.jackson.core.core)
+  implementation(libs.jackson.module.kotlin)
 
   // Try out Kodein
-  implementation(kodein("di-generic-jvm"))
+  implementation(libs.kodein.di.jvm)
 
   // Ktor
-  implementation(ktor("server-core"))
-  implementation(ktor("server-netty"))
+  implementation(libs.ktor.server.core)
+  implementation(libs.ktor.server.netty)
 
-  implementation(kotlinxCoroutines("core"))
-  implementation(kotlinxCoroutines("jdk8"))
+  implementation(libs.coroutines.core)
+  implementation(libs.coroutines.jdk8)
 
   implementation(kotlin("stdlib-jdk8"))
-  implementation(retrofit2("retrofit"))
-  implementation(retrofit2("converter-jackson"))
-  implementation(okHttp("okhttp"))
+  implementation(libs.retrofit2.retrofit)
+  implementation(libs.retrofit2.converterJackson)
+  implementation(libs.okhttp.client)
 
-  implementation(kotlinLogging)
-  runtimeOnly(slf4j("simple"))
+  implementation(libs.kotlinLogging)
+  runtimeOnly(libs.slf4j.simple)
 }
 
 application {

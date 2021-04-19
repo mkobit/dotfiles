@@ -1,8 +1,3 @@
-import dotfilesbuild.dependencies.kotlinLogging
-import dotfilesbuild.dependencies.kotlinxCoroutines
-import dotfilesbuild.dependencies.picoCli
-import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
-
 plugins {
   id("org.jlleitschuh.gradle.ktlint")
   dotfilesbuild.kotlin.library
@@ -17,18 +12,14 @@ val bin by configurations.creating {
   }
 }
 
-configurations.all {
-  useDotfilesDependencyRecommendations()
-}
-
 dependencies {
-  implementation(picoCli)
+  implementation(libs.picocli.cli)
 
   implementation(kotlin("stdlib-jdk8"))
-  implementation(kotlinxCoroutines("core"))
-  implementation(kotlinxCoroutines("jdk8"))
+  implementation(libs.coroutines.core)
+  implementation(libs.coroutines.jdk8)
 
-  implementation(kotlinLogging)
+  implementation(libs.kotlinLogging)
 }
 
 application {

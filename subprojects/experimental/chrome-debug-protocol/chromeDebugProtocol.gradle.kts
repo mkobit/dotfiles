@@ -1,5 +1,3 @@
-import dotfilesbuild.dependencies.jacksonCore
-import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 plugins {
@@ -26,13 +24,9 @@ sourceSets {
 
 val generatorClasspath by configurations.creating
 
-configurations.all {
-  useDotfilesDependencyRecommendations()
-}
-
 dependencies {
   generatorClasspath(projects.experimental.chromeDebugProtocolGenerator)
-  api(jacksonCore("annotations"))
+  api(libs.jackson.core.annotations)
 }
 
 java {

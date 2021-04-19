@@ -1,5 +1,3 @@
-import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
-
 plugins {
   `java-library`
   id("org.jlleitschuh.gradle.ktlint")
@@ -7,10 +5,6 @@ plugins {
 }
 
 group = "io.mkobit.ssh.config"
-
-configurations.all {
-  useDotfilesDependencyRecommendations()
-}
 
 dependencies {
   api(kotlin("stdlib"))

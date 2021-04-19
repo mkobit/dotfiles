@@ -36,6 +36,6 @@ executable.outgoing.artifact(downloadKubeCtl.map { it.destination }.get()) {
   builtBy(downloadKubeCtl)
 }
 
-bin.outgoing.artifact(downloadKubeCtl.map { task -> task.destination.map { it.asFile.parentFile } }.get()) {
+bin.outgoing.artifact(downloadKubeCtl.map { task -> task.destination.asFile.get().parentFile }) {
   builtBy(downloadKubeCtl)
 }

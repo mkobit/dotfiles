@@ -1,4 +1,4 @@
-rootProject.name = "build-logic"
+rootProject.name = "build-logic-settings"
 
 dependencyResolutionManagement {
   repositories {
@@ -8,3 +8,5 @@ dependencyResolutionManagement {
 }
 
 apply(from = file("../gradle/buildCache.settings.gradle.kts"))
+
+include("dotfiles-version-catalog")

@@ -1,4 +1,3 @@
-import dotfilesbuild.dependencies.useDotfilesDependencyRecommendations
 import dotfilesbuild.home
 import dotfilesbuild.io.file.Mkdir
 
@@ -24,10 +23,6 @@ tasks {
   dotfiles {
     dependsOn(sshCms, run)
   }
-}
-
-configurations.all {
-  useDotfilesDependencyRecommendations()
 }
 
 dependencies {
