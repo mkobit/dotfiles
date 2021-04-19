@@ -3,7 +3,7 @@ import dotfilesbuild.property
 import dotfilesbuild.process.FileTreeExpandingCommandLineArgumentProvider
 
 plugins {
-  dotfilesbuild.`dotfiles-lifecycle`
+  id("dotfilesbuild.dotfiles-lifecycle")
   dotfilesbuild.kotlin.`picocli-script`
   id("org.jlleitschuh.gradle.ktlint")
 }

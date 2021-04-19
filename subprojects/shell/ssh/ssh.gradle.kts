@@ -2,7 +2,7 @@ import dotfilesbuild.home
 import dotfilesbuild.io.file.Mkdir
 
 plugins {
-  dotfilesbuild.`dotfiles-lifecycle`
+  id("dotfilesbuild.dotfiles-lifecycle")
   dotfilesbuild.kotlin.`picocli-script`
   id("org.jlleitschuh.gradle.ktlint")
 }

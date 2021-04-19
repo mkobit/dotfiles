@@ -1,5 +1,3 @@
-package dotfilesbuild
-
 plugins {
   base
 }

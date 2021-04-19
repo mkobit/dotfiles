@@ -3,7 +3,7 @@ import dotfilesbuild.projectFile
 import dotfilesbuild.io.file.Symlink
 
 plugins {
-  dotfilesbuild.`dotfiles-lifecycle`
+  id("dotfilesbuild.dotfiles-lifecycle")
 }
 
 tasks {

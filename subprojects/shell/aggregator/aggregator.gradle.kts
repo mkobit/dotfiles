@@ -2,7 +2,7 @@ import dotfilesbuild.io.file.EditFile
 import dotfilesbuild.io.file.content.SetContent
 
 plugins {
-  dotfilesbuild.`dotfiles-lifecycle`
+  id("dotfilesbuild.dotfiles-lifecycle")
 }
 
 val bin by configurations.creating {
