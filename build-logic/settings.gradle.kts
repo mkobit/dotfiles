@@ -19,6 +19,7 @@ dependencyResolutionManagement {
 apply(from = file("../gradle/buildCache.settings.gradle.kts"))
 
 include("dotfiles-lifecycle")
+include("hocon-config")
 include("io-tasks")
 include("kotlin-library")
 include("kotlin-cli-script")
