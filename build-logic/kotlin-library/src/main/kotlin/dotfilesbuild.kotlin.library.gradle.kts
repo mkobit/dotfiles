@@ -1,10 +1,8 @@
-package dotfilesbuild.kotlin
-
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
-  application
+  `java-library`
   kotlin("jvm")
 }
 
@@ -23,17 +21,11 @@ tasks {
   withType<Test>().configureEach {
     useJUnitPlatform()
   }
-
-  (run) {
-    mainClass.set(provider { "${project.group}.${project.name}.Main" })
-  }
 }
 
 dependencies {
-  implementation("info.picocli:picocli:4.6.1")
-  implementation("com.typesafe:config:1.4.1")
-  implementation(kotlin("stdlib"))
-  implementation(kotlin("stdlib-jdk8"))
+  api(kotlin("stdlib"))
+  api(kotlin("stdlib-jdk8"))
 
   testImplementation("io.strikt:strikt-core:0.30.1")
   testImplementation("dev.minutest:minutest:1.13.0")

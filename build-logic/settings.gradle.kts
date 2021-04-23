@@ -1,8 +1,17 @@
+pluginManagement {
+  includeBuild("../build-logic-settings")
+}
+
+plugins {
+  id("dotfilesbuild.version-catalog")
+}
+
 rootProject.name = "build-logic"
 
 dependencyResolutionManagement {
   repositories {
     mavenCentral()
+    gradlePluginPortal()
     jcenter()
   }
 }
@@ -10,3 +19,5 @@ dependencyResolutionManagement {
 apply(from = file("../gradle/buildCache.settings.gradle.kts"))
 
 include("dotfiles-lifecycle")
+include("kotlin-library")
+include("kotlin-cli-script")

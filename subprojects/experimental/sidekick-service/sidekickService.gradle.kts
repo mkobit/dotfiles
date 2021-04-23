@@ -4,7 +4,7 @@ plugins {
   java
   application
   id("org.jlleitschuh.gradle.ktlint")
-  dotfilesbuild.kotlin.library
+  id("dotfilesbuild.kotlin.library")
 }
 
 dependencies {

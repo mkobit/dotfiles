@@ -1,6 +1,6 @@
 plugins {
   id("org.jlleitschuh.gradle.ktlint")
-  dotfilesbuild.kotlin.library
+  id("dotfilesbuild.kotlin.library")
   application
 }
 

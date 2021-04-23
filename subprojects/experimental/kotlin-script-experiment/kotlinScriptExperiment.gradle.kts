@@ -1,5 +1,5 @@
 plugins {
-  dotfilesbuild.kotlin.library
+  id("dotfilesbuild.kotlin.library")
   id("org.jlleitschuh.gradle.ktlint")
 }
 

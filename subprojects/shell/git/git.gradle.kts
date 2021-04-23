@@ -4,7 +4,7 @@ import dotfilesbuild.process.FileTreeExpandingCommandLineArgumentProvider
 
 plugins {
   id("dotfilesbuild.dotfiles-lifecycle")
-  dotfilesbuild.kotlin.`picocli-script`
+  id("dotfilesbuild.kotlin.picocli-script")
   id("org.jlleitschuh.gradle.ktlint")
 }
 

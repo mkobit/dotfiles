@@ -3,7 +3,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 plugins {
   `java-library`
   id("org.jlleitschuh.gradle.ktlint")
-  dotfilesbuild.kotlin.library
+  id("dotfilesbuild.kotlin.library")
 }
 
 ktlint {

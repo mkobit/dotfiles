@@ -9,9 +9,9 @@ plugins {
 }
 
 repositories {
-  jcenter()
-  gradlePluginPortal()
   mavenCentral()
+  gradlePluginPortal()
+  jcenter()
 }
 
 ktlint {
@@ -57,7 +57,7 @@ fun Configuration.useBuildSrcDependencies() {
 configurations.all { useBuildSrcDependencies() }
 
 dependencies {
-  // https://github.com/gradle/kotlin-dsl/issues/430
+  // https://github.com/gradle/gradle/issues/9282
   fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$version"
   implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.4.32"))
 

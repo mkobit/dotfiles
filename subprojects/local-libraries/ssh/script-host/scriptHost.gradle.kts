@@ -1,7 +1,7 @@
 plugins {
   `java-library`
   id("org.jlleitschuh.gradle.ktlint")
-  dotfilesbuild.kotlin.library
+  id("dotfilesbuild.kotlin.library")
 }
 
 group = "io.mkobit.ssh.host"
