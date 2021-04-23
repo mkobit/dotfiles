@@ -3,7 +3,6 @@ plugins {
 }
 
 dependencies {
-
   implementation(libs.kotlinLogging)
   implementation(libs.arrow.core)
   implementation(libs.okhttp.client)
@@ -22,4 +21,11 @@ dependencies {
   testRuntimeOnly(testLibs.junit.jupiter.engine)
   testRuntimeOnly(testLibs.log4j.core)
   testRuntimeOnly(testLibs.log4j.jul)
+}
+
+tasks {
+  test {
+    useJUnitPlatform()
+    systemProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager")
+  }
 }

@@ -1,8 +1,8 @@
 package dotfilesbuild.keepass
 
-import dotfilesbuild.legacy.file.EditFile
-import dotfilesbuild.legacy.file.content.SetContent
-import dotfilesbuild.legacy.http.Download
+import dotfilesbuild.io.file.EditFile
+import dotfilesbuild.io.file.content.SetContent
+import dotfilesbuild.io.http.Download
 
 plugins {
   base
@@ -66,8 +66,8 @@ tasks {
         """
           #!/usr/bin/env bash
           set -euo pipefail
-          
-          nohup mono ${installDirectory.map { "$it/KeePass.exe" }.get()} /home/mkobit/Programs/kobit.kdbx > ${versionDirectory.map { it.file("output.log") }.get()} 2>&1 & disown
+
+          nohup mono ${installDirectory.map { "$it/KeePass.exe" }.get()} ~/Programs/kobit.kdbx > ${versionDirectory.map { it.file("output.log") }.get()} 2>&1 & disown
         """.trimIndent()
       }
     )

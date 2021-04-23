@@ -1,7 +1,7 @@
 import dotfilesbuild.home
 
 plugins {
-  dotfilesbuild.keepass.program
+  id("dotfilesbuild.keepass.program")
 }
 
 keepass {
