@@ -127,16 +127,3 @@ tasks {
     systemProperty("java.util.logging.manager", "org.apache.logging.log4j.jul.LogManager")
   }
 }
-
-gradlePlugin {
-  plugins {
-    register("dotfilesbuild.git-vcs") {
-      id = name
-      implementationClass = "dotfilesbuild.io.git.GitVersionControlManagementPlugin"
-    }
-    register("dotfilesbuild.vcs-management") {
-      id = name
-      implementationClass = "dotfilesbuild.io.vcs.VersionControlManagementPlugin"
-    }
-  }
-}
