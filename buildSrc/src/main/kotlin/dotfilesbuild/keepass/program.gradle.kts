@@ -1,8 +1,8 @@
 package dotfilesbuild.keepass
 
-import dotfilesbuild.io.file.EditFile
-import dotfilesbuild.io.file.content.SetContent
-import dotfilesbuild.io.http.Download
+import dotfilesbuild.legacy.file.EditFile
+import dotfilesbuild.legacy.file.content.SetContent
+import dotfilesbuild.legacy.http.Download
 
 plugins {
   base

@@ -1,7 +1,7 @@
 package dotfilesbuild.intellij
 
-import dotfilesbuild.io.file.EditFile
-import dotfilesbuild.io.file.content.SetContent
+import dotfilesbuild.legacy.file.EditFile
+import dotfilesbuild.legacy.file.content.SetContent
 
 plugins {
   base

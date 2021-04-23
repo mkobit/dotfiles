@@ -7,12 +7,12 @@ import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import strikt.api.expectThat
-import strikt.assertions.allLines
 import strikt.assertions.containsExactly
 import strikt.assertions.isEqualTo
+import strikt.java.allLines
 import strikt.assertions.isNotNull
-import strikt.assertions.isRegularFile
-import strikt.assertions.resolve
+import strikt.java.isRegularFile
+import strikt.java.resolve
 import strikt.gradle.testkit.isSuccess
 import strikt.gradle.testkit.isUpToDate
 import strikt.gradle.testkit.task
@@ -30,12 +30,12 @@ internal class EditFileIntegrationTest {
         append(
           """
           import dotfilesbuild.io.file.EditFile
-          import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
-          import dotfilesbuild.io.file.content.AppendTextIfNotFound
-          import dotfilesbuild.io.file.content.SearchTextDeleteLine
+          import dotfilesbuild.io.file.dotfilesbuild.io.file.content.AppendIfNoLinesMatch
+          import dotfilesbuild.io.file.dotfilesbuild.io.file.content.AppendTextIfNotFound
+          import dotfilesbuild.io.file.dotfilesbuild.io.file.content.SearchTextDeleteLine
 
           plugins {
-            id("dotfilesbuild.internal.noop")
+            id("dotfilesbuild.io.noop")
           }
 
           val convergeFile by tasks.creating(EditFile::class) {
@@ -102,9 +102,9 @@ internal class EditFileIntegrationTest {
         append(
           """
           import dotfilesbuild.io.file.EditFile
-          import dotfilesbuild.io.file.content.AppendIfNoLinesMatch
-          import dotfilesbuild.io.file.content.AppendTextIfNotFound
-          import dotfilesbuild.io.file.content.SearchTextDeleteLine
+          import dotfilesbuild.io.file.dotfilesbuild.io.file.content.AppendIfNoLinesMatch
+          import dotfilesbuild.io.file.dotfilesbuild.io.file.content.AppendTextIfNotFound
+          import dotfilesbuild.io.file.dotfilesbuild.io.file.content.SearchTextDeleteLine
           import kotlin.jvm.functions.Function0
 
           plugins {

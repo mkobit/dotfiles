@@ -1,6 +1,6 @@
 package dotfilesbuild.kubernetes.kubectl
 
-import dotfilesbuild.io.http.Download
+import dotfilesbuild.legacy.http.Download
 
 val executable by configurations.creating {
   isCanBeConsumed = true

@@ -1,4 +1,4 @@
-package dotfilesbuild.io.file.content
+package dotfilesbuild.legacy.file.content
 
 import arrow.core.Either
 import java.util.regex.Pattern

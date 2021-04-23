@@ -12,7 +12,7 @@ internal class AppendIfNoLinesMatchTest {
 
   companion object {
     private val regex = Regex("^a|b$")
-    private val content = { "content" }
+    private val content = { "dotfilesbuild/io/file/content" }
   }
 
   @Test

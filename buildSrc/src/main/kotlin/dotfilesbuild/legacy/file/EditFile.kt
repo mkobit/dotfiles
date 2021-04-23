@@ -1,7 +1,7 @@
-package dotfilesbuild.io.file
+package dotfilesbuild.legacy.file
 
 import arrow.core.Either
-import dotfilesbuild.io.file.content.TextEditAction
+import dotfilesbuild.legacy.file.content.TextEditAction
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.ProjectLayout
 import org.gradle.api.file.RegularFile

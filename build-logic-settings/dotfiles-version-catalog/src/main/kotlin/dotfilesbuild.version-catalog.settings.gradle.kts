@@ -3,7 +3,7 @@ enableFeaturePreview("VERSION_CATALOGS")
 dependencyResolutionManagement {
   versionCatalogs {
     create("libs") {
-      version("arrow", "0.10.0")
+      version("arrow", "0.13.1")
       version("jacksonCore", "2.12.3")
       version("jacksonModule", "2.12.3")
       version("kodein", "7.5.0")
@@ -13,7 +13,8 @@ dependencyResolutionManagement {
       version("okhttp", "4.9.1")
       version("retrofit2", "2.9.0")
       version("slf4j", "1.7.30")
-      
+
+      alias("arrow.core").to("io.arrow-kt", "arrow-core").versionRef("arrow")
       alias("coroutines.core").to("org.jetbrains.kotlinx", "kotlinx-coroutines-core").versionRef("kotlinxCoroutines")
       alias("coroutines.jdk8").to("org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8").versionRef("kotlinxCoroutines")
       alias("guava").to("com.google.guava:guava:30.1-jre")
@@ -37,8 +38,10 @@ dependencyResolutionManagement {
       version("log4j", "2.14.1")
       version("junit.jupiter", "5.7.1")
       version("junit.platform", "1.7.1")
-      version("strikt", "0.30.1")
       version("minutest", "1.13.0")
+      version("mockk", "1.11.0")
+      version("strikt", "0.30.1")
+
       alias("junit.jupiter.api").to("org.junit.jupiter", "junit-jupiter-api").versionRef("junit.jupiter")
       alias("junit.jupiter.params").to("org.junit.jupiter", "junit-jupiter-params").versionRef("junit.jupiter")
       alias("junit.jupiter.engine").to("org.junit.jupiter", "junit-jupiter-engine").versionRef("junit.jupiter")
@@ -46,11 +49,13 @@ dependencyResolutionManagement {
       alias("log4j.core").to("org.apache.logging.log4j", "log4j-core").versionRef("log4j")
       alias("log4j.jul").to("org.apache.logging.log4j", "log4j-jul").versionRef("log4j")
       alias("minutest").to("dev.minutest", "minutest").versionRef("minutest")
+      alias("mockk").to("io.mockk", "mockk").versionRef("mockk")
       alias("strikt.core").to("io.strikt", "strikt-core").versionRef("strikt")
       alias("strikt.gradle").to("io.strikt", "strikt-gradle").versionRef("strikt")
       alias("strikt.jackson").to("io.strikt", "strikt-jackson").versionRef("strikt")
       alias("strikt.jvm").to("io.strikt", "strikt-jvm").versionRef("strikt")
       alias("strikt.mockk").to("io.strikt", "strikt-mockk").versionRef("strikt")
+
       bundle("junit.implementation", listOf("junit.jupiter.api", "junit.jupiter.params"))
       bundle("junit.runtime", listOf("junit.platform.runner", "log4j.core", "log4j.jul"))
     }

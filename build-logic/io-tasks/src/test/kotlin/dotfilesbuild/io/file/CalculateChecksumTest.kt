@@ -8,10 +8,10 @@ import org.junit.jupiter.api.io.TempDir
 import strikt.api.expectThat
 import strikt.assertions.isEqualTo
 import strikt.assertions.isNotNull
-import strikt.assertions.resolve
 import strikt.gradle.testkit.isSuccess
 import strikt.gradle.testkit.isUpToDate
 import strikt.gradle.testkit.task
+import strikt.java.resolve
 import testsupport.gradle.newGradleRunner
 import testsupport.strikt.content
 import testsupport.strikt.projectDir
@@ -55,7 +55,9 @@ internal class CalculateChecksumTest {
       .projectDir
       .resolve("build/checksums")
       .and {
-        resolve("file1.txt.sha256").content.isEqualTo("edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb")
+        resolve("file1.txt.sha256")
+          .content
+          .isEqualTo("edeaaff3f1774ad2888673770c6d64097e391bc362d7d6fb34982ddf0efd18cb")
       }
   }
 

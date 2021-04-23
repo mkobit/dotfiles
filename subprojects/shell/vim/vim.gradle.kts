@@ -4,6 +4,7 @@ import dotfilesbuild.io.file.Symlink
 
 plugins {
   id("dotfilesbuild.dotfiles-lifecycle")
+  id("dotfilesbuild.io.noop")
 }
 
 tasks {
