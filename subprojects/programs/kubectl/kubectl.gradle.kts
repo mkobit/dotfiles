@@ -1,5 +1,5 @@
 plugins {
-  dotfilesbuild.kubernetes.kubectl.program
+  id("dotfilesbuild.kubernetes.kubectl.program")
 }
 
 kubectl {

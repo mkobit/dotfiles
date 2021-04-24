@@ -2,7 +2,7 @@ import dotfilesbuild.home
 
 plugins {
   id("com.github.ben-manes.versions") version "0.38.0"
-  id("org.jlleitschuh.gradle.ktlint") version "10.0.0"
+//  id("org.jlleitschuh.gradle.ktlint") version "10.0.0"
   id("org.jetbrains.gradle.plugin.idea-ext") version "1.0" apply false
 }
 
@@ -17,17 +17,15 @@ val workspace = home.dir("Workspace")
 val personalWorkspaceDirectory: Directory = workspace.dir("personal")
 val workWorkspaceDirectory: Directory = workspace.dir("work")
 val codeLabWorkspaceDirectory: Directory = workspace.dir("code_lab")
-val ktlintVersion = "0.40.0"
-ktlint {
-  version.set(ktlintVersion)
-}
+
+val ktlintVersion = "0.41.0"
+//ktlint {
+//  version.set(ktlintVersion)
+//}
 
 subprojects {
   plugins.withId("org.jlleitschuh.gradle.ktlint") {
-    the<org.jlleitschuh.gradle.ktlint.KtlintExtension>().version.set(ktlintVersion)
-    repositories {
-      mavenCentral()
-    }
+//    the<org.jlleitschuh.gradle.ktlint.KtlintExtension>().version.set(ktlintVersion)
   }
 }
 

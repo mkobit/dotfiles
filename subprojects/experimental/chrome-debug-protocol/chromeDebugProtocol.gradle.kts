@@ -2,16 +2,16 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 
 plugins {
   `java-library`
-  id("org.jlleitschuh.gradle.ktlint")
   id("dotfilesbuild.kotlin.library")
+//  id("org.jlleitschuh.gradle.ktlint")
 }
 
-ktlint {
-  filter {
-//    exclude("**/generated-source/**") Don't know why this isn't working
-    exclude("**/*")
-  }
-}
+//ktlint {
+//  filter {
+////    exclude("**/generated-source/**") Don't know why this isn't working
+//    exclude("**/*")
+//  }
+//}
 
 val generationDir = file("$buildDir/generated-source")
 sourceSets {

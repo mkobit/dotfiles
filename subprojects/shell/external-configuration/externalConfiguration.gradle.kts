@@ -3,7 +3,7 @@ import org.gradle.api.attributes.Attribute
 
 plugins {
   `lifecycle-base`
-  id("org.jlleitschuh.gradle.ktlint")
+  // id("org.jlleitschuh.gradle.ktlint")
 }
 
 val shell = Attribute.of("shell.config", Usage::class.java)

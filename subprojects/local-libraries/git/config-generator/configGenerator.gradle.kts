@@ -1,6 +1,6 @@
 plugins {
   `java-library`
-  id("org.jlleitschuh.gradle.ktlint")
+  // id("org.jlleitschuh.gradle.ktlint")
   id("dotfilesbuild.kotlin.library")
 }
 

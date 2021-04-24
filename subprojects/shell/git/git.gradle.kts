@@ -5,7 +5,7 @@ import dotfilesbuild.process.FileTreeExpandingCommandLineArgumentProvider
 plugins {
   id("dotfilesbuild.dotfiles-lifecycle")
   id("dotfilesbuild.kotlin.picocli-script")
-  id("org.jlleitschuh.gradle.ktlint")
+  // // id("org.jlleitschuh.gradle.ktlint")
 }
 
 val workspace: Directory = home.dir("Workspace")
