@@ -9,5 +9,6 @@ dependencies {
 
   // hack to make catalog available in precompiled scripts
   // see https://github.com/gradle/gradle/issues/15383
-//  implementation(files(libs.javaClass.superclass.protectionDomain.codeSource.location))
+  implementation(files(libs.javaClass.superclass.protectionDomain.codeSource.location))
+  implementation(files(testLibs.javaClass.superclass.protectionDomain.codeSource.location))
 }

@@ -23,6 +23,10 @@ dependencyResolutionManagement {
       alias("jackson.core.annotations").to("com.fasterxml.jackson.core", "jackson-annotations").versionRef("jacksonCore")
       alias("jackson.module.kotlin").to("com.fasterxml.jackson.module", "jackson-module-kotlin").versionRef("jacksonModule")
       alias("kodein.di.jvm").to("org.kodein.di", "kodein-di-jvm").versionRef("kodein")
+      alias("kotlin.js.stdlib").to("org.jetbrains.kotlin", "kotlin-stdlib-js").withoutVersion()
+      alias("kotlin.jvm.stdlib").to("org.jetbrains.kotlin", "kotlin-stdlib").withoutVersion()
+      alias("kotlin.jvm.jdk8").to("org.jetbrains.kotlin", "kotlin-stdlib-jdk8").withoutVersion()
+      alias("kotlin.mp.test").to("org.jetbrains.kotlin", "kotlin-test").withoutVersion()
       alias("kotlinLogging").to("io.github.microutils:kotlin-logging:2.0.6")
       alias("kotlinPoet").to("com.squareup:kotlinpoet:1.7.2")
       alias("ktor.server.core").to("io.ktor", "ktor-server-core").versionRef("ktor")
@@ -57,7 +61,7 @@ dependencyResolutionManagement {
       alias("strikt.mockk").to("io.strikt", "strikt-mockk").versionRef("strikt")
 
       bundle("junit.implementation", listOf("junit.jupiter.api", "junit.jupiter.params"))
-      bundle("junit.runtime", listOf("junit.platform.runner", "log4j.core", "log4j.jul"))
+      bundle("junit.runtime", listOf("junit.jupiter.engine", "log4j.core", "log4j.jul"))
     }
   }
 }
