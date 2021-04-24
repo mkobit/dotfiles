@@ -1,5 +1,5 @@
 plugins {
-  dotfilesbuild.jq.program
+  id("dotfilesbuild.jq.program")
 }
 
 jq {

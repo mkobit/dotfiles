@@ -1,7 +1,7 @@
 package dotfilesbuild.jq
 
-import dotfilesbuild.legacy.file.CalculateChecksum
-import dotfilesbuild.legacy.http.Download
+import dotfilesbuild.io.file.CalculateChecksum
+import dotfilesbuild.io.http.Download
 
 plugins {
   base

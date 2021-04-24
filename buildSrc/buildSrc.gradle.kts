@@ -23,7 +23,6 @@ ktlint {
 
 kotlinDslPluginOptions {
   jvmTarget.set("1.8")
-  experimentalWarning.set(false)
 }
 
 java {
