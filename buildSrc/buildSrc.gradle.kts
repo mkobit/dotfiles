@@ -32,7 +32,7 @@ java {
 }
 
 fun Configuration.useBuildSrcDependencies() {
-  val arrowKtVersion = "0.10.0"
+  val arrowKtVersion = "0.13.1"
   val junitJupiterVersion = "5.7.1"
   val junitPlatformVersion = "1.7.1"
   val okHttpVersion = "4.9.1"
@@ -64,7 +64,6 @@ dependencies {
   implementation("io.github.microutils:kotlin-logging:1.12.0")
 
   implementation("io.arrow-kt:arrow-core")
-  implementation("io.arrow-kt:arrow-syntax")
 
   implementation("com.squareup.okhttp3:okhttp")
   implementation("org.eclipse.jgit:org.eclipse.jgit:5.9.0.202009080501-r")

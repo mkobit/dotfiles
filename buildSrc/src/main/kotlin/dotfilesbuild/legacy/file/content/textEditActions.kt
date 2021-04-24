@@ -18,9 +18,9 @@ class SetContent(
   override fun applyTo(text: String): Either<String, String> {
     val newText = content().toString()
     return if (text == newText) {
-      Either.left(text)
+      Either.Left(text)
     } else {
-      Either.right(newText)
+      Either.Right(newText)
     }
   }
 }
@@ -30,6 +30,7 @@ class AppendIfNoLinesMatch(
   private val content: () -> CharSequence
 ) : TextEditAction {
 
+  @Suppress("UNUSED")
   constructor(pattern: Pattern, content: () -> CharSequence) : this(pattern.toRegex(), content)
 
   override fun applyTo(text: String): Either<String, String> {
@@ -41,9 +42,9 @@ class AppendIfNoLinesMatch(
       } else {
         System.lineSeparator()
       }
-      Either.right(text + separator + textToInsert)
+      Either.Right(text + separator + textToInsert)
     } else {
-      Either.left(text)
+      Either.Left(text)
     }
   }
 }
@@ -59,9 +60,9 @@ class AppendTextIfNotFound(
       } else {
         System.lineSeparator()
       }
-      Either.right(text + separator + textToInsert)
+      Either.Right(text + separator + textToInsert)
     } else {
-      Either.left(text)
+      Either.Left(text)
     }
   }
 }
@@ -71,6 +72,7 @@ class SearchTextReplaceLine(
   private val content: () -> CharSequence
 ) : TextEditAction {
 
+  @Suppress("UNUSED")
   constructor(pattern: Pattern, content: () -> CharSequence) : this(pattern.toRegex(), content)
 
   override fun applyTo(text: String): Either<String, String> {
@@ -84,9 +86,9 @@ class SearchTextReplaceLine(
       }
     }
     return if (newText != text) {
-      Either.right(newText)
+      Either.Right(newText)
     } else {
-      Either.left(text)
+      Either.Left(text)
     }
   }
 }
@@ -106,9 +108,9 @@ class ReplaceText(
     }
 
     return if (newText != text) {
-      Either.right(newText)
+      Either.Right(newText)
     } else {
-      Either.left(text)
+      Either.Left(text)
     }
   }
 }
@@ -117,6 +119,7 @@ class SearchTextDeleteLine(
   private val regex: Regex
 ) : TextEditAction {
 
+  @Suppress("UNUSED")
   constructor(pattern: Pattern) : this(pattern.toRegex())
 
   override fun applyTo(text: String): Either<String, String> {
@@ -124,9 +127,9 @@ class SearchTextDeleteLine(
       .filter { !it.matches(regex) }
       .joinToString(System.lineSeparator())
     return if (newText != text) {
-      Either.right(newText)
+      Either.Right(newText)
     } else {
-      Either.left(text)
+      Either.Left(text)
     }
   }
 }

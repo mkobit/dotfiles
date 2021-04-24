@@ -51,9 +51,9 @@ open class EditFile @Inject constructor(
     val textToWrite = when (val transformation = performTransformation()) {
       is Either.Left -> {
         logger.debug("No transformations needed for {}", targetFile)
-        transformation.a
+        transformation.value
       }
-      is Either.Right -> transformation.b
+      is Either.Right -> transformation.value
     }
     targetFile.writeText(textToWrite)
 
@@ -80,25 +80,25 @@ open class EditFile @Inject constructor(
 
   private fun performTransformation(): Either<String, String> {
     val fileText = readFileTextOrDefault()
-    val text: Either<String, String> = Either.left(fileText)
+    val text: Either<String, String> = Either.Left(fileText)
     val afterApplied = editActions.get().fold(text) { acc, action ->
       when (acc) {
-        is Either.Left -> action.applyTo(acc.a)
-        is Either.Right -> action.applyTo(acc.b)
+        is Either.Left -> action.applyTo(acc.value)
+        is Either.Right -> action.applyTo(acc.value)
       }
     }
 
     return when (afterApplied) {
       is Either.Left -> {
-        if (afterApplied.a == fileText) {
+        if (afterApplied.value == fileText) {
           afterApplied
         } else {
-          Either.right(afterApplied.a)
+          Either.Right(afterApplied.value)
         }
       }
       is Either.Right -> {
-        if (afterApplied.b == fileText) {
-          Either.left(afterApplied.b)
+        if (afterApplied.value == fileText) {
+          Either.Left(afterApplied.value)
         } else {
           afterApplied
         }

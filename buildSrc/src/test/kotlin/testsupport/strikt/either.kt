@@ -19,7 +19,7 @@ fun <L, R> Assertion.Builder<Either<L, R>>.isRight(value: R) =
   assert("should be Right($value)") {
     when (it) {
       is Either.Right ->
-        if (it.b == value) {
+        if (it.value == value) {
           pass()
         } else {
           fail()
@@ -31,7 +31,7 @@ fun <L, R> Assertion.Builder<Either<L, R>>.isRight(value: R) =
 
 val <R> Assertion.Builder<Either.Right<R>>.b: Assertion.Builder<R>
   @JvmName("eitherB")
-  get() = get("right value") { b }
+  get() = get("right value") { value }
 
 @Suppress("UNCHECKED_CAST")
 fun <L, R> Assertion.Builder<Either<L, R>>.isLeft() =
@@ -47,7 +47,7 @@ fun <L, R> Assertion.Builder<Either<L, R>>.isLeft(value: L) =
   assert("should be Left($value)") {
     when (it) {
       is Either.Left -> {
-        if (it.a == value) {
+        if (it.value == value) {
           pass()
         } else {
           fail()
@@ -59,4 +59,4 @@ fun <L, R> Assertion.Builder<Either<L, R>>.isLeft(value: L) =
 
 val <L> Assertion.Builder<Either.Left<L>>.a: Assertion.Builder<L>
   @JvmName("eitherA")
-  get() = get("left value") { a }
+  get() = get("left value") { value }
