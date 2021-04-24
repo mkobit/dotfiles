@@ -1,4 +1,4 @@
-import dotfilesbuild.home
+import dotfilesbuild.utilities.home
 import dotfilesbuild.io.file.Mkdir
 
 plugins {

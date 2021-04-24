@@ -1,9 +1,10 @@
-import dotfilesbuild.home
+import dotfilesbuild.utilities.home
 import org.gradle.api.attributes.Attribute
 
 plugins {
   `lifecycle-base`
   // id("org.jlleitschuh.gradle.ktlint")
+  id("dotfilesbuild.dotfiles-lifecycle")
 }
 
 val shell = Attribute.of("shell.config", Usage::class.java)

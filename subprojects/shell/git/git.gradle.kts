@@ -1,5 +1,5 @@
-import dotfilesbuild.home
-import dotfilesbuild.property
+import dotfilesbuild.utilities.home
+import dotfilesbuild.utilities.property
 import dotfilesbuild.process.FileTreeExpandingCommandLineArgumentProvider
 
 plugins {

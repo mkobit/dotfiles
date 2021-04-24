@@ -1,4 +1,4 @@
-package dotfilesbuild
+package dotfilesbuild.utilities
 
 import org.gradle.api.model.ObjectFactory
 import org.gradle.api.provider.Provider

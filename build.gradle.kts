@@ -1,9 +1,10 @@
-import dotfilesbuild.home
+import dotfilesbuild.utilities.home
 
 plugins {
   id("com.github.ben-manes.versions") version "0.38.0"
 //  id("org.jlleitschuh.gradle.ktlint") version "10.0.0"
   id("org.jetbrains.gradle.plugin.idea-ext") version "1.0" apply false
+  id("dotfilesbuild.dotfiles-lifecycle") // todo: propbably should be removed
 }
 
 buildScan {

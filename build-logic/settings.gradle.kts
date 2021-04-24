@@ -21,6 +21,7 @@ apply(from = file("../gradle/buildCache.settings.gradle.kts"))
 //enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 include("dotfiles-lifecycle")
+include("extension-utilities")
 include("hocon-config")
 include("intellij-program")
 include("io-tasks")

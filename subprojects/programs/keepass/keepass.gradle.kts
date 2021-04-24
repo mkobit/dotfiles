@@ -1,7 +1,8 @@
-import dotfilesbuild.home
+import dotfilesbuild.utilities.home
 
 plugins {
   id("dotfilesbuild.keepass.program")
+  id("dotfilesbuild.dotfiles-lifecycle")
 }
 
 keepass {

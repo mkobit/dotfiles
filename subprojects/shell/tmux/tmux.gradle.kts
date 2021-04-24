@@ -1,5 +1,5 @@
-import dotfilesbuild.home
-import dotfilesbuild.projectFile
+import dotfilesbuild.utilities.home
+import dotfilesbuild.utilities.projectFile
 import dotfilesbuild.io.file.Symlink
 
 plugins {

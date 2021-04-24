@@ -1,4 +1,4 @@
-package dotfilesbuild
+package dotfilesbuild.utilities
 
 import org.gradle.api.Project
 import org.gradle.api.file.Directory
