@@ -3,5 +3,5 @@ plugins {
 }
 
 dependencies {
-  api(project(":io-tasks"))
+  api(projects.ioTasks)
 }

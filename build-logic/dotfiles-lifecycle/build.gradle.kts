@@ -3,5 +3,5 @@ plugins {
 }
 
 dependencies {
-  api(project(":extension-utilities"))
+  api(projects.extensionUtilities)
 }
