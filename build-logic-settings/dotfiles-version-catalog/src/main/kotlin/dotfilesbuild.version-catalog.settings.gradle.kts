@@ -23,10 +23,16 @@ dependencyResolutionManagement {
       alias("jackson.core.annotations").to("com.fasterxml.jackson.core", "jackson-annotations").versionRef("jacksonCore")
       alias("jackson.module.kotlin").to("com.fasterxml.jackson.module", "jackson-module-kotlin").versionRef("jacksonModule")
       alias("kodein.di.jvm").to("org.kodein.di", "kodein-di-jvm").versionRef("kodein")
+
       alias("kotlin.js.stdlib").to("org.jetbrains.kotlin", "kotlin-stdlib-js").withoutVersion()
+      alias("kotlin.scripting.common").to("org.jetbrains.kotlin", "kotlin-scripting-common").withoutVersion()
+      alias("kotlin.scripting.jvm").to("org.jetbrains.kotlin", "kotlin-scripting-jvm").withoutVersion()
+      alias("kotlin.scripting.jvmHost").to("org.jetbrains.kotlin", "kotlin-scripting-jvm-host").withoutVersion()
       alias("kotlin.jvm.stdlib").to("org.jetbrains.kotlin", "kotlin-stdlib").withoutVersion()
       alias("kotlin.jvm.jdk8").to("org.jetbrains.kotlin", "kotlin-stdlib-jdk8").withoutVersion()
+      alias("kotlin.reflect").to("org.jetbrains.kotlin", "kotlin-reflect").withoutVersion()
       alias("kotlin.mp.test").to("org.jetbrains.kotlin", "kotlin-test").withoutVersion()
+
       alias("kotlinLogging").to("io.github.microutils:kotlin-logging:2.0.6")
       alias("kotlinPoet").to("com.squareup:kotlinpoet:1.7.2")
       alias("ktor.server.core").to("io.ktor", "ktor-server-core").versionRef("ktor")

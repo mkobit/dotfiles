@@ -1,6 +1,4 @@
 plugins {
-  `java-library`
-  // id("org.jlleitschuh.gradle.ktlint")
   id("dotfilesbuild.kotlin.library")
 }
 
@@ -8,9 +6,9 @@ group = "io.mkobit.ssh.host"
 
 dependencies {
   implementation(projects.localLibraries.ssh.sshScriptDefinition)
-  implementation(kotlin("scripting-common"))
-  implementation(kotlin("scripting-jvm"))
-  implementation(kotlin("scripting-jvm-host"))
+  implementation(libs.kotlin.scripting.common)
+  implementation(libs.kotlin.scripting.jvm)
+  implementation(libs.kotlin.scripting.jvmHost)
   testImplementation(projects.localLibraries.testing.striktKotlinScripting)
 }
 
