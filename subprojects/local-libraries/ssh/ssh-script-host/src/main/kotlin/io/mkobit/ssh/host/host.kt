@@ -17,7 +17,7 @@ fun evalFile(scriptFile: Path): ResultWithDiagnostics<EvaluationResult> {
       // its dependencies
       // variant 1: try to extract current classpath and take only a path to the specified "script.jar"
       dependenciesFromCurrentContext(
-        "script-definition" /* script library jar name (exact or without a version) */
+        "ssh-script-definition" /* script library jar name (exact or without a version) */
       )
       // variant 2: try to extract current classpath and use it for the compilation without filtering
 //            dependenciesFromCurrentContext(wholeClasspath = true)

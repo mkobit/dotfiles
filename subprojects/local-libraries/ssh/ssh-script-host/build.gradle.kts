@@ -7,7 +7,7 @@ plugins {
 group = "io.mkobit.ssh.host"
 
 dependencies {
-  implementation(projects.localLibraries.ssh.scriptDefinition)
+  implementation(projects.localLibraries.ssh.sshScriptDefinition)
   implementation(kotlin("scripting-common"))
   implementation(kotlin("scripting-jvm"))
   implementation(kotlin("scripting-jvm-host"))
