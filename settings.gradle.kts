@@ -65,17 +65,7 @@ apply(from = file("gradle/buildCache.settings.gradle.kts"))
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 enableFeaturePreview("VERSION_CATALOGS")
 
-fun String.toKebabCase(): String = split("-").toList().let {
-  val suffix = it
-    .drop(1)
-    .joinToString("") { part ->
-      "${part[0].toUpperCase()}${part.substring(1)}"
-    }
-  "${it.first()}$suffix"
-}
-
 fun configureSubproject(projectDescriptor: ProjectDescriptor) {
-  projectDescriptor.buildFileName = "${projectDescriptor.name.toKebabCase()}.gradle.kts"
   projectDescriptor.projectDir =
     file("subprojects/${projectDescriptor.path.replace(":", "/")}")
   projectDescriptor.children.forEach { configureSubproject(it) }
