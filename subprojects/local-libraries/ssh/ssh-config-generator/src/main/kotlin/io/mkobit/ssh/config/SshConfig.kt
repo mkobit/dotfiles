@@ -5,6 +5,12 @@ import java.time.Duration
 
 /**
  * - [SSH config manual](https://man7.org/linux/man-pages/man5/ssh_config.5.html)
+ *
+ * For each parameter, the first obtained value will be used.
+ * The configuration files contain sections separated by ''Host'' specifications, and that section is only applied for hosts that match one of the patterns given in the specification.
+ * The matched host name is the one given on the command line.
+ *
+ * Since the first obtained value for each parameter is used, more host-specific declarations should be given near the beginning of the file, and general defaults at the end.
  */
 data class SshConfig(
   val includes: List<Path>? = null,
@@ -14,7 +20,7 @@ data class SshConfig(
   val identityFile: Path? = null,
   val identitiesOnly: Boolean? = null,
   val serverAliveCountMax: Int? = null,
-  val serverAliveInterval: Duration? = null
+  val serverAliveInterval: Duration? = null,
 ) {
 
   init {
