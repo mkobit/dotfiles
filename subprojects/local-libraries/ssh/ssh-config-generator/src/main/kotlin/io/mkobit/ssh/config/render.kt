@@ -1,21 +1,22 @@
 package io.mkobit.ssh.config
 
-private fun <T> T?.toLine(block: (T) -> String): String =
-  this?.let { "${block(it)}${System.lineSeparator()}" } ?: ""
-
-fun SshConfig.asText(): String =
-  (
-    (includes?.joinToString(separator = System.lineSeparator(), postfix = System.lineSeparator()) { "Include \"$it\"" } ?: "") +
-      controlMaster.toLine { "ControlMaster ${it.name.toLowerCase()}" } +
-      controlPath.toLine { "ControlPath \"$it\"" } +
-      controlPersist.toLine { "ControlPersist ${it.toSeconds()}s" } +
-      identityFile.toLine { "IdentityFile \"$it\"" } +
-      identitiesOnly.toLine { "IdentitiesOnly ${if (it) "yes" else "no"}" } +
-      serverAliveCountMax.toLine { "ServerAliveCountMax $it" } +
-      serverAliveInterval.toLine { "ServerAliveInterval ${it.toSeconds()}" }
-    ).trimEnd()
+fun SshConfig.asText(): String = (
+  (includes?.map { "Include \"$it\"" } ?: emptyList()) +
+    listOfNotNull(
+      controlMaster?.let { "ControlMaster ${it.name.toLowerCase()}" },
+      controlPath?.let { "ControlPath \"$it\"" },
+      controlPersist?.let { "ControlPersist ${it.toSeconds()}s" },
+      identityFile?.let { "IdentityFile \"$it\"" },
+      identitiesOnly?.let { "IdentitiesOnly ${if (it) "yes" else "no"}" },
+      serverAliveCountMax?.let { "ServerAliveCountMax $it" },
+      serverAliveInterval?.let { "ServerAliveInterval ${it.toSeconds()}" },
+    )
+).joinToString(separator = System.lineSeparator())
 
 fun HostConfig.asText(): String =
   "Host ${patterns.joinToString(separator = " ")}" +
     System.lineSeparator() +
     sshConfig.asText().prependIndent(indent = " ".repeat(4))
+
+fun List<HostConfig>.asText(): String =
+  joinToString(separator = System.lineSeparator().repeat(2)) { it.asText() }

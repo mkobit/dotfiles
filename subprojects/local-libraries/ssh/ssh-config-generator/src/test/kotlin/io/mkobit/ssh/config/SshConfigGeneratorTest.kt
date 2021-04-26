@@ -22,7 +22,6 @@ internal class SshConfigGeneratorTest {
       serverAliveInterval = Duration.ofSeconds(15L),
       identityFile = directory / "identity_rsa"
     )
-    println(config.asText())
     expectThat(config.asText().lines())
       .containsExactly(
         "Include \"${directory / "config1"}\"",
@@ -47,11 +46,28 @@ internal class SshConfigGeneratorTest {
         identitiesOnly = true
       )
     )
-    println(config.asText())
     expectThat(config.asText().lines())
       .containsExactly(
         "Host github.com google.com",
-        "IdentitiesOnly yes".prependIndent(" ".repeat(4))
+        "IdentitiesOnly yes".prepend4Spaces()
       )
   }
+
+  @Test
+  internal fun `list of host configs to text`() {
+    val configs = listOf(
+      HostConfig(listOf("host1"), SshConfig(identitiesOnly = true)),
+      HostConfig(listOf("host2"), SshConfig(identitiesOnly = false)),
+    )
+    expectThat(configs.asText().lines())
+      .containsExactly(
+        "Host host1",
+        "IdentitiesOnly yes".prepend4Spaces(),
+        "",
+        "Host host2",
+        "IdentitiesOnly no".prepend4Spaces()
+      )
+  }
+
+  private fun String.prepend4Spaces(): String = prependIndent(" ".repeat(4))
 }
