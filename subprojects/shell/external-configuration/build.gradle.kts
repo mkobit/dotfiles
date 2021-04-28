@@ -3,33 +3,36 @@ import org.gradle.api.attributes.Attribute
 
 plugins {
   `lifecycle-base`
-  // id("org.jlleitschuh.gradle.ktlint")
   id("dotfilesbuild.dotfiles-lifecycle")
 }
 
 val shell = Attribute.of("shell.config", Usage::class.java)
 
-val syncHomeFiles by tasks.registering(Sync::class) {
+val syncFromHomeFiles by tasks.registering(Sync::class) {
   from(home.dir(".dotfiles/"))
   into(layout.buildDirectory.dir("dotfiles-sync"))
   include("**/**")
 }
 
+val syncToHomeFiles by tasks.registering(Sync::class) {
+  from(layout.buildDirectory.dir("dotfiles-sync"))
+  into(home.dir(".dotfiles/"))
+}
+
 val aggregateSshFiles by tasks.registering(Sync::class) {
-  from(syncHomeFiles)
+  from(syncFromHomeFiles)
   into(layout.buildDirectory.dir("shell/ssh"))
-  include("**/*.hocon")
   include {
-    it.name.contains("ssh") || it.path.contains("ssh")
+    it.name.endsWith(".hocon") && (it.name.contains("ssh") || it.path.contains("ssh"))
   }
 }
 
 val aggregateGitFiles by tasks.registering(Sync::class) {
-  from(syncHomeFiles)
+  from(syncFromHomeFiles)
   into(layout.buildDirectory.dir("shell/git"))
   include("**/*.hocon")
   include {
-    it.name.contains("git") || it.path.contains("git")
+    it.name.endsWith(".hocon") && (it.name.contains("git") || it.path.contains("git"))
   }
 }
 
