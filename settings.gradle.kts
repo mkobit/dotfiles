@@ -32,8 +32,9 @@ includeBuild("build-logic")
 "local-libraries".let {
   include("$it:pico-cli-utils")
   "$it:git".let { git ->
-    include("$git:config-generator")
-    include("$git:script-definition")
+    include("$git:git-config-generator")
+    include("$git:git-script-definition")
+    include("$git:git-script-host")
   }
   "$it:ssh".let { ssh ->
     include("$ssh:ssh-config-generator")

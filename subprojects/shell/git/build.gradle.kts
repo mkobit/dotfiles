@@ -5,7 +5,6 @@ import dotfilesbuild.process.FileTreeExpandingCommandLineArgumentProvider
 plugins {
   id("dotfilesbuild.dotfiles-lifecycle")
   id("dotfilesbuild.kotlin.picocli-script")
-  // // id("org.jlleitschuh.gradle.ktlint")
 }
 
 val workspace: Directory = home.dir("Workspace")
@@ -22,8 +21,8 @@ val scriptConfig by configurations.creating {
 }
 
 dependencies {
-  implementation(projects.localLibraries.git.configGenerator)
-  implementation("com.typesafe:config:1.4.1")
+  implementation(projects.localLibraries.git.gitConfigGenerator)
+  implementation(libs.hocon)
   scriptConfig(projects.shell.externalConfiguration)
 }
 
