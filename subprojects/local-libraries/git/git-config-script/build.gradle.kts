@@ -2,13 +2,14 @@ plugins {
   id("dotfilesbuild.kotlin.library")
 }
 
-group = "io.mkobit.git.host"
+group = "io.mkobit.git.script"
 
 dependencies {
-  implementation(projects.localLibraries.git.gitScriptDefinition)
+  api(projects.localLibraries.git.gitConfigGenerator)
   implementation(libs.kotlin.scripting.common)
   implementation(libs.kotlin.scripting.jvm)
   implementation(libs.kotlin.scripting.jvmHost)
+  implementation(libs.kotlin.reflect)
   testImplementation(projects.localLibraries.testing.striktKotlinScripting)
 }
 
