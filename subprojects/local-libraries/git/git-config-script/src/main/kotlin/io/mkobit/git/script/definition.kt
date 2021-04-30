@@ -2,11 +2,14 @@ package io.mkobit.git.script
 
 import io.mkobit.git.config.Section
 import java.nio.file.Path
+import kotlin.io.path.ExperimentalPathApi
 import kotlin.reflect.KTypeProjection
 import kotlin.reflect.full.createType
 import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ScriptCompilationConfiguration
 import kotlin.script.experimental.api.ScriptEvaluationConfiguration
+import kotlin.script.experimental.api.constructorArgs
+import kotlin.script.experimental.api.defaultImports
 import kotlin.script.experimental.api.providedProperties
 import kotlin.script.experimental.jvm.dependenciesFromCurrentContext
 import kotlin.script.experimental.jvm.jvm
@@ -16,6 +19,7 @@ import kotlin.script.experimental.jvm.jvm
   compilationConfiguration = GitConfigScriptCompilationConfiguration::class,
   evaluationConfiguration = GitConfigScriptEvaluationConfiguration::class,
 )
+@ExperimentalPathApi
 interface GitConfigScript
 
 object GitConfigScriptCompilationConfiguration : ScriptCompilationConfiguration({
@@ -24,6 +28,7 @@ object GitConfigScriptCompilationConfiguration : ScriptCompilationConfiguration(
     // its dependencies
     // variant 1: try to extract current classpath and take only a path to the specified "script.jar"
     dependenciesFromCurrentContext(
+      "kotlin-stdlib-jdk7", // kotlin.io.path.Path
       "git-config-generator",
       "git-config-script", /* script library jar name (exact or without a version) */
     )
@@ -34,6 +39,11 @@ object GitConfigScriptCompilationConfiguration : ScriptCompilationConfiguration(
 //            dependenciesFromClassloader(classLoader = SimpleScript::class.java.classLoader, wholeClasspath = true)
     // variant 4: explicit classpath
 //            updateClasspath(listOf(File("/path/to/jar")))
+
+    defaultImports(
+      "kotlin.io.path.Path",
+      "io.mkobit.git.config.*", // section types
+    )
 
     val configurationsType = Map::class.createType(
       arguments = listOf(
