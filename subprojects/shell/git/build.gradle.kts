@@ -21,8 +21,7 @@ val scriptConfig by configurations.creating {
 }
 
 dependencies {
-  implementation(projects.localLibraries.git.gitConfigGenerator)
-  implementation(libs.hocon)
+  implementation(projects.localLibraries.git.gitConfigScript)
   scriptConfig(projects.shell.externalConfiguration)
 }
 

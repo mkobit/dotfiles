@@ -2,16 +2,16 @@
 
 package dotfiles.shell.git
 
-import com.typesafe.config.Config
-import com.typesafe.config.ConfigFactory
 import io.mkobit.git.config.Include
 import io.mkobit.git.config.asText
+import io.mkobit.git.host.execute
 import picocli.CommandLine
 import java.nio.file.Path
 import java.util.concurrent.Callable
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
+import kotlin.io.path.Path
 import kotlin.io.path.writeText
 import kotlin.system.exitProcess
 
@@ -64,49 +64,53 @@ internal class GenerateGitConfig : Callable<Int> {
   )
   var configFiles: List<Path> = emptyList()
 
+  private companion object {
+    const val GIT_CONFIG_FILENAME = ".gitconfig"
+  }
+
   override fun call(): Int {
-    val hocon = hoconConfig(configFiles)
-    val general = gitConfigFileFor(outputDir / "general")
-    general.writeText(generalGitConfig(globalExcludesFile).asText())
-
-    val personal = gitConfigFileFor(outputDir / "personal")
-    personal.writeText(personalGitConfig().asText())
-
-    val work = workGitConfig(hocon).let { workConfig ->
-      if (workConfig.isNotEmpty()) {
-        gitConfigFileFor(outputDir / "work").also {
-          it.writeText(workConfig.asText())
-        }
-      } else {
-        null
+    val general = Path("general") / GIT_CONFIG_FILENAME
+    val personal = Path("personal") / GIT_CONFIG_FILENAME
+    val configurations = mapOf(
+      general to generalGitConfig(globalExcludesFile),
+      personal to personalGitConfig(),
+    ).let {
+      configFiles.fold(it) { accumulator, scriptPath ->
+        execute(scriptPath, accumulator)
       }
+    }.also {
+      // just assuming all configurations still present, maybe modified
+      require(general in it)
+      require(personal in it)
     }
 
-    val includes = gitConfigFileFor(outputDir / "includes")
+    configurations
+      .mapKeys { (path, _) -> outputDir / path }
+      .onEach { (path, _) -> require(path.isChildOf(outputDir)) { "$path must be a child of $outputDir"} }
+      .forEach { (path, sections) ->
+        path.parent.createDirectories()
+        path.writeText(sections.asText())
+      }
+
+    val work = configFiles.firstOrNull { it.contains(Path("work")) }
+
+    val includes = outputDir / "includes" / GIT_CONFIG_FILENAME
+    includes.parent.createDirectories()
     includes.writeText(
       (
         listOf(
-          Include(path = general),
-          Include(personal).ifGitDir(dotfilesDir),
-          Include(personal).ifGitDir(personalDir),
-          Include(personal).ifGitDir(codeLabDir),
-        ) + listOfNotNull(work).map {
-          Include(it).ifGitDir(workDir)
-        }
-        ).asText()
+          Include(path = outputDir / general),
+          Include(outputDir / personal).ifGitDir(dotfilesDir),
+          Include(outputDir / personal).ifGitDir(personalDir),
+          Include(outputDir / personal).ifGitDir(codeLabDir),
+        ) + listOfNotNull(work).map { Include(outputDir / it).ifGitDir(workDir) }
+      ).asText()
     )
     return 0
   }
-
-  private fun gitConfigFileFor(path: Path): Path =
-    path.createDirectories() / ".gitconfig"
 }
 
-private fun hoconConfig(files: List<Path>): Config =
-  files
-    .map { it.toFile() }
-    .map { ConfigFactory.parseFile(it) }
-    .fold(ConfigFactory.empty()) { accumulated, config -> accumulated.withFallback(config) }
+private fun Path.isChildOf(path: Path): Boolean = normalize().startsWith(path.normalize())
 
 @ExperimentalPathApi
 fun main(args: Array<String>): Unit = exitProcess(CommandLine(GenerateGitConfig()).execute(*args))

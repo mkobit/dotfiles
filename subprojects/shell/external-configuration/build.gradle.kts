@@ -30,10 +30,7 @@ val aggregateSshFiles by tasks.registering(Sync::class) {
 val aggregateGitFiles by tasks.registering(Sync::class) {
   from(syncFromHomeFiles)
   into(layout.buildDirectory.dir("shell/git"))
-  include("**/*.hocon")
-  include {
-    it.name.endsWith(".hocon") && (it.name.contains("git") || it.path.contains("git"))
-  }
+  include("**/*.git.kts")
 }
 
 configurations {
