@@ -4,6 +4,7 @@ import io.mkobit.ssh.config.HostConfig
 import io.mkobit.ssh.config.SshConfig
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.Path
 import kotlin.reflect.KTypeProjection
 import kotlin.reflect.full.createType
 import kotlin.script.experimental.annotations.KotlinScript
@@ -21,7 +22,9 @@ import kotlin.script.experimental.jvm.jvm
   evaluationConfiguration = SshConfigScriptEvaluationConfiguration::class,
 )
 @ExperimentalPathApi
-interface SshConfigScript
+interface SshConfigScript {
+  fun homeDir(): Path = Path(System.getProperty("user.home"))
+}
 
 object SshConfigScriptCompilationConfiguration : ScriptCompilationConfiguration({
   jvm {

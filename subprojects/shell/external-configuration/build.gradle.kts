@@ -22,9 +22,7 @@ val syncToHomeFiles by tasks.registering(Sync::class) {
 val aggregateSshFiles by tasks.registering(Sync::class) {
   from(syncFromHomeFiles)
   into(layout.buildDirectory.dir("shell/ssh"))
-  include {
-    it.name.endsWith(".hocon") && (it.name.contains("ssh") || it.path.contains("ssh"))
-  }
+  include("**/*.ssh.kts")
 }
 
 val aggregateGitFiles by tasks.registering(Sync::class) {

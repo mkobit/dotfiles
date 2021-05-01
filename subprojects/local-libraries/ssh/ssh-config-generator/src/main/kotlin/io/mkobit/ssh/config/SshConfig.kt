@@ -11,9 +11,14 @@ import java.time.Duration
  * The matched host name is the one given on the command line.
  *
  * Since the first obtained value for each parameter is used, more host-specific declarations should be given near the beginning of the file, and general defaults at the end.
+ *
+ * @property serverAliveInterval Sets a timeout interval in seconds after which if no data has been received from the server, ssh(1) will send a message through the encrypted channel to request a response from the server.
+ * The default is 0, indicating that these messages will not be sent to the server.
+ * This option applies to protocol version 2 only.
  */
 data class SshConfig(
   val includes: List<Path>? = null,
+  val addKeysToAgent: Boolean? = null,
   val controlMaster: ControlMaster? = null,
   val controlPath: Path? = null,
   val controlPersist: Duration? = null,
@@ -21,6 +26,7 @@ data class SshConfig(
   val identitiesOnly: Boolean? = null,
   val serverAliveCountMax: Int? = null,
   val serverAliveInterval: Duration? = null,
+  val user: String? = null,
 ) {
 
   init {

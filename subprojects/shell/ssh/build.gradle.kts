@@ -27,5 +27,5 @@ tasks {
 }
 
 dependencies {
-  implementation(projects.localLibraries.ssh.sshConfigGenerator)
+  implementation(projects.localLibraries.ssh.sshConfigScript)
 }
