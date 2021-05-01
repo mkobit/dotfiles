@@ -13,11 +13,6 @@ import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromT
 import kotlin.script.experimental.jvmhost.createJvmEvaluationConfigurationFromTemplate
 
 @ExperimentalPathApi
-fun main() {
-  execute(kotlin.io.path.Path("/Users/mikekobit/dotfiles/subprojects/local-libraries/git/git-config-script/testData/example.git.kts"), emptyMap())
-}
-
-@ExperimentalPathApi
 fun execute(scriptFile: Path, configurations: Map<Path, List<Section>>): Map<Path, List<Section>> {
   val result = BasicJvmScriptingHost().eval(
     scriptFile.toFile().toScriptSource(),

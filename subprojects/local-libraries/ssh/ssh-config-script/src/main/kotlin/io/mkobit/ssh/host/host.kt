@@ -13,11 +13,6 @@ import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromT
 import kotlin.script.experimental.jvmhost.createJvmEvaluationConfigurationFromTemplate
 
 @ExperimentalPathApi
-fun main() {
-  execute(kotlin.io.path.Path("/Users/mikekobit/dotfiles/subprojects/local-libraries/ssh/ssh-config-script/testData/example.ssh.kts"), emptyMap())
-}
-
-@ExperimentalPathApi
 fun execute(scriptFile: Path, configurations: Map<Path, List<HostConfig>>): Map<Path, List<HostConfig>> {
   val result = BasicJvmScriptingHost().eval(
     scriptFile.toFile().toScriptSource(),
