@@ -37,8 +37,7 @@ includeBuild("build-logic")
   }
   "$it:ssh".let { ssh ->
     include("$ssh:ssh-config-generator")
-    include("$ssh:ssh-script-definition")
-    include("$ssh:ssh-script-host")
+    include("$ssh:ssh-config-script")
   }
   "$it:testing".let { testing ->
     include("$testing:strikt-kotlin-scripting")

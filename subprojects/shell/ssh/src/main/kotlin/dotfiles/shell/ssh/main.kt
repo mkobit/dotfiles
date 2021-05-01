@@ -22,7 +22,11 @@ internal class GenerateSshConfig : Callable<Int> {
   )
   lateinit var outputDir: Path
 
-  lateinit var externalConfigurations: List<Path>
+  @CommandLine.Option(
+    names = ["--config-file"],
+    required = false,
+  )
+  var configFiles: List<Path> = emptyList()
 
   override fun call(): Int {
     val sshd = outputDir / "config.d"
