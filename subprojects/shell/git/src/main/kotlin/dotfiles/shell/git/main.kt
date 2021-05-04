@@ -92,7 +92,7 @@ internal class GenerateGitConfig : Callable<Int> {
         path.writeText(sections.asText())
       }
 
-    val work = configFiles.firstOrNull { it.contains(Path("work")) }
+    val work = configurations.keys.firstOrNull { it.contains(Path("work")) }
 
     val includes = outputDir / "includes" / GIT_CONFIG_FILENAME
     includes.parent.createDirectories()
@@ -103,7 +103,7 @@ internal class GenerateGitConfig : Callable<Int> {
           Include(outputDir / personal).ifGitDir(dotfilesDir),
           Include(outputDir / personal).ifGitDir(personalDir),
           Include(outputDir / personal).ifGitDir(codeLabDir),
-        ) + listOfNotNull(work).map { Include(outputDir / it).ifGitDir(workDir) }
+        ) + listOfNotNull(work?.let { Include(outputDir / it).ifGitDir(workDir) })
       ).asText()
     )
     return 0
