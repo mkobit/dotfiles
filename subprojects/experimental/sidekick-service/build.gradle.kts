@@ -20,8 +20,9 @@ dependencies {
   implementation(libs.ktor.server.core)
   implementation(libs.ktor.server.netty)
 
-  implementation(libs.coroutines.core)
-  implementation(libs.coroutines.jdk8)
+  implementation(libs.kotlinx.coroutines.core)
+  implementation(libs.kotlinx.coroutines.jdk8)
+  implementation(libs.kotlinx.datetime)
 
   implementation(kotlin("stdlib-jdk8"))
   implementation(libs.retrofit2.retrofit)
