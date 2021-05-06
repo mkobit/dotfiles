@@ -53,7 +53,6 @@ includeBuild("build-logic")
 "experimental".let {
   include("$it:chrome-debug-protocol")
   include("$it:chrome-debug-protocol-generator")
-  include("$it:kotlin-script-experiment")
   include("$it:sidekick-service")
 }
 
