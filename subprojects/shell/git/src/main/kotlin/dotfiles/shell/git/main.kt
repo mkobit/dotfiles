@@ -53,7 +53,6 @@ internal class GenerateGitConfig : Callable<Int> {
   override fun call(): Int {
     val general = Path("general")
     val personal = Path("personal")
-    val codeLab = Path("code_lab")
     val configurations = mapOf(
       general to generalGitConfig(globalExcludesFile),
       personal to personalGitConfig(),
