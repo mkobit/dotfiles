@@ -35,7 +35,8 @@ internal class GenerateSshConfig : Callable<Int> {
   var configFiles: List<Path> = emptyList()
 
   override fun call(): Int {
-    val sshd = outputDir / "config.d"
+    val configDir = Path("config.d")
+    val sshd = outputDir / configDir
     sshd.createDirectories()
     val commonAll = Path("common_all_hosts")
     val mkobit = Path("mkobit_github")
@@ -60,7 +61,7 @@ internal class GenerateSshConfig : Callable<Int> {
     val includes = outputDir / "includes"
     includes.writeText(
       SshConfig(
-        includes = configurations.keys.map { sshd / it }
+        includes = configurations.keys.map { configDir / it }
       ).asText()
     )
 
