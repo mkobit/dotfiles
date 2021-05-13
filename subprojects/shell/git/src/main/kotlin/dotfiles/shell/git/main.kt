@@ -15,6 +15,7 @@ import kotlin.io.path.Path
 import kotlin.io.path.writeText
 import kotlin.system.exitProcess
 
+@ExperimentalStdlibApi
 @CommandLine.Command(
   name = "generateGitConfig",
   mixinStandardHelpOptions = true,
@@ -95,5 +96,6 @@ internal class GenerateGitConfig : Callable<Int> {
 
 private fun Path.isChildOf(path: Path): Boolean = normalize().startsWith(path.normalize())
 
+@ExperimentalStdlibApi
 @ExperimentalPathApi
 fun main(args: Array<String>): Unit = exitProcess(CommandLine(GenerateGitConfig()).execute(*args))

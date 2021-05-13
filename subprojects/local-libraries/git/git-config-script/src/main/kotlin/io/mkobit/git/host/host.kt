@@ -12,6 +12,7 @@ import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromTemplate
 import kotlin.script.experimental.jvmhost.createJvmEvaluationConfigurationFromTemplate
 
+@ExperimentalStdlibApi
 @ExperimentalPathApi
 fun execute(scriptFile: Path, configurations: Map<Path, List<Section>>): Map<Path, List<Section>> {
   val result = BasicJvmScriptingHost().eval(

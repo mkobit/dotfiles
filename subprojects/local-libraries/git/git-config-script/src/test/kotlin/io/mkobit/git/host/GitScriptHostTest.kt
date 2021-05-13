@@ -13,6 +13,7 @@ import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.Path
 import kotlin.io.path.div
 
+@ExperimentalStdlibApi
 @ExperimentalPathApi
 internal class GitScriptHostTest {
   private val testDataDir = Path(System.getenv("TEST_DATA_DIR"))

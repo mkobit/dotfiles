@@ -3,17 +3,16 @@ package io.mkobit.git.script
 import io.mkobit.git.config.Section
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
-import kotlin.reflect.KTypeProjection
-import kotlin.reflect.full.createType
+import kotlin.reflect.typeOf
 import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ScriptCompilationConfiguration
 import kotlin.script.experimental.api.ScriptEvaluationConfiguration
-import kotlin.script.experimental.api.constructorArgs
 import kotlin.script.experimental.api.defaultImports
 import kotlin.script.experimental.api.providedProperties
 import kotlin.script.experimental.jvm.dependenciesFromCurrentContext
 import kotlin.script.experimental.jvm.jvm
 
+@ExperimentalStdlibApi
 @KotlinScript(
   fileExtension = "git.kts",
   compilationConfiguration = GitConfigScriptCompilationConfiguration::class,
@@ -22,6 +21,7 @@ import kotlin.script.experimental.jvm.jvm
 @ExperimentalPathApi
 interface GitConfigScript
 
+@ExperimentalStdlibApi
 object GitConfigScriptCompilationConfiguration : ScriptCompilationConfiguration({
   jvm {
     // configure dependencies for compilation, they should contain at least the script base class and
@@ -45,16 +45,7 @@ object GitConfigScriptCompilationConfiguration : ScriptCompilationConfiguration(
       "io.mkobit.git.config.*", // section types
     )
 
-    val configurationsType = Map::class.createType(
-      arguments = listOf(
-        KTypeProjection.invariant(Path::class.createType()),
-        KTypeProjection.invariant(
-          List::class.createType(
-            arguments = listOf(KTypeProjection.invariant(Section::class.createType()))
-          )
-        ),
-      )
-    )
+    val configurationsType = typeOf<Map<Path, List<Section>>>()
     providedProperties(
         "configurations" to configurationsType
     )
