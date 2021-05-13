@@ -34,24 +34,6 @@ internal class GenerateGitConfig : Callable<Int> {
   )
   lateinit var globalExcludesFile: Path
 
-//  @CommandLine.Option(
-//    names = ["--work-dir"],
-//    required = true
-//  )
-//  lateinit var workDir: Path
-//
-//  @CommandLine.Option(
-//    names = ["--code-lab-dir"],
-//    required = true
-//  )
-//  lateinit var codeLabDir: Path
-//
-//  @CommandLine.Option(
-//    names = ["--personal-dir"],
-//    required = true
-//  )
-//  lateinit var personalDir: Path
-
   @CommandLine.Option(
     names = ["--dotfiles-dir"],
     required = true

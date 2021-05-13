@@ -17,7 +17,6 @@ import io.mkobit.git.config.Rerere
 import io.mkobit.git.config.Section
 import io.mkobit.git.config.Stash
 import java.nio.file.Path
-import java.util.*
 
 internal fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
   Alias(
@@ -54,41 +53,43 @@ internal fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
     )
   ),
   Branch(
-    autoSetUpRebase = Branch.AutoSetUpRebase.ALWAYS
+    autoSetUpRebase = Branch.AutoSetUpRebase.ALWAYS,
   ),
   Color(
-    ui = true
+    branch = true,
+    status = true,
+    ui = true,
   ),
   Commit(
-    verbose = true
+    verbose = true,
   ),
   Core(
     autoCrlf = Core.AutoCrlf.INPUT,
     editor = "vim",
-    excludesFile = excludesFile
+    excludesFile = excludesFile,
   ),
   Diff(
-    compactionHeuristic = true
+    compactionHeuristic = true,
   ),
   Fetch(
-    prune = true
+    prune = true,
   ),
   Interactive(
-    diffFilter = diffHighlight
+    diffFilter = diffProgram
   ),
   Merge(
-    fastForward = Merge.FastForward.FALSE
+    fastForward = Merge.FastForward.FALSE,
   ),
   Pager(
-    log = "$diffHighlight | less",
-    show = "$diffHighlight | less",
-    diff = "$diffHighlight | less"
+    log = "$diffProgram | less",
+    show = "$diffProgram | less",
+    diff = "$diffProgram | less",
   ),
   Pull(
-    rebase = Pull.Rebase.TRUE
+    rebase = Pull.Rebase.TRUE,
   ),
   Push(
-    default = Push.Default.SIMPLE
+    default = Push.Default.SIMPLE,
   ),
   Rebase(
     autoSquash = true,
@@ -96,17 +97,18 @@ internal fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
   ),
   Rerere(
     autoUpdate = true,
-    enabled = true
+    enabled = true,
   ),
   Stash(
-    showPatch = true
+    showPatch = true,
   )
 )
 
-private val diffHighlight: String by lazy {
+private val diffProgram: String by lazy {
   val os = System.getProperty("os.name").lowercase()
   when {
     listOf("mac os x", "darwin", "osx").any { os.contains(it) } -> "/usr/local/opt/git/share/git-core/contrib/diff-highlight/diff-highlight" // todo: locate dynamically
+    os.contains("linux") -> "diff" // todo: figure out better way to install diff-highlight for ubuntu
     else -> TODO("unsupported operating system $os")
   }
 //  "diff-highlight"

@@ -163,14 +163,19 @@ data class Branch(
     )
 }
 
+// todo: these color options are not correct
 data class Color(
-  val ui: Boolean? = null
+  val branch: Boolean? = null,
+  val status: Boolean? = null,
+  val ui: Boolean? = null,
 ) : Section {
   override val name: String
     get() = "color"
   override val options: Map<String, Any>
     get() = prunedMapOf(
-      "ui" to ui
+      "branch" to branch,
+      "status" to status,
+      "ui" to ui,
     )
 }
 
