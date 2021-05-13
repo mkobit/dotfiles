@@ -10,7 +10,7 @@ internal fun personalGitConfig(): List<Section> = listOf(
     gpgSign = true
   ),
   Gpg(
-    program = "gpg2" // gpg2 might be used on ubuntu/linux if gpg is still the old version
+    program = "gpg"
   ),
   User(
     email = "mkobit@gmail.com",
