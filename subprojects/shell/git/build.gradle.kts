@@ -20,9 +20,9 @@ dependencies {
 }
 
 tasks {
+  val generatedSshStaging = layout.buildDirectory.dir("generated-git-staging")
   (run) {
-    val outputDir = layout.buildDirectory.dir("generated-git")
-    outputs.dir(outputDir)
+    outputs.dir(generatedSshStaging)
     argumentProviders.add(
       FileTreeExpandingCommandLineArgumentProvider(
         objects.property("--config-file"),
@@ -30,13 +30,19 @@ tasks {
       )
     )
     args(
-      "--output-dir", outputDir.get(),
+      "--output-dir", generatedSshStaging.get(),
       "--global-excludes-file", layout.projectDirectory.file("gitconfig/gitignore_global.dotfile"),
       "--dotfiles-dir", rootProject.layout.projectDirectory.dir("**")
     )
   }
+  val syncStaged by registering(Sync::class) {
+    val outputDir = layout.buildDirectory.dir("generated-git")
+    from(generatedSshStaging)
+    into(outputDir)
+    dependsOn(run)
+  }
 
   dotfiles {
-    dependsOn(run)
+    dependsOn(syncStaged)
   }
 }

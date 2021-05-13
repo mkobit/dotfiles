@@ -4,7 +4,6 @@ import dotfilesbuild.io.file.Mkdir
 plugins {
   id("dotfilesbuild.dotfiles-lifecycle")
   id("dotfilesbuild.kotlin.picocli-script")
-  // id("org.jlleitschuh.gradle.ktlint")
   id("dotfilesbuild.io.noop")
 }
 
@@ -13,16 +12,24 @@ tasks {
     directory.set(home.dir(".ssh/controlMaster"))
   }
 
+  val generatedSshStaging = layout.buildDirectory.dir("generated-ssh-staging")
   (run) {
     val outputDir = layout.buildDirectory.dir("generated-ssh")
-    outputs.dir(outputDir)
+    outputs.dir(generatedSshStaging)
     args(
-      "--output-dir", outputDir.get()
+      "--output-dir", generatedSshStaging.get()
     )
   }
 
+  val syncStaged by registering(Sync::class) {
+    val outputDir = layout.buildDirectory.dir("generated-ssh")
+    from(generatedSshStaging)
+    into(outputDir)
+    dependsOn(run)
+  }
+
   dotfiles {
-    dependsOn(sshCms, run)
+    dependsOn(sshCms, syncStaged)
   }
 }
 
