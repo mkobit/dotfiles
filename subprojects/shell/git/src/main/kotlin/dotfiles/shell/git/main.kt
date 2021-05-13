@@ -34,23 +34,23 @@ internal class GenerateGitConfig : Callable<Int> {
   )
   lateinit var globalExcludesFile: Path
 
-  @CommandLine.Option(
-    names = ["--work-dir"],
-    required = true
-  )
-  lateinit var workDir: Path
-
-  @CommandLine.Option(
-    names = ["--code-lab-dir"],
-    required = true
-  )
-  lateinit var codeLabDir: Path
-
-  @CommandLine.Option(
-    names = ["--personal-dir"],
-    required = true
-  )
-  lateinit var personalDir: Path
+//  @CommandLine.Option(
+//    names = ["--work-dir"],
+//    required = true
+//  )
+//  lateinit var workDir: Path
+//
+//  @CommandLine.Option(
+//    names = ["--code-lab-dir"],
+//    required = true
+//  )
+//  lateinit var codeLabDir: Path
+//
+//  @CommandLine.Option(
+//    names = ["--personal-dir"],
+//    required = true
+//  )
+//  lateinit var personalDir: Path
 
   @CommandLine.Option(
     names = ["--dotfiles-dir"],
@@ -71,6 +71,7 @@ internal class GenerateGitConfig : Callable<Int> {
   override fun call(): Int {
     val general = Path("general") / GIT_CONFIG_FILENAME
     val personal = Path("personal") / GIT_CONFIG_FILENAME
+    val codeLab = Path("code_lab") / GIT_CONFIG_FILENAME
     val configurations = mapOf(
       general to generalGitConfig(globalExcludesFile),
       personal to personalGitConfig(),
@@ -96,14 +97,15 @@ internal class GenerateGitConfig : Callable<Int> {
 
     val includes = outputDir / "includes" / GIT_CONFIG_FILENAME
     includes.parent.createDirectories()
+    val up = Path("..")
     includes.writeText(
       (
         listOf(
-          Include(path = outputDir / general),
-          Include(outputDir / personal).ifGitDir(dotfilesDir),
-          Include(outputDir / personal).ifGitDir(personalDir),
-          Include(outputDir / personal).ifGitDir(codeLabDir),
-        ) + listOfNotNull(work?.let { Include(outputDir / it).ifGitDir(workDir) })
+          Include(path = up / general),
+          Include(up / personal).ifGitDir(dotfilesDir),
+          Include(up / personal).ifGitDir(Path("Workspace/personal/**")),
+          Include(up / personal).ifGitDir(Path("Workspace/code_lab/**")),
+        ) + listOfNotNull(work?.let { Include(up / it).ifGitDir(Path("Workspace/work/**")) })
       ).asText()
     )
     return 0

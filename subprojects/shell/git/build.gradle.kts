@@ -1,4 +1,3 @@
-import dotfilesbuild.utilities.home
 import dotfilesbuild.utilities.property
 import dotfilesbuild.process.FileTreeExpandingCommandLineArgumentProvider
 
@@ -6,11 +5,6 @@ plugins {
   id("dotfilesbuild.dotfiles-lifecycle")
   id("dotfilesbuild.kotlin.picocli-script")
 }
-
-val workspace: Directory = home.dir("Workspace")
-val personalWorkspaceDirectory: Directory = workspace.dir("personal")
-val workWorkspaceDirectory: Directory = workspace.dir("work")
-val codeLabWorkspaceDirectory: Directory = workspace.dir("code_lab")
 
 val shell = Attribute.of("shell.config", Usage::class.java)
 
@@ -38,9 +32,6 @@ tasks {
     args(
       "--output-dir", outputDir.get(),
       "--global-excludes-file", layout.projectDirectory.file("gitconfig/gitignore_global.dotfile"),
-      "--work-dir", workWorkspaceDirectory.dir("**"),
-      "--code-lab-dir", codeLabWorkspaceDirectory.dir("**"),
-      "--personal-dir", personalWorkspaceDirectory.dir("**"),
       "--dotfiles-dir", rootProject.layout.projectDirectory.dir("**")
     )
   }
