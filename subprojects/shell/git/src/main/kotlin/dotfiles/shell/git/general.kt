@@ -17,6 +17,7 @@ import io.mkobit.git.config.Rerere
 import io.mkobit.git.config.Section
 import io.mkobit.git.config.Stash
 import java.nio.file.Path
+import java.util.*
 
 internal fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
   Alias(
@@ -73,15 +74,15 @@ internal fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
     prune = true
   ),
   Interactive(
-    diffFilter = "diff-highlight"
+    diffFilter = diffHighlight
   ),
   Merge(
     fastForward = Merge.FastForward.FALSE
   ),
   Pager(
-    log = "diff-highlight | less",
-    show = "diff-highlight | less",
-    diff = "diff-highlight | less"
+    log = "$diffHighlight | less",
+    show = "$diffHighlight | less",
+    diff = "$diffHighlight | less"
   ),
   Pull(
     rebase = Pull.Rebase.TRUE
@@ -101,3 +102,12 @@ internal fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
     showPatch = true
   )
 )
+
+private val diffHighlight: String by lazy {
+  val os = System.getProperty("os.name").lowercase()
+  when {
+    listOf("mac os x", "darwin", "osx").any { os.contains(it) } -> "/usr/local/opt/git/share/git-core/contrib/diff-highlight/diff-highlight" // todo: locate dynamically
+    else -> TODO("unsupported operating system $os")
+  }
+//  "diff-highlight"
+}
