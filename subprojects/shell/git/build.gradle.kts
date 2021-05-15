@@ -43,6 +43,8 @@ tasks {
   }
 
   dotfiles {
+    // add [include] directive to ~/.gitconfig by running command
+    // git config --file ~/.gitconfig include.path <path to includes file>
     dependsOn(syncStaged)
   }
 }

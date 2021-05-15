@@ -18,53 +18,6 @@ The setup process is still very manual.
 git clone git@github.com:mkobit/dotfiles.git
 ----
 
-=== Git
-
-. Create a _.gitconfig_ file in `$HOME` that points to the local configuration.
-+
-[source]
-----
-[include]
-    path = ~/dotfiles/git/gitconfig.dotfile
-----
-
-==== diff-highlight
-
-The {uri-git-diff-highlight}[diff-highlight] tool is used for heuristic highlights when using the pager or viewing a diff.
-
-To download a new version into this repository, run this:
-
-[source, bash]
-----
-cd dotfiles # change into repository root
-curl https://raw.githubusercontent.com/git/git/master/contrib/diff-highlight/diff-highlight > bin/diff-highlight && chmod +x bin/diff-highlight
-----
-
-=== Screen
-
-NOTE: I no longer use `screen`, and instead use <<Tmux, `tmux`>>
-
-. Create symlink in `$HOME` to the local `vimrc.dotfile`
-+
-[source, bash]
-----
-cd dotfiles
-ln -sf `pwd`/screen/screenrc.dotfile ~/.screenrc
-----
-
-=== SSH
-
-. Create a symlink in `$HOME/.ssh/` to the SSH configuration folder
-+
-[source, bash]
-----
-cd ssh
-ln -sf `pwd`/config.d ~/.ssh/config.d
-----
-. Add `Include config.d/*` to the top of the `~/.ssh/config` file
-
-See the {uri-openssh-manual}[openssh ssh_config manual] for configuration details.
-
 === Tmux
 
 . Create a symlink in `$HOME` to the local `tmux.conf.dotfile`
@@ -76,18 +29,6 @@ ln -sf `pwd`/tmux/tmux.conf.dotfile ~/.tmux.conf
 ----
 
 See the {uri-tmux-manual}[tmux manual] for configuration details.
-
-=== VIM
-
-Assuming VIM is installed:
-
-. Create symlink in `$HOME` to the local `vimrc.dotfile`
-+
-[source, bash]
-----
-cd dotfiles
-ln -sf `pwd`/vim/vimrc.dotfile ~/.vimrc
-----
 
 === Zsh
 

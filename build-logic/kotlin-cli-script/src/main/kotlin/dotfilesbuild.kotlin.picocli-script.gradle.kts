@@ -17,8 +17,8 @@ tasks {
     kotlinOptions {
       jvmTarget = "11"
       freeCompilerArgs += listOf("-progressive")
-    }
   }
+    }
 
   withType<Test>().configureEach {
     useJUnitPlatform()

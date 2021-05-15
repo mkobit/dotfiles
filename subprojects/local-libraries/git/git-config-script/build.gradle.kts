@@ -16,7 +16,7 @@ dependencies {
 tasks {
   test {
     val testData = layout.projectDirectory.dir("testData")
-    inputs.files(testData.asFileTree).withPropertyName("testData")
+    inputs.dir(testData).withPropertyName("testData")
     environment("TEST_DATA_DIR", testData)
   }
 }

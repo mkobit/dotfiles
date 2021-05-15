@@ -23,6 +23,9 @@ interface GitConfigScript
 
 @ExperimentalStdlibApi
 object GitConfigScriptCompilationConfiguration : ScriptCompilationConfiguration({
+  providedProperties(
+    "configurations" to typeOf<Map<Path, List<Section>>>()
+  )
   jvm {
     // configure dependencies for compilation, they should contain at least the script base class and
     // its dependencies
@@ -45,10 +48,6 @@ object GitConfigScriptCompilationConfiguration : ScriptCompilationConfiguration(
       "io.mkobit.git.config.*", // section types
     )
 
-    val configurationsType = typeOf<Map<Path, List<Section>>>()
-    providedProperties(
-        "configurations" to configurationsType
-    )
   }
 })
 

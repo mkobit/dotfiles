@@ -1,19 +1,21 @@
-import dotfilesbuild.utilities.home
-import dotfilesbuild.utilities.projectFile
-import dotfilesbuild.io.file.Symlink
-
 plugins {
   id("dotfilesbuild.dotfiles-lifecycle")
-  id("dotfilesbuild.io.noop")
 }
 
 tasks {
-  val symlinkVimrcConf by registering(Symlink::class) {
-    source.set(projectFile("config/vimrc.dotfile"))
-    destination.set(home.file(".vimrc"))
+  val stageVimFiles by registering(Sync::class) {
+    from(layout.projectDirectory.dir("config"))
+    into(layout.buildDirectory.dir("generated-vim-config-staging"))
+  }
+
+  val syncStaged by registering(Sync::class) {
+    from(stageVimFiles)
+    into(layout.buildDirectory.dir("generated-vim-config"))
   }
 
   dotfiles {
-    dependsOn(symlinkVimrcConf)
+    // add directive to ~/.vimrc to vim file
+    // :source <path>
+    dependsOn(syncStaged)
   }
 }
