@@ -1,19 +1,21 @@
-import dotfilesbuild.utilities.home
-import dotfilesbuild.utilities.projectFile
-import dotfilesbuild.io.file.Symlink
-
 plugins {
   id("dotfilesbuild.dotfiles-lifecycle")
-  id("dotfilesbuild.io.noop")
 }
 
 tasks {
-  val symlinkTmuxConf by registering(Symlink::class) {
-    source.set(projectFile("config/tmux.conf.dotfile"))
-    destination.set(home.file(".tmux.conf"))
+  val stageTmuxFiles by registering(Sync::class) {
+    from(layout.projectDirectory.dir("config"))
+    into(layout.buildDirectory.dir("generated-tmux-config-staging"))
+  }
+
+  val syncStaged by registering(Sync::class) {
+    from(stageTmuxFiles)
+    into(layout.buildDirectory.dir("generated-tmux-config"))
   }
 
   dotfiles {
-    dependsOn(symlinkTmuxConf)
+    // add directive to ~/.tmux.conf tmux configuration file
+    // source-file <path>
+    dependsOn(syncStaged)
   }
 }
