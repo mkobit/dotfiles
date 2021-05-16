@@ -35,11 +35,11 @@ dependencies {
   implementation(kotlin("stdlib"))
   implementation(kotlin("stdlib-jdk8"))
 
-  testImplementation("io.strikt:strikt-core:0.30.1")
+  testImplementation("io.strikt:strikt-core:0.31.0")
   testImplementation("dev.minutest:minutest:1.13.0")
 
-  val junitJupiterVersion = "5.7.1"
-  val junitPlatformVersion = "1.7.1"
+  val junitJupiterVersion = "5.7.2"
+  val junitPlatformVersion = "1.7.2"
   val log4jVersion = "2.14.1"
   listOf(
     "org.junit.platform:junit-platform-runner:$junitPlatformVersion",

@@ -16,6 +16,7 @@ import kotlin.io.path.div
 import kotlin.io.path.writeText
 import kotlin.system.exitProcess
 
+@ExperimentalStdlibApi
 @CommandLine.Command(
   name = "generateSshConfig",
   mixinStandardHelpOptions = true,
@@ -71,5 +72,6 @@ internal class GenerateSshConfig : Callable<Int> {
 
 private fun Path.isChildOf(path: Path): Boolean = normalize().startsWith(path.normalize())
 
+@ExperimentalStdlibApi
 @ExperimentalPathApi
 fun main(args: Array<String>): Unit = exitProcess(CommandLine(GenerateSshConfig()).execute(*args))

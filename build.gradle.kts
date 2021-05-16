@@ -7,7 +7,7 @@ plugins {
 }
 
 buildScan {
-    termsOfServiceUrl = "https://gradle.com/terms-of-service"
+  termsOfServiceUrl = "https://gradle.com/terms-of-service"
   termsOfServiceAgree = "yes"
 }
 
@@ -46,6 +46,6 @@ tasks {
   }
 
   wrapper {
-    gradleVersion = "7.0"
+    gradleVersion = "7.0.2"
   }
 }

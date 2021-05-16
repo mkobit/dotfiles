@@ -12,6 +12,7 @@ import kotlin.script.experimental.jvmhost.BasicJvmScriptingHost
 import kotlin.script.experimental.jvmhost.createJvmCompilationConfigurationFromTemplate
 import kotlin.script.experimental.jvmhost.createJvmEvaluationConfigurationFromTemplate
 
+@ExperimentalStdlibApi
 @ExperimentalPathApi
 fun execute(scriptFile: Path, configurations: Map<Path, List<HostConfig>>): Map<Path, List<HostConfig>> {
   val result = BasicJvmScriptingHost().eval(
@@ -24,7 +25,7 @@ fun execute(scriptFile: Path, configurations: Map<Path, List<HostConfig>>): Map<
     }
   )
 
-  val evalResult = result.valueOr { throw RuntimeException("failure: $$it",) }
+  val evalResult = result.valueOr { throw RuntimeException("failure: $$it") }
   when (val returnValue = evalResult.returnValue) {
     is ResultValue.Value -> {
       @Suppress("UNCHECKED_CAST")
