@@ -19,6 +19,7 @@ val syncToHomeFiles by tasks.registering(Sync::class) {
   into(home.dir(".dotfiles/"))
 }
 
+// todo: these tasks belows should ideally not be needed to separate config scripts
 val aggregateSshFiles by tasks.registering(Sync::class) {
   from(syncFromHomeFiles)
   into(layout.buildDirectory.dir("shell/ssh"))

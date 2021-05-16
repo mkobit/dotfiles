@@ -26,6 +26,10 @@ object GitConfigScriptCompilationConfiguration : ScriptCompilationConfiguration(
   providedProperties(
     "configurations" to typeOf<Map<Path, List<Section>>>()
   )
+  defaultImports(
+    "kotlin.io.path.Path",
+    "io.mkobit.git.config.*", // section types
+  )
   jvm {
     // configure dependencies for compilation, they should contain at least the script base class and
     // its dependencies
@@ -42,12 +46,6 @@ object GitConfigScriptCompilationConfiguration : ScriptCompilationConfiguration(
 //            dependenciesFromClassloader(classLoader = SimpleScript::class.java.classLoader, wholeClasspath = true)
     // variant 4: explicit classpath
 //            updateClasspath(listOf(File("/path/to/jar")))
-
-    defaultImports(
-      "kotlin.io.path.Path",
-      "io.mkobit.git.config.*", // section types
-    )
-
   }
 })
 

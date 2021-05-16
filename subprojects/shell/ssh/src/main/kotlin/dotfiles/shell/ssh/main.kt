@@ -10,6 +10,7 @@ import java.nio.file.Path
 import kotlin.io.path.Path
 import java.util.concurrent.Callable
 import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.absolute
 import kotlin.io.path.createDirectories
 import kotlin.io.path.div
 import kotlin.io.path.writeText
@@ -35,8 +36,7 @@ internal class GenerateSshConfig : Callable<Int> {
   var configFiles: List<Path> = emptyList()
 
   override fun call(): Int {
-    val configDir = Path("config.d")
-    val sshd = outputDir / configDir
+    val sshd = outputDir / Path("config.d")
     sshd.createDirectories()
     val commonAll = Path("common_all_hosts")
     val mkobit = Path("mkobit_github")
@@ -61,7 +61,7 @@ internal class GenerateSshConfig : Callable<Int> {
     val includes = outputDir / "includes"
     includes.writeText(
       SshConfig(
-        includes = configurations.keys.map { configDir / it }
+        includes = configurations.keys.map {  sshd / it }.map { it.absolute() } // paths must be absolute or else Ssh config relatives it to the ~/.ssh directory
       ).asText()
     )
 

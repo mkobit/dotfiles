@@ -4,37 +4,51 @@ import io.mkobit.ssh.config.HostConfig
 import io.mkobit.ssh.config.SshConfig
 import java.nio.file.Path
 import kotlin.io.path.ExperimentalPathApi
-import kotlin.io.path.Path
-import kotlin.reflect.KTypeProjection
-import kotlin.reflect.full.createType
+import kotlin.reflect.typeOf
 import kotlin.script.experimental.annotations.KotlinScript
 import kotlin.script.experimental.api.ScriptCompilationConfiguration
 import kotlin.script.experimental.api.ScriptEvaluationConfiguration
 import kotlin.script.experimental.api.defaultImports
-import kotlin.script.experimental.api.hostConfiguration
 import kotlin.script.experimental.api.providedProperties
 import kotlin.script.experimental.jvm.dependenciesFromCurrentContext
 import kotlin.script.experimental.jvm.jvm
 
+@ExperimentalStdlibApi
 @KotlinScript(
   fileExtension = "ssh.kts",
   compilationConfiguration = SshConfigScriptCompilationConfiguration::class,
   evaluationConfiguration = SshConfigScriptEvaluationConfiguration::class,
 )
 @ExperimentalPathApi
-interface SshConfigScript {
-  fun homeDir(): Path = Path(System.getProperty("user.home"))
-}
+interface SshConfigScript
 
+@ExperimentalStdlibApi
 object SshConfigScriptCompilationConfiguration : ScriptCompilationConfiguration({
+  defaultImports(
+    HostConfig::class,
+    SshConfig::class,
+  )
+
+  defaultImports(
+    "kotlin.io.path.Path",
+    "kotlin.io.path.div",
+    "io.mkobit.ssh.config.HostConfig",
+    "io.mkobit.ssh.config.SshConfig",
+  )
+
+  providedProperties(
+    "configurations" to typeOf<Map<Path, List<HostConfig>>>(),
+  )
   jvm {
     // configure dependencies for compilation, they should contain at least the script base class and
     // its dependencies
     // variant 1: try to extract current classpath and take only a path to the specified "script.jar"
-    dependenciesFromCurrentContext(
-      "ssh-config-generator",
-      "ssh-script-definition", /* script library jar name (exact or without a version) */
-    )
+//    dependenciesFromCurrentContext(
+//      "kotlin-stdlib-jdk7", // kotlin.io.path.Path
+//      "ssh-config-generator",
+//      "ssh-script-definition", /* script library jar name (exact or without a version) */
+//    )
+    dependenciesFromCurrentContext(wholeClasspath = true)
     // variant 2: try to extract current classpath and use it for the compilation without filtering
 //            dependenciesFromCurrentContext(wholeClasspath = true)
     // variant 3: try to extract a classpath from a particular classloader (or Thread.contextClassLoader by default)
@@ -42,29 +56,6 @@ object SshConfigScriptCompilationConfiguration : ScriptCompilationConfiguration(
 //            dependenciesFromClassloader(classLoader = SimpleScript::class.java.classLoader, wholeClasspath = true)
     // variant 4: explicit classpath
 //            updateClasspath(listOf(File("/path/to/jar")))
-
-    defaultImports(
-      HostConfig::class,
-      SshConfig::class,
-    )
-
-    defaultImports(
-      "kotlin.io.path.Path",
-    )
-
-    val configurationsType = Map::class.createType(
-      arguments = listOf(
-        KTypeProjection.invariant(Path::class.createType()),
-        KTypeProjection.invariant(
-          List::class.createType(
-            arguments = listOf(KTypeProjection.invariant(HostConfig::class.createType()))
-          )
-        ),
-      )
-    )
-    providedProperties(
-        "configurations" to configurationsType
-    )
   }
 })
 
