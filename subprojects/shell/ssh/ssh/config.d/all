@@ -1,6 +1,0 @@
-Host *
-    ControlPath "~/.ssh/controlMaster/%r@%h:%p"
-    ControlMaster auto
-    ControlPersist 10m
-    ServerAliveCountMax 18
-    ServerAliveInterval 10
