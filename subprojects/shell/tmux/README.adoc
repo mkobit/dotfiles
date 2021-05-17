@@ -1,0 +1,13 @@
+= TMU
+
+== Resources
+
+* link:https://wiki.archlinux.org/title/Tmux[]
+* link:https://github.com/rothgar/awesome-tmux[]
+* link:https://superuser.com/questions/758843/difference-between-global-server-session-and-window-options[Difference between global, server, session and window options]
+* link:https://github.com/sbernheim4/dotfiles/blob/master/tmux/.tmux.conf[]
+* link:https://github.com/dracula/tmux[]
+
+== TODO
+
+* link:https://github.com/gwarf/dotfiles/blob/master/tmux.conf[]
