@@ -3,7 +3,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 plugins {
   java
   application
-  // id("org.jlleitschuh.gradle.ktlint")
   id("dotfilesbuild.kotlin.library")
 }
 
@@ -34,7 +33,7 @@ dependencies {
 }
 
 application {
-  mainClassName = "com.mkobit.personalassistant.Main"
+  mainClass.set("com.mkobit.personalassistant.Main")
 }
 
 java {
