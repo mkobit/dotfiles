@@ -3,15 +3,7 @@ import org.jetbrains.kotlin.gradle.plugin.KotlinSourceSet
 plugins {
   `java-library`
   id("dotfilesbuild.kotlin.library")
-//  id("org.jlleitschuh.gradle.ktlint")
 }
-
-//ktlint {
-//  filter {
-////    exclude("**/generated-source/**") Don't know why this isn't working
-//    exclude("**/*")
-//  }
-//}
 
 val generationDir = file("$buildDir/generated-source")
 sourceSets {
@@ -27,10 +19,6 @@ val generatorClasspath by configurations.creating
 dependencies {
   generatorClasspath(projects.experimental.chromeDebugProtocolGenerator)
   api(libs.jackson.core.annotations)
-}
-
-java {
-  sourceCompatibility = JavaVersion.VERSION_11
 }
 
 tasks {
