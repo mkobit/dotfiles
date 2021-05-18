@@ -7,6 +7,8 @@ plugins {
   id("dotfilesbuild.version-catalog")
 }
 
+includeBuild("build-logic")
+
 rootProject.name = "dotfiles"
 
 dependencyResolutionManagement {
@@ -15,8 +17,6 @@ dependencyResolutionManagement {
     jcenter()
   }
 }
-
-includeBuild("build-logic")
 
 "shell".let {
   include("$it:aggregator")
