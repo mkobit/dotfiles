@@ -5,7 +5,6 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   `java-library`
-  //  kotlin("jvm") this doesn't seem to work
   id("org.jetbrains.kotlin.jvm")
 }
 
@@ -17,7 +16,6 @@ tasks {
   withType<KotlinCompile>().configureEach {
     kotlinOptions {
       jvmTarget = "11"
-      useIR = true
       freeCompilerArgs += listOf("-progressive")
     }
   }
