@@ -216,3 +216,9 @@ function! HasPaste()
     endif
     return ''
 endfunction
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" => Other settings (no categorization yet)
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"Disable ftplugin/gitcommit.vim textwidth
+autocmd FileType gitcommit setlocal textwidth=0
