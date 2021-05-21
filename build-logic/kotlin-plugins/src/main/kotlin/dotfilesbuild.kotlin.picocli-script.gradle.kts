@@ -5,7 +5,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   application
-  kotlin("jvm")
+  id("org.jetbrains.kotlin.jvm")
 }
 
 java {
@@ -31,7 +31,6 @@ tasks {
 
 dependencies {
   implementation("info.picocli:picocli:4.6.1")
-  implementation("com.typesafe:config:1.4.1")
   implementation(kotlin("stdlib"))
   implementation(kotlin("stdlib-jdk8"))
 
