@@ -221,4 +221,7 @@ endfunction
 " => Other settings (no categorization yet)
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "Disable ftplugin/gitcommit.vim textwidth
-autocmd FileType gitcommit setlocal textwidth=0
+augroup filetype_gitcommit
+  autocmd!
+  autocmd FileType gitcommit setlocal textwidth=0
+augroup END
