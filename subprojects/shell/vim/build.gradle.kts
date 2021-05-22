@@ -25,7 +25,9 @@ repositories {
 val vimPlugins by configurations.creating
 
 dependencies {
-  vimPlugins("junegunn:vim-plug:master@zip")
+  vimPlugins("junegunn:vim-plug:master@zip") {
+    isChanging = true
+  }
 }
 
 
