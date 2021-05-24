@@ -2,9 +2,9 @@
 " => Plugins
 """""""""""""""""""""""""""""""""""""""
 try
-  let s:vimPlugPath = expand('%:p:h:h') . "/vim-plug/plug.vim"
-  execute "source " . s:vimPlugPath
-  let s:pluginsPath = expand('%:p:h:h') . "/vim-plugged-plugins"
+  let s:vimPlugPath = expand('<sfile>:p:h:h') . '/vim-plug/plug.vim'
+  execute 'source ' . s:vimPlugPath
+  let s:pluginsPath = expand('<sfile>:p:h:h') . '/vim-plugged-plugins'
   call plug#begin(s:pluginsPath)
   Plug 'fatih/vim-go'
   Plug 'vim-airline/vim-airline'
@@ -152,7 +152,8 @@ set magic
 set laststatus=2
 
 " Format the status line
-set statusline=\ %{HasPaste()}%F%m%r%h\ %w\ \ CWD:\ %r%{getcwd()}%h\ \ \ Line:\ %l\ \ Column:\ %c
+"set statusline=\ %{HasPaste()}%F%m%r%h\ %w\ \ CWD:\ %r%{getcwd()}%h\ \ \ Line:\ %l\ \ Column:\ %c
+"Done with VIM plugin now
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => Moving around, tabs, windows and buffers
