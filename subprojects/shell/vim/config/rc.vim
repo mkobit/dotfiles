@@ -10,6 +10,8 @@ try
   Plug 'vim-airline/vim-airline'
   Plug 'google/vim-maktaba'
   Plug 'bazelbuild/vim-bazel'
+  Plug 'udalov/kotlin-vim'
+  Plug 'preservim/nerdtree'
   call plug#end()
 catch
   echom "Could not load vim-plug installation"
@@ -19,7 +21,7 @@ endtry
 " => General
 """""""""""""""""""""""""""""""""""""""
 " Amount of lines of history for VIM to remember
-set history=4000
+set history=10000
 
 " Enable filetype plugins
 filetype plugin on
@@ -182,6 +184,12 @@ map 0 ^
 " Toggle paste mode on and off
 map <leader>pp :setlocal paste!<cr>
 
+" Switch between different windows by their direction`
+noremap <C-j> <C-w>j
+noremap <C-k> <C-w>k
+noremap <C-l> <C-w>l
+noremap <C-h> <C-w>h
+
 """""""""""""""""""""""""""""""""""""""
 " => Normal and Visual Mode Mappings
 """""""""""""""""""""""""""""""""""""""
@@ -244,4 +252,26 @@ endfunction
 augroup filetype_gitcommit
   autocmd!
   autocmd FileType gitcommit setlocal textwidth=0
+augroup END
+
+"""""""""""""""""""""""""""""""""""""""
+" => NERDTree plugin
+"""""""""""""""""""""""""""""""""""""""
+nnoremap <C-q> :NERDTreeToggle<CR>
+nnoremap <leader>q :NERDTreeFocus<CR>
+nnoremap <C-f> :NERDTreeFind<CR>
+" > If you are using vim-plug, you'll also need to add these lines to avoid crashes when calling vim-plug functions while the cursor is on the NERDTree window:
+let g:plug_window = 'noautocmd vertical topleft new'
+" Show hidden files
+let NERDTreeShowHidden=1
+augroup nerdtree
+  " Start NERDTree when Vim is started without file arguments.
+  autocmd StdinReadPre * let s:std_in=1
+  autocmd VimEnter * if argc() == 0 && !exists('s:std_in') | NERDTree | endif
+  " Exit Vim if NERDTree is the only window left.
+  autocmd BufEnter * if tabpagenr('$') == 1 && winnr('$') == 1 && exists('b:NERDTree') && b:NERDTree.isTabTree() |
+      \ quit | endif
+  " If another buffer tries to replace NERDTree, put it in the other window, and bring back NERDTree.
+  autocmd BufEnter * if bufname('#') =~ 'NERD_tree_\d\+' && bufname('%') !~ 'NERD_tree_\d\+' && winnr('$') > 1 |
+      \ let buf=bufnr() | buffer# | execute "normal! \<C-W>w" | execute 'buffer'.buf | endif
 augroup END
