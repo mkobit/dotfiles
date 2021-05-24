@@ -7,8 +7,6 @@ plugins {
   id("dotfilesbuild.dotfiles-lifecycle")
 }
 
-val vimPluginsDir = layout.buildDirectory.dir("vim-plugin-downloads")
-
 repositories {
   exclusiveContent {
     forRepository {
@@ -63,7 +61,7 @@ abstract class Unzip : TransformAction<TransformParameters.None> {
 val artifactType = Attribute.of("artifactType", String::class.java)
 val unpacked = Attribute.of("unpacked", Boolean::class.javaObjectType)
 
-val vimPlugins by configurations.creating {
+val vimPlug by configurations.creating {
   attributes.attribute(unpacked, true)
 }
 
@@ -78,25 +76,37 @@ dependencies {
   artifactTypes.register("zip") {
     attributes.attribute(unpacked, false)
   }
-  vimPlugins("junegunn:vim-plug:master@zip") {
+  vimPlug("junegunn:vim-plug:master@zip") {
     isChanging = true
   }
 }
 
 tasks {
-  val unpackVimPlugins by registering(Sync::class) {
-    from(vimPlugins)
-    into(vimPluginsDir)
+  val unpackVimPlug by registering(Sync::class) {
+    from(vimPlug)
+    into(layout.buildDirectory.dir("vim-plug-source"))
+  }
+
+  val extractVimPlugFileIntoAutoload by registering(Sync::class) {
+    from(unpackVimPlug)
+    into(layout.buildDirectory.dir("vim-plug"))
+    include("**/plug.vim")
+    eachFile {
+      relativePath = RelativePath(true, *relativePath.segments.drop(1).toTypedArray())
+    }
+    includeEmptyDirs = false
   }
 
   val stageVimFiles by registering(Sync::class) {
     from(layout.projectDirectory.dir("config"))
     into(layout.buildDirectory.dir("generated-vim-config-staging"))
+    dependsOn(extractVimPlugFileIntoAutoload)
   }
 
   val syncStaged by registering(Sync::class) {
     from(stageVimFiles)
     into(layout.buildDirectory.dir("generated-vim-config"))
+    dependsOn(extractVimPlugFileIntoAutoload)
   }
 
   dotfiles {

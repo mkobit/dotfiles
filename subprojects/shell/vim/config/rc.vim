@@ -1,4 +1,21 @@
 """""""""""""""""""""""""""""""""""""""
+" => Plugins
+"""""""""""""""""""""""""""""""""""""""
+try
+  let s:vimPlugPath = expand('%:p:h:h') . "/vim-plug/plug.vim"
+  execute "source " . s:vimPlugPath
+  let s:pluginsPath = expand('%:p:h:h') . "/vim-plugged-plugins"
+  call plug#begin(s:pluginsPath)
+  Plug 'fatih/vim-go'
+  Plug 'vim-airline/vim-airline'
+  Plug 'google/vim-maktaba'
+  Plug 'bazelbuild/vim-bazel'
+  call plug#end()
+catch
+  echom "Could not load vim-plug installation"
+endtry
+
+"""""""""""""""""""""""""""""""""""""""
 " => General
 """""""""""""""""""""""""""""""""""""""
 " Amount of lines of history for VIM to remember
@@ -10,7 +27,9 @@ filetype indent on
 
 " Auto read when a file is changed from the outside
 set autoread
-autocmd FocusGained,BufEnter * checktime
+augroup external_editor
+  autocmd FocusGained,BufEnter * checktime
+augroup END
 
 " Set utf8 as standard encoding
 set encoding=utf8
