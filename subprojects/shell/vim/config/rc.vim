@@ -45,6 +45,21 @@ set timeoutlen=750
 " Use Unix as the standard file type
 set fileformats=unix,dos,mac
 
+" Put swap files, backups, and undos somewhere else
+set backupdir=~/.vim/backup//
+set directory=~/.vim/swap//
+set undodir=~/.vim/undo//
+if !isdirectory(expand('~/.vim/backup/'))
+  call mkdir('~/.vim/backup/', "p")
+endif
+if !isdirectory(expand('~/.vim/swap/'))
+  call mkdir(expand('~/.vim/swap/'), "p")
+endif
+if !isdirectory(expand('~/.vim/undo/'))
+  call mkdir(expand('~/.vim/undo/'), "p")
+endif
+silent !mkdir  > /dev/null 2>&1
+
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " => UI
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
