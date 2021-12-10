@@ -1,6 +1,5 @@
 package dotfilesbuild.io.file
 
-import mu.KotlinLogging
 import org.gradle.api.DefaultTask
 import org.gradle.api.InvalidUserDataException
 import org.gradle.api.file.FileSystemLocation
@@ -18,9 +17,7 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import javax.inject.Inject
 
-private val log = KotlinLogging.logger { }
 // TODO: figure out how to support symlink of dir and file in same task
-
 open class Symlink @Inject constructor(
   projectLayout: ProjectLayout,
   objectFactory: ObjectFactory
@@ -56,12 +53,12 @@ open class Symlink @Inject constructor(
 
   private fun symlink(source: Path, destination: Path) {
     if (Files.isSymbolicLink(destination)) {
-      log.info("{} is an existing symbolic link, deleting before recreating", destination)
+      project.logger.info("{} is an existing symbolic link, deleting before recreating", destination)
       Files.delete(destination)
     } else if (Files.exists(destination, LinkOption.NOFOLLOW_LINKS)) {
       throw InvalidUserDataException("$destination already exists, and isn't a symlink.")
     }
-    log.info("Creating symbolic link at {} for {}", destination, source)
+    project.logger.info("Creating symbolic link at {} for {}", destination, source)
     Files.createSymbolicLink(destination, source)
   }
 }

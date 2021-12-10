@@ -5,7 +5,7 @@ plugins {
 dependencies {
   // https://github.com/gradle/gradle/issues/9282
   fun gradlePlugin(id: String, version: String): String = "$id:$id.gradle.plugin:$version"
-  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.5.0"))
+  implementation(gradlePlugin("org.jetbrains.kotlin.jvm", "1.6.0"))
 
   // hack to make catalog available in precompiled scripts
   // see https://github.com/gradle/gradle/issues/15383

@@ -24,6 +24,7 @@ abstract class HashWorkAction : WorkAction<HashWorkParameters> {
     Files.writeString(outputPath, outputBytes.toHexString())
   }
 
+  @ExperimentalUnsignedTypes
   private fun ByteArray.toHexString() =
     asUByteArray()
       .joinToString("") {

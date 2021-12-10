@@ -1,6 +1,5 @@
 package dotfilesbuild.io.http
 
-import mu.KotlinLogging
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.Response
@@ -26,10 +25,6 @@ open class Download @Inject constructor(
   objectFactory: ObjectFactory
 ) : DefaultTask() {
 
-  companion object {
-    private val log = KotlinLogging.logger {}
-  }
-
   @get:Input
   val url: Property<String> = objectFactory.property()
 
@@ -45,7 +40,7 @@ open class Download @Inject constructor(
     val destinationFile = destination.asFile.get()
     if (destinationFile.exists()) {
       // TODO: up-to-date checking instead?
-      log.info { "File at $destinationFile already exists, skipping download" }
+      logger.info("File at {}} already exists, skipping download", destinationFile)
       return
     }
     val client = OkHttpClient.Builder()
@@ -55,22 +50,22 @@ open class Download @Inject constructor(
       .url(url.get())
       .build()
 
-    log.info { "Issuing ${request.method} to ${request.url}" }
+    logger.info("Issuing {} to {}", request.method, request.url)
     client.newCall(request).execute().use {
-      log.info { "Response code ${it.code} from ${it.request.url}" }
+      logger.info("Response code {} from {}", it.code, it.request.url)
       if (it.isNotSuccessful) {
         throw GradleException("Could not download file from ${it.request.url} - exited with code ${it.code} and message ${it.message}")
       }
-      it.header("Content-Length")?.let {
-        log.info { "Content-Length header value: $it" }
+      it.header("Content-Length")?.let { contentLength ->
+        logger.info("Content-Length header value: {}", contentLength)
       }
-      log.info { "Saving response from ${it.request.url} to $destinationFile" }
+      logger.info("Saving response from {} to {}", it.request.url, destinationFile)
       destinationFile.sink().buffer().use { sink ->
         sink.writeAll(it.body!!.source())
       }
     }
     if (executable.getOrElse(false)) {
-      log.info { "Marking $destinationFile as executable" }
+      logger.info("Marking {} as executable", destinationFile)
       val destinationPath = destinationFile.toPath()
       val currentPermission = Files.getPosixFilePermissions(destinationPath)
       Files.setPosixFilePermissions(

@@ -3,7 +3,6 @@ plugins {
 }
 
 dependencies {
-  implementation(libs.kotlinLogging)
   implementation(libs.arrow.core)
   implementation(libs.okhttp.client)
 

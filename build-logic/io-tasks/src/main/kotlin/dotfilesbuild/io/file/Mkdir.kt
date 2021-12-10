@@ -1,6 +1,5 @@
 package dotfilesbuild.io.file
 
-import mu.KotlinLogging
 import org.gradle.api.DefaultTask
 import org.gradle.api.file.DirectoryProperty
 import org.gradle.api.model.ObjectFactory
@@ -13,10 +12,6 @@ import javax.inject.Inject
 open class Mkdir @Inject constructor(
   objectFactory: ObjectFactory
 ) : DefaultTask() {
-
-  companion object {
-    private val LOGGER = KotlinLogging.logger {}
-  }
 
   @get:Internal
   val directory: DirectoryProperty = objectFactory.directoryProperty()
@@ -32,7 +27,7 @@ open class Mkdir @Inject constructor(
 
   @TaskAction
   fun createDir() {
-    LOGGER.info { "Creating directory at $directory" }
+    logger.info("Creating directory at {}", directory)
     Files.createDirectories(directoryFile.toPath())
   }
 }
