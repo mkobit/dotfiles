@@ -7,6 +7,7 @@ import io.mkobit.git.config.Commit
 import io.mkobit.git.config.Core
 import io.mkobit.git.config.Diff
 import io.mkobit.git.config.Fetch
+import io.mkobit.git.config.Init
 import io.mkobit.git.config.Interactive
 import io.mkobit.git.config.Merge
 import io.mkobit.git.config.Pager
@@ -73,6 +74,9 @@ internal fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
   ),
   Fetch(
     prune = true,
+  ),
+  Init(
+    defaultBranch = "main"
   ),
   Interactive(
     diffFilter = diffProgram

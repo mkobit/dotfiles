@@ -212,6 +212,15 @@ data class Gpg(
     )
 }
 
+data class Init(
+  val defaultBranch: String? = null
+) : Section {
+  override val name: String
+    get() = "init"
+  override val options: Map<String, Any>
+    get() = prunedMapOf("defaultBranch" to defaultBranch)
+}
+
 // TODO: escape paths in output
 // TODO: better handle include dirs that should be suffixed with '/' since that translates to '/**'
 sealed class Include : Section {
