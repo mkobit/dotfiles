@@ -73,6 +73,7 @@ internal fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
     autoCrlf = Core.AutoCrlf.INPUT,
     editor = "vim",
     excludesFile = excludesFile,
+    fsmonitor = true,
   ),
   Diff(
     compactionHeuristic = true,

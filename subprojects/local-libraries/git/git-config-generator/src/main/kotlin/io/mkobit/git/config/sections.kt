@@ -99,11 +99,13 @@ data class Column(
 /**
  * @param autoCrlf
  * @param eol `auto`, `native`, `true`, `input` or `false`
+ * @param fsmonitor see [git-config](https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor)
  */
 data class Core(
   val autoCrlf: AutoCrlf? = null,
   val editor: String? = null,
   val excludesFile: Path? = null,
+  val fsmonitor: Boolean? = null,
   val eol: String? = null,
   val safecrlf: String? = null
 ) : Section {
