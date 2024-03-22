@@ -3,6 +3,7 @@ package dotfiles.shell.git
 import io.mkobit.git.config.Alias
 import io.mkobit.git.config.Branch
 import io.mkobit.git.config.Color
+import io.mkobit.git.config.Column
 import io.mkobit.git.config.Commit
 import io.mkobit.git.config.Core
 import io.mkobit.git.config.Diff
@@ -55,11 +56,15 @@ internal fun generalGitConfig(excludesFile: Path): List<Section> = listOf(
   ),
   Branch(
     autoSetUpRebase = Branch.AutoSetUpRebase.ALWAYS,
+    sort = "-committerdate", // reverse committer date
   ),
   Color(
     branch = true,
     status = true,
     ui = true,
+  ),
+  Column(
+    ui = Column.Ui.AUTO,
   ),
   Commit(
     verbose = true,
@@ -113,7 +118,6 @@ private val diffProgram: String by lazy {
   when {
     listOf("mac os x", "darwin", "osx").any { os.contains(it) } -> "/usr/local/opt/git/share/git-core/contrib/diff-highlight/diff-highlight" // todo: locate dynamically
     os.contains("linux") -> "diff" // todo: figure out better way to install diff-highlight for ubuntu
-    else -> TODO("unsupported operating system $os")
+    else -> "diff"
   }
-//  "diff-highlight"
 }

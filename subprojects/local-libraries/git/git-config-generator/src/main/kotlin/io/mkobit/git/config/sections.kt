@@ -123,7 +123,7 @@ data class Core(
 
   override val options: Map<String, Any>
     get() = prunedMapOf(
-      "autocrlf" to autoCrlf?.name?.toLowerCase(),
+      "autocrlf" to autoCrlf?.name?.lowercase(),
       "editor" to editor,
       "excludesFile" to excludesFile,
       "eol" to eol,
@@ -167,7 +167,8 @@ data class Alias(
 }
 
 data class Branch(
-  val autoSetUpRebase: AutoSetUpRebase? = null
+  val autoSetUpRebase: AutoSetUpRebase? = null,
+  val sort: String? = null, // todo: change to field names - https://git-scm.com/docs/git-for-each-ref#_field_names
 ) : Section {
   override val name: String
     get() = "branch"
@@ -187,9 +188,11 @@ data class Branch(
     REMOTE,
     ALWAYS,
   }
+
   override val options: Map<String, Any>
     get() = prunedMapOf(
-      "autoSetupRebase" to autoSetUpRebase?.name?.toLowerCase()
+      "autoSetupRebase" to autoSetUpRebase?.name?.lowercase(),
+      "sort" to sort,
     )
 }
 
@@ -308,7 +311,7 @@ data class Merge(
     get() = "merge"
   override val options: Map<String, Any>
     get() = prunedMapOf(
-      "ff" to fastForward?.name?.toLowerCase()
+      "ff" to fastForward?.name?.lowercase()
     )
 }
 
@@ -352,7 +355,7 @@ data class Pull(
   }
   override val options: Map<String, Any>
     get() = prunedMapOf(
-      "rebase" to rebase?.name?.toLowerCase()
+      "rebase" to rebase?.name?.lowercase()
     )
 }
 
@@ -411,7 +414,7 @@ data class Push(
 
   override val options: Map<String, Any>
     get() = prunedMapOf(
-      "default" to default?.name?.toLowerCase()
+      "default" to default?.name?.lowercase()
     )
 }
 
