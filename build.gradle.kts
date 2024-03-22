@@ -1,14 +1,9 @@
 import dotfilesbuild.utilities.home
 
 plugins {
-  id("com.github.ben-manes.versions") version "0.39.0"
+  id("com.github.ben-manes.versions") version "0.51.0"
   id("org.jetbrains.gradle.plugin.idea-ext") version "1.1.1" apply false
   id("dotfilesbuild.dotfiles-lifecycle") // todo: propbably should be removed
-}
-
-buildScan {
-  termsOfServiceUrl = "https://gradle.com/terms-of-service"
-  termsOfServiceAgree = "yes"
 }
 
 description = "Dotfiles and package management"
@@ -46,6 +41,6 @@ tasks {
   }
 
   wrapper {
-    gradleVersion = "7.3.1"
+    gradleVersion = "8.6"
   }
 }

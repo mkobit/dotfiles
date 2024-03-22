@@ -12,7 +12,6 @@ dependencyResolutionManagement {
   repositories {
     mavenCentral()
     gradlePluginPortal()
-    jcenter()
   }
 }
 

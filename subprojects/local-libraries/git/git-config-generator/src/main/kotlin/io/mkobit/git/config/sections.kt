@@ -67,6 +67,36 @@ data class Commit(
 }
 
 /**
+ * See the [git-scm book](https://git-scm.com/docs/git-column).
+ */
+data class Column(
+  val ui: Ui? = null,
+) : Section {
+  enum class Ui {
+    /**
+     * Always show in columns
+     */
+    ALWAYS,
+
+    /**
+     * Never show in columns
+     */
+    NEVER,
+    /**
+     * show in columns if the output is to the terminal
+     */
+    AUTO,
+  }
+
+  override val name: String
+    get() = "column"
+  override val options: Map<String, Any>
+    get() = prunedMapOf(
+      "ui" to ui,
+    )
+}
+
+/**
  * @param autoCrlf
  * @param eol `auto`, `native`, `true`, `input` or `false`
  */

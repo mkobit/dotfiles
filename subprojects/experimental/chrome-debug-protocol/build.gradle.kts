@@ -6,14 +6,6 @@ plugins {
 }
 
 val generationDir = file("$buildDir/generated-source")
-sourceSets {
-  main {
-    withConvention(KotlinSourceSet::class) {
-      kotlin.srcDir(generationDir)
-    }
-  }
-}
-
 val generatorClasspath by configurations.creating
 
 dependencies {
@@ -44,7 +36,7 @@ tasks {
     inputs.property("basePackage", basePackage)
     outputs.dir(generationDir)
     classpath = generatorClasspath
-    main = "com.mkobit.cdp.Main"
+    mainClass = "com.mkobit.cdp.Main"
     args(
         "--basePackage", "com.mkobit.cdp",
         "--protocolJson", browserProtocol.get().asFile,
@@ -53,7 +45,7 @@ tasks {
     )
   }
 
-  (sourceSets.main.get().getCompileTaskName("kotlin")) {
-    dependsOn(generateCDP)
-  }
+//  (sourceSets.main.get().getCompileTaskName("kotlin")) {
+//    dependsOn(generateCDP)
+//  }
 }

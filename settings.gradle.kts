@@ -3,7 +3,6 @@ pluginManagement {
 }
 
 plugins {
-  id("com.gradle.enterprise") version "3.7.2"
   id("dotfilesbuild.version-catalog")
 }
 
@@ -14,7 +13,6 @@ rootProject.name = "dotfiles"
 dependencyResolutionManagement {
   repositories {
     mavenCentral()
-    jcenter()
   }
 }
 
@@ -61,7 +59,6 @@ rootProject.children.forEach { project -> configureSubproject(project) }
 apply(from = file("gradle/buildCache.settings.gradle.kts"))
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
-enableFeaturePreview("VERSION_CATALOGS")
 
 fun configureSubproject(projectDescriptor: ProjectDescriptor) {
   projectDescriptor.projectDir =
