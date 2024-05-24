@@ -30,7 +30,6 @@ private fun convertSectionToText(section: Section, subsectionName: String?): Str
     append(" ".repeat(4)) // 4x spaces
     append("$k = $v")
   }
-  appendLine()
 }
 
 sealed interface Section {

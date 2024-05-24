@@ -8,6 +8,7 @@ kodein = "7.21.2"
 kotlin = "2.0.0"
 kotlinx-coroutines = "1.8.1"
 kotlinx-datetime = "0.6.0"
+kotest = "5.9.0"
 ktor = "1.8.22"
 log4j = "2.14.1"
 minutest = "1.13.0"
@@ -60,6 +61,7 @@ test-runtime = ["junit.jupiter.engine", "log4j.core", "log4j.jul"]
 
 [plugins]
 versions = { id = "com.github.ben-manes.versions", version.ref = "versionsPlugin" }
+kotest = { id = "io.kotest.multiplatform", version.ref = "kotest" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
 kotlin-plugin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }

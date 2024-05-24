@@ -7,6 +7,7 @@ dependencies {
   implementation(projects.javaBasics)
   implementation(libs.plugins.kotlin.jvm.map { it.toMarkerDependency() })
   implementation(libs.plugins.kotlin.multiplatform.map { it.toMarkerDependency() })
+  implementation(libs.plugins.kotest.map { it.toMarkerDependency() })
 }
 
 private fun PluginDependency.toMarkerDependency(): String =

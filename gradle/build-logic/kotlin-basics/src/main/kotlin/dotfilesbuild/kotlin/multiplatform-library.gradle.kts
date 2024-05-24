@@ -1,11 +1,10 @@
 package dotfilesbuild.kotlin
 
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 plugins {
   kotlin("multiplatform")
-//  id("dotfilesbuild.java.default-settings")
+  id("io.kotest.multiplatform")
 }
 
 private fun platformFor(notation: String) =
@@ -24,7 +23,6 @@ kotlin {
     }
   }
   js {
-    browser()
     nodejs()
   }
 

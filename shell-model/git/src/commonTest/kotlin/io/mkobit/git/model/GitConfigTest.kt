@@ -4,7 +4,6 @@ package io.mkobit.git.model
 
 import io.kotest.common.ExperimentalKotest
 import io.kotest.core.spec.style.FunSpec
-import io.kotest.core.test.config.enabledOrReasonIf
 import io.kotest.matchers.collections.shouldContainExactly
 import io.mkobit.testing.kotest.condition.NotImplemented
 import kotlinx.io.files.Path
@@ -46,7 +45,7 @@ internal class GitConfigTest : FunSpec({
       )
   }
 
-  context("IncludeTest") {
+//  context("IncludeTest") {
     test("include path") {
       val subject = Include(Path("~/.my_git_config"))
       subject.asText().lines()
@@ -75,17 +74,17 @@ internal class GitConfigTest : FunSpec({
           "    path = ~/.my_git_config"
         )
     }
-  }
+//  }
 
-  context("PathEscapeTest").config(enabledOrReasonIf = NotImplemented) {
-    test("include path with double quotes") {
+//  context("PathEscapeTest").config(enabledOrReasonIf = NotImplemented) {
+    test("escape include path with double quotes").config(enabledOrReasonIf = NotImplemented) {
       val subject = Include(Path("""~/"My Workspace"/\"Work\"/superteam"""))
       subject.asText().lines()
         .shouldContainExactly(
           """    path = "~/\"My Workspace\"/\"Work\"/superteam""""
         )
     }
-  }
+//  }
 
   test("section collection as text") {
     val sections = listOf(
