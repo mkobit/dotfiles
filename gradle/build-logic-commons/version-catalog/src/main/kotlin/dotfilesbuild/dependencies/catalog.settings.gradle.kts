@@ -1,21 +1,36 @@
 dependencyResolutionManagement {
   versionCatalogs {
     create("libs") {
+      // Version
       version("arrow", "1.0.1")
-      version("jacksonCore", "2.13.0")
-      version("jacksonModule", "2.13.0")
-      version("kodein", "7.9.0")
-      version("kotlinxCoroutines", "1.5.2")
-      version("kotlinxDatetime", "0.3.1")
-      version("ktor", "1.6.7")
-      version("picoCli", "4.6.2")
+      version("jackson.core", "2.17.1")
+      version("kodein", "7.21.2")
+      version("kotlin", "1.9.24")
+      version("kotlinx.coroutines", "1.8.1")
+      version("kotlinx.datetime", "0.6.0")
+      version("ktor", "1.8.22")
+      version("picoCli", "4.7.6")
       version("okhttp", "4.9.3")
       version("retrofit2", "2.9.0")
       version("slf4j", "1.7.32")
 
+      // Plugin
+      plugin("versions", "com.github.ben-manes.versions").version("0.51.0")
+      plugin("kotlin.jvm", "org.jetbrains.kotlin.jvm").versionRef("kotlin")
+      plugin("kotlin.multiplatform", "org.jetbrains.kotlin.multiplatform").versionRef("kotlin")
+      plugin("kotlin.plugin.serialization", "org.jetbrains.kotlin.plugin.serialization").versionRef("kotlin")
+
+      // Library (POM/platform)
+
+      // Library (main)
+
+      // Library (test)
+
+      // Bundle
+
       library("arrow.core", "io.arrow-kt", "arrow-core").versionRef("arrow")
-      library("kotlinx.datetime", "org.jetbrains.kotlinx", "kotlinx-coroutines-core").versionRef("kotlinxCoroutines")
-      library("kotlinx.coroutines.core", "org.jetbrains.kotlinx", "kotlinx-datetime").versionRef("kotlinxDatetime")
+      library("kotlinx.datetime", "org.jetbrains.kotlinx", "kotlinx-coroutines-core").versionRef("kotlinx.coroutines")
+      library("kotlinx.coroutines.core", "org.jetbrains.kotlinx", "kotlinx-datetime").versionRef("kotlinx.datetime")
       library("kotlinx.coroutines.jdk8", "org.jetbrains.kotlinx", "kotlinx-coroutines-jdk8").versionRef("kotlinxCoroutines")
       library("guava", "com.google.guava:guava:31.0.1-jre")
       library("hocon", "com.typesafe:config:1.4.1")

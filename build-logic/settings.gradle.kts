@@ -15,7 +15,7 @@ dependencyResolutionManagement {
   }
 }
 
-apply(from = file("../gradle/buildCache.settings.gradle.kts"))
+apply(from = file("../gradle/shared.settings.gradle.kts"))
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
