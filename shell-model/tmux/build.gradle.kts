@@ -8,13 +8,16 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        api(libs.kotlinx.io.core)
+        api(libs.okio.common)
+        api(libs.kotlinx.datetime)
+        implementation(project.dependencies.platform(libs.okio.bom))
       }
     }
 
     commonTest {
       dependencies {
         implementation(projects.testing.kotestSupport)
+        implementation(libs.okio.fakefilesystem)
       }
     }
   }
