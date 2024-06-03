@@ -2,7 +2,7 @@ plugins {
   id("dotfilesbuild.kotlin.multiplatform-library")
 }
 
-group = "io.mkobit.git.model"
+group = "io.mkobit.vim.model"
 
 kotlin {
   sourceSets {

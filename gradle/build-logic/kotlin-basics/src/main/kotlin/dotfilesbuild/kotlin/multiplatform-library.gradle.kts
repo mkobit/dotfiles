@@ -1,5 +1,6 @@
 package dotfilesbuild.kotlin
 
+import dotfilesbuild.java.basics.applyDefaultJavaToolchainConfiguration
 import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
@@ -7,10 +8,13 @@ plugins {
   id("io.kotest.multiplatform")
 }
 
-private fun platformFor(notation: String) =
+private fun platformOf(notation: String) =
   project.dependencies.platform(notation)
 
 kotlin {
+  jvmToolchain {
+    applyDefaultJavaToolchainConfiguration()
+  }
   jvm {
     withJava()
     compilerOptions {
@@ -22,6 +26,7 @@ kotlin {
       )
     }
   }
+
   js {
     nodejs()
   }
@@ -40,9 +45,9 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        implementation(platformFor("io.kotest:kotest-bom:5.9.0"))
+        implementation(platformOf("io.kotest:kotest-bom:5.9.0"))
         // https://mvnrepository.com/artifact/org.jetbrains.kotlinx/kotlinx-coroutines-bom
-        implementation(platformFor("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.8.1"))
+        implementation(platformOf("org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.8.1"))
 
         implementation("io.github.microutils:kotlin-logging:2.1.15")
       }

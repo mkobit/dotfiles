@@ -9,6 +9,7 @@ kotlin {
     commonMain {
       dependencies {
         api("io.kotest:kotest-framework-engine")
+        api(libs.kotlinx.io.core)
       }
     }
   }
