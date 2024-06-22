@@ -1,8 +1,9 @@
 name: Dependency Submission
 
-on:
-  push:
-    branches: [ "main" ]
+on: workflow_dispatch
+# on:
+#   push:
+#     branches: [ "main" ]
 
 permissions:
   contents: write
