@@ -2,22 +2,22 @@ plugins {
   id("dotfilesbuild.kotlin.multiplatform-library")
 }
 
-group = "io.mkobit.git.model"
+group = "io.mkobit.homedir.assembler"
+
+val generatedRoot = layout.buildDirectory.dir("generated/config")
 
 kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        api(libs.okio.common)
-
-        implementation(project.dependencies.platform(libs.okio.bom))
+        implementation(libs.clikt)
+        implementation(projects.shellModel.git)
       }
     }
 
     commonTest {
       dependencies {
         implementation(projects.testing.kotestSupport)
-        implementation(libs.okio.fakefilesystem)
       }
     }
   }

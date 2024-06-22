@@ -1,6 +1,7 @@
 [versions]
 versionsPlugin = "0.51.0"
 arrow = "1.0.1"
+clikt = "4.4.0"
 jackson-core = "2.17.1"
 junit-jupiter = "5.8.2"
 junit-platform = "1.8.2"
@@ -22,6 +23,7 @@ slf4j = "1.7.32"
 
 [libraries]
 arrow-core = { module = "io.arrow-kt:arrow-core", version.ref = "arrow" }
+clikt = { module = "com.github.ajalt.clikt:clikt", version.ref = "clikt" }
 kotlinx-datetime = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "kotlinx.coroutines" }
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-datetime", version.ref = "kotlinx.datetime" }
 kotlinx-coroutines-jdk8 = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8", version.ref = "kotlinx.coroutines" }

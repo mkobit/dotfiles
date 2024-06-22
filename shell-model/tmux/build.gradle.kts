@@ -8,8 +8,9 @@ kotlin {
   sourceSets {
     commonMain {
       dependencies {
-        api(libs.okio.common)
         api(libs.kotlinx.datetime)
+        api(libs.okio.common)
+
         implementation(project.dependencies.platform(libs.okio.bom))
       }
     }

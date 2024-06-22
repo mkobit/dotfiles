@@ -21,6 +21,12 @@ shellLibraries {
   subproject("ssh")
   subproject("tmux")
   subproject("vim")
+  subproject("vscode")
+  subproject("zsh")
+}
+
+homedir {
+  subproject("tmp-assembler")
 }
 
 testing {
@@ -64,14 +70,16 @@ testing {
 //  include("$it:sidekick-service")
 //}
 
+fun homedir(configuration: ProjectScope.() -> Unit) {
+  ProjectScope("homedir").run(configuration)
+}
+
 fun shellLibraries(configuration: ProjectScope.() -> Unit) {
-  val path = "shell-model"
-  ProjectScope(path).run(configuration)
+  ProjectScope("shell-model").run(configuration)
 }
 
 fun testing(configuration: ProjectScope.() -> Unit) {
-  val path = "testing"
-  ProjectScope(path).run(configuration)
+  ProjectScope("testing").run(configuration)
 }
 
 class ProjectScope(

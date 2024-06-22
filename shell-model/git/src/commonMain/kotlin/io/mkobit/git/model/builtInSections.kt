@@ -3,7 +3,9 @@
  */
 package io.mkobit.git.model
 
-import kotlinx.io.files.Path
+import okio.Path
+import kotlin.time.Duration
+import kotlin.time.DurationUnit
 
 private fun prunedMapOf(
   vararg pairs: Pair<String, Any?>
@@ -14,39 +16,6 @@ private fun prunedMapOf(
   }
   return result.toMap()
 }
-
-private fun convertSectionToText(section: Section, subsectionName: String?): String = buildString {
-  append('[')
-  append(section.name)
-  if (subsectionName != null) {
-    append(" ")
-    append('"')
-    append(subsectionName)
-    append('"')
-  }
-  append(']')
-  section.options.forEach { (k, v) ->
-    appendLine()
-    append(" ".repeat(4)) // 4x spaces
-    append("$k = $v")
-  }
-}
-
-sealed interface Section {
-  val name: String
-  val options: Map<String, Any>
-
-  fun asText(): String = convertSectionToText(this, null)
-}
-
-fun Section.withName(subsectionName: String) = NamedSection(this, subsectionName)
-
-data class NamedSection(val section: Section, val subsectionName: String) : Section by section {
-  override fun asText(): String = convertSectionToText(section, subsectionName)
-}
-
-fun Collection<Section>.asText(): String =
-  joinToString(separator = "\n", postfix = "\n") { it.asText() }
 
 /**
  * @param gpgSign A boolean to specify whether all commits should be GPG signed.
@@ -74,7 +43,7 @@ data class Commit(
  * See the [git-scm book](https://git-scm.com/docs/git-column).
  */
 data class Column(
-    val ui: Ui? = null,
+  val ui: Ui? = null,
 ) : Section {
   enum class Ui {
     /**
@@ -86,6 +55,7 @@ data class Column(
      * Never show in columns
      */
     NEVER,
+
     /**
      * show in columns if the output is to the terminal
      */
@@ -150,8 +120,7 @@ data class User(
     signingKey?.let { require(it.isNotBlank()) }
   }
 
-  override val name: String
-    get() = "user"
+  override val name: String get() = "user"
   override val options: Map<String, Any>
     get() = prunedMapOf(
       "email" to email,
@@ -165,19 +134,17 @@ data class User(
 data class Alias(
   val aliases: Map<String, String>
 ) : Section {
-  override val name: String
-    get() = "alias"
+  override val name: String get() = "alias"
 
   override val options: Map<String, Any>
     get() = aliases
 }
 
 data class Branch(
-    val autoSetUpRebase: AutoSetUpRebase? = null,
-    val sort: String? = null, // todo: change to field names - https://git-scm.com/docs/git-for-each-ref#_field_names
+  val autoSetUpRebase: AutoSetUpRebase? = null,
+  val sort: String? = null, // todo: change to field names - https://git-scm.com/docs/git-for-each-ref#_field_names
 ) : Section {
-  override val name: String
-    get() = "branch"
+  override val name: String get() = "branch"
 
   /**
    * When a new branch is created with git branch, git switch or git checkout that tracks another branch, this variable tells Git to set up pull to rebase instead of merge (see "branch.<name>.rebase").
@@ -208,8 +175,7 @@ data class Color(
   val status: Boolean? = null,
   val ui: Boolean? = null,
 ) : Section {
-  override val name: String
-    get() = "color"
+  override val name: String get() = "color"
   override val options: Map<String, Any>
     get() = prunedMapOf(
       "branch" to branch,
@@ -221,8 +187,7 @@ data class Color(
 data class Diff(
   val compactionHeuristic: Boolean? = null
 ) : Section {
-  override val name: String
-    get() = "diff"
+  override val name: String get() = "diff"
   override val options: Map<String, Any>
     get() = prunedMapOf(
       "compactionHeuristic" to compactionHeuristic
@@ -232,8 +197,7 @@ data class Diff(
 data class Fetch(
   val prune: Boolean? = null
 ) : Section {
-  override val name: String
-    get() = "fetch"
+  override val name: String get() = "fetch"
   override val options: Map<String, Any>
     get() = prunedMapOf(
       "prune" to prune
@@ -243,11 +207,32 @@ data class Fetch(
 data class Gpg(
   val program: String? = null
 ) : Section {
-  override val name: String
-    get() = "gpg"
+  override val name: String get() = "gpg"
   override val options: Map<String, Any>
     get() = prunedMapOf(
       "program" to program
+    )
+}
+
+data class Help(
+  val autocorrect: Duration? = null
+) : Section {
+  init {
+    if (autocorrect != null) {
+      require(autocorrect > Duration.ZERO)
+      require(autocorrect.inWholeSeconds >= 30L)
+    }
+  }
+
+  override val name: String get() = "help"
+  override val options: Map<String, Any>
+    get() = prunedMapOf(
+      "autocorrect" to autocorrect?.let {
+        val totalMillis = it.toLong(DurationUnit.MILLISECONDS)
+        val seconds = totalMillis / 1000
+        val tenths = (totalMillis % 1000) / 100
+        "$seconds.$tenths"
+      }
     )
 }
 
@@ -289,8 +274,11 @@ sealed class Include : Section {
       get() = "includeIf"
   }
 
-  fun ifGitDir(gitDirPattern: Path): NamedSection = NamedSection(IncludeIfGitDir(path, gitDirPattern), "gitdir:$gitDirPattern")
-  fun ifOnBranch(branchPattern: String): NamedSection = NamedSection(IncludeIfOnBranch(path, branchPattern), "onbranch:$branchPattern")
+  fun ifGitDir(gitDirPattern: Path): NamedSection =
+    NamedSection(IncludeIfGitDir(path, gitDirPattern), "gitdir:$gitDirPattern")
+
+  fun ifOnBranch(branchPattern: String): NamedSection =
+    NamedSection(IncludeIfOnBranch(path, branchPattern), "onbranch:$branchPattern")
 }
 
 data class Interactive(
@@ -305,7 +293,8 @@ data class Interactive(
 }
 
 data class Merge(
-  val fastForward: FastForward? = null
+  val fastForward: FastForward? = null,
+  val conflictStyle: ConflictStyle? = null,
 ) : Section {
   enum class FastForward {
     TRUE,
@@ -313,11 +302,18 @@ data class Merge(
     ONLY
   }
 
+  enum class ConflictStyle {
+    MERGE,
+    DIFF3,
+    ZDIFF3,
+  }
+
   override val name: String
     get() = "merge"
   override val options: Map<String, Any>
     get() = prunedMapOf(
-      "ff" to fastForward?.name?.lowercase()
+      "ff" to fastForward?.name?.lowercase(),
+      "conflictStyle" to conflictStyle?.name?.lowercase(),
     )
 }
 
@@ -337,7 +333,7 @@ data class Pager(
 }
 
 data class Pull(
-  val rebase: Rebase? = null
+  val rebase: Rebase? = null,
 ) : Section {
   override val name: String
     get() = "pull"
@@ -359,6 +355,7 @@ data class Pull(
     PRESERVE,
     INTERACTIVE
   }
+
   override val options: Map<String, Any>
     get() = prunedMapOf(
       "rebase" to rebase?.name?.lowercase()
@@ -434,6 +431,18 @@ data class Rebase(
     get() = prunedMapOf(
       "autoSquash" to autoSquash,
       "autoStash" to autoStash
+    )
+}
+
+data class Receive(
+  val fsckObjects: Boolean? = null
+) : Section {
+  override val name: String
+    get() = "receive"
+
+  override val options: Map<String, Any>
+    get() = prunedMapOf(
+      "fsckObjects" to fsckObjects,
     )
 }
 
