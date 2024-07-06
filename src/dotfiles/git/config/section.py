@@ -3,7 +3,7 @@ See [Git documentation](https://git-scm.com/docs/git-config).
 """
 
 from dataclasses import dataclass
-from typing import Literal, Union, final
+from typing import Literal, Union
 
 GitColor = Union[
     Literal["black", "red", "green", "yellow", "blue", "magenta", "cyan", "white"], str

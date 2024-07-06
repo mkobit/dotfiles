@@ -1,4 +1,3 @@
-import pytest
 from src.dotfiles.git.config.user import User
 
 
