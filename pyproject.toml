@@ -1,0 +1,36 @@
+[tool.poetry]
+package-mode = false
+name = "dotfiles"
+description = "Personal dotfiles"
+readme = "README.adoc"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+requests = "^2.32.3"
+typing-extensions = "^4.12.2"
+typer = "^0.12.3"
+attrs = "^23.2.0"
+
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.4.10"
+deptry = "^0.16.1"
+pytest-mock = "^3.14.0"
+pyright = "^1.1.368"
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.2.2"
+codecov = "^2.1.13"
+
+[tool.deptry]
+ignore = ["DEP002"]
+
+[tool.pytest.ini_options]
+addopts = "-ra -q"
+testpaths = [
+    "tests",
+    "integration",
+]
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
