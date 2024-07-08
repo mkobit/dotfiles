@@ -6,12 +6,12 @@ from pathlib import Path
 from typing import Literal, final
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 @final
 class Init(Section):
-    template_dir: Path | None
-    bare: bool | None
-    shared: bool | Literal["all", "group", "world", "everybody", "umask"] | None
-    shared_repository: bool | None
-    template: Path | None
+    bare: bool | None = None
     default_branch: str | None = "main"
+    template_dir: Path | None = None
+    shared: bool | Literal["all", "group", "world", "everybody", "umask"] | None = None
+    shared_repository: bool | None = None
+    template: Path | None = None

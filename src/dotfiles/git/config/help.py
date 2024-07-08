@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import Literal, final
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 @final
 class Help(Section):
     autocorrect: timedelta | None

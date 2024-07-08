@@ -5,7 +5,7 @@ from typing import Literal, final
 from .section import Section
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 @final
 class Core(Section):
     autocrlf: Literal["input"] | bool | None

@@ -16,24 +16,29 @@ from .push import Push
 from .rebase import Rebase
 from .rerere import Rerere
 from .stash import Stash
+from .user import User
+
+from .serialization import dumps
 
 __all__ = [
-    Alias,
-    Branch,
-    Color,
-    Column,
-    Commit,
-    Core,
-    Diff,
-    Fetch,
-    Help,
-    Init,
-    Interactive,
-    Merge,
-    Pager,
-    Pull,
-    Push,
-    Rebase,
-    Rerere,
-    Stash,
+    'dumps',
+    'Alias',
+    'Branch',
+    'Color',
+    'Column',
+    'Commit',
+    'Core',
+    'Diff',
+    'Fetch',
+    'Help',
+    'Init',
+    'Interactive',
+    'Merge',
+    'Pager',
+    'Pull',
+    'Push',
+    'Rebase',
+    'Rerere',
+    'Stash',
+    'User'
 ]

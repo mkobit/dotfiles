@@ -4,7 +4,7 @@ from typing import Literal, final
 from .section import Section
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 @final
 class Column(Section):
     ui: Literal["always", "never", "auto"] | None

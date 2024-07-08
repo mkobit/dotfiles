@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import List, Literal, final
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 @final
 class Gpg(Section):
     program: str | None

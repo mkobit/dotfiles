@@ -5,20 +5,20 @@ from typing import final
 from src.dotfiles.git.config.section import Section
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 @final
 class IfGitDir:
     git_dir: Path
     case_insensitive: bool = False
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 @final
 class IfOnBranch:
     branch: str
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 @final
 class IfHasRemoteUrl:
     remote_url: str
@@ -26,7 +26,7 @@ class IfHasRemoteUrl:
 
 IncludeIf = IfGitDir | IfOnBranch | IfHasRemoteUrl
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 @final
 class Include(Section):
     path: Path

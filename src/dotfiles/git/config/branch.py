@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Literal, final
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 @final
 class Branch(Section):
     autoSetUpRebase: Literal["never", "local", "remote", "always"] | None
