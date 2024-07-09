@@ -17,7 +17,7 @@ def test_user_init():
     assert user.use_config_only == use_config_only
 
 
-def test_dumps_user():
+def test_user():
     """Test user dumps with different parameters"""
     use_config_only = True
     user = c.User(email=email, user_name=user_name, signing_key=signing_key, use_config_only=use_config_only)
