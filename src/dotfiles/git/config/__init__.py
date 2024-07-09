@@ -1,3 +1,7 @@
+"""_summary_
+See [Git documentation](https://git-scm.com/docs/git-config).
+"""
+
 from .alias import Alias
 from .branch import Branch
 from .color import Color

@@ -1,7 +1,3 @@
-"""_summary_
-See [Git documentation](https://git-scm.com/docs/git-config).
-"""
-
 import abc
 from dataclasses import asdict, dataclass
 import operator
