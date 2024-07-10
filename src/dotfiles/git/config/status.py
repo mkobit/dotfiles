@@ -8,12 +8,12 @@ from typing import Literal, final
 @dataclass(frozen=True, kw_only=True)
 @final
 class Status(Section):
-    relativePaths: bool | None
-    short: bool | None
-    branch: bool | None
-    aheadBehind: bool | None
-    renameLimit: int | None
-    renames: Literal["copies"] | bool | None
-    showStash: bool | None
-    showUntrackedFiles: Literal["no", "normal", "all"] | None
-    submoduleSummary: bool | None
+    relative_paths: bool | None = None
+    short: bool | None = None
+    branch: bool | None = None
+    ahead_behind: bool | None = None
+    renameLimit: int | None = None
+    renames: Literal["copies"] | bool | None = None
+    show_stash: bool | None = None
+    show_untracked_files: Literal["no", "normal", "all"] | None = None
+    submodule_summary: bool | None = None

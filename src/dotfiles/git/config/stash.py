@@ -8,6 +8,6 @@ from dataclasses import dataclass
 @dataclass(frozen=True, kw_only=True)
 @final
 class Stash(Section):
-    showIncludeUntracked: bool | None
-    showPatch: bool | None
-    showStat: bool | None
+    show_include_untracked: bool | None = None
+    show_patch: bool | None = None
+    show_stat: bool | None = None

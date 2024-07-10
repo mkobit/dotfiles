@@ -8,4 +8,4 @@ from dataclasses import dataclass
 @dataclass(frozen=True, kw_only=True)
 @final
 class Tag(Section):
-    gpgSign: bool | None
+    gpg_sign: bool | None

@@ -8,10 +8,10 @@ from typing import List, Literal, final
 @dataclass(frozen=True, kw_only=True)
 @final
 class Gpg(Section):
-    program: str | None
-    allowedSignersFile: Path | None
-    sign: bool | None
-    sortOrder: Literal["unknown", "trusted", "valid", "bad", "untrusted"] | None
-    verbose: bool | None
-    useAgent: bool | None
-    sshOptions: List[str] | None
+    program: str | None = None
+    allowed_signers_file: Path | None = None
+    sign: bool | None = None
+    sort_order: Literal["unknown", "trusted", "valid", "bad", "untrusted"] | None = None
+    verbose: bool | None = None
+    use_agent: bool | None = None
+    ssh_options: List[str] | None = None

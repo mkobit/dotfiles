@@ -25,7 +25,7 @@ pytest-cov = "^5.0.0"
 ignore = ["DEP002"]
 
 [tool.pytest.ini_options]
-addopts = "--cov --cov-report=term-missing -o console_output_style=progress"
+addopts = "-o console_output_style=progress"
 testpaths = [
     "tests",
     "integration",

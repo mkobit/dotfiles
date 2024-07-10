@@ -7,6 +7,6 @@ from .section import Section
 @dataclass(frozen=True, kw_only=True)
 @final
 class Commit(Section):
-    gpgSign: bool | None
-    status: bool | None
-    verbose: bool | None
+    gpg_sign: bool | None = None
+    status: bool | None = None
+    verbose: bool | None = None

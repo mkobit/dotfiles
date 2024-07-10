@@ -10,6 +10,7 @@ from .commit import Commit
 from .core import Core
 from .diff import Diff
 from .fetch import Fetch
+from .gpg import Gpg
 from .help import Help
 from .init import Init
 from .interactive import Interactive
@@ -18,8 +19,12 @@ from .pager import Pager
 from .pull import Pull
 from .push import Push
 from .rebase import Rebase
+from .receive import Receive
+from .remote import Remote
 from .rerere import Rerere
 from .stash import Stash
+from .status import Status
+from .tag import Tag
 from .user import User
 
 from .serialization import dumps
@@ -34,6 +39,7 @@ __all__ = [
     'Core',
     'Diff',
     'Fetch',
+    'Gpg',
     'Help',
     'Init',
     'Interactive',
@@ -42,7 +48,11 @@ __all__ = [
     'Pull',
     'Push',
     'Rebase',
+    'Receive',
+    'Remote',
     'Rerere',
     'Stash',
+    'Status',
+    'Tag',
     'User'
 ]

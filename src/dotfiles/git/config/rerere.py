@@ -8,5 +8,5 @@ from dataclasses import dataclass
 @dataclass(frozen=True, kw_only=True)
 @final
 class Rerere(Section):
-    autoUpdate: bool | None
-    enabled: bool | None
+    auto_update: bool | None = None
+    enabled: bool | None = None
