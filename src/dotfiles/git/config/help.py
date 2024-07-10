@@ -16,7 +16,7 @@ class Help(Section):
     version: bool | None = None
 
     def file_options(self) -> Mapping[str, Any]:
-        file_options = super().file_options()
+        file_options = dict(super().file_options())
         if self.autocorrect:
             total_seconds = self.autocorrect.total_seconds()
             seconds = int(total_seconds)
