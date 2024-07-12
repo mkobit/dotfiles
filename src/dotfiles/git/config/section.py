@@ -21,7 +21,6 @@ def _convert_value(v: Any) -> Any:
         case str():
             return v
         case list():
-            # return ' '.join(map(str, v))
             return ' '.join(v)
         case bool():
             return 'true' if v else 'false'
