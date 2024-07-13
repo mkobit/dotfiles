@@ -29,7 +29,7 @@ def _convert_value(v: Any) -> Any:
         case timedelta():
             return v.total_seconds()
         case _:
-            return str(v)
+            return v
 
 
 def _snake_to_camel(text: str) -> str:

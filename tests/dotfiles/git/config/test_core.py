@@ -16,7 +16,7 @@ def test_core():
     file_options = core.file_options()
     assert file_options.get('autocrlf') == "input"
     assert file_options.get('editor') == "vim"
-    assert file_options.get('excludesFile') == str(excludes_file)
+    assert file_options.get('excludesFile') == excludes_file
     assert file_options.get('fsmonitor') == "true"
     assert file_options.get('eol') == "auto"
     assert file_options.get('safecrlf') == "true"
