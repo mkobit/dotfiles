@@ -24,6 +24,8 @@ jobs:
         run: poetry install
       - name: Dependency check
         run: poetry run deptry .
+      - name: Format Check
+        run: poetry run ruff format --check
       - name: Lint
         run: poetry run ruff check .
       - name: Type check
