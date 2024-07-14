@@ -12,7 +12,9 @@ from src.dotfiles.git.config.values import Color
 class Diff(Section):
     compaction_heuristic: bool | None = None
     indent_heuristic: bool | None = None
-    algorithm: Literal["myers", "histogram", "minimal", "patience", "none"] | None = None
+    algorithm: Literal["myers", "histogram", "minimal", "patience", "none"] | None = (
+        None
+    )
     ws_error_highlight: Literal["none", "all", "indentation", "trailing"] | None = None
     context: int | None = None
     inter_hunk_context: int | None = None

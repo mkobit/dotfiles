@@ -16,14 +16,15 @@ class Section(abc.ABC):
     def file_options(self) -> Mapping[str, Any]:
         return {_snake_to_camel(k): _convert_value(v) for k, v in asdict(self).items()}
 
+
 def _convert_value(v: Any) -> Any:
     match v:
         case str():
             return v
         case list():
-            return ' '.join(v)
+            return " ".join(v)
         case bool():
-            return 'true' if v else 'false'
+            return "true" if v else "false"
         case int():
             return v
         case timedelta():

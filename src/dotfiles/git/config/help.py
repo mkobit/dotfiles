@@ -23,6 +23,7 @@ class Help(Section):
             tenths = int((total_seconds - seconds) * 10)
             file_options["autocorrect"] = f"{seconds}.{tenths}"
         return file_options
+
     # "autocorrect" to autocorrect?.let {
     #   totalMillis = it.toLong(DurationUnit.MILLISECONDS)
     #   seconds = totalMillis / 1000

@@ -1,6 +1,7 @@
 from .section import Section
 from typing import Iterable
 
+
 def dumps(sections: Section | Iterable[Section]) -> str:
     if isinstance(sections, Section):
         sections = [sections]
@@ -11,10 +12,9 @@ def dumps(sections: Section | Iterable[Section]) -> str:
 def __to_config_str(section: Section) -> str:
     file_options = section.file_options()
     if not file_options:
-        return ''
+        return ""
 
-    file_options = '\n    '.join(
-        f'{key} = {value}' for key, value in section.__dict__.items()
+    file_options = "\n    ".join(
+        f"{key} = {value}" for key, value in section.__dict__.items()
     )
-    return f'[{section.name}]\n    {file_options}'
-
+    return f"[{section.name}]\n    {file_options}"

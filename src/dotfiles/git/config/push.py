@@ -9,7 +9,9 @@ from typing import Literal, final
 @final
 class Push(Section):
     auto_setup_remote: bool | None = None
-    default: Literal["nothing", "current", "upstream", "simple", "matching"] | None = None
+    default: Literal["nothing", "current", "upstream", "simple", "matching"] | None = (
+        None
+    )
     follow_tags: bool | None = None
     gpg_sign: Literal["if-asked"] | bool | None = None
     recurse_submodules: Literal["check", "on-demand", "only", "no"] | None = None

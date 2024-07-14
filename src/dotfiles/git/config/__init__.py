@@ -22,6 +22,7 @@ from .rebase import Rebase
 from .receive import Receive
 from .remote import Remote
 from .rerere import Rerere
+from .section import Section
 from .stash import Stash
 from .status import Status
 from .tag import Tag
@@ -30,29 +31,30 @@ from .user import User
 from .serialization import dumps
 
 __all__ = [
-    'dumps',
-    'Alias',
-    'Branch',
-    'Color',
-    'Column',
-    'Commit',
-    'Core',
-    'Diff',
-    'Fetch',
-    'Gpg',
-    'Help',
-    'Init',
-    'Interactive',
-    'Merge',
-    'Pager',
-    'Pull',
-    'Push',
-    'Rebase',
-    'Receive',
-    'Remote',
-    'Rerere',
-    'Stash',
-    'Status',
-    'Tag',
-    'User'
+    "dumps",
+    "Alias",
+    "Branch",
+    "Color",
+    "Column",
+    "Commit",
+    "Core",
+    "Diff",
+    "Fetch",
+    "Gpg",
+    "Help",
+    "Init",
+    "Interactive",
+    "Merge",
+    "Pager",
+    "Pull",
+    "Push",
+    "Rebase",
+    "Receive",
+    "Remote",
+    "Rerere",
+    "Section",
+    "Stash",
+    "Status",
+    "Tag",
+    "User",
 ]

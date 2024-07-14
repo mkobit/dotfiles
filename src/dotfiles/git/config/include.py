@@ -26,6 +26,7 @@ class IfHasRemoteUrl:
 
 IncludeIf = IfGitDir | IfOnBranch | IfHasRemoteUrl
 
+
 @dataclass(frozen=True, kw_only=True)
 @final
 class Include(Section):

@@ -15,5 +15,4 @@ class User(Section):
 
     def file_options(self) -> Mapping[str, Any]:
         options = super().file_options()
-        return {'name' if k == 'userName' else k: v for k, v in options.items()}
-
+        return {"name" if k == "userName" else k: v for k, v in options.items()}
