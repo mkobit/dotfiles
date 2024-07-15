@@ -73,7 +73,7 @@ def general_git_config(excludes_file: Path) -> List[Section]:
             verbose=True,
         ),
         Core(
-            autoCrlf="input",
+            autocrlf="input",
             editor="vim",
             excludes_file=excludes_file,
             fsmonitor=True,
@@ -89,8 +89,8 @@ def general_git_config(excludes_file: Path) -> List[Section]:
         ),
         Init(default_branch="main"),
         Merge(
-            fastForward=False,
-            conflictStyle="zdiff3",
+            ff=False,
+            conflict_style="zdiff3",
         ),
         Pull(
             rebase=True,
@@ -103,11 +103,11 @@ def general_git_config(excludes_file: Path) -> List[Section]:
             auto_stash=True,
         ),
         Rerere(
-            auto_uspdate=True,
+            auto_update=True,
             enabled=True,
         ),
         Stash(
-            showPatch=True,
+            show_patch=True,
         ),
     ]
     return general

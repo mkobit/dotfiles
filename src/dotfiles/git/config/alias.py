@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import Any, Mapping, final
 
 
-@dataclass(frozen=True, kw_only=True)
+@dataclass(frozen=True)
 @final
 class Alias(Section):
     aliases: Mapping[str, str] = field(default_factory=dict)
