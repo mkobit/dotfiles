@@ -25,6 +25,6 @@
         "codespaces": {
             "disableAutomaticConfiguration": true
         }
-    },
-    "postCreateCommand": "bazel --version"
+    }
+    // "postCreateCommand": "bazel --version"
 }

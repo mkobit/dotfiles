@@ -1,0 +1,14 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+sh_binary(
+    name = "hello",
+    srcs = ["hello.sh"],
+    visibility = ["//visibility:public"],
+)
+
+genrule(
+    name = "generate_hello_sh",
+    outs = ["hello.sh"],
+    cmd = "echo '#!/bin/bash\necho \"Hello, Bazel!\"' > $@",
+    executable = True,
+)
