@@ -62,10 +62,6 @@ vim_config(
         '  autocmd FocusGained,BufEnter * checktime',
         'augroup END',
         '',
-        # Return to last edit position when opening files
-        '" Return to last edit position when opening files',
-        'au BufReadPost * if line("\'\\"") > 1 && line("\'\\"") <= line("$") | exe "normal! g\'"" | endif',
-        '',
         # Special characters
         'set listchars=eol:↲,tab:»\\ ,trail:·,extends:▶,precedes:◀,conceal:┊,nbsp:␣',
         'set list',
