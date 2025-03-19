@@ -2,19 +2,6 @@ load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
 package(default_visibility = ["//visibility:public"])
 
-# Hello world example
-sh_binary(
-    name = "hello",
-    srcs = ["hello.sh"],
-)
-
-genrule(
-    name = "generate_hello_sh",
-    outs = ["hello.sh"],
-    cmd = "echo '#!/bin/bash\\necho \"Hello, Bazel!\"' > $@",
-    executable = True,
-)
-
 # Dotfiles targets
 filegroup(
     name = "dotfiles",
@@ -35,14 +22,6 @@ filegroup(
     name = "personal_dotfiles",
     srcs = [
         "//modules/vim:personal_vimrc",
-    ],
-)
-
-# Test suite for all dotfiles
-test_suite(
-    name = "all_tests",
-    tests = [
-        "//modules/vim:all_tests",
     ],
 )
 

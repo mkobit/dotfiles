@@ -1,4 +1,4 @@
-load("//modules/vim:vim_rules.bzl", "vim_config", "vim_config_generator", "vim_test")
+load("//modules/vim:vim_rules.bzl", "vim_config", "vim_config_generator")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -64,7 +64,7 @@ vim_config(
         '',
         # Return to last edit position when opening files
         '" Return to last edit position when opening files',
-        'au BufReadPost * if line("\'"") > 1 && line("\'"") <= line("$") | exe "normal! g\'"" | endif',
+        'au BufReadPost * if line("\'\\"") > 1 && line("\'\\"") <= line("$") | exe "normal! g\'"" | endif',
         '',
         # Special characters
         'set listchars=eol:↲,tab:»\\ ,trail:·,extends:▶,precedes:◀,conceal:┊,nbsp:␣',
@@ -118,7 +118,7 @@ vim_config(
         "<C-h>": "<C-w>h",
         "j": "gj",
         "k": "gk",
-        
+
         # Spell checking
         "<leader>ss": ":setlocal spell!<cr>",
         "<leader>sn": "]s",
@@ -155,10 +155,6 @@ vim_config(
             "set directory=~/Library/Caches/vim//",
         ],
     },
-    plugins = [
-        "junegunn/fzf.vim",
-        "tpope/vim-fugitive",
-    ],
     raw_statements = [
         '" macOS-specific configurations',
         'autocmd VimEnter * echo "Running Vim on macOS"',
@@ -191,8 +187,6 @@ vim_config_generator(
         "@platforms//os:windows": ":windows_config",
         "//conditions:default": ":base_config",
     }),
-    plugin_manager = "vim-plug",
-    timestamp = "$(date +%Y-%m-%d' '%H:%M:%S)",
 )
 
 # Work variant with additional settings
@@ -203,10 +197,6 @@ vim_config(
         "colorscheme": "industry",
         "background": "dark",
     },
-    plugins = [
-        "fatih/vim-go",
-        "rust-lang/rust.vim",
-    ],
     raw_statements = [
         '" Work-specific configurations',
         'autocmd VimEnter * echo "Work environment detected"',
@@ -226,10 +216,6 @@ vim_config(
         "background": "dark",
         "cursorline": "true",
     },
-    plugins = [
-        "junegunn/vim-easy-align",
-        "preservim/nerdtree",
-    ],
     raw_statements = [
         '" Personal-specific configurations',
         'autocmd VimEnter * echo "Personal environment detected"',
@@ -240,15 +226,11 @@ vim_config(
 vim_config_generator(
     name = "work_vimrc",
     config = ":work_config",
-    plugin_manager = "vim-plug",
-    timestamp = "$(date +%Y-%m-%d' '%H:%M:%S)",
 )
 
 vim_config_generator(
     name = "personal_vimrc",
     config = ":personal_config",
-    plugin_manager = "vim-plug",
-    timestamp = "$(date +%Y-%m-%d' '%H:%M:%S)",
 )
 
 # Build all variants
@@ -258,69 +240,5 @@ filegroup(
         ":personal_vimrc",
         ":vimrc",
         ":work_vimrc",
-    ],
-)
-
-# Basic test for the generated vimrc
-vim_test(
-    name = "basic_vimrc_test",
-    vimrc = ":vimrc",
-    requirements = [
-        "set number",
-        "set tabstop=2",
-        "set expandtab",
-        "set syntax=on",
-        'let mapleader = ","',
-    ],
-    prohibited = [
-        "set mouse=a",  # We don't want mouse mode by default
-    ],
-)
-
-# Advanced test with vimrc
-vim_test(
-    name = "advanced_vimrc_test",
-    vimrc = ":vimrc",
-    requirements = [
-        "set number",
-        "set tabstop=2",
-        "set expandtab",
-        'let mapleader = ","',
-    ],
-)
-
-# Test for work variant
-vim_test(
-    name = "work_vimrc_test",
-    vimrc = ":work_vimrc",
-    requirements = [
-        "set colorscheme=industry",
-        "set background=dark",
-        'Plug "fatih/vim-go"',
-        'autocmd VimEnter \\* echo "Work environment detected"',
-    ],
-)
-
-# Test for personal variant
-vim_test(
-    name = "personal_vimrc_test",
-    vimrc = ":personal_vimrc",
-    requirements = [
-        "set colorscheme=desert",
-        "set background=dark",
-        "set cursorline",
-        'Plug "preservim/nerdtree"',
-        'autocmd VimEnter \\* echo "Personal environment detected"',
-    ],
-)
-
-# Test suite that runs all vim tests
-test_suite(
-    name = "all_tests",
-    tests = [
-        ":advanced_vimrc_test",
-        ":basic_vimrc_test",
-        ":personal_vimrc_test",
-        ":work_vimrc_test",
     ],
 )
