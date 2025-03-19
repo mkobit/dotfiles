@@ -24,12 +24,3 @@ git clone git@github.com:mkobit/dotfiles.git
 
 On Mac, I am currently using link:https://github.com/robbyrussell/oh-my-zsh[robbyrussell/oh-my-zsh]
 Assuming that Zsh is installed and this repository is cloned to `$HOME/dotfiles`:
-
-. Add the following to the bottom of the `~/.zshrc`
-+
-[source]
-----
-export PATH="${PATH}:$HOME/dotfiles/bin"
-. ~/dotfiles/zsh/aliases.source
-. ~/dotfiles/zsh/functions.source
-----
