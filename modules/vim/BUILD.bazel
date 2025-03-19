@@ -1,0 +1,326 @@
+load("//modules/vim:vim_rules.bzl", "vim_config", "vim_config_generator", "vim_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# Base Vim configuration with common settings
+vim_config(
+    name = "base_config",
+    settings = {
+        # General UI settings
+        "number": "true",
+        "relativenumber": "true",
+        "tabstop": "2",
+        "shiftwidth": "2",
+        "softtabstop": "2",
+        "expandtab": "true",
+        "syntax": "on",
+        "autoindent": "true",
+        "smartindent": "true",
+        "backspace": "eol,start,indent",
+        "hlsearch": "true",
+        "incsearch": "true",
+        "ignorecase": "true",
+        "smartcase": "true",
+        "ruler": "true",
+        "wildmenu": "true",
+        "laststatus": "2",
+        "history": "10000",
+        "encoding": "utf8",
+        "fileformats": "unix,dos,mac",
+        "scrolloff": "5",
+        "showcmd": "true",
+        "showmatch": "true",
+        "cursorline": "true",
+        "wrap": "true",
+        "background": "dark",
+        "cmdheight": "1",
+        "hid": "true",
+        "lazyredraw": "true",
+        "magic": "true",
+        "noerrorbells": "true",
+        "novisualbell": "true",
+        "t_vb": "",
+        "timeoutlen": "750",
+        "whichwrap": "<,>,h,l",
+    },
+    raw_statements = [
+        # Leader key setup
+        '" Set leader key to comma',
+        'let mapleader = ","',
+        '',
+        # File encoding and format
+        '" Set language to English',
+        'let $LANG="en"',
+        'set langmenu=en',
+        'source $VIMRUNTIME/delmenu.vim',
+        'source $VIMRUNTIME/menu.vim',
+        '',
+        # Auto read when a file is changed
+        '" Auto read when a file is changed from the outside',
+        'set autoread',
+        'augroup external_editor',
+        '  autocmd FocusGained,BufEnter * checktime',
+        'augroup END',
+        '',
+        # Return to last edit position when opening files
+        '" Return to last edit position when opening files',
+        'au BufReadPost * if line("\'"") > 1 && line("\'"") <= line("$") | exe "normal! g\'"" | endif',
+        '',
+        # Special characters
+        'set listchars=eol:↲,tab:»\\ ,trail:·,extends:▶,precedes:◀,conceal:┊,nbsp:␣',
+        'set list',
+        '',
+        # Disable gitcommit textwidth
+        'augroup filetype_gitcommit',
+        '  autocmd!',
+        '  autocmd FileType gitcommit setlocal textwidth=0',
+        'augroup END',
+        '',
+        # Setup backup directories
+        '" Put swap files, backups, and undos somewhere else',
+        'set backupdir=~/.vim/backup//',
+        'set directory=~/.vim/swap//',
+        'set undodir=~/.vim/undo//',
+        'if !isdirectory(expand("~/.vim/backup/"))',
+        '  call mkdir("~/.vim/backup/", "p")',
+        'endif',
+        'if !isdirectory(expand("~/.vim/swap/"))',
+        '  call mkdir(expand("~/.vim/swap/"), "p")',
+        'endif',
+        'if !isdirectory(expand("~/.vim/undo/"))',
+        '  call mkdir(expand("~/.vim/undo/"), "p")',
+        'endif',
+        '',
+        # Movement mappings
+        '" Move lines up and down',
+        'nnoremap <M-j> mz:m+<cr>`z',
+        'nnoremap <M-k> mz:m-2<cr>`z',
+        'vnoremap <M-j> :m\'>+<cr>`<my`>mzgv`yo`z',
+        'vnoremap <M-k> :m\'<-2<cr>`>my`<mzgv`yo`z',
+        '',
+        '" Alternative escape sequences',
+        'inoremap jk <Esc>',
+        'inoremap kj <Esc>',
+    ],
+    mappings = {
+        # Normal mode mappings
+        "<leader>w": ":w!<cr>",
+        "<space>": "/",
+        "<C-space>": "?",
+        "<leader><cr>": ":nohlsearch<cr>",
+        "<leader>l": ":bnext<cr>",
+        "<leader>h": ":bprevious<cr>",
+        "0": "^",
+        "<leader>pp": ":setlocal paste!<cr>",
+        "<C-j>": "<C-w>j",
+        "<C-k>": "<C-w>k",
+        "<C-l>": "<C-w>l",
+        "<C-h>": "<C-w>h",
+        "j": "gj",
+        "k": "gk",
+        
+        # Spell checking
+        "<leader>ss": ":setlocal spell!<cr>",
+        "<leader>sn": "]s",
+        "<leader>sp": "[s",
+        "<leader>sa": "zg",
+        "<leader>s?": "z=",
+    },
+)
+
+# Platform-specific vim configurations
+vim_config(
+    name = "linux_config",
+    includes = [":base_config"],
+    platform_settings = {
+        "linux": [
+            "set clipboard=unnamedplus",
+            "set directory=/tmp//",
+            "set backupdir=/tmp//",
+        ],
+    },
+    raw_statements = [
+        '" Linux-specific configurations',
+        'autocmd VimEnter * echo "Running Vim on Linux"',
+    ],
+)
+
+vim_config(
+    name = "macos_config",
+    includes = [":base_config"],
+    platform_settings = {
+        "macos": [
+            "set clipboard=unnamed",
+            "set backupdir=~/Library/Caches/vim//",
+            "set directory=~/Library/Caches/vim//",
+        ],
+    },
+    plugins = [
+        "junegunn/fzf.vim",
+        "tpope/vim-fugitive",
+    ],
+    raw_statements = [
+        '" macOS-specific configurations',
+        'autocmd VimEnter * echo "Running Vim on macOS"',
+    ],
+)
+
+vim_config(
+    name = "windows_config",
+    includes = [":base_config"],
+    platform_settings = {
+        "windows": [
+            "set clipboard=unnamed",
+            "set directory=$TEMP//",
+            "set backupdir=$TEMP//",
+            "set shellslash",
+        ],
+    },
+    raw_statements = [
+        '" Windows-specific configurations',
+        'autocmd VimEnter * echo "Running Vim on Windows"',
+    ],
+)
+
+# Generate default .vimrc for current platform
+vim_config_generator(
+    name = "vimrc",
+    config = select({
+        "@platforms//os:linux": ":linux_config",
+        "@platforms//os:macos": ":macos_config",
+        "@platforms//os:windows": ":windows_config",
+        "//conditions:default": ":base_config",
+    }),
+    plugin_manager = "vim-plug",
+    timestamp = "$(date +%Y-%m-%d' '%H:%M:%S)",
+)
+
+# Work variant with additional settings
+vim_config(
+    name = "work_config",
+    includes = [":base_config"],
+    settings = {
+        "colorscheme": "industry",
+        "background": "dark",
+    },
+    plugins = [
+        "fatih/vim-go",
+        "rust-lang/rust.vim",
+    ],
+    raw_statements = [
+        '" Work-specific configurations',
+        'autocmd VimEnter * echo "Work environment detected"',
+        '" Set up proxy if needed',
+        'if filereadable(expand("~/.work_proxy"))',
+        '  source ~/.work_proxy',
+        'endif',
+    ],
+)
+
+# Personal variant with different settings
+vim_config(
+    name = "personal_config",
+    includes = [":base_config"],
+    settings = {
+        "colorscheme": "desert",
+        "background": "dark",
+        "cursorline": "true",
+    },
+    plugins = [
+        "junegunn/vim-easy-align",
+        "preservim/nerdtree",
+    ],
+    raw_statements = [
+        '" Personal-specific configurations',
+        'autocmd VimEnter * echo "Personal environment detected"',
+    ],
+)
+
+# Generate variant-specific vimrc files
+vim_config_generator(
+    name = "work_vimrc",
+    config = ":work_config",
+    plugin_manager = "vim-plug",
+    timestamp = "$(date +%Y-%m-%d' '%H:%M:%S)",
+)
+
+vim_config_generator(
+    name = "personal_vimrc",
+    config = ":personal_config",
+    plugin_manager = "vim-plug",
+    timestamp = "$(date +%Y-%m-%d' '%H:%M:%S)",
+)
+
+# Build all variants
+filegroup(
+    name = "all_vimrcs",
+    srcs = [
+        ":personal_vimrc",
+        ":vimrc",
+        ":work_vimrc",
+    ],
+)
+
+# Basic test for the generated vimrc
+vim_test(
+    name = "basic_vimrc_test",
+    vimrc = ":vimrc",
+    requirements = [
+        "set number",
+        "set tabstop=2",
+        "set expandtab",
+        "set syntax=on",
+        'let mapleader = ","',
+    ],
+    prohibited = [
+        "set mouse=a",  # We don't want mouse mode by default
+    ],
+)
+
+# Advanced test with vimrc
+vim_test(
+    name = "advanced_vimrc_test",
+    vimrc = ":vimrc",
+    requirements = [
+        "set number",
+        "set tabstop=2",
+        "set expandtab",
+        'let mapleader = ","',
+    ],
+)
+
+# Test for work variant
+vim_test(
+    name = "work_vimrc_test",
+    vimrc = ":work_vimrc",
+    requirements = [
+        "set colorscheme=industry",
+        "set background=dark",
+        'Plug "fatih/vim-go"',
+        'autocmd VimEnter \\* echo "Work environment detected"',
+    ],
+)
+
+# Test for personal variant
+vim_test(
+    name = "personal_vimrc_test",
+    vimrc = ":personal_vimrc",
+    requirements = [
+        "set colorscheme=desert",
+        "set background=dark",
+        "set cursorline",
+        'Plug "preservim/nerdtree"',
+        'autocmd VimEnter \\* echo "Personal environment detected"',
+    ],
+)
+
+# Test suite that runs all vim tests
+test_suite(
+    name = "all_tests",
+    tests = [
+        ":advanced_vimrc_test",
+        ":basic_vimrc_test",
+        ":personal_vimrc_test",
+        ":work_vimrc_test",
+    ],
+)

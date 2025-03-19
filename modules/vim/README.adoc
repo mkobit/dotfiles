@@ -1,0 +1,67 @@
+= Vim Configuration Module
+:toc: left
+:icons: font
+:source-highlighter: rouge
+
+== Overview
+
+This module generates Vim configuration files (`.vimrc`) for different environments and contexts.
+
+== Features
+
+* Platform-specific configurations
+* Variant-aware settings (work/personal)
+* Support for plugin management
+* Modular configuration structure
+
+== Usage
+
+[source,bash]
+----
+# Build the vim configuration for current platform
+bazel build //modules/vim:vimrc
+
+# Build specific variant
+bazel build //modules/vim:vimrc --define=variant=work
+
+# Run tests
+bazel test //modules/vim/tests/...
+----
+
+== Manual Integration
+
+Until we develop a proper installation system, you can use the generated .vimrc files by:
+
+1. Finding the output path:
++
+[source,bash]
+----
+# Get the output path for the default vimrc
+bazel info bazel-bin
+VIMRC_PATH=$(bazel info bazel-bin)/modules/vim/vimrc.vimrc
+
+# For a specific variant
+VIMRC_PATH=$(bazel info bazel-bin)/modules/vim/work_vimrc.vimrc
+----
+
+2. Including it in your existing .vimrc:
++
+[source,vim]
+----
+" In your ~/.vimrc
+if filereadable('/path/to/bazel-bin/modules/vim/vimrc.vimrc')
+  source /path/to/bazel-bin/modules/vim/vimrc.vimrc
+endif
+----
+
+== Configuration Options
+
+[cols="1,1,2", options="header"]
+|===
+|Option |Default |Description
+|`colorscheme` |`default` |Vim color scheme
+|`line_numbers` |`true` |Show line numbers
+|`tab_width` |`4` |Tab width in spaces
+|`expandtab` |`true` |Use spaces instead of tabs
+|`syntax_highlighting` |`true` |Enable syntax highlighting
+|===

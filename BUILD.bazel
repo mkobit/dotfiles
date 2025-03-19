@@ -1,14 +1,60 @@
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
+package(default_visibility = ["//visibility:public"])
+
+# Hello world example
 sh_binary(
     name = "hello",
     srcs = ["hello.sh"],
-    visibility = ["//visibility:public"],
 )
 
 genrule(
     name = "generate_hello_sh",
     outs = ["hello.sh"],
-    cmd = "echo '#!/bin/bash\necho \"Hello, Bazel!\"' > $@",
+    cmd = "echo '#!/bin/bash\\necho \"Hello, Bazel!\"' > $@",
     executable = True,
+)
+
+# Dotfiles targets
+filegroup(
+    name = "dotfiles",
+    srcs = [
+        "//modules/vim:vimrc",
+    ],
+)
+
+# Variant-specific dotfiles
+filegroup(
+    name = "work_dotfiles",
+    srcs = [
+        "//modules/vim:work_vimrc",
+    ],
+)
+
+filegroup(
+    name = "personal_dotfiles",
+    srcs = [
+        "//modules/vim:personal_vimrc",
+    ],
+)
+
+# Test suite for all dotfiles
+test_suite(
+    name = "all_tests",
+    tests = [
+        "//modules/vim:all_tests",
+    ],
+)
+
+# Helper target to output paths to generated dotfiles
+sh_binary(
+    name = "print_paths",
+    srcs = ["tools/print_paths.sh"],
+    data = [":dotfiles"],
+)
+
+# Simple script to query output paths (doesn't run through Bazel)
+exports_files(
+    ["tools/query_outputs.sh"],
+    visibility = ["//visibility:public"],
 )
