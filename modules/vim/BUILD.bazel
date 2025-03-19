@@ -76,21 +76,6 @@ vim_config(
         '  autocmd FileType gitcommit setlocal textwidth=0',
         'augroup END',
         '',
-        # Setup backup directories
-        '" Put swap files, backups, and undos somewhere else',
-        'set backupdir=~/.vim/backup//',
-        'set directory=~/.vim/swap//',
-        'set undodir=~/.vim/undo//',
-        'if !isdirectory(expand("~/.vim/backup/"))',
-        '  call mkdir("~/.vim/backup/", "p")',
-        'endif',
-        'if !isdirectory(expand("~/.vim/swap/"))',
-        '  call mkdir(expand("~/.vim/swap/"), "p")',
-        'endif',
-        'if !isdirectory(expand("~/.vim/undo/"))',
-        '  call mkdir(expand("~/.vim/undo/"), "p")',
-        'endif',
-        '',
         # Movement mappings
         '" Move lines up and down',
         'nnoremap <M-j> mz:m+<cr>`z',
@@ -135,8 +120,7 @@ vim_config(
     platform_settings = {
         "linux": [
             "set clipboard=unnamedplus",
-            "set directory=/tmp//",
-            "set backupdir=/tmp//",
+            "set directory=/tmp/",
         ],
     },
     raw_statements = [
@@ -151,8 +135,6 @@ vim_config(
     platform_settings = {
         "macos": [
             "set clipboard=unnamed",
-            "set backupdir=~/Library/Caches/vim//",
-            "set directory=~/Library/Caches/vim//",
         ],
     },
     raw_statements = [
@@ -167,8 +149,6 @@ vim_config(
     platform_settings = {
         "windows": [
             "set clipboard=unnamed",
-            "set directory=$TEMP//",
-            "set backupdir=$TEMP//",
             "set shellslash",
         ],
     },
@@ -200,10 +180,6 @@ vim_config(
     raw_statements = [
         '" Work-specific configurations',
         'autocmd VimEnter * echo "Work environment detected"',
-        '" Set up proxy if needed',
-        'if filereadable(expand("~/.work_proxy"))',
-        '  source ~/.work_proxy',
-        'endif',
     ],
 )
 
