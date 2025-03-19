@@ -166,7 +166,6 @@ asciidoc(
 - Define clear interfaces between modules
 - Document platform-specific quirks
 - Use aspect-based generation for complex configurations
-- Add `.bazel-*` directories to `.gitignore`
 - For local development tools, use `register_toolchains` in MODULE.bazel
-- Always document modules with README.adoc files
+- Always document modules using Asciidoctor. Documentation is intended for future me, not external users.
 - Use AsciiDoctor attributes for conditional content
