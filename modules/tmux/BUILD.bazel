@@ -1,6 +1,6 @@
-package(default_visibility = ["//visibility:public"])
+load("//tools:defs.bzl", "template_file")
 
-load("//tools:defs.bzl", "template_file", "platform_select")
+package(default_visibility = ["//visibility:public"])
 
 # Base tmux configuration
 template_file(

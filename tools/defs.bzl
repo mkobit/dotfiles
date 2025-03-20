@@ -29,10 +29,10 @@ def template_file(name, src, out, substitutions = None):
 
 def platform_select(options):
     """Select different values based on the platform.
-    
+
     Args:
         options: Dict with "linux", "macos", "windows" keys and their values
-    
+
     Returns:
         The appropriate value for the current platform
     """

@@ -1,12 +1,32 @@
+load("@buildifier_prebuilt//:rules.bzl", "buildifier", "buildifier_test")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 
 package(default_visibility = ["//visibility:public"])
+
+# Buildifier for linting and formatting Bazel files
+buildifier(
+    name = "buildifier",
+    lint_mode = "fix",
+    mode = "fix",
+    tags = ["manual"],
+)
+
+buildifier_test(
+    name = "buildifier_test",
+    srcs = glob([
+        "**/*.bazel",
+        "**/*.bzl",
+        "**/WORKSPACE",
+        "**/MODULE.bazel",
+    ]),
+    lint_mode = "warn",
+)
 
 # Dotfiles targets
 filegroup(
     name = "dotfiles",
     srcs = [
-        "//modules/tmux:tmux",
+        "//modules/tmux",
         "//modules/vim:vimrc",
     ],
 )

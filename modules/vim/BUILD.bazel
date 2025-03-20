@@ -5,6 +5,70 @@ package(default_visibility = ["//visibility:public"])
 # Base Vim configuration with common settings
 vim_config(
     name = "base_config",
+    mappings = {
+        # Normal mode mappings
+        "<leader>w": ":w!<cr>",
+        "<space>": "/",
+        "<C-space>": "?",
+        "<leader><cr>": ":nohlsearch<cr>",
+        "<leader>l": ":bnext<cr>",
+        "<leader>h": ":bprevious<cr>",
+        "0": "^",
+        "<leader>pp": ":setlocal paste!<cr>",
+        "<C-j>": "<C-w>j",
+        "<C-k>": "<C-w>k",
+        "<C-l>": "<C-w>l",
+        "<C-h>": "<C-w>h",
+        "j": "gj",
+        "k": "gk",
+
+        # Spell checking
+        "<leader>ss": ":setlocal spell!<cr>",
+        "<leader>sn": "]s",
+        "<leader>sp": "[s",
+        "<leader>sa": "zg",
+        "<leader>s?": "z=",
+    },
+    raw_statements = [
+        # Leader key setup
+        '" Set leader key to comma',
+        'let mapleader = ","',
+        "",
+        # File encoding and format
+        '" Set language to English',
+        'let $LANG="en"',
+        "set langmenu=en",
+        "source $VIMRUNTIME/delmenu.vim",
+        "source $VIMRUNTIME/menu.vim",
+        "",
+        # Auto read when a file is changed
+        '" Auto read when a file is changed from the outside',
+        "set autoread",
+        "augroup external_editor",
+        "  autocmd FocusGained,BufEnter * checktime",
+        "augroup END",
+        "",
+        # Special characters
+        "set listchars=eol:\342\206\262,tab:\302\273\\ ,trail:\302\267,extends:\342\226\266,precedes:\342\227\200,conceal:\342\224\212,nbsp:\342\220\243",
+        "set list",
+        "",
+        # Disable gitcommit textwidth
+        "augroup filetype_gitcommit",
+        "  autocmd!",
+        "  autocmd FileType gitcommit setlocal textwidth=0",
+        "augroup END",
+        "",
+        # Movement mappings
+        '" Move lines up and down',
+        "nnoremap <M-j> mz:m+<cr>`z",
+        "nnoremap <M-k> mz:m-2<cr>`z",
+        "vnoremap <M-j> :m'>+<cr>`<my`>mzgv`yo`z",
+        "vnoremap <M-k> :m'<-2<cr>`>my`<mzgv`yo`z",
+        "",
+        '" Alternative escape sequences',
+        "inoremap jk <Esc>",
+        "inoremap kj <Esc>",
+    ],
     settings = {
         # General UI settings
         "number": "true",
@@ -42,70 +106,6 @@ vim_config(
         "t_vb": "",
         "timeoutlen": "750",
         "whichwrap": "<,>,h,l",
-    },
-    raw_statements = [
-        # Leader key setup
-        '" Set leader key to comma',
-        'let mapleader = ","',
-        '',
-        # File encoding and format
-        '" Set language to English',
-        'let $LANG="en"',
-        'set langmenu=en',
-        'source $VIMRUNTIME/delmenu.vim',
-        'source $VIMRUNTIME/menu.vim',
-        '',
-        # Auto read when a file is changed
-        '" Auto read when a file is changed from the outside',
-        'set autoread',
-        'augroup external_editor',
-        '  autocmd FocusGained,BufEnter * checktime',
-        'augroup END',
-        '',
-        # Special characters
-        'set listchars=eol:↲,tab:»\\ ,trail:·,extends:▶,precedes:◀,conceal:┊,nbsp:␣',
-        'set list',
-        '',
-        # Disable gitcommit textwidth
-        'augroup filetype_gitcommit',
-        '  autocmd!',
-        '  autocmd FileType gitcommit setlocal textwidth=0',
-        'augroup END',
-        '',
-        # Movement mappings
-        '" Move lines up and down',
-        'nnoremap <M-j> mz:m+<cr>`z',
-        'nnoremap <M-k> mz:m-2<cr>`z',
-        'vnoremap <M-j> :m\'>+<cr>`<my`>mzgv`yo`z',
-        'vnoremap <M-k> :m\'<-2<cr>`>my`<mzgv`yo`z',
-        '',
-        '" Alternative escape sequences',
-        'inoremap jk <Esc>',
-        'inoremap kj <Esc>',
-    ],
-    mappings = {
-        # Normal mode mappings
-        "<leader>w": ":w!<cr>",
-        "<space>": "/",
-        "<C-space>": "?",
-        "<leader><cr>": ":nohlsearch<cr>",
-        "<leader>l": ":bnext<cr>",
-        "<leader>h": ":bprevious<cr>",
-        "0": "^",
-        "<leader>pp": ":setlocal paste!<cr>",
-        "<C-j>": "<C-w>j",
-        "<C-k>": "<C-w>k",
-        "<C-l>": "<C-w>l",
-        "<C-h>": "<C-w>h",
-        "j": "gj",
-        "k": "gk",
-
-        # Spell checking
-        "<leader>ss": ":setlocal spell!<cr>",
-        "<leader>sn": "]s",
-        "<leader>sp": "[s",
-        "<leader>sa": "zg",
-        "<leader>s?": "z=",
     },
 )
 
@@ -169,29 +169,29 @@ vim_config_generator(
 vim_config(
     name = "work_config",
     includes = [":base_config"],
-    settings = {
-        "colorscheme": "industry",
-        "background": "dark",
-    },
     raw_statements = [
         '" Work-specific configurations',
         'autocmd VimEnter * echo "Work environment detected"',
     ],
+    settings = {
+        "colorscheme": "industry",
+        "background": "dark",
+    },
 )
 
 # Personal variant with different settings
 vim_config(
     name = "personal_config",
     includes = [":base_config"],
+    raw_statements = [
+        '" Personal-specific configurations',
+        'autocmd VimEnter * echo "Personal environment detected"',
+    ],
     settings = {
         "colorscheme": "desert",
         "background": "dark",
         "cursorline": "true",
     },
-    raw_statements = [
-        '" Personal-specific configurations',
-        'autocmd VimEnter * echo "Personal environment detected"',
-    ],
 )
 
 # Generate variant-specific vimrc files
