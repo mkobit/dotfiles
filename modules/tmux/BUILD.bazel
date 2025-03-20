@@ -1,0 +1,65 @@
+package(default_visibility = ["//visibility:public"])
+
+load("//tools:defs.bzl", "template_file", "platform_select")
+
+# Base tmux configuration
+template_file(
+    name = "tmux_conf",
+    src = "tmux.conf.template",
+    out = "tmux.conf",
+)
+
+# Default tmux configuration
+filegroup(
+    name = "tmux",
+    srcs = [
+        ":tmux_conf",
+    ],
+)
+
+# Work variant tmux configuration
+template_file(
+    name = "work_tmux_conf",
+    src = "tmux.conf.template",
+    out = "work_tmux.conf",
+    substitutions = {
+        "%%VARIANT%%": "work",
+    },
+)
+
+filegroup(
+    name = "work_tmux",
+    srcs = [
+        ":work_tmux_conf",
+    ],
+)
+
+# Personal variant tmux configuration
+template_file(
+    name = "personal_tmux_conf",
+    src = "tmux.conf.template",
+    out = "personal_tmux.conf",
+    substitutions = {
+        "%%VARIANT%%": "personal",
+    },
+)
+
+filegroup(
+    name = "personal_tmux",
+    srcs = [
+        ":personal_tmux_conf",
+    ],
+)
+
+# Print path to the generated tmux.conf file
+genrule(
+    name = "print_path",
+    srcs = [":tmux_conf"],
+    outs = ["tmux_path.txt"],
+    cmd = "echo 'To use this tmux configuration, add the following line to your ~/.tmux.conf:' > $@ && " +
+          "echo '' >> $@ && " +
+          "echo 'source-file '$(location :tmux_conf) >> $@ && " +
+          "echo '' >> $@ && " +
+          "echo 'Or run this command:' >> $@ && " +
+          "echo 'echo \"source-file '$(location :tmux_conf)'\" >> ~/.tmux.conf' >> $@",
+)

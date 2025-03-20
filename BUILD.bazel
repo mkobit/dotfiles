@@ -6,6 +6,7 @@ package(default_visibility = ["//visibility:public"])
 filegroup(
     name = "dotfiles",
     srcs = [
+        "//modules/tmux:tmux",
         "//modules/vim:vimrc",
     ],
 )
@@ -14,6 +15,7 @@ filegroup(
 filegroup(
     name = "work_dotfiles",
     srcs = [
+        "//modules/tmux:work_tmux",
         "//modules/vim:work_vimrc",
     ],
 )
@@ -21,6 +23,7 @@ filegroup(
 filegroup(
     name = "personal_dotfiles",
     srcs = [
+        "//modules/tmux:personal_tmux",
         "//modules/vim:personal_vimrc",
     ],
 )
@@ -28,12 +31,8 @@ filegroup(
 # Helper target to output paths to generated dotfiles
 sh_binary(
     name = "print_paths",
-    srcs = ["tools/print_paths.sh"],
+    srcs = ["//tools:print_paths.sh"],
     data = [":dotfiles"],
 )
 
-# Simple script to query output paths (doesn't run through Bazel)
-exports_files(
-    ["tools/query_outputs.sh"],
-    visibility = ["//visibility:public"],
-)
+# No exports_files needed at the top level

@@ -1,0 +1,178 @@
+# =============================================
+# tmux configuration file
+# =============================================
+# Documentation: https://man.openbsd.org/tmux
+
+# =============================================
+# Server Options
+# =============================================
+# Eliminate delay when pressing Escape key
+# Docs: https://man.openbsd.org/tmux#escape-time
+set -s -g escape-time 0
+
+# =============================================
+# Terminal Settings
+# =============================================
+# Use 256 color terminal for proper color support
+# Docs: https://man.openbsd.org/tmux#default-terminal
+set -g default-terminal "screen-256color" # tmux-256color doesn't always work with all terminal emulators
+
+# Enable focus events for better integration with vim and other programs
+# Docs: https://man.openbsd.org/tmux#focus-events
+set -g focus-events on
+
+# =============================================
+# History Management
+# =============================================
+# Maximum number of lines held in window history
+# Docs: https://man.openbsd.org/tmux#history-limit
+set -g history-limit 50000
+
+# Set history file location using HOME variable to be cross-OS compatible
+# Docs: https://man.openbsd.org/tmux#history-file
+set -g history-file ${HOME}/.tmux_history
+
+# =============================================
+# User Interface
+# =============================================
+# Time (in ms) for which status line messages are displayed
+# Docs: https://man.openbsd.org/tmux#display-time
+set -g display-time 4000
+
+# =============================================
+# Window and Pane Options
+# =============================================
+# Use vim keybindings in copy mode
+# Docs: https://man.openbsd.org/tmux#mode-keys
+set -w -g mode-keys vi
+
+# Window indexing starts at 1 (easier to reach on keyboard)
+# Docs: https://man.openbsd.org/tmux#base-index
+set -g base-index 1
+
+# Pane indexing starts at 1 (for consistency with windows)
+# Docs: https://man.openbsd.org/tmux#pane-base-index
+set -w -g pane-base-index 1
+
+# Renumber windows when any is closed (maintains sequential ordering)
+# Docs: https://man.openbsd.org/tmux#renumber-windows
+set -g renumber-windows on
+
+# =============================================
+# Status Line Configuration
+# =============================================
+# Update status bar every 5 seconds
+# Docs: https://man.openbsd.org/tmux#status-interval
+set -g status-interval 5
+
+# Window list component is left-justified
+# Docs: https://man.openbsd.org/tmux#status-justify
+set -g status-justify left
+
+# Use vi-style status line navigation
+# Docs: https://man.openbsd.org/tmux#status-keys
+set -g status-keys vi
+
+# Status line settings
+# Docs: https://man.openbsd.org/tmux#status-left
+set -g status-left ""
+set -g status-left-length 10
+
+# Position status bar at the top of the window
+# Docs: https://man.openbsd.org/tmux#status-position
+set -g status-position top
+
+# =============================================
+# Window Title Settings
+# =============================================
+# Automatically set window titles
+# Docs: https://man.openbsd.org/tmux#set-titles
+set -g set-titles on
+set -g set-titles-string '#H:#S.#I.#P #W #T' # hostname:session.window.pane window_name title
+
+# Enable automatic window renaming
+# Docs: https://man.openbsd.org/tmux#automatic-rename
+set -w -g automatic-rename on
+set -w -g allow-rename on
+
+# =============================================
+# Mouse Support
+# =============================================
+# Enable mouse mode for tmux 2.1 and above
+# Docs: https://man.openbsd.org/tmux#mouse
+set -g mouse on
+
+# =============================================
+# Key Bindings
+# =============================================
+# Set Ctrl-a as the default prefix and unbind C-b
+# Docs: https://man.openbsd.org/tmux#prefix
+unbind C-b
+set -g prefix C-a
+bind C-a send-prefix
+
+# Reload configuration
+# Docs: https://man.openbsd.org/tmux#source-file
+bind r source-file ${HOME}/.tmux.conf \; display "Reloaded ~/.tmux.conf"
+
+# Window management
+unbind-key c
+bind-key c new-window -c "#{pane_current_path}"
+
+# Split panes using | and - (more intuitive than % and ")
+unbind '"'
+unbind %
+bind | split-window -h -c "#{pane_current_path}"
+bind - split-window -v -c "#{pane_current_path}"
+
+# Quick window navigation
+bind-key a last-window
+
+# Vim-like pane navigation
+unbind-key j
+bind-key j select-pane -D
+unbind-key k
+bind-key k select-pane -U
+unbind-key h
+bind-key h select-pane -L
+unbind-key l
+bind-key l select-pane -R
+
+# Alt+Arrow keys for pane navigation without prefix
+bind -n M-Left select-pane -L
+bind -n M-Right select-pane -R
+bind -n M-Up select-pane -U
+bind -n M-Down select-pane -D
+
+# Shift+Arrow for window navigation without prefix
+bind -n S-Left previous-window
+bind -n S-Right next-window
+
+# =============================================
+# Copy Mode (Vim-style)
+# =============================================
+# Setup 'v' to begin selection like Vim
+# Docs: https://man.openbsd.org/tmux#copy-mode-vi
+bind-key -T copy-mode-vi 'v' send -X begin-selection
+
+# OS-specific clipboard integration
+# Use pbcopy on macOS and xclip on Linux
+if-shell "uname | grep -q Darwin" {
+  # macOS clipboard integration
+  bind-key -T copy-mode-vi 'y' send -X copy-pipe-and-cancel 'pbcopy'
+  bind-key -T copy-mode-vi Enter send -X copy-pipe-and-cancel 'pbcopy'
+} {
+  # Linux clipboard integration (requires xclip)
+  bind-key -T copy-mode-vi 'y' send -X copy-pipe-and-cancel 'xclip -in -selection clipboard'
+  bind-key -T copy-mode-vi Enter send -X copy-pipe-and-cancel 'xclip -in -selection clipboard'
+}
+
+# Additional copy mode bindings
+bind-key -T copy-mode-vi 'V' send -X select-line
+bind-key -T copy-mode-vi 'r' send -X rectangle-toggle
+
+# =============================================
+# Variant-specific settings (%%VARIANT%%)
+# =============================================
+# This section can be customized based on variant (work/personal)
+# The %%VARIANT%% placeholder will be replaced during build
