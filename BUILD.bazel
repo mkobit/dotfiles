@@ -26,6 +26,8 @@ buildifier_test(
 filegroup(
     name = "dotfiles",
     srcs = [
+        "//modules/git:gitconfig",
+        "//modules/git:gitignore_global",
         "//modules/tmux",
         "//modules/vim:vimrc",
     ],
@@ -35,6 +37,8 @@ filegroup(
 filegroup(
     name = "work_dotfiles",
     srcs = [
+        "//modules/git:work_gitconfig",
+        "//modules/git:gitignore_global",
         "//modules/tmux:work_tmux",
         "//modules/vim:work_vimrc",
     ],
@@ -43,6 +47,8 @@ filegroup(
 filegroup(
     name = "personal_dotfiles",
     srcs = [
+        "//modules/git:personal_gitconfig",
+        "//modules/git:gitignore_global",
         "//modules/tmux:personal_tmux",
         "//modules/vim:personal_vimrc",
     ],
@@ -53,6 +59,49 @@ sh_binary(
     name = "print_paths",
     srcs = ["//tools:print_paths.sh"],
     data = [":dotfiles"],
+)
+
+# Helper targets to print paths to Git config files
+sh_binary(
+    name = "print_git_paths",
+    srcs = ["//tools:print_paths.sh"],
+    args = [
+        "'Git configuration files:'",
+        "$(location //modules/git:gitconfig)",
+        "$(location //modules/git:gitignore_global)",
+    ],
+    data = [
+        "//modules/git:gitconfig",
+        "//modules/git:gitignore_global",
+    ],
+)
+
+sh_binary(
+    name = "print_git_personal_paths",
+    srcs = ["//tools:print_paths.sh"],
+    args = [
+        "'Personal Git configuration files:'",
+        "$(location //modules/git:personal_gitconfig)",
+        "$(location //modules/git:gitignore_global)",
+    ],
+    data = [
+        "//modules/git:personal_gitconfig",
+        "//modules/git:gitignore_global",
+    ],
+)
+
+sh_binary(
+    name = "print_git_work_paths",
+    srcs = ["//tools:print_paths.sh"],
+    args = [
+        "'Work Git configuration files:'",
+        "$(location //modules/git:work_gitconfig)",
+        "$(location //modules/git:gitignore_global)",
+    ],
+    data = [
+        "//modules/git:work_gitconfig",
+        "//modules/git:gitignore_global",
+    ],
 )
 
 # No exports_files needed at the top level

@@ -1,171 +1,51 @@
-# Dotfiles Bazel System
-This file provides hints about the Bazel-powered dotfiles generation system.
+# Dotfiles Development Guidelines
 
-## Project Structure
-- `MODULE.bazel` - Main module file for bzlmod dependency management
-- `BUILD.bazel` - Top-level build targets
-- `README.adoc` - Main project documentation (using AsciiDoctor)
-- `configs/` - Core configuration files
-  - `configs/BUILD.bazel` - Build targets for configuration files
-  - `configs/README.adoc` - Documentation for configurations
-- `modules/` - Independent dotfile modules (vim, git, shell, etc)
-  - `modules/*/BUILD.bazel` - Module-specific build targets
-  - `modules/*/README.adoc` - Module-specific documentation
-- `platforms/` - Platform-specific configuration (linux, macos, windows)
-  - `platforms/*/BUILD.bazel` - Platform-specific build targets
-  - `platforms/*/README.adoc` - Platform-specific documentation
-- `variants/` - Variant-specific configuration (work, personal, etc)
-  - `variants/*/BUILD.bazel` - Variant-specific build targets
-- `tools/` - Custom build tools and scripts
-  - `tools/*/BUILD.bazel` - Build targets for tools
-  - `tools/*.bzl` - Starlark macros and rules
-  - `tools/docs/` - AsciiDoctor tooling and templates
-- `tests/` - Validation tests for dotfiles
-  - `tests/*/BUILD.bazel` - Test targets
-- `docs/` - Project documentation
-  - `docs/*.adoc` - AsciiDoctor documentation files
+## Project Architecture
+- Use Bazel 7.0+ with bzlmod for dependency management
+- Organize by modules (git, vim, tmux, etc.)
+- Each module should have its own BUILD.bazel and README.adoc
+- Use the Starlark DSL to define module-specific rules
+- Keep modules independent where possible for parallel development
 
-## Key Concepts
+## Bazel-First Approach
+- All operations should be runnable via Bazel commands
+- Installation should be handled through Bazel targets, not custom scripts
+- Focus on generation correctness before installation automation
+- Use `bazel build` and `bazel run` as primary interfaces
+- Always provide print_paths targets to show generated file locations
 
-### Bazel Configuration
-- Uses Bazel 7.0 with bzlmod (MODULE.bazel) for dependency management
-- No WORKSPACE file, preparing for Bazel 8.0 compatibility
-- Leverages Starlark for defining custom rules and macros
-- Defines clear targets for building, testing, and deploying dotfiles
-- Uses `bazel run //:install` as primary command for dotfile deployment
+## Configuration Management
+- Use strongly-typed providers for configuration data
+- Generated files should be deterministic and reproducible
+- Support three layers of configuration inheritance:
+  1. Base - Common settings across all environments
+  2. Platform - OS-specific settings (linux, macos, windows)
+  3. Variant - Context-specific settings (work, personal)
+- Use select() for platform detection
+- Handle file paths properly across different operating systems
 
-### Documentation with AsciiDoctor
-- All documentation uses AsciiDoctor (.adoc files) instead of Markdown
-- README.adoc as the main entry point for documentation
-- Bazel targets to generate HTML and PDF documentation from .adoc sources
-- Module-specific documentation in each module's directory
-- Cross-referencing between documentation files
-- Standard AsciiDoctor templates for consistent styling
+## Privacy and Separation of Concerns
+- Work/private settings must never be committed to the repository
+- Support local extensions (e.g., ~/.gitconfig.local) for private settings
+- Use include directives for bringing in external configs when appropriate
+- Create isolated variant targets for different contexts
 
-### Distribution/Variant Awareness
-- Platform select() statements identify OS-specific requirements
-- Variant-specific configuration through build flags and config_settings
-- Uses platform constraints for specialization (e.g., work vs. personal)
-- Support for multiple OS configurations: Windows, macOS, Linux, WSL
+## Documentation
+- Document all modules using AsciiDoctor (.adoc files), not Markdown
+- Include usage examples in documentation
+- Describe module-specific configuration options
+- Document how to integrate with existing tool ecosystems
 
-### Testing & Validation
-- Unit tests for configuration generation logic
-- Integration tests that validate symlinks and file content
-- Hermetic testing to ensure deterministic results
-- Test configs with different variant combinations
+## Development Process
+- Test configuration generation before deployment
+- Favor build-time configuration over runtime detection
+- Keep sensitive information out of the repository
+- Build all variants during testing to ensure they work correctly
+- Use consistent naming conventions across modules
 
-### Integration with Existing Systems
-- Detection of managed systems and appropriate fallback behavior
-- Non-destructive installation preserving existing configurations when needed
-- Support for overlay configurations on managed systems
-- Escape hatches for manual overrides
-
-### Cross-Platform Support
-- Path normalization across different OS environments
-- Shell detection and appropriate script generation
-- WSL-specific handling for Windows interoperability
-- Remote execution support for development boxes
-
-### Private Configuration
-- Support for loading private/secret information via external files
-- Clear separation between public and private configuration
-- Gitignore patterns for private configuration
-- Security considerations for secrets management
-
-## Common Commands
-
-```bash
-# Build all dotfiles for current platform
-bazel build //:dotfiles
-
-# Install dotfiles for current platform
-bazel run //:install
-
-# Build specific module(s)
-bazel build //modules/vim:all
-
-# Build for specific platform
-bazel build --config=macos //:dotfiles
-
-# Build with specific variant
-bazel build --define=variant=work //:dotfiles
-
-# Run validation tests
-bazel test //tests/...
-
-# Generate documentation
-bazel build //:docs
-
-# Clean build artifacts
-bazel clean
-```
-
-## Starlark DSL Examples
-
-```python
-# Example module definition
-dotfile_module(
-    name = "vim",
-    srcs = glob(["vim/**/*.vim"]),
-    config = "vim/vimrc.template",
-    platforms = ["linux", "macos"],
-)
-
-# Example variant configuration
-variant_config(
-    name = "work_profile",
-    base = ":base_profile",
-    overrides = {
-        "git/email": "user@example.com",
-        "proxy/enabled": "true",
-    },
-)
-
-# Platform-specific configuration
-platform_config(
-    name = "macos_config",
-    srcs = ["macos/defaults.yaml"],
-    enabled_modules = [
-        "//modules/homebrew",
-        "//modules/iterm",
-    ],
-)
-
-# Private configuration
-private_config(
-    name = "credentials",
-    secret_file = "//private:secrets.yaml",
-    visibility = ["//visibility:private"],
-)
-
-# AsciiDoctor documentation generation
-asciidoc(
-    name = "module_docs",
-    src = "README.adoc",
-    out = "module.html",
-    attributes = {
-        "toc": "left",
-        "source-highlighter": "rouge",
-    },
-)
-```
-
-## AsciiDoctor Features to Use
-- Cross references between documents using anchors
-- Include directives for modular documentation
-- Diagrams with PlantUML or Graphviz
-- Tables for configuration options
-- Source code highlighting
-- Conditional content based on attributes
-- Table of contents
-
-## Tips for Development
-- Use Bazel 7.0+ for bzlmod support
-- Use `--sandbox_debug` to inspect build failures
-- Create integration tests for each major change
-- Define clear interfaces between modules
-- Document platform-specific quirks
-- Use aspect-based generation for complex configurations
-- For local development tools, use `register_toolchains` in MODULE.bazel
-- Always document modules using Asciidoctor. Documentation is intended for future me, not external users.
-- Use AsciiDoctor attributes for conditional content
+## Implementation Patterns
+- Default to flat dictionaries with compound keys for complex hierarchies
+- Use include/extends patterns for inheritance
+- Standardize on provider interfaces for module-specific configurations
+- Handle platform differences via BUILD-time selection
+- Prefer pure Starlark implementation over shell script generation

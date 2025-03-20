@@ -1,0 +1,70 @@
+# Global .gitignore file
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Icon?
+
+# Editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+
+# Build outputs
+*.o
+*.so
+*.pyc
+*.class
+*.dll
+*.exe
+*.out
+*.app
+
+# Log files
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary and cache files
+.tmp/
+.cache/
+.sass-cache/
+
+# Package manager directories
+node_modules/
+bower_components/
+jspm_packages/
+vendor/
+dist/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Python virtualenvs
+venv/
+env/
+.venv/
+.env/
+ENV/
+
+# Java/Gradle/Maven
+.gradle/
+build/
+target/
+
+# Bazel
+bazel-*

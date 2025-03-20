@@ -1,0 +1,95 @@
+= Git Configuration Module
+:toc: left
+:source-highlighter: rouge
+
+== Overview
+
+This module provides a Bazel-driven configuration system for Git with support for:
+
+* Common base configuration (aliases, colors, core settings)
+* Platform-specific settings (Windows, macOS, Linux)
+* Variant-specific settings (work, personal)
+* Global gitignore file
+
+== Key Features
+
+* *Variant support*: Generate different configs for work and personal environments
+* *Platform awareness*: Different settings for different operating systems
+* *Inheritance*: Settings cascade from base → platform → variant
+* *Privacy protection*: Work-specific settings are never committed to the repo
+* *Local extensions*: Support for a local gitconfig file that's not under version control
+
+== Usage
+
+=== Basic Usage
+
+To generate the default Git configuration for your current platform:
+
+[source,bash]
+----
+bazel build //modules/git:gitconfig
+----
+
+=== Variant-Specific Configurations
+
+To generate a variant-specific configuration:
+
+[source,bash]
+----
+# For personal settings
+bazel build //modules/git:personal_gitconfig
+
+# For work settings
+bazel build //modules/git:work_gitconfig
+----
+
+=== Installation
+
+To install the configuration (symlink to your home directory):
+
+[source,bash]
+----
+# Default configuration
+bazel run //:install_git
+
+# Personal variant
+bazel run //:install_git_personal
+
+# Work variant
+bazel run //:install_git_work
+----
+
+== Configuration Structure
+
+The Git configuration is structured in layers:
+
+. *Base Configuration*: Common settings for all environments
+. *Platform Configuration*: OS-specific settings
+. *Variant Configuration*: Context-specific settings (work/personal)
+. *Local Extension*: User-specific settings (not in version control)
+
+== Customization
+
+=== Private/Work Configuration
+
+Work configuration isn't committed to the repository. Instead, create a local file:
+
+[source,bash]
+----
+# Create a local gitconfig with your work settings
+cat > ~/.gitconfig.local <<EOL
+[user]
+    name = Your Work Name
+    email = your.name@example.com
+[github]
+    user = your-work-username
+EOL
+----
+
+=== Local Extensions
+
+Additional customizations can be added to `~/.gitconfig.local`.
+
+== Implementation Details
+
+The module uses Bazel's select() mechanism for platform detection and custom Starlark rules for config generation. Configuration options cascade from base to variant profiles, with later definitions overriding earlier ones.
