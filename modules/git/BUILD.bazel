@@ -2,41 +2,32 @@ load("//modules/git:git_rules.bzl", "git_config", "git_config_generator")
 
 package(default_visibility = ["//visibility:public"])
 
-# Base Git configuration with common settings
 git_config(
     name = "base_config",
     settings = {
         "core.editor": "vim",
-        "core.excludesfile": "~/.gitignore_global",
         "core.autocrlf": "input",
         "core.pager": "less -FRX",
         "init.defaultBranch": "main",
         "pull.rebase": "true",
         "push.default": "simple",
         "diff.algorithm": "patience",
-        "diff.compactionHeuristic": "true",
         "merge.ff": "only",
         "color.ui": "auto",
     },
     aliases = {
-        # Basic shortcuts
-        "s": "status",
+        "st": "status",
         "co": "checkout",
         "ci": "commit",
         "br": "branch",
         "unstage": "reset HEAD --",
         "last": "log -1 HEAD",
         "lg": "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative",
-        "lol": "log --graph --decorate --pretty=oneline --abbrev-commit",
-        "lola": "log --graph --decorate --pretty=oneline --abbrev-commit --all",
-        
-        # More advanced aliases
+
         "amend": "commit --amend",
-        "amendnoedit": "commit --amend --no-edit",
         "wip": "!git add -A && git commit -m 'WIP'",
         "unwip": "!git log -1 --pretty=%B | grep -q '^WIP$' && git reset HEAD~ || echo 'Not a WIP commit'",
         "cleanup": "!git branch --merged | grep -v '\\*' | xargs -n 1 git branch -d",
-        "recent-branches": "!git branch --sort=-committerdate | head -n 10",
     },
     raw_sections = {
         "include": "path = ~/.gitconfig.local",
@@ -48,9 +39,6 @@ git_config(
     name = "linux_config",
     includes = [":base_config"],
     platform_settings = {
-        "linux.core.fileMode": "true",
-        "linux.core.trustctime": "true",
-        "linux.credential.helper": "cache --timeout=3600",
     },
 )
 
@@ -58,9 +46,6 @@ git_config(
     name = "macos_config",
     includes = [":base_config"],
     platform_settings = {
-        "macos.core.fileMode": "false",
-        "macos.core.trustctime": "false",
-        "macos.credential.helper": "osxkeychain",
     },
 )
 
@@ -68,10 +53,6 @@ git_config(
     name = "windows_config",
     includes = [":base_config"],
     platform_settings = {
-        "windows.core.fileMode": "false",
-        "windows.core.trustctime": "false",
-        "windows.core.autocrlf": "true",
-        "windows.credential.helper": "wincred",
     },
 )
 
@@ -80,9 +61,6 @@ git_config(
     name = "personal_config",
     includes = [":base_config"],
     variant_settings = {
-        "personal.user.name": "YOUR_NAME",
-        "personal.user.email": "personal@example.com",
-        "personal.github.user": "your-github-username",
     },
 )
 
@@ -91,9 +69,6 @@ git_config(
     name = "work_config",
     includes = [":base_config"],
     variant_settings = {
-        "work.user.name": "YOUR_WORK_NAME",
-        "work.user.email": "work@example.com",
-        "work.github.user": "your-work-github-username",
     },
 )
 

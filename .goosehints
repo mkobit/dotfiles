@@ -1,42 +1,44 @@
 # Dotfiles Development Guidelines
 
-## Project Architecture
+## Architecture
 - Use Bazel 7.0+ with bzlmod for dependency management
 - Organize by modules (git, vim, tmux, etc.)
 - Each module should have its own BUILD.bazel and README.adoc
 - Use the Starlark DSL to define module-specific rules
 - Keep modules independent where possible for parallel development
 
-## Bazel-First Approach
+## Bazel-first
 - All operations should be runnable via Bazel commands
 - Installation should be handled through Bazel targets, not custom scripts
 - Focus on generation correctness before installation automation
-- Use `bazel build` and `bazel run` as primary interfaces
+- Use `bazel build`, `bazel run`, and `bazel test` as primary interfaces
 - Always provide print_paths targets to show generated file locations
 
-## Configuration Management
+## Configuration management
 - Use strongly-typed providers for configuration data
 - Generated files should be deterministic and reproducible
-- Support three layers of configuration inheritance:
+- Support configuration for:
   1. Base - Common settings across all environments
   2. Platform - OS-specific settings (linux, macos, windows)
-  3. Variant - Context-specific settings (work, personal)
+  3. Variant - Context-specific settings (work laptop, work remote machine, personal desktop, personal WSL environment, personal laptop)
 - Use select() for platform detection
+- Build and test must work on all platforms
 - Handle file paths properly across different operating systems
 
-## Privacy and Separation of Concerns
+## Separation of concerns
 - Work/private settings must never be committed to the repository
+- Work/private settings must be injectable from their respective machines, and must effectively combine with the in-repository configuration (to enable, disable, alter settings)
 - Support local extensions (e.g., ~/.gitconfig.local) for private settings
 - Use include directives for bringing in external configs when appropriate
 - Create isolated variant targets for different contexts
 
 ## Documentation
-- Document all modules using AsciiDoctor (.adoc files), not Markdown
+- All documentation files must be written in AsciiDoctor (.adoc files), not Markdown
 - Include usage examples in documentation
 - Describe module-specific configuration options
 - Document how to integrate with existing tool ecosystems
 
-## Development Process
+## Development process
 - Test configuration generation before deployment
 - Favor build-time configuration over runtime detection
 - Keep sensitive information out of the repository
@@ -45,7 +47,6 @@
 
 ## Implementation Patterns
 - Default to flat dictionaries with compound keys for complex hierarchies
-- Use include/extends patterns for inheritance
 - Standardize on provider interfaces for module-specific configurations
 - Handle platform differences via BUILD-time selection
-- Prefer pure Starlark implementation over shell script generation
+- Prefer pure Starlark implementation
