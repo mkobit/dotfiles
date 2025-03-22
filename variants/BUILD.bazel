@@ -1,0 +1,78 @@
+# Variant definitions for dotfiles management
+
+# Base variant with common configuration
+filegroup(
+    name = "base",
+    srcs = [],
+    visibility = ["//visibility:public"],
+)
+
+# Work laptop variant
+filegroup(
+    name = "work_laptop",
+    srcs = select({
+        "//platforms:macos": [
+            ":base",
+            # Add macOS-specific work configuration
+        ],
+        "//platforms:linux": [
+            ":base",
+            # Add Linux-specific work configuration
+        ],
+        "//platforms:windows": [
+            ":base",
+            # Add Windows-specific work configuration
+        ],
+        "//conditions:default": [":base"],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+# Personal desktop variant
+filegroup(
+    name = "personal_desktop",
+    srcs = select({
+        "//platforms:macos": [
+            ":base",
+            # Add macOS-specific personal configuration
+        ],
+        "//platforms:linux": [
+            ":base",
+            # Add Linux-specific personal configuration
+        ],
+        "//platforms:windows": [
+            ":base",
+            # Add Windows-specific personal configuration
+        ],
+        "//conditions:default": [":base"],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+# Work remote devbox variant
+filegroup(
+    name = "work_remote_devbox",
+    srcs = select({
+        "//platforms:linux": [
+            ":base",
+            # Add Linux-specific remote work configuration
+        ],
+        "//conditions:default": [":base"],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+# Personal WSL environment variant
+filegroup(
+    name = "personal_wsl",
+    srcs = select({
+        "//platforms:wsl": [
+            ":base",
+            # Add WSL-specific configuration
+        ],
+        "//conditions:default": [":base"],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+package(default_visibility = ["//visibility:public"])

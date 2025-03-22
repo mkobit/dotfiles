@@ -1,107 +1,23 @@
-load("@buildifier_prebuilt//:rules.bzl", "buildifier", "buildifier_test")
-load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+# Root BUILD file
+
+load("//modules/rules:dotfile.bzl", "dotfile_group")
 
 package(default_visibility = ["//visibility:public"])
 
-# Buildifier for linting and formatting Bazel files
-buildifier(
-    name = "buildifier",
-    lint_mode = "fix",
-    mode = "fix",
-    tags = ["manual"],
-)
-
-buildifier_test(
-    name = "buildifier_test",
-    srcs = glob([
-        "**/*.bazel",
-        "**/*.bzl",
-        "**/WORKSPACE",
-        "**/MODULE.bazel",
-    ]),
-    lint_mode = "warn",
-)
-
-# Dotfiles targets
-filegroup(
-    name = "dotfiles",
-    srcs = [
-        "//modules/git:gitconfig",
-        "//modules/git:gitignore_global",
-        "//modules/tmux",
-        "//modules/vim:vimrc",
+# Group all dotfiles
+dotfile_group(
+    name = "all_dotfiles",
+    deps = [
+        "//tools/git:git_dotfiles",
+        "//tools/tmux:tmux_dotfiles",
+        "//tools/vim:vim_dotfiles",
+        # Add other tool dotfiles as they are created
     ],
 )
 
-# Variant-specific dotfiles
-filegroup(
-    name = "work_dotfiles",
-    srcs = [
-        "//modules/git:work_gitconfig",
-        "//modules/git:gitignore_global",
-        "//modules/tmux:work_tmux",
-        "//modules/vim:work_vimrc",
-    ],
-)
-
-filegroup(
-    name = "personal_dotfiles",
-    srcs = [
-        "//modules/git:personal_gitconfig",
-        "//modules/git:gitignore_global",
-        "//modules/tmux:personal_tmux",
-        "//modules/vim:personal_vimrc",
-    ],
-)
-
-# Helper target to output paths to generated dotfiles
+# Print paths to all generated files
 sh_binary(
     name = "print_paths",
     srcs = ["//tools:print_paths.sh"],
-    data = [":dotfiles"],
+    data = [":all_dotfiles"],
 )
-
-# Helper targets to print paths to Git config files
-sh_binary(
-    name = "print_git_paths",
-    srcs = ["//tools:print_paths.sh"],
-    args = [
-        "'Git configuration files:'",
-        "$(location //modules/git:gitconfig)",
-        "$(location //modules/git:gitignore_global)",
-    ],
-    data = [
-        "//modules/git:gitconfig",
-        "//modules/git:gitignore_global",
-    ],
-)
-
-sh_binary(
-    name = "print_git_personal_paths",
-    srcs = ["//tools:print_paths.sh"],
-    args = [
-        "'Personal Git configuration files:'",
-        "$(location //modules/git:personal_gitconfig)",
-        "$(location //modules/git:gitignore_global)",
-    ],
-    data = [
-        "//modules/git:personal_gitconfig",
-        "//modules/git:gitignore_global",
-    ],
-)
-
-sh_binary(
-    name = "print_git_work_paths",
-    srcs = ["//tools:print_paths.sh"],
-    args = [
-        "'Work Git configuration files:'",
-        "$(location //modules/git:work_gitconfig)",
-        "$(location //modules/git:gitignore_global)",
-    ],
-    data = [
-        "//modules/git:work_gitconfig",
-        "//modules/git:gitignore_global",
-    ],
-)
-
-# No exports_files needed at the top level

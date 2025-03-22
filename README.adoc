@@ -1,26 +1,52 @@
-= Dotfiles
-:toc: preamble
-:!toc-title:
-:uri-git-diff-highlight: https://github.com/git/git/tree/master/contrib/diff-highlight
-:uri-openssh-manual: http://man.openbsd.org/ssh_config
-:uri-tmux-manual: http://man.openbsd.org/OpenBSD-current/man1/tmux.1
+= Dotfiles Management System
+:toc:
+:toclevels: 3
+:icons: font
 
-Utilities and dotfiles that I use across machines.
+This repository contains a Bazel-based system for managing dotfiles across different platforms and usage scenarios.
 
-== Setup
+== Repository Structure
 
-The setup process is still very manual.
+* `modules/`: Contains .bzl files with reusable Starlark rules and macros for dotfiles management
+* `platforms/`: Contains BUILD files defining Bazel platform targets for different OS (Windows, Ubuntu WSL, macOS)
+* `variants/`: Contains BUILD files defining targets for different usage scenarios (work_laptop, personal_desktop, etc.)
+* `tools/`: Contains subdirectories for specific tools (git, tmux, neovim, etc.) each with their own BUILD file and templates
+* `bin/`: Contains helper scripts used by Starlark rules for complex operations
 
-. Clone repository
-+
+== Usage
+
+=== Building all dotfiles
+
 [source,bash]
 ----
-git clone git@github.com:mkobit/dotfiles.git
+bazel build //:all_dotfiles
 ----
 
-=== Zsh
+=== Building tool-specific dotfiles
 
-==== oh-my-zsh
+[source,bash]
+----
+bazel build //tools/git:git_dotfiles
+----
 
-On Mac, I am currently using link:https://github.com/robbyrussell/oh-my-zsh[robbyrussell/oh-my-zsh]
-Assuming that Zsh is installed and this repository is cloned to `$HOME/dotfiles`:
+=== Installing dotfiles
+
+[source,bash]
+----
+bazel run //:all_dotfiles
+----
+
+=== Printing paths to generated files
+
+[source,bash]
+----
+bazel run //:print_paths
+----
+
+== Development
+
+Refer to .goosehints for development guidelines.
+
+== License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

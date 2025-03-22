@@ -1,0 +1,37 @@
+# Git configuration
+
+load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:template.bzl", "template_file")
+
+package(default_visibility = ["//visibility:public"])
+
+# Generate gitconfig from template
+template_file(
+    name = "gitconfig_generated",
+    template = ":gitconfig.tpl",
+    vars_file = ":git_vars.properties",
+    out = "gitconfig",
+)
+
+# Create gitconfig dotfile
+dotfile(
+    name = "gitconfig_dotfile",
+    src = ":gitconfig_generated",
+    dest = "~/.gitconfig",
+)
+
+# Create gitignore_global dotfile
+dotfile(
+    name = "gitignore_global_dotfile",
+    src = "//modules/git:gitignore_global",
+    dest = "~/.gitignore_global",
+)
+
+# Group all git dotfiles
+dotfile_group(
+    name = "git_dotfiles",
+    deps = [
+        ":gitconfig_dotfile",
+        ":gitignore_global_dotfile",
+    ],
+)

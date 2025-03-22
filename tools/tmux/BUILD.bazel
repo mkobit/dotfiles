@@ -1,0 +1,29 @@
+# Tmux configuration
+
+load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:template.bzl", "template_file")
+
+package(default_visibility = ["//visibility:public"])
+
+# Generate tmux.conf from template
+template_file(
+    name = "tmux_conf_generated",
+    template = ":tmux.conf.tpl",
+    vars_file = ":tmux_vars.properties",
+    out = "tmux.conf",
+)
+
+# Create tmux.conf dotfile
+dotfile(
+    name = "tmux_conf_dotfile",
+    src = ":tmux_conf_generated",
+    dest = "~/.tmux.conf",
+)
+
+# Group all tmux dotfiles
+dotfile_group(
+    name = "tmux_dotfiles",
+    deps = [
+        ":tmux_conf_dotfile",
+    ],
+)

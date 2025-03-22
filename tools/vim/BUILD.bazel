@@ -1,0 +1,45 @@
+# Vim/Neovim configuration
+
+load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:template.bzl", "template_file")
+
+package(default_visibility = ["//visibility:public"])
+
+# Generate vimrc from template
+template_file(
+    name = "vimrc_generated",
+    template = ":vimrc.tpl",
+    vars_file = ":vim_vars.properties",
+    out = "vimrc",
+)
+
+# Generate init.vim from template
+template_file(
+    name = "init_vim_generated",
+    template = ":init.vim.tpl",
+    vars_file = ":vim_vars.properties",
+    out = "init.vim",
+)
+
+# Create vimrc dotfile
+dotfile(
+    name = "vimrc_dotfile",
+    src = ":vimrc_generated",
+    dest = "~/.vimrc",
+)
+
+# Create neovim init.vim dotfile
+dotfile(
+    name = "neovim_init_dotfile",
+    src = ":init_vim_generated",
+    dest = "~/.config/nvim/init.vim",
+)
+
+# Group all vim dotfiles
+dotfile_group(
+    name = "vim_dotfiles",
+    deps = [
+        ":vimrc_dotfile",
+        ":neovim_init_dotfile",
+    ],
+)
