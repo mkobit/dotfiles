@@ -13,10 +13,23 @@ set -s -g escape-time 0
 # =============================================
 # Terminal Settings
 # =============================================
-# Use 24-bit color terminal support
+# Use tmux-256color if available, otherwise screen-256color
 # Docs: https://man.openbsd.org/tmux#default-terminal
-set -g default-terminal "screen-256color"
-set -ga terminal-overrides ",*256col*:Tc"  # Enable 24-bit (true-color) support
+if-shell "infocmp tmux-256color" {
+    set -g default-terminal "tmux-256color"
+    set -ga terminal-overrides ",tmux-256color:Tc"
+} {
+    set -g default-terminal "screen-256color"
+    set -ga terminal-overrides ",screen-256color:Tc"
+}
+
+# Fix backspace and delete key issues across different terminals
+set -g assume-paste-time 1
+
+# Explicitly set the terminal support for special keys
+set -ga terminal-overrides "*:kbs=\177"   # Fix backspace
+set -ga terminal-overrides "*:khome=\033[1~"  # Fix home key
+set -ga terminal-overrides "*:kend=\033[4~"   # Fix end key
 
 # Enable focus events for better integration with vim and other programs
 # Docs: https://man.openbsd.org/tmux#focus-events
@@ -137,6 +150,16 @@ set -g mouse on
 unbind C-b
 set -g prefix C-a
 bind C-a send-prefix
+
+# Make sure special keys work consistently across different terminal types
+set -g xterm-keys on
+
+# Better handling of escape sequences for function and other special keys
+# Check for extended keys feature (tmux 3.2+)
+if-shell "tmux -V | awk '{split($2,a,\".\")} a[1] > 3 || (a[1] == 3 && a[2] >= 2)'" {
+    set -s extended-keys on
+    set -as terminal-features 'xterm*:extkeys'
+}
 
 # Reload configuration
 # Docs: https://man.openbsd.org/tmux#source-file
