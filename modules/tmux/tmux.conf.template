@@ -13,9 +13,10 @@ set -s -g escape-time 0
 # =============================================
 # Terminal Settings
 # =============================================
-# Use 256 color terminal for proper color support
+# Use 24-bit color terminal support
 # Docs: https://man.openbsd.org/tmux#default-terminal
-set -g default-terminal "screen-256color" # tmux-256color doesn't always work with all terminal emulators
+set -g default-terminal "screen-256color"
+set -ga terminal-overrides ",*256col*:Tc"  # Enable 24-bit (true-color) support
 
 # Enable focus events for better integration with vim and other programs
 # Docs: https://man.openbsd.org/tmux#focus-events
@@ -61,9 +62,9 @@ set -g renumber-windows on
 # =============================================
 # Status Line Configuration
 # =============================================
-# Update status bar every 5 seconds
+# Update status bar every 2 seconds (more responsive)
 # Docs: https://man.openbsd.org/tmux#status-interval
-set -g status-interval 5
+set -g status-interval 2
 
 # Window list component is left-justified
 # Docs: https://man.openbsd.org/tmux#status-justify
@@ -73,14 +74,40 @@ set -g status-justify left
 # Docs: https://man.openbsd.org/tmux#status-keys
 set -g status-keys vi
 
-# Status line settings
-# Docs: https://man.openbsd.org/tmux#status-left
-set -g status-left ""
-set -g status-left-length 10
-
 # Position status bar at the top of the window
 # Docs: https://man.openbsd.org/tmux#status-position
 set -g status-position top
+
+# =============================================
+# Status Bar Styling (Modern, Minimal)
+# =============================================
+# Status bar colors - Nord color scheme inspired
+set -g status-style "bg=#2e3440,fg=#d8dee9"
+
+# Default window title colors
+set -g window-status-style "fg=#81a1c1,bg=#2e3440"
+
+# Active window title colors
+set -g window-status-current-style "fg=#2e3440,bg=#88c0d0,bold"
+
+# Pane border colors
+set -g pane-border-style "fg=#4c566a"
+set -g pane-active-border-style "fg=#88c0d0"
+
+# Message text colors
+set -g message-style "fg=#eceff4,bg=#3b4252,bold"
+
+# Status left and right sections
+set -g status-left "#[fg=#2e3440,bg=#88c0d0,bold] #S #[fg=#88c0d0,bg=#2e3440]"
+set -g status-left-length 20
+
+set -g status-right "#[fg=#4c566a,bg=#2e3440]#[fg=#e5e9f0,bg=#4c566a] %H:%M #[fg=#88c0d0,bg=#4c566a]#[fg=#2e3440,bg=#88c0d0,bold] #h "
+set -g status-right-length 40
+
+# Window status format
+set -g window-status-format " #I:#W #F "
+set -g window-status-current-format " #I:#W #F "
+set -g window-status-separator ""
 
 # =============================================
 # Window Title Settings
@@ -148,6 +175,16 @@ bind -n M-Down select-pane -D
 bind -n S-Left previous-window
 bind -n S-Right next-window
 
+# Easier window rearrangement (requires tmux >= 3.0)
+bind-key -n C-S-Left swap-window -t -1\; select-window -t -1
+bind-key -n C-S-Right swap-window -t +1\; select-window -t +1
+
+# Vim-style resizing
+bind -r H resize-pane -L 5
+bind -r J resize-pane -D 5
+bind -r K resize-pane -U 5
+bind -r L resize-pane -R 5
+
 # =============================================
 # Copy Mode (Vim-style)
 # =============================================
@@ -172,7 +209,83 @@ bind-key -T copy-mode-vi 'V' send -X select-line
 bind-key -T copy-mode-vi 'r' send -X rectangle-toggle
 
 # =============================================
+# Enhanced Functionality & Convenience
+# =============================================
+# Synchronize panes (send command to all panes in window)
+bind-key y setw synchronize-panes \; display "Sync panes: #{?pane_synchronized,ON,OFF}"
+
+# Toggle status bar visibility with prefix+b
+bind-key b set status
+
+# Jump between sessions with prefix+J/K
+bind-key J switch-client -n
+bind-key K switch-client -p
+
+# Quickly jump to specific windows with Alt+[number]
+set -g repeat-time 500
+bind-key -n M-1 select-window -t 1
+bind-key -n M-2 select-window -t 2
+bind-key -n M-3 select-window -t 3
+bind-key -n M-4 select-window -t 4
+bind-key -n M-5 select-window -t 5
+bind-key -n M-6 select-window -t 6
+bind-key -n M-7 select-window -t 7
+bind-key -n M-8 select-window -t 8
+bind-key -n M-9 select-window -t 9
+
+# =============================================
+# Session Management
+# =============================================
+# Create a new session with prefix+S
+bind-key S command-prompt "new-session -s %%"
+
+# Kill current session with prefix+X
+bind-key X confirm-before -p "Kill session #S? (y/n)" "kill-session"
+
+# List sessions with prefix+s and make it more visual
+bind-key s choose-tree -Zs
+
+# =============================================
+# Advanced Features (No Plugins Required)
+# =============================================
+
+# Monitor activity in other windows
+setw -g monitor-activity on
+set -g visual-activity off  # Don't show messages for activity
+
+# Session activity indicator in status line
+set -ag status-right "#[fg=#b48ead,bg=#2e3440]#{?window_activity_flag, Act ,}#{?window_bell_flag, Bell ,}"
+
+# Improved popups in tmux >= 3.2
+if-shell -b '[ "$(echo "$(tmux -V | cut -d" " -f2) >= 3.2" | bc)" = 1 ]' {
+  # Display popup with available sessions to switch to
+  bind-key C-j display-popup -E "tmux list-sessions | sed -E 's/:.*$//' | grep -v \"^$(tmux display-message -p '#S')\$\" | fzf --reverse | xargs tmux switch-client -t"
+  
+  # Show a clock in a popup
+  bind-key C-t display-popup -E "date; sleep 1"
+}
+
+# Automatically renumber windows when one is closed
+set -g renumber-windows on
+
+# Set a larger history limit
+set -g history-limit 50000
+
+# Enable activity alerts for windows
+setw -g monitor-activity on
+set -g visual-activity on
+
+# Pane indicators - display pane numbers for 2 seconds
+set -g display-panes-time 2000
+
+# =============================================
 # Variant-specific settings (%%VARIANT%%)
 # =============================================
 # This section can be customized based on variant (work/personal)
 # The %%VARIANT%% placeholder will be replaced during build
+
+# For work variant:
+# If variant is "work", add work-specific settings here
+
+# For personal variant:
+# If variant is "personal", add personal-specific settings here

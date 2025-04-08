@@ -1,6 +1,6 @@
 # Dotfiles Development Guidelines
 
-## Repository Structure
+## Repository structure
 - modules/: Contains .bzl files with reusable Starlark rules and macros for dotfiles management
 - platforms/: Contains BUILD files defining Bazel platform targets for different OS (Windows, Ubuntu WSL, macOS)
 - variants/: Contains BUILD files defining targets for different usage scenarios (work_laptop, personal_desktop, etc.)
@@ -41,6 +41,7 @@
 
 ## Documentation
 - All documentation files must be written in AsciiDoctor (.adoc files), not Markdown
+- Write headings in sentence case
 - Include usage examples in documentation
 - Describe module-specific configuration options
 - Document how to integrate with existing tool ecosystems
@@ -56,4 +57,9 @@
 - Default to flat dictionaries with compound keys for complex hierarchies
 - Standardize on provider interfaces for module-specific configurations
 - Handle platform differences via BUILD-time selection
-- Prefer pure Starlark implementation
+- Prefer pure Starlark implementations
+- Only document non-obvious configurations or settingn
+    - Do not superfluously document code.
+    - Do document program specific configurations and options
+- Prefer long command line options in generated file outputs for readability and comprehension upon reading.
+    - For example, instead of `-n` specify `--name` as the long optio
