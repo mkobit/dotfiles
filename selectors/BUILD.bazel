@@ -1,0 +1,28 @@
+# Platform selectors for use in select() statements
+package(default_visibility = ["//visibility:public"])
+
+# Selector for Linux
+config_setting(
+    name = "linux",
+    constraint_values = ["@platforms//os:linux"],
+)
+
+# Selector for macOS
+config_setting(
+    name = "macos",
+    constraint_values = ["@platforms//os:macos"],
+)
+
+# Selector for Windows
+config_setting(
+    name = "windows",
+    constraint_values = ["@platforms//os:windows"],
+)
+
+# Selector for WSL (Linux on Windows)
+config_setting(
+    name = "wsl",
+    constraint_values = ["@platforms//os:linux"],
+    # In a real environment, you might want to add additional constraints 
+    # or use environment variables to specifically identify WSL
+)
