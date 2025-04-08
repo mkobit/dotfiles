@@ -2,6 +2,14 @@ load("//tools:defs.bzl", "template_file")
 
 package(default_visibility = ["//visibility:public"])
 
+# Use the new generated tmux.conf directly instead of individual components
+filegroup(
+    name = "tmux_components",
+    srcs = [
+        "//tools/tmux:tmux_conf_generated",
+    ],
+)
+
 # Base tmux configuration
 template_file(
     name = "tmux_conf",
@@ -14,6 +22,7 @@ filegroup(
     name = "tmux",
     srcs = [
         ":tmux_conf",
+        ":tmux_components",
     ],
 )
 
@@ -31,6 +40,7 @@ filegroup(
     name = "work_tmux",
     srcs = [
         ":work_tmux_conf",
+        ":tmux_components",
     ],
 )
 
@@ -48,6 +58,7 @@ filegroup(
     name = "personal_tmux",
     srcs = [
         ":personal_tmux_conf",
+        ":tmux_components",
     ],
 )
 

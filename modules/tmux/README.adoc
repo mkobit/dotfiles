@@ -1,157 +1,77 @@
-= TMUX Configuration Module
-:toc: left
-:icons: font
-:source-highlighter: rouge
-:toclevels: 3
+= Tmux Configuration Module
 
-== Overview
+This module provides a modular tmux configuration system that is:
 
-This module provides tmux configuration as part of the dotfiles Bazel system.
+* Split into logical components
+* Version-aware to handle feature differences
+* Platform-aware for OS-specific settings
+
+== Components
+
+The tmux configuration is split into these components:
+
+* Core settings: Basic tmux server and session options
+* Display settings: Terminal, status line, and visual appearance
+* Keybindings: Key mappings for navigation and control
+* Mouse settings: Mouse behavior configuration
+* Copy mode settings: Settings for copy/paste operations
+* Platform-specific settings: OS-dependent configurations
 
 == Usage
 
-=== Building the Configuration
+To use the tmux configuration, include it in your build:
 
-[source,bash]
+[source,python]
 ----
-# Build the default tmux configuration
-bazel build //modules/tmux:tmux
+load("@rules_dotfiles//dotfiles:defs.bzl", "dotfiles_package")
 
-# Build variant-specific configurations
-bazel build //modules/tmux:work_tmux
-bazel build //modules/tmux:personal_tmux
+dotfiles_package(
+    name = "my_dotfiles",
+    deps = [
+        "//modules/tmux:tmux",  # Standard version
+        # OR
+        "//modules/tmux:work_tmux",  # Work variant
+        # OR
+        "//modules/tmux:personal_tmux",  # Personal variant
+    ],
+)
 ----
-
-=== Getting the Path for Source-File
-
-To get the path to the generated tmux configuration file that you can source in your existing `~/.tmux.conf`:
-
-[source,bash]
-----
-# Build and display the path information
-bazel build //modules/tmux:print_path
-cat bazel-bin/modules/tmux/tmux_path.txt
-----
-
-=== Manual Installation
-
-Add the following to your `~/.tmux.conf` file (replace the path with the actual output from the command above):
-
-[source,bash]
-----
-# Source the Bazel-generated tmux configuration
-source-file /path/to/bazel-bin/modules/tmux/tmux.conf
-----
-
-== Features
-
-The tmux configuration includes:
-
-* Cross-platform clipboard integration
-* Vim-style key bindings for navigation and copy mode
-* Improved status bar configuration
-* Enhanced history settings
-* Mouse mode support
-* Custom key bindings for window and pane management
-
-== Key Bindings
-
-[cols="1,2,2"]
-|===
-|Key|Action|Description
-
-|`Ctrl+a`
-|Prefix
-|The main prefix key (replaces default `Ctrl+b`)
-
-|`Prefix r`
-|Reload config
-|Reload the tmux configuration file
-
-|`Prefix \|`
-|Split horizontally
-|Split the current pane horizontally
-
-|`Prefix -`
-|Split vertically
-|Split the current pane vertically
-
-|`Prefix h/j/k/l`
-|Navigate panes
-|Move between panes using vim-style navigation
-
-|`Alt+Arrow`
-|Navigate panes
-|Move between panes without using the prefix
-
-|`Shift+Arrow`
-|Switch windows
-|Move between windows without using the prefix
-
-|`Prefix a`
-|Last window
-|Jump to the last active window
-|===
 
 == Customization
 
-The configuration supports variant-specific customization through the `%%VARIANT%%` placeholder in the template.
+=== Local Overrides
 
-== Testing
+Add custom settings in `~/.tmux.conf.local` which is automatically sourced if present.
 
-=== Building and Testing Locally
+=== Variants
 
-To test the tmux configuration without modifying your existing setup:
+Three variants are provided:
+* Default: Standard configuration
+* Work: Settings for work environments
+* Personal: Settings for personal machines
 
-[source,bash]
-----
-# Build the configuration
-bazel build //modules/tmux:tmux_conf
+== Toolchain Detection
 
-# View the generated configuration
-cat bazel-bin/modules/tmux/tmux.conf
+This module automatically detects the installed tmux version and enables features based on availability:
 
-# Test the configuration in a new tmux session
-tmux -f bazel-bin/modules/tmux/tmux.conf new-session -d -s test_session
+* Enhanced window rearrangement for tmux 3.0+
+* Popup windows for tmux 3.2+
+* Extended key handling for tmux 3.2+
 
-# Attach to the test session
-tmux attach-session -t test_session
+== Extension Points
 
-# After testing, kill the session (from within tmux, press Ctrl+a then type):
-# :kill-session
-----
+=== Additional Modules
 
-=== Variant Testing
+To add your own module:
 
-Test different variants of the configuration:
+1. Create a template file in `tools/tmux/modules/`
+2. Add it to the BUILD file in `tools/tmux`
+3. Include it in the main config
 
-[source,bash]
-----
-# Build variant-specific configurations
-bazel build //modules/tmux:work_tmux_conf
-bazel build //modules/tmux:personal_tmux_conf
+=== Platform Detection
 
-# Test work variant
-tmux -f bazel-bin/modules/tmux/work_tmux.conf new-session -d -s work_test
-tmux attach -t work_test
+Platform-specific settings are handled automatically through:
 
-# Test personal variant
-tmux -f bazel-bin/modules/tmux/personal_tmux.conf new-session -d -s personal_test
-tmux attach -t personal_test
-----
-
-=== Testing Source File Method
-
-Test using the source-file approach:
-
-[source,bash]
-----
-# Create a temporary tmux config for testing
-echo "source-file $(pwd)/bazel-bin/modules/tmux/tmux.conf" > /tmp/test_tmux.conf
-
-# Launch tmux with the temporary config
-tmux -f /tmp/test_tmux.conf new-session
-
-# Clean up after testing
-rm /tmp/test_tmux.conf
-----
+* OS detection for clipboard integration
+* Terminal capability detection
+* Version detection for feature availability

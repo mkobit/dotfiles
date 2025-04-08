@@ -1,81 +1,65 @@
 """
-Rules for processing template files.
+Rules for processing template files using Bazel-native mechanisms.
 """
 
-def _template_file_impl(ctx):
-    """Implementation of the template_file rule."""
-    # Get the template file
-    template = ctx.file.template
+def template_file(name, template, out, vars_files = None, vars_file = None, substitutions = None, **kwargs):
+    """Macro to create a template processing genrule.
     
-    # Get the variables file if provided
-    vars_file = None
-    if ctx.file.vars_file:
-        vars_file = ctx.file.vars_file
+    Args:
+        name: The name of the rule
+        template: The template file
+        out: The output file
+        vars_files: List of properties files with variables
+        vars_file: Single properties file with variables (mutually exclusive with vars_files)
+        substitutions: Direct key-value substitutions as a dict
+        **kwargs: Additional keyword arguments passed to the genrule
+    """
+    if vars_files and vars_file:
+        fail("Cannot specify both vars_files and vars_file. Choose one.")
     
-    # Create the output file
-    output = ctx.outputs.out
-    
-    # Create a shell script that will process the template
-    process_script = ctx.actions.declare_file("%s.process.sh" % ctx.attr.name)
-    
-    script_content = """#!/bin/bash
-# Template processing script for {name}
-{template_processor} "{template}" "{output}" "{vars_file}"
-""".format(
-        name = ctx.attr.name,
-        template_processor = ctx.executable._template_processor.path,
-        template = template.path,
-        output = output.path,
-        vars_file = vars_file.path if vars_file else "",
-    )
-    
-    ctx.actions.write(
-        output = process_script,
-        content = script_content,
-        is_executable = True,
-    )
-    
-    # Run the script to generate the output
-    inputs = [template]
+    # Use vars_file as a single-item list if provided
     if vars_file:
-        inputs.append(vars_file)
+        vars_files = [vars_file]
+    elif not vars_files:
+        vars_files = []
     
-    ctx.actions.run(
-        inputs = inputs,
-        outputs = [output],
-        executable = process_script,
-        tools = [ctx.executable._template_processor],
-        progress_message = "Processing template %s" % template.path,
+    # Create the sed commands for variable substitution
+    sed_commands = []
+    for i, var_file in enumerate(vars_files):
+        # For each properties file, process its key-value pairs
+        sed_commands.append("echo 'Processing variables from $(location {})'" .format(var_file))
+        sed_commands.append("while IFS='=' read -r key value; do")
+        sed_commands.append("  # Skip empty lines and comments")
+        sed_commands.append("  [[ \"$$key\" =~ ^[[:space:]]*$$ || \"$$key\" =~ ^[[:space:]]*# ]] && continue")
+        sed_commands.append("  # Trim whitespace from key")
+        sed_commands.append("  key=$$(echo \"$$key\" | tr -d ' ')")
+        sed_commands.append("  # Replace template variables")
+        sed_commands.append("  sed -i.bak \"s|{{$$key}}|$$value|g\" temp_file")
+        sed_commands.append("done < $(location {})".format(var_file))
+    
+    # Add direct substitutions if provided
+    if substitutions:
+        for key, value in substitutions.items():
+            sed_commands.append("# Direct substitution for {}".format(key))
+            sed_commands.append("sed -i.bak \"s|{}|{}|g\" temp_file".format(key, value))
+    
+    # Create the genrule (without the problematic tmux version processing)
+    native.genrule(
+        name = name,
+        srcs = [template] + (vars_files or []),
+        outs = [out],
+        cmd = """
+        # Create a temporary file
+        cp $(location {template}) temp_file
+        
+        # Process each properties file and direct substitutions
+        {sed_commands}
+        
+        # Move to the output location
+        cp temp_file $@
+        """.format(
+            template = template,
+            sed_commands = "\n        ".join(sed_commands),
+        ),
+        **kwargs
     )
-    
-    # Return providers
-    return [
-        DefaultInfo(
-            files = depset([output]),
-        ),
-    ]
-
-# Define the template_file rule
-template_file = rule(
-    implementation = _template_file_impl,
-    attrs = {
-        "template": attr.label(
-            doc = "Template file",
-            allow_single_file = True,
-            mandatory = True,
-        ),
-        "vars_file": attr.label(
-            doc = "File containing variable definitions",
-            allow_single_file = True,
-        ),
-        "out": attr.output(
-            doc = "Output file",
-            mandatory = True,
-        ),
-        "_template_processor": attr.label(
-            default = Label("//bin:template_processor"),
-            executable = True,
-            cfg = "exec",
-        ),
-    },
-)

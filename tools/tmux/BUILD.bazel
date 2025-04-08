@@ -1,19 +1,60 @@
 # Tmux configuration
+# Uses static files for different tmux versions
 
 load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
-load("//modules/rules:template.bzl", "template_file")
 
 package(default_visibility = ["//visibility:public"])
 
-# Generate tmux.conf from template
-template_file(
+# Select the right configuration at build time
+genrule(
     name = "tmux_conf_generated",
-    template = ":tmux.conf.tpl",
-    vars_file = ":tmux_vars.properties",
-    out = "tmux.conf",
+    srcs = [
+        "configs/tmux_base.conf",
+        "configs/tmux_3_0.conf", 
+        "configs/tmux_3_2.conf",
+    ],
+    outs = ["tmux.conf"],
+    cmd = """
+#!/bin/bash
+# Script to detect tmux version and select appropriate config
+
+# Detect tmux version
+if command -v tmux &>/dev/null; then
+    version_output=$$(tmux -V 2>&1)
+    version=$$(echo "$$version_output" | grep -o "tmux [0-9]\\+\\.[0-9]\\+" | sed "s/tmux //")
+    
+    echo "# Detected tmux version: $$version" > $@
+    
+    # Parse version
+    if [[ "$$version" =~ ^([0-9]+)\\.[0-9]+ ]]; then
+        major=$${BASH_REMATCH[1]}
+        minor=$$(echo "$$version" | cut -d. -f2)
+        
+        # Select configuration based on version
+        if [[ $$major -gt 3 || ($$major -eq 3 && $$minor -ge 2) ]]; then
+            echo "# Using tmux 3.2+ configuration" >> $@
+            cat $(location configs/tmux_3_2.conf) >> $@
+        elif [[ $$major -gt 3 || ($$major -eq 3 && $$minor -ge 0) ]]; then
+            echo "# Using tmux 3.0+ configuration" >> $@
+            cat $(location configs/tmux_3_0.conf) >> $@
+        else
+            echo "# Using base tmux configuration (version < 3.0)" >> $@
+            cat $(location configs/tmux_base.conf) >> $@
+        fi
+    else
+        echo "# Could not parse tmux version, using base configuration" >> $@
+        cat $(location configs/tmux_base.conf) >> $@
+    fi
+else
+    echo "# tmux not installed, using base configuration" > $@
+    cat $(location configs/tmux_base.conf) >> $@
+fi
+
+echo "# Generated at $$(date)" >> $@
+    """,
 )
 
-# Create tmux.conf dotfile
+# Create the dotfile rule for tmux
 dotfile(
     name = "tmux_conf_dotfile",
     src = ":tmux_conf_generated",
@@ -26,4 +67,20 @@ dotfile_group(
     deps = [
         ":tmux_conf_dotfile",
     ],
+)
+
+# Test target to show detected tmux version
+genrule(
+    name = "show_tmux_version",
+    srcs = [],
+    outs = ["tmux_version_info.txt"],
+    cmd = """
+    if command -v tmux &>/dev/null; then
+        version_output=$$(tmux -V 2>&1)
+        version=$$(echo "$$version_output" | grep -o "tmux [0-9]\\+\\.[0-9]\\+" | sed "s/tmux //")
+        echo "Detected tmux version: $$version" > $@
+    else
+        echo "tmux not installed" > $@
+    fi
+    """,
 )
