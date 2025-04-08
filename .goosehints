@@ -1,65 +1,79 @@
 # Dotfiles Development Guidelines
 
 ## Repository structure
-- modules/: Contains .bzl files with reusable Starlark rules and macros for dotfiles management
-- platforms/: Contains BUILD files defining Bazel platform targets for different OS (Windows, Ubuntu WSL, macOS)
-- variants/: Contains BUILD files defining targets for different usage scenarios (work_laptop, personal_desktop, etc.)
-- tools/: Contains subdirectories for specific tools (git, tmux, neovim, etc.) each with their own BUILD file and templates
-- bin/: Contains helper scripts used by Starlark rules for complex operations
+- modules/: Starlark rules and macros (git/, rules/, tmux/, vim/)
+- platforms/: Platform-specific BUILD files (Windows, WSL, macOS)
+- variants/: Usage scenario targets (work_laptop, personal_desktop)
+- tools/: Tool implementations and templates (git/, tmux/, vim/, neovim/, zsh/)
+- bin/: Helper scripts for complex operations
+- selectors/: Platform-specific conditional configuration
+
+Each tool requires both:
+- modules/[tool]/: Rule definitions, providers, interfaces
+- tools/[tool]/: Implementation, templates, targets
 
 ## Architecture
-- Use Bazel 7.0+ with bzlmod for dependency management
-- Organize by modules (git, vim, tmux, etc.)
-- Each module should have its own BUILD.bazel and README.adoc
-- Use the Starlark DSL to define module-specific rules
-- Keep modules independent where possible for parallel development
+- Use Bazel 7.0+ with bzlmod for dependencies
+- Keep modules independent for parallel development
+- Separate rule definitions (modules/) from implementations (tools/)
+- Avoid circular dependencies
+- Use provider interfaces for standardized configuration passing
+- Define clear extension points for customization
 
 ## Bazel-first
-- All operations should be runnable via Bazel commands
-- Installation should be handled through Bazel targets, not custom scripts
-- Focus on generation correctness before installation automation
-- Use `bazel build`, `bazel run`, and `bazel test` as primary interfaces
-- Always provide print_paths targets to show generated file locations
+- All operations through Bazel commands
+- Handle installation via Bazel targets, not custom scripts
+- Always provide print_paths targets
+- Use MODULE.bazel instead of WORKSPACE
+- Leverage select() statements for platform-specific configuration
 
 ## Configuration management
-- Use strongly-typed providers for configuration data
-- Generated files should be deterministic and reproducible
-- Support configuration for:
-  1. Base - Common settings across all environments
-  2. Platform - OS-specific settings (linux, macos, windows)
-  3. Variant - Context-specific settings (work laptop, work remote machine, personal desktop, personal WSL environment, personal laptop)
-- Use select() for platform detection
-- Build and test must work on all platforms
-- Handle file paths properly across different operating systems
+- Use strongly-typed providers
+- Ensure deterministic, reproducible file generation
+- Layer configurations:
+  1. Base - Common settings
+  2. Platform - OS-specific settings
+  3. Variant - Context-specific settings
+- Handle file paths properly across platforms
 
 ## Separation of concerns
-- Work/private settings must never be committed to the repository
-- Work/private settings must be injectable from their respective machines, and must effectively combine with the in-repository configuration (to enable, disable, alter settings)
-- Support local extensions (e.g., ~/.gitconfig.local) for private settings
-- Use include directives for bringing in external configs when appropriate
+- No work/private settings in repository
+- Enable machine-specific configuration injection
+- Support local extensions (e.g., ~/.gitconfig.local)
 - Create isolated variant targets for different contexts
 
 ## Documentation
-- All documentation files must be written in AsciiDoctor (.adoc files), not Markdown
+- Use AsciiDoctor (.adoc), not Markdown
 - Write headings in sentence case
-- Include usage examples in documentation
-- Describe module-specific configuration options
-- Document how to integrate with existing tool ecosystems
+- Each module needs README.adoc with:
+  - Purpose, options, examples, integration patterns
+- Document inter-module relationships
+- Include diagrams for complex configurations
 
 ## Development process
-- Test configuration generation before deployment
-- Favor build-time configuration over runtime detection
-- Keep sensitive information out of the repository
-- Build all variants during testing to ensure they work correctly
-- Use consistent naming conventions across modules
+- Test generation before deployment
+- Use build-time configuration over runtime detection
+- Build all variants during testing
+- Use GitHub Actions for CI/CD
+- Create reproducible environments with .devcontainer
+
+## Testing
+- Create test targets for each module/tool
+- Use Bazel's test framework
+- Test cross-platform compatibility
+- Validate generated configurations
+
+## Troubleshooting
+- Create diagnostic targets
+- Implement verbose logging options
+- Document common errors and solutions
+- Provide version checking for external dependencies
+- Document rollback procedures
 
 ## Implementation Patterns
-- Default to flat dictionaries with compound keys for complex hierarchies
-- Standardize on provider interfaces for module-specific configurations
-- Handle platform differences via BUILD-time selection
+- Use flat dictionaries with compound keys
+- Handle platform differences at BUILD-time
 - Prefer pure Starlark implementations
-- Only document non-obvious configurations or settingn
-    - Do not superfluously document code.
-    - Do document program specific configurations and options
-- Prefer long command line options in generated file outputs for readability and comprehension upon reading.
-    - For example, instead of `-n` specify `--name` as the long optio
+- Document only non-obvious configurations
+- Use long command options for readability (--name vs -n)
+- Consistent naming between modules/ and tools/ directories
