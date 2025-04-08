@@ -11,15 +11,15 @@ filegroup(
 filegroup(
     name = "work_laptop",
     srcs = select({
-        "//platforms:macos": [
+        "//selectors:macos": [
             ":base",
             # Add macOS-specific work configuration
         ],
-        "//platforms:linux": [
+        "//selectors:linux": [
             ":base",
             # Add Linux-specific work configuration
         ],
-        "//platforms:windows": [
+        "//selectors:windows": [
             ":base",
             # Add Windows-specific work configuration
         ],
@@ -32,15 +32,15 @@ filegroup(
 filegroup(
     name = "personal_desktop",
     srcs = select({
-        "//platforms:macos": [
+        "//selectors:macos": [
             ":base",
             # Add macOS-specific personal configuration
         ],
-        "//platforms:linux": [
+        "//selectors:linux": [
             ":base",
             # Add Linux-specific personal configuration
         ],
-        "//platforms:windows": [
+        "//selectors:windows": [
             ":base",
             # Add Windows-specific personal configuration
         ],
@@ -53,7 +53,7 @@ filegroup(
 filegroup(
     name = "work_remote_devbox",
     srcs = select({
-        "//platforms:linux": [
+        "//selectors:linux": [
             ":base",
             # Add Linux-specific remote work configuration
         ],
@@ -66,7 +66,7 @@ filegroup(
 filegroup(
     name = "personal_wsl",
     srcs = select({
-        "//platforms:wsl": [
+        "//selectors:wsl": [
             ":base",
             # Add WSL-specific configuration
         ],

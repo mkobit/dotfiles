@@ -1,11 +1,6 @@
 # Platform definitions for dotfiles management
 package(default_visibility = ["//visibility:public"])
 
-module(
-    name = "dotfiles",
-    repo_name = "mkobit_dotfiles",
-)
-
 # Platform target for Linux
 platform(
     name = "linux",
