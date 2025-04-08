@@ -78,3 +78,9 @@ Each tool requires both:
 - Use long command options for readability (--name vs -n)
 - Consistent naming between modules/ and tools/ directories
 
+## Scripts and Code Generation
+- DO NOT write bespoke scripts - all generation MUST be in Bazel rules and Starlark
+- Only write shell scripts if explicitly requested
+- No ad-hoc shell scripts in this repository
+- Implement all functionality through Starlark rules and macros
+
