@@ -1,6 +1,6 @@
 {
   "lockFileVersion": 3,
-  "moduleFileHash": "aa648f87e8f517796c45687867db9b92525c89d5f757f9497d31625c7dbf5697",
+  "moduleFileHash": "2347d477b29836f56ee08004e3d9030541e6828f89171c38809b36073bd306bd",
   "flags": {
     "cmdRegistries": [
       "https://bcr.bazel.build/"
@@ -22,7 +22,11 @@
       "key": "<root>",
       "repoName": "dotfiles",
       "executionPlatformsToRegister": [],
-      "toolchainsToRegister": [],
+      "toolchainsToRegister": [
+        "//platforms/common:default_vim_toolchain",
+        "//platforms/common:default_neovim_toolchain",
+        "//platforms/common:default_brew_toolchain"
+      ],
       "extensionUsages": [],
       "deps": {
         "bazel_skylib": "bazel_skylib@1.4.2",
