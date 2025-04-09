@@ -26,6 +26,11 @@ Each tool requires both:
 - Always provide print_paths targets
 - Use MODULE.bazel instead of WORKSPACE
 - Leverage select() statements for platform-specific configuration
+- Use proper file extensions for all Bazel files:
+  - `.bazel` for BUILD files (e.g., BUILD.bazel)
+  - `.bzl` for Starlark files containing rules and macros
+  - `MODULE.bazel` for bzlmod module definitions
+  - No extension-less BUILD files
 
 ## Configuration management
 - Use strongly-typed providers
