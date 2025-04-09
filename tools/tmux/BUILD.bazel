@@ -2,6 +2,7 @@
 # Uses static files for different tmux versions
 
 load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/toolchains:tmux_toolchain.bzl", "tmux_test", "tmux_toolchain")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -83,4 +84,15 @@ genrule(
         echo "tmux not installed" > $@
     fi
     """,
+)
+
+# Create the tmux toolchain instance
+tmux_toolchain(
+    name = "tmux_toolchain_target",
+)
+
+# Simple system integration test for tmux using the tmux_test rule
+tmux_test(
+    name = "system_integration_test",
+    tags = ["manual"], # Don't run automatically in CI
 )
