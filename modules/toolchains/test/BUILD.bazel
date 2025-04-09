@@ -1,0 +1,18 @@
+load("//modules/toolchains:tool_tester.bzl", "tool_tester")
+
+package(default_visibility = ["//visibility:public"])
+
+# Use a proper Bazel test rule instead of shell script
+py_test(
+    name = "toolchains_test",
+    srcs = ["toolchains_test.py"],
+    deps = [],
+    data = [
+        ":test_tools",
+    ],
+)
+
+# Tool tester target
+tool_tester(
+    name = "test_tools",
+)

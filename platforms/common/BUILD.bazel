@@ -1,0 +1,65 @@
+"""Common platform toolchains."""
+
+package(default_visibility = ["//visibility:public"])
+
+load("//modules/toolchains:vim_toolchain.bzl", "vim_toolchain")
+load("//modules/toolchains:neovim_toolchain.bzl", "neovim_toolchain") 
+load("//modules/toolchains:brew_toolchain.bzl", "brew_toolchain")
+
+# Define toolchain providers
+filegroup(
+    name = "empty",
+    srcs = [],
+)
+
+# Vim toolchain
+vim_toolchain(
+    name = "vim_impl",
+    path = "vim",  # Default path to vim on PATH
+    version = "",
+    has_lua = False,
+    has_python = False,
+    config_path = "~/.vim",
+)
+
+toolchain(
+    name = "default_vim_toolchain",
+    exec_compatible_with = [],
+    target_compatible_with = [],
+    toolchain = ":vim_impl",
+    toolchain_type = "//:vim_toolchain_type",
+)
+
+# Neovim toolchain
+neovim_toolchain(
+    name = "neovim_impl",
+    path = "nvim",  # Default path to nvim on PATH
+    version = "",
+    config_path = "~/.config/nvim",
+    runtime_path = "/usr/share/nvim/runtime",
+)
+
+toolchain(
+    name = "default_neovim_toolchain",
+    exec_compatible_with = [],
+    target_compatible_with = [],
+    toolchain = ":neovim_impl",
+    toolchain_type = "//:neovim_toolchain_type",
+)
+
+# Homebrew toolchain
+brew_toolchain(
+    name = "brew_impl",
+    path = "brew",  # Default path to brew on PATH
+    version = "",
+    prefix = "/usr/local",
+    cellar = "/usr/local/Cellar",
+)
+
+toolchain(
+    name = "default_brew_toolchain",
+    exec_compatible_with = [],
+    target_compatible_with = [],
+    toolchain = ":brew_impl",
+    toolchain_type = "//:brew_toolchain_type",
+)

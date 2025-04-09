@@ -1,23 +1,19 @@
-# Root BUILD file
-
-load("//modules/rules:dotfile.bzl", "dotfile_group")
+"""Root BUILD file for the dotfiles project."""
 
 package(default_visibility = ["//visibility:public"])
 
-# Group all dotfiles
-dotfile_group(
-    name = "all_dotfiles",
-    deps = [
-        "//tools/git:git_dotfiles",
-        "//tools/tmux:tmux_dotfiles",
-        "//tools/vim:vim_dotfiles",
-        # Add other tool dotfiles as they are created
-    ],
+# Root toolchain registrations - these must be in the root BUILD file
+toolchain_type(
+    name = "vim_toolchain_type",
+    visibility = ["//visibility:public"],
 )
 
-# Print paths to all generated files
-sh_binary(
-    name = "print_paths",
-    srcs = ["//tools:print_paths.sh"],
-    data = [":all_dotfiles"],
+toolchain_type(
+    name = "neovim_toolchain_type",
+    visibility = ["//visibility:public"],
+)
+
+toolchain_type(
+    name = "brew_toolchain_type",
+    visibility = ["//visibility:public"],
 )

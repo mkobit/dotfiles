@@ -1,0 +1,39 @@
+= Toolchains Module
+
+This module provides toolchain definitions for various external tools used in the dotfiles repository.
+
+== Purpose
+
+Define Bazel toolchains for detecting and using external tools like:
+
+* Vim
+* Neovim
+* Homebrew (brew)
+
+== Usage
+
+[source,python]
+----
+load("//modules/toolchains:vim_toolchain.bzl", "vim_toolchain")
+load("//modules/toolchains:neovim_toolchain.bzl", "neovim_toolchain")
+load("//modules/toolchains:brew_toolchain.bzl", "brew_toolchain")
+
+# Check if tools are available
+has_vim = vim_toolchain.is_available()
+has_neovim = neovim_toolchain.is_available() 
+has_brew = brew_toolchain.is_available()
+
+# Get tool paths
+vim_path = vim_toolchain.get_path()
+neovim_path = neovim_toolchain.get_path()
+brew_path = brew_toolchain.get_path()
+----
+
+== Integration
+
+Toolchains can be used in rules to:
+
+* Conditionally enable features based on tool availability
+* Run tool-specific validations or tests
+* Generate configurations that depend on specific tools
+* Execute tools as part of build or test actions
