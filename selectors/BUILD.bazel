@@ -23,6 +23,5 @@ config_setting(
 config_setting(
     name = "wsl",
     constraint_values = ["@platforms//os:linux"],
-    # In a real environment, you might want to add additional constraints 
-    # or use environment variables to specifically identify WSL
+    define_values = {"wsl": "true"},
 )

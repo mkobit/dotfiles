@@ -12,35 +12,33 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Set up Bazel
-        uses: bazelbuild/setup-bazelisk@v2
-
-      - name: Mount Bazel cache
-        uses: actions/cache@v3
-        with:
-          path: |
-            ~/.cache/bazel
-            ~/.bazel_repo_cache
-          key: bazel-${{ matrix.os }}-${{ github.sha }}
-          restore-keys: |
-            bazel-${{ matrix.os }}-
+        uses: bazel-contrib/setup-bazel@0.14.0
 
       - name: Build (All Platforms)
-        run: bazel build //...
-        
+        run: |
+          # Regular build for non-WSL environments
+          bazel build //...
+
       - name: Test (All Platforms)
-        run: bazel test //...
-        
+        run: |
+          # Regular tests
+          bazel test //...
+
       - name: Build dotfiles
         run: bazel build //:dotfiles
-        
+
       - name: Build variant-specific dotfiles
         run: |
           bazel build //:work_dotfiles
           bazel build //:personal_dotfiles
 
-      # Optional: Add variant-specific builds with --define=variant=work or similar
       - name: Build with variant flags
         if: runner.os != 'Windows'  # Skip on Windows if needed
         run: |
           bazel build --define=variant=work //:dotfiles
           bazel build --define=variant=personal //:dotfiles
+
+      - name: Build with WSL configuration
+        if: runner.os == 'Linux'
+        run: |
+          bazel build --define=wsl=true //modules/tmux:combined_tmux
