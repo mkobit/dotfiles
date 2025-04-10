@@ -68,6 +68,7 @@ dotfile_group(
     deps = [
         ":tmux_conf_dotfile",
     ],
+    tags = ["tmux", "no-windows"],  # Add tags to skip on Windows
 )
 
 # Test target to show detected tmux version
@@ -309,11 +310,13 @@ dotfile_group(
         ":tmux_conf_combined_personal_dotfile",
         ":tmux_conf_unified_dotfile",
     ],
+    tags = ["tmux", "no-windows"],  # Add tags to skip on Windows
 )
 
 # Create the tmux toolchain instance
 tmux_toolchain(
     name = "tmux_toolchain_target",
+    tags = ["tmux", "no-windows"],  # Add tags to skip on Windows
 )
 
 # Simple system integration test for tmux using the tmux_test rule

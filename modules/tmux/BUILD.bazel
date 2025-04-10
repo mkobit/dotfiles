@@ -68,6 +68,7 @@ filegroup(
     srcs = [
         "//tools/tmux:tmux_conf_combined",
     ],
+    tags = ["tmux", "no-windows"],  # Add tags to skip on Windows
 )
 
 # Unified tmux configuration with platform and version variants
