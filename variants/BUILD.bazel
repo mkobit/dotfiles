@@ -13,15 +13,15 @@ filegroup(
     srcs = select({
         "//selectors:macos": [
             ":base",
-            # Add macOS-specific work configuration
+            "//tools/tmux:tmux_conf_combined_work",
         ],
         "//selectors:linux": [
             ":base",
-            # Add Linux-specific work configuration
+            "//tools/tmux:tmux_conf_combined_work",
         ],
         "//selectors:windows": [
             ":base",
-            # Add Windows-specific work configuration
+            "//tools/tmux:tmux_conf_combined_work",
         ],
         "//conditions:default": [":base"],
     }),
@@ -34,15 +34,15 @@ filegroup(
     srcs = select({
         "//selectors:macos": [
             ":base",
-            # Add macOS-specific personal configuration
+            "//tools/tmux:tmux_conf_combined_personal",
         ],
         "//selectors:linux": [
             ":base",
-            # Add Linux-specific personal configuration
+            "//tools/tmux:tmux_conf_combined_personal",
         ],
         "//selectors:windows": [
             ":base",
-            # Add Windows-specific personal configuration
+            "//tools/tmux:tmux_conf_combined_personal",
         ],
         "//conditions:default": [":base"],
     }),

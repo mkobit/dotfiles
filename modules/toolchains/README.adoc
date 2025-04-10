@@ -8,6 +8,7 @@ Define Bazel toolchains for detecting and using external tools like:
 
 * Vim
 * Neovim
+* Tmux
 * Homebrew (brew)
 
 == Usage
@@ -17,6 +18,7 @@ Define Bazel toolchains for detecting and using external tools like:
 load("//modules/toolchains:vim_toolchain.bzl", "vim_toolchain")
 load("//modules/toolchains:neovim_toolchain.bzl", "neovim_toolchain")
 load("//modules/toolchains:brew_toolchain.bzl", "brew_toolchain")
+load("//modules/toolchains:tmux_toolchain.bzl", "tmux_toolchain", "tmux_test")
 
 # Check if tools are available
 has_vim = vim_toolchain.is_available()
@@ -27,6 +29,12 @@ has_brew = brew_toolchain.is_available()
 vim_path = vim_toolchain.get_path()
 neovim_path = neovim_toolchain.get_path()
 brew_path = brew_toolchain.get_path()
+
+# Define a tmux test that will fail in CI if tmux is not installed
+tmux_test(
+    name = "system_integration_test",
+    require_tmux = True,
+)
 ----
 
 == Integration
