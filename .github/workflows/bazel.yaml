@@ -24,19 +24,21 @@ jobs:
           # Regular tests
           bazel test //...
 
-      - name: Build dotfiles
-        run: bazel build //:dotfiles
-
+      - name: Build base variant
+        run: bazel build //variants:base
+        
       - name: Build variant-specific dotfiles
         run: |
-          bazel build //:work_dotfiles
-          bazel build //:personal_dotfiles
+          bazel build //variants:work_laptop
+          bazel build //variants:personal_desktop
+          bazel build //variants:personal_wsl
+          bazel build //variants:work_remote_devbox
 
       - name: Build with variant flags
         if: runner.os != 'Windows'  # Skip on Windows if needed
         run: |
-          bazel build --define=variant=work //:dotfiles
-          bazel build --define=variant=personal //:dotfiles
+          bazel build --define=variant=work //variants:work_laptop
+          bazel build --define=variant=personal //variants:personal_desktop
 
       - name: Build with WSL configuration
         if: runner.os == 'Linux'
