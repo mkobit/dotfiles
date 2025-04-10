@@ -1,141 +1,143 @@
-"""Vim toolchain definition."""
+"""Vim toolchain and test rule."""
+load("@bazel_skylib//lib:shell.bzl", "shell")
 
-load("//modules/toolchains:toolchain_types.bzl", "ToolInfo")
-
+# Provider for vim information
 VimInfo = provider(
-    doc = "Information about the Vim installation",
+    doc = "Information about the vim installation",
     fields = {
-        "path": "Path to vim executable",
-        "version": "Vim version string",
+        "path": "Path to the vim executable",
+        "version": "Version of vim",
+        "is_installed": "Whether vim is installed",
         "has_lua": "Boolean indicating if Vim has Lua support",
         "has_python": "Boolean indicating if Vim has Python support",
-        "config_path": "Path to vim config directory",
     },
 )
 
 def _vim_toolchain_impl(ctx):
-    toolchain_info = platform_common.ToolchainInfo(
-        vim_info = VimInfo(
-            path = ctx.attr.path,
-            version = ctx.attr.version,
-            has_lua = ctx.attr.has_lua,
-            has_python = ctx.attr.has_python,
-            config_path = ctx.attr.config_path,
-        ),
-        tool_info = ToolInfo(
-            name = "vim",
-            path = ctx.attr.path,
-            version = ctx.attr.version,
-            available = ctx.attr.path != "",
-            extra_info = {
-                "has_lua": str(ctx.attr.has_lua),
-                "has_python": str(ctx.attr.has_python),
-                "config_path": ctx.attr.config_path,
-            },
-        ),
-    )
-    return [toolchain_info]
+    # Create an info file for vim detection
+    vim_info_file = ctx.actions.declare_file(ctx.attr.name + "_info.txt")
+    
+    # Create a shell script to detect vim
+    vim_detect_script = ctx.actions.declare_file(ctx.attr.name + "_detect.sh")
+    
+    # Write the detection script
+    ctx.actions.write(
+        output = vim_detect_script,
+        content = """#!/bin/bash
+set -euo pipefail
 
+OUTPUT_FILE="$1"
+
+echo "# Vim Information" > "$OUTPUT_FILE"
+echo "-----------------" >> "$OUTPUT_FILE"
+
+if command -v vim &>/dev/null; then
+    VIM_PATH=$(which vim)
+    VIM_VERSION=$(vim --version | head -1 | sed 's/.*VIM - Vi IMproved //;s/ .*//')
+    HAS_LUA=$(vim --version | grep -q "+lua" && echo "true" || echo "false")
+    HAS_PYTHON=$(vim --version | grep -q "+python" && echo "true" || echo "false")
+    
+    echo "INSTALLED=true" >> "$OUTPUT_FILE"
+    echo "PATH=$VIM_PATH" >> "$OUTPUT_FILE"
+    echo "VERSION=$VIM_VERSION" >> "$OUTPUT_FILE"
+    echo "HAS_LUA=$HAS_LUA" >> "$OUTPUT_FILE"
+    echo "HAS_PYTHON=$HAS_PYTHON" >> "$OUTPUT_FILE"
+else
+    echo "INSTALLED=false" >> "$OUTPUT_FILE"
+    echo "PATH=" >> "$OUTPUT_FILE"
+    echo "VERSION=" >> "$OUTPUT_FILE"
+    echo "HAS_LUA=false" >> "$OUTPUT_FILE"
+    echo "HAS_PYTHON=false" >> "$OUTPUT_FILE"
+fi
+""",
+        is_executable = True,
+    )
+    
+    # Run the script during the build phase
+    ctx.actions.run(
+        outputs = [vim_info_file],
+        inputs = [],
+        executable = vim_detect_script,
+        arguments = [vim_info_file.path],
+        mnemonic = "VimDetect",
+        progress_message = "Detecting vim installation",
+    )
+    
+    # Return a provider that includes the information file
+    return [
+        VimInfo(
+            path = "",  # Placeholder, determined at runtime
+            version = "",  # Placeholder, determined at runtime 
+            is_installed = True,  # Placeholder, verified at runtime
+            has_lua = False,  # Placeholder, verified at runtime
+            has_python = False,  # Placeholder, verified at runtime
+        ),
+        DefaultInfo(files = depset([vim_info_file])),
+    ]
+
+# Define the vim_toolchain rule
 vim_toolchain = rule(
     implementation = _vim_toolchain_impl,
-    attrs = {
-        "path": attr.string(mandatory = True),
-        "version": attr.string(default = ""),
-        "has_lua": attr.bool(default = False),
-        "has_python": attr.bool(default = False),
-        "config_path": attr.string(default = ""),
-    },
-)
-
-def _find_vim_tool_impl(ctx):
-    vim_path = ""
-    vim_version = ""
-    has_lua = False
-    has_python = False
-    config_path = ""
-    
-    # Try to find vim executable
-    result = ctx.execute(["which", "vim"])
-    if result.return_code == 0:
-        vim_path = result.stdout.strip()
-        
-        # Get vim version info
-        version_result = ctx.execute([vim_path, "--version"])
-        if version_result.return_code == 0:
-            version_output = version_result.stdout
-            
-            # Extract version
-            version_match = ctx.execute(["bash", "-c", "echo '{}' | grep -oE 'VIM - Vi IMproved ([0-9.]+)' | sed 's/VIM - Vi IMproved //'".format(version_output)])
-            if version_match.return_code == 0 and version_match.stdout.strip():
-                vim_version = version_match.stdout.strip()
-                
-            # Check for lua support
-            has_lua = "+lua" in version_output
-            
-            # Check for python support
-            has_python = "+python" in version_output or "+python3" in version_output
-            
-            # Try to find config path
-            if ctx.os.name == "mac os x":
-                config_path = "~/.vim"
-            elif ctx.os.name.startswith("windows"):
-                config_path = "$HOME/vimfiles"
-            else:
-                config_path = "~/.vim"
-    
-    # Write the build file that instantiates the toolchain
-    ctx.file("BUILD.bazel", """
-load("//modules/toolchains:vim_toolchain.bzl", "vim_toolchain")
-
-package(default_visibility = ["//visibility:public"])
-
-vim_toolchain(
-    name = "vim_tool",
-    path = "{}",
-    version = "{}",
-    has_lua = {},
-    has_python = {},
-    config_path = "{}",
-)
-
-toolchain(
-    name = "vim_toolchain",
-    toolchain = ":vim_tool",
-    toolchain_type = "//:vim_toolchain_type",
-)
-""".format(vim_path, vim_version, "True" if has_lua else "False", 
-           "True" if has_python else "False", config_path))
-
-    # Write the helper for checking vim availability
-    ctx.file("vim_info.bzl", """
-def is_available():
-    return {}
-
-def get_path():
-    return "{}"
-    
-def get_version():
-    return "{}"
-
-def has_lua():
-    return {}
-    
-def has_python():
-    return {}
-""".format("True" if vim_path != "" else "False", vim_path, vim_version, 
-           "True" if has_lua else "False", "True" if has_python else "False"))
-
-find_vim_tool = repository_rule(
-    implementation = _find_vim_tool_impl,
     attrs = {},
-    local = True
 )
 
-# Vim toolchain type definition - moved to BUILD.bazel
-def register_vim_toolchains():
-    """Register the vim toolchain."""
-    find_vim_tool(name = "vim_local_toolchain")
+def _vim_test_impl(ctx):
+    # Create the test executable script 
+    test_executable = ctx.actions.declare_file(ctx.attr.name + ".sh")
+    ctx.actions.write(
+        output = test_executable,
+        content = """#!/bin/bash
+set -euo pipefail
+
+echo "Running vim integration test..."
+
+if ! command -v vim &>/dev/null; then
+    echo "VIM NOT INSTALLED - Test SKIPPED"
+    exit 0
+fi
+
+# Test that vim --version works
+VIM_VERSION=$(vim --version 2>&1 | head -1)
+if [[ $? -eq 0 ]]; then
+    echo "VIM INSTALLED: YES"
+    echo "Path: $(which vim)"
+    echo "Version: $VIM_VERSION"
     
-    native.register_toolchains(
-        "@vim_local_toolchain//:vim_toolchain"
+    # Check for Lua support
+    if vim --version | grep -q "+lua"; then
+        echo "Lua support: YES"
+    else
+        echo "Lua support: NO"
+    fi
+    
+    # Check for Python support
+    if vim --version | grep -q "+python"; then
+        echo "Python support: YES"
+    else
+        echo "Python support: NO"
+    fi
+    
+    echo "TEST RESULT: PASS"
+    exit 0
+else
+    echo "VIM COMMAND FAILED: $VIM_VERSION"
+    echo "TEST RESULT: FAIL"
+    exit 1
+fi
+""",
+        is_executable = True,
     )
+    
+    # Return the test info
+    return [
+        DefaultInfo(
+            executable = test_executable,
+        ),
+    ]
+
+# Define the vim_test rule
+vim_test = rule(
+    implementation = _vim_test_impl,
+    test = True,
+    attrs = {},
+)

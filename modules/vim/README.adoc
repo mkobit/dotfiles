@@ -1,67 +1,83 @@
-= Vim Configuration Module
-:toc: left
-:icons: font
-:source-highlighter: rouge
+= Vim Module
+:toc:
+:toc-title: Table of Contents
+:toclevels: 3
+
+This module provides Vim configuration management through Bazel.
 
 == Overview
 
-This module generates Vim configuration files (`.vimrc`) for different environments and contexts.
+The vim module allows for creating and managing vim configurations across different platforms and usage variants.
 
 == Features
 
-* Platform-specific configurations
-* Variant-aware settings (work/personal)
-* Support for plugin management
-* Modular configuration structure
+* Cross-platform vim configuration generation
+* Platform-specific settings for macOS, Linux, WSL, and Windows
+* Work and personal variants
+* Testing vim configuration validity
+* Vim feature detection (Lua, Python support)
 
 == Usage
 
-[source,bash]
+=== Basic Configuration
+
+To use the basic vim configuration:
+
+[source,shell]
 ----
-# Build the vim configuration for current platform
-bazel build //modules/vim:vimrc
-
-# Build specific variant
-bazel build //modules/vim:vimrc --define=variant=work
-
-# Run tests
-bazel test //modules/vim/tests/...
+bazel build //modules/vim:vim
 ----
 
-== Manual Integration
+=== Platform-Specific Configuration
 
-Until we develop a proper installation system, you can use the generated .vimrc files by:
+To use a platform-specific configuration:
 
-1. Finding the output path:
-+
-[source,bash]
+[source,shell]
 ----
-# Get the output path for the default vimrc
-bazel info bazel-bin
-VIMRC_PATH=$(bazel info bazel-bin)/modules/vim/vimrc.vimrc
-
-# For a specific variant
-VIMRC_PATH=$(bazel info bazel-bin)/modules/vim/work_vimrc.vimrc
+bazel build //modules/vim:combined_vim
 ----
 
-2. Including it in your existing .vimrc:
-+
-[source,vim]
+=== Variant Configurations
+
+For specific usage variants:
+
+[source,shell]
 ----
-" In your ~/.vimrc
-if filereadable('/path/to/bazel-bin/modules/vim/vimrc.vimrc')
-  source /path/to/bazel-bin/modules/vim/vimrc.vimrc
-endif
+# Work environment
+bazel build //modules/vim:work_vim
+
+# Personal environment
+bazel build //modules/vim:personal_vim
 ----
 
-== Configuration Options
+=== Installation
 
-[cols="1,1,2", options="header"]
-|===
-|Option |Default |Description
-|`colorscheme` |`default` |Vim color scheme
-|`line_numbers` |`true` |Show line numbers
-|`tab_width` |`4` |Tab width in spaces
-|`expandtab` |`true` |Use spaces instead of tabs
-|`syntax_highlighting` |`true` |Enable syntax highlighting
-|===
+To see the path where the configuration is generated:
+
+[source,shell]
+----
+bazel run //modules/vim:print_path
+----
+
+== Configuration Structure
+
+* `vimrc.template`: Base vim configuration
+* Platform-specific settings in `tools/vim/configs/`
+* Variant-specific settings in `tools/vim/configs/`
+
+== Testing
+
+Run the vim configuration test:
+
+[source,shell]
+----
+bazel test //tools/vim:system_integration_test
+----
+
+== Integration with Other Tools
+
+The vim module can be integrated with other tools like:
+
+* Git (for gitconfig vim settings)
+* Tmux (for vim-like keybindings)
+* Neovim (for cross-compatibility)

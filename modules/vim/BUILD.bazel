@@ -1,216 +1,111 @@
-load("//modules/vim:vim_rules.bzl", "vim_config", "vim_config_generator")
+load("//tools:defs.bzl", "template_file")
 
 package(default_visibility = ["//visibility:public"])
 
-# Base Vim configuration with common settings
-vim_config(
-    name = "base_config",
-    mappings = {
-        # Normal mode mappings
-        "<leader>w": ":w!<cr>",
-        "<space>": "/",
-        "<C-space>": "?",
-        "<leader><cr>": ":nohlsearch<cr>",
-        "<leader>l": ":bnext<cr>",
-        "<leader>h": ":bprevious<cr>",
-        "0": "^",
-        "<leader>pp": ":setlocal paste!<cr>",
-        "<C-j>": "<C-w>j",
-        "<C-k>": "<C-w>k",
-        "<C-l>": "<C-w>l",
-        "<C-h>": "<C-w>h",
-        "j": "gj",
-        "k": "gk",
-
-        # Spell checking
-        "<leader>ss": ":setlocal spell!<cr>",
-        "<leader>sn": "]s",
-        "<leader>sp": "[s",
-        "<leader>sa": "zg",
-        "<leader>s?": "z=",
-    },
-    raw_statements = [
-        # Leader key setup
-        '" Set leader key to comma',
-        'let mapleader = ","',
-        "",
-        # File encoding and format
-        '" Set language to English',
-        'let $LANG="en"',
-        "set langmenu=en",
-        "source $VIMRUNTIME/delmenu.vim",
-        "source $VIMRUNTIME/menu.vim",
-        "",
-        # Auto read when a file is changed
-        '" Auto read when a file is changed from the outside',
-        "set autoread",
-        "augroup external_editor",
-        "  autocmd FocusGained,BufEnter * checktime",
-        "augroup END",
-        "",
-        # Special characters
-        "set listchars=eol:\342\206\262,tab:\302\273\\ ,trail:\302\267,extends:\342\226\266,precedes:\342\227\200,conceal:\342\224\212,nbsp:\342\220\243",
-        "set list",
-        "",
-        # Disable gitcommit textwidth
-        "augroup filetype_gitcommit",
-        "  autocmd!",
-        "  autocmd FileType gitcommit setlocal textwidth=0",
-        "augroup END",
-        "",
-        # Movement mappings
-        '" Move lines up and down',
-        "nnoremap <M-j> mz:m+<cr>`z",
-        "nnoremap <M-k> mz:m-2<cr>`z",
-        "vnoremap <M-j> :m'>+<cr>`<my`>mzgv`yo`z",
-        "vnoremap <M-k> :m'<-2<cr>`>my`<mzgv`yo`z",
-        "",
-        '" Alternative escape sequences',
-        "inoremap jk <Esc>",
-        "inoremap kj <Esc>",
-    ],
-    settings = {
-        # General UI settings
-        "number": "true",
-        "relativenumber": "true",
-        "tabstop": "2",
-        "shiftwidth": "2",
-        "softtabstop": "2",
-        "expandtab": "true",
-        "syntax": "on",
-        "autoindent": "true",
-        "smartindent": "true",
-        "backspace": "eol,start,indent",
-        "hlsearch": "true",
-        "incsearch": "true",
-        "ignorecase": "true",
-        "smartcase": "true",
-        "ruler": "true",
-        "wildmenu": "true",
-        "laststatus": "2",
-        "history": "10000",
-        "encoding": "utf8",
-        "fileformats": "unix,dos,mac",
-        "scrolloff": "5",
-        "showcmd": "true",
-        "showmatch": "true",
-        "cursorline": "true",
-        "wrap": "true",
-        "background": "dark",
-        "cmdheight": "1",
-        "hid": "true",
-        "lazyredraw": "true",
-        "magic": "true",
-        "noerrorbells": "true",
-        "novisualbell": "true",
-        "t_vb": "",
-        "timeoutlen": "750",
-        "whichwrap": "<,>,h,l",
-    },
+# Base vim configuration
+template_file(
+    name = "vimrc_conf",
+    src = "vimrc.template",
+    out = "vimrc",
 )
 
-# Platform-specific vim configurations
-vim_config(
-    name = "linux_config",
-    includes = [":base_config"],
-    platform_settings = {
-        "linux": [
-            "set clipboard=unnamedplus",
-            "set directory=/tmp/",
-        ],
-    },
-    raw_statements = [
-        '" Linux-specific configurations',
-        'autocmd VimEnter * echo "Running Vim on Linux"',
-    ],
-)
-
-vim_config(
-    name = "macos_config",
-    includes = [":base_config"],
-    platform_settings = {
-        "macos": [
-            "set clipboard=unnamed",
-        ],
-    },
-    raw_statements = [
-        '" macOS-specific configurations',
-        'autocmd VimEnter * echo "Running Vim on macOS"',
-    ],
-)
-
-vim_config(
-    name = "windows_config",
-    includes = [":base_config"],
-    platform_settings = {
-        "windows": [
-            "set clipboard=unnamed",
-            "set shellslash",
-        ],
-    },
-    raw_statements = [
-        '" Windows-specific configurations',
-        'autocmd VimEnter * echo "Running Vim on Windows"',
-    ],
-)
-
-# Generate default .vimrc for current platform
-vim_config_generator(
-    name = "vimrc",
-    config = select({
-        "@platforms//os:linux": ":linux_config",
-        "@platforms//os:macos": ":macos_config",
-        "@platforms//os:windows": ":windows_config",
-        "//conditions:default": ":base_config",
-    }),
-)
-
-# Work variant with additional settings
-vim_config(
-    name = "work_config",
-    includes = [":base_config"],
-    raw_statements = [
-        '" Work-specific configurations',
-        'autocmd VimEnter * echo "Work environment detected"',
-    ],
-    settings = {
-        "colorscheme": "industry",
-        "background": "dark",
-    },
-)
-
-# Personal variant with different settings
-vim_config(
-    name = "personal_config",
-    includes = [":base_config"],
-    raw_statements = [
-        '" Personal-specific configurations',
-        'autocmd VimEnter * echo "Personal environment detected"',
-    ],
-    settings = {
-        "colorscheme": "desert",
-        "background": "dark",
-        "cursorline": "true",
-    },
-)
-
-# Generate variant-specific vimrc files
-vim_config_generator(
-    name = "work_vimrc",
-    config = ":work_config",
-)
-
-vim_config_generator(
-    name = "personal_vimrc",
-    config = ":personal_config",
-)
-
-# Build all variants
+# Default vim configuration
 filegroup(
-    name = "all_vimrcs",
+    name = "vim",
     srcs = [
-        ":personal_vimrc",
-        ":vimrc",
-        ":work_vimrc",
+        ":vimrc_conf",
+        "//tools/vim:vim_conf_generated",
     ],
+)
+
+# Work variant vim configuration
+template_file(
+    name = "work_vimrc_conf",
+    src = "vimrc.template",
+    out = "work_vimrc",
+    substitutions = {
+        "%%VARIANT%%": "work",
+    },
+)
+
+filegroup(
+    name = "work_vim",
+    srcs = [
+        ":work_vimrc_conf",
+        "//tools/vim:vim_conf_generated",
+    ],
+)
+
+# Personal variant vim configuration
+template_file(
+    name = "personal_vimrc_conf",
+    src = "vimrc.template",
+    out = "personal_vimrc",
+    substitutions = {
+        "%%VARIANT%%": "personal",
+    },
+)
+
+filegroup(
+    name = "personal_vim",
+    srcs = [
+        ":personal_vimrc_conf",
+        "//tools/vim:vim_conf_generated",
+    ],
+)
+
+# Combined vim configuration with platform selectors
+filegroup(
+    name = "combined_vim",
+    srcs = [
+        "//tools/vim:vim_conf_combined",
+    ],
+    tags = ["vim"],
+)
+
+# Unified vim configuration with platform variants
+filegroup(
+    name = "unified_vim",
+    srcs = [
+        "//tools/vim:vim_conf_unified",
+    ],
+)
+
+# Print path to the generated vimrc file
+genrule(
+    name = "print_path",
+    srcs = [":vimrc_conf"],
+    outs = ["vim_path.txt"],
+    cmd = "echo 'To use this vim configuration, add the following line to your ~/.vimrc:' > $@ && " +
+          "echo '' >> $@ && " +
+          "echo 'source '$(location :vimrc_conf) >> $@ && " +
+          "echo '' >> $@ && " +
+          "echo 'Or run this command:' >> $@ && " +
+          "echo 'echo \"source '$(location :vimrc_conf)'\" >> ~/.vimrc' >> $@",
+)
+
+# Print path to the combined vim configuration
+genrule(
+    name = "print_combined_path",
+    srcs = ["//tools/vim:vim_conf_combined"],
+    outs = ["vim_combined_path.txt"],
+    cmd = "echo 'To use the combined vim configuration, add the following line to your ~/.vimrc:' > $@ && " +
+          "echo '' >> $@ && " +
+          "echo 'source '$(location //tools/vim:vim_conf_combined) >> $@ && " +
+          "echo '' >> $@ && " +
+          "echo 'Or run this command:' >> $@ && " +
+          "echo 'echo \"source '$(location //tools/vim:vim_conf_combined)'\" >> ~/.vimrc' >> $@",
+)
+
+# Print path to the unified vim configuration
+genrule(
+    name = "print_unified_path",
+    srcs = ["//tools/vim:vim_conf_unified"],
+    outs = ["vim_unified_path.txt"],
+    cmd = "echo 'To use the unified vim configuration, add the following line to your ~/.vimrc:' > $@ && " +
+          "echo '' >> $@ && " +
+          "echo 'source '$(location //tools/vim:vim_conf_unified) >> $@ && " +
+          "echo '' >> $@ && " +
+          "echo 'Or run this command:' >> $@ && " +
+          "echo 'echo \"source '$(location //tools/vim:vim_conf_unified)'\" >> ~/.vimrc' >> $@",
 )

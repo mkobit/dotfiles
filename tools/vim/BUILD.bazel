@@ -1,45 +1,375 @@
-# Vim/Neovim configuration
+# Vim configuration
+# Uses static files for different platforms and detects vim features
 
 load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
-load("//modules/rules:template.bzl", "template_file")
+load("//modules/toolchains:vim_toolchain.bzl", "vim_test", "vim_toolchain")
 
 package(default_visibility = ["//visibility:public"])
 
-# Generate vimrc from template
-template_file(
-    name = "vimrc_generated",
-    template = ":vimrc.tpl",
-    vars_file = ":vim_vars.properties",
-    out = "vimrc",
+# Generate the basic vim configuration
+genrule(
+    name = "vim_conf_generated",
+    srcs = [
+        "configs/vim_base.vim",
+        "configs/vim_lua.vim",
+    ],
+    outs = ["vimrc"],
+    cmd = "bash -c 'if command -v vim &>/dev/null; then " +
+          "version_output=$$(vim --version 2>&1); " +
+          "version=$$(echo \"$$version_output\" | head -1 | sed \"s/.*VIM - Vi IMproved //;s/ .*//\"); " +
+          "echo \\\" Detected vim version: $$version\\\" > $@; " +
+          "if echo \"$$version_output\" | grep -q \"+lua\"; then " +
+          "echo \\\" Detected Lua support: Yes\\\" >> $@; " +
+          "cat $(location configs/vim_base.vim) >> $@; " +
+          "echo \"\" >> $@; " +
+          "echo \\\" === Lua-specific settings ===\\\" >> $@; " +
+          "cat $(location configs/vim_lua.vim) >> $@; " +
+          "else " +
+          "echo \\\" Detected Lua support: No\\\" >> $@; " +
+          "cat $(location configs/vim_base.vim) >> $@; " +
+          "fi; " +
+          "else " +
+          "echo \\\" vim not installed, using base configuration\\\" > $@; " +
+          "cat $(location configs/vim_base.vim) >> $@; " +
+          "fi; " +
+          "echo \\\" Generated at $$(date)\\\" >> $@'",
 )
 
-# Generate init.vim from template
-template_file(
-    name = "init_vim_generated",
-    template = ":init.vim.tpl",
-    vars_file = ":vim_vars.properties",
-    out = "init.vim",
-)
-
-# Create vimrc dotfile
+# Create the dotfile rule for vim
 dotfile(
-    name = "vimrc_dotfile",
-    src = ":vimrc_generated",
+    name = "vim_conf_dotfile",
+    src = ":vim_conf_generated",
     dest = "~/.vimrc",
-)
-
-# Create neovim init.vim dotfile
-dotfile(
-    name = "neovim_init_dotfile",
-    src = ":init_vim_generated",
-    dest = "~/.config/nvim/init.vim",
 )
 
 # Group all vim dotfiles
 dotfile_group(
     name = "vim_dotfiles",
     deps = [
-        ":vimrc_dotfile",
-        ":neovim_init_dotfile",
+        ":vim_conf_dotfile",
     ],
+    tags = ["vim"],
+)
+
+# Test target to show detected vim version
+genrule(
+    name = "show_vim_version",
+    srcs = [],
+    outs = ["vim_version_info.txt"],
+    cmd = """
+    if command -v vim &>/dev/null; then
+        version_output=$(vim --version 2>&1)
+        version=$(echo "$version_output" | head -1)
+        echo "Detected vim version: $version" > $@
+        
+        # Check for features
+        if echo "$version_output" | grep -q "+lua"; then
+            echo "Lua support: Yes" >> $@
+        else
+            echo "Lua support: No" >> $@
+        fi
+        
+        if echo "$version_output" | grep -q "+python"; then
+            echo "Python support: Yes" >> $@
+        else
+            echo "Python support: No" >> $@
+        fi
+    else
+        echo "vim not installed" > $@
+    fi
+    """,
+)
+
+# macOS specific configuration
+genrule(
+    name = "vim_conf_macos",
+    srcs = [
+        "configs/macos_specific.vim",
+        "//modules/vim:vimrc.template",
+    ],
+    outs = ["vim_macos.vim"],
+    cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "echo \\\" macOS-specific configuration\\\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "cat $(location configs/macos_specific.vim) >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" Generated at $$(date) for macOS\\\" >> $@'",
+)
+
+# Linux specific configuration
+genrule(
+    name = "vim_conf_linux",
+    srcs = [
+        "configs/linux_specific.vim",
+        "//modules/vim:vimrc.template",
+    ],
+    outs = ["vim_linux.vim"],
+    cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "echo \\\" Linux-specific configuration\\\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "cat $(location configs/linux_specific.vim) >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" Generated at $$(date) for Linux\\\" >> $@'",
+)
+
+# WSL specific configuration
+genrule(
+    name = "vim_conf_wsl",
+    srcs = [
+        "configs/wsl_specific.vim",
+        "//modules/vim:vimrc.template",
+    ],
+    outs = ["vim_wsl.vim"],
+    cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "echo \\\" WSL-specific configuration\\\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "cat $(location configs/wsl_specific.vim) >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" Generated at $$(date) for WSL\\\" >> $@'",
+)
+
+# Windows specific configuration
+genrule(
+    name = "vim_conf_windows",
+    srcs = [
+        "configs/windows_specific.vim",
+        "//modules/vim:vimrc.template",
+    ],
+    outs = ["vim_windows.vim"],
+    cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "echo \\\" Windows-specific configuration\\\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "cat $(location configs/windows_specific.vim) >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" Generated at $$(date) for Windows\\\" >> $@'",
+)
+
+# Generic fallback configuration
+genrule(
+    name = "vim_conf_generic",
+    srcs = [
+        "configs/generic.vim",
+        "//modules/vim:vimrc.template",
+    ],
+    outs = ["vim_generic.vim"],
+    cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "echo \\\" Generic platform configuration\\\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "cat $(location configs/generic.vim) >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" Generated at $$(date) for generic platform\\\" >> $@'",
+)
+
+# Combined vim configuration - using select() for different platforms
+alias(
+    name = "vim_conf_combined",
+    actual = select({
+        "//selectors:macos": ":vim_conf_macos",
+        "//selectors:linux": ":vim_conf_linux",
+        "//selectors:windows": ":vim_conf_windows",
+        "//selectors:wsl": ":vim_conf_wsl",
+        "//conditions:default": ":vim_conf_generic",
+    }),
+)
+
+# Create a combined vim configuration that includes feature-based configs
+genrule(
+    name = "vim_conf_unified",
+    srcs = [
+        ":vim_conf_combined",
+        ":vim_conf_generated",
+    ],
+    outs = ["vim_unified.vim"],
+    cmd = "bash -c 'echo \\\" ===================================================\\\" > $@ && " +
+          "echo \\\" Unified vim configuration with platform and feature detection\\\" >> $@ && " +
+          "echo \\\" ===================================================\\\" >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" Platform-specific configuration\\\" >> $@ && " +
+          "cat $(location :vim_conf_combined) >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" ===================================================\\\" >> $@ && " +
+          "echo \\\" Feature-specific configurations\\\" >> $@ && " +
+          "echo \\\" ===================================================\\\" >> $@ && " +
+          "echo \\\" These settings would normally be detected at runtime\\\" >> $@ && " +
+          "grep -v \"^\\\" Generated at\" $(location :vim_conf_generated) >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" Generated at $$(date)\\\" >> $@ && " +
+          "echo \\\" Platform: $$(uname -s)\\\" >> $@'",
+)
+
+# Dotfile rule for the combined configuration
+dotfile(
+    name = "vim_conf_combined_dotfile",
+    src = ":vim_conf_combined",
+    dest = "~/.vimrc.combined",
+)
+
+# Dotfile rule for the unified configuration
+dotfile(
+    name = "vim_conf_unified_dotfile",
+    src = ":vim_conf_unified",
+    dest = "~/.vimrc.unified",
+)
+
+# Work variant combined configuration
+genrule(
+    name = "vim_conf_combined_work",
+    srcs = [
+        ":vim_conf_combined",
+        "configs/work_variant.vim",
+    ],
+    outs = ["vim_combined_work.vim"],
+    cmd = "bash -c 'cat $(location :vim_conf_combined) > $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "echo \\\" Work variant specific configuration\\\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "cat $(location configs/work_variant.vim) >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" Generated for work variant at $$(date)\\\" >> $@'",
+)
+
+# Dotfile rule for work variant combined configuration
+dotfile(
+    name = "vim_conf_combined_work_dotfile",
+    src = ":vim_conf_combined_work",
+    dest = "~/.vimrc.work",
+)
+
+# Personal variant combined configuration
+genrule(
+    name = "vim_conf_combined_personal",
+    srcs = [
+        ":vim_conf_combined",
+        "configs/personal_variant.vim",
+    ],
+    outs = ["vim_combined_personal.vim"],
+    cmd = "bash -c 'cat $(location :vim_conf_combined) > $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "echo \\\" Personal variant specific configuration\\\" >> $@ && " +
+          "echo \\\" =============================================\\\" >> $@ && " +
+          "cat $(location configs/personal_variant.vim) >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \\\" Generated for personal variant at $$(date)\\\" >> $@'",
+)
+
+# Dotfile rule for personal variant combined configuration
+dotfile(
+    name = "vim_conf_combined_personal_dotfile",
+    src = ":vim_conf_combined_personal",
+    dest = "~/.vimrc.personal",
+)
+
+# Group for all combined vim configurations
+dotfile_group(
+    name = "vim_combined_dotfiles",
+    deps = [
+        ":vim_conf_combined_dotfile",
+        ":vim_conf_combined_work_dotfile",
+        ":vim_conf_combined_personal_dotfile",
+        ":vim_conf_unified_dotfile",
+    ],
+    tags = ["vim"],
+)
+
+# Create the vim toolchain instance
+vim_toolchain(
+    name = "vim_toolchain_target",
+    tags = ["vim"],
+)
+
+# Simple system integration test for vim using the vim_test rule
+vim_test(
+    name = "system_integration_test",
+    tags = ["manual"], # Don't run automatically in CI
+)
+
+# Test target to validate combined config
+genrule(
+    name = "validate_combined_config",
+    srcs = [":vim_conf_combined"],
+    outs = ["combined_config_validation.txt"],
+    cmd = "bash -c 'if command -v vim &>/dev/null; then " +
+          "TMP_CONF=$$(mktemp); " +
+          "cat $(location :vim_conf_combined) > \"$$TMP_CONF\"; " +
+          "if vim -u \"$$TMP_CONF\" -c \"quit\" > /dev/null 2>&1; then " +
+          "echo \"VALIDATION PASSED: Combined vim config is valid\" > $@; " +
+          "else " +
+          "echo \"VALIDATION FAILED: Combined vim config has errors\" > $@; " +
+          "vim -u \"$$TMP_CONF\" -c \"quit\" 2>&1 | head -10 >> $@; " +
+          "fi; " +
+          "rm -f \"$$TMP_CONF\"; " +
+          "else " +
+          "echo \"VALIDATION SKIPPED: vim not installed\" > $@; " +
+          "fi'",
+    tags = ["manual"],  # Don't run automatically in CI
+)
+
+# Target to print all available vim configurations
+genrule(
+    name = "print_all_configs",
+    srcs = [":list_configs"],
+    outs = ["_print_all_configs.sh"],
+    cmd = "echo \"#!/bin/bash\" > $@ && " +
+          "echo \"cat $(location :list_configs)\" >> $@ && " +
+          "chmod +x $@",
+    executable = True,
+)
+
+# Generate a list of all available vim configurations
+genrule(
+    name = "list_configs",
+    srcs = [
+        ":vim_conf_generated",
+        ":vim_conf_macos",
+        ":vim_conf_linux",
+        ":vim_conf_windows",
+        ":vim_conf_wsl",
+        ":vim_conf_generic",
+        ":vim_conf_unified",
+        ":vim_conf_combined_work",
+        ":vim_conf_combined_personal",
+    ],
+    outs = ["available_vim_configs.txt"],
+    cmd = "bash -c 'echo \"============================================================\" > $@ && " +
+          "echo \"Available vim configurations (generated by Bazel)\" >> $@ && " +
+          "echo \"============================================================\" >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \"Base (feature-specific) configuration:\" >> $@ && " +
+          "echo \"  $(location :vim_conf_generated)\" >> $@ && " +
+          "echo \"  Install with: bazel run //modules/vim:print_path\" >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \"Platform-specific configurations:\" >> $@ && " +
+          "echo \"  macOS: $(location :vim_conf_macos)\" >> $@ && " +
+          "echo \"  Linux: $(location :vim_conf_linux)\" >> $@ && " +
+          "echo \"  Windows: $(location :vim_conf_windows)\" >> $@ && " +
+          "echo \"  WSL: $(location :vim_conf_wsl)\" >> $@ && " +
+          "echo \"  Generic: $(location :vim_conf_generic)\" >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \"Unified configuration (platform + feature detection):\" >> $@ && " +
+          "echo \"  $(location :vim_conf_unified)\" >> $@ && " +
+          "echo \"  Install with: bazel run //modules/vim:print_unified_path\" >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \"Variant configurations:\" >> $@ && " +
+          "echo \"  Work: $(location :vim_conf_combined_work)\" >> $@ && " +
+          "echo \"  Personal: $(location :vim_conf_combined_personal)\" >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \"============================================================\" >> $@ && " +
+          "echo \"To install all vim configuration dotfiles:\" >> $@ && " +
+          "echo \"bazel run //tools/vim:vim_combined_dotfiles\" >> $@ && " +
+          "echo \"============================================================\" >> $@ && " +
+          "echo \"\" >> $@ && " +
+          "echo \"Generated: $$(date)\" >> $@'",
+    visibility = ["//visibility:public"],
 )
