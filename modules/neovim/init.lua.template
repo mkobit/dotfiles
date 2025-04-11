@@ -1,0 +1,76 @@
+-- Neovim Lua Configuration Template - %%VARIANT%%
+
+-- This is a generated template for Neovim configuration in Lua
+-- Platform Detection will be handled by the build system
+
+-- Helper function to check if a file exists
+local function file_exists(file)
+  local f = io.open(file, "r")
+  if f ~= nil then
+    io.close(f)
+    return true
+  else
+    return false
+  end
+end
+
+-- Set leader keys
+vim.g.mapleader = " "
+vim.g.maplocalleader = ","
+
+-- Basic Settings
+vim.opt.compatible = false
+vim.opt.encoding = 'utf-8'
+vim.opt.fileencoding = 'utf-8'
+vim.opt.termguicolors = true
+vim.opt.number = true
+vim.opt.relativenumber = true
+vim.opt.ignorecase = true
+vim.opt.smartcase = true
+vim.opt.mouse = 'a'
+vim.opt.clipboard = 'unnamedplus'
+vim.opt.inccommand = 'split'
+vim.opt.completeopt = 'menuone,noselect'
+
+-- Tabs and Indents
+vim.opt.expandtab = true
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.softtabstop = 4
+vim.opt.autoindent = true
+vim.opt.smartindent = true
+vim.opt.breakindent = true
+
+-- Search settings
+vim.opt.incsearch = true
+vim.opt.hlsearch = true
+
+-- Editor appearance
+vim.opt.cursorline = true
+vim.opt.signcolumn = 'yes'
+vim.opt.splitbelow = true
+vim.opt.splitright = true
+
+-- General workflows
+vim.opt.hidden = true
+vim.opt.backup = false
+vim.opt.writebackup = false
+vim.opt.updatetime = 300
+vim.opt.timeoutlen = 500
+vim.opt.scrolloff = 8
+vim.opt.sidescrolloff = 8
+
+-- Plugin Manager setup would go here
+-- (Example: Packer, vim-plug integration)
+
+-- Load local Lua customizations if they exist
+local local_lua_path = vim.fn.expand("~/.config/nvim/local.lua")
+if file_exists(local_lua_path) then
+  dofile(local_lua_path)
+end
+
+-- Load variant-specific settings (%%VARIANT%%)
+local variant_lua_path = vim.fn.expand("~/.config/nvim/%%VARIANT%%.lua")
+if file_exists(variant_lua_path) then
+  dofile(variant_lua_path)
+end

@@ -1,0 +1,245 @@
+# Neovim configuration
+# Simplified version for initial implementation
+
+load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/neovim:neovim_rules.bzl", "neovim_config", "neovim_config_generator")
+
+package(default_visibility = ["//visibility:public"])
+
+# Generate the basic neovim configuration
+genrule(
+    name = "neovim_conf_generated",
+    srcs = [
+        "configs/neovim_base.vim",
+        "configs/neovim_lua.lua",
+    ],
+    outs = ["init.vim", "init.lua"],
+    cmd = """
+        echo " Detected neovim version: Unknown (determined at runtime)" > $(location init.vim)
+        cat $(location configs/neovim_base.vim) >> $(location init.vim)
+        echo "" >> $(location init.vim)
+        echo " Generated at runtime" >> $(location init.vim)
+        
+        echo "-- Detected neovim version: Unknown (determined at runtime)" > $(location init.lua)
+        cat $(location configs/neovim_lua.lua) >> $(location init.lua)
+        echo "" >> $(location init.lua)
+        echo "-- Generated at runtime" >> $(location init.lua)
+    """,
+)
+
+# Create the dotfile rules for neovim
+dotfile(
+    name = "neovim_vim_dotfile",
+    src = ":init.vim",
+    dest = "~/.config/nvim/init.vim",
+)
+
+dotfile(
+    name = "neovim_lua_dotfile",
+    src = ":init.lua",
+    dest = "~/.config/nvim/init.lua",
+)
+
+# Group all neovim dotfiles
+dotfile_group(
+    name = "neovim_dotfiles",
+    deps = [
+        ":neovim_vim_dotfile",
+        ":neovim_lua_dotfile",
+    ],
+    tags = ["neovim"],
+)
+
+# Basic Neovim configuration using rule-based approach
+neovim_config(
+    name = "base_config",
+    settings = {
+        "termguicolors": "true",
+        "number": "true",
+        "relativenumber": "true",
+        "expandtab": "true",
+        "shiftwidth": "2",
+        "tabstop": "2",
+        "autoindent": "true",
+        "smartindent": "true",
+        "mouse": "a",
+        "clipboard": "unnamedplus",
+        "lua_laststatus": "3",  # Global statusline (Lua setting)
+    },
+    mappings = {
+        "<leader>ff": ":Telescope find_files<CR>",
+        "<leader>fg": ":Telescope live_grep<CR>",
+        "<leader>fb": ":Telescope buffers<CR>",
+    },
+    lua_config = [
+        "-- Plugin Manager Configuration",
+        "local lazypath = vim.fn.stdpath('data') .. '/lazy/lazy.nvim'",
+        "if not vim.loop.fs_stat(lazypath) then",
+        "  vim.fn.system({",
+        "    'git',",
+        "    'clone',",
+        "    '--filter=blob:none',",
+        "    'https://github.com/folke/lazy.nvim.git',",
+        "    '--branch=stable',",
+        "    lazypath,",
+        "  })",
+        "end",
+        "vim.opt.rtp:prepend(lazypath)",
+        "",
+        "-- Configure plugins",
+        "require('lazy').setup({",
+        "  -- List plugins here",
+        "  'nvim-lua/plenary.nvim',",
+        "  {'nvim-telescope/telescope.nvim', tag = '0.1.4'},",
+        "  {'nvim-treesitter/nvim-treesitter', build = ':TSUpdate'},",
+        "  {'neovim/nvim-lspconfig'},",
+        "  {'hrsh7th/nvim-cmp'},",
+        "  {'hrsh7th/cmp-nvim-lsp'},",
+        "  {'L3MON4D3/LuaSnip'},",
+        "  {'folke/tokyonight.nvim', config = function() vim.cmd.colorscheme('tokyonight-night') end}",
+        "})",
+    ],
+)
+
+# Generate configurations from rules
+neovim_config_generator(
+    name = "rule_based_config", 
+    config = ":base_config",
+    # Output to different filenames to avoid conflicts
+    outs = ["rule_based.vim", "rule_based.lua"],  
+)
+
+# Platform-specific configurations
+genrule(
+    name = "neovim_conf_macos",
+    srcs = [
+        "configs/macos_specific.vim",
+        "configs/macos_specific.lua",
+        "//modules/neovim:init_vim_conf",
+    ],
+    outs = ["neovim_macos.vim", "neovim_macos.lua"],
+    cmd = """
+        cat $(location //modules/neovim:init_vim_conf) > $(location neovim_macos.vim)
+        echo "" >> $(location neovim_macos.vim)
+        echo " ==============================================" >> $(location neovim_macos.vim)
+        echo " macOS-specific configuration" >> $(location neovim_macos.vim)
+        echo " ==============================================" >> $(location neovim_macos.vim)
+        cat $(location configs/macos_specific.vim) >> $(location neovim_macos.vim)
+        echo "" >> $(location neovim_macos.vim)
+        echo " Generated for macOS" >> $(location neovim_macos.vim)
+        
+        echo "-- ============================================" > $(location neovim_macos.lua)
+        echo "-- macOS-specific Lua configuration" >> $(location neovim_macos.lua)
+        echo "-- ============================================" >> $(location neovim_macos.lua)
+        cat $(location configs/macos_specific.lua) >> $(location neovim_macos.lua)
+        echo "" >> $(location neovim_macos.lua)
+        echo "-- Generated for macOS" >> $(location neovim_macos.lua)
+    """,
+)
+
+# Linux specific configuration
+genrule(
+    name = "neovim_conf_linux",
+    srcs = [
+        "configs/linux_specific.vim",
+        "configs/linux_specific.lua",
+        "//modules/neovim:init_vim_conf",
+    ],
+    outs = ["neovim_linux.vim", "neovim_linux.lua"],
+    cmd = """
+        cat $(location //modules/neovim:init_vim_conf) > $(location neovim_linux.vim)
+        echo "" >> $(location neovim_linux.vim)
+        echo " ==============================================" >> $(location neovim_linux.vim)
+        echo " Linux-specific configuration" >> $(location neovim_linux.vim)
+        echo " ==============================================" >> $(location neovim_linux.vim)
+        cat $(location configs/linux_specific.vim) >> $(location neovim_linux.vim)
+        echo "" >> $(location neovim_linux.vim)
+        echo " Generated for Linux" >> $(location neovim_linux.vim)
+        
+        echo "-- ============================================" > $(location neovim_linux.lua)
+        echo "-- Linux-specific Lua configuration" >> $(location neovim_linux.lua)
+        echo "-- ============================================" >> $(location neovim_linux.lua)
+        cat $(location configs/linux_specific.lua) >> $(location neovim_linux.lua)
+        echo "" >> $(location neovim_linux.lua)
+        echo "-- Generated for Linux" >> $(location neovim_linux.lua)
+    """,
+)
+
+# Combined neovim configuration - using select() for different platforms
+alias(
+    name = "neovim_conf_combined",
+    actual = select({
+        "//selectors:macos": ":neovim_conf_macos",
+        "//selectors:linux": ":neovim_conf_linux",
+        "//conditions:default": ":neovim_conf_macos",  # Default to macOS for now
+    }),
+)
+
+# Create a simplified unified neovim configuration
+genrule(
+    name = "neovim_conf_unified",
+    srcs = [
+        ":init.vim",
+        ":init.lua",
+    ],
+    outs = ["neovim_unified.vim", "neovim_unified.lua"],
+    cmd = """
+        echo " ===================================================" > $(location neovim_unified.vim)
+        echo " Unified Neovim configuration with platform and feature detection" >> $(location neovim_unified.vim)
+        echo " ===================================================" >> $(location neovim_unified.vim)
+        echo "" >> $(location neovim_unified.vim)
+        echo " Platform-specific configuration will be loaded at runtime" >> $(location neovim_unified.vim)
+        echo "" >> $(location neovim_unified.vim)
+        echo " ===================================================" >> $(location neovim_unified.vim)
+        echo " Base configuration" >> $(location neovim_unified.vim)
+        echo " ===================================================" >> $(location neovim_unified.vim)
+        cat $(location init.vim) >> $(location neovim_unified.vim)
+        echo "" >> $(location neovim_unified.vim)
+        echo " Generated by Bazel" >> $(location neovim_unified.vim)
+        
+        echo "-- ===================================================" > $(location neovim_unified.lua)
+        echo "-- Unified Neovim Lua configuration" >> $(location neovim_unified.lua)
+        echo "-- ===================================================" >> $(location neovim_unified.lua)
+        echo "" >> $(location neovim_unified.lua)
+        echo "-- ===================================================" >> $(location neovim_unified.lua)
+        echo "-- Base Lua Configuration" >> $(location neovim_unified.lua)
+        echo "-- ===================================================" >> $(location neovim_unified.lua)
+        cat $(location init.lua) >> $(location neovim_unified.lua)
+        echo "" >> $(location neovim_unified.lua)
+        echo "-- Generated by Bazel" >> $(location neovim_unified.lua)
+    """,
+)
+
+# Create dotfile rules for the unified configuration
+dotfile(
+    name = "neovim_vim_unified_dotfile",
+    src = ":neovim_unified.vim",
+    dest = "~/.config/nvim/init.vim",
+)
+
+dotfile(
+    name = "neovim_lua_unified_dotfile",
+    src = ":neovim_unified.lua",
+    dest = "~/.config/nvim/init.lua",
+)
+
+# Group for all unified neovim configurations
+dotfile_group(
+    name = "neovim_unified_dotfiles",
+    deps = [
+        ":neovim_vim_unified_dotfile",
+        ":neovim_lua_unified_dotfile",
+    ],
+    tags = ["neovim"],
+)
+
+# Test target to show detected neovim version (simplified for Bazel)
+genrule(
+    name = "show_neovim_version",
+    srcs = [],
+    outs = ["neovim_version_info.txt"],
+    cmd = """
+        echo "Neovim version info will be detected at runtime" > $@
+        echo "This is a placeholder file generated by Bazel" >> $@
+    """,
+)

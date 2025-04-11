@@ -1,0 +1,97 @@
+= Neovim Configuration Module
+:toc: left
+:icons: font
+
+== Overview
+
+The Neovim module provides a comprehensive configuration system for Neovim, supporting both VimL (init.vim) and Lua (init.lua) configurations. This module is designed to work alongside or replace the traditional Vim configuration, offering modern features and better performance.
+
+== Configuration Structure
+
+The Neovim configuration is structured in layers:
+
+1. *Base Configuration*: Common settings shared across all platforms
+2. *Platform-Specific Configuration*: Settings optimized for macOS, Linux, Windows, and WSL
+3. *Variant-Specific Configuration*: Settings for different usage scenarios (work, personal)
+4. *Local Customizations*: User-specific settings that aren't tracked in version control
+
+== Usage
+
+=== Basic Configuration
+
+To use the basic Neovim configuration:
+
+[source,bash]
+----
+# Build the configuration
+bazel build //modules/neovim:neovim
+
+# Print installation instructions
+bazel run //modules/neovim:print_vim_path
+bazel run //modules/neovim:print_lua_path
+----
+
+=== Platform-Specific Configuration
+
+The platform-specific configuration is automatically selected based on your build platform:
+
+[source,bash]
+----
+# Build the combined configuration
+bazel build //modules/neovim:combined_neovim
+
+# Print installation instructions
+bazel run //modules/neovim:print_combined_path
+----
+
+=== Variant-Specific Configuration
+
+For work or personal variants:
+
+[source,bash]
+----
+# For work variant
+bazel build //modules/neovim:work_neovim
+
+# For personal variant
+bazel build //modules/neovim:personal_neovim
+----
+
+== Features
+
+* Dual configuration with both VimL (init.vim) and Lua (init.lua) support
+* Modular configuration structure
+* Platform detection and optimization
+* Variant support for different usage scenarios
+* Local customization support
+
+== Implementation Details
+
+The Neovim module uses the following components:
+
+* `neovim_config`: Rule for defining nested and inheritable Neovim configurations
+* `neovim_config_generator`: Rule for generating init.vim and init.lua files from configurations
+* Template files for consistent configuration structure
+
+== Integration with VIM
+
+The Neovim configuration is designed to work alongside the existing Vim configuration. 
+While both modules can be used independently, they share similar configuration patterns and can be synchronized if needed.
+
+== Directory Structure
+
+....
+modules/neovim/
+├── BUILD.bazel           # Build targets and rules
+├── README.adoc           # This documentation file
+├── init.lua.template     # Template for init.lua
+├── init.vim.template     # Template for init.vim
+└── neovim_rules.bzl      # Bazel rules for Neovim configuration
+....
+
+== Customization
+
+To add custom configurations:
+
+1. Create a local.vim or local.lua file in your ~/.config/nvim directory
+2. For variant-specific settings, create work.vim/work.lua or personal.vim/personal.lua files

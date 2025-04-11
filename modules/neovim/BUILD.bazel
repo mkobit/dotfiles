@@ -1,0 +1,80 @@
+# Neovim module
+# Provides rule definitions and targets for neovim configuration
+
+load("//modules/rules:dotfile.bzl", "dotfile")
+load(":neovim_rules.bzl", "neovim_config", "neovim_config_generator")
+
+package(default_visibility = ["//visibility:public"])
+
+# Base configuration
+neovim_config(
+    name = "base_config",
+    settings = {
+        "termguicolors": "true",
+        "number": "true",
+        "relativenumber": "true",
+        "expandtab": "true", 
+        "shiftwidth": "2",
+        "tabstop": "2",
+    },
+    lua_config = [
+        "vim.opt.termguicolors = true",
+        "vim.opt.number = true",
+    ],
+)
+
+# Initial vim configuration
+neovim_config_generator(
+    name = "neovim",
+    config = ":base_config",
+)
+
+# VimL path info for installation
+genrule(
+    name = "print_vim_path",
+    srcs = [":init.vim"],
+    outs = ["neovim_vim_path.txt"],
+    cmd = """
+    echo "To use this neovim configuration, add the following line to your ~/.config/nvim/init.vim:" > $@
+    echo "" >> $@
+    echo "source $(pwd)/bazel-out/$(COMPILATION_MODE)/bin/modules/neovim/init.vim" >> $@
+    echo "" >> $@
+    echo "Or run this command:" >> $@
+    echo "mkdir -p ~/.config/nvim && ln -sf $(pwd)/bazel-out/$(COMPILATION_MODE)/bin/modules/neovim/init.vim ~/.config/nvim/init.vim" >> $@
+    """,
+)
+
+# Lua path info for installation
+genrule(
+    name = "print_lua_path",
+    srcs = [":init.lua"],
+    outs = ["neovim_lua_path.txt"],
+    cmd = """
+    echo "To use this neovim Lua configuration, add the following to your ~/.config/nvim/init.lua:" > $@
+    echo "" >> $@
+    echo "dofile('$(pwd)/bazel-out/$(COMPILATION_MODE)/bin/modules/neovim/init.lua')" >> $@
+    echo "" >> $@
+    echo "Or run this command:" >> $@
+    echo "mkdir -p ~/.config/nvim && ln -sf $(pwd)/bazel-out/$(COMPILATION_MODE)/bin/modules/neovim/init.lua ~/.config/nvim/init.lua" >> $@
+    """,
+)
+
+genrule(
+    name = "init_vim_conf",
+    srcs = [],
+    outs = ["default.vim"],
+    cmd = """
+    echo '"' > $@
+    echo '" Default Neovim configuration' >> $@
+    echo '"' >> $@
+    echo '' >> $@
+    echo 'set nocompatible' >> $@
+    echo 'set encoding=utf-8' >> $@
+    echo 'set fileencoding=utf-8' >> $@
+    echo '' >> $@
+    echo 'set number' >> $@
+    echo 'set relativenumber' >> $@
+    echo '' >> $@
+    echo 'syntax on' >> $@
+    """,
+)
