@@ -1,0 +1,140 @@
+= Package Management Module
+:toc: left
+:icons: font
+
+This module provides Bazel rules for managing package installations across different platforms.
+
+== Overview
+
+The package management module provides a way to define and install sets of packages using various package managers like Homebrew (brew), apt, and others.
+
+== Rules and Providers
+
+=== PackageInfo Provider
+
+The `PackageInfo` provider encapsulates information about packages to be installed:
+
+* `packages`: List of packages to install
+* `casks`: List of casks to install (for brew)
+* `taps`: List of taps to add (for brew)
+* `manager`: Package manager to use (brew, apt, etc.)
+* `options`: Additional options for package installation
+
+=== package_config Rule
+
+The `package_config` rule creates a configuration for package installation.
+
+[source,python]
+----
+package_config(
+    name = "macos_dev_packages",
+    manager = "brew",
+    packages = ["git", "curl", "wget"],
+    casks = ["visual-studio-code", "iterm2"],
+    taps = ["homebrew/cask-fonts"],
+)
+----
+
+=== generate_package_manifest Rule
+
+The `generate_package_manifest` rule generates an executable script for installing packages based on a package configuration.
+
+[source,python]
+----
+generate_package_manifest(
+    name = "install_macos_dev",
+    config = ":macos_dev_packages",
+)
+----
+
+=== print_package_paths Rule
+
+The `print_package_paths` rule creates an executable that prints the paths to the package manifest script.
+
+[source,python]
+----
+print_package_paths(
+    name = "print_macos_dev_paths",
+    manifest = ":install_macos_dev",
+)
+----
+
+== Usage Examples
+
+=== Creating a Package Configuration
+
+[source,python]
+----
+load("//modules/package:package_rules.bzl", "package_config")
+
+package_config(
+    name = "my_packages",
+    manager = "brew",
+    packages = [
+        "git",
+        "curl",
+        "wget",
+        "tmux",
+    ],
+    casks = [
+        "visual-studio-code",
+        "iterm2",
+    ],
+    taps = [
+        "homebrew/cask-fonts",
+    ],
+)
+----
+
+=== Generating an Installation Script
+
+[source,python]
+----
+load("//modules/package:package_rules.bzl", "generate_package_manifest")
+
+generate_package_manifest(
+    name = "install",
+    config = ":my_packages",
+)
+----
+
+=== Running the Installation
+
+[source,bash]
+----
+bazel run //path/to:install
+----
+
+== Platform-Specific Configurations
+
+The module supports platform-specific package configurations through the selectors system.
+
+== Integration with Variants
+
+Package configurations can be included in variant targets to create different environments:
+
+[source,python]
+----
+load("//modules/package:package_rules.bzl", "package_config", "generate_package_manifest")
+load("//platforms/macos:package.bzl", "MACOS_DEV_PACKAGES", "MACOS_DEV_CASKS")
+
+package_config(
+    name = "variant_packages",
+    manager = "brew",
+    packages = MACOS_DEV_PACKAGES,
+    casks = MACOS_DEV_CASKS,
+)
+
+generate_package_manifest(
+    name = "install",
+    config = ":variant_packages",
+)
+----
+
+== Extending
+
+To add support for new package managers:
+
+1. Add a new package manager type in the `generate_package_manifest` rule
+2. Implement the package manager-specific generation logic
+3. Update the selectors/package.bzl file

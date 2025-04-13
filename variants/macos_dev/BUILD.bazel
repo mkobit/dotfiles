@@ -1,0 +1,27 @@
+"""macOS development environment variant."""
+
+load("//modules/package:package_rules.bzl", "generate_package_manifest", "package_config", "print_package_paths")
+load("//platforms/macos:package.bzl", "MACOS_DEV_PACKAGES", "MACOS_DEV_CASKS", "MACOS_DEFAULT_TAPS")
+
+package(default_visibility = ["//visibility:public"])
+
+# macOS development environment package configuration
+package_config(
+    name = "packages",
+    manager = "brew",
+    packages = MACOS_DEV_PACKAGES,
+    casks = MACOS_DEV_CASKS,
+    taps = MACOS_DEFAULT_TAPS,
+)
+
+# Generate installation script
+generate_package_manifest(
+    name = "install",
+    config = ":packages",
+)
+
+# Print paths target
+print_package_paths(
+    name = "print_paths",
+    manifest = ":install",
+)

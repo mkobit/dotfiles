@@ -12,6 +12,7 @@ This repository contains a Bazel-based system for managing dotfiles across diffe
 * `variants/`: Contains BUILD files defining targets for different usage scenarios (work_laptop, personal_desktop, etc.)
 * `tools/`: Contains subdirectories for specific tools (git, tmux, neovim, etc.) each with their own BUILD file and templates
 * `bin/`: Contains helper scripts used by Starlark rules for complex operations
+* `selectors/`: Contains selection logic for platform-specific configuration
 
 == Usage
 
@@ -41,6 +42,36 @@ bazel run //:all_dotfiles
 [source,bash]
 ----
 bazel run //:print_paths
+----
+
+=== Managing packages
+
+==== Installing macOS development packages
+
+[source,bash]
+----
+bazel run //tools/package:install_macos_dev
+----
+
+==== Installing comprehensive macOS development packages
+
+[source,bash]
+----
+bazel run //tools/package:install_macos_power_dev
+----
+
+==== Installing minimal package set
+
+[source,bash]
+----
+bazel run //tools/package:install_macos_minimal
+----
+
+==== Using a variant-specific package configuration
+
+[source,bash]
+----
+bazel run //variants/macos_dev:install
 ----
 
 == Development
