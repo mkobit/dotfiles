@@ -1,0 +1,11 @@
+load("@rules_cc//cc:defs.bzl", "cc_library")
+
+package(default_visibility = ["//visibility:public"])
+
+exports_files(glob(["**/*.bzl"]))
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)

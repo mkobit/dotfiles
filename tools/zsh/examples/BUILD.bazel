@@ -1,0 +1,44 @@
+load("//modules/zsh:zsh.bzl", "zsh_config", "zsh_merge", "zsh_extension")
+load(":git_extension.bzl", "git_zsh_extension")
+
+package(default_visibility = ["//visibility:public"])
+
+# Example Git extension
+git_zsh_extension()
+
+# Example of using extensions with base config
+zsh_config(
+    name = "example_base_config",
+    plugins = ["history", "completion"],
+    options = {
+        "autocd": "on",
+        "extendedglob": "on",
+    },
+    env_vars = {
+        "EDITOR": "vim",
+    },
+)
+
+# Merge base config with Git extension
+zsh_merge(
+    name = "example_merged_config",
+    configs = [
+        ":example_base_config",
+        ":git_zsh_ext",
+    ],
+)
+
+# Print paths target for the example
+genrule(
+    name = "print_example_paths",
+    srcs = [
+        ":example_merged_config.zshrc",
+        ":example_merged_config.zshenv",
+    ],
+    outs = ["example_paths.txt"],
+    cmd = """
+echo "Example ZSH configuration files:" > $@
+echo "Merged .zshrc: $(location :example_merged_config.zshrc)" >> $@
+echo "Merged .zshenv: $(location :example_merged_config.zshenv)" >> $@
+""",
+)

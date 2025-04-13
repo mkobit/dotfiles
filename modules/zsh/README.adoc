@@ -1,0 +1,159 @@
+= ZSH Module
+:toc:
+
+== Purpose
+
+The ZSH module provides rules and providers for configuring ZSH shell environments using Bazel.
+
+== Rules
+
+=== zsh_config
+
+The `zsh_config` rule defines ZSH configuration settings including plugins, themes, aliases, functions, and environment variables.
+
+.Attributes
+* `plugins`: List of zsh plugins to include
+* `themes`: List of zsh themes to include
+* `options`: Dictionary of zsh options with values 'on'/'off' or 'true'/'false'
+* `aliases`: Dictionary of zsh aliases
+* `functions`: Dictionary of zsh functions, mapping function name to function body
+* `env_vars`: Dictionary of environment variables
+* `completion_settings`: Dictionary of completion settings
+* `extensions`: List of extension points from other modules
+
+The rule produces .zshrc and .zshenv files that can be used directly.
+
+=== zsh_merge
+
+The `zsh_merge` rule combines multiple zsh_config targets into a single configuration.
+
+.Attributes
+* `configs`: List of zsh_config targets to merge
+
+=== zsh_extension
+
+The `zsh_extension` rule allows other modules to provide ZSH configurations.
+
+.Attributes
+* `type`: Type of extension (e.g., 'git', 'tmux', 'vim')
+* `source`: Source module providing the extension
+* `aliases`: Dictionary of zsh aliases provided by this extension
+* `functions`: Dictionary of zsh functions provided by this extension
+* `env_vars`: Dictionary of environment variables provided by this extension
+
+== Example
+
+[source,python]
+----
+load("//modules/zsh:zsh.bzl", "zsh_config", "zsh_merge", "zsh_extension")
+
+# Base configuration
+zsh_config(
+    name = "base_config",
+    plugins = ["git", "history", "completion"],
+    themes = ["robbyrussell"],
+    options = {
+        "autocd": "on",
+        "histignorespace": "on",
+    },
+    aliases = {
+        "ll": "ls -la",
+        "gs": "git status",
+    },
+    env_vars = {
+        "EDITOR": "vim",
+    },
+)
+
+# Platform-specific configuration
+zsh_config(
+    name = "linux_config",
+    aliases = {
+        "open": "xdg-open",
+    },
+)
+
+# Extension from another module
+zsh_extension(
+    name = "git_extension",
+    type = "git",
+    source = "//modules/git",
+    aliases = {
+        "gs": "git status",
+        "ga": "git add",
+    },
+)
+
+# Merge configurations
+zsh_merge(
+    name = "merged_config",
+    configs = [
+        ":base_config",
+        ":linux_config",
+        ":git_extension",
+    ],
+)
+----
+
+== Integration
+
+=== Cross-Module Integration
+
+The ZSH module can be integrated with other modules using the `zsh_extension` rule:
+
+[source,python]
+----
+# In //modules/git:git.bzl
+def git_zsh_extension():
+    """Creates a ZSH extension for Git functionality."""
+    zsh_extension(
+        name = "git_zsh",
+        type = "git",
+        source = "//modules/git",
+        aliases = {
+            "g": "git",
+            "ga": "git add",
+            "gc": "git commit -v",
+        },
+        functions = {
+            "git_current_branch": "git branch --show-current 2>/dev/null",
+        },
+    )
+----
+
+=== Platform-Specific Configuration
+
+Use Bazel's `select()` to handle platform-specific configurations:
+
+[source,python]
+----
+zsh_config(
+    name = "platform_config",
+    aliases = select({
+        "//selectors:is_linux": {
+            "open": "xdg-open",
+        },
+        "//selectors:is_macos": {
+            "showFiles": "defaults write com.apple.finder AppleShowAllFiles YES",
+        },
+        "//conditions:default": {},
+    }),
+)
+----
+
+== Providers
+
+=== ZshConfigInfo
+
+The `ZshConfigInfo` provider carries ZSH configuration information between rules.
+
+.Fields
+* `config_files`: Dictionary of zsh configuration files
+* `plugins`: List of zsh plugins to include
+* `themes`: List of zsh themes to include
+* `options`: Dictionary of zsh options
+* `aliases`: Dictionary of zsh aliases
+* `functions`: Dictionary of zsh functions
+* `env_vars`: Dictionary of environment variables
+* `completion_settings`: Dictionary of completion settings
+* `extensions`: List of extension points from other modules
