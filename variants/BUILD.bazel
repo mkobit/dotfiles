@@ -11,6 +11,21 @@ filegroup(
 filegroup(
     name = "work_laptop",
     srcs = select({
+        "//selectors:macos_has_vscode": [
+            ":base",
+            "//tools/tmux:tmux_conf_combined_work",
+            "//tools/vscode:vscode_platform_settings",
+        ],
+        "//selectors:linux_has_vscode": [
+            ":base",
+            "//tools/tmux:tmux_conf_combined_work",
+            "//tools/vscode:vscode_platform_settings",
+        ],
+        "//selectors:windows_has_vscode": [
+            ":base",
+            "//tools/tmux:tmux_conf_combined_work",
+            "//tools/vscode:vscode_platform_settings",
+        ],
         "//selectors:macos": [
             ":base",
             "//tools/tmux:tmux_conf_combined_work",
@@ -32,6 +47,21 @@ filegroup(
 filegroup(
     name = "personal_desktop",
     srcs = select({
+        "//selectors:macos_has_vscode": [
+            ":base",
+            "//tools/tmux:tmux_conf_combined_personal",
+            "//tools/vscode:vscode_platform_settings",
+        ],
+        "//selectors:linux_has_vscode": [
+            ":base",
+            "//tools/tmux:tmux_conf_combined_personal",
+            "//tools/vscode:vscode_platform_settings",
+        ],
+        "//selectors:windows_has_vscode": [
+            ":base",
+            "//tools/tmux:tmux_conf_combined_personal",
+            "//tools/vscode:vscode_platform_settings",
+        ],
         "//selectors:macos": [
             ":base",
             "//tools/tmux:tmux_conf_combined_personal",
