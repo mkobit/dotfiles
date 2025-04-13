@@ -1,0 +1,30 @@
+load("//modules/hammerspoon:hammerspoon_rules.bzl", "hammerspoon_config", "hammerspoon_install")
+
+package(default_visibility = ["//visibility:public"])
+
+# Base Hammerspoon configuration
+hammerspoon_config(
+    name = "base_config",
+    init_lua = "init.lua.tpl",
+    srcs = glob([
+        "configs/**/*.lua",
+    ]),
+    modules = glob([
+        "modules/**/*.lua",
+    ]),
+)
+
+# Installation target
+hammerspoon_install(
+    name = "install",
+    config = ":base_config",
+)
+
+# Print paths target
+genrule(
+    name = "print_paths",
+    srcs = [],
+    outs = ["print_paths.out"],
+    cmd = "echo 'Hammerspoon config will be installed to: $$HOME/.hammerspoon' > $@",
+    executable = True,
+)

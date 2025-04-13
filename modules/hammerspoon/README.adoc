@@ -1,0 +1,64 @@
+= Hammerspoon Module
+
+This module provides rules for managing Hammerspoon configuration files.
+
+== Rules
+
+The module provides the following rules:
+
+=== hammerspoon_config
+
+A rule for defining a Hammerspoon configuration.
+
+Attributes:
+* `init_lua`: Main init.lua file for Hammerspoon (required)
+* `srcs`: Configuration files for Hammerspoon
+* `modules`: Lua modules for Hammerspoon
+
+=== hammerspoon_install
+
+A rule for installing Hammerspoon configuration.
+
+Attributes:
+* `config`: The Hammerspoon configuration to install (required)
+* `install_dir`: Directory where to install the Hammerspoon configuration (defaults to `$HOME/.hammerspoon`)
+
+== Examples
+
+[source,python]
+----
+load("//modules/hammerspoon:hammerspoon_rules.bzl", "hammerspoon_config", "hammerspoon_install")
+
+hammerspoon_config(
+    name = "base_config",
+    init_lua = "init.lua",
+    srcs = [
+        "config.lua",
+    ],
+    modules = [
+        "modules/window.lua",
+        "modules/hotkeys.lua",
+    ],
+)
+
+hammerspoon_install(
+    name = "install",
+    config = ":base_config",
+)
+----
+
+== Usage
+
+To install Hammerspoon configuration:
+
+[source,shell]
+----
+bazel run //path/to:install
+----
+
+To see where files will be installed:
+
+[source,shell]
+----
+bazel run //path/to:install_print_paths
+----
