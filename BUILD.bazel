@@ -17,3 +17,14 @@ toolchain_type(
     name = "brew_toolchain_type",
     visibility = ["//visibility:public"],
 )
+
+# Alias for buildtools targets
+alias(
+    name = "buildifier",
+    actual = "//tools/buildtools:buildifier",
+)
+
+alias(
+    name = "unused_deps",
+    actual = "//tools/buildtools:unused_deps",
+)

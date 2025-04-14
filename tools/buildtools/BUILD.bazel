@@ -1,0 +1,39 @@
+"""
+Implementation for buildtools in the dotfiles repository.
+"""
+
+package(default_visibility = ["//visibility:public"])
+
+# Target for running buildifier directly from Bazel
+alias(
+    name = "buildifier",
+    actual = "@buildtools//buildifier",
+)
+
+# Target for running unused_deps directly from Bazel
+alias(
+    name = "unused_deps",
+    actual = "@buildtools//unused_deps",
+)
+
+# Target to print out paths to the buildtools
+genrule(
+    name = "print_paths",
+    srcs = [],
+    outs = ["buildtools_paths.txt"],
+    cmd = """
+        echo "Buildtools paths:" > $@
+        echo "  buildifier: $(location @buildtools//buildifier)" >> $@
+        echo "  unused_deps: $(location @buildtools//unused_deps)" >> $@
+    """,
+    tools = [
+        "@buildtools//buildifier",
+        "@buildtools//unused_deps",
+    ],
+)
+
+filegroup(
+    name = "all_files",
+    srcs = glob(["**/*"]),
+    visibility = ["//visibility:public"],
+)
