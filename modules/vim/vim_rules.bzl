@@ -14,7 +14,10 @@ VimConfigInfo = provider(
 )
 
 def _normalize_bool_setting(value):
-    """Normalize boolean settings to Vim syntax."""
+    """Normalize boolean settings to Vim syntax.
+    
+    Converts Python boolean values to Vim's 'set' and 'set no' syntax.
+    """
     if value == True:
         return "set"
     elif value == False:
@@ -46,14 +49,12 @@ def _vim_config_impl(ctx):
             inherited_platform_settings[platform].extend(settings_list)
 
         # Merge raw statements
-        if hasattr(include_info, "raw_statements") and include_info.raw_statements:
-            inherited_raw_statements.extend(include_info.raw_statements)
+        inherited_raw_statements.extend(include_info.raw_statements or [])
 
         # Merge mappings
-        if hasattr(include_info, "mappings") and include_info.mappings:
-            for key, mapping in include_info.mappings.items():
-                if key not in inherited_mappings:
-                    inherited_mappings[key] = mapping
+        for key, mapping in (include_info.mappings or {}).items():
+            if key not in inherited_mappings:
+                inherited_mappings[key] = mapping
 
     # Create a dictionary to hold our configuration, starting with inherited values
     settings = dict(inherited_settings)
@@ -79,9 +80,10 @@ def _vim_config_impl(ctx):
     for key, mapping in ctx.attr.mappings.items():
         mappings[key] = mapping
 
-    # Create the provider
+    # Create the provider - ensure all fields are properly initialized with defaults
     config = VimConfigInfo(
         settings = settings,
+        plugins = [],  # Not used but included in provider definition
         includes = ctx.attr.includes,
         platform_specific = platform_settings,
         raw_statements = raw_statements,
@@ -165,14 +167,14 @@ def _vim_config_generator_impl(ctx):
             content.append(setting)
 
     # Add mappings
-    if hasattr(config_info, "mappings") and config_info.mappings:
+    if config_info.mappings:
         content.append("")
         content.append('" Key Mappings')
         for key, mapping in config_info.mappings.items():
             content.append("map {} {}".format(key, mapping))
 
     # Add raw statements
-    if hasattr(config_info, "raw_statements") and config_info.raw_statements:
+    if config_info.raw_statements:
         content.append("")
         content.append('" Custom Configurations')
         for stmt in config_info.raw_statements:

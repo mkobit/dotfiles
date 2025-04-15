@@ -1,5 +1,10 @@
-# Vim configuration
-# Uses static files for different platforms and detects vim features
+# Vim configuration 
+#
+# This BUILD file defines targets for:
+# 1. Feature-based vim configurations (detecting Lua support, etc.)
+# 2. Platform-specific configurations (macOS, Linux, Windows, WSL)
+# 3. Combined and unified configurations for different usage variants
+# 4. Validation and installation targets
 
 load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
 load("//modules/toolchains:vim_toolchain.bzl", "vim_test", "vim_toolchain")
@@ -14,25 +19,33 @@ genrule(
         "configs/vim_lua.vim",
     ],
     outs = ["vimrc"],
-    cmd = "bash -c 'if command -v vim &>/dev/null; then " +
-          "version_output=$$(vim --version 2>&1); " +
-          "version=$$(echo \"$$version_output\" | head -1 | sed \"s/.*VIM - Vi IMproved //;s/ .*//\"); " +
-          "echo \\\" Detected vim version: $$version\\\" > $@; " +
-          "if echo \"$$version_output\" | grep -q \"+lua\"; then " +
-          "echo \\\" Detected Lua support: Yes\\\" >> $@; " +
-          "cat $(location configs/vim_base.vim) >> $@; " +
-          "echo \"\" >> $@; " +
-          "echo \\\" === Lua-specific settings ===\\\" >> $@; " +
-          "cat $(location configs/vim_lua.vim) >> $@; " +
-          "else " +
-          "echo \\\" Detected Lua support: No\\\" >> $@; " +
-          "cat $(location configs/vim_base.vim) >> $@; " +
-          "fi; " +
-          "else " +
-          "echo \\\" vim not installed, using base configuration\\\" > $@; " +
-          "cat $(location configs/vim_base.vim) >> $@; " +
-          "fi; " +
-          "echo \\\" Generated at $$(date)\\\" >> $@'",
+    cmd = """
+        echo '" Generated Vim configuration - DO NOT EDIT' > $@
+        echo '" Generated at $(date)' >> $@
+        echo '' >> $@
+
+        # Add base configuration
+        cat $(location configs/vim_base.vim) >> $@
+        
+        # Check for Lua support if vim is available
+        if command -v vim &>/dev/null; then
+            version_output=$(vim --version 2>&1)
+            version=$(echo "$$version_output" | head -1 | sed "s/.*VIM - Vi IMproved //;s/ .*//")
+            echo "" >> $@
+            echo '" Detected vim version: '$$version >> $@
+            
+            if echo "$$version_output" | grep -q "+lua"; then
+                echo '" Lua support: Yes' >> $@
+                echo "" >> $@
+                echo '" === Lua-specific settings ===' >> $@
+                cat $(location configs/vim_lua.vim) >> $@
+            else
+                echo '" Lua support: No' >> $@
+            fi
+        else
+            echo '" vim not installed, using base configuration only' >> $@
+        fi
+    """,
 )
 
 # Create the dotfile rule for vim
@@ -80,95 +93,41 @@ genrule(
     """,
 )
 
-# macOS specific configuration
-genrule(
-    name = "vim_conf_macos",
-    srcs = [
-        "configs/macos_specific.vim",
-        "//modules/vim:vimrc.template",
-    ],
-    outs = ["vim_macos.vim"],
-    cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
-          "echo \"\" >> $@ && " +
-          "echo \\\" =============================================\\\" >> $@ && " +
-          "echo \\\" macOS-specific configuration\\\" >> $@ && " +
-          "echo \\\" =============================================\\\" >> $@ && " +
-          "cat $(location configs/macos_specific.vim) >> $@ && " +
-          "echo \"\" >> $@ && " +
-          "echo \\\" Generated at $$(date) for macOS\\\" >> $@'",
-)
+# Platform-specific configurations using a single rule definition
+load("//modules/vim:vim_rules.bzl", "vim_config", "vim_config_generator")
 
-# Linux specific configuration
-genrule(
-    name = "vim_conf_linux",
-    srcs = [
-        "configs/linux_specific.vim",
-        "//modules/vim:vimrc.template",
-    ],
-    outs = ["vim_linux.vim"],
-    cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
-          "echo \"\" >> $@ && " +
-          "echo \\\" =============================================\\\" >> $@ && " +
-          "echo \\\" Linux-specific configuration\\\" >> $@ && " +
-          "echo \\\" =============================================\\\" >> $@ && " +
-          "cat $(location configs/linux_specific.vim) >> $@ && " +
-          "echo \"\" >> $@ && " +
-          "echo \\\" Generated at $$(date) for Linux\\\" >> $@'",
-)
+# Define a macro to create platform-specific vim configs to reduce duplication
+def _platform_specific_vim_config(name, platform, config_file):
+    """Generate platform-specific vim configuration.
+    
+    Args:
+        name: Target name
+        platform: Platform identifier (macos, linux, wsl, etc)
+        config_file: Path to platform-specific vim config
+    """
+    native.genrule(
+        name = name,
+        srcs = [
+            config_file,
+            "//modules/vim:vimrc.template",
+        ],
+        outs = [name + ".vim"],
+        cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
+              "echo \"\" >> $@ && " +
+              "echo \\\" =============================================\\\" >> $@ && " +
+              "echo \\\" " + platform.capitalize() + "-specific configuration\\\" >> $@ && " +
+              "echo \\\" =============================================\\\" >> $@ && " +
+              "cat $(location " + config_file + ") >> $@ && " +
+              "echo \"\" >> $@ && " +
+              "echo \\\" Generated at $$(date) for " + platform.capitalize() + "\\\" >> $@'",
+    )
 
-# WSL specific configuration
-genrule(
-    name = "vim_conf_wsl",
-    srcs = [
-        "configs/wsl_specific.vim",
-        "//modules/vim:vimrc.template",
-    ],
-    outs = ["vim_wsl.vim"],
-    cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
-          "echo \"\" >> $@ && " +
-          "echo \\\" =============================================\\\" >> $@ && " +
-          "echo \\\" WSL-specific configuration\\\" >> $@ && " +
-          "echo \\\" =============================================\\\" >> $@ && " +
-          "cat $(location configs/wsl_specific.vim) >> $@ && " +
-          "echo \"\" >> $@ && " +
-          "echo \\\" Generated at $$(date) for WSL\\\" >> $@'",
-)
-
-# Windows specific configuration
-genrule(
-    name = "vim_conf_windows",
-    srcs = [
-        "configs/windows_specific.vim",
-        "//modules/vim:vimrc.template",
-    ],
-    outs = ["vim_windows.vim"],
-    cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
-          "echo \"\" >> $@ && " +
-          "echo \\\" =============================================\\\" >> $@ && " +
-          "echo \\\" Windows-specific configuration\\\" >> $@ && " +
-          "echo \\\" =============================================\\\" >> $@ && " +
-          "cat $(location configs/windows_specific.vim) >> $@ && " +
-          "echo \"\" >> $@ && " +
-          "echo \\\" Generated at $$(date) for Windows\\\" >> $@'",
-)
-
-# Generic fallback configuration
-genrule(
-    name = "vim_conf_generic",
-    srcs = [
-        "configs/generic.vim",
-        "//modules/vim:vimrc.template",
-    ],
-    outs = ["vim_generic.vim"],
-    cmd = "bash -c 'cat $(location //modules/vim:vimrc.template) > $@ && " +
-          "echo \"\" >> $@ && " +
-          "echo \\\" =============================================\\\" >> $@ && " +
-          "echo \\\" Generic platform configuration\\\" >> $@ && " +
-          "echo \\\" =============================================\\\" >> $@ && " +
-          "cat $(location configs/generic.vim) >> $@ && " +
-          "echo \"\" >> $@ && " +
-          "echo \\\" Generated at $$(date) for generic platform\\\" >> $@'",
-)
+# Platform-specific configurations
+_platform_specific_vim_config("vim_conf_macos", "macOS", "configs/macos_specific.vim")
+_platform_specific_vim_config("vim_conf_linux", "Linux", "configs/linux_specific.vim")
+_platform_specific_vim_config("vim_conf_wsl", "WSL", "configs/wsl_specific.vim")
+_platform_specific_vim_config("vim_conf_windows", "Windows", "configs/windows_specific.vim")
+_platform_specific_vim_config("vim_conf_generic", "generic platform", "configs/generic.vim")
 
 # Combined vim configuration - using select() for different platforms
 alias(
@@ -295,25 +254,15 @@ vim_test(
     tags = ["manual"], # Don't run automatically in CI
 )
 
+# Load the vim validation rule
+load("//modules/vim:validation.bzl", "vim_validate")
+
 # Test target to validate combined config
-genrule(
+vim_validate(
     name = "validate_combined_config",
-    srcs = [":vim_conf_combined"],
-    outs = ["combined_config_validation.txt"],
-    cmd = "bash -c 'if command -v vim &>/dev/null; then " +
-          "TMP_CONF=$$(mktemp); " +
-          "cat $(location :vim_conf_combined) > \"$$TMP_CONF\"; " +
-          "if vim -u \"$$TMP_CONF\" -c \"quit\" > /dev/null 2>&1; then " +
-          "echo \"VALIDATION PASSED: Combined vim config is valid\" > $@; " +
-          "else " +
-          "echo \"VALIDATION FAILED: Combined vim config has errors\" > $@; " +
-          "vim -u \"$$TMP_CONF\" -c \"quit\" 2>&1 | head -10 >> $@; " +
-          "fi; " +
-          "rm -f \"$$TMP_CONF\"; " +
-          "else " +
-          "echo \"VALIDATION SKIPPED: vim not installed\" > $@; " +
-          "fi'",
+    config = ":vim_conf_combined",
     tags = ["manual"],  # Don't run automatically in CI
+)
 )
 
 # Target to print all available vim configurations
