@@ -1,0 +1,25 @@
+load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+
+package(default_visibility = ["//visibility:public"])
+
+# Define directory creation script
+sh_binary(
+    name = "create_bat_dir",
+    srcs = ["create_bat_dir.sh"],
+)
+
+# Create bat config dotfile
+dotfile(
+    name = "bat_config_dotfile",
+    src = "//modules/bat:batconfig",
+    dest = "~/.config/bat/config",
+    deps = [":create_bat_dir"],
+)
+
+# Group all bat dotfiles
+dotfile_group(
+    name = "bat_dotfiles",
+    deps = [
+        ":bat_config_dotfile",
+    ],
+)

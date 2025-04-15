@@ -1,0 +1,68 @@
+load("//modules/iterm2:iterm2_rules.bzl", "iterm2_config", "iterm2_config_generator")
+
+package(default_visibility = ["//visibility:public"])
+
+iterm2_config(
+    name = "base_config",
+    settings = {
+        "PrefsCustomFolder": "~/.iterm2",
+        "LoadPrefsFromCustomFolder": "true",
+    },
+)
+
+# Platform-specific configurations
+iterm2_config(
+    name = "macos_config",
+    includes = [":base_config"],
+    platform_settings = {},
+)
+
+iterm2_config(
+    name = "personal_config",
+    includes = [":base_config"],
+    variant_settings = {},
+)
+
+iterm2_config(
+    name = "work_config",
+    includes = [":base_config"],
+    variant_settings = {},
+)
+
+# Generate base config for current platform
+iterm2_config_generator(
+    name = "iterm2config",
+    config = select({
+        "@platforms//os:macos": ":macos_config",
+        "//conditions:default": ":base_config",
+    }),
+)
+
+# Generate variant-specific configs
+iterm2_config_generator(
+    name = "personal_iterm2config",
+    config = ":personal_config",
+    variant = "personal",
+)
+
+iterm2_config_generator(
+    name = "work_iterm2config",
+    config = ":work_config",
+    variant = "work",
+)
+
+filegroup(
+    name = "all_configs",
+    srcs = [
+        ":iterm2config",
+        ":personal_iterm2config",
+        ":work_iterm2config",
+    ],
+)
+
+filegroup(
+    name = "iterm2_all",
+    srcs = [
+        ":all_configs",
+    ],
+)

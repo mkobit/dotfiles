@@ -1,0 +1,18 @@
+load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+
+package(default_visibility = ["//visibility:public"])
+
+# Create nvm config dotfile
+dotfile(
+    name = "nvm_config_dotfile",
+    src = "//modules/nvm:nvmconfig",
+    dest = "~/.nvm/nvm.sh",
+)
+
+# Group all nvm dotfiles
+dotfile_group(
+    name = "nvm_dotfiles",
+    deps = [
+        ":nvm_config_dotfile",
+    ],
+)

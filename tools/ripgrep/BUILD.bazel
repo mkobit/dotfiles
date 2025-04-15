@@ -1,0 +1,30 @@
+load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+
+package(default_visibility = ["//visibility:public"])
+
+# Define directory creation script
+sh_binary(
+    name = "create_ripgrep_dir",
+    srcs = ["create_ripgrep_dir.sh"],
+)
+
+# Create ripgrep config dotfile
+dotfile(
+    name = "ripgrep_config_dotfile",
+    src = "//modules/ripgrep:ripgrepconfig",
+    dest = "~/.ripgreprc",
+)
+
+# Group all ripgrep dotfiles
+dotfile_group(
+    name = "ripgrep_dotfiles",
+    deps = [
+        ":ripgrep_config_dotfile",
+    ],
+)
+
+# Create shell config to set RIPGREP_CONFIG_PATH
+sh_binary(
+    name = "ripgrep_env_setup",
+    srcs = ["ripgrep_env_setup.sh"],
+)

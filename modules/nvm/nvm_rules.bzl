@@ -1,0 +1,233 @@
+"""Rules for generating nvm configuration files."""
+
+# Define the NvmConfigInfo provider
+NvmConfigInfo = provider(
+    doc = "Information about nvm configuration",
+    fields = {
+        "settings": "Dictionary of nvm settings",
+        "includes": "List of other nvm configs to include",
+        "platform_specific": "Platform-specific settings",
+        "variant_settings": "Variant-specific settings (work, personal, etc.)",
+    },
+)
+
+def _nvm_config_impl(ctx):
+    """Implementation of nvm_config rule."""
+
+    # Process includes first to set up inheritance
+    inherited_settings = {}
+    inherited_platform_settings = {}
+    inherited_variant_settings = {}
+
+    # Process includes (nested configs) and inherit their values
+    for include in ctx.attr.includes:
+        include_info = include[NvmConfigInfo]
+
+        # Merge settings
+        for key, value in include_info.settings.items():
+            inherited_settings[key] = value
+
+        # Merge platform-specific settings
+        for platform, platform_settings in include_info.platform_specific.items():
+            if platform not in inherited_platform_settings:
+                inherited_platform_settings[platform] = {}
+            for key, value in platform_settings.items():
+                inherited_platform_settings[platform][key] = value
+
+        # Merge variant settings
+        for variant, variant_settings in include_info.variant_settings.items():
+            if variant not in inherited_variant_settings:
+                inherited_variant_settings[variant] = {}
+            for key, value in variant_settings.items():
+                inherited_variant_settings[variant][key] = value
+
+    # Create dictionaries to hold our configuration
+    settings = dict(inherited_settings)
+    platform_settings = dict(inherited_platform_settings)
+    variant_settings = dict(inherited_variant_settings)
+
+    # Add settings from the rule attributes
+    for key, value in ctx.attr.settings.items():
+        settings[key] = value
+
+    # Parse and add platform-specific settings
+    for flat_key, value in ctx.attr.platform_settings.items():
+        parts = flat_key.split(".", 1)
+        if len(parts) != 2:
+            fail("Platform settings key must be in 'platform.key' format: {}".format(flat_key))
+            
+        platform, key = parts
+        if platform not in platform_settings:
+            platform_settings[platform] = {}
+        platform_settings[platform][key] = value
+
+    # Parse and add variant settings
+    for flat_key, value in ctx.attr.variant_settings.items():
+        parts = flat_key.split(".", 1)
+        if len(parts) != 2:
+            fail("Variant settings key must be in 'variant.key' format: {}".format(flat_key))
+            
+        variant, key = parts
+        if variant not in variant_settings:
+            variant_settings[variant] = {}
+        variant_settings[variant][key] = value
+
+    # Create the provider
+    config = NvmConfigInfo(
+        settings = settings,
+        includes = ctx.attr.includes,
+        platform_specific = platform_settings,
+        variant_settings = variant_settings,
+    )
+
+    return [config]
+
+nvm_config = rule(
+    implementation = _nvm_config_impl,
+    attrs = {
+        "settings": attr.string_dict(
+            doc = "Dictionary of nvm settings",
+            default = {},
+        ),
+        "includes": attr.label_list(
+            doc = "Other nvm_config targets to include",
+            default = [],
+            providers = [NvmConfigInfo],
+        ),
+        "platform_settings": attr.string_dict(
+            doc = "Platform-specific settings (flat format: 'platform.key'='value')",
+            default = {},
+        ),
+        "variant_settings": attr.string_dict(
+            doc = "Variant-specific settings (flat format: 'variant.key'='value')",
+            default = {},
+        ),
+    },
+)
+
+def _get_platform_string(ctx):
+    """Determine the current platform."""
+    if ctx.target_platform_has_constraint(ctx.attr._windows_constraint[platform_common.ConstraintValueInfo]):
+        return "windows"
+    elif ctx.target_platform_has_constraint(ctx.attr._macos_constraint[platform_common.ConstraintValueInfo]):
+        return "macos"
+    else:
+        return "linux"
+
+def _nvm_config_generator_impl(ctx):
+    """Implementation for nvm_config_generator rule that generates configuration files."""
+
+    # Get the NvmConfigInfo provider from the config target
+    config_info = ctx.attr.config[NvmConfigInfo]
+
+    # Determine the platform
+    platform = _get_platform_string(ctx)
+
+    # Determine the variant (default to "base" if not specified)
+    variant = ctx.attr.variant if ctx.attr.variant else "base"
+
+    # Prepare the output file
+    output = ctx.actions.declare_file(ctx.attr.name + ".sh")
+    content = []
+
+    # Generate file header
+    content.append("#!/bin/bash")
+    content.append("# Generated nvm config file - DO NOT EDIT")
+    content.append("# Generated by Bazel from {}".format(ctx.label))
+    content.append("# Platform: {}".format(platform))
+    content.append("# Variant: {}".format(variant))
+    content.append("")
+
+    # Add NVM_DIR export
+    content.append("export NVM_DIR=\"$HOME/.nvm\"")
+    content.append("[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\"  # This loads nvm")
+    content.append("[ -s \"$NVM_DIR/bash_completion\" ] && \\. \"$NVM_DIR/bash_completion\"  # This loads nvm bash_completion")
+    content.append("")
+
+    # Process base settings
+    content.append("# Base settings")
+    for key, value in config_info.settings.items():
+        if key == "default_version":
+            content.append("# Default Node.js version")
+            content.append("nvm use {} --silent || nvm install {}".format(value, value))
+        elif key == "auto_use":
+            if value.lower() == "true":
+                content.append("# Auto-use .nvmrc if present")
+                content.append('find_up() {')
+                content.append('  path=$(pwd)')
+                content.append('  while [[ "$path" != "" && ! -e "$path/$1" ]]; do')
+                content.append('    path=${path%/*}')
+                content.append('  done')
+                content.append('  echo "$path"')
+                content.append('}')
+                content.append('')
+                content.append('cdnvm() {')
+                content.append('  cd "$@" || return $?')
+                content.append('  nvm_path="$(find_up .nvmrc | tr -d \'\\n\')"')
+                content.append('  if [[ -e "${nvm_path}/.nvmrc" ]]; then')
+                content.append('    node_version=$(nvm version)')
+                content.append('    nvmrc_node_version=$(nvm version "$(cat "${nvm_path}/.nvmrc")")')
+                content.append('    if [ "$nvmrc_node_version" = "N/A" ]; then')
+                content.append('      nvm install')
+                content.append('    elif [ "$nvmrc_node_version" != "$node_version" ]; then')
+                content.append('      nvm use')
+                content.append('    fi')
+                content.append('  fi')
+                content.append('}')
+                content.append('alias cd=cdnvm')
+                content.append('cd "$PWD"')
+        else:
+            content.append("export NVM_{}={}".format(key.upper(), value))
+    content.append("")
+
+    # Add platform-specific settings
+    if platform in config_info.platform_specific:
+        platform_dict = config_info.platform_specific[platform]
+        content.append("# Platform-specific settings for {}".format(platform))
+        for key, value in platform_dict.items():
+            content.append("export NVM_{}={}".format(key.upper(), value))
+        content.append("")
+
+    # Add variant-specific settings
+    if variant in config_info.variant_settings:
+        variant_dict = config_info.variant_settings[variant]
+        content.append("# Variant-specific settings for {}".format(variant))
+        for key, value in variant_dict.items():
+            content.append("export NVM_{}={}".format(key.upper(), value))
+        content.append("")
+
+    # Write the file
+    ctx.actions.write(
+        output = output,
+        content = "\n".join(content),
+    )
+
+    # Create a runfiles provider
+    runfiles = ctx.runfiles(files = [output])
+
+    return [DefaultInfo(files = depset([output]), runfiles = runfiles)]
+
+nvm_config_generator = rule(
+    implementation = _nvm_config_generator_impl,
+    attrs = {
+        "config": attr.label(
+            doc = "The nvm_config target to use",
+            mandatory = True,
+            providers = [NvmConfigInfo],
+        ),
+        "variant": attr.string(
+            doc = "The configuration variant to use (work, personal, etc.)",
+            default = "",
+        ),
+        # Platform constraints
+        "_windows_constraint": attr.label(
+            default = "@platforms//os:windows",
+        ),
+        "_macos_constraint": attr.label(
+            default = "@platforms//os:macos",
+        ),
+        "_linux_constraint": attr.label(
+            default = "@platforms//os:linux",
+        ),
+    },
+)

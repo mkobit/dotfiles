@@ -28,3 +28,44 @@ alias(
     name = "unused_deps",
     actual = "//tools/buildtools:unused_deps",
 )
+
+# Alias for newly added tools
+alias(
+    name = "iterm2",
+    actual = "//tools/iterm2:iterm2_dotfiles",
+)
+
+alias(
+    name = "docker",
+    actual = "//tools/docker:docker_dotfiles",
+)
+
+alias(
+    name = "pyenv",
+    actual = "//tools/pyenv:pyenv_dotfiles",
+)
+
+alias(
+    name = "nvm",
+    actual = "//tools/nvm:nvm_dotfiles",
+)
+
+alias(
+    name = "fzf",
+    actual = "//tools/fzf:fzf_dotfiles",
+)
+
+alias(
+    name = "rectangle",
+    actual = "//tools/rectangle:rectangle_dotfiles",
+)
+
+alias(
+    name = "bat",
+    actual = "//tools/bat:bat_dotfiles",
+)
+
+alias(
+    name = "ripgrep",
+    actual = "//tools/ripgrep:ripgrep_dotfiles",
+)
