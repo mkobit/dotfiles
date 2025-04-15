@@ -1,0 +1,14 @@
+load("//modules/ssh:ssh_config_test.bzl", "ssh_config_test_suite")
+
+package(default_visibility = ["//visibility:public"])
+
+# Load and run the test suite
+ssh_config_test_suite()
+
+# Test target that runs all tests
+test_suite(
+    name = "all_tests",
+    tests = [
+        ":ssh_config_generation_test",
+    ],
+)

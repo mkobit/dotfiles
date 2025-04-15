@@ -1,0 +1,40 @@
+# Example of a complex GitHub configuration
+# This demonstrates how to use different SSH keys for different GitHub repositories
+
+# Default GitHub setting
+Host github.com
+    User git
+    IdentityFile ~/.ssh/id_github_default
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+
+# Organization-specific GitHub setting
+Host github.com-org1
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_github_org1
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+
+# Project-specific GitHub setting
+Host github.com-project1
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/id_github_project1
+    PreferredAuthentications publickey
+    IdentitiesOnly yes
+
+# To use these configurations:
+#
+# For default GitHub:
+#   git clone git@github.com:username/repo.git
+#
+# For organization-specific:
+#   git clone git@github.com-org1:organization/repo.git
+#
+# For project-specific:
+#   git clone git@github.com-project1:username/special-project.git
+#
+# Make sure to configure your repositories accordingly:
+#
+# git config core.sshCommand "ssh -F ~/.ssh/config.github"

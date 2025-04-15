@@ -1,0 +1,85 @@
+# SSH configuration
+
+load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+
+package(default_visibility = ["//visibility:public"])
+
+# Main SSH config dotfile
+dotfile(
+    name = "ssh_config_dotfile",
+    src = "//modules/ssh:ssh_config",
+    dest = "~/.ssh/config",
+)
+
+# Personal SSH config variant
+dotfile(
+    name = "personal_ssh_config_dotfile",
+    src = "//modules/ssh:personal_ssh_config",
+    dest = "~/.ssh/config.personal",
+)
+
+# Work SSH config variant
+dotfile(
+    name = "work_ssh_config_dotfile",
+    src = "//modules/ssh:work_ssh_config",
+    dest = "~/.ssh/config.work",
+)
+
+# Repository-specific SSH configs
+dotfile(
+    name = "github_ssh_config_dotfile",
+    src = "//modules/ssh:github_ssh_config",
+    dest = "~/.ssh/config.github",
+)
+
+dotfile(
+    name = "gitlab_ssh_config_dotfile",
+    src = "//modules/ssh:gitlab_ssh_config",
+    dest = "~/.ssh/config.gitlab",
+)
+
+# Complex GitHub configuration with multiple repository keys
+dotfile(
+    name = "complex_github_ssh_config_dotfile",
+    src = "//modules/ssh:complex_github_ssh_config",
+    dest = "~/.ssh/config.github_complex",
+)
+
+# Group all SSH dotfiles
+dotfile_group(
+    name = "ssh_dotfiles",
+    deps = [
+        ":ssh_config_dotfile",
+        ":personal_ssh_config_dotfile",
+        ":work_ssh_config_dotfile",
+        ":github_ssh_config_dotfile",
+        ":gitlab_ssh_config_dotfile",
+        ":complex_github_ssh_config_dotfile",
+    ],
+)
+
+# Print paths target for debugging
+genrule(
+    name = "print_paths",
+    srcs = [
+        "//modules/ssh:ssh_config",
+        "//modules/ssh:personal_ssh_config",
+        "//modules/ssh:work_ssh_config",
+        "//modules/ssh:github_ssh_config",
+        "//modules/ssh:gitlab_ssh_config",
+    ],
+    outs = ["ssh_print_paths.sh"],
+    cmd = """
+echo '#!/bin/bash' > $@
+echo 'echo "SSH config paths:"' >> $@
+echo 'echo "  Main SSH config:        ~/.ssh/config"' >> $@
+echo 'echo "  Personal SSH config:    ~/.ssh/config.personal"' >> $@
+echo 'echo "  Work SSH config:        ~/.ssh/config.work"' >> $@
+echo 'echo "  GitHub-specific config: ~/.ssh/config.github"' >> $@
+echo 'echo "  GitLab-specific config: ~/.ssh/config.gitlab"' >> $@
+echo 'echo "  Complex GitHub config:  ~/.ssh/config.github_complex"' >> $@
+echo 'echo "To use a specific config, run: ssh -F ~/.ssh/config.[variant] [host]"' >> $@
+chmod +x $@
+""",
+    executable = True,
+)
