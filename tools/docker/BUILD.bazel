@@ -2,18 +2,11 @@ load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
 
 package(default_visibility = ["//visibility:public"])
 
-# Define directory creation script
-sh_binary(
-    name = "create_docker_dir",
-    srcs = ["create_docker_dir.sh"],
-)
-
 # Create docker config dotfile
 dotfile(
     name = "docker_config_dotfile",
     src = "//modules/docker:dockerconfig",
     dest = "~/.docker/config.json",
-    deps = [":create_docker_dir"],
 )
 
 # Group all docker dotfiles

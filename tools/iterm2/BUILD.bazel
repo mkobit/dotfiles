@@ -3,18 +3,11 @@ load("//modules/rules:template.bzl", "template_file")
 
 package(default_visibility = ["//visibility:public"])
 
-# Create iterm2 preferences directory
-sh_binary(
-    name = "create_prefs_dir",
-    srcs = ["create_prefs_dir.sh"],
-)
-
 # Create iterm2 config dotfile
 dotfile(
     name = "iterm2_config_dotfile",
     src = "//modules/iterm2:iterm2config",
     dest = "~/.iterm2/com.googlecode.iterm2.plist",
-    deps = [":create_prefs_dir"],
 )
 
 # Group all iterm2 dotfiles
