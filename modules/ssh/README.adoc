@@ -6,55 +6,71 @@
 
 == Overview
 
-The SSH module provides a Bazel-based system for generating and managing SSH configuration files. It allows creating different SSH configurations for work, personal, and repository-specific contexts, all managed through Bazel's build system.
+The SSH module provides a Bazel-based system for generating SSH configuration files. It allows creating different SSH configurations for work, personal, and repository-specific contexts, all managed through Bazel's build system.
 
 == Features
 
 * Platform-aware SSH configurations (Linux, macOS, Windows)
 * Context-specific variants (personal, work)
 * Repository-specific configurations (GitHub, GitLab, etc.)
-* Integration with existing SSH keys and configurations
-* No modification of existing SSH key permissions or files
+* No installation to home directory, purely generates configuration files
 * Designed to work alongside standard SSH tools
 
 == Usage
 
-=== Basic Usage
+=== Building Configurations
 
-To install the base SSH configuration:
-
-[source,bash]
-----
-bazel run //tools/ssh:ssh_config_dotfile
-----
-
-=== Installing Variant Configurations
-
-To install specific variant configurations:
+To generate all SSH configurations:
 
 [source,bash]
 ----
+bazel build //tools/ssh:ssh_configs
+----
+
+Individual configs can be built with:
+
+[source,bash]
+----
+# Main configuration
+bazel build //modules/ssh:ssh_config
+
 # Personal configuration
-bazel run //tools/ssh:personal_ssh_config_dotfile
+bazel build //modules/ssh:personal_ssh_config
 
 # Work configuration
-bazel run //tools/ssh:work_ssh_config_dotfile
+bazel build //modules/ssh:work_ssh_config
+
+# GitHub-specific configuration
+bazel build //modules/ssh:github_ssh_config
+----
+
+=== Using Generated Configurations
+
+To use a generated configuration directly with SSH:
+
+[source,bash]
+----
+# Using main config
+ssh -F $(bazel info bazel-bin)/modules/ssh/ssh_config.ssh_config example.com
+
+# Using personal config
+ssh -F $(bazel info bazel-bin)/modules/ssh/personal_ssh_config.ssh_config personal-server.example.com
+
+# Using work config
+ssh -F $(bazel info bazel-bin)/modules/ssh/work_ssh_config.ssh_config work-server.example.com
 ----
 
 === Repository-specific Configurations
 
-To install configurations for specific repositories:
+For repository-specific configurations:
 
 [source,bash]
 ----
-# GitHub-specific configuration
-bazel run //tools/ssh:github_ssh_config_dotfile
+# Clone using GitHub-specific config
+git -c core.sshCommand="ssh -F $(bazel info bazel-bin)/modules/ssh/github_ssh_config.ssh_config" clone git@github.com:username/repo.git
 
-# GitLab-specific configuration
-bazel run //tools/ssh:gitlab_ssh_config_dotfile
-
-# Complex GitHub configuration with multiple repository keys
-bazel run //tools/ssh:complex_github_ssh_config_dotfile
+# Clone using GitLab-specific config
+git -c core.sshCommand="ssh -F $(bazel info bazel-bin)/modules/ssh/gitlab_ssh_config.ssh_config" clone git@gitlab.com:username/repo.git
 ----
 
 ==== Using Different GitHub Keys for Different Repositories
@@ -64,31 +80,33 @@ The complex GitHub configuration allows you to use different SSH keys for differ
 [source,bash]
 ----
 # Clone a repository using the default GitHub key
-git clone git@github.com:username/repo.git
+git -c core.sshCommand="ssh -F $(bazel info bazel-bin)/modules/ssh/complex_github_ssh_config.ssh_config" \
+  clone git@github.com:username/repo.git
 
 # Clone a repository using the organization-specific key
-git clone git@github.com-org1:organization/repo.git
+git -c core.sshCommand="ssh -F $(bazel info bazel-bin)/modules/ssh/complex_github_ssh_config.ssh_config" \
+  clone git@github.com-org1:organization/repo.git
 
 # Clone a repository using the project-specific key
-git clone git@github.com-project1:username/special-project.git
+git -c core.sshCommand="ssh -F $(bazel info bazel-bin)/modules/ssh/complex_github_ssh_config.ssh_config" \
+  clone git@github.com-project1:username/special-project.git
 ----
 
-Configure a repository to use the complex GitHub configuration:
+Configure a repository to always use the complex GitHub configuration:
 
 [source,bash]
 ----
 cd /path/to/repo
-git config core.sshCommand "ssh -F ~/.ssh/config.github_complex"
+git config core.sshCommand "ssh -F $(bazel info bazel-bin)/modules/ssh/complex_github_ssh_config.ssh_config"
 ----
 
-=== Using Variant Configurations
+=== Printing Generated Configuration Paths
 
-To use a specific configuration:
+To see the paths of all generated configurations:
 
 [source,bash]
 ----
-ssh -F ~/.ssh/config.personal example.com
-ssh -F ~/.ssh/config.work work-server.example.com
+bazel run //tools/ssh:print_paths
 ----
 
 == Configuration Structure
@@ -124,7 +142,21 @@ To create a new variant:
 
 1. Define a new variant config in `modules/ssh/BUILD.bazel`
 2. Create a generator for the variant
-3. Add a dotfile target in `tools/ssh/BUILD.bazel`
+3. Add it to the filegroup in `tools/ssh/BUILD.bazel`
+
+== Manual Installation (Optional)
+
+If you wish to manually install the generated configurations:
+
+[source,bash]
+----
+# Copy main configuration
+mkdir -p ~/.ssh
+cp $(bazel info bazel-bin)/modules/ssh/ssh_config.ssh_config ~/.ssh/config
+
+# Copy specialized configurations
+cp $(bazel info bazel-bin)/modules/ssh/github_ssh_config.ssh_config ~/.ssh/config.github
+----
 
 == Integration
 

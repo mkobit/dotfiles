@@ -1,5 +1,4 @@
 # SSH Config Template
-# This template will be populated with values from the build
 
 # Global Options
 Host *
@@ -11,8 +10,8 @@ Host *
     UseKeychain yes
 {{/use_keychain}}
 
-# Include local configuration
-Include {{local_config_path}}
+# Note: This is a generated file, do not edit
+# Generated config paths will be absolute, so they can be used from any location
 
 # Host-specific configurations will be inserted here
 {{host_configurations}}

@@ -202,6 +202,9 @@ def _ssh_config_generator_impl(ctx):
     content.append("# Platform: {}".format(platform))
     if variant != "base":
         content.append("# Variant: {}".format(variant))
+    content.append("# ")
+    content.append("# This is a generated file, not automatically installed")
+    content.append("# To use this config: ssh -F /path/to/this/file hostname")
     content.append("")
 
     # Process global options
@@ -225,10 +228,9 @@ def _ssh_config_generator_impl(ctx):
             content.append("{} {}".format(key, value))
         content.append("")
 
-    # Include hint for local config
-    content.append("# You can add your local configurations in ~/.ssh/config.local")
-    content.append("# This file will be included if it exists")
-    content.append("Include ~/.ssh/config.local")
+    # Note on local configurations
+    content.append("# Note: When using with local configs, you can use:")
+    content.append("# Include /path/to/your/local/config")
     content.append("")
 
     # Process host configurations
