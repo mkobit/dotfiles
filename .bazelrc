@@ -1,5 +1,4 @@
 common --enable_bzlmod
 
-# Set UTF-8 as the default encoding
 startup --host_jvm_args="-Dfile.encoding=UTF-8"
 build --javacopt="-encoding UTF-8"

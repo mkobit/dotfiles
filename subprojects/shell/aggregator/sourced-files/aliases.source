@@ -1,2 +1,0 @@
-alias mirror="wget --mirror -k --reject --page-requisites '*.pdf,*.zip,*.gz' --header='Accept-Language:en-US,en;'"
-alias dc="docker-compose"
