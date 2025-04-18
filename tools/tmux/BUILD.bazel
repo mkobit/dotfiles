@@ -55,11 +55,12 @@ echo "# Generated at $$(date)" >> $@
     """,
 )
 
-# Create the dotfile rule for tmux
+# Create the dotfile rule for tmux - source-based approach
 dotfile(
     name = "tmux_conf_dotfile",
     src = ":tmux_conf_generated",
     dest = "~/.tmux.conf",
+    source_only = True,
 )
 
 # Group all tmux dotfiles
@@ -234,6 +235,7 @@ dotfile(
     name = "tmux_conf_combined_dotfile",
     src = ":tmux_conf_combined",
     dest = "~/.tmux.conf.combined",
+    source_only = True,
 )
 
 # Dotfile rule for the unified configuration
@@ -241,6 +243,7 @@ dotfile(
     name = "tmux_conf_unified_dotfile",
     src = ":tmux_conf_unified",
     dest = "~/.tmux.conf.unified",
+    source_only = True,
 )
 
 # Work variant combined configuration
@@ -270,6 +273,7 @@ dotfile(
     name = "tmux_conf_combined_work_dotfile",
     src = ":tmux_conf_combined_work",
     dest = "~/.tmux.conf.work",
+    source_only = True,
 )
 
 # Personal variant combined configuration
@@ -299,6 +303,7 @@ dotfile(
     name = "tmux_conf_combined_personal_dotfile",
     src = ":tmux_conf_combined_personal",
     dest = "~/.tmux.conf.personal",
+    source_only = True,
 )
 
 # Group for all combined tmux configurations
@@ -311,6 +316,54 @@ dotfile_group(
         ":tmux_conf_unified_dotfile",
     ],
     tags = ["tmux", "no-windows"],  # Add tags to skip on Windows
+)
+
+# Documentation for the source-based approach
+filegroup(
+    name = "docs",
+    srcs = ["docs/source_based_approach.adoc"],
+    visibility = ["//visibility:public"],
+)
+
+# Convenience target for installing the main tmux configuration
+genrule(
+    name = "install_tmux_info",
+    srcs = [":list_configs", ":docs"],
+    outs = ["install_tmux_info.txt"],
+    cmd = """
+echo "=========================================================" > $@
+echo "   Tmux Configuration Installation Options" >> $@
+echo "=========================================================" >> $@
+echo "" >> $@
+echo "To install the standard tmux configuration:" >> $@
+echo "  bazel run //tools/tmux:tmux_conf_dotfile" >> $@
+echo "" >> $@
+echo "To install the platform-specific configuration:" >> $@
+echo "  bazel run //tools/tmux:tmux_conf_combined_dotfile" >> $@
+echo "" >> $@
+echo "To install the unified configuration (platform + version):" >> $@
+echo "  bazel run //tools/tmux:tmux_conf_unified_dotfile" >> $@
+echo "" >> $@
+echo "For variant-specific configurations:" >> $@
+echo "  Work: bazel run //tools/tmux:tmux_conf_combined_work_dotfile" >> $@
+echo "  Personal: bazel run //tools/tmux:tmux_conf_combined_personal_dotfile" >> $@
+echo "" >> $@
+echo "To install all available configurations:" >> $@
+echo "  bazel run //tools/tmux:tmux_combined_dotfiles" >> $@
+echo "" >> $@
+echo "All configurations are installed using the source-file method," >> $@
+echo "creating a minimal .tmux.conf that references the Bazel-generated config." >> $@
+echo "This allows you to add local customizations while keeping them separate" >> $@
+echo "from the managed configurations." >> $@
+echo "" >> $@
+echo "For more details on available configurations:" >> $@
+echo "  bazel run //tools/tmux:print_all_configs" >> $@
+echo "" >> $@
+echo "Documentation on the source-based approach:" >> $@
+echo "  $(location :docs)" >> $@
+echo "=========================================================" >> $@
+    """,
+    executable = True,
 )
 
 # Create the tmux toolchain instance
@@ -392,7 +445,7 @@ echo "" >> $@
 # Show install paths for each configuration
 echo "Base (version-specific) configuration:" >> $@
 echo "  $(location :tmux_conf_generated)" >> $@
-echo "  Install with: bazel run //modules/tmux:print_path" >> $@
+echo "  Install with: bazel run //tools/tmux:tmux_conf_dotfile" >> $@
 echo "" >> $@
 
 echo "Platform-specific configurations:" >> $@
@@ -401,11 +454,12 @@ echo "  Linux: $(location :tmux_conf_linux)" >> $@
 echo "  Windows: $(location :tmux_conf_windows)" >> $@
 echo "  WSL: $(location :tmux_conf_wsl)" >> $@
 echo "  Generic: $(location :tmux_conf_generic)" >> $@
+echo "  Install with: bazel run //tools/tmux:tmux_conf_combined_dotfile" >> $@
 echo "" >> $@
 
 echo "Unified configuration (platform + version detection):" >> $@
 echo "  $(location :tmux_conf_unified)" >> $@
-echo "  Install with: bazel run //modules/tmux:print_unified_path" >> $@
+echo "  Install with: bazel run //tools/tmux:tmux_conf_unified_dotfile" >> $@
 echo "" >> $@
 
 echo "Variant configurations:" >> $@

@@ -84,12 +84,12 @@ genrule(
     name = "print_path",
     srcs = [":tmux_conf"],
     outs = ["tmux_path.txt"],
-    cmd = "echo 'To use this tmux configuration, add the following line to your ~/.tmux.conf:' > $@ && " +
+    cmd = "echo 'To use this tmux configuration, run:' > $@ && " +
           "echo '' >> $@ && " +
-          "echo 'source-file '$(location :tmux_conf) >> $@ && " +
+          "echo 'bazel run //tools/tmux:tmux_conf_dotfile' >> $@ && " +
           "echo '' >> $@ && " +
-          "echo 'Or run this command:' >> $@ && " +
-          "echo 'echo \"source-file '$(location :tmux_conf)'\" >> ~/.tmux.conf' >> $@",
+          "echo 'This will create a ~/.tmux.conf file that sources the generated configuration.' >> $@ && " +
+          "echo 'Any local customizations can be added to ~/.tmux.conf after the source line.' >> $@",
 )
 
 # Print path to the combined tmux configuration
@@ -97,12 +97,12 @@ genrule(
     name = "print_combined_path",
     srcs = ["//tools/tmux:tmux_conf_combined"],
     outs = ["tmux_combined_path.txt"],
-    cmd = "echo 'To use the combined tmux configuration, add the following line to your ~/.tmux.conf:' > $@ && " +
+    cmd = "echo 'To use the combined tmux configuration, run:' > $@ && " +
           "echo '' >> $@ && " +
-          "echo 'source-file '$(location //tools/tmux:tmux_conf_combined) >> $@ && " +
+          "echo 'bazel run //tools/tmux:tmux_conf_combined_dotfile' >> $@ && " +
           "echo '' >> $@ && " +
-          "echo 'Or run this command:' >> $@ && " +
-          "echo 'echo \"source-file '$(location //tools/tmux:tmux_conf_combined)'\" >> ~/.tmux.conf' >> $@",
+          "echo 'This will create a ~/.tmux.conf.combined file that sources the generated configuration.' >> $@ && " +
+          "echo 'Any local customizations can be added to ~/.tmux.conf.combined after the source line.' >> $@",
 )
 
 # Print path to the unified tmux configuration
@@ -110,10 +110,10 @@ genrule(
     name = "print_unified_path",
     srcs = ["//tools/tmux:tmux_conf_unified"],
     outs = ["tmux_unified_path.txt"],
-    cmd = "echo 'To use the unified tmux configuration, add the following line to your ~/.tmux.conf:' > $@ && " +
+    cmd = "echo 'To use the unified tmux configuration, run:' > $@ && " +
           "echo '' >> $@ && " +
-          "echo 'source-file '$(location //tools/tmux:tmux_conf_unified) >> $@ && " +
+          "echo 'bazel run //tools/tmux:tmux_conf_unified_dotfile' >> $@ && " +
           "echo '' >> $@ && " +
-          "echo 'Or run this command:' >> $@ && " +
-          "echo 'echo \"source-file '$(location //tools/tmux:tmux_conf_unified)'\" >> ~/.tmux.conf' >> $@",
+          "echo 'This will create a ~/.tmux.conf.unified file that sources the generated configuration.' >> $@ && " +
+          "echo 'Any local customizations can be added to ~/.tmux.conf.unified after the source line.' >> $@",
 )
