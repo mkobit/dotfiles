@@ -148,21 +148,21 @@ def _docker_config_generator_impl(ctx):
         for key, value in variant_dict.items():
             json_content[key] = value
     
-    # Convert to formatted JSON
-    import json
-    content = json.dumps({
-        "debug": False,
-        "experimental": True,
-        "features": {
-            "buildkit": True
-        },
-        # Add header comments via metadata
-        "__metadata__": {
-            "generated_by": str(ctx.label),
-            "platform": platform,
-            "variant": variant,
-        }
-    }, indent=2)
+    # Create JSON manually
+    content = """
+{
+    "debug": false,
+    "experimental": true,
+    "features": {
+        "buildkit": true
+    },
+    "__metadata__": {
+        "generated_by": "%s",
+        "platform": "%s", 
+        "variant": "%s"
+    }
+}
+""" % (str(ctx.label), platform, variant)
 
     # Write the file
     ctx.actions.write(

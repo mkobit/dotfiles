@@ -14,9 +14,6 @@ template_file(
     name = "vscode_conf_generated",
     src = "settings.json.tpl",
     out = "settings.json",
-    data = [
-        ":vscode_configs",
-    ],
 )
 
 # Create a configuration for standard user settings
@@ -47,10 +44,6 @@ template_file(
     substitutions = {
         "%%PLATFORM%%": "macos",
     },
-    data = [
-        ":vscode_configs",
-        "configs/macos_specific.json",
-    ],
 )
 
 template_file(
@@ -60,10 +53,6 @@ template_file(
     substitutions = {
         "%%PLATFORM%%": "linux",
     },
-    data = [
-        ":vscode_configs",
-        "configs/linux_specific.json",
-    ],
 )
 
 template_file(
@@ -73,10 +62,6 @@ template_file(
     substitutions = {
         "%%PLATFORM%%": "windows",
     },
-    data = [
-        ":vscode_configs",
-        "configs/windows_specific.json",
-    ],
 )
 
 # Platform-specific VSCode configurations using select()

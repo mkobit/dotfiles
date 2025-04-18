@@ -18,15 +18,10 @@ toolchain_type(
     visibility = ["//visibility:public"],
 )
 
-# Alias for buildtools targets
+# Alias for buildtools targets - temporarily disabled
 alias(
     name = "buildifier",
-    actual = "//tools/buildtools:buildifier",
-)
-
-alias(
-    name = "unused_deps",
-    actual = "//tools/buildtools:unused_deps",
+    actual = "//tools/buildtools:disabled_message",
 )
 
 # Alias for newly added tools

@@ -293,7 +293,7 @@ set -ag status-right "#[fg=#b48ead,bg=#2e3440]#{?window_bell_flag, Bell ,}"
 if-shell -b '[ "$(echo "$(tmux -V | cut -d" " -f2) >= 3.2" | bc)" = 1 ]' {
   # Display popup with available sessions to switch to
   bind-key C-j display-popup -E "tmux list-sessions | sed -E 's/:.*$//' | grep -v \"^$(tmux display-message -p '#S')\$\" | fzf --reverse | xargs tmux switch-client -t"
-  
+
   # Show a clock in a popup
   bind-key C-t display-popup -E "date; sleep 1"
 }
@@ -311,15 +311,3 @@ set -g activity-action other
 
 # Pane indicators - display pane numbers for 2 seconds
 set -g display-panes-time 2000
-
-# =============================================
-# Variant-specific settings (%%VARIANT%%)
-# =============================================
-# This section can be customized based on variant (work/personal)
-# The %%VARIANT%% placeholder will be replaced during build
-
-# For work variant:
-# If variant is "work", add work-specific settings here
-
-# For personal variant:
-# If variant is "personal", add personal-specific settings here

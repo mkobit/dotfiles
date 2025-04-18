@@ -168,9 +168,8 @@ def _jq_test_impl(ctx):
     runfiles = ctx.runfiles(files = [test_script])
     
     # Add transitive dependencies from the module
-    for dep in ctx.attr.module:
-        if DefaultInfo in dep:
-            runfiles = runfiles.merge(dep[DefaultInfo].default_runfiles)
+    if DefaultInfo in ctx.attr.module:
+        runfiles = runfiles.merge(ctx.attr.module[DefaultInfo].default_runfiles)
     
     # Get the module info
     module_info = ctx.attr.module[JqModuleInfo] if JqModuleInfo in ctx.attr.module else None

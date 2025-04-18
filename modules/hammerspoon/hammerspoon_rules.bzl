@@ -66,9 +66,9 @@ hammerspoon_config = rule(
 def _hammerspoon_install_impl(ctx):
     """Implementation of hammerspoon_install rule."""
     config = ctx.attr.config[HammerspoonInfo]
-    output_dir = ctx.actions.declare_directory(ctx.attr.name)
+    output_dir = ctx.actions.declare_directory(ctx.label.name)
     
-    install_script = ctx.actions.declare_file(ctx.attr.name + "_install.sh")
+    install_script = ctx.actions.declare_file(ctx.label.name + "_install.sh")
     
     script_content = """#!/bin/bash
 set -eu
@@ -106,7 +106,7 @@ cp "{init_lua}" "$DEST_DIR/init.lua"
     
     ctx.actions.write(install_script, script_content, is_executable = True)
     
-    print_paths_script = ctx.actions.declare_file(ctx.attr.name + "_print_paths.sh")
+    print_paths_script = ctx.actions.declare_file(ctx.label.name + "_print_paths.sh")
     ctx.actions.write(
         print_paths_script,
         "#!/bin/bash\necho \"Hammerspoon config will be installed to: {}\"\n".format(ctx.attr.install_dir),

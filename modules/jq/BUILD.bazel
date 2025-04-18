@@ -29,10 +29,11 @@ genrule(
     name = "print_path",
     srcs = ["//tools/jq:jq_modules"],
     outs = ["jq_path.txt"],
-    cmd = "echo 'To use jq modules, add the following paths to your jq search path:' > $@ && " +
+    cmd = "CWD=$$(pwd) && " +
+          "echo 'To use jq modules, add the following paths to your jq search path:' > $@ && " +
           "echo '' >> $@ && " +
           "echo '  -L ~/.jq' >> $@ && " +
-          "echo '  -L $(pwd)/tools/jq/modules' >> $@ && " +
+          "echo '  -L $$CWD/tools/jq/modules' >> $@ && " +
           "echo '' >> $@ && " +
           "echo 'For example:' >> $@ && " +
           "echo 'jq -L ~/.jq -n \"import \\\"base\\\" as b; [1,2,3] | b::avg\"' >> $@",

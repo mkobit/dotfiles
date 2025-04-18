@@ -4,32 +4,17 @@ Implementation for buildtools in the dotfiles repository.
 
 package(default_visibility = ["//visibility:public"])
 
-# Target for running buildifier directly from Bazel
-alias(
-    name = "buildifier",
-    actual = "@buildtools//buildifier",
-)
+# NOTE: buildtools functionality temporarily disabled due to module dependency issue
 
-# Target for running unused_deps directly from Bazel
-alias(
-    name = "unused_deps",
-    actual = "@buildtools//unused_deps",
-)
-
-# Target to print out paths to the buildtools
+# Print the disabled message
 genrule(
-    name = "print_paths",
+    name = "disabled_message",
     srcs = [],
-    outs = ["buildtools_paths.txt"],
+    outs = ["disabled_message.txt"],
     cmd = """
-        echo "Buildtools paths:" > $@
-        echo "  buildifier: $(location @buildtools//buildifier)" >> $@
-        echo "  unused_deps: $(location @buildtools//unused_deps)" >> $@
+        echo "Buildtools functionality is temporarily disabled" > $@
+        echo "Please set up the appropriate repositories in MODULE.bazel" >> $@
     """,
-    tools = [
-        "@buildtools//buildifier",
-        "@buildtools//unused_deps",
-    ],
 )
 
 filegroup(

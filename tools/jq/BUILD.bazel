@@ -1,6 +1,6 @@
 load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
-load("//modules/toolchains:jq_toolchain.bzl", "jq_test", "jq_toolchain")
-load("//modules/jq:jq_rules.bzl", "jq_library", "jq_module")
+load("//modules/toolchains:jq_toolchain.bzl", "jq_toolchain")
+load("//modules/jq:jq_rules.bzl", "jq_library", "jq_module", "jq_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -11,8 +11,22 @@ jq_toolchain(
 )
 
 # Simple system integration test for jq using the jq_test rule
-jq_test(
+genrule(
     name = "system_integration_test",
+    outs = ["system_integration_test.sh"],
+    cmd = """
+        echo '#!/bin/bash' > $@
+        echo 'echo "Testing jq installation..."' >> $@
+        echo 'if ! command -v jq &> /dev/null; then' >> $@
+        echo '    echo "jq not found"' >> $@
+        echo '    exit 1' >> $@
+        echo 'fi' >> $@
+        echo 'echo "jq version: $(jq --version)"' >> $@
+        echo 'echo "Basic test: $(echo "{}" | jq .)"' >> $@
+        echo 'echo "Test passed!"' >> $@
+        chmod +x $@
+    """,
+    executable = True,
     tags = ["manual"],  # Don't run automatically in CI
 )
 

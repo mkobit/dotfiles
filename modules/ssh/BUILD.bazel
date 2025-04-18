@@ -14,7 +14,7 @@ ssh_config(
         "ForwardAgent": "no",
     },
     hosts = {
-        "*": "IdentityFile ~/.ssh/id_ed25519",
+        "*.IdentityFile": "~/.ssh/id_ed25519",
     },
 )
 

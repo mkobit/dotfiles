@@ -37,10 +37,10 @@ echo 'echo "  GitLab-specific config: bazel-bin/modules/ssh/gitlab_ssh_config.ss
 echo 'echo "  Complex GitHub config:  bazel-bin/modules/ssh/complex_github_ssh_config.ssh_config"' >> $@
 echo 'echo ""' >> $@
 echo 'echo "To use a specific config with SSH:"' >> $@
-echo 'echo "  ssh -F \$(bazel info bazel-bin)/modules/ssh/[config].ssh_config [host]"' >> $@
+echo 'echo "  ssh -F \\$$(bazel info bazel-bin)/modules/ssh/[config].ssh_config [host]"' >> $@
 echo 'echo ""' >> $@
 echo 'echo "To use with Git repositories:"' >> $@
-echo 'echo "  git -c core.sshCommand=\"ssh -F \$(bazel info bazel-bin)/modules/ssh/complex_github_ssh_config.ssh_config\" clone git@github.com:user/repo.git"' >> $@
+echo 'echo "  git -c core.sshCommand=\\"ssh -F \\$$(bazel info bazel-bin)/modules/ssh/complex_github_ssh_config.ssh_config\\" clone git@github.com:user/repo.git"' >> $@
 chmod +x $@
 """,
     executable = True,
