@@ -1,16 +1,16 @@
-load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:simpledotfile.bzl", "simple_dotfile", "simple_dotfile_group")
 
 package(default_visibility = ["//visibility:public"])
 
 # Create ripgrep config dotfile
-dotfile(
+simple_dotfile(
     name = "ripgrep_config_dotfile",
     src = "//modules/ripgrep:ripgrepconfig",
     dest = "~/.ripgreprc",
 )
 
 # Group all ripgrep dotfiles
-dotfile_group(
+simple_dotfile_group(
     name = "ripgrep_dotfiles",
     deps = [
         ":ripgrep_config_dotfile",

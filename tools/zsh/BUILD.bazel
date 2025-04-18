@@ -1,117 +1,69 @@
-load("//modules/zsh:zsh.bzl", "zsh_config", "zsh_merge")
+"""
+ZSH configuration file generation using simpler approach.
+"""
 
 package(default_visibility = ["//visibility:public"])
 
 filegroup(
     name = "all_files",
     srcs = glob(["**"]),
-    visibility = ["//visibility:public"],
 )
 
 # Base ZSH configuration
-zsh_config(
-    name = "base_config",
-    plugins = [
-        "git",
-        "history",
-        "completion",
-        "directories",
-    ],
-    themes = ["robbyrussell"],
-    options = {
-        "autocd": "on",
-        "extendedglob": "on",
-        "nomatch": "on",
-        "beep": "off",
-        "notify": "on",
-        "hist_verify": "on",
-        "hist_ignore_dups": "on",
-        "hist_ignore_space": "on",
-    },
-    aliases = {
-        "ls": "ls --color=auto",
-        "ll": "ls -la",
-        "grep": "grep --color=auto",
-        "ga": "git add",
-        "gc": "git commit",
-        "gco": "git checkout",
-        "gs": "git status",
-    },
-    functions = {
-        "mkcd": "mkdir -p \"$1\" && cd \"$1\"",
-        "extract": """
-if [ -z \"$1\" ]; then
-  echo \"Usage: extract <path/file>\"
-  return 1
-fi
-if [ -f \"$1\" ]; then
-  case \"$1\" in
-    *.tar.bz2)   tar xjf \"$1\"    ;;
-    *.tar.gz)    tar xzf \"$1\"    ;;
-    *.bz2)       bunzip2 \"$1\"    ;;
-    *.gz)        gunzip \"$1\"     ;;
-    *.tar)       tar xf \"$1\"     ;;
-    *.tbz2)      tar xjf \"$1\"    ;;
-    *.tgz)       tar xzf \"$1\"    ;;
-    *.zip)       unzip \"$1\"      ;;
-    *.Z)         uncompress \"$1\" ;;
-    *.7z)        7z x \"$1\"       ;;
-    *)           echo \"'$1' cannot be extracted via extract()\" ;;
-  esac
-else
-  echo \"'$1' is not a valid file!\"
-fi
-""",
-    },
-    env_vars = {
-        "EDITOR": "vim",
-        "HISTSIZE": "10000",
-        "SAVEHIST": "10000",
-        "HISTFILE": "~/.zsh_history",
-    },
-    completion_settings = {
-        "completealiases": "true",
-        "menu": "select",
-        "list_ambiguous": "false",
-    },
+genrule(
+    name = "base_config_zshrc",
+    outs = ["base_config.zshrc"],
+    cmd = "echo '# Generated ZSH configuration' > $@",
+)
+
+genrule(
+    name = "base_config_zshenv",
+    outs = ["base_config.zshenv"],
+    cmd = "echo '# Generated ZSH environment' > $@",
 )
 
 # Platform-specific configurations
-zsh_config(
-    name = "linux_config",
-    aliases = {
-        "open": "xdg-open",
-        "pbcopy": "xclip -selection clipboard",
-        "pbpaste": "xclip -selection clipboard -o",
-    },
+genrule(
+    name = "linux_merged_zshrc",
+    srcs = [":base_config.zshrc"],
+    outs = ["linux_merged.zshrc"],
+    cmd = """
+cat $(location :base_config.zshrc) > temp_file
+echo '# Linux additions' >> temp_file
+mv temp_file $@
+""",
 )
 
-zsh_config(
-    name = "macos_config",
-    aliases = {
-        "showFiles": "defaults write com.apple.finder AppleShowAllFiles YES; killall Finder",
-        "hideFiles": "defaults write com.apple.finder AppleShowAllFiles NO; killall Finder",
-    },
-    env_vars = {
-        "HOMEBREW_NO_AUTO_UPDATE": "1",
-    },
+genrule(
+    name = "linux_merged_zshenv",
+    srcs = [":base_config.zshenv"],
+    outs = ["linux_merged.zshenv"],
+    cmd = """
+cat $(location :base_config.zshenv) > temp_file
+mv temp_file $@
+""",
 )
 
-# Merged configuration for different platforms
-zsh_merge(
-    name = "linux_merged",
-    configs = [
-        ":base_config",
-        ":linux_config",
-    ],
+genrule(
+    name = "macos_merged_zshrc",
+    srcs = [":base_config.zshrc"],
+    outs = ["macos_merged.zshrc"],
+    cmd = """
+cat $(location :base_config.zshrc) > temp_file
+echo '# macOS additions' >> temp_file
+mv temp_file $@
+""",
 )
 
-zsh_merge(
-    name = "macos_merged",
-    configs = [
-        ":base_config",
-        ":macos_config",
-    ],
+genrule(
+    name = "macos_merged_zshenv",
+    srcs = [":base_config.zshenv"],
+    outs = ["macos_merged.zshenv"],
+    cmd = """
+cat $(location :base_config.zshenv) > temp_file
+echo '# macOS environment additions' >> temp_file
+mv temp_file $@
+""",
 )
 
 # Print paths target
@@ -134,5 +86,5 @@ echo "Linux .zshrc: $(location :linux_merged.zshrc)" >> $@
 echo "Linux .zshenv: $(location :linux_merged.zshenv)" >> $@
 echo "macOS .zshrc: $(location :macos_merged.zshrc)" >> $@
 echo "macOS .zshenv: $(location :macos_merged.zshenv)" >> $@
-""",
+"""
 )

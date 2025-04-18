@@ -2,65 +2,74 @@
 
 package(default_visibility = ["//visibility:public"])
 
-# Root toolchain registrations - these must be in the root BUILD file
-toolchain_type(
-    name = "vim_toolchain_type",
-    visibility = ["//visibility:public"],
-)
+load(":toolchain_types.bzl", "declare_toolchain_types")
 
-toolchain_type(
-    name = "neovim_toolchain_type",
-    visibility = ["//visibility:public"],
-)
+# Declare required toolchain types
+declare_toolchain_types()
 
-toolchain_type(
-    name = "brew_toolchain_type",
-    visibility = ["//visibility:public"],
-)
-
-# Alias for buildtools targets - temporarily disabled
+# Main aliases for tools - simplified versions
 alias(
-    name = "buildifier",
-    actual = "//tools/buildtools:disabled_message",
-)
-
-# Alias for newly added tools
-alias(
-    name = "iterm2",
-    actual = "//tools/iterm2:iterm2_dotfiles",
+    name = "git",
+    actual = "//tools/git:git_dotfiles",
 )
 
 alias(
-    name = "docker",
-    actual = "//tools/docker:docker_dotfiles",
+    name = "vim",
+    actual = "//tools/vim:vim_dotfiles",
 )
 
 alias(
-    name = "pyenv",
-    actual = "//tools/pyenv:pyenv_dotfiles",
+    name = "neovim",
+    actual = "//tools/neovim:neovim_dotfiles",
 )
 
 alias(
-    name = "nvm",
-    actual = "//tools/nvm:nvm_dotfiles",
+    name = "tmux",
+    actual = "//tools/tmux:tmux_dotfiles",
 )
 
-alias(
-    name = "fzf",
-    actual = "//tools/fzf:fzf_dotfiles",
+# Create a group of all available dotfiles
+filegroup(
+    name = "all_dotfiles",
+    srcs = [
+        ":git",
+        ":neovim",
+        ":tmux",
+        ":vim",
+    ],
 )
 
-alias(
-    name = "rectangle",
-    actual = "//tools/rectangle:rectangle_dotfiles",
-)
-
-alias(
-    name = "bat",
-    actual = "//tools/bat:bat_dotfiles",
-)
-
-alias(
-    name = "ripgrep",
-    actual = "//tools/ripgrep:ripgrep_dotfiles",
+# Print all dotfile paths
+genrule(
+    name = "print_all_paths",
+    srcs = [
+        "//tools/git:git_dotfiles_manifest.txt", 
+        "//tools/vim:vim_paths.txt",
+        "//tools/neovim:neovim_paths.txt",
+        "//tools/tmux:available_tmux_configs.txt",
+    ],
+    outs = ["all_dotfile_paths.txt"],
+    cmd = """
+echo "=============================================" > $@
+echo "All Dotfiles Configuration Paths" >> $@
+echo "=============================================" >> $@
+echo "" >> $@
+echo "Git Configuration:" >> $@
+echo "--------------------------------------------" >> $@
+cat $(location //tools/git:git_dotfiles_manifest.txt) >> $@
+echo "" >> $@
+echo "Vim Configuration:" >> $@
+echo "--------------------------------------------" >> $@
+cat $(location //tools/vim:vim_paths.txt) >> $@
+echo "" >> $@
+echo "Neovim Configuration:" >> $@
+echo "--------------------------------------------" >> $@
+cat $(location //tools/neovim:neovim_paths.txt) >> $@
+echo "" >> $@
+echo "Tmux Configuration:" >> $@
+echo "--------------------------------------------" >> $@
+cat $(location //tools/tmux:available_tmux_configs.txt) >> $@
+echo "" >> $@
+echo "Generated at $$(date)" >> $@
+""",
 )

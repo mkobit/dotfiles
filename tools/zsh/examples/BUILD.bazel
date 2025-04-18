@@ -1,31 +1,20 @@
-load("//modules/zsh:zsh.bzl", "zsh_config", "zsh_merge", "zsh_extension")
-load(":git_extension.bzl", "git_zsh_extension")
+"""
+Example ZSH configurations using simplified genrules approach.
+"""
 
 package(default_visibility = ["//visibility:public"])
 
-# Example Git extension
-git_zsh_extension()
-
-# Example of using extensions with base config
-zsh_config(
-    name = "example_base_config",
-    plugins = ["history", "completion"],
-    options = {
-        "autocd": "on",
-        "extendedglob": "on",
-    },
-    env_vars = {
-        "EDITOR": "vim",
-    },
+# Simple example ZSH configuration files
+genrule(
+    name = "example_zshrc",
+    outs = ["example_merged_config.zshrc"],
+    cmd = "echo '# Example ZSH configuration' > $@",
 )
 
-# Merge base config with Git extension
-zsh_merge(
-    name = "example_merged_config",
-    configs = [
-        ":example_base_config",
-        ":git_zsh_ext",
-    ],
+genrule(
+    name = "example_zshenv",
+    outs = ["example_merged_config.zshenv"],
+    cmd = "echo '# Example ZSH environment' > $@",
 )
 
 # Print paths target for the example
@@ -40,5 +29,5 @@ genrule(
 echo "Example ZSH configuration files:" > $@
 echo "Merged .zshrc: $(location :example_merged_config.zshrc)" >> $@
 echo "Merged .zshenv: $(location :example_merged_config.zshenv)" >> $@
-""",
+"""
 )

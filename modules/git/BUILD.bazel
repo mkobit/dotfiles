@@ -1,160 +1,110 @@
-load("//modules/git:git_rules.bzl", "git_config", "git_config_generator")
-
 package(default_visibility = ["//visibility:public"])
 
-git_config(
-    name = "base_config",
-    settings = {
-        "core.editor": "vim",
-        "core.autocrlf": "input",
-        "core.pager": "less -FRX",
-        "init.defaultBranch": "main",
-        "pull.rebase": "true",
-        "push.default": "simple",
-        "diff.algorithm": "patience",
-        "merge.ff": "only",
-        "color.ui": "auto",
-    },
-    aliases = {
-        "st": "status",
-        "co": "checkout",
-        "ci": "commit",
-        "br": "branch",
-        "unstage": "reset HEAD --",
-        "last": "log -1 HEAD",
-        "lg": "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative",
-
-        "amend": "commit --amend",
-        "wip": "!git add -A && git commit -m 'WIP'",
-        "unwip": "!git log -1 --pretty=%B | grep -q '^WIP$' && git reset HEAD~ || echo 'Not a WIP commit'",
-        "cleanup": "!git branch --merged | grep -v '\\*' | xargs -n 1 git branch -d",
-    },
-    raw_sections = {
-        "include": "path = ~/.gitconfig.local",
-    },
+# Simple gitconfig generation
+genrule(
+    name = "gitconfig_base",
+    outs = ["gitconfig_base.gitconfig"],
+    cmd = """
+echo "# Generated basic .gitconfig file" > $@
+echo "" >> $@
+echo "[core]" >> $@
+echo "    editor = vim" >> $@
+echo "    autocrlf = input" >> $@
+echo "    pager = less -FRX" >> $@
+echo "" >> $@
+echo "[init]" >> $@
+echo "    defaultBranch = main" >> $@
+echo "" >> $@
+echo "[pull]" >> $@
+echo "    rebase = true" >> $@
+echo "" >> $@
+echo "[push]" >> $@
+echo "    default = simple" >> $@
+echo "" >> $@
+echo "[diff]" >> $@
+echo "    algorithm = patience" >> $@
+echo "" >> $@
+echo "[merge]" >> $@
+echo "    ff = only" >> $@
+echo "" >> $@
+echo "[color]" >> $@
+echo "    ui = auto" >> $@
+echo "" >> $@
+echo "[alias]" >> $@
+echo "    st = status" >> $@
+echo "    co = checkout" >> $@
+echo "    ci = commit" >> $@
+echo "    br = branch" >> $@
+echo "    unstage = reset HEAD --" >> $@
+echo "    last = log -1 HEAD" >> $@
+echo "    lg = log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr) %C(bold blue)<%an>%Creset' --abbrev-commit --date=relative" >> $@
+echo "    amend = commit --amend" >> $@
+echo "    wip = !git add -A && git commit -m 'WIP'" >> $@
+echo "    unwip = !git log -1 --pretty=%B | grep -q '^WIP$$' && git reset HEAD~ || echo 'Not a WIP commit'" >> $@
+echo "    cleanup = !git branch --merged | grep -v '\\\\*' | xargs -n 1 git branch -d" >> $@
+echo "" >> $@
+echo "[include]" >> $@
+echo "    path = ~/.gitconfig.local" >> $@
+echo "" >> $@
+echo "# Generated at $$(date)" >> $@
+""",
 )
 
-# Platform-specific configurations
-git_config(
-    name = "linux_config",
-    includes = [":base_config"],
-    platform_settings = {
-    },
+# Platform-specific configs
+genrule(
+    name = "gitconfig_macos",
+    srcs = [":gitconfig_base"],
+    outs = ["gitconfig_macos.gitconfig"],
+    cmd = """
+cat $(location :gitconfig_base) > $@
+echo "" >> $@
+echo "# macOS-specific settings" >> $@
+echo "[credential]" >> $@
+echo "    helper = osxkeychain" >> $@
+echo "" >> $@
+""",
 )
 
-git_config(
-    name = "macos_config",
-    includes = [":base_config"],
-    platform_settings = {
-    },
+genrule(
+    name = "gitconfig_linux",
+    srcs = [":gitconfig_base"],
+    outs = ["gitconfig_linux.gitconfig"],
+    cmd = """
+cat $(location :gitconfig_base) > $@
+echo "" >> $@
+echo "# Linux-specific settings" >> $@
+echo "[credential]" >> $@
+echo "    helper = cache --timeout=3600" >> $@
+echo "" >> $@
+""",
 )
 
-git_config(
-    name = "windows_config",
-    includes = [":base_config"],
-    platform_settings = {
-    },
+genrule(
+    name = "gitconfig_windows",
+    srcs = [":gitconfig_base"],
+    outs = ["gitconfig_windows.gitconfig"],
+    cmd = """
+cat $(location :gitconfig_base) > $@
+echo "" >> $@
+echo "# Windows-specific settings" >> $@
+echo "[core]" >> $@
+echo "    autocrlf = true" >> $@
+echo "[credential]" >> $@
+echo "    helper = wincred" >> $@
+echo "" >> $@
+""",
 )
 
-# Personal variant configuration
-git_config(
-    name = "personal_config",
-    includes = [":base_config"],
-    variant_settings = {
-    },
-)
-
-# Work variant configuration (template - actual values not committed)
-git_config(
-    name = "work_config",
-    includes = [":base_config"],
-    variant_settings = {
-    },
-)
-
-# Generate base .gitconfig for current platform
-git_config_generator(
+# Create a platform-specific version using select()
+alias(
     name = "gitconfig",
-    config = select({
-        "@platforms//os:linux": ":linux_config",
-        "@platforms//os:macos": ":macos_config",
-        "@platforms//os:windows": ":windows_config",
-        "//conditions:default": ":base_config",
+    actual = select({
+        "//selectors:macos": ":gitconfig_macos",
+        "//selectors:linux": ":gitconfig_linux", 
+        "//selectors:windows": ":gitconfig_windows",
+        "//conditions:default": ":gitconfig_base",
     }),
 )
 
-# Combine variants with platform-specific configs
-git_config(
-    name = "personal_linux_config",
-    includes = [":linux_config", ":personal_config"],
-)
-
-git_config(
-    name = "personal_macos_config",
-    includes = [":macos_config", ":personal_config"],
-)
-
-git_config(
-    name = "personal_windows_config",
-    includes = [":windows_config", ":personal_config"],
-)
-
-git_config(
-    name = "work_linux_config",
-    includes = [":linux_config", ":work_config"],
-)
-
-git_config(
-    name = "work_macos_config",
-    includes = [":macos_config", ":work_config"],
-)
-
-git_config(
-    name = "work_windows_config",
-    includes = [":windows_config", ":work_config"],
-)
-
-# Generate variant-specific gitconfig files
-git_config_generator(
-    name = "personal_gitconfig",
-    config = select({
-        "@platforms//os:linux": ":personal_linux_config",
-        "@platforms//os:macos": ":personal_macos_config",
-        "@platforms//os:windows": ":personal_windows_config",
-        "//conditions:default": ":personal_config",
-    }),
-    variant = "personal",
-)
-
-git_config_generator(
-    name = "work_gitconfig",
-    config = select({
-        "@platforms//os:linux": ":work_linux_config",
-        "@platforms//os:macos": ":work_macos_config",
-        "@platforms//os:windows": ":work_windows_config",
-        "//conditions:default": ":work_config",
-    }),
-    variant = "work",
-)
-
-# Global gitignore file
+# Export the global gitignore file
 exports_files(["gitignore_global"])
-
-# Build all gitconfigs
-filegroup(
-    name = "all_gitconfigs",
-    srcs = [
-        ":gitconfig",
-        ":personal_gitconfig",
-        ":work_gitconfig",
-    ],
-)
-
-# Build everything for the module
-filegroup(
-    name = "git_all",
-    srcs = [
-        ":all_gitconfigs",
-        "gitignore_global",
-    ],
-)

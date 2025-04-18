@@ -1,16 +1,16 @@
-load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:simpledotfile.bzl", "simple_dotfile", "simple_dotfile_group")
 
 package(default_visibility = ["//visibility:public"])
 
 # Create pyenv config dotfile
-dotfile(
+simple_dotfile(
     name = "pyenv_config_dotfile",
     src = "//modules/pyenv:pyenvconfig",
     dest = "~/.pyenv/pyenv.sh",
 )
 
 # Group all pyenv dotfiles
-dotfile_group(
+simple_dotfile_group(
     name = "pyenv_dotfiles",
     deps = [
         ":pyenv_config_dotfile",

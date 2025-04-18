@@ -1,4 +1,4 @@
-load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:simpledotfile.bzl", "simple_dotfile", "simple_dotfile_group")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -21,50 +21,33 @@ genrule(
     """,
 )
 
-# Installation script
-genrule(
-    name = "install_script",
-    srcs = [":generate_config"],
-    outs = ["_install.sh"],
-    cmd = """
-        echo '#!/bin/bash' > $@
-        echo 'set -eu' >> $@
-        echo '' >> $@
-        echo 'DEST_DIR="$$HOME/.hammerspoon"' >> $@
-        echo 'SOURCE_DIR="$(dirname $(dirname $(readlink -f "$0")))"/$(location :generate_config)' >> $@
-        echo '' >> $@
-        echo 'mkdir -p "$$DEST_DIR/modules"' >> $@
-        echo '' >> $@
-        echo 'echo "Installing Hammerspoon config to $$DEST_DIR"' >> $@
-        echo 'cp -v "$$SOURCE_DIR" "$$DEST_DIR/init.lua"' >> $@
-        echo 'for module in $(dirname $$SOURCE_DIR)/modules/*.lua; do' >> $@
-        echo '  cp -v "$$module" "$$DEST_DIR/modules/$$(basename $$module)"' >> $@
-        echo 'done' >> $@
-        echo '' >> $@
-        echo 'echo "Hammerspoon configuration installed"' >> $@
-        chmod +x $@
-    """,
-    executable = True,
+# Simple dotfile for Hammerspoon config
+simple_dotfile(
+    name = "hammerspoon_config_dotfile",
+    src = ":generate_config", 
+    dest = "~/.hammerspoon/init.lua",
+)
+
+# Group for all hammerspoon configurations
+simple_dotfile_group(
+    name = "hammerspoon_dotfiles",
+    deps = [
+        ":hammerspoon_config_dotfile",
+    ],
 )
 
 # Print paths target
 genrule(
     name = "print_paths",
-    srcs = [],
-    outs = ["print_paths.out"],
-    cmd = "echo 'Hammerspoon config will be installed to: $$HOME/.hammerspoon' > $@",
-    executable = True,
-)
-
-# Group for all hammerspoon configurations
-dotfile_group(
-    name = "hammerspoon_dotfiles",
-    deps = [],
-    tags = ["hammerspoon"],
-)
-
-# Install alias
-alias(
-    name = "install",
-    actual = ":install_script",
+    srcs = [":generate_config"],
+    outs = ["hammerspoon_paths.txt"],
+    cmd = """
+echo "Hammerspoon configuration files:" > $@
+echo "  Main config: $(location :generate_config)" >> $@
+echo "" >> $@
+echo "To use this configuration:" >> $@
+echo "  mkdir -p ~/.hammerspoon/modules" >> $@
+echo "  cp $(location :generate_config) ~/.hammerspoon/init.lua" >> $@
+echo "  # Copy modules as well" >> $@
+""",
 )

@@ -1,17 +1,17 @@
-load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:simpledotfile.bzl", "simple_dotfile", "simple_dotfile_group")
 load("//modules/rules:template.bzl", "template_file")
 
 package(default_visibility = ["//visibility:public"])
 
 # Create iterm2 config dotfile
-dotfile(
+simple_dotfile(
     name = "iterm2_config_dotfile",
     src = "//modules/iterm2:iterm2config",
     dest = "~/.iterm2/com.googlecode.iterm2.plist",
 )
 
 # Group all iterm2 dotfiles
-dotfile_group(
+simple_dotfile_group(
     name = "iterm2_dotfiles",
     deps = [
         ":iterm2_config_dotfile",

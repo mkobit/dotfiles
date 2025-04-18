@@ -1,20 +1,11 @@
-load("//tools:defs.bzl", "template_file")
-
 package(default_visibility = ["//visibility:public"])
 
-# Use the new generated tmux.conf directly instead of individual components
-filegroup(
-    name = "tmux_components",
-    srcs = [
-        "//tools/tmux:tmux_conf_generated",
-    ],
-)
-
 # Base tmux configuration
-template_file(
+genrule(
     name = "tmux_conf",
-    src = "tmux.conf.template",
-    out = "tmux.conf",
+    srcs = ["tmux.conf.template"],
+    outs = ["tmux.conf"],
+    cmd = "cp $(location tmux.conf.template) $@",
 )
 
 # Default tmux configuration
@@ -22,43 +13,44 @@ filegroup(
     name = "tmux",
     srcs = [
         ":tmux_conf",
-        ":tmux_components",
     ],
 )
 
 # Work variant tmux configuration
-template_file(
+genrule(
     name = "work_tmux_conf",
-    src = "tmux.conf.template",
-    out = "work_tmux.conf",
-    substitutions = {
-        "%%VARIANT%%": "work",
-    },
+    srcs = ["tmux.conf.template"],
+    outs = ["work_tmux.conf"],
+    cmd = """
+        cat $(location tmux.conf.template) > $@
+        sed -i.bak 's/%%VARIANT%%/work/g' $@
+        rm -f $@.bak
+    """,
 )
 
 filegroup(
     name = "work_tmux",
     srcs = [
         ":work_tmux_conf",
-        ":tmux_components",
     ],
 )
 
 # Personal variant tmux configuration
-template_file(
+genrule(
     name = "personal_tmux_conf",
-    src = "tmux.conf.template",
-    out = "personal_tmux.conf",
-    substitutions = {
-        "%%VARIANT%%": "personal",
-    },
+    srcs = ["tmux.conf.template"],
+    outs = ["personal_tmux.conf"],
+    cmd = """
+        cat $(location tmux.conf.template) > $@
+        sed -i.bak 's/%%VARIANT%%/personal/g' $@
+        rm -f $@.bak
+    """,
 )
 
 filegroup(
     name = "personal_tmux",
     srcs = [
         ":personal_tmux_conf",
-        ":tmux_components",
     ],
 )
 
@@ -68,7 +60,6 @@ filegroup(
     srcs = [
         "//tools/tmux:tmux_conf_combined",
     ],
-    tags = ["tmux", "no-windows"],  # Add tags to skip on Windows
 )
 
 # Unified tmux configuration with platform and version variants

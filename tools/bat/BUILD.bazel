@@ -1,16 +1,16 @@
-load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:simpledotfile.bzl", "simple_dotfile", "simple_dotfile_group")
 
 package(default_visibility = ["//visibility:public"])
 
 # Create bat config dotfile
-dotfile(
+simple_dotfile(
     name = "bat_config_dotfile",
     src = "//modules/bat:batconfig",
     dest = "~/.config/bat/config",
 )
 
 # Group all bat dotfiles
-dotfile_group(
+simple_dotfile_group(
     name = "bat_dotfiles",
     deps = [
         ":bat_config_dotfile",

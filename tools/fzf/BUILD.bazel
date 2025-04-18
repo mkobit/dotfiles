@@ -1,16 +1,16 @@
-load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:simpledotfile.bzl", "simple_dotfile", "simple_dotfile_group")
 
 package(default_visibility = ["//visibility:public"])
 
 # Create fzf config dotfile
-dotfile(
+simple_dotfile(
     name = "fzf_config_dotfile",
     src = "//modules/fzf:fzfconfig",
     dest = "~/.fzf.config.sh",
 )
 
 # Group all fzf dotfiles
-dotfile_group(
+simple_dotfile_group(
     name = "fzf_dotfiles",
     deps = [
         ":fzf_config_dotfile",

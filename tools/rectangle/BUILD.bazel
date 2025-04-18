@@ -1,16 +1,16 @@
-load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:simpledotfile.bzl", "simple_dotfile", "simple_dotfile_group")
 
 package(default_visibility = ["//visibility:public"])
 
 # Create Rectangle config dotfile
-dotfile(
+simple_dotfile(
     name = "rectangle_config_dotfile",
     src = "//modules/rectangle:rectangleconfig",
     dest = "~/Library/Preferences/com.knollsoft.Rectangle.plist",
 )
 
 # Group all Rectangle dotfiles
-dotfile_group(
+simple_dotfile_group(
     name = "rectangle_dotfiles",
     deps = [
         ":rectangle_config_dotfile",

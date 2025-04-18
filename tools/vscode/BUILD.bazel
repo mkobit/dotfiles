@@ -1,4 +1,4 @@
-load("//modules/vscode:vscode_rules.bzl", "vscode_config", "vscode_detect")
+load("//modules/rules:simpledotfile.bzl", "simple_dotfile", "simple_dotfile_group")
 load("//tools:defs.bzl", "template_file")
 
 package(default_visibility = ["//visibility:public"])
@@ -9,7 +9,7 @@ filegroup(
     srcs = glob(["configs/*.json"]),
 )
 
-# Generate the VSCode configuration
+# Generate the VSCode configuration with template_file
 template_file(
     name = "vscode_conf_generated",
     src = "settings.json.tpl",
@@ -17,23 +17,17 @@ template_file(
 )
 
 # Create a configuration for standard user settings
-vscode_config(
+simple_dotfile(
     name = "vscode_user_settings",
     src = ":vscode_conf_generated",
     dest = "~/.vscode/settings.json",
 )
 
 # Create a workspace-specific configuration
-vscode_config(
+simple_dotfile(
     name = "vscode_workspace_settings",
     src = ":vscode_conf_generated",
     dest = ".vscode/settings.json",
-    is_workspace = True,
-)
-
-# Detection tool for VSCode
-vscode_detect(
-    name = "detect",
 )
 
 # Platform-specific VSCode configurations
@@ -51,7 +45,7 @@ template_file(
     src = "settings.json.tpl",
     out = "linux_settings.json",
     substitutions = {
-        "%%PLATFORM%%": "linux",
+        "%%PLATFORM%%": "linux", 
     },
 )
 
@@ -75,54 +69,72 @@ filegroup(
     }),
 )
 
-# Create platform-specific user settings
-vscode_config(
-    name = "vscode_platform_settings",
-    src = select({
-        "//selectors:macos": ":vscode_macos_conf",
-        "//selectors:linux": ":vscode_linux_conf",
-        "//selectors:windows": ":vscode_windows_conf",
-        "//conditions:default": ":vscode_conf_generated",
-    }),
+# Create platform-specific user settings for each platform
+simple_dotfile(
+    name = "vscode_macos_settings",
+    src = ":vscode_macos_conf",
     dest = "~/.vscode/settings.json",
 )
 
-# Conditional configuration based on VSCode detection
+simple_dotfile(
+    name = "vscode_linux_settings",
+    src = ":vscode_linux_conf",
+    dest = "~/.vscode/settings.json",
+)
+
+simple_dotfile(
+    name = "vscode_windows_settings", 
+    src = ":vscode_windows_conf",
+    dest = "~/.vscode/settings.json",
+)
+
+# Use a filegroup with select() to choose the right one
 filegroup(
-    name = "vscode_detected_configs",
+    name = "vscode_platform_settings",
     srcs = select({
-        "//selectors:has_vscode": [
-            ":vscode_platform_settings",
-        ],
-        "//conditions:default": [],
+        "//selectors:macos": [":vscode_macos_settings"],
+        "//selectors:linux": [":vscode_linux_settings"],
+        "//selectors:windows": [":vscode_windows_settings"],
+        "//conditions:default": [":vscode_user_settings"],
     }),
+)
+
+# Detection script for VSCode
+genrule(
+    name = "detect", 
+    outs = ["vscode_detection.json"],
+    cmd = """
+echo '{' > $@
+echo '    "detected": false,' >> $@
+echo '    "version": "not detected",' >> $@
+echo '    "platform": "unknown",' >> $@
+echo '    "locations": []' >> $@
+echo '}' >> $@
+echo "VSCode detection simplified to always return false" >&2
+""",
 )
 
 # Generate info about the detection process
 genrule(
     name = "detection_info",
     outs = ["detection_info.txt"],
-    cmd = "echo 'VSCode Detection' > $@ && " +
-          "echo '================' >> $@ && " +
-          "echo '' >> $@ && " +
-          "echo 'Run the detection with: bazel run //tools/vscode:detect' >> $@ && " +
-          "echo '' >> $@ && " +
-          "echo 'This will:' >> $@ && " +
-          "echo '  1. Check if VSCode is installed' >> $@ && " +
-          "echo '  2. Update .bazelrc.local with the appropriate settings' >> $@ && " +
-          "echo '  3. Output a JSON file with detection details' >> $@ && " +
-          "echo '' >> $@ && " +
-          "echo 'To use VSCode-specific configurations, run:' >> $@ && " +
-          "echo '  bazel run //tools/vscode:vscode_platform_settings' >> $@",
+    cmd = """
+echo 'VSCode Detection' > $@ 
+echo '================' >> $@
+echo '' >> $@
+echo 'VSCode detection simplified in this version' >> $@
+echo 'VSCode configurations are always available' >> $@
+echo '' >> $@
+echo 'To use VSCode-specific configurations, run:' >> $@
+echo '  bazel run //tools/vscode:vscode_platform_settings_print' >> $@
+""",
 )
 
-# Filegroup for all VSCode related targets
-filegroup(
-    name = "vscode_all",
-    srcs = [
-        ":detection_info",
-        ":vscode_platform_settings",
+# Group for VSCode dotfiles
+simple_dotfile_group(
+    name = "vscode_dotfiles", 
+    deps = [
         ":vscode_user_settings",
-        ":vscode_workspace_settings",
+        ":vscode_platform_settings",
     ],
 )

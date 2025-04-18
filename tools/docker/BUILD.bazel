@@ -1,16 +1,16 @@
-load("//modules/rules:dotfile.bzl", "dotfile", "dotfile_group")
+load("//modules/rules:simpledotfile.bzl", "simple_dotfile", "simple_dotfile_group")
 
 package(default_visibility = ["//visibility:public"])
 
 # Create docker config dotfile
-dotfile(
+simple_dotfile(
     name = "docker_config_dotfile",
     src = "//modules/docker:dockerconfig",
     dest = "~/.docker/config.json",
 )
 
 # Group all docker dotfiles
-dotfile_group(
+simple_dotfile_group(
     name = "docker_dotfiles",
     deps = [
         ":docker_config_dotfile",

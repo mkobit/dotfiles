@@ -1,15 +1,7 @@
-# Helper scripts for dotfiles management
-
 package(default_visibility = ["//visibility:public"])
 
-sh_binary(
-    name = "symlink_creator",
-    srcs = ["symlink_creator.sh"],
-    visibility = ["//visibility:public"],
-)
-
-sh_binary(
-    name = "template_processor",
-    srcs = ["template_processor.sh"],
-    visibility = ["//visibility:public"],
-)
+# Export shell script files
+exports_files([
+    "symlink_creator.sh",
+    "template_processor.sh",
+])
