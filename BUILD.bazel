@@ -46,7 +46,7 @@ genrule(
         "//tools/git:git_dotfiles_manifest.txt", 
         "//tools/vim:vim_paths.txt",
         "//tools/neovim:neovim_paths.txt",
-        "//tools/tmux:available_tmux_configs.txt",
+        "//tools/tmux:available_tmux_config.txt",
     ],
     outs = ["all_dotfile_paths.txt"],
     cmd = """
@@ -68,7 +68,7 @@ cat $(location //tools/neovim:neovim_paths.txt) >> $@
 echo "" >> $@
 echo "Tmux Configuration:" >> $@
 echo "--------------------------------------------" >> $@
-cat $(location //tools/tmux:available_tmux_configs.txt) >> $@
+cat $(location //tools/tmux:available_tmux_config.txt) >> $@
 echo "" >> $@
 echo "Generated at $$(date)" >> $@
 """,

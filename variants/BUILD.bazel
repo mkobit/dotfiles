@@ -13,30 +13,30 @@ filegroup(
     srcs = select({
         "//selectors:macos_has_vscode": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_work",
+            "//tools/tmux:tmux_conf_dotfile",
             "//tools/vscode:vscode_platform_settings",
         ],
         "//selectors:linux_has_vscode": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_work",
+            "//tools/tmux:tmux_conf_dotfile",
             "//tools/vscode:vscode_platform_settings",
         ],
         "//selectors:windows_has_vscode": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_work",
+            "//tools/tmux:tmux_conf_dotfile",
             "//tools/vscode:vscode_platform_settings",
         ],
         "//selectors:macos": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_work",
+            "//tools/tmux:tmux_conf_dotfile",
         ],
         "//selectors:linux": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_work",
+            "//tools/tmux:tmux_conf_dotfile",
         ],
         "//selectors:windows": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_work",
+            "//tools/tmux:tmux_conf_dotfile",
         ],
         "//conditions:default": [":base"],
     }),
@@ -49,30 +49,30 @@ filegroup(
     srcs = select({
         "//selectors:macos_has_vscode": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_personal",
+            "//tools/tmux:tmux_conf_dotfile",
             "//tools/vscode:vscode_platform_settings",
         ],
         "//selectors:linux_has_vscode": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_personal",
+            "//tools/tmux:tmux_conf_dotfile",
             "//tools/vscode:vscode_platform_settings",
         ],
         "//selectors:windows_has_vscode": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_personal",
+            "//tools/tmux:tmux_conf_dotfile",
             "//tools/vscode:vscode_platform_settings",
         ],
         "//selectors:macos": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_personal",
+            "//tools/tmux:tmux_conf_dotfile",
         ],
         "//selectors:linux": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_personal",
+            "//tools/tmux:tmux_conf_dotfile",
         ],
         "//selectors:windows": [
             ":base",
-            "//tools/tmux:tmux_conf_combined_personal",
+            "//tools/tmux:tmux_conf_dotfile",
         ],
         "//conditions:default": [":base"],
     }),
