@@ -1,75 +1,86 @@
-= Dotfiles Management System
-:toc:
+= Dotfiles
+:toc: left
 :toclevels: 3
 :icons: font
 
-This repository contains a Bazel-based system for managing dotfiles across different platforms and usage scenarios.
+A Bazel-managed dotfiles repository for consistent environment setup across platforms.
 
-== Repository Structure
+== Overview
 
-* `modules/`: Contains .bzl files with reusable Starlark rules and macros for dotfiles management
-* `platforms/`: Contains BUILD files defining Bazel platform targets for different OS (Windows, Ubuntu WSL, macOS)
-* `variants/`: Contains BUILD files defining targets for different usage scenarios (work_laptop, personal_desktop, etc.)
-* `tools/`: Contains subdirectories for specific tools (git, tmux, neovim, etc.) each with their own BUILD file and templates
-* `bin/`: Contains helper scripts used by Starlark rules for complex operations
-* `selectors/`: Contains selection logic for platform-specific configuration
+This repository contains configuration for various development tools managed using Bazel.
+It follows a structured approach to configuration management, allowing for platform-specific
+and variant-specific setups.
 
-== Usage
+== Repository structure
 
-=== Building all dotfiles
+* *bzl/*: Starlark rules, macros, providers, and Bazel extensions
+** bzl/rules/: Common rules and macros
+** bzl/providers/: Provider definitions
+** bzl/platforms/: Platform detection and configuration
+** bzl/variants/: Variant (work/personal) configuration helpers
 
-[source,bash]
-----
-bazel build //:all_dotfiles
-----
+* *src/*: Source files and implementations
+** src/dotfiles/: Tool-specific configurations
+*** src/dotfiles/tmux/: All tmux configuration in one place
+*** src/dotfiles/git/: All git configuration in one place
+*** src/dotfiles/vim/: All vim/neovim configuration in one place
+*** src/dotfiles/zsh/: All zsh configuration in one place
+** src/packages/: Package management definitions
+** src/lib/: Custom programs and utilities
 
-=== Building tool-specific dotfiles
+* *bin/*: Helper scripts (minimal usage)
 
-[source,bash]
-----
-bazel build //tools/git:git_dotfiles
-----
+* *config/*: Build settings and configuration
+** config/platforms/: Platform-specific BUILD.bazel files
+** config/variants/: Usage scenario targets (work, personal, server)
 
-=== Installing dotfiles
+* *test/*: Test fixtures and validation tests
 
-[source,bash]
-----
-bazel run //:all_dotfiles
-----
+== Getting started
 
-=== Printing paths to generated files
+=== Prerequisites
 
-[source,bash]
-----
-bazel run //:print_paths
-----
+* Bazel 7.0 or higher
+* Git
 
-=== Managing packages
-
-==== Installing macOS development packages
+=== Installation
 
 [source,bash]
 ----
-bazel run //tools/package:install_macos_dev
+# Build all dotfiles
+bazel build //...
+
+# Install dotfiles for your variant
+bazel run //:work  # For work environment
+bazel run //:personal  # For personal environment
+bazel run //:server  # For server environment
 ----
 
-==== Installing comprehensive macOS development packages
+== Development
+
+=== Adding a new tool
+
+1. Create a new directory under `src/dotfiles/`
+2. Add configuration files in the tool directory
+3. Create a BUILD.bazel file with appropriate targets
+4. Update variant configurations in `config/variants/`
+
+=== Testing
 
 [source,bash]
 ----
-bazel run //tools/package:install_macos_power_dev
+# Run all tests
+bazel test //...
 ----
 
-==== Installing minimal package set
+== Design principles
 
-[source,bash]
-----
-bazel run //tools/package:install_macos_minimal
-----
+* Use Bazel exclusively for configuration management
+* No bespoke shell scripts
+* Support multiple platforms and usage scenarios
+* Keep configurations modular and reusable
+* Use provider interfaces for strongly-typed configuration
 
-==== Using a variant-specific package configuration
+== License
 
-[source,bash]
-----
-bazel run //variants/macos_dev:install
-----
+This project is licensed under the MIT License - see the LICENSE file for details.

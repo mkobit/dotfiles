@@ -1,79 +1,102 @@
-# Dotfiles development
+# Bazel dotfiles structure guidelines
 
-## Purpose
-This document defines the architecture, standards, and patterns for this dotfiles repository.
+This document outlines a suggested Bazel directory structure for managing personal dotfiles. This approach uses root-level packages for each tool, co-located tests, and a central `rules/` directory for shared Starlark logic and helper scripts.
 
-## Repository structure
-- modules/: Starlark rules and macros (git/, rules/, tmux/, vim/)
-- platforms/: Platform-specific BUILD.bazel files (Windows, WSL, macOS)
-- variants/: Usage scenario targets (work_laptop, personal_desktop)
-- tools/: Tool implementations and templates (git/, tmux/, vim/, neovim/, zsh/)
-- bin/: Helper scripts for complex operations
-- selectors/: Platform-specific conditional configuration
+## Directory structure
 
-Each tool MUST have:
-- modules/[tool]/: Rule definitions, providers, interfaces
-- tools/[tool]/: Implementation, templates, targets
+.
+├── MODULE.bazel        # Bazel module definition (bzlmod). Defines project name and dependencies.
+├── BUILD.bazel         # Root BUILD file (often minimal, maybe top-level aliases or test suites).
+│
+├── rules/              # Reusable Starlark logic (rules, macros, providers) and helper scripts.
+│   ├── BUILD.bazel     # Makes helper scripts/rules available to other packages.
+│   ├── install_dotfile.sh # Core script to symlink/copy a single dotfile.
+│   └── dotfile.bzl     # (Optional) Custom Bazel rule (e.g., dotfile_install) for a cleaner API.
+│
+├── config/             # Build settings, variant definitions, and platform configurations.
+│   ├── BUILD.bazel     # Defines configuration targets or applies settings.
+│   └── settings.bzl    # (Optional) Defines custom build settings (e.g., --//config:variant=personal).
+│
+├── git/                # Root-level package for Git configuration.
+│   ├── BUILD.bazel     # Defines targets for git files (install, test, verification).
+│   ├── gitconfig       # Source gitconfig file (or template).
+│   ├── gitignore_global # Source global gitignore file.
+│   └── test/           # Co-located tests for git configuration.
+│       └── gitconfig_test.sh # Example test script.
+│
+├── vim/                # Root-level package for Vim configuration.
+│   ├── BUILD.bazel     # Defines targets for vim files.
+│   ├── vimrc           # Source vimrc file.
+│   ├── colors/         # Subdirectory for vim assets like color schemes.
+│   │   └── mytheme.vim
+│   └── test/           # Co-located tests for vim configuration.
+│       └── basic_vimrc_test.sh # Example test script.
+│
+├── nvim/               # Root-level package for Neovim config (e.g., installs to ~/.config/nvim/).
+│   ├── BUILD.bazel     # Defines targets for nvim files.
+│   ├── init.vim        # Source init.vim (or init.lua).
+│   ├── lua/            # Example subdirectory for Lua configuration.
+│   │   └── config.lua
+│   └── test/           # Co-located tests for nvim configuration.
+│       └── nvim_lua_test.sh # Example test script.
+│
+├── bin/                # Root-level package for personal scripts intended for the user's PATH.
+│   ├── BUILD.bazel     # Defines sh_binary/py_binary targets for scripts.
+│   └── my_script.sh    # The source script file itself.
+│
+└── ...                 # Other root-level packages for tools like tmux, zsh, alacritty, etc.
 
-## Architecture
-- Use Bazel 7.0+ with bzlmod for dependencies
-- Keep modules independent to avoid circular dependencies
-- Separate rule definitions (modules/) from implementations (tools/)
-- Use provider interfaces for standardized configuration passing
-- Define clear extension points for customization
-- Do not create bespoke shell scripts
+## Explanation of components
 
-## Bazel Standards
-- All operations MUST use Bazel commands
-- All installations MUST use Bazel targets, not custom scripts
-- Use MODULE.bazel instead of WORKSPACE
-- Use select() for platform-specific configuration
-- File extensions:
-  - BUILD.bazel for BUILD files
-  - .bzl for Starlark files with rules and macros
-  - MODULE.bazel for bzlmod definitions
-- Do not create bespoke shell scripts
+1.  **`MODULE.bazel`**:
+    * Entry point for Bazel's dependency management (bzlmod).
+    * Defines module name, dependencies (`bazel_dep`), and toolchains.
 
-## Configuration Management
-- Use strongly-typed providers
-- Ensure deterministic file generation
-- Configuration layers:
-  1. Base: Common settings
-  2. Platform: OS-specific settings
-  3. Variant: Context-specific settings
-- Do not create bespoke shell scripts
+2.  **Root `BUILD.bazel`**:
+    * Often minimal. May define top-level `test_suite` targets or convenience aliases.
+    * **Example:** `test_suite(name = "dotfile_tests", tests = ["//git:test", "//vim:test"])`
 
-## Separation of concerns
-- No work/private settings in repository
-- Enable machine-specific configuration injection
-- Support local extensions (e.g., ~/.gitconfig.local)
-- Create isolated variant targets for different contexts
+3.  **`rules/`**:
+    * Central location for reusable Starlark code (`.bzl`) and helper scripts (`.sh`). Forms the core framework.
+    * `install_dotfile.sh`: Script performing filesystem operations (symlinking, copying), invoked by Bazel targets.
+    * `dotfile.bzl` (Optional but recommended): Defines custom rules/macros (e.g., `dotfile_install`) to simplify package `BUILD` files by abstracting installation logic.
 
-## Documentation
-- Use AsciiDoctor (.adoc) for documentation
-- Each module needs README.adoc with purpose, options, examples
-- Document inter-module relationships
-- Include diagrams for complex configurations
+4.  **`rules/BUILD.bazel`**:
+    * Makes `rules/` contents accessible using `exports_files`.
+    * **Example:** `exports_files(["install_dotfile.sh", "dotfile.bzl"])`
 
-## Development process
-- Build to verify generation logic: `bazel build //...`
-- Run tests to verify correctness: `bazel test //...`
-- Use build-time configuration over runtime detection
-- Use GitHub Actions for CI/CD
-- Do not create bespoke shell scripts
+5.  **`config/`**:
+    * Manages build-wide configurations, variants (e.g., work/personal), and platform specifics.
+    * `settings.bzl` (Optional): Defines custom build settings (e.g., `--//config:variant=personal`) used with `select()`.
+    * `BUILD.bazel`: Defines targets grouping installations or applying configurations.
 
-## Testing
-- Use Bazel's test rules
-- Test cross-platform compatibility
-- Use toolchains for each module
+6.  **`<tool>/` (e.g., `git/`, `vim/`, `bin/`)**:
+    * Self-contained Bazel package for a specific tool or component.
+    * Contains source configuration files/scripts.
+    * Includes the package's `BUILD.bazel`.
+    * Includes a `test/` subdirectory for co-located tests.
 
-## Implementation patterns
-- Handle platform differences at BUILD-time
-- Prefer pure Starlark implementations
-- Use long command options for readability (--name vs -n)
-- Maintain consistent naming between modules/ and tools/ directories
+7.  **`<tool>/BUILD.bazel` (e.g., `git/BUILD.bazel`)**:
+    * Core definition file for the package. Defines targets for:
+        * **Installation:** Uses `sh_binary` (tagged `manual`) executing `//rules:install_dotfile.sh`, or preferably a custom rule from `//rules:dotfile.bzl`. These targets perform the actual filesystem modifications (symlinking/copying) into `$HOME`.
+        * **Verification (Optional):** Targets that echo intended source/destination paths without side effects.
+        * **Testing:** Test targets (`sh_test`, `py_test`) executing scripts from the `test/` subdirectory, often using source files via the `data` attribute.
+        * **Building:** May include targets for generating files from templates or compiling code (e.g., in `bin/`).
 
-## Code Generation
-- All generation MUST use Bazel rules and Starlark
-- NO bespoke or ad-hoc shell scripts
-- Implement all functionality through Starlark rules and macros
+## How to use (workflow)
+
+1.  **Bootstrap:** Place source files into their respective root-level directories (e.g., `git/gitconfig`). Create `BUILD.bazel` files within each package.
+2.  **Define targets:** In each `<tool>/BUILD.bazel`, define installation (tagged `manual`), build (if needed), and test targets using standard Bazel rules or custom rules from `//rules`.
+3.  **Build:** Ensure configurations can be generated and sources compiled (if applicable):
+    * `bazel build //...` (Build all buildable targets)
+    * `bazel build //git:all` (Build all targets in the git package)
+4.  **Test:** Run tests to verify configuration logic and scripts:
+    * `bazel test //git:test` (Test a specific package)
+    * `bazel test //...` (Test all targets)
+    * `bazel test :dotfile_tests` (Run a defined test suite)
+5.  **Install:** Run the *manual* installation targets to apply changes to your system:
+    * `bazel run //git:install_gitconfig` (Run specific install target)
+    * Use convenience aliases if defined: `bazel run //git:install`
+    * Run multiple targets: `bazel run //git:install_gitconfig //git:install_gitignore_global`
+
+This structure provides a clear organization by tool, keeps the core build logic reusable and centralized in `rules/`, facilitates configuration variations via `config/`, and integrates building, testing, and installation directly alongside the relevant configuration files.
