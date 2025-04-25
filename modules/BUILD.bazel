@@ -1,5 +1,0 @@
-# Root BUILD file for modules directory
-
-package(default_visibility = ["//visibility:public"])
-
-exports_files(["README.adoc"])

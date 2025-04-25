@@ -72,19 +72,3 @@ echo "To install, create a symlink from this file to ~/.tmux.conf" >> $@
 echo "" >> $@
 """,
 )
-
-# Create a simple verification target that just outputs information
-genrule(
-    name = "verify",
-    srcs = [":tmux_conf"],
-    outs = ["verify.txt"],
-    cmd = """
-echo "# Tmux Configuration Verification" > $@
-echo "" >> $@
-echo "Generated configuration: $(location :tmux_conf)" >> $@
-echo "" >> $@
-echo "First 10 lines of configuration:" >> $@
-head -n 10 $(location :tmux_conf) >> $@
-echo "..." >> $@
-""",
-)
