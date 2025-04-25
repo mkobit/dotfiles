@@ -1,7 +1,0 @@
-package(default_visibility = ["//visibility:public"])
-
-# Export shell script files
-exports_files([
-    "symlink_creator.sh",
-    "template_processor.sh",
-])
