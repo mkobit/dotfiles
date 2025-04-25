@@ -1,0 +1,107 @@
+package(default_visibility = ["//visibility:public"])
+
+# This BUILD file defines the variant configuration settings
+# These settings allow selecting different dotfiles configurations
+# based on both platform (OS) and variant (personal/work/minimal)
+
+# Define variant settings using standard Bazel flags
+# Usage: bazel build --define=variant=work //path/to:target
+
+config_setting(
+    name = "is_personal",
+    define_values = {
+        "variant": "personal",
+    },
+)
+
+config_setting(
+    name = "is_work",
+    define_values = {
+        "variant": "work",
+    },
+)
+
+config_setting(
+    name = "is_minimal",
+    define_values = {
+        "variant": "minimal",
+    },
+)
+
+# Combined platform + variant config settings
+# These make it easier to select configurations for specific combinations
+
+# Personal variant combinations
+config_setting(
+    name = "macos_personal",
+    define_values = {
+        "variant": "personal",
+    },
+    constraint_values = ["@platforms//os:macos"],
+)
+
+config_setting(
+    name = "linux_personal",
+    define_values = {
+        "variant": "personal",
+    },
+    constraint_values = ["@platforms//os:linux"],
+)
+
+config_setting(
+    name = "windows_personal",
+    define_values = {
+        "variant": "personal",
+    },
+    constraint_values = ["@platforms//os:windows"],
+)
+
+# Work variant combinations
+config_setting(
+    name = "macos_work",
+    define_values = {
+        "variant": "work",
+    },
+    constraint_values = ["@platforms//os:macos"],
+)
+
+config_setting(
+    name = "linux_work",
+    define_values = {
+        "variant": "work",
+    },
+    constraint_values = ["@platforms//os:linux"],
+)
+
+config_setting(
+    name = "windows_work",
+    define_values = {
+        "variant": "work",
+    },
+    constraint_values = ["@platforms//os:windows"],
+)
+
+# Minimal variant combinations
+config_setting(
+    name = "macos_minimal",
+    define_values = {
+        "variant": "minimal",
+    },
+    constraint_values = ["@platforms//os:macos"],
+)
+
+config_setting(
+    name = "linux_minimal",
+    define_values = {
+        "variant": "minimal",
+    },
+    constraint_values = ["@platforms//os:linux"],
+)
+
+config_setting(
+    name = "windows_minimal",
+    define_values = {
+        "variant": "minimal",
+    },
+    constraint_values = ["@platforms//os:windows"],
+)

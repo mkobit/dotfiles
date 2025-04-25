@@ -1,8 +1,5 @@
-"""Root BUILD file for the dotfiles project."""
-
 package(default_visibility = ["//visibility:public"])
 
 load(":toolchain_types.bzl", "declare_toolchain_types")
 
-# Declare required toolchain types
 declare_toolchain_types()

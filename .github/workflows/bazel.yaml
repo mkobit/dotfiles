@@ -13,62 +13,16 @@ jobs:
 
       - name: Set up Bazel
         uses: bazel-contrib/setup-bazel@0.14.0
+        with:
+            # Avoid downloading Bazel every time
+            bazelisk-cache: true
+            # Store build cache per workflow
+            disk-cache: ${{ github.workflow }}
+            # Share repository cache between workflows
+            repository-cache: true
 
-      - name: Build (All Platforms)
-        run: |
-          # Regular build for non-WSL environments
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            # Skip tmux on Windows as it's not supported
-            bazel build //... --build_tag_filters="-tmux"
-          else
-            bazel build //...
-          fi
-        shell: bash
+      - name: Build All Packages
+        run: bazel build //...
 
-      - name: Test (All Platforms)
-        run: |
-          # Regular tests
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            # Skip tmux-related tests on Windows
-            bazel test //... --test_tag_filters="-tmux"
-          else
-            bazel test //...
-          fi
-        shell: bash
-
-      - name: Build base variant
-        run: |
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            # Skip tmux on Windows
-            bazel build //variants:base --build_tag_filters="-tmux"
-          else
-            bazel build //variants:base
-          fi
-        shell: bash
-        
-      - name: Build variant-specific dotfiles
-        run: |
-          if [ "${{ runner.os }}" == "Windows" ]; then
-            # Skip tmux-related targets on Windows
-            bazel build //variants:work_laptop --build_tag_filters="-tmux"
-            bazel build //variants:personal_desktop --build_tag_filters="-tmux"
-            bazel build //variants:personal_wsl --build_tag_filters="-tmux"
-            bazel build //variants:work_remote_devbox --build_tag_filters="-tmux"
-          else
-            bazel build //variants:work_laptop
-            bazel build //variants:personal_desktop
-            bazel build //variants:personal_wsl
-            bazel build //variants:work_remote_devbox
-          fi
-        shell: bash
-
-      - name: Build with variant flags
-        if: runner.os != 'Windows'  # Skip on Windows if needed
-        run: |
-          bazel build --define=variant=work //variants:work_laptop
-          bazel build --define=variant=personal //variants:personal_desktop
-
-      - name: Build with WSL configuration
-        if: runner.os == 'Linux'
-        run: |
-          bazel build --define=wsl=true //modules/tmux:combined_tmux
+      - name: Run All Tests
+        run: bazel test //...
