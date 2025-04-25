@@ -1,7 +1,0 @@
-package(default_visibility = ["//visibility:public"])
-
-# This directory contains tools and helper functions for the dotfiles system
-exports_files([
-    "defs.bzl",
-    "print_paths.sh",
-])
