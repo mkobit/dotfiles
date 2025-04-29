@@ -94,9 +94,30 @@ This document outlines a suggested Bazel directory structure for managing person
     * `bazel test //git:test` (Test a specific package)
     * `bazel test //...` (Test all targets)
     * `bazel test :dotfile_tests` (Run a defined test suite)
-5.  **Install:** Run the *manual* installation targets to apply changes to your system:
-    * `bazel run //git:install_gitconfig` (Run specific install target)
-    * Use convenience aliases if defined: `bazel run //git:install`
-    * Run multiple targets: `bazel run //git:install_gitconfig //git:install_gitignore_global`
 
 This structure provides a clear organization by tool, keeps the core build logic reusable and centralized in `rules/`, facilitates configuration variations via `config/`, and integrates building, testing, and installation directly alongside the relevant configuration files.
+
+## AI assistant guidelines
+
+Before modifying this codebase, explore it thoroughly using:
+
+1. Examine related files and dependencies by using traversal or `bazel` CLI queries:
+   ```bash
+   bazel query "deps(//tmux:all)" --output label
+   ```
+   ```bash
+   find ./tmux -type f -name "*.conf" | xargs cat
+   ```
+
+2. Understand build outputs by using `bazel` and inspecting the outputs:
+   ```bash
+   bazel build //tmux:all
+   cat $(bazel info bazel-bin)/tmux/combined_config.conf
+   ```
+
+3. Check for existing implementations** before adding new ones:
+   ```bash
+   grep -r "bind-key" --include="*.conf" ./tmux/
+   ```
+
+Always read ALL relevant files before suggesting changes to avoid creating unneccessary, breaking, and confusing changes.
