@@ -28,10 +28,6 @@ config_setting(
     },
 )
 
-# Combined platform + variant config settings
-# These make it easier to select configurations for specific combinations
-
-# Personal variant combinations
 config_setting(
     name = "macos_personal",
     define_values = {
