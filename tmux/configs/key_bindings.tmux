@@ -17,9 +17,9 @@ if-shell "tmux -V | awk '{split($2,a,\".\")} a[1] > 3 || (a[1] == 3 && a[2] >= 2
     set -as terminal-features 'xterm*:extkeys'
 }
 
-# Reload configuration
+# Reload configuration (changed to a more exotic key combination since it's used less frequently)
 # Docs: https://man.openbsd.org/tmux#source-file
-bind r source-file ${HOME}/.tmux.conf \; display "Reloaded ~/.tmux.conf"
+bind M-r source-file ${HOME}/.tmux.conf \; display "Reloaded ~/.tmux.conf"
 
 # Window management
 unbind-key c
@@ -33,6 +33,12 @@ bind - split-window -v -c "#{pane_current_path}"
 
 # Quick window navigation
 bind-key a last-window
+
+# Window renaming - more accessible than default (prefix + ,)
+# Using 'A' (capital a) for renAme instead of 'R' to avoid conflicts
+bind-key A command-prompt -I "#W" "rename-window '%%'" 
+bind-key C-a send-prefix  # Preserve the send-prefix functionality
+bind-key M-a command-prompt -I "#W" "rename-window '%%'"  # Alternative binding with Meta
 
 # Vim-like pane navigation
 unbind-key j
