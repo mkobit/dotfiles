@@ -36,9 +36,8 @@ bind-key a last-window
 
 # Window renaming - more accessible than default (prefix + ,)
 # Using 'A' (capital a) for renAme instead of 'R' to avoid conflicts
-bind-key A command-prompt -I "#W" "rename-window '%%'" 
+bind-key A command-prompt -I "#W" "rename-window '%%'"
 bind-key C-a send-prefix  # Preserve the send-prefix functionality
-bind-key M-a command-prompt -I "#W" "rename-window '%%'"  # Alternative binding with Meta
 
 # Vim-like pane navigation
 unbind-key j
