@@ -41,8 +41,5 @@ set -g window-status-format " #I:#W #{?#{m:*ssh*,#{pane_current_command}},#[fg=#
 set -g window-status-current-format " #I:#W #{?#{m:*ssh*,#{pane_current_command}},#[fg=#bf616a]SSH,}#{?window_zoomed_flag, 🔍,} "
 set -g window-status-separator ""
 
-# Activity indicators
-set -g window-status-activity-style "fg=#bf616a,bg=#2e3440"
-
 # When explicitly renaming a window, disable automatic renaming
 set-hook -g after-rename-window 'set-window-option automatic-rename off'
