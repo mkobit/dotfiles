@@ -1,5 +1,1 @@
 package(default_visibility = ["//visibility:public"])
-
-load(":toolchain_types.bzl", "declare_toolchain_types")
-
-declare_toolchain_types()
