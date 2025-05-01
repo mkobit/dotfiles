@@ -1,0 +1,6 @@
+# Global .gitignore file
+.DS_Store
+.idea/
+*.swp
+*~
+/bazel-*
