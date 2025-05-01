@@ -41,9 +41,6 @@ set -g window-status-format " #I:#W #{?#{m:*ssh*,#{pane_current_command}},#[fg=#
 set -g window-status-current-format " #I:#W #{?#{m:*ssh*,#{pane_current_command}},#[fg=#bf616a]SSH,}#{?window_zoomed_flag, 🔍,} "
 set -g window-status-separator ""
 
-# When explicitly renaming a window, disable automatic renaming
-set-hook -g after-rename-window 'set-window-option automatic-rename off'
-
 # Update status bar every 2 seconds (more responsive)
 # Docs: https://man.openbsd.org/tmux#status-interval
 set-option -g status-interval 2

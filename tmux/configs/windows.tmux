@@ -37,11 +37,9 @@ bind-key -r n next-window
 # Docs: https://man.openbsd.org/tmux#previous-window
 bind-key -r p previous-window
 
-# Easy renaming and reset to auto naming
-# Docs: https://man.openbsd.org/tmux#command-prompt
-bind-key r command-prompt -I "#{window_name}" "rename-window '%%'"
-# Docs: https://man.openbsd.org/tmux#automatic-rename
-bind-key R set-window-option automatic-rename on \; display-message "Auto rename restored"
+# When a window is manually renamed, disable automatic renaming for that window
+# Docs: https://man.openbsd.org/tmux#window-renamed
+set-hook -g window-renamed 'set-window-option automatic-rename off'
 
 # Shift+Arrow for window navigation without prefix
 # Docs: https://man.openbsd.org/tmux#previous-window
