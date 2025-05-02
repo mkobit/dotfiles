@@ -26,3 +26,7 @@ if-shell "tmux -V | awk '{split($2,a,\".\")} a[1] > 3 || (a[1] == 3 && a[2] >= 2
 # Reload configuration (changed to a more exotic key combination since it's used less frequently)
 # Docs: https://man.openbsd.org/tmux#source-file
 bind-key M-r source-file ${HOME}/.tmux.conf \; display-message "Reloaded ~/.tmux.conf"
+
+# Interactive session/window/pane switcher (alternative to C-j popup)
+# Docs: https://man.openbsd.org/tmux#choose-tree
+bind-key S choose-tree -Zs
