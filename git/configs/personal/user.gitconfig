@@ -1,5 +1,8 @@
 [user]
-	name = Mike Kobit
+	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-username
+	name = "Mike Kobit"
+    # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-useremail
+    email = todo@example.com
+    # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-usersigningKey
+    signingkey = 1698254E135D7ADE!
 
-[github]
-	user = mkobit

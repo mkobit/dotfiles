@@ -1,3 +1,6 @@
+# Ignore local Bazel configuration changes
+/.local.bazelrc
+
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,git,macos,windows,linux,bazel,vim,kotlin,python,java,intellij+all
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,git,macos,windows,linux,bazel,vim,kotlin,python,java,intellij+all
 

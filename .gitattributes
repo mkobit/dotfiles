@@ -1,8 +1,35 @@
 # Default to normalize to LF if core.autocrlf is not set
-* text=auto
+* text=auto eol=lf
 
-# Always use crlf line endings Gradle .bat file
-gradlew.bat text eol=crlf
+# Binary files that should not be modified
+*.jar binary
+*.png binary
+*.gif binary
+*.ico binary
+*.gz binary
+*.zip binary
+*.7z binary
 
-# Mark Gradle wrapper as a binary
-gradle/wrapper/gradle-wrapper.jar binary
+# Explicit text files
+*.bazel text
+*.bzl text
+*.build text
+*.md text
+*.sh text
+*.yaml text
+*.yml text
+*.json text
+*.txt text
+*.html text
+
+*.rs text eol=lf
+
+# Scripts should use LF
+*.sh text eol=lf
+bazel-* text eol=lf
+*.bazel text eol=lf
+*.bzl text eol=lf
+
+# Windows scripts should use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf

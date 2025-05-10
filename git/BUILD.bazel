@@ -5,35 +5,21 @@ BASE_CONFIG_FILES = glob(["configs/base/*.gitconfig"])
 genrule(
     name = "gitconfig",
     srcs = BASE_CONFIG_FILES + select({
-        "//config:is_work": glob(["configs/work/*.gitconfig"]),
-        "//config:is_personal": glob(["configs/personal/*.gitconfig"]),
+        "//config:work": glob(["configs/work/*.gitconfig"]),
+        "//config:personal": glob(["configs/personal/*.gitconfig"]),
         "//conditions:default": [],
     }),
     outs = ["combined.gitconfig"],
     cmd = """
 cat > $@ << 'EOF'
 # THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY
-# Git configuration for variant: $(COMPILATION_MODE)
 # Generated using Bazel
-
 EOF
 
-# First process all base files
 for f in $(SRCS); do
-    if [[ $$f == *"configs/base/"* ]]; then
-        echo "# Including base/$$(basename $$f)" >> $@
-        cat $$f >> $@
-        echo "" >> $@
-    fi
-done
-
-# Then process all variant files
-for f in $(SRCS); do
-    if [[ $$f != *"configs/base/"* ]]; then
-        echo "# Including variant/$$(basename $$f)" >> $@
-        cat $$f >> $@
-        echo "" >> $@
-    fi
+    echo "# Including $$(basename $$f)" >> $@
+    cat $$f >> $@
+    echo "" >> $@
 done
 
 cat >> $@ << 'EOF'
@@ -42,7 +28,6 @@ EOF
 """,
 )
 
-# Generate .gitignore_global file
 genrule(
     name = "gitignore",
     srcs = ["configs/gitignore_global"],
@@ -50,7 +35,6 @@ genrule(
     cmd = "cp $(SRCS) $@",
 )
 
-# Filegroup for all generated config files
 filegroup(
     name = "all_configs",
     srcs = [

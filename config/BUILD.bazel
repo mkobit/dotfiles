@@ -1,103 +1,57 @@
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+
 package(default_visibility = ["//visibility:public"])
 
-# This BUILD file defines the variant configuration settings
-# These settings allow selecting different dotfiles configurations
-# based on both platform (OS) and variant (personal/work/minimal)
-
-# Define variant settings using standard Bazel flags
-# Usage: bazel build --define=variant=work //path/to:target
-
-config_setting(
-    name = "is_personal",
-    define_values = {
-        "variant": "personal",
-    },
+string_flag(
+    name = "profile",
+    build_setting_default = "unspecified",
+    values = [
+        "unspecified",
+        "personal",
+        "work",
+    ],
+    visibility = ["//visibility:public"],
 )
 
 config_setting(
-    name = "is_work",
-    define_values = {
-        "variant": "work",
+    name = "unspecified",
+    flag_values = {
+        ":profile": "unspecified",
     },
+    visibility = ["//visibility:public"],
 )
 
 config_setting(
-    name = "is_minimal",
-    define_values = {
-        "variant": "minimal",
+    name = "personal",
+    flag_values = {
+        ":profile": "personal",
     },
+    visibility = ["//visibility:public"],
 )
 
 config_setting(
-    name = "macos_personal",
-    define_values = {
-        "variant": "personal",
+    name = "work",
+    flag_values = {
+        ":profile": "work",
     },
-    constraint_values = ["@platforms//os:macos"],
+    visibility = ["//visibility:public"],
 )
 
-config_setting(
-    name = "linux_personal",
-    define_values = {
-        "variant": "personal",
-    },
+
+platform(
+    name = "linux",
     constraint_values = ["@platforms//os:linux"],
+    visibility = ["//visibility:public"],
 )
 
-config_setting(
-    name = "windows_personal",
-    define_values = {
-        "variant": "personal",
-    },
-    constraint_values = ["@platforms//os:windows"],
-)
-
-# Work variant combinations
-config_setting(
-    name = "macos_work",
-    define_values = {
-        "variant": "work",
-    },
+platform(
+    name = "macos",
     constraint_values = ["@platforms//os:macos"],
+    visibility = ["//visibility:public"],
 )
 
-config_setting(
-    name = "linux_work",
-    define_values = {
-        "variant": "work",
-    },
-    constraint_values = ["@platforms//os:linux"],
-)
-
-config_setting(
-    name = "windows_work",
-    define_values = {
-        "variant": "work",
-    },
+platform(
+    name = "windows",
     constraint_values = ["@platforms//os:windows"],
-)
-
-# Minimal variant combinations
-config_setting(
-    name = "macos_minimal",
-    define_values = {
-        "variant": "minimal",
-    },
-    constraint_values = ["@platforms//os:macos"],
-)
-
-config_setting(
-    name = "linux_minimal",
-    define_values = {
-        "variant": "minimal",
-    },
-    constraint_values = ["@platforms//os:linux"],
-)
-
-config_setting(
-    name = "windows_minimal",
-    define_values = {
-        "variant": "minimal",
-    },
-    constraint_values = ["@platforms//os:windows"],
+    visibility = ["//visibility:public"],
 )

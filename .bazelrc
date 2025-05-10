@@ -2,3 +2,6 @@ common --enable_bzlmod
 
 startup --host_jvm_args="-Dfile.encoding=UTF-8"
 build --javacopt="-encoding UTF-8"
+
+# Try to import user-specific configuration
+try-import %workspace%/.bazelrc.local

@@ -1,4 +1,5 @@
 [core]
+	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreeditor
 	editor = vim
+	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreautocrlf
 	autocrlf = input
-	excludesfile = ~/.gitignore_global
