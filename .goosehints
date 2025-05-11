@@ -10,7 +10,6 @@ This document outlines a suggested Bazel directory structure for managing person
 │
 ├── rules/              # Reusable Starlark logic (rules, macros, providers) and helper scripts.
 │   ├── BUILD.bazel     # Makes helper scripts/rules available to other packages.
-│   ├── install_dotfile.sh # Core script to symlink/copy a single dotfile.
 │   └── dotfile.bzl     # (Optional) Custom Bazel rule (e.g., dotfile_install) for a cleaner API.
 │
 ├── config/             # Build settings, variant definitions, and platform configurations.
@@ -19,26 +18,21 @@ This document outlines a suggested Bazel directory structure for managing person
 │
 ├── git/                # Root-level package for Git configuration.
 │   ├── BUILD.bazel     # Defines targets for git files (install, test, verification).
-│   ├── gitconfig       # Source gitconfig file (or template).
-│   ├── gitignore_global # Source global gitignore file.
-│   └── test/           # Co-located tests for git configuration.
-│       └── gitconfig_test.sh # Example test script.
-│
+│   ├── configs/        # Directory containing git configuration files
+│       ├── base/       # Base git configuration shared across all profiles
+│       ├── personal/   # Personal git configuration profile
+│       └── work/       # Work git configuration profile
 ├── vim/                # Root-level package for Vim configuration.
 │   ├── BUILD.bazel     # Defines targets for vim files.
 │   ├── vimrc           # Source vimrc file.
 │   ├── colors/         # Subdirectory for vim assets like color schemes.
 │   │   └── mytheme.vim
-│   └── test/           # Co-located tests for vim configuration.
-│       └── basic_vimrc_test.sh # Example test script.
 │
 ├── nvim/               # Root-level package for Neovim config (e.g., installs to ~/.config/nvim/).
 │   ├── BUILD.bazel     # Defines targets for nvim files.
 │   ├── init.vim        # Source init.vim (or init.lua).
 │   ├── lua/            # Example subdirectory for Lua configuration.
 │   │   └── config.lua
-│   └── test/           # Co-located tests for nvim configuration.
-│       └── nvim_lua_test.sh # Example test script.
 │
 ├── bin/                # Root-level package for personal scripts intended for the user's PATH.
 │   ├── BUILD.bazel     # Defines sh_binary/py_binary targets for scripts.
@@ -80,7 +74,7 @@ This document outlines a suggested Bazel directory structure for managing person
     * Core definition file for the package. Defines targets for:
         * **Installation:** Uses `sh_binary` (tagged `manual`) executing `//rules:install_dotfile.sh`, or preferably a custom rule from `//rules:dotfile.bzl`. These targets perform the actual filesystem modifications (symlinking/copying) into `$HOME`.
         * **Verification (Optional):** Targets that echo intended source/destination paths without side effects.
-        * **Testing:** Test targets (`sh_test`, `py_test`) executing scripts from the `test/` subdirectory, often using source files via the `data` attribute.
+        * **Testing:** Test targets (`sh_test`, `py_test`) executing test targets
         * **Building:** May include targets for generating files from templates or compiling code (e.g., in `bin/`).
 
 ## How to use (workflow)

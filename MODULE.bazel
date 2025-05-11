@@ -5,9 +5,3 @@ module(
 
 bazel_dep(name = "bazel_skylib", version = "1.7.1")
 bazel_dep(name = "platforms", version = "0.0.11")
-
-register_toolchains(
-    "//platforms/common:default_vim_toolchain",
-    "//platforms/common:default_neovim_toolchain",
-    "//platforms/common:default_brew_toolchain"
-)
