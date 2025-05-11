@@ -1,0 +1,3 @@
+[pull]
+	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-pullrebase
+	rebase = true
