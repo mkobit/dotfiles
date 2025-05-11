@@ -4,10 +4,8 @@
 	amend = commit --amend
 	delete-merged-branches = "!git checkout master && git branch --merged master | sed -E 's/^\\\\*//;s/\\\\s*//' | grep -v 'master' | xargs --no-run-if-empty --max-args 1 git branch -d"
 	diff-staged = diff --cached
-	exec = ! exec
 	graph-all = log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all
 	please = push --force-with-lease
-	soft-reset = !git reset --soft HEAD~1 && git reset HEAD .
 	touchup = !git add -u && git commit --amend --no-edit
 	sync = pull --rebase --autostash
 	unstage = reset HEAD --
