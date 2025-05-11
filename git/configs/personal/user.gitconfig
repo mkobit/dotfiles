@@ -4,5 +4,5 @@
   # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-useremail
   email = mkobit@gmail.com
   # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-usersigningKey
-  signingkey = 1698254E135D7ADE!
+  signingkey = 1698254E135D7ADE
 
