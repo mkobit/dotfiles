@@ -1,4 +1,4 @@
 ### DO NOT COMMIT CHANGES TO THIS FILE ###
 # Example profiles
 # build --//config:profile=personal
-build --//config:profile=work
+# build --//config:profile=work
