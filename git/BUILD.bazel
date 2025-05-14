@@ -1,6 +1,8 @@
 package(default_visibility = ["//visibility:public"])
 
 BASE_CONFIG_FILES = glob(["configs/base/*.gitconfig"])
+PERSONAL_CONFIG_FILES = glob(["configs/personal/*.gitconfig"])
+WORK_CONFIG_FILES = glob(["configs/work/*.gitconfig"])
 
 genrule(
     name = "gitconfig",
@@ -11,7 +13,7 @@ genrule(
     }),
     outs = ["combined.gitconfig"],
     cmd = """
-cat > $@ << 'EOF'
+cat > $@ << \'EOF\'
 # THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY
 # Generated using Bazel
 EOF
@@ -22,23 +24,15 @@ for f in $(SRCS); do
     echo "" >> $@
 done
 
-cat >> $@ << 'EOF'
+cat >> $@ << \'EOF\'
 # End of generated configuration
 EOF
 """,
-)
-
-genrule(
-    name = "gitignore",
-    srcs = ["configs/gitignore_global"],
-    outs = ["gitignore_global"],
-    cmd = "cp $(SRCS) $@",
 )
 
 filegroup(
     name = "all_configs",
     srcs = [
         ":gitconfig",
-        ":gitignore",
     ],
 )
