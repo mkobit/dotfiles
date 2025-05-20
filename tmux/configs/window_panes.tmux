@@ -34,10 +34,10 @@ bind-key l select-pane -R
 
 # Option/Alt+Arrow keys for pane navigation without prefix
 # Docs: https://man.openbsd.org/tmux#select-pane
-bind -n M-Left select-pane -L
-bind -n M-Right select-pane -R
-bind -n M-Up select-pane -U
-bind -n M-Down select-pane -D
+bind-key -n M-Left select-pane -L
+bind-key -n M-Right select-pane -R
+bind-key -n M-Up select-pane -U
+bind-key -n M-Down select-pane -D
 
 # Vim-style resizing
 # Docs: https://man.openbsd.org/tmux#resize-pane
