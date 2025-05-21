@@ -2,12 +2,6 @@
 # Status bar styling
 # =============================================
 
-set -g automatic-rename-format '#{?#{||:#{==:#{pane_current_command},bash},#{==:#{pane_current_command},zsh}},#{b:pane_current_path},#{=15:pane_current_command}}'
-
-# Make sure automatic renaming is enabled by default
-set -w -g automatic-rename on
-set -w -g allow-rename on
-
 set -g status-style "bg=#2e3440,fg=#d8dee9"
 
 # Default window title colors
@@ -41,9 +35,9 @@ set -g window-status-format " #I:#W #{?#{m:*ssh*,#{pane_current_command}},#[fg=#
 set -g window-status-current-format " #I:#W #{?#{m:*ssh*,#{pane_current_command}},#[fg=#bf616a]SSH,}#{?window_zoomed_flag, 🔍,} "
 set -g window-status-separator ""
 
-# Update status bar every 2 seconds (more responsive)
+# Update status bar every 1 seconds (more responsive)
 # Docs: https://man.openbsd.org/tmux#status-interval
-set-option -g status-interval 2
+set-option -g status-interval 1
 
 # Window list component is left-justified
 # Docs: https://man.openbsd.org/tmux#status-justify
