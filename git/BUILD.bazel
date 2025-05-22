@@ -7,8 +7,8 @@ WORK_CONFIG_FILES = glob(["configs/work/*.gitconfig"])
 genrule(
     name = "gitconfig",
     srcs = BASE_CONFIG_FILES + select({
-        "//config:work": glob(["configs/work/*.gitconfig"]),
-        "//config:personal": glob(["configs/personal/*.gitconfig"]),
+        "//config:work": WORK_CONFIG_FILES,
+        "//config:personal": PERSONAL_CONFIG_FILES,
         "//conditions:default": [],
     }),
     outs = ["combined.gitconfig"],
@@ -28,11 +28,4 @@ cat >> $@ << \'EOF\'
 # End of generated configuration
 EOF
 """,
-)
-
-filegroup(
-    name = "all_configs",
-    srcs = [
-        ":gitconfig",
-    ],
 )
