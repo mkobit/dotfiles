@@ -44,8 +44,9 @@ set-window-option -g allow-rename on
 # - Limit length to prevent overly long titles
 set-window-option -g automatic-rename-format '\
 #{window_index}#{?#{e|>:#{window_panes},1}, (#{pane_index}/#{window_panes}),}: \
-#{?window_zoomed_flag,🔍,}#{?pane_marked,🚩,}#{?pane_synchronized,🔄,} \
-#(git -C "#{pane_current_path}" rev-parse --is-inside-work-tree >/dev/null 2>&1 && echo "🐙 ")#{?pane_ssh,🌐,#{?#{m:((n)?vim|nano|ed),#{b:pane_current_command}},📝,#{?#{m:(less|man),#{b:pane_current_command}},📖,#{?#{m:(htop|top),#{b:pane_current_command}},📊,#{?#{m:(bash|zsh|sh|fish),#{b:pane_current_command}},⌨️,🚀}}}}} \
+#{?window_zoomed_flag,🔍,}#{?pane_marked,🚩,}#{?pane_synchronized,🔄,}\
+#(git -C "#{pane_current_path}" rev-parse --is-inside-work-tree >/dev/null 2>&1 && echo "🐙")\
+#{?pane_ssh,🌐,#{?#{m:((n)?vim|nano|ed),#{b:pane_current_command}},📝,#{?#{m:(less|man),#{b:pane_current_command}},📖,#{?#{m:(htop|top),#{b:pane_current_command}},📊,#{?#{m:(bash|zsh|sh|fish),#{b:pane_current_command}},⌨️,🚀}}}}}\
 #{b:pane_current_path}#{?#{m:(bash|zsh|sh|fish),#{b:pane_current_command}},, | #{b:pane_current_command}}'
 
 # Disable automatic renaming when a window is manually renamed
