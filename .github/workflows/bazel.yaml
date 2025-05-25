@@ -2,7 +2,7 @@ name: Bazel Build and Test
 
 on:
   push:
-    paths-ignore: &paths-ignore
+    paths-ignore:
       - '**.md'
       - '**.adoc'
       - '.goosehints'
@@ -10,7 +10,13 @@ on:
       - '.gitignore'
       - '.editorconfig'
   pull_request:
-    paths-ignore: *paths-ignore
+    paths-ignore:
+      - '**.md'
+      - '**.adoc'
+      - '.goosehints'
+      - '.gitattributes'
+      - '.gitignore'
+      - '.editorconfig'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
