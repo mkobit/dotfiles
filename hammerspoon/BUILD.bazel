@@ -1,0 +1,12 @@
+# Hammerspoon configuration
+filegroup(
+    name = "config",
+    srcs = ["init.lua"],
+)
+
+# Build everything
+filegroup(
+    name = "all",
+    srcs = [":config"],
+    visibility = ["//visibility:public"],
+)

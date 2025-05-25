@@ -1,6 +1,20 @@
 name: Bazel Build and Test
 
-on: [push, pull_request]
+on:
+  push:
+    paths-ignore: &paths-ignore
+      - '**.md'
+      - '**.adoc'
+      - '.goosehints'
+      - '.gitattributes'
+      - '.gitignore'
+      - '.editorconfig'
+  pull_request:
+    paths-ignore: *paths-ignore
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
 
 jobs:
   bazel:
@@ -12,8 +26,8 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} / ${{ matrix.profile }} profile
     steps:
-      - uses: actions/checkout@v4
-
+      - name: Checkout code
+        uses: actions/checkout@v4
       - name: Set up Bazel
         # Pinning to 0.14.0 commit
         uses: bazel-contrib/setup-bazel@e8776f58fb6a6e9055cbaf1b38c52ccc5247e9c4
@@ -25,8 +39,16 @@ jobs:
             # Share repository cache between workflows
             repository-cache: true
 
-      - name: Build All Packages
+      - name: Build all packages
         run: bazel build //... --//config:profile=${{ matrix.profile }}
 
-      - name: Run All Tests
+      - name: Run all tests
         run: bazel test //... --//config:profile=${{ matrix.profile }}
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.os }}-${{ matrix.profile }}
+          path: bazel-testlogs/**/test.xml
+          if-no-files-found: ignore

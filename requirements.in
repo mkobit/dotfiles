@@ -1,0 +1,22 @@
+# Testing
+pytest
+pytest-asyncio
+
+# Linting and formatting
+flake8
+black
+isort
+mypy
+
+# HTTP tools
+aiohttp
+
+# CLI tools
+click
+typer
+
+# Validation
+pydantic
+
+# Time
+whenever

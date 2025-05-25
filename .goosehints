@@ -10,7 +10,7 @@ This document outlines a suggested Bazel directory structure for managing person
 │
 ├── rules/              # Reusable Starlark logic (rules, macros, providers) and helper scripts.
 │   ├── BUILD.bazel     # Makes helper scripts/rules available to other packages.
-│   └── dotfile.bzl     # (Optional) Custom Bazel rule (e.g., dotfile_install) for a cleaner API.
+│   └── example.bazel   # (Optional) Custom Bazel rules shared across the repository.
 │
 ├── config/             # Build settings, variant definitions, and platform configurations.
 │   ├── BUILD.bazel     # Defines configuration targets or applies settings.
