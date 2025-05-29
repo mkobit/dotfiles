@@ -1,0 +1,49 @@
+= Project Checklist
+
+== Workflow
+1. Evaluate next idea from backlog
+2. Implement selected idea
+3. Test implementation thoroughly
+4. Record summary as memory for future reference
+5. Remove from this checklist
+
+== Active Ideas Backlog
+
+* [ ] *Interactive fzf + jq Tool*
+** Description: Create an interactive fuzzy search with preview while typing jq commands
+** Requirements:
+*** Interactive jq prompt with syntax coloration
+*** Live preview of results as you type
+** Implementation notes:
+*** Use genrule + other rules to create a shell script or alias
+*** Only build if tools are available (conditional dependency)
+*** Consider zsh/bashrc integration requirements
+** Reference: https://gist.github.com/reegnz/b9e40993d410b75c2d866441add2cb55[FZF+JQ Interactive Example]
+** Evaluation status: Not started
+
+* [ ] *Shell Script Additions*
+** Description: To be expanded with specific ideas
+** Requirements: TBD
+** Implementation notes: TBD
+** Evaluation status: Not started
+
+* [ ] *"Installation" Rule for Config Files*
+** Description: Add content to config files in an idempotent manner
+** Requirements:
+*** Insert section like include/source-file directive into specified files
+*** Use surrounding boundary text (e.g., `###`, `---`) with unique labels
+*** Ensure idempotent operation (write/include once)
+** Implementation notes:
+*** Potential use cases: tmux source-file directives, git [include] directives, general config inclusions
+** Evaluation status: Not started
+
+== Completed Ideas Archive
+
+// Completed ideas will be moved here with implementation summary
+// Format:
+// * [x] *Idea Name* - _Completed: YYYY-MM-DD_
+//   Summary of implementation and key learnings for future reference
+
+== Future Ideas Parking Lot
+
+// Ideas that aren't ready for implementation but should be remembered
