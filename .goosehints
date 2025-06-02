@@ -91,6 +91,18 @@ This document outlines a suggested Bazel directory structure for managing person
 
 This structure provides a clear organization by tool, keeps the core build logic reusable and centralized in `rules/`, facilitates configuration variations via `config/`, and integrates building, testing, and installation directly alongside the relevant configuration files.
 
+## Key Project Files
+
+### todo.adoc
+
+The `todo.adoc` file serves as the project's task management system in AsciiDoc format. It contains:
+- A defined workflow process for implementing new ideas
+- Active ideas backlog with detailed requirements
+- Completed ideas archive for reference
+- Future ideas parking lot for concepts that aren't ready for implementation
+
+This file should be consulted when planning new features or improvements to understand ongoing work and avoid duplicating efforts.
+
 ## AI assistant guidelines
 
 Before modifying this codebase, explore it thoroughly using:
