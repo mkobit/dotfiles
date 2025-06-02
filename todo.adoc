@@ -37,6 +37,30 @@
 *** Potential use cases: tmux source-file directives, git [include] directives, general config inclusions
 ** Evaluation status: Not started
 
+* [ ] *Memory System for AI Assistants*
+** Description: Create a breadcrumb system for Goose and other AI agents to discover previous work and solutions
+** Requirements:
+*** Persistent storage for insights and successful solutions
+*** Indexing and retrieval mechanism for AI agents to follow breadcrumbs
+*** Documentation structure that's both human and AI readable
+** Implementation notes:
+*** Consider storing insights in specialized markdown or AsciiDoc format
+*** May need to define a standard template for capturing context and solutions
+*** Could leverage existing file structure with special annotations or metadata
+** Evaluation status: Not started
+
+* [ ] *FZF for Tmux History Search*
+** Description: Implement fuzzy search for tmux command history and session navigation
+** Requirements:
+*** Integration with tmux key bindings
+*** Fuzzy search through command history
+*** Preview window for seeing command context
+** Implementation notes:
+*** Leverage fzf for the fuzzy finding interface
+*** Need appropriate keybindings that don't conflict with existing ones
+*** Consider optimizing for both recent command retrieval and specialized searches
+** Evaluation status: Not started
+
 == Completed Ideas Archive
 
 // Completed ideas will be moved here with implementation summary
