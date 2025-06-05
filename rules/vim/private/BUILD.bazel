@@ -1,0 +1,4 @@
+package(default_visibility = ["//rules/vim:__pkg__"])
+
+# This package is only visible to the rules/vim package
+# Contains implementation details
