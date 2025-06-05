@@ -170,6 +170,22 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//toolchains/tmux:extensions.bzl%tmux_toolchain": {
+      "general": {
+        "bzlTransitiveDigest": "ESupDFhbWpavmrWriogiEQwagUGOKXJ/97TPyg93RNM=",
+        "usagesDigest": "XnM8Tmye/ekLXDVhx8B/ltC5I291mZYwPk87XSoyX8c=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "local_tmux": {
+            "repoRuleId": "@@//toolchains/tmux:toolchain.bzl%local_tmux_binary",
+            "attributes": {}
+          }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "@@apple_support+//crosstool:setup.bzl%apple_cc_configure_extension": {
       "general": {
         "bzlTransitiveDigest": "okb7JAyJ9zeL+SDmtbWT0XBLq8WRoLJ0zWAG783RLVI=",

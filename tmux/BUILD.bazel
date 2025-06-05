@@ -22,3 +22,10 @@ cat >> $@ << 'EOF'
 EOF
 """,
 )
+
+load("//rules/tmux:defs.bzl", "tmux_conf_test")
+
+tmux_conf_test(
+    name = "tmux_conf_test",
+    conf = ":tmux_conf",
+)

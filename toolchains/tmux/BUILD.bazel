@@ -1,0 +1,13 @@
+package(default_visibility = ["//visibility:public"])
+
+# Define the toolchain type that represents a tmux toolchain
+toolchain_type(
+    name = "toolchain_type",
+)
+
+# This filegroup allows the toolchain implementation to reference these files
+filegroup(
+    name = "all_files",
+    srcs = glob(["**"]),
+    visibility = ["//visibility:public"],
+)

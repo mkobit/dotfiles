@@ -1,0 +1,3 @@
+package(default_visibility = ["//visibility:public"])
+
+# No need for exports_files here since each subpackage has its own BUILD file

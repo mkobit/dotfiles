@@ -23,3 +23,8 @@ pip.parse(
     requirements_lock = "//:requirement.lock.txt",
 )
 use_repo(pip, "pypi")
+
+# Register the tmux toolchain
+tmux_ext = use_extension("//toolchains/tmux:extensions.bzl", "tmux_toolchain")
+use_repo(tmux_ext, "local_tmux")
+register_toolchains("@local_tmux//:tmux_local")
