@@ -1,4 +1,79 @@
+package(default_visibility = ["//visibility:public"])
+
+load("//rules/zsh:defs.bzl", "zsh_config", "zsh_test")
+
+# For backward compatibility, also export the original zshrc
+exports_files(["zshrc"])
+
 filegroup(
-    name = "config",
-    srcs = ["zshrc"],
+    name = "base_configs",
+    srcs = glob(["configs/base/*"]),
+)
+
+filegroup(
+    name = "personal_configs",
+    srcs = glob(["configs/personal/*"], allow_empty = True),
+)
+
+filegroup(
+    name = "work_configs",
+    srcs = glob(["configs/work/*"], allow_empty = True),
+)
+
+# Build the base zshrc
+zsh_config(
+    name = "base_zshrc",
+    srcs = [":base_configs"],
+    header = "# Base ZSH Configuration\n# Generated at: $(date)",
+)
+
+# Build profile-specific zshrc files
+zsh_config(
+    name = "personal_zshrc",
+    srcs = [":base_configs"] + select({
+        "//conditions:default": [],
+        "//config:personal": [":personal_configs"],
+    }),
+    header = "# Personal ZSH Configuration\n# Generated at: $(date)",
+)
+
+zsh_config(
+    name = "work_zshrc",
+    srcs = [":base_configs"] + select({
+        "//conditions:default": [],
+        "//config:work": [":work_configs"],
+    }),
+    header = "# Work ZSH Configuration\n# Generated at: $(date)",
+)
+
+# Profile-selectable zshrc
+zsh_config(
+    name = "generated_zshrc",
+    srcs = select({
+        "//config:work": [":work_zshrc"],
+        "//config:personal": [":personal_zshrc"],
+        "//conditions:default": [":base_zshrc"],
+    }),
+    header = "# THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY\n# Generated using Bazel at $(date)",
+)
+
+# Test targets
+zsh_test(
+    name = "base_zshrc_test",
+    config = ":base_zshrc",
+)
+
+zsh_test(
+    name = "personal_zshrc_test",
+    config = ":personal_zshrc",
+)
+
+zsh_test(
+    name = "work_zshrc_test",
+    config = ":work_zshrc",
+)
+
+zsh_test(
+    name = "generated_zshrc_test",
+    config = ":generated_zshrc",
 )

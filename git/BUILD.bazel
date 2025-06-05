@@ -1,31 +1,76 @@
 package(default_visibility = ["//visibility:public"])
 
-BASE_CONFIG_FILES = glob(["configs/base/*.gitconfig"])
-PERSONAL_CONFIG_FILES = glob(["configs/personal/*.gitconfig"])
-WORK_CONFIG_FILES = glob(["configs/work/*.gitconfig"])
+load("//rules/git:defs.bzl", "git_config", "git_test")
 
-genrule(
+filegroup(
+    name = "base_configs",
+    srcs = glob(["configs/base/*.gitconfig"]),
+)
+
+filegroup(
+    name = "personal_configs",
+    srcs = glob(["configs/personal/*.gitconfig"]),
+)
+
+filegroup(
+    name = "work_configs",
+    srcs = glob(["configs/work/*.gitconfig"]),
+)
+
+# Build the base gitconfig
+git_config(
+    name = "base_gitconfig",
+    srcs = [":base_configs"],
+    header = "# Base Git Configuration\n# Generated at: $(date)",
+)
+
+# Build profile-specific gitconfigs
+git_config(
+    name = "personal_gitconfig",
+    srcs = [
+        ":base_configs", 
+        ":personal_configs"
+    ],
+    header = "# Personal Git Configuration\n# Generated at: $(date)",
+)
+
+git_config(
+    name = "work_gitconfig",
+    srcs = [
+        ":base_configs", 
+        ":work_configs"
+    ],
+    header = "# Work Git Configuration\n# Generated at: $(date)",
+)
+
+# Profile-selectable gitconfig
+git_config(
     name = "gitconfig",
-    srcs = BASE_CONFIG_FILES + select({
-        "//config:work": WORK_CONFIG_FILES,
-        "//config:personal": PERSONAL_CONFIG_FILES,
-        "//conditions:default": [],
+    srcs = select({
+        "//config:work": [":work_gitconfig"],
+        "//config:personal": [":personal_gitconfig"],
+        "//conditions:default": [":base_gitconfig"],
     }),
-    outs = ["combined.gitconfig"],
-    cmd = """
-cat > $@ << \'EOF\'
-# THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY
-# Generated using Bazel
-EOF
+    header = "# THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY\n# Generated using Bazel at $(date)",
+)
 
-for f in $(SRCS); do
-    echo "# Including $$(basename $$f)" >> $@
-    cat $$f >> $@
-    echo "" >> $@
-done
+# Test targets
+git_test(
+    name = "base_gitconfig_test",
+    config = ":base_gitconfig",
+)
 
-cat >> $@ << \'EOF\'
-# End of generated configuration
-EOF
-""",
+git_test(
+    name = "personal_gitconfig_test",
+    config = ":personal_gitconfig",
+)
+
+git_test(
+    name = "work_gitconfig_test",
+    config = ":work_gitconfig",
+)
+
+git_test(
+    name = "selected_gitconfig_test",
+    config = ":gitconfig",
 )

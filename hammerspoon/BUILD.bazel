@@ -1,12 +1,79 @@
-# Hammerspoon configuration
+package(default_visibility = ["//visibility:public"])
+
+load("//rules/hammerspoon:defs.bzl", "hammerspoon_config", "hammerspoon_test")
+
+# For backward compatibility, also export the original init.lua
+exports_files(["init.lua"])
+
 filegroup(
-    name = "config",
-    srcs = ["init.lua"],
+    name = "base_configs",
+    srcs = glob(["configs/base/*.lua"]),
 )
 
-# Build everything
 filegroup(
-    name = "all",
-    srcs = [":config"],
-    visibility = ["//visibility:public"],
+    name = "personal_configs",
+    srcs = glob(["configs/personal/*.lua"], allow_empty = True),
+)
+
+filegroup(
+    name = "work_configs",
+    srcs = glob(["configs/work/*.lua"], allow_empty = True),
+)
+
+# Build the base hammerspoon config
+hammerspoon_config(
+    name = "base_init",
+    srcs = [":base_configs"],
+    header = "-- Base Hammerspoon Configuration\n-- Generated at: $(date)",
+)
+
+# Build profile-specific hammerspoon configs
+hammerspoon_config(
+    name = "personal_init",
+    srcs = [":base_configs"] + select({
+        "//conditions:default": [],
+        "//config:personal": [":personal_configs"],
+    }),
+    header = "-- Personal Hammerspoon Configuration\n-- Generated at: $(date)",
+)
+
+hammerspoon_config(
+    name = "work_init",
+    srcs = [":base_configs"] + select({
+        "//conditions:default": [],
+        "//config:work": [":work_configs"],
+    }),
+    header = "-- Work Hammerspoon Configuration\n-- Generated at: $(date)",
+)
+
+# Profile-selectable hammerspoon config
+hammerspoon_config(
+    name = "generated_init",
+    srcs = select({
+        "//config:work": [":work_init"],
+        "//config:personal": [":personal_init"],
+        "//conditions:default": [":base_init"],
+    }),
+    header = "-- THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY\n-- Generated using Bazel at $(date)",
+)
+
+# Test targets
+hammerspoon_test(
+    name = "base_init_test",
+    config = ":base_init",
+)
+
+hammerspoon_test(
+    name = "personal_init_test",
+    config = ":personal_init",
+)
+
+hammerspoon_test(
+    name = "work_init_test",
+    config = ":work_init",
+)
+
+hammerspoon_test(
+    name = "generated_init_test",
+    config = ":generated_init",
 )
