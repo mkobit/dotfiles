@@ -172,7 +172,7 @@
   "moduleExtensions": {
     "//toolchains/tmux:extensions.bzl%tmux_toolchain": {
       "general": {
-        "bzlTransitiveDigest": "ESupDFhbWpavmrWriogiEQwagUGOKXJ/97TPyg93RNM=",
+        "bzlTransitiveDigest": "hU71zsAajPkzZ7or22bW6uIjiCZ48NGpYv7UnhWO/H8=",
         "usagesDigest": "XnM8Tmye/ekLXDVhx8B/ltC5I291mZYwPk87XSoyX8c=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
