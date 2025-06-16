@@ -1,6 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
 load("//rules/git:defs.bzl", "git_config", "git_test")
+load("//rules:linting.bzl", "bazel_files_format", "bazel_files_format_test")
 
 filegroup(
     name = "base_configs",
@@ -28,7 +29,7 @@ git_config(
 git_config(
     name = "personal_gitconfig",
     srcs = [
-        ":base_configs", 
+        ":base_configs",
         ":personal_configs"
     ],
     header = "# Personal Git Configuration\n# Generated at: $(date)",
@@ -37,7 +38,7 @@ git_config(
 git_config(
     name = "work_gitconfig",
     srcs = [
-        ":base_configs", 
+        ":base_configs",
         ":work_configs"
     ],
     header = "# Work Git Configuration\n# Generated at: $(date)",
@@ -73,4 +74,13 @@ git_test(
 git_test(
     name = "selected_gitconfig_test",
     config = ":gitconfig",
+)
+
+# Linting and formatting for this package
+bazel_files_format(
+    name = "format",
+)
+
+bazel_files_format_test(
+    name = "format_test",
 )

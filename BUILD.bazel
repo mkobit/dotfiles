@@ -1,0 +1,42 @@
+package(default_visibility = ["//visibility:public"])
+
+load("//rules:linting.bzl", "bazel_files_format", "bazel_files_format_test")
+load("//rules:lsp.bzl", "setup_bazel_lsp", "compile_commands")
+
+# Format all Bazel files in the repository
+bazel_files_format(
+    name = "format",
+)
+
+# Test that all Bazel files are properly formatted
+bazel_files_format_test(
+    name = "format_test",
+)
+
+# Set up LSP configuration for the project
+setup_bazel_lsp(
+    name = "lsp_setup",
+)
+
+# Generate compile_commands.json for IDE support
+compile_commands(
+    name = "compile_commands",
+)
+
+# Convenience alias for running all linting and formatting
+alias(
+    name = "lint",
+    actual = ":format_test",
+)
+
+# Test suite for all quality checks
+test_suite(
+    name = "quality_checks",
+    tests = [
+        ":format_test",
+        "//git:selected_gitconfig_test",
+        "//tmux:tmux_conf_test",
+        "//vim:vimrc_test",
+        "//zsh:generated_zshrc_test",
+    ],
+)

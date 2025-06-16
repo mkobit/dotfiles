@@ -85,3 +85,48 @@
 == Future Ideas Parking Lot
 
 // Ideas that aren't ready for implementation but should be remembered
+
+=== Shell environments
+- [ ] Zsh
+- [ ] Bash (minimal configuration)
+
+=== Terminal multiplexers
+- [ ] Tmux
+
+=== Version Control
+- [ ] Git
+  - [ ] Core configuration
+  - [ ] Aliases
+  - [ ] Platform-specific settings
+
+=== Text Editors
+- [ ] Vim
+- [ ] Neovim
+- [ ] VSCode (config sync)
+
+=== Terminal Utilities
+- [ ] Ripgrep
+- [ ] fd
+- [ ] fzf
+- [ ] bat
+- [ ] exa/ls alternatives
+- [ ] jq/yq
+
+=== Development Tools
+- [ ] Docker configuration
+- [ ] Kubernetes tools
+- [ ] AWS CLI
+
+=== Window Management
+- [ ] Rectangle (macOS)
+
+=== Terminal Emulators
+- [ ] iTerm2 (macOS)
+
+=== SSH
+- [ ] SSH config
+- [ ] SSH keys management
+
+=== Package Management
+- [ ] Homebrew (macOS)
+- [ ] apt (Debian/Ubuntu)
