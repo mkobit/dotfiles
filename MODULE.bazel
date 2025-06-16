@@ -8,10 +8,7 @@ bazel_dep(name = "platforms", version = "0.0.11")
 bazel_dep(name = "rules_python", version = "1.4.1")
 bazel_dep(name = "protobuf", version = "31.0")
 
-# Dependencies needed for aspect_rules_lint
-bazel_dep(name = "rules_go", version = "0.55.1")
-bazel_dep(name = "gazelle", version = "0.44.0")
-bazel_dep(name = "aspect_rules_lint", version = "1.4.4")
+# Note: We don't use aspect_rules_lint - we have simple buildifier-based linting instead
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(
@@ -34,7 +31,4 @@ tmux_ext = use_extension("//toolchains/tmux:extensions.bzl", "tmux_toolchain")
 use_repo(tmux_ext, "local_tmux")
 register_toolchains("@local_tmux//:tmux_local")
 
-# LSP and formatting toolchain dependencies
-linting = use_extension("@aspect_rules_lint//lint:extensions.bzl", "linting")
-linting.register()
-use_repo(linting, "multitool")
+# Note: We use simple buildifier-based linting instead of aspect_rules_lint

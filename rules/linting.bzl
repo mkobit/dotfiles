@@ -1,26 +1,18 @@
 """
-Linting and formatting rules for dotfiles project.
+Simple linting and formatting rules for the dotfiles project.
 
 This module provides buildifier formatting and testing functionality
-using direct binary invocation rather than aspect_rules_lint.
+that runs across all Bazel files in the repository.
 """
 
-# Temporarily disable aspect_rules_lint while we get the basic build working
-# load("@aspect_rules_lint//format:defs.bzl", "format_aspect", "format_multirun")
-# load("@aspect_rules_lint//lint:defs.bzl", "lint_aspect", "lint_test")
-
-def buildifier_format(name, srcs = None, **kwargs):
-    """Formats BUILD files using buildifier.
+def buildifier_format(name, **kwargs):
+    """Formats all Bazel files in the repository using buildifier.
 
     Args:
         name: Name of the formatting target
-        srcs: List of BUILD files to format, defaults to ["BUILD.bazel", "BUILD"]
         **kwargs: Additional attributes passed to the underlying rule
     """
-    if srcs == None:
-        srcs = native.glob(["BUILD.bazel", "BUILD", "*.bzl"], allow_empty = True)
-
-    # Create a script that runs buildifier on the source files
+    # Create a script that runs buildifier on all Bazel files
     format_script = name + "_format_script.sh"
     native.genrule(
         name = name + "_format_script",
@@ -46,13 +38,14 @@ fi
 
 echo "Using buildifier: $$BUILDIFIER"
 
-# Format all Bazel files
+# Format all Bazel files in the repository
+echo "Formatting all Bazel files..."
 find . -name "*.bzl" -o -name "BUILD" -o -name "BUILD.bazel" | while read -r file; do
     echo "Formatting: $$file"
     "$$BUILDIFIER" -v "$$file"
 done
 
-echo "All files formatted successfully"
+echo "All Bazel files formatted successfully"
 EOF
 
 chmod +x $@
@@ -65,17 +58,13 @@ chmod +x $@
         **kwargs
     )
 
-def buildifier_test(name, srcs = None, **kwargs):
-    """Tests that BUILD files are properly formatted with buildifier.
+def buildifier_test(name, **kwargs):
+    """Tests that all Bazel files in the repository are properly formatted.
 
     Args:
         name: Name of the test target
-        srcs: List of BUILD files to test, defaults to ["BUILD.bazel", "BUILD"]
         **kwargs: Additional attributes passed to the underlying rule
     """
-    if srcs == None:
-        srcs = native.glob(["BUILD.bazel", "BUILD", "*.bzl"], allow_empty = True)
-
     # Create a script that tests buildifier formatting
     test_script = name + "_test_script.sh"
     native.genrule(
@@ -101,23 +90,26 @@ fi
 
 echo "Using buildifier: $$BUILDIFIER"
 
-# Check that all Bazel files are properly formatted
+# Check that all Bazel files in the repository are properly formatted
+echo "Checking all Bazel files for proper formatting..."
 exit_code=0
 find . -name "*.bzl" -o -name "BUILD" -o -name "BUILD.bazel" | while read -r file; do
     echo "Checking: $$file"
     if ! "$$BUILDIFIER" -mode=check "$$file"; then
         echo "ERROR: $$file is not properly formatted"
-        echo "To fix, run: buildifier $$file"
+        echo "To fix, run: bazel run //:format"
         exit_code=1
     fi
 done
 
 if [[ $$exit_code -ne 0 ]]; then
-    echo "Some files are not properly formatted. Run 'bazel run //:format' to fix."
+    echo ""
+    echo "Some files are not properly formatted."
+    echo "Run 'bazel run //:format' to fix all files."
     exit 1
 fi
 
-echo "All files are properly formatted"
+echo "All Bazel files are properly formatted"
 EOF
 
 chmod +x $@
@@ -131,14 +123,14 @@ chmod +x $@
     )
 
 def bazel_files_format_test(name, **kwargs):
-    """Convenient macro for testing all Bazel files in a package are formatted."""
+    """Convenient macro for testing all Bazel files are formatted."""
     buildifier_test(
         name = name,
         **kwargs
     )
 
 def bazel_files_format(name, **kwargs):
-    """Convenient macro for formatting all Bazel files in a package."""
+    """Convenient macro for formatting all Bazel files."""
     buildifier_format(
         name = name,
         **kwargs
