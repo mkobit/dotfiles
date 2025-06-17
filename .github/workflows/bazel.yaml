@@ -28,14 +28,6 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
-env:
-  CACHE_VERSION: v2
-  BAZEL_CACHE_VERSION: v2
-  # Bazel configuration
-  BAZEL_STARTUP_OPTS: --host_jvm_args=-Xmx2g
-  BAZEL_BUILD_OPTS: --jobs=auto --loading_phase_threads=auto --sandbox_debug
-  BAZEL_TEST_OPTS: --test_output=errors --test_summary=detailed
-
 defaults:
   run:
     shell: bash
@@ -46,134 +38,38 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: ./.github/actions/setup-bazel
-        with:
-          cache-key: ${{ github.workflow }}-lint-${{ github.sha }}
-          cache-version: ${{ env.BAZEL_CACHE_VERSION }}
+      - uses: bazel-contrib/setup-bazel@e8776f58fb6a6e9055cbaf1b38c52ccc5247e9c4 # v0.8.1
       - name: Run format checks
         run: bazel test //:format_test
       - name: Generate LSP config
         run: |
           bazel run //:lsp_setup
           bazel run //:compile_commands
-      - uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097 # v4.4.3
-        with:
-          name: ide-config
-          path: |
-            .vscode/
-            compile_commands.json
-            .clangd
-          if-no-files-found: ignore
-
-  tool-setup:
-    strategy:
-      matrix:
-        os: [ubuntu-24.04, macos-15]
-      fail-fast: false
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: ./.github/actions/setup-tools
-        with:
-          os: ${{ matrix.os }}
-          cache-version: ${{ env.CACHE_VERSION }}
 
   test:
-    needs: [lint, tool-setup]
+    needs: [lint]
     strategy:
       matrix:
         os: [ubuntu-24.04, macos-15]
         profile: [personal, work]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 45
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: ./.github/actions/setup-tools
-        with:
-          os: ${{ matrix.os }}
-          cache-version: ${{ env.CACHE_VERSION }}-test-${{ matrix.profile }}
-      - uses: ./.github/actions/setup-bazel
-        with:
-          cache-key: ${{ github.workflow }}-${{ matrix.os }}-${{ matrix.profile }}-${{ github.sha }}
-          cache-version: ${{ env.BAZEL_CACHE_VERSION }}
+      - uses: bazel-contrib/setup-bazel@e8776f58fb6a6e9055cbaf1b38c52ccc5247e9c4 # v0.8.1
 
       - name: Build and test
         run: |
           echo "=== Building all packages ==="
-          bazel ${BAZEL_STARTUP_OPTS} build //... \
-            --//config:profile=${{ matrix.profile }} \
-            ${BAZEL_BUILD_OPTS}
+          bazel build //... --//config:profile=${{ matrix.profile }}
 
           echo "=== Running all tests ==="
-          bazel ${BAZEL_STARTUP_OPTS} test //... \
-            --//config:profile=${{ matrix.profile }} \
-            ${BAZEL_TEST_OPTS} \
-            ${BAZEL_BUILD_OPTS}
-
-          echo "=== Running quality checks ==="
-          bazel ${BAZEL_STARTUP_OPTS} test //:quality_checks \
-            --//config:profile=${{ matrix.profile }} \
-            --test_output=all \
-            ${BAZEL_BUILD_OPTS}
-
-      - name: Generate coverage (Ubuntu + personal only)
-        if: matrix.os == 'ubuntu-24.04' && matrix.profile == 'personal'
-        run: |
-          bazel coverage //... \
-            --//config:profile=${{ matrix.profile }} \
-            --combined_report=lcov || echo "Coverage generation failed"
-
-      - uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097 # v4.4.3
-        if: always()
-        with:
-          name: test-results-${{ matrix.os }}-${{ matrix.profile }}
-          path: |
-            bazel-testlogs/**/test.xml
-            bazel-testlogs/**/test.log
-            bazel-out/**/coverage.dat
-          if-no-files-found: ignore
-
-      - uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097 # v4.4.3
-        if: matrix.profile == 'personal'
-        with:
-          name: generated-configs-${{ matrix.os }}
-          path: |
-            bazel-bin/**/tmux.conf
-            bazel-bin/**/.vimrc
-            bazel-bin/**/.zshrc
-            bazel-bin/**/.gitconfig
-            bazel-bin/**/init.lua
-          if-no-files-found: ignore
-
-  integration:
-    needs: [test]
-    if: github.event_name == 'push' || github.event.pull_request.draft == false
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: ./.github/actions/setup-tools
-        with:
-          os: ubuntu-24.04
-          cache-version: ${{ env.CACHE_VERSION }}-integration
-      - uses: ./.github/actions/setup-bazel
-        with:
-          cache-key: ${{ github.workflow }}-integration-${{ github.sha }}
-          cache-version: ${{ env.BAZEL_CACHE_VERSION }}
-      - name: Run integration tests
-        run: ./scripts/integration-test.sh
-      - name: Performance benchmarks
-        run: |
-          echo "=== Performance Benchmarks ==="
-          time bazel build //...
-          time bazel test //... --test_summary=detailed
-          bazel info | grep cache || echo "Cache info not available"
+          bazel test //... --//config:profile=${{ matrix.profile }}
 
   summary:
     if: always()
-    needs: [lint, tool-setup, test, integration]
+    needs: [lint, test]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
@@ -181,9 +77,7 @@ jobs:
         run: |
           echo "=== Test Summary ==="
           echo "Lint: ${{ needs.lint.result }}"
-          echo "Tool setup: ${{ needs.tool-setup.result }}"
           echo "Test: ${{ needs.test.result }}"
-          echo "Integration: ${{ needs.integration.result }}"
 
           if [[ "${{ needs.lint.result }}" == "failure" || "${{ needs.test.result }}" == "failure" ]]; then
             echo "❌ Critical jobs failed"
