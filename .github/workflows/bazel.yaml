@@ -4,8 +4,7 @@ on:
   push:
     paths-ignore:
       - '**.md'
-      - 'README.adoc'
-      - 'todo.adoc'
+      - '**.adoc'
       - '.goosehints'
       - '.gitattributes'
       - '.gitignore'
@@ -13,47 +12,47 @@ on:
   pull_request:
     paths-ignore:
       - '**.md'
-      - 'README.adoc'
-      - 'todo.adoc'
+      - '**.adoc'
       - '.goosehints'
       - '.gitattributes'
       - '.gitignore'
       - '.editorconfig'
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 env:
-  # Cache keys for consistent caching across jobs
   CACHE_VERSION: v1
+  BAZEL_CACHE_VERSION: v1
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
-  # Fast linting and formatting job - runs first to fail fast
   lint:
-    runs-on: ubuntu-latest
-    name: Code Quality and Linting
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Bazel
-        uses: bazel-contrib/setup-bazel@e8776f58fb6a6e9055cbaf1b38c52ccc5247e9c4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ./.github/actions/setup-bazel
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-lint
-          repository-cache: true
-
-      - name: Run buildifier format checks
+          cache-key: ${{ github.workflow }}-lint
+          cache-version: ${{ env.BAZEL_CACHE_VERSION }}
+      - name: Run format checks
         run: bazel test //:format_test
-
-      - name: Generate and upload LSP configuration
+      - name: Generate LSP config
         run: |
           bazel run //:lsp_setup
           bazel run //:compile_commands
-
-      - name: Upload IDE configuration artifacts
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097 # v4.4.3
         with:
           name: ide-config
           path: |
@@ -62,294 +61,68 @@ jobs:
             .clangd
           if-no-files-found: ignore
 
-  # Tool installation and validation job
   tool-setup:
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-24.04, macos-15, windows-2022]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    name: Tool Setup (${{ matrix.os }})
-    outputs:
-      ubuntu-tools-cache-key: ${{ steps.cache-ubuntu.outputs.cache-hit && steps.cache-ubuntu.outputs.cache-primary-key || '' }}
-      macos-tools-cache-key: ${{ steps.cache-macos.outputs.cache-hit && steps.cache-macos.outputs.cache-primary-key || '' }}
-      windows-tools-cache-key: ${{ steps.cache-windows.outputs.cache-hit && steps.cache-windows.outputs.cache-primary-key || '' }}
+    timeout-minutes: 20
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Ubuntu tool setup
-      - name: Cache Ubuntu tools
-        if: matrix.os == 'ubuntu-latest'
-        id: cache-ubuntu
-        uses: actions/cache@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ./.github/actions/setup-tools
         with:
-          path: |
-            /home/runner/.local/bin
-            /home/runner/.cache/dotfiles-tools
-          key: ${{ env.CACHE_VERSION }}-ubuntu-tools-${{ hashFiles('**/BUILD.bazel', '**/MODULE.bazel') }}
+          os: ${{ matrix.os }}
+          cache-version: ${{ env.CACHE_VERSION }}
 
-      - name: Install Ubuntu tools
-        if: matrix.os == 'ubuntu-latest' && steps.cache-ubuntu.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p ~/.local/bin
-          mkdir -p ~/.cache/dotfiles-tools
-
-          # Update package list
-          sudo apt-get update -qq
-
-          # Install core tools
-          sudo apt-get install -qq -y \
-            tmux \
-            git \
-            vim \
-            zsh \
-            lua5.3 \
-            luajit \
-            curl \
-            jq \
-            fzf \
-            ripgrep \
-            fd-find \
-            bat \
-            tree
-
-          # Create version info for cache validation
-          echo "Tools installed on $(date):" > ~/.cache/dotfiles-tools/versions.txt
-          tmux -V >> ~/.cache/dotfiles-tools/versions.txt
-          git --version >> ~/.cache/dotfiles-tools/versions.txt
-          vim --version | head -1 >> ~/.cache/dotfiles-tools/versions.txt
-          zsh --version >> ~/.cache/dotfiles-tools/versions.txt
-          lua -v >> ~/.cache/dotfiles-tools/versions.txt
-
-          # Test tool functionality
-          tmux -V
-          git --version
-          zsh --version
-
-      # macOS tool setup
-      - name: Cache macOS tools
-        if: matrix.os == 'macos-latest'
-        id: cache-macos
-        uses: actions/cache@v4
-        with:
-          path: |
-            /Users/runner/.local/bin
-            /Users/runner/.cache/dotfiles-tools
-            /opt/homebrew/bin
-            /opt/homebrew/share
-          key: ${{ env.CACHE_VERSION }}-macos-tools-${{ hashFiles('**/BUILD.bazel', '**/MODULE.bazel') }}
-
-      - name: Install macOS tools
-        if: matrix.os == 'macos-latest' && steps.cache-macos.outputs.cache-hit != 'true'
-        run: |
-          mkdir -p ~/.local/bin
-          mkdir -p ~/.cache/dotfiles-tools
-
-          # Install Homebrew if not present
-          if ! command -v brew &> /dev/null; then
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-          fi
-
-          # Install core tools
-          brew install \
-            tmux \
-            git \
-            vim \
-            zsh \
-            lua \
-            luajit \
-            jq \
-            fzf \
-            ripgrep \
-            fd \
-            bat \
-            tree
-
-          # macOS-specific tools
-          # Note: Hammerspoon is GUI-only, we'll use lua for syntax validation
-
-          # Create version info
-          echo "Tools installed on $(date):" > ~/.cache/dotfiles-tools/versions.txt
-          tmux -V >> ~/.cache/dotfiles-tools/versions.txt
-          git --version >> ~/.cache/dotfiles-tools/versions.txt
-          vim --version | head -1 >> ~/.cache/dotfiles-tools/versions.txt
-          zsh --version >> ~/.cache/dotfiles-tools/versions.txt
-          lua -v >> ~/.cache/dotfiles-tools/versions.txt
-
-      # Windows tool setup
-      - name: Cache Windows tools
-        if: matrix.os == 'windows-latest'
-        id: cache-windows
-        uses: actions/cache@v4
-        with:
-          path: |
-            C:\tools
-            C:\Users\runneradmin\.cache\dotfiles-tools
-          key: ${{ env.CACHE_VERSION }}-windows-tools-${{ hashFiles('**/BUILD.bazel', '**/MODULE.bazel') }}
-
-      - name: Install Windows tools
-        if: matrix.os == 'windows-latest' && steps.cache-windows.outputs.cache-hit != 'true'
-        shell: powershell
-        run: |
-          # Create directories
-          New-Item -ItemType Directory -Force -Path "C:\tools"
-          New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.cache\dotfiles-tools"
-
-          # Install via chocolatey (faster than individual downloads)
-          choco install -y git vim lua
-
-          # Note: tmux is not available on Windows, zsh limited - tests will be adapted
-
-          # Install Windows-specific alternatives where possible
-          choco install -y jq fzf ripgrep fd bat
-
-          # Create version info
-          "Tools installed on $(Get-Date):" | Out-File -FilePath "$env:USERPROFILE\.cache\dotfiles-tools\versions.txt"
-          git --version | Out-File -FilePath "$env:USERPROFILE\.cache\dotfiles-tools\versions.txt" -Append
-          vim --version | Select-Object -First 1 | Out-File -FilePath "$env:USERPROFILE\.cache\dotfiles-tools\versions.txt" -Append
-          lua -v | Out-File -FilePath "$env:USERPROFILE\.cache\dotfiles-tools\versions.txt" -Append
-
-      - name: Verify tool installation
-        shell: bash
-        run: |
-          echo "=== Installed Tools Verification ==="
-
-          # Test each tool and report status
-          tools=("git" "vim" "lua")
-
-          if [[ "${{ matrix.os }}" != "windows-latest" ]]; then
-            tools+=("tmux" "zsh" "jq" "fzf")
-          fi
-
-          for tool in "${tools[@]}"; do
-            if command -v "$tool" >/dev/null 2>&1; then
-              echo "✅ $tool: $(command -v "$tool")"
-              # Try to get version info
-              case "$tool" in
-                "tmux") tmux -V || echo "  Version check failed" ;;
-                "git") git --version || echo "  Version check failed" ;;
-                "vim") vim --version | head -1 || echo "  Version check failed" ;;
-                "zsh") zsh --version || echo "  Version check failed" ;;
-                "lua") lua -v || echo "  Version check failed" ;;
-                "jq") jq --version || echo "  Version check failed" ;;
-                "fzf") fzf --version || echo "  Version check failed" ;;
-              esac
-            else
-              echo "❌ $tool: not found"
-            fi
-          done
-
-  # Main build and test job with full tool integration
-  bazel:
+  test:
     needs: [lint, tool-setup]
     strategy:
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [ubuntu-24.04, macos-15, windows-2022]
         profile: [personal, work]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    name: Build & Test (${{ matrix.os }}, ${{ matrix.profile }} profile)
-    env:
-      # Set environment variables for better tool detection
-      PATH_SEPARATOR: ${{ matrix.os == 'windows-latest' && ';' || ':' }}
+    timeout-minutes: 45
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Restore tool caches
-      - name: Restore Ubuntu tools
-        if: matrix.os == 'ubuntu-latest'
-        uses: actions/cache/restore@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ./.github/actions/setup-tools
         with:
-          path: |
-            /home/runner/.local/bin
-            /home/runner/.cache/dotfiles-tools
-          key: ${{ env.CACHE_VERSION }}-ubuntu-tools-${{ hashFiles('**/BUILD.bazel', '**/MODULE.bazel') }}
-
-      - name: Restore macOS tools
-        if: matrix.os == 'macos-latest'
-        uses: actions/cache/restore@v4
+          os: ${{ matrix.os }}
+          cache-version: ${{ env.CACHE_VERSION }}
+      - uses: ./.github/actions/setup-bazel
         with:
-          path: |
-            /Users/runner/.local/bin
-            /Users/runner/.cache/dotfiles-tools
-            /opt/homebrew/bin
-            /opt/homebrew/share
-          key: ${{ env.CACHE_VERSION }}-macos-tools-${{ hashFiles('**/BUILD.bazel', '**/MODULE.bazel') }}
+          cache-key: ${{ github.workflow }}-${{ matrix.os }}-${{ matrix.profile }}
+          cache-version: ${{ env.BAZEL_CACHE_VERSION }}
 
-      - name: Restore Windows tools
-        if: matrix.os == 'windows-latest'
-        uses: actions/cache/restore@v4
-        with:
-          path: |
-            C:\tools
-            C:\Users\runneradmin\.cache\dotfiles-tools
-          key: ${{ env.CACHE_VERSION }}-windows-tools-${{ hashFiles('**/BUILD.bazel', '**/MODULE.bazel') }}
-
-      - name: Set up tool paths
-        shell: bash
+      - name: Build and test
         run: |
-          # Add local bin to PATH for all platforms
-          case "${{ matrix.os }}" in
-            "ubuntu-latest")
-              echo "$HOME/.local/bin" >> $GITHUB_PATH
-              echo "DOTFILES_TOOLS_ROOT=$HOME/.cache/dotfiles-tools" >> $GITHUB_ENV
-              ;;
-            "macos-latest")
-              echo "$HOME/.local/bin" >> $GITHUB_PATH
-              echo "/opt/homebrew/bin" >> $GITHUB_PATH
-              echo "DOTFILES_TOOLS_ROOT=$HOME/.cache/dotfiles-tools" >> $GITHUB_ENV
-              ;;
-            "windows-latest")
-              echo "C:\tools" >> $GITHUB_PATH
-              echo "DOTFILES_TOOLS_ROOT=C:\Users\runneradmin\.cache\dotfiles-tools" >> $GITHUB_ENV
-              ;;
-          esac
+          echo "=== Building all packages ==="
+          bazel ${BAZEL_STARTUP_OPTS} build //... \
+            --//config:profile=${{ matrix.profile }} \
+            ${BAZEL_BUILD_OPTS}
 
-      - name: Set up Bazel
-        uses: bazel-contrib/setup-bazel@e8776f58fb6a6e9055cbaf1b38c52ccc5247e9c4
-        with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-${{ matrix.os }}-${{ matrix.profile }}
-          repository-cache: true
+          echo "=== Running all tests ==="
+          bazel ${BAZEL_STARTUP_OPTS} test //... \
+            --//config:profile=${{ matrix.profile }} \
+            ${BAZEL_TEST_OPTS} \
+            ${BAZEL_BUILD_OPTS}
 
-      - name: Verify toolchain configuration
+          echo "=== Running quality checks ==="
+          bazel ${BAZEL_STARTUP_OPTS} test //:quality_checks \
+            --//config:profile=${{ matrix.profile }} \
+            --test_output=all \
+            ${BAZEL_BUILD_OPTS}
+
+      - name: Generate coverage (Ubuntu + personal only)
+        if: matrix.os == 'ubuntu-24.04' && matrix.profile == 'personal'
         run: |
-          echo "=== Bazel Toolchain Verification ==="
-          bazel query --output=build '//toolchains/...' || echo "No toolchains found"
+          bazel coverage //... \
+            --//config:profile=${{ matrix.profile }} \
+            --combined_report=lcov || echo "Coverage generation failed"
 
-          echo "=== Available Tools ==="
-          # Verify tools are accessible
-          which tmux || echo "tmux not found"
-          which git || echo "git not found"
-          which vim || echo "vim not found"
-          which zsh || echo "zsh not found"
-          which lua || echo "lua not found"
-
-      - name: Build all packages
-        run: bazel build //... --//config:profile=${{ matrix.profile }}
-
-      - name: Run comprehensive tests
-        run: |
-          echo "=== Running All Tests ==="
-          bazel test //... --//config:profile=${{ matrix.profile }} --test_output=errors --verbose_failures
-
-      - name: Run configuration validation tests
-        run: |
-          echo "=== Configuration Validation ==="
-          # Run specific validation tests that verify generated configs
-          bazel test //:quality_checks --//config:profile=${{ matrix.profile }} --test_output=all
-
-      - name: Generate coverage report
-        if: matrix.os == 'ubuntu-latest' && matrix.profile == 'personal'
-        run: |
-          echo "=== Generating Coverage Report ==="
-          bazel coverage //... --//config:profile=${{ matrix.profile }} --combined_report=lcov || echo "Coverage generation failed"
-
-      - name: Upload test results
+      - uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097 # v4.4.3
         if: always()
-        uses: actions/upload-artifact@v4
         with:
           name: test-results-${{ matrix.os }}-${{ matrix.profile }}
           path: |
@@ -358,9 +131,8 @@ jobs:
             bazel-out/**/coverage.dat
           if-no-files-found: ignore
 
-      - name: Upload generated configurations
-        if: matrix.profile == 'personal'  # Only upload once per OS
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097 # v4.4.3
+        if: matrix.profile == 'personal'
         with:
           name: generated-configs-${{ matrix.os }}
           path: |
@@ -371,85 +143,45 @@ jobs:
             bazel-bin/**/init.lua
           if-no-files-found: ignore
 
-  # Integration test job - validates real-world usage scenarios
   integration:
-    needs: [bazel]
+    needs: [test]
     if: github.event_name == 'push' || github.event.pull_request.draft == false
-    runs-on: ubuntu-latest
-    name: Integration Tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Restore Ubuntu tools
-        uses: actions/cache/restore@v4
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: ./.github/actions/setup-tools
         with:
-          path: |
-            /home/runner/.local/bin
-            /home/runner/.cache/dotfiles-tools
-          key: ${{ env.CACHE_VERSION }}-ubuntu-tools-${{ hashFiles('**/BUILD.bazel', '**/MODULE.bazel') }}
-
-      - name: Set up Bazel
-        uses: bazel-contrib/setup-bazel@e8776f58fb6a6e9055cbaf1b38c52ccc5247e9c4
+          os: ubuntu-24.04
+          cache-version: ${{ env.CACHE_VERSION }}
+      - uses: ./.github/actions/setup-bazel
         with:
-          bazelisk-cache: true
-          disk-cache: ${{ github.workflow }}-integration
-          repository-cache: true
-
-      - name: Install configurations and test
-        run: |
-          echo "=== Integration Testing ==="
-
-          # Build all configurations
-          bazel build //tmux:tmux_conf //git:gitconfig //vim:vimrc //zsh:generated_zshrc
-
-          # Test tmux configuration
-          echo "Testing tmux configuration..."
-          cp bazel-bin/tmux/tmux.conf ~/.tmux.conf
-          tmux -f ~/.tmux.conf -L integration_test new-session -d "echo 'tmux test successful'" || echo "tmux test failed"
-
-          # Test git configuration
-          echo "Testing git configuration..."
-          cp bazel-bin/git/gitconfig ~/.gitconfig.test
-          git config -f ~/.gitconfig.test user.name || echo "git config test note: user.name not set (expected)"
-
-          # Test vim configuration
-          echo "Testing vim configuration..."
-          cp bazel-bin/vim/vimrc ~/.vimrc.test
-          vim -u ~/.vimrc.test -c "echo 'vim test successful'" -c "quit" || echo "vim test failed"
-
-          echo "Integration tests completed"
-
+          cache-key: ${{ github.workflow }}-integration
+          cache-version: ${{ env.BAZEL_CACHE_VERSION }}
+      - name: Run integration tests
+        run: ./scripts/integration-test.sh
       - name: Performance benchmarks
         run: |
           echo "=== Performance Benchmarks ==="
-
-          # Measure build times
           time bazel build //...
-
-          # Measure test times
           time bazel test //... --test_summary=detailed
-
-          # Report cache effectiveness
           bazel info | grep cache || echo "Cache info not available"
 
-  # Summary job for status checks
-  test-summary:
+  summary:
     if: always()
-    needs: [lint, tool-setup, bazel, integration]
-    runs-on: ubuntu-latest
-    name: Test Summary
+    needs: [lint, tool-setup, test, integration]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
     steps:
-      - name: Summary report
+      - name: Report results
         run: |
           echo "=== Test Summary ==="
-          echo "Lint job: ${{ needs.lint.result }}"
-          echo "Tool setup job: ${{ needs.tool-setup.result }}"
-          echo "Bazel build/test job: ${{ needs.bazel.result }}"
-          echo "Integration test job: ${{ needs.integration.result }}"
+          echo "Lint: ${{ needs.lint.result }}"
+          echo "Tool setup: ${{ needs.tool-setup.result }}"
+          echo "Test: ${{ needs.test.result }}"
+          echo "Integration: ${{ needs.integration.result }}"
 
-          # Fail if critical jobs failed
-          if [[ "${{ needs.lint.result }}" == "failure" || "${{ needs.bazel.result }}" == "failure" ]]; then
+          if [[ "${{ needs.lint.result }}" == "failure" || "${{ needs.test.result }}" == "failure" ]]; then
             echo "❌ Critical jobs failed"
             exit 1
           else

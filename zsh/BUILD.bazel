@@ -46,13 +46,13 @@ zsh_config(
     header = "# Work ZSH Configuration\n# Generated at: $(date)",
 )
 
-# Profile-selectable zshrc
+# Profile-selectable zshrc (using raw sources, not nested configs)
 zsh_config(
     name = "generated_zshrc",
-    srcs = select({
-        "//config:work": [":work_zshrc"],
-        "//config:personal": [":personal_zshrc"],
-        "//conditions:default": [":base_zshrc"],
+    srcs = [":base_configs"] + select({
+        "//config:work": [":work_configs"],
+        "//config:personal": [":personal_configs"],
+        "//conditions:default": [],
     }),
     header = "# THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY\n# Generated using Bazel at $(date)",
 )

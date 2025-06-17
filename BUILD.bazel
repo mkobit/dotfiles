@@ -1,7 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
 load("//rules:linting.bzl", "bazel_files_format", "bazel_files_format_test")
-load("//rules:lsp.bzl", "setup_bazel_lsp", "compile_commands")
+load("//rules:lsp.bzl", "setup_bazel_lsp", "compile_commands", "compile_commands_runner")
 
 # Format all Bazel files in the repository
 bazel_files_format(
@@ -18,9 +18,15 @@ setup_bazel_lsp(
     name = "lsp_setup",
 )
 
-# Generate compile_commands.json for IDE support
+# Generate compile_commands.json for IDE support (build target)
 compile_commands(
+    name = "compile_commands_file",
+)
+
+# Executable target to install compile_commands.json to workspace
+compile_commands_runner(
     name = "compile_commands",
+    compile_commands = ":compile_commands_file",
 )
 
 # Convenience alias for running all linting and formatting

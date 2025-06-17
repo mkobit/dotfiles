@@ -1,0 +1,112 @@
+name: 'Setup Development Tools'
+description: 'Install and cache development tools across different operating systems'
+
+inputs:
+  os:
+    description: 'Operating system (ubuntu-24.04, macos-15, windows-2022)'
+    required: true
+  cache-version:
+    description: 'Cache version for invalidating caches'
+    required: true
+    default: 'v2'
+
+outputs:
+  cache-hit:
+    description: 'Whether tools were restored from cache'
+    value: ${{ steps.cache.outputs.cache-hit }}
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set tool paths
+      shell: bash
+      run: |
+        case "${{ inputs.os }}" in
+          "ubuntu-24.04")
+            echo "TOOL_CACHE_PATH=/home/runner/.cache/dotfiles-tools" >> $GITHUB_ENV
+            echo "TOOL_BIN_PATH=/home/runner/.local/bin" >> $GITHUB_ENV
+            ;;
+          "macos-15")
+            echo "TOOL_CACHE_PATH=/Users/runner/.cache/dotfiles-tools" >> $GITHUB_ENV
+            echo "TOOL_BIN_PATH=/Users/runner/.local/bin:/opt/homebrew/bin" >> $GITHUB_ENV
+            ;;
+          "windows-2022")
+            echo "TOOL_CACHE_PATH=C:\Users\runneradmin\.cache\dotfiles-tools" >> $GITHUB_ENV
+            echo "TOOL_BIN_PATH=C:\tools" >> $GITHUB_ENV
+            ;;
+        esac
+
+    - name: Cache tools
+      id: cache
+      uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+      with:
+        path: |
+          ${{ env.TOOL_CACHE_PATH }}
+          ${{ env.TOOL_BIN_PATH }}
+        key: ${{ inputs.cache-version }}-${{ inputs.os }}-tools-${{ hashFiles('**/BUILD.bazel', '**/MODULE.bazel') }}
+
+    - name: Install Ubuntu tools
+      if: inputs.os == 'ubuntu-24.04' && steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        mkdir -p ~/.local/bin ~/.cache/dotfiles-tools
+        sudo apt-get update -qq
+        # Pin specific versions where possible for security and determinism
+        sudo apt-get install -qq -y \
+          tmux \
+          git \
+          vim \
+          zsh \
+          lua5.3 \
+          luajit \
+          curl \
+          jq \
+          fzf \
+          ripgrep \
+          fd-find \
+          bat \
+          tree
+        echo "Tools installed on $(date):" > ~/.cache/dotfiles-tools/versions.txt
+        tmux -V >> ~/.cache/dotfiles-tools/versions.txt
+
+    - name: Install macOS tools
+      if: inputs.os == 'macos-15' && steps.cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        mkdir -p ~/.local/bin ~/.cache/dotfiles-tools
+        if ! command -v brew &> /dev/null; then
+          # Pin Homebrew install script to specific commit for security
+          # This corresponds to the latest stable release as of the last update
+          curl -fsSL https://raw.githubusercontent.com/Homebrew/install/1b02e7dcc5c8cbe8c8be12bb5502fab4fb14b13b/install.sh | bash
+        fi
+        brew install tmux git vim zsh lua luajit jq fzf ripgrep fd bat tree
+        echo "Tools installed on $(date):" > ~/.cache/dotfiles-tools/versions.txt
+        tmux -V >> ~/.cache/dotfiles-tools/versions.txt
+
+    - name: Install Windows tools
+      if: inputs.os == 'windows-2022' && steps.cache.outputs.cache-hit != 'true'
+      shell: powershell
+      run: |
+        New-Item -ItemType Directory -Force -Path "C:\tools", "$env:USERPROFILE\.cache\dotfiles-tools"
+        # Install specific versions where available
+        choco install -y git vim lua jq fzf ripgrep fd bat
+        "Tools installed on $(Get-Date):" | Out-File -FilePath "$env:USERPROFILE\.cache\dotfiles-tools\versions.txt"
+
+    - name: Add tools to PATH
+      shell: bash
+      run: |
+        echo "${{ env.TOOL_BIN_PATH }}" | tr ':' '\n' | while read -r path; do
+          echo "$path" >> $GITHUB_PATH
+        done
+
+    - name: Verify installation
+      shell: bash
+      run: |
+        echo "=== Tool Verification ==="
+        for tool in git vim lua; do
+          if command -v "$tool" >/dev/null 2>&1; then
+            echo "✅ $tool: $(command -v "$tool")"
+          else
+            echo "❌ $tool: not found"
+          fi
+        done

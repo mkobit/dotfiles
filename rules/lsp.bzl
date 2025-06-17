@@ -119,12 +119,89 @@ lsp_binary = rule(
     doc = "Download or locate Bazel LSP binary",
 )
 
+def _lsp_runner_impl(ctx):
+    """Implementation for LSP runner that copies config to workspace."""
+    lsp_config = ctx.attr.lsp_config
+    runner_script = ctx.actions.declare_file(ctx.label.name + "_runner.sh")
+
+    # Get the LSP config directory from the target
+    lsp_config_files = lsp_config.files.to_list()
+    if not lsp_config_files:
+        fail("No LSP config files found")
+
+    lsp_config_dir = lsp_config_files[0]
+
+    ctx.actions.write(
+        output = runner_script,
+        content = """#!/bin/bash
+set -euo pipefail
+
+echo "Setting up LSP configuration..."
+
+# Get the workspace root (where BUILD.bazel is)
+WORKSPACE_ROOT="$BUILD_WORKSPACE_DIRECTORY"
+if [[ -z "$WORKSPACE_ROOT" ]]; then
+    echo "ERROR: This script must be run with 'bazel run'"
+    echo "BUILD_WORKSPACE_DIRECTORY is not set"
+    exit 1
+fi
+
+# Find the LSP config directory in runfiles
+RUNFILES_DIR="$0.runfiles"
+if [[ -d "$RUNFILES_DIR" ]]; then
+    LSP_CONFIG_DIR="$RUNFILES_DIR/_main/{lsp_config_path}"
+else
+    # Fallback to direct path
+    LSP_CONFIG_DIR="{lsp_config_path}"
+fi
+
+echo "Looking for LSP config in: $LSP_CONFIG_DIR"
+
+if [[ -d "$LSP_CONFIG_DIR/.vscode" ]]; then
+    echo "Copying .vscode configuration to workspace..."
+    mkdir -p "$WORKSPACE_ROOT/.vscode"
+    cp -r "$LSP_CONFIG_DIR/.vscode/"* "$WORKSPACE_ROOT/.vscode/"
+    echo "✅ LSP configuration installed to $WORKSPACE_ROOT/.vscode/"
+else
+    echo "❌ LSP configuration directory not found: $LSP_CONFIG_DIR"
+    echo "Contents of parent directory:"
+    ls -la "$(dirname "$LSP_CONFIG_DIR")" 2>/dev/null || echo "Parent directory not found"
+    exit 1
+fi
+
+echo "LSP setup complete!"
+""".format(
+            lsp_config_path = lsp_config_dir.short_path,
+        ),
+        is_executable = True,
+    )
+
+    runfiles = ctx.runfiles(files = lsp_config_files)
+
+    return [DefaultInfo(
+        executable = runner_script,
+        runfiles = runfiles,
+    )]
+
+lsp_runner = rule(
+    implementation = _lsp_runner_impl,
+    executable = True,
+    attrs = {
+        "lsp_config": attr.label(
+            doc = "The LSP configuration target",
+            mandatory = True,
+        ),
+    },
+    doc = "Executable wrapper that installs LSP configuration to workspace",
+)
+
 def setup_bazel_lsp(name = "bazel_lsp_setup"):
     """Macro to set up Bazel LSP configuration.
 
     This creates:
     1. A target to locate/download the LSP binary
     2. A target to configure LSP for the project
+    3. An executable target to install the configuration
 
     Args:
         name: Base name for the targets
@@ -137,8 +214,14 @@ def setup_bazel_lsp(name = "bazel_lsp_setup"):
 
     # Create LSP configuration target
     bazel_lsp(
-        name = name,
+        name = "{}_config".format(name),
         lsp_binary = ":{}_binary".format(name),
+    )
+
+    # Create executable runner
+    lsp_runner(
+        name = name,
+        lsp_config = ":{}_config".format(name),
     )
 
 def _compile_commands_impl(ctx):
@@ -175,4 +258,73 @@ echo "Generated compile_commands.json"
 compile_commands = rule(
     implementation = _compile_commands_impl,
     doc = "Generate compile_commands.json for IDE support",
+)
+
+def _compile_commands_runner_impl(ctx):
+    """Implementation for compile_commands runner that copies file to workspace."""
+    compile_commands_file = ctx.file.compile_commands
+    runner_script = ctx.actions.declare_file(ctx.label.name + "_runner.sh")
+
+    ctx.actions.write(
+        output = runner_script,
+        content = """#!/bin/bash
+set -euo pipefail
+
+echo "Setting up compile_commands.json..."
+
+# Get the workspace root (where BUILD.bazel is)
+WORKSPACE_ROOT="$BUILD_WORKSPACE_DIRECTORY"
+if [[ -z "$WORKSPACE_ROOT" ]]; then
+    echo "ERROR: This script must be run with 'bazel run'"
+    echo "BUILD_WORKSPACE_DIRECTORY is not set"
+    exit 1
+fi
+
+# Find the compile_commands.json file in runfiles
+RUNFILES_DIR="$0.runfiles"
+if [[ -d "$RUNFILES_DIR" ]]; then
+    COMPILE_COMMANDS_FILE="$RUNFILES_DIR/_main/{compile_commands_path}"
+else
+    # Fallback to direct path
+    COMPILE_COMMANDS_FILE="{compile_commands_path}"
+fi
+
+echo "Looking for compile_commands.json at: $COMPILE_COMMANDS_FILE"
+
+if [[ -f "$COMPILE_COMMANDS_FILE" ]]; then
+    echo "Copying compile_commands.json to workspace..."
+    cp "$COMPILE_COMMANDS_FILE" "$WORKSPACE_ROOT/compile_commands.json"
+    echo "✅ compile_commands.json installed to $WORKSPACE_ROOT/"
+else
+    echo "❌ compile_commands.json not found: $COMPILE_COMMANDS_FILE"
+    echo "Contents of parent directory:"
+    ls -la "$(dirname "$COMPILE_COMMANDS_FILE")" 2>/dev/null || echo "Parent directory not found"
+    exit 1
+fi
+
+echo "compile_commands.json setup complete!"
+""".format(
+            compile_commands_path = compile_commands_file.short_path,
+        ),
+        is_executable = True,
+    )
+
+    runfiles = ctx.runfiles(files = [compile_commands_file])
+
+    return [DefaultInfo(
+        executable = runner_script,
+        runfiles = runfiles,
+    )]
+
+compile_commands_runner = rule(
+    implementation = _compile_commands_runner_impl,
+    executable = True,
+    attrs = {
+        "compile_commands": attr.label(
+            doc = "The compile_commands.json file",
+            allow_single_file = True,
+            mandatory = True,
+        ),
+    },
+    doc = "Executable wrapper that installs compile_commands.json to workspace",
 )

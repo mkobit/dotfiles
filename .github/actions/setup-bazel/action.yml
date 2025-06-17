@@ -1,0 +1,28 @@
+name: 'Setup Bazel with Optimizations'
+description: 'Setup Bazel with caching and performance optimizations'
+
+inputs:
+  cache-key:
+    description: 'Unique cache key for this Bazel setup'
+    required: true
+  cache-version:
+    description: 'Bazel cache version'
+    required: true
+    default: 'v1'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Bazel
+      uses: bazel-contrib/setup-bazel@e8776f58fb6a6e9055cbaf1b38c52ccc5247e9c4
+      with:
+        bazelisk-cache: true
+        disk-cache: ${{ inputs.cache-key }}-${{ inputs.cache-version }}
+        repository-cache: true
+
+    - name: Set Bazel optimization flags
+      shell: bash
+      run: |
+        echo "BAZEL_STARTUP_OPTS=--host_jvm_args=-Xmx2g" >> $GITHUB_ENV
+        echo "BAZEL_BUILD_OPTS=--jobs=auto --loading_phase_threads=auto" >> $GITHUB_ENV
+        echo "BAZEL_TEST_OPTS=--test_output=errors --verbose_failures --test_timeout=300" >> $GITHUB_ENV
