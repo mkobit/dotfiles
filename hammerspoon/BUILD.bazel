@@ -30,30 +30,20 @@ hammerspoon_config(
 # Build profile-specific hammerspoon configs
 hammerspoon_config(
     name = "personal_init",
-    srcs = [":base_configs"] + select({
-        "//conditions:default": [],
-        "//config:personal": [":personal_configs"],
-    }),
+    srcs = [":base_configs"],
     header = "-- Personal Hammerspoon Configuration\n-- Generated at: $(date)",
 )
 
 hammerspoon_config(
     name = "work_init",
-    srcs = [":base_configs"] + select({
-        "//conditions:default": [],
-        "//config:work": [":work_configs"],
-    }),
+    srcs = [":base_configs"],
     header = "-- Work Hammerspoon Configuration\n-- Generated at: $(date)",
 )
 
-# Profile-selectable hammerspoon config
+# Profile-selectable hammerspoon config (just use base for now)
 hammerspoon_config(
     name = "generated_init",
-    srcs = select({
-        "//config:work": [":work_init"],
-        "//config:personal": [":personal_init"],
-        "//conditions:default": [":base_init"],
-    }),
+    srcs = [":base_configs"],
     header = "-- THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY\n-- Generated using Bazel at $(date)",
 )
 
