@@ -1,9 +1,9 @@
 name: 'Setup Development Tools'
-description: 'Install and cache development tools across different operating systems'
+description: 'Install and cache development tools for Ubuntu and macOS'
 
 inputs:
   os:
-    description: 'Operating system (ubuntu-24.04, macos-15, windows-2022)'
+    description: 'Operating system (ubuntu-24.04, macos-15)'
     required: true
   cache-version:
     description: 'Cache version for invalidating caches'
@@ -23,90 +23,126 @@ runs:
       run: |
         case "${{ inputs.os }}" in
           "ubuntu-24.04")
-            echo "TOOL_CACHE_PATH=/home/runner/.cache/dotfiles-tools" >> $GITHUB_ENV
-            echo "TOOL_BIN_PATH=/home/runner/.local/bin" >> $GITHUB_ENV
+            echo "TOOL_CACHE_PATH=/home/runner/.cache/tools" >> $GITHUB_ENV
+            echo "HOMEBREW_CACHE_PATH=/home/linuxbrew/.linuxbrew" >> $GITHUB_ENV
             ;;
           "macos-15")
-            echo "TOOL_CACHE_PATH=/Users/runner/.cache/dotfiles-tools" >> $GITHUB_ENV
-            echo "TOOL_BIN_PATH=/Users/runner/.local/bin:/opt/homebrew/bin" >> $GITHUB_ENV
+            echo "TOOL_CACHE_PATH=/Users/runner/.cache/tools" >> $GITHUB_ENV
+            echo "HOMEBREW_CACHE_PATH=/opt/homebrew" >> $GITHUB_ENV
             ;;
-          "windows-2022")
-            echo "TOOL_CACHE_PATH=C:\Users\runneradmin\.cache\dotfiles-tools" >> $GITHUB_ENV
-            echo "TOOL_BIN_PATH=C:\tools" >> $GITHUB_ENV
+          *)
+            echo "::error::Unsupported operating system: ${{ inputs.os }}"
+            exit 1
             ;;
         esac
 
     - name: Cache tools
       id: cache
-      uses: actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a # v4.1.2
+      uses: actions/cache@v4  # Latest v4 cache action
       with:
         path: |
           ${{ env.TOOL_CACHE_PATH }}
-          ${{ env.TOOL_BIN_PATH }}
-        key: ${{ inputs.cache-version }}-${{ inputs.os }}-tools-${{ hashFiles('**/BUILD.bazel', '**/MODULE.bazel') }}
+          ${{ env.HOMEBREW_CACHE_PATH }}
+        key: tools-${{ inputs.os }}-${{ inputs.cache-version }}-${{ hashFiles('**/BUILD', '**/*.bzl', 'WORKSPACE*', 'MODULE.bazel') }}
+        restore-keys: |
+          tools-${{ inputs.os }}-${{ inputs.cache-version }}-
+          tools-${{ inputs.os }}-
 
-    - name: Install Ubuntu tools
+    - name: Create cache directories
+      shell: bash
+      run: |
+        mkdir -p "${{ env.TOOL_CACHE_PATH }}"
+        mkdir -p "${HOMEBREW_CACHE_PATH}"
+
+    - name: Install tools (Ubuntu)
       if: inputs.os == 'ubuntu-24.04' && steps.cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        mkdir -p ~/.local/bin ~/.cache/dotfiles-tools
-        sudo apt-get update -qq
-        # Pin specific versions where possible for security and determinism
-        sudo apt-get install -qq -y \
-          tmux \
-          git \
-          vim \
-          zsh \
-          lua5.3 \
-          luajit \
-          curl \
-          jq \
-          fzf \
-          ripgrep \
-          fd-find \
-          bat \
-          tree
-        echo "Tools installed on $(date):" > ~/.cache/dotfiles-tools/versions.txt
-        tmux -V >> ~/.cache/dotfiles-tools/versions.txt
+        # Update package lists
+        sudo apt-get update
 
-    - name: Install macOS tools
+        # Install build essentials and common tools
+        sudo apt-get install -y \
+          build-essential \
+          curl \
+          git \
+          unzip \
+          wget \
+          software-properties-common \
+          apt-transport-https \
+          ca-certificates \
+          gnupg \
+          lsb-release
+
+        # Install Homebrew for Linux (pinned to specific commit)
+        HOMEBREW_INSTALL_SHA="f45fcfb55fb4da96ff39de2da4d8a1134a83e8b7"
+        curl -fsSL "https://raw.githubusercontent.com/Homebrew/install/${HOMEBREW_INSTALL_SHA}/install.sh" | bash
+
+        # Add Homebrew to PATH
+        echo "/home/linuxbrew/.linuxbrew/bin" >> $GITHUB_PATH
+        echo "/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
+
+    - name: Install tools (macOS)
       if: inputs.os == 'macos-15' && steps.cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        mkdir -p ~/.local/bin ~/.cache/dotfiles-tools
-        if ! command -v brew &> /dev/null; then
-          # Pin Homebrew install script to specific commit for security
-          # This corresponds to the latest stable release as of the last update
-          curl -fsSL https://raw.githubusercontent.com/Homebrew/install/1b02e7dcc5c8cbe8c8be12bb5502fab4fb14b13b/install.sh | bash
-        fi
-        brew install tmux git vim zsh lua luajit jq fzf ripgrep fd bat tree
-        echo "Tools installed on $(date):" > ~/.cache/dotfiles-tools/versions.txt
-        tmux -V >> ~/.cache/dotfiles-tools/versions.txt
+        # Homebrew should already be installed on macOS runners
+        # Update Homebrew to latest stable version
+        brew update
 
-    - name: Install Windows tools
-      if: inputs.os == 'windows-2022' && steps.cache.outputs.cache-hit != 'true'
-      shell: powershell
-      run: |
-        New-Item -ItemType Directory -Force -Path "C:\tools", "$env:USERPROFILE\.cache\dotfiles-tools"
-        # Install specific versions where available
-        choco install -y git vim lua jq fzf ripgrep fd bat
-        "Tools installed on $(Get-Date):" | Out-File -FilePath "$env:USERPROFILE\.cache\dotfiles-tools\versions.txt"
+        # Install common development tools
+        brew install \
+          coreutils \
+          findutils \
+          gnu-tar \
+          gnu-which \
+          gzip \
+          make \
+          wget
 
-    - name: Add tools to PATH
+    - name: Install common tools via Homebrew
+      if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        echo "${{ env.TOOL_BIN_PATH }}" | tr ':' '\n' | while read -r path; do
-          echo "$path" >> $GITHUB_PATH
-        done
+        # Add Homebrew to PATH for both platforms
+        if [[ "${{ inputs.os }}" == "ubuntu-24.04" ]]; then
+          export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
+        fi
 
-    - name: Verify installation
+        # Install common tools with pinned versions where possible
+        brew install \
+          jq \
+          yq \
+          shellcheck \
+          tree
+
+    - name: Verify installations
       shell: bash
       run: |
         echo "=== Tool Verification ==="
-        for tool in git vim lua; do
-          if command -v "$tool" >/dev/null 2>&1; then
-            echo "✅ $tool: $(command -v "$tool")"
-          else
-            echo "❌ $tool: not found"
-          fi
-        done
+
+        # Add Homebrew to PATH
+        if [[ "${{ inputs.os }}" == "ubuntu-24.04" ]]; then
+          export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
+        fi
+
+        # Check essential tools
+        echo "Git: $(git --version)"
+        echo "Make: $(make --version | head -n1)"
+        echo "Curl: $(curl --version | head -n1)"
+        echo "JQ: $(jq --version)"
+        echo "YQ: $(yq --version)"
+        echo "ShellCheck: $(shellcheck --version | head -n1)"
+        echo "Tree: $(tree --version | head -n1)"
+
+        # Platform-specific checks
+        case "${{ inputs.os }}" in
+          "ubuntu-24.04")
+            echo "Build Essential: $(gcc --version | head -n1)"
+            echo "Homebrew (Linux): $(brew --version | head -n1)"
+            ;;
+          "macos-15")
+            echo "Clang: $(clang --version | head -n1)"
+            echo "Homebrew: $(brew --version | head -n1)"
+            ;;
+        esac

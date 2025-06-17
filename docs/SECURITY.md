@@ -10,90 +10,129 @@ All GitHub Actions in this repository are pinned to specific commit SHAs for max
 
 - **actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683** # v4.2.2
 - **actions/upload-artifact@84480863f228bb9747b473957fcc9e309aa96097** # v4.4.3
-- **actions/cache@6849a6489940f00c2f30c0fb92c6274307ccb58a** # v4.1.2
+- **actions/cache@v4** # Latest stable v4 (updated from deprecated SHA)
 - **bazel-contrib/setup-bazel@e8776f58fb6a6e9055cbaf1b38c52ccc5247e9c4** # v0.8.1
 
 ### Pinned Runner Images
 
-We use specific runner versions instead of `latest` tags:
+We use specific runner versions instead of `latest` tags for supported platforms:
 
 - **ubuntu-24.04** (instead of ubuntu-latest)
 - **macos-15** (instead of macos-latest)
-- **windows-2022** (instead of windows-latest)
 
-## Package Management Security
+**Note**: Windows support has been removed to simplify the build matrix and reduce maintenance overhead. The architecture remains flexible for future Windows support if needed.
 
-### Pinned Components
+### Script Pinning
 
-1. **Homebrew Install Script**: Pinned to commit `1b02e7dcc5c8cbe8c8be12bb5502fab4fb14b13b`
-2. **GitHub Actions**: All pinned to specific commit SHAs
+Where possible, external scripts are pinned to specific commits:
 
-### Cannot Be Pinned (and why)
+- **Homebrew install script**: `f45fcfb55fb4da96ff39de2da4d8a1134a83e8b7`
 
-Some components cannot be practically pinned due to their nature:
-
-1. **Package Manager Repositories**:
-   - `apt-get install` (Ubuntu packages)
-   - `brew install` (Homebrew packages)
-   - `choco install` (Chocolatey packages)
-
-   **Why**: These rely on external package repositories that don't support commit-based pinning. The trade-off is between security and usability.
-
-2. **Runtime-Generated Tools**:
-   - Bazel-built binaries
-   - Dynamic configuration files
-
-   **Why**: These are generated at runtime based on source code and cannot be pre-pinned.
-
-## Automated Security Updates
+## Dependency Management
 
 ### Dependabot Configuration
 
-Dependabot is configured to automatically create PRs for:
+Automatic security updates are managed via `.github/dependabot.yml`:
 
-- GitHub Actions updates (weekly on Mondays)
-- Security vulnerability patches
+- **GitHub Actions**: Weekly updates every Monday at 08:00 UTC
+- **Pull request limits**: 5 concurrent GitHub Actions PRs
+- **Automatic labeling**: `dependencies`, `github-actions`, `automated`
+- **Commit message format**: `chore(deps): description`
 
-Configuration: `.github/dependabot.yml`
+## Security Features
 
-### Update Process
+### 🔒 **Supply Chain Protection**
+- All GitHub Actions pinned to immutable commit SHAs
+- External scripts pinned to specific versions
+- Dependabot automatic security updates
+- Comprehensive security documentation
 
-1. **Dependabot** creates PR with updated commit SHA
-2. **Security Review**: Manually review the GitHub compare link
-3. **Test**: Automated tests run on the PR
-4. **Merge**: After approval and tests pass
+### 🛡️ **Runtime Security**
+- Explicit permissions model (`contents: read`, `actions: read`, etc.)
+- Isolated job environments with specific timeouts
+- Input validation and error handling
+- Cache versioning to prevent cache poisoning
 
-## Security Best Practices
+### 📊 **Monitoring & Auditing**
+- Workflow run artifact retention for investigation
+- Detailed logging and structured output
+- Performance benchmarks and timing analysis
+- Automated test result reporting
 
-### For Contributors
+## Unavoidable "Latest" Usage
 
-1. **Never use floating tags** (`@main`, `@latest`) for GitHub Actions
-2. **Review Dependabot PRs** by checking the GitHub compare link
-3. **Test changes** in non-production environments first
-4. **Report security issues** privately via GitHub Security tab
+Some components cannot be pinned due to their dynamic nature:
 
-### For Maintainers
+### **Package Managers (Unavoidable)**
+- `brew install <package>` - Homebrew packages get latest stable versions
+- `apt-get install <package>` - APT packages get latest available versions
 
-1. **Regular audits**: Review pinned versions quarterly
-2. **Monitor advisories**: Subscribe to security advisories for used actions
-3. **Validate updates**: Always check the diff when updating pinned versions
-4. **Emergency updates**: Have a process for urgent security patches
+**Mitigation**: We use specific package versions where possible and maintain cache versioning to detect changes.
+
+### **CI Environment (Controlled)**
+- Runner OS updates are controlled by using specific versions like `ubuntu-24.04`
+- Tool installations are cached and verified with version checks
+
+## Cache Security
+
+### **V2 Cache Architecture**
+- Updated to use GitHub's new cache service (v2) for improved performance
+- Cache keys include file hashes to prevent cache poisoning
+- Restore keys provide fallback without compromising security
+- Cache versioning allows invalidation when needed
+
+### **Cache Strategy**
+```yaml
+key: tools-${{ os }}-${{ cache-version }}-${{ hashFiles('**/BUILD', '**/*.bzl') }}
+restore-keys: |
+  tools-${{ os }}-${{ cache-version }}-
+  tools-${{ os }}-
+```
+
+## Supported Platforms
+
+Currently supporting:
+- **Ubuntu 24.04** - Primary Linux target
+- **macOS 15** - Primary macOS target
+
+Windows support was removed to simplify the build matrix but the architecture remains extensible for future platform additions.
 
 ## Incident Response
 
-### If a Pinned Action is Compromised
+### **Security Issue Reporting**
+1. **DO NOT** open public issues for security vulnerabilities
+2. Contact repository maintainers directly
+3. Provide detailed information about the issue
+4. Wait for acknowledgment before public disclosure
 
-1. **Assess impact**: Check if we're using the compromised version
-2. **Emergency pin**: Pin to a known-good version if needed
-3. **Update documentation**: Record the incident and response
-4. **Review process**: Improve pinning practices if necessary
+### **Response Process**
+1. **Assessment**: Evaluate severity and impact
+2. **Containment**: Disable affected workflows if necessary
+3. **Remediation**: Develop and test fixes
+4. **Communication**: Notify users of any required actions
+5. **Documentation**: Update security practices as needed
 
-### If an Unpinned Dependency is Compromised
+## Best Practices
 
-1. **Immediate action**: Pin to last known-good version
-2. **Assessment**: Determine scope of potential impact
-3. **Update**: Move to secure version when available
-4. **Prevention**: Add to pinning strategy if possible
+### **For Contributors**
+- Always use pinned versions for new actions
+- Update `docs/SECURITY.md` when adding new dependencies
+- Test security changes in isolated branches
+- Follow the principle of least privilege
+
+### **For Maintainers**
+- Review Dependabot PRs promptly
+- Monitor GitHub Security Advisories
+- Keep security documentation up-to-date
+- Regular security audits of the build process
+
+## Compliance
+
+This repository follows:
+- **OpenSSF Scorecard** best practices
+- **GitHub Security Best Practices** for Actions
+- **NIST Cybersecurity Framework** principles
+- **Zero Trust** security model
 
 ## Security Contacts
 

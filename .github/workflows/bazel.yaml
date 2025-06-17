@@ -29,8 +29,8 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  CACHE_VERSION: v1
-  BAZEL_CACHE_VERSION: v1
+  CACHE_VERSION: v2
+  BAZEL_CACHE_VERSION: v2
 
 defaults:
   run:
@@ -64,7 +64,7 @@ jobs:
   tool-setup:
     strategy:
       matrix:
-        os: [ubuntu-24.04, macos-15, windows-2022]
+        os: [ubuntu-24.04, macos-15]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
@@ -79,7 +79,7 @@ jobs:
     needs: [lint, tool-setup]
     strategy:
       matrix:
-        os: [ubuntu-24.04, macos-15, windows-2022]
+        os: [ubuntu-24.04, macos-15]
         profile: [personal, work]
       fail-fast: false
     runs-on: ${{ matrix.os }}
