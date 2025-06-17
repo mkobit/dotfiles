@@ -31,6 +31,10 @@ concurrency:
 env:
   CACHE_VERSION: v2
   BAZEL_CACHE_VERSION: v2
+  # Bazel configuration
+  BAZEL_STARTUP_OPTS: --host_jvm_args=-Xmx2g
+  BAZEL_BUILD_OPTS: --jobs=auto --loading_phase_threads=auto --sandbox_debug
+  BAZEL_TEST_OPTS: --test_output=errors --test_summary=detailed
 
 defaults:
   run:
@@ -44,7 +48,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: ./.github/actions/setup-bazel
         with:
-          cache-key: ${{ github.workflow }}-lint
+          cache-key: ${{ github.workflow }}-lint-${{ github.sha }}
           cache-version: ${{ env.BAZEL_CACHE_VERSION }}
       - name: Run format checks
         run: bazel test //:format_test
@@ -89,10 +93,10 @@ jobs:
       - uses: ./.github/actions/setup-tools
         with:
           os: ${{ matrix.os }}
-          cache-version: ${{ env.CACHE_VERSION }}
+          cache-version: ${{ env.CACHE_VERSION }}-test-${{ matrix.profile }}
       - uses: ./.github/actions/setup-bazel
         with:
-          cache-key: ${{ github.workflow }}-${{ matrix.os }}-${{ matrix.profile }}
+          cache-key: ${{ github.workflow }}-${{ matrix.os }}-${{ matrix.profile }}-${{ github.sha }}
           cache-version: ${{ env.BAZEL_CACHE_VERSION }}
 
       - name: Build and test
@@ -153,10 +157,10 @@ jobs:
       - uses: ./.github/actions/setup-tools
         with:
           os: ubuntu-24.04
-          cache-version: ${{ env.CACHE_VERSION }}
+          cache-version: ${{ env.CACHE_VERSION }}-integration
       - uses: ./.github/actions/setup-bazel
         with:
-          cache-key: ${{ github.workflow }}-integration
+          cache-key: ${{ github.workflow }}-integration-${{ github.sha }}
           cache-version: ${{ env.BAZEL_CACHE_VERSION }}
       - name: Run integration tests
         run: ./scripts/integration-test.sh
