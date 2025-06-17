@@ -52,17 +52,21 @@ runs:
       shell: bash
       run: |
         mkdir -p "${{ env.TOOL_CACHE_PATH }}"
-        mkdir -p "${HOMEBREW_CACHE_PATH}"
+        # Don't create Homebrew directory - let the installer handle it
 
     - name: Install tools (Ubuntu)
       if: inputs.os == 'ubuntu-24.04' && steps.cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
+        set -euo pipefail
+
+        echo "=== Installing Ubuntu Development Tools ==="
+
         # Update package lists
-        sudo apt-get update
+        sudo apt-get update -qq
 
         # Install build essentials and common tools
-        sudo apt-get install -y \
+        sudo apt-get install -qq -y \
           build-essential \
           curl \
           git \
@@ -74,18 +78,30 @@ runs:
           gnupg \
           lsb-release
 
-        # Install Homebrew for Linux (pinned to specific commit)
-        HOMEBREW_INSTALL_SHA="f45fcfb55fb4da96ff39de2da4d8a1134a83e8b7"
-        curl -fsSL "https://raw.githubusercontent.com/Homebrew/install/${HOMEBREW_INSTALL_SHA}/install.sh" | bash
+        # Check if Homebrew is already installed
+        if ! command -v brew &> /dev/null; then
+          echo "Installing Homebrew for Linux..."
+          # Use the official Homebrew installer with non-interactive mode
+          NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-        # Add Homebrew to PATH
-        echo "/home/linuxbrew/.linuxbrew/bin" >> $GITHUB_PATH
-        echo "/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
+          # Add Homebrew to PATH for current session
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+
+          # Add to GitHub PATH for subsequent steps
+          echo "/home/linuxbrew/.linuxbrew/bin" >> $GITHUB_PATH
+          echo "/home/linuxbrew/.linuxbrew/sbin" >> $GITHUB_PATH
+        else
+          echo "Homebrew already installed"
+        fi
 
     - name: Install tools (macOS)
       if: inputs.os == 'macos-15' && steps.cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
+        set -euo pipefail
+
+        echo "=== Installing macOS Development Tools ==="
+
         # Homebrew should already be installed on macOS runners
         # Update Homebrew to latest stable version
         brew update
@@ -96,53 +112,81 @@ runs:
           findutils \
           gnu-tar \
           gnu-which \
-          gzip \
-          make \
-          wget
+          gzip
 
     - name: Install common tools via Homebrew
       if: steps.cache.outputs.cache-hit != 'true'
       shell: bash
       run: |
-        # Add Homebrew to PATH for both platforms
+        set -euo pipefail
+
+        echo "=== Installing Common Tools via Homebrew ==="
+
+        # Add Homebrew to PATH for Ubuntu
         if [[ "${{ inputs.os }}" == "ubuntu-24.04" ]]; then
-          export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
+          if [[ -f "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          else
+            echo "::error::Homebrew not found after installation"
+            exit 1
+          fi
         fi
 
-        # Install common tools with pinned versions where possible
-        brew install \
-          jq \
-          yq \
-          shellcheck \
-          tree
+        # Verify brew is available
+        if ! command -v brew &> /dev/null; then
+          echo "::error::brew command not found in PATH"
+          echo "PATH: $PATH"
+          exit 1
+        fi
+
+        # Install common tools
+        echo "Installing jq..."
+        brew install jq
+
+        echo "Installing yq..."
+        brew install yq
+
+        echo "Installing shellcheck..."
+        brew install shellcheck
+
+        echo "Installing tree..."
+        brew install tree
 
     - name: Verify installations
       shell: bash
       run: |
+        set -euo pipefail
+
         echo "=== Tool Verification ==="
 
-        # Add Homebrew to PATH
+        # Add Homebrew to PATH for Ubuntu
         if [[ "${{ inputs.os }}" == "ubuntu-24.04" ]]; then
-          export PATH="/home/linuxbrew/.linuxbrew/bin:/home/linuxbrew/.linuxbrew/sbin:$PATH"
+          if [[ -f "/home/linuxbrew/.linuxbrew/bin/brew" ]]; then
+            eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+          fi
         fi
 
         # Check essential tools
-        echo "Git: $(git --version)"
-        echo "Make: $(make --version | head -n1)"
-        echo "Curl: $(curl --version | head -n1)"
-        echo "JQ: $(jq --version)"
-        echo "YQ: $(yq --version)"
-        echo "ShellCheck: $(shellcheck --version | head -n1)"
-        echo "Tree: $(tree --version | head -n1)"
+        echo "Git: $(git --version || echo 'NOT FOUND')"
+        echo "Curl: $(curl --version | head -n1 || echo 'NOT FOUND')"
+
+        # Check Homebrew tools (may not be available if cache hit)
+        echo "JQ: $(jq --version 2>/dev/null || echo 'NOT FOUND')"
+        echo "YQ: $(yq --version 2>/dev/null || echo 'NOT FOUND')"
+        echo "ShellCheck: $(shellcheck --version 2>/dev/null | head -n1 || echo 'NOT FOUND')"
+        echo "Tree: $(tree --version 2>/dev/null | head -n1 || echo 'NOT FOUND')"
 
         # Platform-specific checks
         case "${{ inputs.os }}" in
           "ubuntu-24.04")
-            echo "Build Essential: $(gcc --version | head -n1)"
-            echo "Homebrew (Linux): $(brew --version | head -n1)"
+            echo "Build Essential: $(gcc --version | head -n1 || echo 'NOT FOUND')"
+            echo "Homebrew (Linux): $(brew --version | head -n1 || echo 'NOT FOUND')"
             ;;
           "macos-15")
-            echo "Clang: $(clang --version | head -n1)"
-            echo "Homebrew: $(brew --version | head -n1)"
+            echo "Clang: $(clang --version | head -n1 || echo 'NOT FOUND')"
+            echo "Homebrew: $(brew --version | head -n1 || echo 'NOT FOUND')"
             ;;
         esac
+
+        echo "=== PATH ==="
+        echo "$PATH"
