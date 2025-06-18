@@ -1,4 +1,8 @@
 package(default_visibility = ["//visibility:public"])
 
 # Provides common utilities for rule implementations
-exports_files(["rule_utils.bzl"])
+exports_files([
+    "rule_utils.bzl",
+    "guarded_install.bzl",
+    "guarded_install_template.sh",
+])
