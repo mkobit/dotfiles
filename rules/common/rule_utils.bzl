@@ -163,7 +163,6 @@ def create_config_test_rule(
 
         tool_path = getattr(tool_info, tool_path_attr)
         tool_version = getattr(tool_info, version_attr)
-        is_mock = getattr(tool_info, "is_mock", False)
 
         script_content = '''#!/bin/bash
 set -euo pipefail
@@ -175,14 +174,6 @@ CONFIG="{config_path}"
 echo "Testing {rule_name} configuration using $TOOL ($VERSION)"
 echo "Configuration file: $CONFIG"
 
-# Check if we're using the mock implementation
-if [[ "$VERSION" == *"mock"* ]] || [ "{is_mock}" = "True" ]; then
-    echo "WARNING: Using mock {rule_name} implementation - test will be skipped"
-    echo "Actual validation requires {rule_name} to be installed"
-    echo "PASS: Skipping test due to mock {rule_name}"
-    exit 0
-fi
-
 # Ensure we're working with the correct path (make it absolute if needed)
 if [[ "$CONFIG" != /* ]]; then
     CONFIG="$PWD/$CONFIG"
@@ -193,16 +184,15 @@ echo "Using absolute config path: $CONFIG"
 '''.format(
             tool_path = tool_path,
             tool_version = tool_version,
-            config_path = copied_config.short_path,  # Use short_path which is relative to workspace
+            config_path = copied_config.short_path,
             rule_name = rule_name,
-            is_mock = is_mock,
         )
 
-        # Add validation commands (also use short_path for relative paths)
+        # Add validation commands
         for cmd_template in validation_commands:
             script_content += cmd_template.format(
                 tool_path = tool_path,
-                config_path = "$CONFIG",  # Use the variable we set above
+                config_path = "$CONFIG",
             ) + "\n"
 
         script_content += '''

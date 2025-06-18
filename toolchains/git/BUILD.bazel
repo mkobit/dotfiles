@@ -9,6 +9,5 @@ toolchain_type(
 # Export the toolchain files
 exports_files([
     "toolchain.bzl",
-    "mock_toolchain.bzl",
     "extensions.bzl",
 ])

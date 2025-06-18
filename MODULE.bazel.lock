@@ -172,7 +172,7 @@
   "moduleExtensions": {
     "//toolchains/git:extensions.bzl%git_toolchain": {
       "general": {
-        "bzlTransitiveDigest": "89kX31mTH93lGR7M7RRVWWlTwEBXCLDmBPsdQJrN19c=",
+        "bzlTransitiveDigest": "NWGafYl1LR2d9EXdUxp2uCXR2ObYkbPcWX1jWPMr8A4=",
         "usagesDigest": "lenCPP00eF+WkJVrA8n7DtIr7g3+lehDNvwbqlX7OKU=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -196,7 +196,7 @@
     },
     "//toolchains/tmux:extensions.bzl%tmux_toolchain": {
       "general": {
-        "bzlTransitiveDigest": "1rbi+8qFg1cmoEFq5FzDC+r9rYQd8sWqoTv3Gr2K2H4=",
+        "bzlTransitiveDigest": "gKAjNOIjwgjEdw7lmBMfoVxWn/Uk4y3qHI+M3dPmBIo=",
         "usagesDigest": "XnM8Tmye/ekLXDVhx8B/ltC5I291mZYwPk87XSoyX8c=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -212,7 +212,7 @@
     },
     "//toolchains/zsh:extensions.bzl%zsh_toolchain": {
       "general": {
-        "bzlTransitiveDigest": "hP0dwHJXWFW9xTO1+1y7F6bTEurvSAG0LOKBUcimizg=",
+        "bzlTransitiveDigest": "0540uek8ZWYLYtMnQdWQ246rn2Y9AWZcFpJ4jp4snKc=",
         "usagesDigest": "dvC11TRUa6+XYduTZESetOq+OM7BMfzwUoYtq5xiyDY=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},

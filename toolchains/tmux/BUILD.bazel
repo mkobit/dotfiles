@@ -1,9 +1,16 @@
 package(default_visibility = ["//visibility:public"])
 
-# Define the toolchain type that represents a tmux toolchain
+# Toolchain type for tmux
 toolchain_type(
     name = "toolchain_type",
+    visibility = ["//visibility:public"],
 )
+
+# Export the toolchain files
+exports_files([
+    "toolchain.bzl",
+    "extensions.bzl",
+])
 
 # This filegroup allows the toolchain implementation to reference these files
 filegroup(

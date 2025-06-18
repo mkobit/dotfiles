@@ -39,6 +39,20 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: bazel-contrib/setup-bazel@e8776f58fb6a6e9055cbaf1b38c52ccc5247e9c4 # v0.8.1
+
+      - name: Install required tools
+        run: |
+          # Install tools needed for toolchain discovery
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y git tmux vim-nox zsh
+
+          # Verify tools are available
+          echo "=== Tool Verification ==="
+          git --version
+          tmux -V
+          vim --version | head -1
+          zsh --version
+
       - name: Run format checks
         run: bazel test //:format_test
       - name: Generate LSP config
