@@ -1,0 +1,4 @@
+package(default_visibility = ["//visibility:public"])
+
+# This package contains all tool configuration sources
+# Each subdirectory represents a specific tool (git, tmux, zsh, vim, etc.)

@@ -16,17 +16,31 @@ This document outlines a suggested Bazel directory structure for managing person
 │   ├── BUILD.bazel     # Defines configuration targets or applies settings.
 │   └── settings.bzl    # (Optional) Defines custom build settings (e.g., --//config:variant=personal).
 │
-├── git/                # Root-level package for Git configuration.
-│   ├── BUILD.bazel     # Defines targets for git files (install, test, verification).
-│   ├── configs/        # Directory containing git configuration files
-│       ├── base/       # Base git configuration shared across all profiles
-│       ├── personal/   # Personal git configuration profile
-│       └── work/       # Work git configuration profile
-├── vim/                # Root-level package for Vim configuration.
-│   ├── BUILD.bazel     # Defines targets for vim files.
-│   ├── vimrc           # Source vimrc file.
-│   ├── colors/         # Subdirectory for vim assets like color schemes.
-│   │   └── mytheme.vim
+├── src/                # Source directory containing all tool configurations
+│   ├── BUILD.bazel     # Makes src a proper Bazel package
+│   ├── git/            # Package for Git configuration.
+│   │   ├── BUILD.bazel     # Defines targets for git files (install, test, verification).
+│   │   └── configs/        # Directory containing git configuration files
+│   │       ├── base/       # Base git configuration shared across all profiles
+│   │       ├── personal/   # Personal git configuration profile
+│   │       └── work/       # Work git configuration profile
+│   ├── vim/            # Package for Vim configuration.
+│   │   ├── BUILD.bazel     # Defines targets for vim files.
+│   │   ├── vimrc           # Source vimrc file.
+│   │   └── configs/        # Directory for vim configuration files
+│   │       └── colors/     # Subdirectory for vim assets like color schemes.
+│   │           └── mytheme.vim
+│   ├── tmux/           # Package for tmux configuration.
+│   │   ├── BUILD.bazel     # Defines targets for tmux files.
+│   │   └── configs/        # Directory containing tmux configuration files
+│   ├── zsh/            # Package for zsh configuration.
+│   │   ├── BUILD.bazel     # Defines targets for zsh files.
+│   │   └── configs/        # Directory containing zsh configuration files
+│   ├── hammerspoon/    # Package for hammerspoon configuration.
+│   │   ├── BUILD.bazel     # Defines targets for hammerspoon files.
+│   │   └── configs/        # Directory containing hammerspoon configuration files
+│   └── jq/             # Package for jq configuration.
+│       └── BUILD.bazel     # Defines targets for jq files.
 │
 ├── nvim/               # Root-level package for Neovim config (e.g., installs to ~/.config/nvim/).
 │   ├── BUILD.bazel     # Defines targets for nvim files.
@@ -48,7 +62,7 @@ This document outlines a suggested Bazel directory structure for managing person
 
 2.  **Root `BUILD.bazel`**:
     * Often minimal. May define top-level `test_suite` targets or convenience aliases.
-    * **Example:** `test_suite(name = "dotfile_tests", tests = ["//git:test", "//vim:test"])`
+    * **Example:** `test_suite(name = "dotfile_tests", tests = ["//src/git:test", "//src/vim:test"])`
 
 3.  **`rules/`**:
     * Central location for reusable Starlark code (`.bzl`) and helper scripts (`.sh`). Forms the core framework.
@@ -64,13 +78,13 @@ This document outlines a suggested Bazel directory structure for managing person
     * `settings.bzl` (Optional): Defines custom build settings (e.g., `--//config:variant=personal`) used with `select()`.
     * `BUILD.bazel`: Defines targets grouping installations or applying configurations.
 
-6.  **`<tool>/` (e.g., `git/`, `vim/`, `bin/`)**:
+6.  **`src/<tool>/` (e.g., `src/git/`, `src/vim/`, `bin/`)**:
     * Self-contained Bazel package for a specific tool or component.
     * Contains source configuration files/scripts.
     * Includes the package's `BUILD.bazel`.
     * Includes a `test/` subdirectory for co-located tests.
 
-7.  **`<tool>/BUILD.bazel` (e.g., `git/BUILD.bazel`)**:
+7.  **`src/<tool>/BUILD.bazel` (e.g., `src/git/BUILD.bazel`)**:
     * Core definition file for the package. Defines targets for:
         * **Installation:** Uses `sh_binary` (tagged `manual`) executing `//rules:install_dotfile.sh`, or preferably a custom rule from `//rules:dotfile.bzl`. These targets perform the actual filesystem modifications (symlinking/copying) into `$HOME`.
         * **Verification (Optional):** Targets that echo intended source/destination paths without side effects.
@@ -79,13 +93,13 @@ This document outlines a suggested Bazel directory structure for managing person
 
 ## How to use (workflow)
 
-1.  **Bootstrap:** Place source files into their respective root-level directories (e.g., `git/gitconfig`). Create `BUILD.bazel` files within each package.
-2.  **Define targets:** In each `<tool>/BUILD.bazel`, define installation (tagged `manual`), build (if needed), and test targets using standard Bazel rules or custom rules from `//rules`.
+1.  **Bootstrap:** Place source files into their respective directories under `src/` (e.g., `src/git/gitconfig`). Create `BUILD.bazel` files within each package.
+2.  **Define targets:** In each `src/<tool>/BUILD.bazel`, define installation (tagged `manual`), build (if needed), and test targets using standard Bazel rules or custom rules from `//rules`.
 3.  **Build:** Ensure configurations can be generated and sources compiled (if applicable):
     * `bazel build //...` (Build all buildable targets)
-    * `bazel build //git:all` (Build all targets in the git package)
+    * `bazel build //src/git:all` (Build all targets in the git package)
 4.  **Test:** Run tests to verify configuration logic and scripts:
-    * `bazel test //git:test` (Test a specific package)
+    * `bazel test //src/git:test` (Test a specific package)
     * `bazel test //...` (Test all targets)
     * `bazel test :dotfile_tests` (Run a defined test suite)
 
@@ -109,21 +123,21 @@ Before modifying this codebase, explore it thoroughly using:
 
 1. Examine related files and dependencies by using traversal or `bazel` CLI queries:
    ```bash
-   bazel query "deps(//tmux:all)" --output label
+   bazel query "deps(//src/tmux:all)" --output label
    ```
    ```bash
-   find ./tmux -type f -name "*.conf" | xargs cat
+   find ./src/tmux -type f -name "*.conf" | xargs cat
    ```
 
 2. Understand build outputs by using `bazel` and inspecting the outputs:
    ```bash
-   bazel build //tmux:all
-   cat $(bazel info bazel-bin)/tmux/combined_config.conf
+   bazel build //src/tmux:all
+   cat $(bazel info bazel-bin)/src/tmux/combined_config.conf
    ```
 
 3. Check for existing implementations** before adding new ones:
    ```bash
-   grep -r "bind-key" --include="*.conf" ./tmux/
+   grep -r "bind-key" --include="*.conf" ./src/tmux/
    ```
 
 Always read ALL relevant files before suggesting changes to avoid creating unneccessary, breaking, and confusing changes.

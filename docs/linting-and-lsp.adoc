@@ -23,7 +23,7 @@ This project provides comprehensive tooling for Bazel development:
 bazel run //:format
 
 # Format files in a specific package
-bazel run //git:format
+bazel run //src/git:format
 ----
 
 ==== Test formatting (for CI)
@@ -33,7 +33,7 @@ bazel run //git:format
 bazel test //:format_test
 
 # Test formatting in a specific package
-bazel test //git:format_test
+bazel test //src/git:format_test
 ----
 
 ==== Run all quality checks

@@ -2,6 +2,8 @@
 
 Personal dotfiles managed with Bazel for cross-platform configuration management.
 
+All tool configurations are organized under the `src/` directory for better project structure.
+
 ## Quick Start
 
 ```bash

@@ -40,9 +40,9 @@ test_suite(
     name = "quality_checks",
     tests = [
         ":format_test",
-        "//git:selected_gitconfig_test",
-        "//tmux:tmux_conf_test",
-        "//vim:vimrc_test",
-        "//zsh:generated_zshrc_test",
+        "//src/git:selected_gitconfig_test",
+        "//src/tmux:tmux_conf_test",
+        "//src/vim:vimrc_test",
+        "//src/zsh:generated_zshrc_test",
     ],
 )
