@@ -200,16 +200,16 @@ def create_local_tool_repository_rule(tool_name, version_flag = "-V", version_re
                           if is_mock else
                           'load("{}", "{}")'.format(toolchain_bzl_path, implementation_type))
 
-        repository_ctx.file("BUILD.bazel", '''
+        # Create different BUILD content for mock vs real toolchains
+        if is_mock:
+            build_content = '''
 package(default_visibility = ["//visibility:public"])
 
 {load_statement}
 
 {implementation_type}(
     name = "{tool_name}_local_impl",
-    {tool_name}_path = "{tool_path}",
-    {version_attr}
-    is_mock = {is_mock},
+    mock_path = "{tool_path}",
 )
 
 toolchain(
@@ -222,15 +222,45 @@ toolchain(
     toolchain_type = "@dotfiles//toolchains/{tool_name}:toolchain_type",
 )
 '''.format(
-            load_statement = load_statement,
-            implementation_type = implementation_type,
-            tool_name = tool_name,
-            tool_path = tool_path,
-            version_attr = '{}_version = "{}",\n    '.format(tool_name, version) if not is_mock else "",
-            is_mock = "True" if is_mock else "False",
-            exec_constraints = exec_constraints_formatted,
-            target_constraints = target_constraints_formatted,
-        ))
+                load_statement = load_statement,
+                implementation_type = implementation_type,
+                tool_name = tool_name,
+                tool_path = tool_path,
+                exec_constraints = exec_constraints_formatted,
+                target_constraints = target_constraints_formatted,
+            )
+        else:
+            build_content = '''
+package(default_visibility = ["//visibility:public"])
+
+{load_statement}
+
+{implementation_type}(
+    name = "{tool_name}_local_impl",
+    {tool_name}_path = "{tool_path}",
+    {tool_name}_version = "{version}",
+)
+
+toolchain(
+    name = "{tool_name}_local",
+    exec_compatible_with = [
+{exec_constraints}    ],
+    target_compatible_with = [
+{target_constraints}    ],
+    toolchain = ":{tool_name}_local_impl",
+    toolchain_type = "@dotfiles//toolchains/{tool_name}:toolchain_type",
+)
+'''.format(
+                load_statement = load_statement,
+                implementation_type = implementation_type,
+                tool_name = tool_name,
+                tool_path = tool_path,
+                version = version,
+                exec_constraints = exec_constraints_formatted,
+                target_constraints = target_constraints_formatted,
+            )
+
+        repository_ctx.file("BUILD.bazel", build_content)
 
         if is_mock:
             print("WARNING: Using mock {} implementation - real {} not found in PATH".format(tool_name, tool_name))
