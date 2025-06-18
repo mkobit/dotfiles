@@ -36,7 +36,7 @@ This repository follows security best practices for CI/CD pipelines:
 * *🔒 Pinned Dependencies*: All GitHub Actions pinned to specific commit SHAs
 * *🔄 Automated Updates*: Dependabot configured for security updates
 * *🛡️ Supply Chain Security*: Minimized attack surface through version pinning
-* *📋 Security Documentation*: Detailed practices in link:docs/SECURITY.md[docs/SECURITY.md]
+* *📋 Security Documentation*: Detailed practices in link:docs/SECURITY.adoc[docs/SECURITY.adoc]
 
 Key security implementations:
 
@@ -45,7 +45,7 @@ Key security implementations:
 * Homebrew install script pinned to specific commit
 * Weekly automated security updates via Dependabot
 
-See link:docs/SECURITY.md[docs/SECURITY.md] for complete security practices and incident response procedures.
+See link:docs/SECURITY.adoc[docs/SECURITY.adoc] for complete security practices and incident response procedures.
 
 == Configuration Profiles
 
@@ -130,7 +130,7 @@ GitHub Actions workflow handles:
 4. Run `bazel test //...` to ensure tests pass
 5. Submit a pull request
 
-Please review link:docs/SECURITY.md[docs/SECURITY.md] for security practices when contributing.
+Please review link:docs/SECURITY.adoc[docs/SECURITY.adoc] for security practices when contributing.
 
 == License
 
