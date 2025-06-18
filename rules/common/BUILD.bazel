@@ -1,0 +1,4 @@
+package(default_visibility = ["//visibility:public"])
+
+# Provides common utilities for rule implementations
+exports_files(["rule_utils.bzl"])

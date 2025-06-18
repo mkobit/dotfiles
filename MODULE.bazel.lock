@@ -170,9 +170,33 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//toolchains/git:extensions.bzl%git_toolchain": {
+      "general": {
+        "bzlTransitiveDigest": "jvSr0xErHYw+xh5GwzDhortc4vPKId588hVSfdfv2SM=",
+        "usagesDigest": "lenCPP00eF+WkJVrA8n7DtIr7g3+lehDNvwbqlX7OKU=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "local_git": {
+            "repoRuleId": "@@//toolchains/git:toolchain.bzl%local_git_binary",
+            "attributes": {}
+          }
+        },
+        "moduleExtensionMetadata": {
+          "explicitRootModuleDirectDeps": [
+            "local_git"
+          ],
+          "explicitRootModuleDirectDevDeps": [],
+          "useAllRepos": "NO",
+          "reproducible": false
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
     "//toolchains/tmux:extensions.bzl%tmux_toolchain": {
       "general": {
-        "bzlTransitiveDigest": "hU71zsAajPkzZ7or22bW6uIjiCZ48NGpYv7UnhWO/H8=",
+        "bzlTransitiveDigest": "MsmnfWecvuLqNQ2FrkQZMdc0lzje/py+LYSLAB2dHcQ=",
         "usagesDigest": "XnM8Tmye/ekLXDVhx8B/ltC5I291mZYwPk87XSoyX8c=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -182,6 +206,30 @@
             "repoRuleId": "@@//toolchains/tmux:toolchain.bzl%local_tmux_binary",
             "attributes": {}
           }
+        },
+        "recordedRepoMappingEntries": []
+      }
+    },
+    "//toolchains/zsh:extensions.bzl%zsh_toolchain": {
+      "general": {
+        "bzlTransitiveDigest": "SNq3rJhtrH9ZpdFWH2Vqxfusr/niZ2s95Uy85ZVhjd8=",
+        "usagesDigest": "dvC11TRUa6+XYduTZESetOq+OM7BMfzwUoYtq5xiyDY=",
+        "recordedFileInputs": {},
+        "recordedDirentsInputs": {},
+        "envVariables": {},
+        "generatedRepoSpecs": {
+          "local_zsh": {
+            "repoRuleId": "@@//toolchains/zsh:toolchain.bzl%local_zsh_binary",
+            "attributes": {}
+          }
+        },
+        "moduleExtensionMetadata": {
+          "explicitRootModuleDirectDeps": [
+            "local_zsh"
+          ],
+          "explicitRootModuleDirectDevDeps": [],
+          "useAllRepos": "NO",
+          "reproducible": false
         },
         "recordedRepoMappingEntries": []
       }

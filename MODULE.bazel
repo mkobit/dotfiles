@@ -26,9 +26,17 @@ pip.parse(
 )
 use_repo(pip, "pypi")
 
-# Register the tmux toolchain
+# Register toolchains for all supported tools
 tmux_ext = use_extension("//toolchains/tmux:extensions.bzl", "tmux_toolchain")
 use_repo(tmux_ext, "local_tmux")
 register_toolchains("@local_tmux//:tmux_local")
+
+zsh_ext = use_extension("//toolchains/zsh:extensions.bzl", "zsh_toolchain")
+use_repo(zsh_ext, "local_zsh")
+register_toolchains("@local_zsh//:zsh_local")
+
+git_ext = use_extension("//toolchains/git:extensions.bzl", "git_toolchain")
+use_repo(git_ext, "local_git")
+register_toolchains("@local_git//:git_local")
 
 # Note: We use simple buildifier-based linting instead of aspect_rules_lint
