@@ -96,6 +96,6 @@ include_install(
     target_file = "~/.zshrc",
     config = ":generated_zshrc",
     identifier = "dotfiles",
+    include_directive = "source {path}",
     header_comment = "#",
-    include_format = "source",
 )

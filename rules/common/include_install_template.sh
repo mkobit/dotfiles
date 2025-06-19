@@ -5,7 +5,7 @@ set -euo pipefail
 TARGET_FILE="__TARGET_FILE__"
 IDENTIFIER="__IDENTIFIER__"
 HEADER_COMMENT="__HEADER_COMMENT__"
-INCLUDE_FORMAT="__INCLUDE_FORMAT__"
+INCLUDE_DIRECTIVE="__INCLUDE_DIRECTIVE__"
 LABEL="__LABEL__"
 CONFIG_FILE_PATH="__CONFIG_FILE_PATH__"
 BACKUP="__BACKUP__"
@@ -164,23 +164,8 @@ get_include_bounds() {
     echo "$begin_num $end_num"
 }
 
-# Create the include directive content based on format
-case "$INCLUDE_FORMAT" in
-    "git")
-        INCLUDE_CONTENT="[include]
-	path = $CONFIG_INCLUDE_PATH"
-        ;;
-    "source")
-        INCLUDE_CONTENT="source $CONFIG_INCLUDE_PATH"
-        ;;
-    "source-file")
-        INCLUDE_CONTENT="source-file $CONFIG_INCLUDE_PATH"
-        ;;
-    *)
-        echo "Error: Unknown include format: $INCLUDE_FORMAT"
-        exit 1
-        ;;
-esac
+# Create the include directive content by substituting {path}
+INCLUDE_CONTENT="${INCLUDE_DIRECTIVE//\{path\}/$CONFIG_INCLUDE_PATH}"
 
 # Main installation logic
 if include_exists "$TARGET_FILE_EXPANDED" "$GUARD_BEGIN"; then

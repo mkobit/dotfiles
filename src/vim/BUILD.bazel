@@ -42,6 +42,6 @@ include_install(
     target_file = "~/.vimrc",
     config = ":vimrc",
     identifier = "dotfiles",
+    include_directive = "source {path}",
     header_comment = "\"",
-    include_format = "source",
 )

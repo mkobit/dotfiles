@@ -22,7 +22,7 @@ def _include_install_impl(ctx):
         "__TARGET_FILE__": ctx.attr.target_file,
         "__IDENTIFIER__": ctx.attr.identifier,
         "__HEADER_COMMENT__": ctx.attr.header_comment.replace('"', '\\"'),
-        "__INCLUDE_FORMAT__": ctx.attr.include_format,
+        "__INCLUDE_DIRECTIVE__": ctx.attr.include_directive,
         "__LABEL__": str(ctx.label),
         "__CONFIG_FILE_PATH__": content_file_path,
         "__BACKUP__": "true" if ctx.attr.backup else "false",
@@ -52,8 +52,8 @@ def include_install(
     target_file,
     config,
     identifier,
+    include_directive,
     header_comment = "#",
-    include_format = "git",
     backup = False,
     create_if_missing = True,
     **kwargs):
@@ -65,8 +65,8 @@ def include_install(
         target_file: Path to the target file (supports ~ expansion)
         config: Label of the Bazel-built configuration file to include
         identifier: Unique identifier for this include directive
+        include_directive: Template for the include directive (e.g., "source {path}", "[include]\\n\\tpath = {path}")
         header_comment: Comment character for the target file type
-        include_format: Format of include directive ("git", "source", "source-file")
         backup: Whether to create backup files
         create_if_missing: Whether to create the target file if it doesn't exist
         **kwargs: Additional arguments passed to the rule
@@ -78,8 +78,8 @@ def include_install(
         target_file = target_file,
         config = config,
         identifier = identifier,
+        include_directive = include_directive,
         header_comment = header_comment,
-        include_format = include_format,
         backup = backup,
         create_if_missing = create_if_missing,
         **kwargs
@@ -91,8 +91,8 @@ _include_install_rule = rule(
         "target_file": attr.string(mandatory = True),
         "config": attr.label(allow_single_file = True, mandatory = True),
         "identifier": attr.string(mandatory = True),
+        "include_directive": attr.string(mandatory = True),
         "header_comment": attr.string(default = "#"),
-        "include_format": attr.string(default = "git"),
         "backup": attr.bool(default = False),
         "create_if_missing": attr.bool(default = True),
         "_template": attr.label(

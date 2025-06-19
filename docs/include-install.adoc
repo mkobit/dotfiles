@@ -12,25 +12,29 @@ Instead of injecting configuration content directly into target files, the inclu
 
 This approach provides better separation of concerns and leverages native include mechanisms supported by many configuration formats.
 
-== Supported Include Formats
+== Flexible Include Directives
 
-The system supports multiple include directive formats:
+The system uses a template-based approach for maximum flexibility. You specify the exact include directive you want using `{path}` as a placeholder for the configuration file path.
 
 [cols="1,2,3"]
 |===
-|Format |Syntax |Use Cases
+|Config Type |Include Directive Template |Result
 
-|`git`
-|`[include] path = file`
-|Git configuration files (.gitconfig)
+|Git
+|`"[include]\\n\\tpath = {path}"`
+|`[include]` section with path
 
-|`source`
-|`source file`
-|Vim (.vimrc), ZSH (.zshrc), Bash (.bashrc)
+|Vim/ZSH/Bash
+|`"source {path}"`
+|`source` command
 
-|`source-file`
-|`source-file file`
-|Tmux configuration (.tmux.conf)
+|Tmux
+|`"source-file {path}"`
+|`source-file` command
+
+|Custom
+|`"load {path}"`
+|Any custom format you need
 |===
 
 == Basic Usage
@@ -43,7 +47,8 @@ include_install(
     name = "install_gitconfig",
     target_file = "~/.gitconfig",
     config = ":gitconfig",  # Bazel-generated config file
-    identifier = "dotfiles_config",
+    identifier = "dotfiles",
+    include_directive = "[include]\\n\\tpath = {path}",
     header_comment = "#",
 )
 ----
@@ -151,15 +156,15 @@ source /Users/user/dotfiles/bazel-bin/src/zsh/generated_zshrc.zsh
 |===
 |Parameter |Type |Default |Description
 
+|`include_directive`
+|string
+|*required*
+|Template for include directive using `{path}` placeholder
+
 |`header_comment`
 |string
 |`"#"`
 |Comment character for guard comments
-
-|`include_format`
-|string
-|`"git"`
-|Format of include directive: "git", "source", "source-file"
 
 |`backup`
 |bool
@@ -188,13 +193,13 @@ git_config(
     }),
 )
 
-# Install using include directive (default format)
+# Install using include directive
 include_install(
     name = "install_gitconfig",
     target_file = "~/.gitconfig",
     config = ":gitconfig",
     identifier = "dotfiles",
-    # include_format = "git",  # Default
+    include_directive = "[include]\\n\\tpath = {path}",
 )
 ----
 
@@ -208,8 +213,8 @@ include_install(
     target_file = "~/.vimrc",
     config = ":vimrc",
     identifier = "dotfiles",
+    include_directive = "source {path}",
     header_comment = "\"",
-    include_format = "source",
 )
 ----
 
@@ -223,7 +228,7 @@ include_install(
     target_file = "~/.tmux.conf",
     config = ":tmux_conf",
     identifier = "dotfiles",
-    include_format = "source-file",
+    include_directive = "source-file {path}",
 )
 ----
 
@@ -237,7 +242,7 @@ include_install(
     target_file = "~/.zshrc",
     config = ":generated_zshrc",
     identifier = "dotfiles",
-    include_format = "source",
+    include_directive = "source {path}",
 )
 ----
 
@@ -271,7 +276,42 @@ include_install(
     target_file = "~/.ssh/config",
     config = ":ssh_config",
     identifier = "work_hosts",
+    include_directive = "Include {path}",
     header_comment = "#",
+)
+----
+
+=== Custom Include Formats
+
+The flexible template system allows you to use any include format:
+
+[source,starlark]
+----
+# Nginx include
+include_install(
+    name = "install_nginx_config",
+    target_file = "/etc/nginx/nginx.conf",
+    config = ":nginx_config",
+    identifier = "custom_rules",
+    include_directive = "include {path};",
+)
+
+# Apache include
+include_install(
+    name = "install_apache_config",
+    target_file = "/etc/apache2/apache2.conf",
+    config = ":apache_config",
+    identifier = "custom_modules",
+    include_directive = "Include {path}",
+)
+
+# Multi-line include with custom formatting
+include_install(
+    name = "install_complex_config",
+    target_file = "~/.config/app/config.conf",
+    config = ":app_config",
+    identifier = "app_settings",
+    include_directive = "# Generated config\\nload_config(\"{path}\")",
 )
 ----
 

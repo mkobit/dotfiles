@@ -38,6 +38,6 @@ include_install(
     target_file = "~/.tmux.conf",
     config = ":tmux_conf",
     identifier = "dotfiles",
+    include_directive = "source-file {path}",
     header_comment = "#",
-    include_format = "source-file",
 )

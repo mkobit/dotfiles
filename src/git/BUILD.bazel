@@ -91,5 +91,6 @@ include_install(
     target_file = "~/.gitconfig",
     config = ":gitconfig",  # Use the generated, profile-aware gitconfig
     identifier = "dotfiles",
+    include_directive = "[include]\n\tpath = {path}",
     header_comment = "#",
 )
