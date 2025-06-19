@@ -12,6 +12,27 @@ Instead of injecting configuration content directly into target files, the inclu
 
 This approach provides better separation of concerns and leverages native include mechanisms supported by many configuration formats.
 
+== Supported Include Formats
+
+The system supports multiple include directive formats:
+
+[cols="1,2,3"]
+|===
+|Format |Syntax |Use Cases
+
+|`git`
+|`[include] path = file`
+|Git configuration files (.gitconfig)
+
+|`source`
+|`source file`
+|Vim (.vimrc), ZSH (.zshrc), Bash (.bashrc)
+
+|`source-file`
+|`source-file file`
+|Tmux configuration (.tmux.conf)
+|===
+
 == Basic Usage
 
 [source,starlark]
@@ -27,28 +48,69 @@ include_install(
 )
 ----
 
-Running the installation:
+Running the installations:
 
 [source,bash]
 ----
+# Install Git configuration
 bazel run //src/git:install_gitconfig
+
+# Install Vim configuration
+bazel run //src/vim:install_vimrc
+
+# Install Tmux configuration
+bazel run //src/tmux:install_tmux_conf
+
+# Install ZSH configuration
+bazel run //src/zsh:install_zshrc
 ----
 
 == How It Works
 
-=== Generated Include Directive
+=== Generated Include Directives
 
-The system injects a guarded include directive into your target file:
+The system injects guarded include directives into your target files using the appropriate format:
 
+**Git Config (.gitconfig):**
 [source,gitconfig]
 ----
 [user]
     # your existing config
 
-# guard:begin:dotfiles_config
+# guard:begin:dotfiles
 [include]
-    path = /path/to/bazel-out/.../gitconfig.gitconfig
-# guard:end:dotfiles_config
+    path = /Users/user/dotfiles/bazel-bin/src/git/gitconfig.gitconfig
+# guard:end:dotfiles
+----
+
+**Vim Config (.vimrc):**
+[source,vim]
+----
+" your existing config
+
+" guard:begin:dotfiles
+source /Users/user/dotfiles/bazel-bin/src/vim/vimrc.vim
+" guard:end:dotfiles
+----
+
+**Tmux Config (.tmux.conf):**
+[source,tmux]
+----
+# your existing config
+
+# guard:begin:dotfiles
+source-file /Users/user/dotfiles/bazel-bin/src/tmux/tmux.conf
+# guard:end:dotfiles
+----
+
+**ZSH Config (.zshrc):**
+[source,zsh]
+----
+# your existing config
+
+# guard:begin:dotfiles
+source /Users/user/dotfiles/bazel-bin/src/zsh/generated_zshrc.zsh
+# guard:end:dotfiles
 ----
 
 === Guard Management
@@ -94,6 +156,11 @@ The system injects a guarded include directive into your target file:
 |`"#"`
 |Comment character for guard comments
 
+|`include_format`
+|string
+|`"git"`
+|Format of include directive: "git", "source", "source-file"
+
 |`backup`
 |bool
 |`false`
@@ -121,12 +188,56 @@ git_config(
     }),
 )
 
-# Install using include directive
+# Install using include directive (default format)
 include_install(
     name = "install_gitconfig",
     target_file = "~/.gitconfig",
     config = ":gitconfig",
-    identifier = "bazel_managed",
+    identifier = "dotfiles",
+    # include_format = "git",  # Default
+)
+----
+
+=== Vim Configuration
+
+[source,starlark]
+----
+# Install vim config using source directive
+include_install(
+    name = "install_vimrc",
+    target_file = "~/.vimrc",
+    config = ":vimrc",
+    identifier = "dotfiles",
+    header_comment = "\"",
+    include_format = "source",
+)
+----
+
+=== Tmux Configuration
+
+[source,starlark]
+----
+# Install tmux config using source-file directive
+include_install(
+    name = "install_tmux_conf",
+    target_file = "~/.tmux.conf",
+    config = ":tmux_conf",
+    identifier = "dotfiles",
+    include_format = "source-file",
+)
+----
+
+=== ZSH Configuration
+
+[source,starlark]
+----
+# Install zsh config using source directive
+include_install(
+    name = "install_zshrc",
+    target_file = "~/.zshrc",
+    config = ":generated_zshrc",
+    identifier = "dotfiles",
+    include_format = "source",
 )
 ----
 
