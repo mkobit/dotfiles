@@ -1,6 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
 load("//rules/vim:defs.bzl", "vim_config", "vim_test")
+load("//rules:include_install.bzl", "include_install")
 
 VIM_SECTIONS = [
     "base.vim",
@@ -33,4 +34,14 @@ vim_config(
 vim_test(
     name = "vimrc_test",
     config = ":vimrc",
+)
+
+# Install generated vimrc into ~/.vimrc
+include_install(
+    name = "install_vimrc",
+    target_file = "~/.vimrc",
+    config = ":vimrc",
+    identifier = "dotfiles",
+    header_comment = "\"",
+    include_format = "source",
 )

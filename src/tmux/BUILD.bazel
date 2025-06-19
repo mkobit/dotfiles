@@ -1,5 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
+load("//rules:include_install.bzl", "include_install")
+
 genrule(
     name = "tmux_conf",
     srcs = glob(["configs/*.tmux"]),
@@ -28,4 +30,14 @@ load("//rules/tmux:defs.bzl", "tmux_conf_test")
 tmux_conf_test(
     name = "tmux_conf_test",
     config = ":tmux_conf",
+)
+
+# Install generated tmux.conf into ~/.tmux.conf
+include_install(
+    name = "install_tmux_conf",
+    target_file = "~/.tmux.conf",
+    config = ":tmux_conf",
+    identifier = "dotfiles",
+    header_comment = "#",
+    include_format = "source-file",
 )
