@@ -5,4 +5,5 @@ exports_files([
     "rule_utils.bzl",
     "guarded_install.bzl",
     "guarded_install_template.sh",
+    "include_install_template.sh",
 ])

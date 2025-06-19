@@ -67,6 +67,9 @@ def guarded_install_rule(
         name = name,
         srcs = [script_name],
         data = [content],
+        env = {
+            "BAZEL_CONTENT_FILE": "$(location {})".format(content),
+        },
         **kwargs
     )
 

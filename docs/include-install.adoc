@@ -1,0 +1,237 @@
+= Include Installation
+
+The include installation system provides a clean way to integrate Bazel-generated configuration files with existing system configurations using include directives.
+
+== Overview
+
+Instead of injecting configuration content directly into target files, the include installation system:
+
+1. **Generates** configuration files using Bazel
+2. **Injects** small include directives that point to the generated files
+3. **Manages** these directives with guard comments for easy updates
+
+This approach provides better separation of concerns and leverages native include mechanisms supported by many configuration formats.
+
+== Basic Usage
+
+[source,starlark]
+----
+load("//rules:include_install.bzl", "include_install")
+
+include_install(
+    name = "install_gitconfig",
+    target_file = "~/.gitconfig",
+    config = ":gitconfig",  # Bazel-generated config file
+    identifier = "dotfiles_config",
+    header_comment = "#",
+)
+----
+
+Running the installation:
+
+[source,bash]
+----
+bazel run //src/git:install_gitconfig
+----
+
+== How It Works
+
+=== Generated Include Directive
+
+The system injects a guarded include directive into your target file:
+
+[source,gitconfig]
+----
+[user]
+    # your existing config
+
+# guard:begin:dotfiles_config
+[include]
+    path = /path/to/bazel-out/.../gitconfig.gitconfig
+# guard:end:dotfiles_config
+----
+
+=== Guard Management
+
+- **Unique identifiers**: Each include directive has a unique identifier
+- **Atomic updates**: Uses temporary files for safe operations
+- **Idempotent**: Running multiple times updates the existing directive
+- **Deterministic**: Same identifier always manages the same section
+
+== Configuration
+
+=== Required Parameters
+
+[cols="1,1,3"]
+|===
+|Parameter |Type |Description
+
+|`name`
+|string
+|Name of the installation rule
+
+|`target_file`
+|string
+|Path to target file (supports `~` expansion)
+
+|`config`
+|label
+|Bazel target that generates the configuration file
+
+|`identifier`
+|string
+|Unique identifier for the include directive
+|===
+
+=== Optional Parameters
+
+[cols="1,1,1,3"]
+|===
+|Parameter |Type |Default |Description
+
+|`header_comment`
+|string
+|`"#"`
+|Comment character for guard comments
+
+|`backup`
+|bool
+|`false`
+|Create timestamped backup files
+
+|`create_if_missing`
+|bool
+|`true`
+|Create target file if it doesn't exist
+|===
+
+== Examples
+
+=== Git Configuration
+
+[source,starlark]
+----
+# Generate profile-aware gitconfig
+git_config(
+    name = "gitconfig",
+    srcs = select({
+        "//config:personal": [":personal_configs"],
+        "//config:work": [":work_configs"],
+        "//conditions:default": [":base_configs"],
+    }),
+)
+
+# Install using include directive
+include_install(
+    name = "install_gitconfig",
+    target_file = "~/.gitconfig",
+    config = ":gitconfig",
+    identifier = "bazel_managed",
+)
+----
+
+=== Multiple Include Directives
+
+You can have multiple include directives in the same file with different identifiers:
+
+[source,starlark]
+----
+include_install(
+    name = "install_git_aliases",
+    target_file = "~/.gitconfig",
+    config = ":git_aliases",
+    identifier = "aliases",
+)
+
+include_install(
+    name = "install_git_core",
+    target_file = "~/.gitconfig",
+    config = ":git_core",
+    identifier = "core_config",
+)
+----
+
+=== SSH Configuration
+
+[source,starlark]
+----
+include_install(
+    name = "install_ssh_config",
+    target_file = "~/.ssh/config",
+    config = ":ssh_config",
+    identifier = "work_hosts",
+    header_comment = "#",
+)
+----
+
+== Benefits
+
+=== Clean Separation
+- Generated content stays in Bazel-managed files
+- Target files only contain small include directives
+- Easy to see what's managed vs. manual configuration
+
+=== Native Support
+- Leverages built-in include mechanisms (Git, SSH, etc.)
+- No custom parsing or content injection
+- Works with existing tooling and validation
+
+=== Atomic Updates
+- Include path updates atomically when config changes
+- No risk of partial updates or corruption
+- Rollback by simply rebuilding with previous version
+
+=== Profile Integration
+- Works seamlessly with profile-aware configuration generation
+- Include path automatically updates when profile changes
+- Single command to rebuild and reinstall: `bazel run //target --//config:profile=work`
+
+== Comparison with Other Approaches
+
+[cols="1,2,2,2"]
+|===
+|Approach |Pros |Cons |Best For
+
+|**Include Install**
+|Clean separation, native support, atomic updates
+|Requires include support in target format
+|Git, SSH, shell configs
+
+|Sectioned Install
+|Works with any format, direct content injection
+|More complex, content mixed with target file
+|Legacy formats without include support
+
+|Guarded Install
+|Simple, works everywhere
+|Replaces entire file, no incremental updates
+|Small, standalone config files
+|===
+
+== Troubleshooting
+
+=== Include Path Issues
+
+If the include directive points to a non-existent file:
+
+1. **Rebuild** the configuration: `bazel build //your:config`
+2. **Check** the path exists: `ls -la bazel-out/.../your_config.ext`
+3. **Reinstall**: `bazel run //your:install_target`
+
+=== Permission Errors
+
+Ensure you have write permissions to the target file and directory:
+
+[source,bash]
+----
+ls -la ~/.gitconfig
+ls -ld ~/.ssh
+----
+
+=== Multiple Identifiers
+
+Each identifier manages an independent section. To avoid conflicts:
+
+- Use descriptive, unique identifiers
+- Document which identifiers are used for each file
+- Consider using prefixes: `dotfiles_git`, `dotfiles_ssh`

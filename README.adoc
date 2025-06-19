@@ -28,6 +28,8 @@ bazel run //config:install_all
 * *Bazel-managed*: Reproducible builds and dependency management
 * *Comprehensive testing*: Quality checks and validation
 * *Security-first*: Pinned dependencies and automated security updates
+* *Guarded installation*: Safe injection of configurations into existing files
+* *Sectioned installation*: Multiple named sections within single files
 
 == Security
 
@@ -46,6 +48,40 @@ Key security implementations:
 * Weekly automated security updates via Dependabot
 
 See link:docs/SECURITY.adoc[docs/SECURITY.adoc] for complete security practices and incident response procedures.
+
+== Installation Methods
+
+=== Guarded Installation
+
+Safe injection of complete configuration sections:
+
+[source,bash]
+----
+# Install Git configuration with guard comments
+bazel run //src/git:install_config_home
+
+# Install ZSH configuration
+bazel run //src/zsh:install_config_home
+----
+
+See link:docs/guarded-install.adoc[docs/guarded-install.adoc] for details.
+
+=== Sectioned Installation
+
+Comprehensive configuration installation with section management:
+
+[source,bash]
+----
+# Install complete Git configuration as a managed section
+bazel run //src/git:install_gitconfig
+
+# Install ZSH configuration
+bazel run //src/zsh:install_config_home
+----
+
+See link:docs/sectioned-install.adoc[docs/sectioned-install.adoc] for complete documentation.
+
+
 
 == Configuration Profiles
 

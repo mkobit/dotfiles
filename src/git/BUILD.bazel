@@ -2,7 +2,7 @@ package(default_visibility = ["//visibility:public"])
 
 load("//rules/git:defs.bzl", "git_config", "git_test")
 load("//rules:linting.bzl", "bazel_files_format", "bazel_files_format_test")
-load("//rules:guarded_install.bzl", "guarded_install")
+load("//rules:include_install.bzl", "include_install")
 
 filegroup(
     name = "base_configs",
@@ -85,12 +85,11 @@ bazel_files_format_test(
     name = "format_test",
 )
 
-# Guarded install - inject generated gitconfig into ~/.gitconfig
-guarded_install(
-    name = "install_config_home",
+# Install generated gitconfig into ~/.gitconfig
+include_install(
+    name = "install_gitconfig",
     target_file = "~/.gitconfig",
-    content = ":gitconfig",
+    config = ":gitconfig",  # Use the generated, profile-aware gitconfig
+    identifier = "dotfiles",
     header_comment = "#",
-    guard_start = "START DOTFILES MANAGED SECTION",
-    guard_end = "END DOTFILES MANAGED SECTION",
 )
