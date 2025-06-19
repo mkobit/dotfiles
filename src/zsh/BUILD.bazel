@@ -79,11 +79,11 @@ zsh_test(
     config = ":generated_zshrc",
 )
 
-# Guarded install example - inject include section into ~/.zshrc
+# Guarded install - inject generated zshrc into ~/.zshrc
 guarded_install(
     name = "install_config_home",
     target_file = "~/.zshrc",
-    content = "install_content.txt",
+    content = ":generated_zshrc",
     header_comment = "#",
     guard_start = "START DOTFILES MANAGED SECTION",
     guard_end = "END DOTFILES MANAGED SECTION",

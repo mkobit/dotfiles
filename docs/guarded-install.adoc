@@ -47,7 +47,7 @@ load("//rules:guarded_install.bzl", "guarded_install")
 guarded_install(
     name = "install_config_home",
     target_file = "~/.gitconfig",
-    content = "install_content.txt",
+    content = ":gitconfig",
     header_comment = "#",
     guard_start = "START DOTFILES MANAGED SECTION",
     guard_end = "END DOTFILES MANAGED SECTION",
@@ -61,14 +61,20 @@ Then run:
 bazel run //src/git:install_config_home
 ----
 
-=== Content File
+=== Content Sources
 
-Create a content file (e.g., `install_content.txt`) with the configuration to inject:
+You can use either a content file or a built Bazel target as the content source:
 
-[source,gitconfig]
+*Built targets* (recommended):
+[source,starlark]
 ----
-[include]
-    path = ~/.config/git/personal-config
+content = ":gitconfig",  # Use the built gitconfig target
+----
+
+*Content files*:
+[source,starlark]
+----
+content = "install_content.txt",  # Use a static content file
 ----
 
 == Examples by Tool
@@ -81,16 +87,11 @@ Create a content file (e.g., `install_content.txt`) with the configuration to in
 guarded_install(
     name = "install_config_home",
     target_file = "~/.gitconfig",
-    content = "install_content.txt",
+    content = ":gitconfig",
 )
 ----
 
-Content file (`src/git/install_content.txt`):
-[source,gitconfig]
-----
-[include]
-    path = ~/.config/git/personal-config
-----
+Uses the built gitconfig target (`:gitconfig`) which contains the complete generated configuration.
 
 Usage:
 [source,bash]
@@ -106,18 +107,11 @@ bazel run //src/git:install_config_home
 guarded_install(
     name = "install_config_home",
     target_file = "~/.zshrc",
-    content = "install_content.txt",
+    content = ":generated_zshrc",
 )
 ----
 
-Content file (`src/zsh/install_content.txt`):
-[source,bash]
-----
-# Source managed dotfiles
-if [[ -f ~/.config/zsh/zshrc ]]; then
-    source ~/.config/zsh/zshrc
-fi
-----
+Uses the built zshrc target (`:generated_zshrc`) which contains the complete generated ZSH configuration.
 
 Usage:
 [source,bash]
