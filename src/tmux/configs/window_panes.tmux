@@ -45,3 +45,18 @@ bind-key -r H resize-pane -L 5
 bind-key -r J resize-pane -D 5
 bind-key -r K resize-pane -U 5
 bind-key -r L resize-pane -R 5
+
+# Smart vim/nvim-aware navigation - handles both vim and neovim
+is_vim="ps -o state= -o comm= -t '#{pane_tty}' | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?n?(view|vim|nvim)(diff)?$'"
+
+# Enhanced pane display with longer timeout and better colors
+set-option -g display-panes-time 4000
+set-option -g display-panes-active-colour "#88c0d0"
+set-option -g display-panes-colour "#4c566a"
+
+# Additional non-conflicting session shortcuts using function keys
+bind-key F1 switch-client -t 1
+bind-key F2 switch-client -t 2
+bind-key F3 switch-client -t 3
+bind-key F4 switch-client -t 4
+bind-key F5 switch-client -t 5
