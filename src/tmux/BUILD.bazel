@@ -36,8 +36,8 @@ tmux_conf_test(
 guarded_install(
     name = "install_tmux_conf",
     target_file = "~/.tmux.conf",
-    content = ":tmux_conf",
-    header_comment = "#",
-    guard_start = "START DOTFILES MANAGED SECTION",
-    guard_end = "END DOTFILES MANAGED SECTION",
+    guard_prefix = "#",
+    guard_id = "dotfiles:tmux",
+    srcs = [":tmux_conf"],
+    content = "source-file $(location :tmux_conf)",
 )

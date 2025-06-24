@@ -26,8 +26,8 @@ zsh_test(
 guarded_install(
     name = "install",
     target_file = "~/.zshrc",
-    content = ":config",
-    header_comment = "#",
-    guard_start = "START DOTFILES MANAGED SECTION",
-    guard_end = "END DOTFILES MANAGED SECTION",
+    guard_prefix = "#",
+    guard_id = "dotfiles:zsh",
+    srcs = [":config"],
+    content = "source $(location :config)",
 )
