@@ -38,8 +38,9 @@ set -euo pipefail
 TARGET_FILE="{target_file}"
 GUARD_PREFIX='{guard_prefix}'
 GUARD_ID="{guard_id}"
-GUARD_START="$$GUARD_PREFIX BEGIN $$GUARD_ID"
-GUARD_END="$$GUARD_PREFIX END $$GUARD_ID"
+TIMESTAMP="$$(date '+%Y-%m-%d %H:%M:%S')"
+GUARD_START="$$GUARD_PREFIX dotfiles/guarded_install:BEGIN:$$GUARD_ID (generated $$TIMESTAMP)"
+GUARD_END="$$GUARD_PREFIX dotfiles/guarded_install:END:$$GUARD_ID"
 
 # Expand tilde
 if [[ "$$TARGET_FILE" == "~/"* ]]; then
