@@ -32,12 +32,12 @@ tmux_conf_test(
     config = ":tmux_conf",
 )
 
-# Install generated tmux.conf into ~/.tmux.conf
+# Install tmux config into ~/.tmux.conf
 guarded_install(
     name = "install_tmux_conf",
     target_file = "~/.tmux.conf",
     guard_prefix = "#",
     guard_id = "dotfiles:tmux",
     srcs = [":tmux_conf"],
-    content = "source-file $(location :tmux_conf)",
+    content = "source-file $(execpath :tmux_conf)",
 )

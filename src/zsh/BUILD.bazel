@@ -22,12 +22,12 @@ zsh_test(
     config = ":config",
 )
 
-# Install via guarded sections
+# Install zsh config into ~/.zshrc
 guarded_install(
     name = "install_in_home",
     target_file = "~/.zshrc",
     guard_prefix = "#",
     guard_id = "dotfiles:zsh",
     srcs = [":config"],
-    content = "source $(location :config)",
+    content = "source $(execpath :config)",
 )

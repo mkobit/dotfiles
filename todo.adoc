@@ -21,12 +21,6 @@
 ** Reference: https://gist.github.com/reegnz/b9e40993d410b75c2d866441add2cb55[FZF+JQ Interactive Example]
 ** Evaluation status: Not started
 
-* [ ] *Shell Script Additions*
-** Description: To be expanded with specific ideas
-** Requirements: TBD
-** Implementation notes: TBD
-** Evaluation status: Not started
-
 * [ ] *"Installation" Rule for Config Files*
 ** Description: Add content to config files in an idempotent manner
 ** Requirements:

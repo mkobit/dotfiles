@@ -88,5 +88,5 @@ guarded_install(
     guard_prefix = "#",
     guard_id = "dotfiles:git",
     srcs = [":gitconfig"],
-    content = "[include]\n\tpath = $(location :gitconfig)",
+    content = "[include]\n\tpath = $(execpath :gitconfig)",
 )

@@ -38,10 +38,10 @@ vim_test(
 
 # Install generated vimrc into ~/.vimrc
 guarded_install(
-    name = "install",
+    name = "install_to_home",
     target_file = "~/.vimrc",
-    guard_prefix = "\"",
+    guard_prefix = '"',
     guard_id = "dotfiles:vimrc",
     srcs = [":vimrc"],
-    content = "source $(location :vimrc)",
+    content = 'source $(location :vimrc)',
 )
