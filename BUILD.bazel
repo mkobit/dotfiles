@@ -18,31 +18,24 @@ setup_bazel_lsp(
     name = "lsp_setup",
 )
 
-# Generate compile_commands.json for IDE support (build target)
-compile_commands(
-    name = "compile_commands_file",
-)
-
-# Executable target to install compile_commands.json to workspace
+# Generate compile_commands.json for IDE support
 compile_commands_runner(
     name = "compile_commands",
     compile_commands = ":compile_commands_file",
 )
 
-# Convenience alias for running all linting and formatting
-alias(
-    name = "lint",
-    actual = ":format_test",
+compile_commands(
+    name = "compile_commands_file",
 )
 
-# Test suite for all quality checks
+# Test suite for configuration validation
 test_suite(
-    name = "quality_checks",
+    name = "config_tests",
     tests = [
         ":format_test",
         "//src/git:selected_gitconfig_test",
         "//src/tmux:tmux_conf_test",
         "//src/vim:vimrc_test",
-        "//src/zsh:generated_zshrc_test",
+        "//src/zsh:config_test",
     ],
 )
