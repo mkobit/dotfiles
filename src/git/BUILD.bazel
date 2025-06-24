@@ -19,21 +19,19 @@ filegroup(
     srcs = glob(["configs/work/*.gitconfig"]),
 )
 
-# Build the base gitconfig
 git_config(
     name = "base_gitconfig",
     srcs = [":base_configs"],
-    header = "# Base Git Configuration\n# Generated at: $(date)",
+    header = "# Base Git configuration",
 )
 
-# Build profile-specific gitconfigs
 git_config(
     name = "personal_gitconfig",
     srcs = [
         ":base_configs",
         ":personal_configs"
     ],
-    header = "# Personal Git Configuration\n# Generated at: $(date)",
+    header = "# Personal Git configuration",
 )
 
 git_config(
@@ -42,10 +40,9 @@ git_config(
         ":base_configs",
         ":work_configs"
     ],
-    header = "# Work Git Configuration\n# Generated at: $(date)",
+    header = "# Work Git configuration",
 )
 
-# Profile-selectable gitconfig
 git_config(
     name = "gitconfig",
     srcs = select({
@@ -53,10 +50,9 @@ git_config(
         "//config:personal": [":personal_gitconfig"],
         "//conditions:default": [":base_gitconfig"],
     }),
-    header = "# THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY\n# Generated using Bazel at $(date)",
+    header = "# THIS FILE IS GENERATED - DO NOT EDIT DIRECTLY",
 )
 
-# Test targets
 git_test(
     name = "base_gitconfig_test",
     config = ":base_gitconfig",
@@ -87,7 +83,7 @@ bazel_files_format_test(
 
 # Install generated gitconfig into ~/.gitconfig
 guarded_install(
-    name = "install_gitconfig",
+    name = "install_gitconfig_in_home",
     target_file = "~/.gitconfig",
     guard_prefix = "#",
     guard_id = "dotfiles:git",
