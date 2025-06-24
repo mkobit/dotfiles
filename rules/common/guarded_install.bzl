@@ -38,8 +38,7 @@ set -euo pipefail
 TARGET_FILE="{target_file}"
 GUARD_PREFIX='{guard_prefix}'
 GUARD_ID="{guard_id}"
-TIMESTAMP="$$(date '+%Y-%m-%d %H:%M:%S')"
-GUARD_START="$$GUARD_PREFIX dotfiles/guarded_install:BEGIN:$$GUARD_ID (generated $$TIMESTAMP)"
+GUARD_START="$$GUARD_PREFIX dotfiles/guarded_install:BEGIN:$$GUARD_ID"
 GUARD_END="$$GUARD_PREFIX dotfiles/guarded_install:END:$$GUARD_ID"
 
 # Expand tilde
@@ -61,8 +60,10 @@ if [[ -f "$$TARGET_FILE" ]]; then
     # Look for existing section
     if grep -Fq "$$GUARD_START" "$$TARGET_FILE"; then
         echo "Updating existing section..."
-        # Remove old section and add new one
-        sed "/$$GUARD_START/,/$$GUARD_END/d" "$$TARGET_FILE" > "$$TEMP_FILE"
+        # Remove old section and add new one - escape forward slashes for sed
+        ESCAPED_START="$$(echo "$$GUARD_START" | sed 's/\\//\\\\\\//g')"
+        ESCAPED_END="$$(echo "$$GUARD_END" | sed 's/\\//\\\\\\//g')"
+        sed "/$$ESCAPED_START/,/$$ESCAPED_END/d" "$$TARGET_FILE" > "$$TEMP_FILE"
     else
         echo "Adding new section..."
         cp "$$TARGET_FILE" "$$TEMP_FILE"
