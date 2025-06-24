@@ -1,7 +1,7 @@
 package(default_visibility = ["//visibility:public"])
 
 load("//rules/vim:defs.bzl", "vim_config", "vim_test")
-load("//rules:include_install.bzl", "include_install")
+load("//rules:guarded_install.bzl", "guarded_install")
 
 VIM_SECTIONS = [
     "base.vim",
@@ -37,11 +37,11 @@ vim_test(
 )
 
 # Install generated vimrc into ~/.vimrc
-include_install(
+guarded_install(
     name = "install_vimrc",
     target_file = "~/.vimrc",
-    config = ":vimrc",
-    identifier = "dotfiles",
-    include_directive = "source {path}",
+    content = ":vimrc",
     header_comment = "\"",
+    guard_start = "START DOTFILES MANAGED SECTION",
+    guard_end = "END DOTFILES MANAGED SECTION",
 )
