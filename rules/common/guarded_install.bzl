@@ -9,7 +9,6 @@ def guarded_install_rule(
         guard_id,
         srcs,
         content,
-        make_paths_absolute = True,
         **kwargs):
     """Creates a simple guarded install rule.
 
@@ -20,7 +19,6 @@ def guarded_install_rule(
         guard_id: Identifier for the section (e.g., "dotfiles:vimrc")
         srcs: Source files to reference in content
         content: Template string for content generation
-        make_paths_absolute: Whether to convert bazel-out/ paths to absolute paths
         **kwargs: Additional arguments
     """
 
@@ -49,11 +47,8 @@ if [[ "$$TARGET_FILE" == "~/"* ]]; then
     TARGET_FILE="$$HOME/$${{TARGET_FILE:2}}"
 fi
 
-# Content to insert - optionally convert relative bazel-out paths to absolute
+# Content to insert
 CONTENT="{content}"
-if [[ "{make_paths_absolute}" == "True" ]]; then
-    CONTENT="$${{CONTENT//bazel-out/$$BUILD_WORKSPACE_DIRECTORY/bazel-out}}"
-fi
 
 # Create directory if needed
 mkdir -p "$$(dirname "$$TARGET_FILE")"
@@ -96,7 +91,6 @@ chmod +x $@
             guard_prefix = guard_prefix.replace("'", "\\'"),
             guard_id = guard_id,
             content = content,
-            make_paths_absolute = make_paths_absolute,
         ),
     )
 

@@ -43,5 +43,5 @@ guarded_install(
     guard_prefix = '"',
     guard_id = "dotfiles:vimrc",
     srcs = [":vimrc"],
-    content = 'source $(location :vimrc)',
+    content = 'source $$BUILD_WORKSPACE_DIRECTORY/$(location :vimrc)',
 )

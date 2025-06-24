@@ -29,5 +29,5 @@ guarded_install(
     guard_prefix = "#",
     guard_id = "dotfiles:zsh",
     srcs = [":config"],
-    content = "source $(execpath :config)",
+    content = "source $$BUILD_WORKSPACE_DIRECTORY/$(execpath :config)",
 )

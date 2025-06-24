@@ -39,5 +39,5 @@ guarded_install(
     guard_prefix = "#",
     guard_id = "dotfiles:tmux",
     srcs = [":tmux_conf"],
-    content = "source-file $(execpath :tmux_conf)",
+    content = "source-file $$BUILD_WORKSPACE_DIRECTORY/$(execpath :tmux_conf)",
 )
