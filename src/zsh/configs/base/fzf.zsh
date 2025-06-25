@@ -16,21 +16,7 @@
 #   # Directory navigation
 #   <Alt+C>  (browse and cd to any subdirectory)
 #
-# Exploring FZF Options:
-#   man fzf              # Complete manual with all options
-#   fzf --help           # Quick help summary
-#   fzf --man            # Manual page (alternative to man fzf)
-#
-# Popular Additional Options (add to FZF_DEFAULT_OPTS if desired):
-#   --cycle              # Enable circular navigation (✅ enabled below)
-#   --preview-window     # Configure preview window (right:50%:hidden)
-#   --bind 'ctrl-/:toggle-preview'  # Toggle preview with Ctrl+/
-#   --color              # Custom color themes
-#   --ansi               # Enable ANSI color processing
-#   --multi              # Enable multi-selection
-#
-# Alternative: Use FZF_DEFAULT_OPTS_FILE for complex configurations
-#   export FZF_DEFAULT_OPTS_FILE=~/.config/fzf/config
+# See the fzf wiki for more: https://github.com/junegunn/fzf/wiki
 
 if command -v fzf &> /dev/null; then
     if [ -n "$ZSH_VERSION" ]; then
