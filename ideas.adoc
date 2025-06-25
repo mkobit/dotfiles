@@ -16,6 +16,9 @@
 ** ✅ Bash and Zsh support using `fzf --bash` and `fzf --zsh`
 ** ✅ Defensive checking with helpful installation messages
 ** ✅ Tab completion and fuzzy matching throughout shell
+** ✅ Smart directory skipping (.git, node_modules, target, bazel-*)
+** ✅ Intelligent preview (bat/cat for files, tree/ls for directories)
+** ✅ Circular navigation and enhanced key bindings
 ** [ ] Context-aware history filtering (directory, git repo, branch)
 ** [ ] Frequency-based ranking instead of chronological
 
