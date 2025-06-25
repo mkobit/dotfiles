@@ -30,13 +30,106 @@ bindkey -v  # Enable vi mode
 # CRITICAL: Fast ESC timeout for vi mode in tmux (oh-my-zsh default is too slow)
 export KEYTIMEOUT=1
 
-# Tmux-friendly vi mode bindings (avoid conflicts with tmux prefix)
-bindkey '^P' up-history                    # Ctrl-P: previous command
-bindkey '^N' down-history                  # Ctrl-N: next command
-bindkey '^?' backward-delete-char          # Backspace in vi mode
-bindkey '^h' backward-delete-char          # Ctrl-H: backspace
-bindkey '^w' backward-kill-word            # Ctrl-W: delete word (tmux-safe)
-# Note: Ctrl-R handled by fzf for fuzzy history search
+# =============================================================================
+# TODO: HOLISTIC KEYBINDING STRATEGY
+# =============================================================================
+# Need to design a unified keybinding strategy that works seamlessly across:
+# macOS -> iTerm2 -> tmux -> zsh -> vim workflow
+#
+# CURRENT KEYBINDINGS TO EVALUATE:
+# - bindkey '^P' up-history                    # Ctrl-P: previous command
+# - bindkey '^N' down-history                  # Ctrl-N: next command
+# - bindkey '^?' backward-delete-char          # Backspace in vi mode
+# - bindkey '^h' backward-delete-char          # Ctrl-H: backspace
+# - bindkey '^w' backward-kill-word            # Ctrl-W: delete word
+# - Ctrl-R (FZF history search) - ESTABLISHED
+# - Ctrl-T (FZF file search) - ESTABLISHED
+# - Alt-C (FZF directory search) - ESTABLISHED
+#
+# ENVIRONMENTS TO SUPPORT:
+# Primary: macOS + iTerm2 + tmux + zsh + vim
+# Secondary: Linux + terminal + tmux + zsh + vim
+# Tertiary: WSL + Windows Terminal + tmux + zsh + vim
+# Edge case: VS Code integrated terminal
+#
+# KEY BINDING LAYER ANALYSIS:
+#
+# 1. SYSTEM LAYER (OS intercepts first)
+#    macOS: Cmd+anything goes to system
+#    Linux: Alt+F4, Super+anything goes to system
+#    Windows: Win+anything, Alt+F4 goes to system
+#
+# 2. TERMINAL EMULATOR LAYER (app intercepts next)
+#    iTerm2: Cmd+D (split), Cmd+T/W (tab), Cmd+1-9 (tab switch)
+#    iTerm2: Alt+Cmd+Arrow (pane nav), Cmd+; (autocomplete)
+#    Terminal.app: Similar Cmd+* patterns
+#    VS Code: Ctrl+` (toggle terminal), Ctrl+Shift+` (new terminal)
+#
+# 3. TMUX LAYER (if running)
+#    Default prefix: Ctrl-B
+#    Common custom: Ctrl-A
+#    Safe area: Anything not using the prefix
+#    Copy mode: Prefix+[ enters vi-style navigation
+#
+# 4. SHELL LAYER (zsh vi mode)
+#    ESC: Enter vi command mode
+#    Insert mode: Need emacs-style bindings for efficiency
+#    Command mode: Full vi bindings available
+#
+# 5. EDITOR LAYER (vim/nvim)
+#    All vim bindings when in editor
+#    Terminal vim vs. GUI vim considerations
+#
+# DESIGN PRINCIPLES:
+#
+# 1. CONSISTENCY: Same key does same thing across contexts where possible
+# 2. NON-INTERFERENCE: Don't break existing muscle memory
+# 3. DISCOVERABILITY: Logical patterns that are easy to remember
+# 4. ESCAPE HATCHES: Always a way to get out of any mode
+# 5. PERFORMANCE: Minimal latency, no key sequence delays
+#
+# PROPOSED UNIFIED STRATEGY:
+#
+# TIER 1 - ESSENTIAL (implement first):
+# - Keep existing FZF bindings (Ctrl-R, Ctrl-T, Alt-C) - WORKING
+# - Standard history navigation (up/down arrows) - DEFAULT
+# - Basic editing (backspace, delete) - DEFAULT
+#
+# TIER 2 - ENHANCED NAVIGATION (implement after testing):
+# - Word movement: Need to find conflict-free keys
+# - Line movement: Need to find conflict-free keys
+# - Quick editing: Kill word, kill line, etc.
+#
+# TIER 3 - ADVANCED (nice to have):
+# - Vim-style text objects in command line
+# - Integration with tmux copy mode
+# - Context-aware bindings (different in/out of tmux)
+#
+# TESTING METHODOLOGY:
+#
+# 1. Map current iTerm2 keybindings (Preferences > Keys)
+# 2. Test each proposed binding in: bare terminal -> tmux -> zsh -> vim
+# 3. Verify no conflicts with common workflows
+# 4. Test across all supported environments
+# 5. Document any environment-specific configuration needed
+#
+# IMPLEMENTATION PHASES:
+#
+# Phase 1: Audit current conflicts and remove problematic bindings
+# Phase 2: Establish core safe bindings that work everywhere
+# Phase 3: Add enhanced bindings with proper conflict detection
+# Phase 4: Create environment-specific optimizations
+#
+# DECISION CRITERIA:
+#
+# - If a key conflicts in ANY supported environment, don't use it
+# - Prefer Ctrl over Alt (less likely to conflict with terminal emulators)
+# - Prefer function keys over modified keys (but less ergonomic)
+# - Consider user-configurable bindings for advanced users
+# - Always provide escape hatches and alternatives
+#
+# Once this analysis is complete, implement the safest subset first,
+# then gradually add more advanced features with proper testing.
 
 # =============================================================================
 # TMUX PERFORMANCE OPTIMIZATIONS
