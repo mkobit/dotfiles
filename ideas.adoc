@@ -11,6 +11,21 @@
 ** Fuzzy search for tmux command history and session navigation
 ** Integration with tmux key bindings and preview windows
 
+* [ ] *Holistic Zsh Keybinding Strategy*
+** ✅ Phase 1 Complete: Systematic conflict analysis and vi mode fix
+** Cross-platform keybinding design for macOS → iTerm2 → tmux → zsh → vim workflow
+** 5-layer conflict analysis: System → Terminal → Tmux → Shell → Editor
+** Established safe foundation: FZF bindings (Ctrl-R/T, Alt-C) + vi mode
+** Fixed oh-my-zsh loading order issue (vi mode was being overridden)
+** Created comprehensive audit documentation in KEYBINDING_AUDIT.md
+** [ ] Phase 2: Establish core safe keybindings (Ctrl-P/N, Ctrl-A/E, Ctrl-W)
+** [ ] Phase 3: Enhanced vim-style navigation (word/line movement)
+** [ ] Environment-specific testing (iTerm2, Terminal.app, WSL, VS Code)
+** [ ] Tmux integration considerations (prefix conflicts, copy mode)
+** [ ] Context-aware bindings (different behavior in/out of tmux)
+** Design principles: consistency, non-interference, discoverability, escape hatches
+** Tiered implementation: essential → enhanced → advanced features
+
 * [x] *Enhanced Shell History with FZF*
 ** ✅ Official FZF shell integration (Ctrl+R history, Ctrl+T files, Alt+C dirs)
 ** ✅ Bash and Zsh support using `fzf --bash` and `fzf --zsh`
