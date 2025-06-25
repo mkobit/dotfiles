@@ -16,10 +16,21 @@
 #   # Directory navigation
 #   <Alt+C>  (browse and cd to any subdirectory)
 #
-#   # Advanced piping patterns
-#   ps aux | fzf | awk '{print $2}' | xargs kill  # Kill processes
-#   git branch | fzf | xargs git checkout         # Switch git branches
-#   find . -type f | fzf --preview 'cat {}'       # Browse with preview
+# Exploring FZF Options:
+#   man fzf              # Complete manual with all options
+#   fzf --help           # Quick help summary
+#   fzf --man            # Manual page (alternative to man fzf)
+#
+# Popular Additional Options (add to FZF_DEFAULT_OPTS if desired):
+#   --cycle              # Enable circular navigation (✅ enabled below)
+#   --preview-window     # Configure preview window (right:50%:hidden)
+#   --bind 'ctrl-/:toggle-preview'  # Toggle preview with Ctrl+/
+#   --color              # Custom color themes
+#   --ansi               # Enable ANSI color processing
+#   --multi              # Enable multi-selection
+#
+# Alternative: Use FZF_DEFAULT_OPTS_FILE for complex configurations
+#   export FZF_DEFAULT_OPTS_FILE=~/.config/fzf/config
 
 if command -v fzf &> /dev/null; then
     if [ -n "$ZSH_VERSION" ]; then
@@ -29,7 +40,7 @@ if command -v fzf &> /dev/null; then
     fi
 
     if [ -z "$FZF_DEFAULT_OPTS" ]; then
-        export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border --inline-info"
+        export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border --inline-info --cycle"
     fi
 else
     if [ -z "$FZF_INSTALL_HINT_SHOWN" ]; then
