@@ -25,10 +25,8 @@ setopt HIST_SAVE_NO_DUPS       # Don't write duplicate entries to history file
 # =============================================================================
 # VI MODE - TMUX OPTIMIZED
 # =============================================================================
-bindkey -v  # Enable vi mode
-
-# CRITICAL: Fast ESC timeout for vi mode in tmux (oh-my-zsh default is too slow)
-export KEYTIMEOUT=1
+# Note: vi mode and KEYTIMEOUT are now set in oh-my-zsh.zsh after oh-my-zsh loads
+# This ensures oh-my-zsh doesn't override our vi mode preference
 
 # =============================================================================
 # TODO: HOLISTIC KEYBINDING STRATEGY

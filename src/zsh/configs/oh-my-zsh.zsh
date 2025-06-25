@@ -56,8 +56,12 @@ fi
 source $ZSH/oh-my-zsh.sh
 
 # =============================================================================
-# POST-LOAD TMUX OPTIMIZATIONS
+# POST-LOAD OPTIMIZATIONS
 # =============================================================================
 # Override oh-my-zsh defaults that don't work well with tmux
 unsetopt CORRECT_ALL               # Only correct commands, not arguments
 setopt CORRECT                     # Enable command correction
+
+# CRITICAL: Set vi mode AFTER oh-my-zsh loads (oh-my-zsh resets to emacs mode)
+bindkey -v                         # Enable vi mode (must be after oh-my-zsh)
+export KEYTIMEOUT=1                # Fast ESC timeout for vi mode
