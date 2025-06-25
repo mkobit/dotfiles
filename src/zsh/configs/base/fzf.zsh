@@ -28,6 +28,35 @@ if command -v fzf &> /dev/null; then
     if [ -z "$FZF_DEFAULT_OPTS" ]; then
         export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border --inline-info --cycle"
     fi
+
+    # Configure Ctrl+T (file/directory finder)
+    if [ -z "$FZF_CTRL_T_OPTS" ]; then
+        FZF_CTRL_T_OPTS="--walker-skip .git,node_modules,target,bazel-bin,bazel-out,bazel-testlogs"
+        FZF_CTRL_T_OPTS="$FZF_CTRL_T_OPTS --bind 'ctrl-/:change-preview-window(down|hidden|)'"
+
+        # Add preview with bat if available, fallback to cat
+        if command -v bat &> /dev/null; then
+            FZF_CTRL_T_OPTS="$FZF_CTRL_T_OPTS --preview 'bat -n --color=always {}'"
+        else
+            FZF_CTRL_T_OPTS="$FZF_CTRL_T_OPTS --preview 'cat {}'"
+        fi
+
+        export FZF_CTRL_T_OPTS
+    fi
+
+    # Configure Alt+C (directory navigation)
+    if [ -z "$FZF_ALT_C_OPTS" ]; then
+        FZF_ALT_C_OPTS="--walker-skip .git,node_modules,target,bazel-bin,bazel-out,bazel-testlogs"
+
+        # Add preview with tree if available, fallback to ls
+        if command -v tree &> /dev/null; then
+            FZF_ALT_C_OPTS="$FZF_ALT_C_OPTS --preview 'tree -C {} | head -50'"
+        else
+            FZF_ALT_C_OPTS="$FZF_ALT_C_OPTS --preview 'ls -la {}'"
+        fi
+
+        export FZF_ALT_C_OPTS
+    fi
 else
     if [ -z "$FZF_INSTALL_HINT_SHOWN" ]; then
         echo -e "\033[1;33m⚠️  fzf not found\033[0m - install for enhanced history search and fuzzy finding:"
