@@ -2,9 +2,13 @@
 
 == Active Ideas
 
-* [ ] *Interactive fzf + jq Tool*
-** Interactive fuzzy search with live jq preview
-** Use genrule to create shell script/alias with conditional dependency
+* [x] *Interactive fzf + jq Tool*
+** ✅ Simple interactive jq filtering with live preview (`ijq` command)
+** ✅ Real-time filtering as you type (like https://github.com/ynqa/jnv[jnv] but quick & dirty)
+** ✅ Handles both file input and stdin with proper error handling
+** ✅ Tmux-optimized preview windows (auto-detects environment)
+** ✅ Integrated with existing FZF configuration and styling
+** ✅ Defensive programming with dependency checks and helpful error messages
 ** Reference: https://gist.github.com/reegnz/b9e40993d410b75c2d866441add2cb55[FZF+JQ Interactive Example]
 
 * [ ] *FZF for Tmux History Search*
