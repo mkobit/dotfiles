@@ -22,7 +22,6 @@ zsh_test(
     config = ":config",
 )
 
-# Install zsh config into ~/.zshrc
 guarded_install(
     name = "install_in_home",
     target_file = "~/.zshrc",
