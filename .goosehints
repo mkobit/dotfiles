@@ -2,6 +2,10 @@
 
 This document outlines a suggested Bazel directory structure for managing personal dotfiles. This approach uses root-level packages for each tool, co-located tests, and a central `rules/` directory for shared Starlark logic and helper scripts.
 
+**Note**: This repository now has dedicated Claude Code configuration files:
+- `CLAUDE.md` - Claude Code specific build commands and memory context
+- `AGENT.md` - Comprehensive project context and agent guidelines
+
 ## Directory structure
 
 .
@@ -107,6 +111,11 @@ This structure provides a clear organization by tool, keeps the core build logic
 
 ## Key Project Files
 
+### Claude Code Configuration Files
+
+- **`CLAUDE.md`**: Essential build commands, file patterns, and development guidelines for Claude Code sessions
+- **`AGENT.md`**: Comprehensive project context, repository structure, and agent guidelines for AI assistants
+
 ### todo.adoc
 
 The `todo.adoc` file serves as the project's task management system in AsciiDoc format. It contains:
@@ -119,9 +128,11 @@ This file should be consulted when planning new features or improvements to unde
 
 ## AI assistant guidelines
 
+**For Claude Code users**: See `CLAUDE.md` and `AGENT.md` for comprehensive configuration and context.
+
 Before modifying this codebase, explore it thoroughly using:
 
-1. Examine related files and dependencies by using traversal or `bazel` CLI queries:
+1. **Examine related files and dependencies** by using traversal or `bazel` CLI queries:
    ```bash
    bazel query "deps(//src/tmux:all)" --output label
    ```
@@ -129,15 +140,21 @@ Before modifying this codebase, explore it thoroughly using:
    find ./src/tmux -type f -name "*.conf" | xargs cat
    ```
 
-2. Understand build outputs by using `bazel` and inspecting the outputs:
+2. **Understand build outputs** by using `bazel` and inspecting the outputs:
    ```bash
    bazel build //src/tmux:all
    cat $(bazel info bazel-bin)/src/tmux/combined_config.conf
    ```
 
-3. Check for existing implementations** before adding new ones:
+3. **Check for existing implementations** before adding new ones:
    ```bash
    grep -r "bind-key" --include="*.conf" ./src/tmux/
    ```
 
-Always read ALL relevant files before suggesting changes to avoid creating unneccessary, breaking, and confusing changes.
+**Critical**: Always read ALL relevant files before suggesting changes to avoid creating unnecessary, breaking, and confusing changes.
+
+### Security and Installation Notes
+- All installation targets are tagged `manual` to prevent accidental execution
+- Use guarded installation patterns to safely inject configurations
+- Follow profile-based separation (personal/work) for all configurations
+- Never commit secrets or sensitive information
