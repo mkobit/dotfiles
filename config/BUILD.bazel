@@ -1,4 +1,4 @@
-load("@bazel_skylib//rules:common_settings.bzl", "string_flag")
+load("@bazel_skylib//rules:common_settings.bzl", "string_flag", "bool_flag")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -54,4 +54,26 @@ platform(
     name = "windows",
     constraint_values = ["@platforms//os:windows"],
     visibility = ["//visibility:public"],
+)
+
+# Feature flags
+bool_flag(
+    name = "enable_powerline",
+    build_setting_default = True,
+)
+
+config_setting(
+    name = "powerline_enabled",
+    flag_values = {
+        ":enable_powerline": "True",
+    },
+)
+
+# Work environment might disable external dependencies due to network restrictions
+config_setting(
+    name = "work_no_external_deps",
+    flag_values = {
+        ":profile": "work",
+        ":enable_powerline": "False",
+    },
 )

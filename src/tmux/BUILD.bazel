@@ -4,7 +4,10 @@ load("//rules:guarded_install.bzl", "guarded_install")
 
 genrule(
     name = "tmux_conf",
-    srcs = glob(["configs/*.tmux"]),
+    srcs = glob(["configs/*.tmux"]) + select({
+        "//config:powerline_enabled": ["//src/tmux/plugins:tmux_powerline_config"],
+        "//conditions:default": [],
+    }),
     outs = ["tmux.conf"],
     cmd = """
 cat > $@ << 'EOF'

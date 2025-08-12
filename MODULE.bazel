@@ -40,3 +40,41 @@ use_repo(git_ext, "local_git")
 register_toolchains("@local_git//:git_local")
 
 # Note: We use simple buildifier-based linting instead of aspect_rules_lint
+
+# External dependencies
+git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+git_repository(
+    name = "tmux_powerline",
+    remote = "https://github.com/erikw/tmux-powerline.git",
+    commit = "2f707c3a7758e3909c1c84faaea82a6118242867",
+)
+
+# Binary dependencies with platform-specific URLs
+http_archive(
+    name = "fzf_darwin_arm64",
+    urls = ["https://github.com/junegunn/fzf/releases/download/v0.65.1/fzf-0.65.1-darwin_arm64.tar.gz"],
+    sha256 = "2fc1de9545e49efce63a7c1f8cd2616c0c112478867d5a99e5b24570038a57a1",
+    build_file_content = """
+exports_files(["fzf"])
+""",
+)
+
+http_archive(
+    name = "fzf_darwin_amd64", 
+    urls = ["https://github.com/junegunn/fzf/releases/download/v0.65.1/fzf-0.65.1-darwin_amd64.tar.gz"],
+    sha256 = "818c58844a200926b58391810c30be0c9f83822ad6e224fab9ee6e8b7e60c836",
+    build_file_content = """
+exports_files(["fzf"])
+""",
+)
+
+http_archive(
+    name = "fzf_linux_amd64",
+    urls = ["https://github.com/junegunn/fzf/releases/download/v0.65.1/fzf-0.65.1-linux_amd64.tar.gz"],  
+    sha256 = "b1ee29f7dac89c6dc501300d930580fdee93f42317e16aae656cfaedbd09f2a4",
+    build_file_content = """
+exports_files(["fzf"])
+""",
+)

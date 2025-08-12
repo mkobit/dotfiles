@@ -18,11 +18,21 @@
 #
 # See the fzf wiki for more: https://github.com/junegunn/fzf/wiki
 
-if command -v fzf &> /dev/null; then
+# Check if we have our Bazel-managed fzf first, then fall back to system fzf
+if [ -x "$BUILD_WORKSPACE_DIRECTORY/bazel-bin/src/tools/fzf_install" ]; then
+    export PATH="$BUILD_WORKSPACE_DIRECTORY/bazel-bin/src/tools:$PATH"
+    FZF_BINARY="$BUILD_WORKSPACE_DIRECTORY/bazel-bin/src/tools/fzf_install"
+elif command -v fzf &> /dev/null; then
+    FZF_BINARY="fzf"
+else
+    FZF_BINARY=""
+fi
+
+if [ -n "$FZF_BINARY" ]; then
     if [ -n "$ZSH_VERSION" ]; then
-        source <(fzf --zsh)
+        source <($FZF_BINARY --zsh)
     elif [ -n "$BASH_VERSION" ]; then
-        eval "$(fzf --bash)"
+        eval "$($FZF_BINARY --bash)"
     fi
 
     if [ -z "$FZF_DEFAULT_OPTS" ]; then

@@ -1,0 +1,69 @@
+package(default_visibility = ["//visibility:public"])
+
+# Platform-specific fzf binary selection using config_setting
+config_setting(
+    name = "macos_arm64",
+    constraint_values = [
+        "@platforms//os:macos",
+        "@platforms//cpu:arm64",
+    ],
+)
+
+config_setting(
+    name = "macos_x86_64",
+    constraint_values = [
+        "@platforms//os:macos", 
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+config_setting(
+    name = "linux_x86_64",
+    constraint_values = [
+        "@platforms//os:linux",
+        "@platforms//cpu:x86_64",
+    ],
+)
+
+alias(
+    name = "fzf_binary",
+    actual = select({
+        ":macos_arm64": "@fzf_darwin_arm64//:fzf",
+        ":macos_x86_64": "@fzf_darwin_amd64//:fzf", 
+        ":linux_x86_64": "@fzf_linux_amd64//:fzf",
+        "//conditions:default": "@fzf_darwin_arm64//:fzf",
+    }),
+)
+
+# Install fzf to a standard location
+genrule(
+    name = "fzf_install",
+    srcs = [":fzf_binary"],
+    outs = ["fzf"],
+    cmd = "cp $(location :fzf_binary) $@ && chmod +x $@",
+    executable = True,
+)
+
+# Profile-based fzf selection - work might use system fzf, personal uses our managed version
+alias(
+    name = "fzf_managed",
+    actual = select({
+        "//config:work": ":system_fzf_fallback",
+        "//conditions:default": ":fzf_install",
+    }),
+)
+
+# Fallback that assumes system fzf for work environments
+genrule(
+    name = "system_fzf_fallback",
+    outs = ["system_fzf"],
+    cmd = """
+cat > $@ << 'EOF'
+#!/bin/bash
+# System fzf fallback for work environments
+exec fzf "$$@"
+EOF
+chmod +x $@
+    """,
+    executable = True,
+)
