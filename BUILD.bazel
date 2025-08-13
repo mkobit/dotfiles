@@ -4,9 +4,7 @@ load("//rules:lsp.bzl", "compile_commands", "compile_commands_runner", "setup_ba
 package(default_visibility = ["//visibility:public"])
 
 # Format all Bazel files in the repository
-bazel_files_format(
-    name = "format",
-)
+bazel_files_format(name = "format")
 
 # Test that all Bazel files are properly formatted
 bazel_files_format_test(

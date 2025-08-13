@@ -4,6 +4,8 @@ Simple guarded installation rule for dotfiles.
 
 # Use native sh_binary for simplicity in dotfiles project
 
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
 def guarded_install_rule(
         name,
         target_file,
@@ -97,7 +99,7 @@ chmod +x $@
     )
 
     # Create executable
-    native.sh_binary(
+    sh_binary(
         name = name,
         srcs = [script_name],
         **kwargs

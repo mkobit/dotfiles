@@ -56,16 +56,47 @@ jobs:
       - name: Check Bazel file formatting
         run: |
           echo "🔍 Checking if Bazel files are properly formatted..."
-          if ! bazel test //:format_test; then
+          
+          # Run the format test and capture both exit code and output
+          if ! bazel test //:format_test --test_output=errors; then
             echo ""
-            echo "❌ Formatting issues detected!"
+            echo "❌ FORMATTING ISSUES DETECTED!"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo ""
-            echo "To fix these issues locally, run:"
-            echo "  bazel run //:format"
+            echo "📋 DETAILED FORMATTING ERRORS:"
             echo ""
-            echo "Then commit the changes."
+            
+            # Get the exact log path from bazel
+            LOG_PATH=$(bazel info bazel-testlogs 2>/dev/null)/format_test/test.log
+            if [[ -f "$LOG_PATH" ]]; then
+              echo "Files with formatting issues:"
+              echo ""
+              cat "$LOG_PATH" | sed '/^exec /d' | sed '/^Executing tests/d' | sed '/^-\+$/d'
+            else
+              echo "⚠️  Could not find detailed test log at: $LOG_PATH"
+              echo "Run locally for full details: bazel test //:format_test"
+            fi
+            
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🛠️  TO FIX THESE ISSUES:"
+            echo ""
+            echo "   1. Run the auto-formatter locally:"
+            echo "      bazel run //:format"
+            echo ""
+            echo "   2. Review what was changed:"
+            echo "      git diff"
+            echo ""
+            echo "   3. Commit the formatted files:"
+            echo "      git add -A && git commit -m 'Fix Bazel file formatting'"
+            echo ""
+            echo "   4. Push your changes:"
+            echo "      git push"
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             exit 1
           fi
+          
           echo "✅ All Bazel files are properly formatted"
 
   lint:
