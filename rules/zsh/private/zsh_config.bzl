@@ -17,7 +17,7 @@ zsh_config = create_config_rule(
 # Define validation commands for zsh
 _ZSH_VALIDATION_COMMANDS = [
     # Validate syntax by running zsh -n (no execution, just syntax check)
-    '"{tool_path}" -n "{config_path}" || {{ echo "ZSH configuration has syntax errors"; exit 1; }}'
+    '"{tool_path}" -n "{config_path}" || {{ echo "ZSH configuration has syntax errors"; exit 1; }}',
 ]
 
 # Create zsh_test rule using common utilities

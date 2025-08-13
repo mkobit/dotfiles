@@ -5,7 +5,7 @@ load("//toolchains/tmux:toolchain.bzl", "local_tmux_binary")
 def _tmux_toolchain_extension_impl(mctx):
     # Create a repository for the local tmux binary
     local_tmux_binary(name = "local_tmux")
-    
+
     # Return None, which is valid for module extensions
     return None
 
@@ -22,5 +22,5 @@ tmux_toolchain = module_extension(
     use_repo(tmux_ext, "local_tmux")
     register_toolchains("@local_tmux//:tmux_local")
     ```
-    """
+    """,
 )

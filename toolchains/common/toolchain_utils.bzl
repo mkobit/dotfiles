@@ -41,6 +41,7 @@ def create_toolchain_rule(tool_name, provider_info, additional_attrs = None):
     Returns:
         A toolchain rule implementation
     """
+
     def _impl(ctx):
         tool_path_attr = "{}_path".format(tool_name)
         version_attr = "{}_version".format(tool_name)
@@ -94,6 +95,7 @@ def create_local_tool_repository_rule(tool_name, version_flag = "-V"):
     Returns:
         A repository rule that discovers the tool locally
     """
+
     def _impl(repository_ctx):
         # Find tool binary in the path - fail if not found
         tool_path = repository_ctx.which(tool_name)
@@ -111,6 +113,7 @@ def create_local_tool_repository_rule(tool_name, version_flag = "-V"):
             version = "unknown"
         else:
             version_output = result.stdout.strip()
+
             # Default: extract second word from version output like "tmux 3.2a"
             parts = version_output.split(" ")
             version = parts[1] if len(parts) > 1 else "unknown"

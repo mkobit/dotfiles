@@ -12,7 +12,7 @@ config_setting(
 config_setting(
     name = "macos_x86_64",
     constraint_values = [
-        "@platforms//os:macos", 
+        "@platforms//os:macos",
         "@platforms//cpu:x86_64",
     ],
 )
@@ -29,7 +29,7 @@ alias(
     name = "fzf_binary",
     actual = select({
         ":macos_arm64": "@fzf_darwin_arm64//:fzf",
-        ":macos_x86_64": "@fzf_darwin_amd64//:fzf", 
+        ":macos_x86_64": "@fzf_darwin_amd64//:fzf",
         ":linux_x86_64": "@fzf_linux_amd64//:fzf",
         "//conditions:default": "@fzf_darwin_arm64//:fzf",
     }),

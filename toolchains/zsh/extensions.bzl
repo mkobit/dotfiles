@@ -6,6 +6,7 @@ load(":toolchain.bzl", "local_zsh_binary")
 
 def _zsh_toolchain_impl(module_ctx):
     """Implementation of the zsh toolchain extension."""
+
     # Create a repository for the local zsh binary
     local_zsh_binary(name = "local_zsh")
     return module_ctx.extension_metadata(

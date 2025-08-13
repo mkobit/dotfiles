@@ -40,6 +40,8 @@
     "https://bcr.bazel.build/modules/bazel_skylib/1.7.0/MODULE.bazel": "0db596f4563de7938de764cc8deeabec291f55e8ec15299718b93c4423e9796d",
     "https://bcr.bazel.build/modules/bazel_skylib/1.7.1/MODULE.bazel": "3120d80c5861aa616222ec015332e5f8d3171e062e3e804a2a0253e1be26e59b",
     "https://bcr.bazel.build/modules/bazel_skylib/1.7.1/source.json": "f121b43eeefc7c29efbd51b83d08631e2347297c95aac9764a701f2a6a2bb953",
+    "https://bcr.bazel.build/modules/buildifier_prebuilt/8.2.0.2/MODULE.bazel": "a9b689711d5b69f9db741649b218c119b9fdf82924ba390415037e09798edd03",
+    "https://bcr.bazel.build/modules/buildifier_prebuilt/8.2.0.2/source.json": "51eb0a4b38aaaeab7fa64361576d616c4d8bfd0f17a0a10184aeab7084d79f8e",
     "https://bcr.bazel.build/modules/buildozer/7.1.2/MODULE.bazel": "2e8dd40ede9c454042645fd8d8d0cd1527966aa5c919de86661e62953cd73d84",
     "https://bcr.bazel.build/modules/buildozer/7.1.2/source.json": "c9028a501d2db85793a6996205c8de120944f50a0d570438fcae0457a5f9d1f8",
     "https://bcr.bazel.build/modules/google_benchmark/1.8.2/MODULE.bazel": "a70cf1bba851000ba93b58ae2f6d76490a9feb74192e57ab8e8ff13c34ec50cb",
@@ -173,7 +175,7 @@
   "moduleExtensions": {
     "//toolchains/git:extensions.bzl%git_toolchain": {
       "general": {
-        "bzlTransitiveDigest": "NWGafYl1LR2d9EXdUxp2uCXR2ObYkbPcWX1jWPMr8A4=",
+        "bzlTransitiveDigest": "68+v/TpE3MZDXjyPG6/C4xSbZgl14OUuRROKwcARskA=",
         "usagesDigest": "lenCPP00eF+WkJVrA8n7DtIr7g3+lehDNvwbqlX7OKU=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -197,7 +199,7 @@
     },
     "//toolchains/tmux:extensions.bzl%tmux_toolchain": {
       "general": {
-        "bzlTransitiveDigest": "gKAjNOIjwgjEdw7lmBMfoVxWn/Uk4y3qHI+M3dPmBIo=",
+        "bzlTransitiveDigest": "yY+4OksgrKPlTDCfErrT0fGifMJBnk43Wp0b5m4hVEA=",
         "usagesDigest": "XnM8Tmye/ekLXDVhx8B/ltC5I291mZYwPk87XSoyX8c=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -213,7 +215,7 @@
     },
     "//toolchains/zsh:extensions.bzl%zsh_toolchain": {
       "general": {
-        "bzlTransitiveDigest": "0540uek8ZWYLYtMnQdWQ246rn2Y9AWZcFpJ4jp4snKc=",
+        "bzlTransitiveDigest": "QtAeAqcQ9lUdgCqmxdfIRn4w9wWk8sZoYWyQX7yOid4=",
         "usagesDigest": "dvC11TRUa6+XYduTZESetOq+OM7BMfzwUoYtq5xiyDY=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},

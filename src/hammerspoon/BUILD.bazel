@@ -1,6 +1,6 @@
-package(default_visibility = ["//visibility:public"])
-
 load("//rules/hammerspoon:defs.bzl", "hammerspoon_config", "hammerspoon_test")
+
+package(default_visibility = ["//visibility:public"])
 
 # Configuration modules
 filegroup(

@@ -47,7 +47,10 @@ EOF
 # tmux configuration snippet that uses powerline
 genrule(
     name = "tmux_powerline_config",
-    srcs = [":powerline_config", ":tmux_powerline_install"],
+    srcs = [
+        ":powerline_config",
+        ":tmux_powerline_install",
+    ],
     outs = ["powerline.tmux"],
     cmd = """
 cat > $@ << 'EOF'

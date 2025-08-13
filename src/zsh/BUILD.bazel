@@ -1,7 +1,7 @@
-package(default_visibility = ["//visibility:public"])
-
-load("//rules/zsh:defs.bzl", "zsh_config", "zsh_test")
 load("//rules:guarded_install.bzl", "guarded_install")
+load("//rules/zsh:defs.bzl", "zsh_config", "zsh_test")
+
+package(default_visibility = ["//visibility:public"])
 
 filegroup(
     name = "config_sections",
@@ -23,9 +23,9 @@ zsh_test(
 
 guarded_install(
     name = "install_in_home",
-    target_file = "~/.zshrc",
-    guard_prefix = "#",
-    guard_id = "dotfiles:zsh",
     srcs = [":config"],
     content = "source $$BUILD_WORKSPACE_DIRECTORY/$(execpath :config)",
+    guard_id = "dotfiles:zsh",
+    guard_prefix = "#",
+    target_file = "~/.zshrc",
 )

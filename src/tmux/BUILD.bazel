@@ -1,6 +1,7 @@
-package(default_visibility = ["//visibility:public"])
-
 load("//rules:guarded_install.bzl", "guarded_install")
+load("//rules/tmux:defs.bzl", "tmux_conf_test")
+
+package(default_visibility = ["//visibility:public"])
 
 genrule(
     name = "tmux_conf",
@@ -28,8 +29,6 @@ EOF
 """,
 )
 
-load("//rules/tmux:defs.bzl", "tmux_conf_test")
-
 tmux_conf_test(
     name = "tmux_conf_test",
     config = ":tmux_conf",
@@ -38,9 +37,9 @@ tmux_conf_test(
 # Install tmux config into ~/.tmux.conf
 guarded_install(
     name = "install_tmux_conf",
-    target_file = "~/.tmux.conf",
-    guard_prefix = "#",
-    guard_id = "dotfiles:tmux",
     srcs = [":tmux_conf"],
     content = "source-file $$BUILD_WORKSPACE_DIRECTORY/$(execpath :tmux_conf)",
+    guard_id = "dotfiles:tmux",
+    guard_prefix = "#",
+    target_file = "~/.tmux.conf",
 )

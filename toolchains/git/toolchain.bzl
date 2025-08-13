@@ -2,7 +2,7 @@
 Toolchain rules for git.
 """
 
-load("//toolchains/common:toolchain_utils.bzl", "create_tool_info_provider", "create_toolchain_rule", "create_local_tool_repository_rule")
+load("//toolchains/common:toolchain_utils.bzl", "create_local_tool_repository_rule", "create_tool_info_provider", "create_toolchain_rule")
 
 # Create the provider and toolchain rule using common utilities
 GitInfo = create_tool_info_provider("git")

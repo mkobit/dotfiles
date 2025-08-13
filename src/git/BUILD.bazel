@@ -1,8 +1,7 @@
-package(default_visibility = ["//visibility:public"])
-
-load("//rules/git:defs.bzl", "git_config", "git_test")
-load("//rules:linting.bzl", "bazel_files_format", "bazel_files_format_test")
 load("//rules:guarded_install.bzl", "guarded_install")
+load("//rules/git:defs.bzl", "git_config", "git_test")
+
+package(default_visibility = ["//visibility:public"])
 
 filegroup(
     name = "base_configs",
@@ -29,7 +28,7 @@ git_config(
     name = "personal_gitconfig",
     srcs = [
         ":base_configs",
-        ":personal_configs"
+        ":personal_configs",
     ],
     header = "# Personal Git configuration",
 )
@@ -38,7 +37,7 @@ git_config(
     name = "work_gitconfig",
     srcs = [
         ":base_configs",
-        ":work_configs"
+        ":work_configs",
     ],
     header = "# Work Git configuration",
 )
@@ -73,20 +72,14 @@ git_test(
     config = ":gitconfig",
 )
 
-bazel_files_format(
-    name = "format",
-)
-
-bazel_files_format_test(
-    name = "format_test",
-)
+# Repository-wide formatting is handled at the root level
 
 # Install generated gitconfig into ~/.gitconfig
 guarded_install(
     name = "install_gitconfig_in_home",
-    target_file = "~/.gitconfig",
-    guard_prefix = "#",
-    guard_id = "dotfiles:git",
     srcs = [":gitconfig"],
     content = "[include]\n\tpath = $$BUILD_WORKSPACE_DIRECTORY/$(execpath :gitconfig)",
+    guard_id = "dotfiles:git",
+    guard_prefix = "#",
+    target_file = "~/.gitconfig",
 )

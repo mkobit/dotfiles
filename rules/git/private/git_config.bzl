@@ -17,7 +17,7 @@ git_config = create_config_rule(
 # Define validation commands for git
 _GIT_VALIDATION_COMMANDS = [
     # Validate syntax by parsing the config
-    '"{tool_path}" config --file "{config_path}" --list || {{ echo "Git configuration has syntax errors"; exit 1; }}'
+    '"{tool_path}" config --file "{config_path}" --list || {{ echo "Git configuration has syntax errors"; exit 1; }}',
 ]
 
 # Create git_test rule using common utilities

@@ -2,6 +2,8 @@
 Simple guarded installation rule for dotfiles.
 """
 
+# Use native sh_binary for simplicity in dotfiles project
+
 def guarded_install_rule(
         name,
         target_file,
@@ -103,5 +105,3 @@ chmod +x $@
 
 # Export the rule
 guarded_install = guarded_install_rule
-
-

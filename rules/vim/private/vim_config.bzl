@@ -5,15 +5,15 @@ Implementation of Vim configuration rules.
 def _vim_config_impl(ctx):
     """Implementation of vim_config rule."""
     output = ctx.actions.declare_file(ctx.attr.name + ".vim")
-    
+
     # Build a list of input files for the action
     input_files = []
     for src in ctx.attr.srcs:
         input_files.extend(src.files.to_list())
-    
+
     # Generate the command to combine configuration files
     cmd = ["#!/bin/bash", "set -euo pipefail", ""]
-    
+
     # Add header if specified
     header = ctx.attr.header
     if header:
@@ -22,24 +22,26 @@ def _vim_config_impl(ctx):
         cmd.append("echo '{}' > {}".format(header, output.path))
     else:
         cmd.append("touch {}".format(output.path))
-    
+
     # Add a newline after the header
     cmd.append("echo '' >> {}".format(output.path))
-    
+
     # Include each source file
     for i, src_file in enumerate(input_files):
         cmd.append("echo '\" {} configuration' >> {}".format(
-            src_file.basename, output.path))
+            src_file.basename,
+            output.path,
+        ))
         cmd.append("cat {} >> {}".format(src_file.path, output.path))
         cmd.append("echo '' >> {}".format(output.path))
-    
+
     # Add footer if specified
     if ctx.attr.footer:
         cmd.append("echo '{}' >> {}".format(ctx.attr.footer, output.path))
-    
+
     # Join commands into a shell script
     cmd_str = "\n".join(cmd)
-    
+
     # Execute the command to create the output file
     ctx.actions.run_shell(
         outputs = [output],
@@ -48,7 +50,7 @@ def _vim_config_impl(ctx):
         mnemonic = "VimConfig",
         progress_message = "Generating Vim configuration %s" % output.path,
     )
-    
+
     return [DefaultInfo(
         files = depset([output]),
         runfiles = ctx.runfiles(files = [output]),
@@ -75,12 +77,13 @@ vim_config = rule(
 
 def _vim_test_impl(ctx):
     """Implementation of vim_test rule."""
+
     # Get the Vim configuration file to test
     config = ctx.file.config
-    
+
     # Create a test script
     test_script = ctx.actions.declare_file(ctx.label.name + ".sh")
-    
+
     ctx.actions.write(
         output = test_script,
         content = """#!/bin/bash
@@ -113,10 +116,10 @@ exit 0
         ),
         is_executable = True,
     )
-    
+
     # Create runfiles for testing
     runfiles = ctx.runfiles(files = [config])
-    
+
     return [DefaultInfo(
         executable = test_script,
         runfiles = runfiles,
