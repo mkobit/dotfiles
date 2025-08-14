@@ -50,5 +50,7 @@ def bazel_files_format(name, exclude_patterns = None, **kwargs):
         exclude_patterns = exclude_patterns,
         lint_mode = "fix",
         mode = "fix",
+        # Disable aggressive native-rule warnings for dotfiles simplicity
+        lint_warnings = ["-native-sh-binary"],
         **kwargs
     )

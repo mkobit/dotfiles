@@ -97,7 +97,6 @@ chmod +x $@
     )
 
     # Create executable
-    # buildifier: disable=native-sh-binary
     native.sh_binary(
         name = name,
         srcs = [script_name],
