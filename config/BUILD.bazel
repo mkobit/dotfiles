@@ -1,0 +1,78 @@
+load("@bazel_skylib//rules:common_settings.bzl", "bool_flag", "string_flag")
+
+package(default_visibility = ["//visibility:public"])
+
+string_flag(
+    name = "profile",
+    build_setting_default = "unspecified",
+    values = [
+        "unspecified",
+        "personal",
+        "work",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "unspecified",
+    flag_values = {
+        ":profile": "unspecified",
+    },
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "personal",
+    flag_values = {
+        ":profile": "personal",
+    },
+    visibility = ["//visibility:public"],
+)
+
+config_setting(
+    name = "work",
+    flag_values = {
+        ":profile": "work",
+    },
+    visibility = ["//visibility:public"],
+)
+
+platform(
+    name = "linux",
+    constraint_values = ["@platforms//os:linux"],
+    visibility = ["//visibility:public"],
+)
+
+platform(
+    name = "macos",
+    constraint_values = ["@platforms//os:macos"],
+    visibility = ["//visibility:public"],
+)
+
+platform(
+    name = "windows",
+    constraint_values = ["@platforms//os:windows"],
+    visibility = ["//visibility:public"],
+)
+
+# Feature flags
+bool_flag(
+    name = "enable_powerline",
+    build_setting_default = True,
+)
+
+config_setting(
+    name = "powerline_enabled",
+    flag_values = {
+        ":enable_powerline": "True",
+    },
+)
+
+# Work environment might disable external dependencies due to network restrictions
+config_setting(
+    name = "work_no_external_deps",
+    flag_values = {
+        ":profile": "work",
+        ":enable_powerline": "False",
+    },
+)

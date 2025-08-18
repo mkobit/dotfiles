@@ -1,0 +1,30 @@
+// https://code.visualstudio.com/docs/devcontainers/create-dev-container
+{
+    "name": "Bazel development",
+    "image": "mcr.microsoft.com/devcontainers/universal:2-linux", // https://github.com/devcontainers/templates/tree/main/src/universal
+    "features": {
+        "ghcr.io/devcontainers-community/features/bazel:1": {
+            "bazelisk_version": "v1.25.0",
+            "buildifier_version": "v8.0.3"
+        },
+        "ghcr.io/devcontainers-extra/features/neovim-apt-get:1": {},
+        "ghcr.io/devcontainers-extra/features/curl-apt-get:1": {},
+        "ghcr.io/devcontainers-extra/features/tmux-apt-get:1": {},
+        "ghcr.io/devcontainers-extra/features/zsh-plugins:0": {
+            "plugins": "ssh-agent",
+            "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions",
+            "username": "vscode"
+        }
+    },
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "sourcegraph.cody-ai"
+            ]
+        },
+        "codespaces": {
+            "disableAutomaticConfiguration": true
+        }
+    }
+    // "postCreateCommand": "bazel --version"
+}

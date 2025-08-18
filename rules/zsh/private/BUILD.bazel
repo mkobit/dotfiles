@@ -1,0 +1,4 @@
+package(default_visibility = ["//rules/zsh:__pkg__"])
+
+# This package is only visible to the rules/zsh package
+# Contains implementation details

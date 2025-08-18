@@ -1,0 +1,85 @@
+module(
+    name = "dotfiles",
+    version = "1.0",
+)
+
+bazel_dep(name = "bazel_skylib", version = "1.7.1")
+bazel_dep(name = "platforms", version = "0.0.11")
+bazel_dep(name = "rules_python", version = "1.4.1")
+bazel_dep(name = "protobuf", version = "31.0")
+bazel_dep(name = "buildifier_prebuilt", version = "8.2.0.2")
+
+# Note: We use buildifier_prebuilt for hermetic Bazel linting
+
+python = use_extension("@rules_python//python/extensions:python.bzl", "python")
+python.toolchain(
+    configure_coverage_tool = True,
+    is_default = True,
+    python_version = "3.13",
+)
+use_repo(python, "python_3_13")
+
+pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    hub_name = "pypi",
+    python_version = "3.13",
+    requirements_lock = "//:requirements.lock.txt",
+)
+use_repo(pip, "pypi")
+
+# Register toolchains for all supported tools
+tmux_ext = use_extension("//toolchains/tmux:extensions.bzl", "tmux_toolchain")
+use_repo(tmux_ext, "local_tmux")
+
+register_toolchains("@local_tmux//:tmux_local")
+
+zsh_ext = use_extension("//toolchains/zsh:extensions.bzl", "zsh_toolchain")
+use_repo(zsh_ext, "local_zsh")
+
+register_toolchains("@local_zsh//:zsh_local")
+
+git_ext = use_extension("//toolchains/git:extensions.bzl", "git_toolchain")
+use_repo(git_ext, "local_git")
+
+register_toolchains("@local_git//:git_local")
+
+# Note: We use simple buildifier-based linting instead of aspect_rules_lint
+
+# External dependencies
+git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
+
+http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+git_repository(
+    name = "tmux_powerline",
+    commit = "2f707c3a7758e3909c1c84faaea82a6118242867",
+    remote = "https://github.com/erikw/tmux-powerline.git",
+)
+
+# Binary dependencies with platform-specific URLs
+http_archive(
+    name = "fzf_darwin_arm64",
+    build_file_content = """
+exports_files(["fzf"])
+""",
+    sha256 = "2fc1de9545e49efce63a7c1f8cd2616c0c112478867d5a99e5b24570038a57a1",
+    urls = ["https://github.com/junegunn/fzf/releases/download/v0.65.1/fzf-0.65.1-darwin_arm64.tar.gz"],
+)
+
+http_archive(
+    name = "fzf_darwin_amd64",
+    build_file_content = """
+exports_files(["fzf"])
+""",
+    sha256 = "818c58844a200926b58391810c30be0c9f83822ad6e224fab9ee6e8b7e60c836",
+    urls = ["https://github.com/junegunn/fzf/releases/download/v0.65.1/fzf-0.65.1-darwin_amd64.tar.gz"],
+)
+
+http_archive(
+    name = "fzf_linux_amd64",
+    build_file_content = """
+exports_files(["fzf"])
+""",
+    sha256 = "b1ee29f7dac89c6dc501300d930580fdee93f42317e16aae656cfaedbd09f2a4",
+    urls = ["https://github.com/junegunn/fzf/releases/download/v0.65.1/fzf-0.65.1-linux_amd64.tar.gz"],
+)

@@ -1,35 +1,174 @@
 = Dotfiles
-:toc: preamble
-:!toc-title:
-:uri-git-diff-highlight: https://github.com/git/git/tree/master/contrib/diff-highlight
-:uri-openssh-manual: http://man.openbsd.org/ssh_config
-:uri-tmux-manual: http://man.openbsd.org/OpenBSD-current/man1/tmux.1
+:toc: left
+:toclevels: 3
+:icons: font
 
-Utilities and dotfiles that I use across machines.
+Personal dotfiles managed with Bazel for cross-platform configuration management.
 
-== Setup
+All tool configurations are organized under the `src/` directory for better project structure.
 
-The setup process is still very manual.
+== Quick Start
 
-. Clone repository
-+
 [source,bash]
 ----
-git clone git@github.com:mkobit/dotfiles.git
+# Build for personal profile
+bazel build //... --//config:profile=personal
+
+# Run tests
+bazel test //...
+
+# Install configurations
+bazel run //config:install_all
 ----
 
-=== Zsh
+== Features
 
-==== oh-my-zsh
+* *Cross-platform*: Supports Linux, macOS, and Windows
+* *Profile-based*: Separate personal and work configurations
+* *Bazel-managed*: Reproducible builds and dependency management
+* *Comprehensive testing*: Quality checks and validation
+* *Security-first*: Pinned dependencies and automated security updates
+* *Guarded installation*: Safe injection of configurations into existing files
+* *Sectioned installation*: Multiple named sections within single files
 
-On Mac, I am currently using link:https://github.com/robbyrussell/oh-my-zsh[robbyrussell/oh-my-zsh]
-Assuming that Zsh is installed and this repository is cloned to `$HOME/dotfiles`:
+== Security
 
-. Add the following to the bottom of the `~/.zshrc`
-+
-[source]
+This repository follows security best practices for CI/CD pipelines:
+
+* *🔒 Pinned Dependencies*: All GitHub Actions pinned to specific commit SHAs
+* *🔄 Automated Updates*: Dependabot configured for security updates
+* *🛡️ Supply Chain Security*: Minimized attack surface through version pinning
+* *📋 Security Documentation*: Detailed practices in link:docs/SECURITY.adoc[docs/SECURITY.adoc]
+
+Key security implementations:
+
+* Actions pinned to commit hashes (not floating tags)
+* Specific runner versions (ubuntu-24.04, macos-15, windows-2022)
+* Homebrew install script pinned to specific commit
+* Weekly automated security updates via Dependabot
+
+See link:docs/SECURITY.adoc[docs/SECURITY.adoc] for complete security practices and incident response procedures.
+
+== Installation Methods
+
+=== Guarded Installation
+
+Safe injection of complete configuration sections:
+
+[source,bash]
 ----
-export PATH="${PATH}:$HOME/dotfiles/bin"
-. ~/dotfiles/zsh/aliases.source
-. ~/dotfiles/zsh/functions.source
+# Install Git configuration with guard comments
+bazel run //src/git:install_config_home
+
+# Install ZSH configuration
+bazel run //src/zsh:install_config_home
 ----
+
+See link:docs/guarded-install.adoc[docs/guarded-install.adoc] for details.
+
+=== Sectioned Installation
+
+Comprehensive configuration installation with section management:
+
+[source,bash]
+----
+# Install complete Git configuration as a managed section
+bazel run //src/git:install_gitconfig
+
+# Install ZSH configuration
+bazel run //src/zsh:install_config_home
+----
+
+See link:docs/sectioned-install.adoc[docs/sectioned-install.adoc] for complete documentation.
+
+
+
+== Configuration Profiles
+
+=== Personal Profile
+
+* Development-focused configurations
+* Extended shell aliases and functions
+* Personal Git settings and tools
+
+=== Work Profile
+
+* Corporate-friendly configurations
+* Compliance-focused settings
+* Professional Git configuration
+
+== Building
+
+[source,bash]
+----
+# Build specific profile
+bazel build //... --//config:profile=personal
+bazel build //... --//config:profile=work
+
+# Run formatting
+bazel run //:format
+
+# Generate IDE configuration
+bazel run //:lsp_setup
+bazel run //:compile_commands
+----
+
+== Testing
+
+[source,bash]
+----
+# Run all tests
+bazel test //...
+
+# Run quality checks
+bazel test //:quality_checks
+
+# Coverage report
+bazel coverage //...
+----
+
+== Development
+
+=== Prerequisites
+
+* Bazel 6.0+
+* Git
+* Platform-specific tools (automatically installed via CI)
+
+=== Local Development
+
+[source,bash]
+----
+# Format code
+bazel run //:format
+
+# Lint and validate
+bazel test //:format_test
+
+# Build and test everything
+bazel test //...
+----
+
+=== CI/CD
+
+GitHub Actions workflow handles:
+
+* Multi-platform testing (Ubuntu, macOS, Windows)
+* Both personal and work profile validation
+* Automated security scanning
+* Performance benchmarking
+
+== Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make changes following the established patterns
+4. Run `bazel test //...` to ensure tests pass
+5. Submit a pull request
+
+Please review link:docs/SECURITY.adoc[docs/SECURITY.adoc] for security practices when contributing.
+
+== License
+
+MIT License - see link:LICENSE[LICENSE] for details.
+

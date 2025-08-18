@@ -1,0 +1,7 @@
+package(default_visibility = ["//visibility:public"])
+
+# All toolchains are defined in their respective subdirectories:
+# - //toolchains/common: Common utilities for toolchain implementations
+# - //toolchains/tmux: tmux toolchain
+# - //toolchains/zsh: zsh toolchain
+# - //toolchains/git: git toolchain

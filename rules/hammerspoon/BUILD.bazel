@@ -1,0 +1,4 @@
+package(default_visibility = ["//visibility:public"])
+
+# Export the defs file for external usage
+exports_files(["defs.bzl"])

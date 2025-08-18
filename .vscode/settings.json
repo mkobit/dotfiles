@@ -1,0 +1,14 @@
+{
+  "bazel.lsp.command": "lsp_setup_binary",
+  "bazel.lsp.env": {
+    "RUST_LOG": "info"
+  },
+  "bazel.buildifierFixOnFormat": true,
+  "bazel.enableCodeLens": true,
+  "[bazel]": {
+    "editor.defaultFormatter": "BazelBuild.vscode-bazel"
+  },
+  "[starlark]": {
+    "editor.defaultFormatter": "BazelBuild.vscode-bazel"
+  }
+}
