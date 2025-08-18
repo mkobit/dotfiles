@@ -1,19 +1,19 @@
 #!/bin/bash
 set -euxo pipefail
 
-# Install required tools
+# Install required tools for toolchain discovery
 sudo apt-get update -qq
-sudo apt-get install -qq -y git tmux vim-nox zsh
+sudo apt-get install -qq -y git zsh curl
 
 # Install Bazelisk
 echo "=== Installing Bazelisk ==="
-npm install -g @bazel/bazelisk
+BAZELISK_VERSION="v1.19.0" # A recent version of bazelisk
+sudo curl -fLo /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/${BAZELISK_VERSION}/bazelisk-linux-amd64
+sudo chmod +x /usr/local/bin/bazel
 
 # Verify tools are available
 echo "=== Tool Verification ==="
 git --version
-tmux -V
-vim --version | head -1
 zsh --version
 bazel --version
 
