@@ -14,7 +14,8 @@
             "plugins": "ssh-agent",
             "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions",
             "username": "vscode"
-        }
+        },
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1": {}
     },
     "customizations": {
         "vscode": {
