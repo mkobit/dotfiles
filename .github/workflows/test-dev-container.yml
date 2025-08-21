@@ -1,0 +1,27 @@
+name: Test Dev Container
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.devcontainer/**'
+  pull_request:
+    paths:
+      - '.devcontainer/**'
+
+jobs:
+  test-dev-container:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and Test Dev Container
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: dotfiles-dev-container
+          runCmd: |
+            set -e
+            bazel --version
+            buildifier --version
