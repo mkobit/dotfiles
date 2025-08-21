@@ -1,0 +1,22 @@
+{
+  "hooks": {
+    "after_edit": {
+      "command": "bazel test //... --build_tests_only",
+      "description": "Verify code integrity by running all tests after file modifications. Ensures changes don't break existing functionality in the Bazel-managed dotfiles repository.",
+      "timeout": 60,
+      "on_failure": "warn"
+    },
+    "before_commit": {
+      "command": "bazel run //:format && bazel test //...",
+      "description": "Comprehensive pre-commit validation: format all Bazel files according to project standards, then run complete test suite to ensure repository integrity before commits.",
+      "timeout": 120,
+      "on_failure": "block"
+    },
+    "always_run": {
+      "command": "bazel run //:format",
+      "description": "Automatically format Bazel files to maintain consistent code style across the dotfiles repository. Runs buildifier on all .bzl, BUILD, and WORKSPACE files.",
+      "timeout": 30,
+      "on_failure": "warn"
+    }
+  }
+}
