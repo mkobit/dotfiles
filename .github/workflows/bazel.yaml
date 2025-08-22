@@ -4,18 +4,16 @@ on:
   push:
     paths-ignore:
       - '**.md'
-      - '!**.agents/**/*.md'  # Don't ignore agent documentation (used in tests)
       - '**.adoc'
-      - '.goosehints'
+      - '!**.agents/**'
       - '.gitattributes'
       - '.gitignore'
       - '.editorconfig'
   pull_request:
     paths-ignore:
       - '**.md'
-      - '!**.agents/**/*.md'  # Don't ignore agent documentation (used in tests)
       - '**.adoc'
-      - '.goosehints'
+      - '!**.agents/**'
       - '.gitattributes'
       - '.gitignore'
       - '.editorconfig'
@@ -58,7 +56,7 @@ jobs:
       - name: Check Bazel file formatting
         run: |
           echo "🔍 Checking if Bazel files are properly formatted..."
-          
+
           # Run the format test and capture both exit code and output
           if ! bazel test //:format_test --test_output=errors; then
             echo ""
@@ -67,7 +65,7 @@ jobs:
             echo ""
             echo "📋 DETAILED FORMATTING ERRORS:"
             echo ""
-            
+
             # Get the exact log path from bazel
             LOG_PATH=$(bazel info bazel-testlogs 2>/dev/null)/format_test/test.log
             if [[ -f "$LOG_PATH" ]]; then
@@ -78,7 +76,7 @@ jobs:
               echo "⚠️  Could not find detailed test log at: $LOG_PATH"
               echo "Run locally for full details: bazel test //:format_test"
             fi
-            
+
             echo ""
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             echo "🛠️  TO FIX THESE ISSUES:"
@@ -98,7 +96,7 @@ jobs:
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             exit 1
           fi
-          
+
           echo "✅ All Bazel files are properly formatted"
 
   lint:
