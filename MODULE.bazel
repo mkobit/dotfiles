@@ -43,8 +43,6 @@ use_repo(git_ext, "local_git")
 
 register_toolchains("@local_git//:git_local")
 
-# Note: We use simple buildifier-based linting instead of aspect_rules_lint
-
 # External dependencies
 git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 

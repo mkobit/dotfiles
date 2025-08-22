@@ -1,174 +1,75 @@
 = Dotfiles
-:toc: left
-:toclevels: 3
-:icons: font
 
 Personal dotfiles managed with Bazel for cross-platform configuration management.
 
-All tool configurations are organized under the `src/` directory for better project structure.
-
-== Quick Start
+== Quick start
 
 [source,bash]
 ----
-# Build for personal profile
+# Build personal profile
 bazel build //... --//config:profile=personal
 
 # Run tests
 bazel test //...
 
-# Install configurations
+# Install configurations  
 bazel run //config:install_all
 ----
 
 == Features
 
-* *Cross-platform*: Supports Linux, macOS, and Windows
-* *Profile-based*: Separate personal and work configurations
-* *Bazel-managed*: Reproducible builds and dependency management
-* *Comprehensive testing*: Quality checks and validation
-* *Security-first*: Pinned dependencies and automated security updates
-* *Guarded installation*: Safe injection of configurations into existing files
-* *Sectioned installation*: Multiple named sections within single files
+- Cross-platform (Linux, macOS, Windows)
+- Profile-based (personal/work configurations)
+- Bazel-managed reproducible builds
+- Guarded installation (safe config injection)
+- Security-first (pinned dependencies, automated updates)
+
+== Installation
+
+Guarded installation safely injects configs without overwriting existing files:
+
+[source,bash]
+----
+# Install git config to ~/.gitconfig
+bazel run //src/git:install_config_home
+
+# Install zsh config to ~/.zshrc  
+bazel run //src/zsh:install_config_home
+----
+
+== Profiles
+
+- **Personal**: Development-focused, extended aliases, personal git settings
+- **Work**: Corporate-friendly, compliance settings, professional git config
+
+== Commands
+
+[source,bash]
+----
+# Build
+bazel build //... --//config:profile=personal
+bazel run //:format
+
+# Test
+bazel test //...
+
+# Install
+bazel run //config:install_all
+----
 
 == Security
 
-This repository follows security best practices for CI/CD pipelines:
-
-* *🔒 Pinned Dependencies*: All GitHub Actions pinned to specific commit SHAs
-* *🔄 Automated Updates*: Dependabot configured for security updates
-* *🛡️ Supply Chain Security*: Minimized attack surface through version pinning
-* *📋 Security Documentation*: Detailed practices in link:docs/SECURITY.adoc[docs/SECURITY.adoc]
-
-Key security implementations:
-
-* Actions pinned to commit hashes (not floating tags)
-* Specific runner versions (ubuntu-24.04, macos-15, windows-2022)
-* Homebrew install script pinned to specific commit
-* Weekly automated security updates via Dependabot
-
-See link:docs/SECURITY.adoc[docs/SECURITY.adoc] for complete security practices and incident response procedures.
-
-== Installation Methods
-
-=== Guarded Installation
-
-Safe injection of complete configuration sections:
-
-[source,bash]
-----
-# Install Git configuration with guard comments
-bazel run //src/git:install_config_home
-
-# Install ZSH configuration
-bazel run //src/zsh:install_config_home
-----
-
-See link:docs/guarded-install.adoc[docs/guarded-install.adoc] for details.
-
-=== Sectioned Installation
-
-Comprehensive configuration installation with section management:
-
-[source,bash]
-----
-# Install complete Git configuration as a managed section
-bazel run //src/git:install_gitconfig
-
-# Install ZSH configuration
-bazel run //src/zsh:install_config_home
-----
-
-See link:docs/sectioned-install.adoc[docs/sectioned-install.adoc] for complete documentation.
-
-
-
-== Configuration Profiles
-
-=== Personal Profile
-
-* Development-focused configurations
-* Extended shell aliases and functions
-* Personal Git settings and tools
-
-=== Work Profile
-
-* Corporate-friendly configurations
-* Compliance-focused settings
-* Professional Git configuration
-
-== Building
-
-[source,bash]
-----
-# Build specific profile
-bazel build //... --//config:profile=personal
-bazel build //... --//config:profile=work
-
-# Run formatting
-bazel run //:format
-
-# Generate IDE configuration
-bazel run //:lsp_setup
-bazel run //:compile_commands
-----
-
-== Testing
-
-[source,bash]
-----
-# Run all tests
-bazel test //...
-
-# Run quality checks
-bazel test //:quality_checks
-
-# Coverage report
-bazel coverage //...
-----
-
-== Development
-
-=== Prerequisites
-
-* Bazel 6.0+
-* Git
-* Platform-specific tools (automatically installed via CI)
-
-=== Local Development
-
-[source,bash]
-----
-# Format code
-bazel run //:format
-
-# Lint and validate
-bazel test //:format_test
-
-# Build and test everything
-bazel test //...
-----
-
-=== CI/CD
-
-GitHub Actions workflow handles:
-
-* Multi-platform testing (Ubuntu, macOS, Windows)
-* Both personal and work profile validation
-* Automated security scanning
-* Performance benchmarking
+- GitHub Actions pinned to commit SHAs
+- Dependabot automated security updates
+- All dependencies version-pinned
+- See `.agents/AGENTS.md` for security practices
 
 == Contributing
 
-1. Fork the repository
-2. Create a feature branch
-3. Make changes following the established patterns
-4. Run `bazel test //...` to ensure tests pass
-5. Submit a pull request
+1. Fork repository
+2. Create feature branch  
+3. Follow existing patterns
+4. Run `bazel test //...`
+5. Submit pull request
 
-Please review link:docs/SECURITY.adoc[docs/SECURITY.adoc] for security practices when contributing.
-
-== License
-
-MIT License - see link:LICENSE[LICENSE] for details.
-
+See `.agents/AGENTS.md` for development guidelines.
