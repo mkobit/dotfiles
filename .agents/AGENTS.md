@@ -8,7 +8,7 @@ Personal dotfiles repository using Bazel for cross-platform configuration manage
 
 - `src/` - Tool configurations (git, zsh, tmux, vim, hammerspoon, jq)
 - `rules/` - Custom Bazel rules for configuration management
-- `toolchains/` - Bazel toolchain definitions  
+- `toolchains/` - Bazel toolchain definitions
 - `config/` - Build configuration and profile management
 - `docs/` - Documentation and security practices
 
