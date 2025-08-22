@@ -46,9 +46,9 @@ for file in "${files[@]}"; do
         continue
     fi
     
-    # Check for trailing newlines
-    if [ "$(tail -c 1 "$file" | wc -l)" -gt 0 ]; then
-        echo "ERROR: $file ends with trailing newline"
+    # Check for missing trailing newlines (files should end with newline)
+    if [ "$(tail -c 1 "$file" | wc -l)" -eq 0 ]; then
+        echo "ERROR: $file does not end with newline"
         all_valid=false
         continue
     fi
@@ -190,7 +190,7 @@ for file in "${files[@]}"; do
         exit 1
     fi
     
-    # Validate JSON using Python with schema checking
+    # Validate JSON using Python with Claude Code hooks schema checking
     python3 -c "
 import json
 import sys
@@ -209,41 +209,44 @@ try:
         print('ERROR: \\"hooks\\" must be an object')
         sys.exit(1)
     
-    # Validate each hook
-    valid_on_failure = ['warn', 'block']
-    required_fields = ['command', 'description', 'timeout', 'on_failure']
+    # Valid hook types according to Claude Code documentation
+    valid_hook_types = ['PreToolUse', 'PostToolUse']
     
-    for hook_name, hook_config in hooks.items():
-        print(f'Validating hook: {hook_name}')
+    # Valid tool names that can have hooks
+    valid_tools = [
+        'Bash', 'Edit', 'MultiEdit', 'Read', 'Write', 'Glob', 
+        'Grep', 'LS', 'WebFetch', 'Task', 'TodoWrite'
+    ]
+    
+    for hook_type, hook_config in hooks.items():
+        print(f'Validating hook type: {hook_type}')
+        
+        if hook_type not in valid_hook_types:
+            print(f'ERROR: Invalid hook type \\"{hook_type}\\". Valid types: {valid_hook_types}')
+            sys.exit(1)
         
         if not isinstance(hook_config, dict):
-            print(f'ERROR: Hook \\"{hook_name}\\" must be an object')
+            print(f'ERROR: Hook \\"{hook_type}\\" configuration must be an object')
             sys.exit(1)
         
-        # Check required fields
-        for field in required_fields:
-            if field not in hook_config:
-                print(f'ERROR: Hook \\"{hook_name}\\" missing required field \\"{field}\\"')
+        # Validate each tool command mapping
+        for tool_name, command in hook_config.items():
+            print(f'  Validating tool hook: {tool_name}')
+            
+            if tool_name not in valid_tools:
+                print(f'WARNING: Tool \\"{tool_name}\\" not in known tools list: {valid_tools}')
+            
+            if not isinstance(command, str):
+                print(f'ERROR: Command for tool \\"{tool_name}\\" must be a string')
                 sys.exit(1)
+            
+            if not command.strip():
+                print(f'ERROR: Command for tool \\"{tool_name}\\" cannot be empty')
+                sys.exit(1)
+            
+            print(f'  OK: {tool_name} -> {command}')
         
-        # Validate field types and values
-        if not isinstance(hook_config['command'], str):
-            print(f'ERROR: Hook \\"{hook_name}\\" command must be a string')
-            sys.exit(1)
-        
-        if not isinstance(hook_config['description'], str):
-            print(f'ERROR: Hook \\"{hook_name}\\" description must be a string')
-            sys.exit(1)
-        
-        if not isinstance(hook_config['timeout'], int) or hook_config['timeout'] <= 0:
-            print(f'ERROR: Hook \\"{hook_name}\\" timeout must be a positive integer')
-            sys.exit(1)
-        
-        if hook_config['on_failure'] not in valid_on_failure:
-            print(f'ERROR: Hook \\"{hook_name}\\" on_failure must be one of: {valid_on_failure}')
-            sys.exit(1)
-        
-        print(f'OK: Hook \\"{hook_name}\\" is valid')
+        print(f'OK: Hook type \\"{hook_type}\\" is valid')
     
     print('Claude hooks schema validation passed!')
 

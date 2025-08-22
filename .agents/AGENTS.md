@@ -1,142 +1,130 @@
-# Agent Context for Dotfiles Repository
+# Agent context for dotfiles repository
 
-## Project Overview
+## Project overview
 
-This is a personal dotfiles repository managed with Bazel for cross-platform configuration management. The repository contains configurations for various development tools organized under a structured Bazel build system.
+Personal dotfiles repository using Bazel for cross-platform configuration management. Configurations in `src/` with personal/work profiles and guarded installation.
 
-## Repository Structure
+## Repository structure
 
-- **`src/`** - All tool configurations organized by tool type
-  - `git/` - Git configurations with personal/work profiles
-  - `zsh/` - Zsh shell configurations and performance optimizations
-  - `tmux/` - Tmux terminal multiplexer configurations
-  - `vim/` - Vim editor configurations
-  - `hammerspoon/` - macOS automation tool configurations
-  - `jq/` - JSON processing tool configurations
+- `src/` - Tool configurations (git, zsh, tmux, vim, hammerspoon, jq)
+- `rules/` - Custom Bazel rules for configuration management
+- `toolchains/` - Bazel toolchain definitions  
+- `config/` - Build configuration and profile management
+- `docs/` - Documentation and security practices
 
-- **`rules/`** - Custom Bazel rules for configuration management
-- **`toolchains/`** - Bazel toolchain definitions
-- **`config/`** - Build configuration and profile management
-- **`docs/`** - Documentation including security practices
+## Features
 
-## Key Features
+- Profile-based configurations (personal/work)
+- Bazel-managed reproducible builds
+- Guarded installation prevents overwriting existing configs
+- Cross-platform support (Linux, macOS, Windows)
+- Security-first approach with pinned dependencies
 
-- **Profile-based configurations**: Separate personal and work profiles
-- **Bazel-managed builds**: Reproducible configuration deployment
-- **Guarded installation**: Safe injection into existing configuration files
-- **Cross-platform support**: Linux, macOS, and Windows compatibility
-- **Security-first approach**: Pinned dependencies and automated security updates
+## Commands
 
-## Development Workflow
-
-### Building
+### Build
 ```bash
-# Build specific profile
-bazel build //... --//config:profile=personal
-bazel build //... --//config:profile=work
-
-# Format code
-bazel run //:format
-
-# Generate IDE configuration  
-bazel run //:lsp_setup
+bazel build //... --//config:profile=personal  # Personal profile
+bazel build //... --//config:profile=work      # Work profile
+bazel run //:format                             # Format code
+bazel run //:lsp_setup                          # Generate IDE config
 ```
 
-### Testing
+### Test
 ```bash
-# Run all tests
-bazel test //...
-
-# Run quality checks
-bazel test //:quality_checks
+bazel test //...                                # All tests
+bazel test //src/git:test                       # Package tests
 ```
 
-### Installation
+### Install
 ```bash
-# Install all configurations
-bazel run //config:install_all
-
-# Install specific tool configuration
-bazel run //src/git:install_config_home
-bazel run //src/zsh:install_config_home
+bazel run //config:install_all                  # All configs
+bazel run //src/git:install_config_home         # Specific tool
 ```
 
-## Agent Guidelines
+## Agent guidelines
 
-### Code Style
-- Follow existing Bazel patterns and conventions
-- Use guarded installation patterns for safe configuration injection
-- Maintain separation between personal and work profiles
+### Code style
+- Follow existing Bazel patterns
+- Use guarded installation for safe config injection
+- Maintain personal/work profile separation
 - Keep configurations modular and testable
+- Tag installation targets `manual`
 
-### Security Considerations
-- Never commit secrets or sensitive information
-- Follow the security practices outlined in `docs/SECURITY.adoc`
-- Pin all dependencies to specific versions
-- Use guarded installation to prevent configuration corruption
+### Security
+- Never commit secrets
+- Pin all dependencies to specific versions (GitHub Actions to commit SHAs)
+- Dependabot handles automatic security updates
+- Use guarded installation to prevent corruption
 
-### File Organization
-- New tool configurations should follow the `src/{tool}/` pattern
-- Include appropriate Bazel BUILD files
-- Add corresponding rules in `rules/{tool}/` if needed
-- Document configuration options and usage
+### File organization
+- New tools follow `src/{tool}/` pattern
+- Include Bazel BUILD files
+- Add rules in `rules/{tool}/` if needed
+- Document configuration options
 
 ### Testing
-- Always include tests for new configurations
-- Use the existing test patterns in the codebase
-- Ensure cross-platform compatibility when possible
-- Test both personal and work profile builds
+- Include tests for new configurations
+- Use existing test patterns
+- Ensure cross-platform compatibility
+- Test both personal and work profiles
 
-## Build System Architecture
+## Build system
 
-### Package Structure
-- Each tool has a self-contained package under `src/{tool}/`
-- `BUILD.bazel` files define installation, verification, and test targets
-- Installation targets are tagged `manual` to prevent accidental execution
-- Tests are co-located with source files for better organization
+### Package structure
+- Self-contained packages under `src/{tool}/`
+- `BUILD.bazel` files define installation/verification/test targets
+- Installation targets tagged `manual`
+- Tests co-located with source files
 
-### Target Types
-- **Installation targets**: Use `sh_binary` with `//rules:install_dotfile.sh` or custom rules
-- **Verification targets**: Echo intended paths without side effects
-- **Test targets**: Validate configuration logic and scripts
-- **Build targets**: Generate files from templates or compile code
+### Target types
+- Installation: `sh_binary` with install scripts or custom rules
+- Verification: Echo paths without side effects
+- Test: Validate configuration logic
+- Build: Generate files from templates
 
-### Workflow Commands
+### Queries
 ```bash
-# Build all buildable targets
-bazel build //...
-
-# Build specific package
-bazel build //src/git:all
-
-# Test specific package
-bazel test //src/git:test
-
-# Query dependencies
-bazel query "deps(//src/tmux:all)" --output label
+bazel build //...                               # All buildable targets
+bazel build //src/git:all                       # Specific package
+bazel query "deps(//src/tmux:all)" --output label  # Dependencies
 ```
 
-## Common Tasks
+## Common tasks
 
-- **Adding a new tool configuration**: Create directory in `src/`, add BUILD file, create rule in `rules/`
-- **Modifying existing configurations**: Edit files in `src/{tool}/configs/`
-- **Adding profile-specific settings**: Use profile flags in BUILD files
-- **Security updates**: Review and update pinned dependencies
+- Add new tool: Create `src/{tool}/`, BUILD file, rule in `rules/`
+- Modify configs: Edit `src/{tool}/configs/`
+- Add profile settings: Use profile flags in BUILD files
+- Security updates: Review and update pinned dependencies
 
-## Exploration Guidelines
+## Exploration workflow
 
-Before making changes, always:
+Before changes:
+1. Query dependencies: `bazel query "deps(//target)" --output label`
+2. Inspect build outputs: Run `bazel build` and examine files
+3. Find patterns: `grep -r` for similar implementations
+4. Read all relevant files before suggesting changes
 
-1. **Examine dependencies**: Use `bazel query "deps(//target)" --output label`
-2. **Understand build outputs**: Run `bazel build` and inspect generated files
-3. **Check existing implementations**: Use `grep -r` to find similar patterns
-4. **Read ALL relevant files** before suggesting changes
+## Guarded installation
 
-## Important Notes
+Safe injection into existing config files without overwriting user content.
 
-- All configurations use guarded installation to prevent overwriting existing user configurations
-- The repository supports both personal and work profiles with different settings
-- Installation targets are tagged `manual` to prevent accidental execution
-- Tests are co-located with configurations for better maintainability
-- Bazel is used for reproducible builds and dependency management
-- Security is a primary concern with all actions and dependencies pinned to specific versions
+```bash
+# Install git config to ~/.gitconfig
+bazel run //src/git:install_config_home
+```
+
+Works by:
+- Wrapping content with guard comments (`# START/END DOTFILES MANAGED SECTION`)
+- Only updating managed sections on subsequent runs
+- Preserving existing user content before/after guards
+- Using atomic operations with temporary files
+
+## Key principles
+
+- Guarded installation prevents overwriting user configs
+- Personal/work profiles with different settings
+- Installation targets tagged `manual` prevent accidents
+- Tests co-located for maintainability
+- Bazel for reproducible builds and dependencies
+- Security paramount with pinned versions

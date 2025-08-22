@@ -1,8 +1,8 @@
 """
-AI Agent Documentation Validation
+AI Agent documentation validation
 
 This package validates agent configuration files to ensure:
-- Markdown files are properly formatted (no trailing newlines)
+- Markdown files are properly formatted
 - JSON files are valid and conform to expected schemas
 - Documentation files maintain consistency
 """
