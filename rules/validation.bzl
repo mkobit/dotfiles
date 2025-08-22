@@ -24,35 +24,35 @@ all_valid=true
 
 for file in "${files[@]}"; do
     echo "Validating: $file"
-    
+
     # Check if file exists
     if [ ! -f "$file" ]; then
         echo "ERROR: File $file does not exist"
         all_valid=false
         continue
     fi
-    
+
     # Check if file is valid UTF-8
     if ! iconv -f utf-8 -t utf-8 "$file" >/dev/null 2>&1; then
         echo "ERROR: $file is not valid UTF-8"
         all_valid=false
         continue
     fi
-    
+
     # Check if file is empty
     if [ ! -s "$file" ]; then
         echo "ERROR: $file is empty"
         all_valid=false
         continue
     fi
-    
+
     # Check for missing trailing newlines (files should end with newline)
     if [ "$(tail -c 1 "$file" | wc -l)" -eq 0 ]; then
         echo "ERROR: $file does not end with newline"
         all_valid=false
         continue
     fi
-    
+
     echo "OK: $file"
 done
 
@@ -109,28 +109,28 @@ all_valid=true
 
 for file in "${files[@]}"; do
     echo "Validating: $file"
-    
+
     # Check if file exists
     if [ ! -f "$file" ]; then
         echo "ERROR: File $file does not exist"
         all_valid=false
         continue
     fi
-    
+
     # Check if file is empty
     if [ ! -s "$file" ]; then
         echo "ERROR: $file is empty"
         all_valid=false
         continue
     fi
-    
+
     # Check if file is valid JSON using Python
     if ! python3 -c "import json; json.load(open('$file'))" 2>/dev/null; then
         echo "ERROR: $file is not valid JSON"
         all_valid=false
         continue
     fi
-    
+
     echo "OK: $file"
 done
 
@@ -183,13 +183,13 @@ files=(%s)
 
 for file in "${files[@]}"; do
     echo "Validating Claude hooks schema: $file"
-    
+
     # Check if file exists
     if [ ! -f "$file" ]; then
         echo "ERROR: File $file does not exist"
         exit 1
     fi
-    
+
     # Validate JSON using Python with Claude Code hooks schema checking
     python3 -c "
 import json
@@ -198,56 +198,56 @@ import sys
 try:
     with open('$file') as f:
         data = json.load(f)
-    
+
     # Check top-level structure
     if 'hooks' not in data:
         print('ERROR: Missing top-level \\"hooks\\" object')
         sys.exit(1)
-    
+
     hooks = data['hooks']
     if not isinstance(hooks, dict):
         print('ERROR: \\"hooks\\" must be an object')
         sys.exit(1)
-    
+
     # Valid hook types according to Claude Code documentation
     valid_hook_types = ['PreToolUse', 'PostToolUse']
-    
+
     # Valid tool names that can have hooks
     valid_tools = [
-        'Bash', 'Edit', 'MultiEdit', 'Read', 'Write', 'Glob', 
+        'Bash', 'Edit', 'MultiEdit', 'Read', 'Write', 'Glob',
         'Grep', 'LS', 'WebFetch', 'Task', 'TodoWrite'
     ]
-    
+
     for hook_type, hook_config in hooks.items():
         print(f'Validating hook type: {hook_type}')
-        
+
         if hook_type not in valid_hook_types:
             print(f'ERROR: Invalid hook type \\"{hook_type}\\". Valid types: {valid_hook_types}')
             sys.exit(1)
-        
+
         if not isinstance(hook_config, dict):
             print(f'ERROR: Hook \\"{hook_type}\\" configuration must be an object')
             sys.exit(1)
-        
+
         # Validate each tool command mapping
         for tool_name, command in hook_config.items():
             print(f'  Validating tool hook: {tool_name}')
-            
+
             if tool_name not in valid_tools:
                 print(f'WARNING: Tool \\"{tool_name}\\" not in known tools list: {valid_tools}')
-            
+
             if not isinstance(command, str):
                 print(f'ERROR: Command for tool \\"{tool_name}\\" must be a string')
                 sys.exit(1)
-            
+
             if not command.strip():
                 print(f'ERROR: Command for tool \\"{tool_name}\\" cannot be empty')
                 sys.exit(1)
-            
+
             print(f'  OK: {tool_name} -> {command}')
-        
+
         print(f'OK: Hook type \\"{hook_type}\\" is valid')
-    
+
     print('Claude hooks schema validation passed!')
 
 except json.JSONDecodeError as e:
