@@ -4,6 +4,7 @@ on:
   push:
     paths-ignore:
       - '**.md'
+      - '!**.agents/**/*.md'  # Don't ignore agent documentation (used in tests)
       - '**.adoc'
       - '.goosehints'
       - '.gitattributes'
@@ -12,6 +13,7 @@ on:
   pull_request:
     paths-ignore:
       - '**.md'
+      - '!**.agents/**/*.md'  # Don't ignore agent documentation (used in tests)
       - '**.adoc'
       - '.goosehints'
       - '.gitattributes'
