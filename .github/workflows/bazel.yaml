@@ -9,14 +9,6 @@ on:
       - '.gitattributes'
       - '.gitignore'
       - '.editorconfig'
-  pull_request:
-    paths-ignore:
-      - '**.md'
-      - '**.adoc'
-      - '!**.agents/**'
-      - '.gitattributes'
-      - '.gitignore'
-      - '.editorconfig'
 
 permissions:
   contents: read
