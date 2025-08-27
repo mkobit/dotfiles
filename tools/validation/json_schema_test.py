@@ -3,36 +3,34 @@
 JSON Schema validation test using pytest.
 
 This module validates JSON files against a provided JSON schema using jsonschema.
-Pure pytest implementation with straightforward parameterized tests.
+Uses explicit parametrization with command-line arguments.
 """
 
 import json
 import pytest
+import sys
 from pathlib import Path
-from typing import Dict, Any
+from typing import Dict, Any, List
 
 import jsonschema
 from jsonschema import ValidationError
 
 
-def pytest_addoption(parser):
-    """Add command line options for JSON schema validation."""
-    parser.addoption(
-        "--schema", 
-        action="store", 
-        required=True,
-        help="Path to JSON schema file"
-    )
+def get_test_files() -> List[str]:
+    """Get JSON files from command line arguments."""
+    # Parse our own arguments - schema is first arg, JSON files are the rest
+    if len(sys.argv) < 3:
+        pytest.fail("Usage: pytest json_schema_test.py <schema_file> <json_file1> [json_file2 ...]")
+    
+    return sys.argv[2:]  # Skip script name and schema file
 
 
-def pytest_generate_tests(metafunc):
-    """Generate test parameters for each JSON file."""
-    if "json_file" in metafunc.fixturenames:
-        # Get JSON files from pytest args (passed after -- separator)
-        json_files = metafunc.config.args
-        if not json_files:
-            pytest.fail("No JSON files provided for validation")
-        metafunc.parametrize("json_file", json_files, ids=lambda x: Path(x).name)
+def get_schema_file() -> str:
+    """Get schema file from command line arguments."""
+    if len(sys.argv) < 2:
+        pytest.fail("Usage: pytest json_schema_test.py <schema_file> <json_file1> [json_file2 ...]")
+    
+    return sys.argv[1]
 
 
 def load_schema(schema_path: str) -> Dict[str, Any]:
@@ -61,6 +59,7 @@ def load_json_file(json_path: str) -> Dict[str, Any]:
         pytest.fail(f"Failed to read {json_file}: {e}")
 
 
+@pytest.mark.parametrize("json_file", get_test_files(), ids=lambda x: Path(x).name)
 def test_json_file_exists(json_file):
     """Test that the JSON file exists and is readable."""
     json_path = Path(json_file)
@@ -68,15 +67,17 @@ def test_json_file_exists(json_file):
     assert json_path.is_file(), f"Path is not a file: {json_path}"
 
 
+@pytest.mark.parametrize("json_file", get_test_files(), ids=lambda x: Path(x).name)
 def test_json_file_syntax(json_file):
     """Test that the JSON file has valid syntax."""
     data = load_json_file(json_file)
     assert data is not None, f"JSON file {json_file} loaded as None"
 
 
-def test_json_schema_validation(json_file, request):
+@pytest.mark.parametrize("json_file", get_test_files(), ids=lambda x: Path(x).name)
+def test_json_schema_validation(json_file):
     """Test that the JSON file validates against the schema."""
-    schema_path = request.config.getoption("--schema")
+    schema_path = get_schema_file()
     schema = load_schema(schema_path)
     data = load_json_file(json_file)
     
