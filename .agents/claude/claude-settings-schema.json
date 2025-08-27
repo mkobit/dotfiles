@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude-code.anthropic.com/schema/settings.json",
+  "title": "Claude Code Settings Schema",
+  "description": "Schema for Claude Code settings.json configuration files",
+  "type": "object",
+  "properties": {
+    "permissions": {
+      "type": "object",
+      "properties": {
+        "allow": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of allowed tool patterns"
+        },
+        "deny": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "List of denied tool patterns"
+        },
+        "additionalDirectories": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Additional directories Claude can access"
+        }
+      },
+      "additionalProperties": false
+    },
+    "hooks": {
+      "type": "object",
+      "properties": {
+        "PreToolUse": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hookConfig"
+          },
+          "description": "Hooks to run before tool execution"
+        },
+        "PostToolUse": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hookConfig"
+          },
+          "description": "Hooks to run after tool execution"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "hookConfig": {
+      "type": "object",
+      "properties": {
+        "matcher": {
+          "type": "string",
+          "pattern": "^[A-Za-z|]+$",
+          "description": "Tool name pattern (e.g., 'Edit|MultiEdit|Write')"
+        },
+        "hooks": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/hookCommand"
+          },
+          "minItems": 1
+        }
+      },
+      "required": ["matcher", "hooks"],
+      "additionalProperties": false
+    },
+    "hookCommand": {
+      "type": "object",
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["command"],
+          "description": "Type of hook - currently only 'command' is supported"
+        },
+        "command": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Shell command to execute"
+        }
+      },
+      "required": ["type", "command"],
+      "additionalProperties": false
+    }
+  }
+}
