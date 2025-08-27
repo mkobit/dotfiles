@@ -17,6 +17,7 @@ typer
 
 # Validation
 pydantic
+jsonschema
 
 # Time
 whenever

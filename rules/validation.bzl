@@ -5,6 +5,8 @@ This module provides reusable validation rules that can be used across
 the project to ensure file quality and consistency.
 """
 
+load("//tools/validation:json_schema_validation.bzl", _json_schema_validation_test = "json_schema_validation_test")
+
 def _markdown_validation_test_impl(ctx):
     """Implementation for markdown validation test."""
     test_script = ctx.actions.declare_file(ctx.label.name + ".sh")
@@ -275,112 +277,8 @@ echo "All Claude hooks files validated successfully!"
         runfiles = runfiles,
     )]
 
-def _json_schema_validation_test_impl(ctx):
-    """Implementation for generic JSON schema validation test."""
-    test_script = ctx.actions.declare_file(ctx.label.name + ".sh")
-
-    # Get the files from runfiles
-    files = [f.short_path for f in ctx.files.srcs]
-    files_list = " ".join(['"%s"' % f for f in files])
-    schema_file = ctx.file.schema.short_path
-
-    script_content = '''#!/bin/bash
-set -euo pipefail
-
-echo "Validating JSON files against schema..."
-
-schema_file="%s"
-files=(%s)
-all_valid=true
-
-# Check schema file exists
-if [ ! -f "$schema_file" ]; then
-    echo "ERROR: Schema file $schema_file does not exist"
-    exit 1
-fi
-
-for file in "${files[@]}"; do
-    echo "Validating: $file against $schema_file"
-
-    # Check if file exists
-    if [ ! -f "$file" ]; then
-        echo "ERROR: File $file does not exist"
-        all_valid=false
-        continue
-    fi
-
-    # Validate JSON against schema using Python with jsonschema
-    if ! python3 -c "
-import json
-import sys
-try:
-    import jsonschema
-except ImportError:
-    print('ERROR: jsonschema library not available, skipping schema validation')
-    sys.exit(0)
-
-try:
-    with open('$schema_file') as sf:
-        schema = json.load(sf)
-    with open('$file') as f:
-        data = json.load(f)
-    
-    jsonschema.validate(data, schema)
-    print('OK: $file validates against schema')
-except json.JSONDecodeError as e:
-    print(f'ERROR: Invalid JSON in $file: {e}')
-    sys.exit(1)
-except jsonschema.ValidationError as e:
-    print(f'ERROR: Schema validation failed for $file: {e}')
-    sys.exit(1)
-except Exception as e:
-    print(f'ERROR: Validation failed for $file: {e}')
-    sys.exit(1)
-    " 2>/dev/null; then
-        echo "ERROR: Schema validation failed for $file"
-        all_valid=false
-        continue
-    fi
-done
-
-if [ "$all_valid" = true ]; then
-    echo "All JSON files validate against schema"
-    exit 0
-else
-    echo "Some JSON files failed schema validation"
-    exit 1
-fi
-''' % (schema_file, files_list)
-
-    ctx.actions.write(
-        output = test_script,
-        content = script_content,
-        is_executable = True,
-    )
-
-    runfiles = ctx.runfiles(files = ctx.files.srcs + [ctx.file.schema])
-
-    return [DefaultInfo(
-        executable = test_script,
-        runfiles = runfiles,
-    )]
-
-json_schema_validation_test = rule(
-    implementation = _json_schema_validation_test_impl,
-    attrs = {
-        "srcs": attr.label_list(
-            doc = "JSON files to validate",
-            allow_files = [".json"],
-            mandatory = True,
-        ),
-        "schema": attr.label(
-            doc = "JSON schema file to validate against",
-            allow_single_file = [".json"],
-            mandatory = True,
-        ),
-    },
-    test = True,
-)
+# Re-export the macro for backward compatibility
+json_schema_validation_test = _json_schema_validation_test
 
 claude_hooks_schema_test = rule(
     implementation = _claude_hooks_schema_test_impl,
