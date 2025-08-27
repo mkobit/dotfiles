@@ -277,7 +277,7 @@ echo "All Claude hooks files validated successfully!"
         runfiles = runfiles,
     )]
 
-# Re-export the macro for backward compatibility
+# Re-export the JSON schema validation test macro
 json_schema_validation_test = _json_schema_validation_test
 
 claude_hooks_schema_test = rule(
