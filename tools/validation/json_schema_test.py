@@ -1,99 +1,103 @@
 #!/usr/bin/env python3
 """
-JSON Schema validation test.
+JSON Schema validation test using pytest.
 
-This script validates JSON files against a provided JSON schema using jsonschema.
-It's designed to be used as a standalone test that can be invoked by Bazel.
+This module validates JSON files against a provided JSON schema using jsonschema.
+It's designed to be used as a pytest test that can be invoked by Bazel with runfiles.
 """
 
-import argparse
 import json
-import sys
+import pytest
 from pathlib import Path
 from typing import List
+import argparse
+import sys
+
+try:
+    from rules_python.python.runfiles import runfiles
+    RUNFILES_AVAILABLE = True
+except ImportError:
+    RUNFILES_AVAILABLE = False
+
+import jsonschema
 
 
-def validate_files(json_files: List[Path], schema_file: Path) -> bool:
-    """
-    Validate JSON files against a schema.
+class JSONSchemaValidator:
+    """JSON schema validator for use with pytest and bazel runfiles."""
     
-    Args:
-        json_files: List of JSON files to validate
-        schema_file: Path to JSON schema file
+    def __init__(self, schema_path: str, json_paths: List[str]):
+        self.schema_path = schema_path
+        self.json_paths = json_paths
+        self._schema = None
+        self._runfiles = None
         
-    Returns:
-        True if all files are valid, False otherwise
-    """
-    # TODO: Add jsonschema to requirements.lock.txt and uncomment schema validation
-    try:
-        import jsonschema
-        use_schema_validation = True
-    except ImportError:
-        print("INFO: jsonschema not available - performing JSON syntax validation only")
-        use_schema_validation = False
+        if RUNFILES_AVAILABLE:
+            self._runfiles = runfiles.Create()
     
-    # Load schema (only if doing full validation)
-    schema = None
-    if use_schema_validation:
-        try:
+    def _resolve_path(self, path: str) -> Path:
+        """Resolve a path using runfiles if available, otherwise use as-is."""
+        if self._runfiles:
+            resolved = self._runfiles.Rlocation(path)
+            if resolved:
+                return Path(resolved)
+        return Path(path)
+    
+    @property
+    def schema(self):
+        """Load and cache the JSON schema."""
+        if self._schema is None:
+            schema_file = self._resolve_path(self.schema_path)
             with open(schema_file) as f:
-                schema = json.load(f)
-        except (FileNotFoundError, json.JSONDecodeError) as e:
-            print(f"ERROR: Failed to load schema file {schema_file}: {e}")
-            return False
+                self._schema = json.load(f)
+        return self._schema
     
-    all_valid = True
-    
-    for json_file in json_files:
-        if use_schema_validation:
-            print(f"Validating: {json_file} against {schema_file}")
-        else:
-            print(f"Validating JSON syntax: {json_file}")
+    def validate_file(self, json_path: str) -> None:
+        """Validate a single JSON file against the schema."""
+        json_file = self._resolve_path(json_path)
         
-        if not json_file.exists():
-            print(f"ERROR: File {json_file} does not exist")
-            all_valid = False
-            continue
-            
-        try:
-            with open(json_file) as f:
-                data = json.load(f)
-                
-            if use_schema_validation:
-                jsonschema.validate(data, schema)
-                print(f"OK: {json_file} validates against schema")
-            else:
-                print(f"OK: {json_file} is valid JSON")
-            
-        except json.JSONDecodeError as e:
-            print(f"ERROR: Invalid JSON in {json_file}: {e}")
-            all_valid = False
-        except Exception as e:
-            if use_schema_validation and "ValidationError" in str(type(e)):
-                print(f"ERROR: Schema validation failed for {json_file}: {e}")
-            else:
-                print(f"ERROR: Validation failed for {json_file}: {e}")
-            all_valid = False
-    
-    return all_valid
+        # Load and parse JSON
+        with open(json_file) as f:
+            data = json.load(f)
+        
+        # Validate against schema
+        jsonschema.validate(data, self.schema)
+
+
+# Global validator instance - set by main()
+validator = None
+
+
+def pytest_generate_tests(metafunc):
+    """Generate test parameters for each JSON file."""
+    if "json_file" in metafunc.fixturenames:
+        if validator is None:
+            # Fallback for when pytest is run directly
+            metafunc.parametrize("json_file", [])
+        else:
+            metafunc.parametrize("json_file", validator.json_paths)
+
+
+def test_json_schema_validation(json_file):
+    """Test that validates each JSON file against the schema."""
+    validator.validate_file(json_file)
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Validate JSON files against a schema")
+    """Entry point for bazel test execution."""
+    global validator
+    
+    parser = argparse.ArgumentParser(description="Validate JSON files against a schema using pytest")
     parser.add_argument("--schema", required=True, help="Path to JSON schema file")
     parser.add_argument("files", nargs="+", help="JSON files to validate")
     
     args = parser.parse_args()
     
-    schema_file = Path(args.schema)
-    json_files = [Path(f) for f in args.files]
+    # Initialize the validator
+    validator = JSONSchemaValidator(args.schema, args.files)
     
-    if validate_files(json_files, schema_file):
-        print("All JSON files validate against schema")
-        sys.exit(0)
-    else:
-        print("Some JSON files failed schema validation")
-        sys.exit(1)
+    # Run pytest programmatically
+    exit_code = pytest.main([__file__, "-v"])
+    sys.exit(exit_code)
 
 
 if __name__ == "__main__":

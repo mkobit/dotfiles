@@ -1,15 +1,15 @@
 """
-Simple macro for JSON schema validation using py_test.
+Simple macro for JSON schema validation using pytest.
 
-This provides a clean interface using standard bazel py_test rules
-instead of complex custom rule implementations.
+This provides a clean interface using pytest with bazel runfiles
+for proper test resource access.
 """
 
 load("@rules_python//python:defs.bzl", "py_test")
 
 def json_schema_validation_test(name, srcs, schema, deps = None, **kwargs):
     """
-    Creates a py_test that validates JSON files against a schema.
+    Creates a pytest test that validates JSON files against a schema.
 
     Args:
         name: Name of the test target
@@ -21,8 +21,12 @@ def json_schema_validation_test(name, srcs, schema, deps = None, **kwargs):
     if deps == None:
         deps = []
 
-    # For now, we'll use the existing Python installation
-    # Later we can add @pypi//jsonschema when requirements are set up
+    # Add required dependencies for pytest and jsonschema
+    test_deps = [
+        "//tools/validation:json_schema_test",
+        "@pypi//pytest",
+        "@pypi//jsonschema",
+    ] + deps
 
     py_test(
         name = name,
@@ -33,7 +37,7 @@ def json_schema_validation_test(name, srcs, schema, deps = None, **kwargs):
             "$(location {})".format(schema),
         ] + ["$(location {})".format(src) for src in srcs],
         data = srcs + [schema],
-        deps = deps,
+        deps = test_deps,
         python_version = "PY3",
         **kwargs
     )

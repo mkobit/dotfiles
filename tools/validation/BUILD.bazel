@@ -14,6 +14,10 @@ py_library(
     name = "json_schema_test",
     srcs = ["json_schema_test.py"],
     srcs_version = "PY3",
+    deps = [
+        "@pypi//jsonschema",
+        "@pypi//pytest",
+    ],
 )
 
 # Export the macro
