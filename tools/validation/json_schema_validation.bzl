@@ -35,6 +35,7 @@ def json_schema_validation_test(name, srcs, schema, deps = None, **kwargs):
         args = [
             "--schema",
             "$(location {})".format(schema),
+            "--",
         ] + ["$(location {})".format(src) for src in srcs],
         data = srcs + [schema],
         deps = test_deps,
