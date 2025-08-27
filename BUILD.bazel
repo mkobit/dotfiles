@@ -1,7 +1,14 @@
+load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("//rules:linting.bzl", "bazel_files_format", "bazel_files_format_test")
 load("//rules:lsp.bzl", "compile_commands", "compile_commands_runner", "setup_bazel_lsp")
 
 package(default_visibility = ["//visibility:public"])
+
+compile_pip_requirements(
+    name = "requirements",
+    src = "requirements.in",
+    requirements_txt = "requirements.lock.txt",
+)
 
 # Format all Bazel files in the repository
 bazel_files_format(name = "format")
@@ -31,6 +38,7 @@ test_suite(
     name = "config_tests",
     tests = [
         ":format_test",
+        "//.agents/claude:claude_settings_schema_test",
         "//src/git:selected_gitconfig_test",
         "//src/tmux:tmux_conf_test",
         "//src/vim:vimrc_test",

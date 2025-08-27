@@ -5,6 +5,8 @@ This module provides reusable validation rules that can be used across
 the project to ensure file quality and consistency.
 """
 
+load("//tools/validation:json_schema_validation.bzl", _json_schema_validation_test = "json_schema_validation_test")
+
 def _markdown_validation_test_impl(ctx):
     """Implementation for markdown validation test."""
     test_script = ctx.actions.declare_file(ctx.label.name + ".sh")
@@ -274,6 +276,9 @@ echo "All Claude hooks files validated successfully!"
         executable = test_script,
         runfiles = runfiles,
     )]
+
+# Re-export the JSON schema validation test macro
+json_schema_validation_test = _json_schema_validation_test
 
 claude_hooks_schema_test = rule(
     implementation = _claude_hooks_schema_test_impl,

@@ -1,0 +1,16 @@
+load("//rules:validation.bzl", "json_schema_validation_test")
+
+package(default_visibility = ["//visibility:public"])
+
+# Validate Claude settings against schema
+json_schema_validation_test(
+    name = "claude_settings_schema_test",
+    srcs = [".claude/settings.json"],
+    schema = "claude-settings-schema.json",
+)
+
+# Export schema file for use by other packages
+exports_files([
+    "claude-settings-schema.json",
+    "claude_hooks.json",
+])
