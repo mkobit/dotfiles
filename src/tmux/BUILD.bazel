@@ -1,4 +1,4 @@
-load("//rules:guarded_install.bzl", "guarded_install")
+load("//rules/common:guarded_install.bzl", "guarded_install")
 load("//rules/tmux:defs.bzl", "tmux_conf_test")
 
 package(default_visibility = ["//visibility:public"])

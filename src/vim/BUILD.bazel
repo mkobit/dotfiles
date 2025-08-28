@@ -1,4 +1,4 @@
-load("//rules:guarded_install.bzl", "guarded_install")
+load("//rules/common:guarded_install.bzl", "guarded_install")
 load("//rules/vim:defs.bzl", "vim_config", "vim_test")
 
 package(default_visibility = ["//visibility:public"])
