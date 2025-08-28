@@ -27,7 +27,7 @@ Personal dotfiles repository using Bazel for cross-platform configuration manage
 bazel build //... --//config:profile=personal  # Personal profile
 bazel build //... --//config:profile=work      # Work profile
 bazel run //:format                             # Format code
-bazel run //:lsp_setup                          # Generate IDE config
+bazel build //:lsp_setup_vscode_settings        # Generate IDE config
 ```
 
 ### Test

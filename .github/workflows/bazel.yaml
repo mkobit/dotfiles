@@ -107,8 +107,8 @@ jobs:
       - name: Generate LSP config
         run: |
           echo "🔧 Generating LSP configuration..."
-          bazel run //:lsp_setup
-          bazel run //:compile_commands
+          bazel build //:lsp_setup_vscode_settings //:lsp_setup_compile_commands
+          echo "✅ Generated settings.json and compile_commands.json"
 
   test:
     needs: [format, lint]
