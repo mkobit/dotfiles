@@ -17,24 +17,13 @@ def generate_config_file(
     input_files: list[str],
     rule_name: str,
     file_extension: str,
+    comment_char: str = "#",
     header_template: str = "",
     footer_template: str = "",
     custom_header: str = "",
     custom_footer: str = ""
 ) -> None:
     """Generate a configuration file by combining input files."""
-    
-    # Determine comment character based on file extension
-    comment_chars = {
-        '.vim': '"',
-        '.lua': '--',
-        '.zsh': '#',
-        '.sh': '#',
-        '.gitconfig': '#',
-        '.tmux': '#',
-        '.conf': '#'
-    }
-    comment_char = comment_chars.get(file_extension, '#')
     
     with open(output_path, 'w') as output:
         # Write header
@@ -85,6 +74,7 @@ def main():
     parser.add_argument('--inputs', nargs='+', required=True, help='Input file paths')
     parser.add_argument('--rule-name', required=True, help='Name of the rule (e.g., vim, git)')
     parser.add_argument('--file-extension', required=True, help='File extension (e.g., .vim, .lua)')
+    parser.add_argument('--comment-char', default='#', help='Comment character for the file type')
     parser.add_argument('--header-template', default='', help='Default header template')
     parser.add_argument('--footer-template', default='', help='Default footer template')
     parser.add_argument('--custom-header', default='', help='Custom header content')
@@ -97,6 +87,7 @@ def main():
         input_files=args.inputs,
         rule_name=args.rule_name,
         file_extension=args.file_extension,
+        comment_char=args.comment_char,
         header_template=args.header_template,
         footer_template=args.footer_template,
         custom_header=args.custom_header,

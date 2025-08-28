@@ -1,6 +1,6 @@
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("//rules:linting.bzl", "bazel_files_format", "bazel_files_format_test")
-load("//rules:lsp.bzl", "compile_commands", "compile_commands_runner", "setup_bazel_lsp")
+load("//rules:lsp_simple.bzl", "setup_simple_lsp")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -18,19 +18,9 @@ bazel_files_format_test(
     name = "format_test",
 )
 
-# Set up LSP configuration for the project
-setup_bazel_lsp(
+# Set up simplified LSP configuration for the project
+setup_simple_lsp(
     name = "lsp_setup",
-)
-
-# Generate compile_commands.json for IDE support
-compile_commands_runner(
-    name = "compile_commands",
-    compile_commands = ":compile_commands_file",
-)
-
-compile_commands(
-    name = "compile_commands_file",
 )
 
 # Test suite for configuration validation

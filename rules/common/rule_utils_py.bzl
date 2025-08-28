@@ -9,6 +9,7 @@ def create_config_rule_py(
         rule_name,
         file_extension,
         mnemonic,
+        comment_char = "#",
         allowed_extensions = None,
         header_template = None,
         footer_template = None):
@@ -18,6 +19,7 @@ def create_config_rule_py(
         rule_name: Name of the rule
         file_extension: Extension for output file (e.g., ".zsh", ".gitconfig")
         mnemonic: Mnemonic for the action
+        comment_char: Comment character for the file type (e.g., "#", "\"", "--")
         allowed_extensions: List of allowed file extensions for sources
         header_template: Template for header comment
         footer_template: Template for footer comment
@@ -46,6 +48,8 @@ def create_config_rule_py(
             rule_name,
             "--file-extension",
             file_extension,
+            "--comment-char",
+            comment_char,
         ])
 
         if header_template:
