@@ -14,3 +14,20 @@ py_binary(
     srcs = ["config_generator.py"],
     main = "config_generator.py",
 )
+
+# Python tooling wrappers
+py_binary(
+    name = "ruff_wrapper",
+    srcs = ["//rules:python_wrappers.py"],
+    args = ["ruff"],
+    main = "//rules:python_wrappers.py",
+    deps = ["@pypi//ruff"],
+)
+
+py_binary(
+    name = "mypy_wrapper",
+    srcs = ["//rules:python_wrappers.py"],
+    args = ["mypy"],
+    main = "//rules:python_wrappers.py",
+    deps = ["@pypi//mypy"],
+)

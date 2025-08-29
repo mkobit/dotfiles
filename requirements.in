@@ -3,9 +3,7 @@ pytest
 pytest-asyncio
 
 # Linting and formatting
-flake8
-black
-isort
+ruff
 mypy
 
 # HTTP tools

@@ -4,4 +4,5 @@ package(default_visibility = ["//visibility:public"])
 exports_files([
     "linting.bzl",
     "lsp.bzl",
+    "python_wrappers.py",
 ])
