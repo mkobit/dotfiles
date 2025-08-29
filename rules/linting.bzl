@@ -60,7 +60,7 @@ def bazel_files_format(name, exclude_patterns = None, **kwargs):
 def _unified_format_impl(ctx):
     """Implementation for unified format rule that runs all formatters."""
     script_file = ctx.actions.declare_file(ctx.label.name + "_format.sh")
-    
+
     script_content = """#!/bin/bash
 set -euo pipefail
 
@@ -76,16 +76,16 @@ bazel run {python_target}
 
 echo "✅ All files formatted successfully!"
 """.format(
-        bazel_target=ctx.attr._bazel_target,
-        python_target=ctx.attr._python_target,
+        bazel_target = ctx.attr._bazel_target,
+        python_target = ctx.attr._python_target,
     )
-    
+
     ctx.actions.write(
         output = script_file,
         content = script_content,
         is_executable = True,
     )
-    
+
     return [DefaultInfo(
         files = depset([script_file]),
         executable = script_file,
@@ -112,6 +112,7 @@ def all_files_format(name, exclude_patterns = None, **kwargs):
         exclude_patterns: List of patterns to exclude from formatting
         **kwargs: Additional attributes
     """
+
     # Create unified executable format target
     unified_format(name = name, **kwargs)
 

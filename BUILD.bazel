@@ -1,7 +1,7 @@
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
-load("//rules:linting.bzl", "all_files_format", "all_files_format_test", "bazel_files_format")
+load("//rules:linting.bzl", "all_files_format_test", "bazel_files_format")
 load("//rules:lsp_simple.bzl", "setup_simple_lsp")
-load("//rules:python_tools.bzl", "python_files_fix", "python_files_format")
+load("//rules:python_tools.bzl", "python_files_fix")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -11,15 +11,16 @@ compile_pip_requirements(
     requirements_txt = "requirements.lock.txt",
 )
 
-# Format all files (Bazel + Python) - unified format target
-all_files_format(name = "format")
+# Format Bazel files (main format target)
+bazel_files_format(name = "format")
+
+# Auto-fix Python files
+python_files_fix(name = "python_fix")
 
 # Test that all supported files are properly formatted and type-checked
 all_files_format_test(
     name = "format_test",
 )
-
-python_files_fix(name = "python_fix")
 
 # Set up simplified LSP configuration for the project
 setup_simple_lsp(
