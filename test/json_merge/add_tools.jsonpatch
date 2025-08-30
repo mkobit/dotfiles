@@ -1,0 +1,22 @@
+[
+  {
+    "op": "add",
+    "path": "/hooks/PreToolUse/Write",
+    "value": "echo 'About to write file'"
+  },
+  {
+    "op": "add", 
+    "path": "/hooks/PreToolUse/Grep",
+    "value": "echo 'About to search files'"
+  },
+  {
+    "op": "add",
+    "path": "/hooks/PostToolUse/Write", 
+    "value": "echo 'Finished writing file'"
+  },
+  {
+    "op": "add",
+    "path": "/hooks/PostToolUse/Edit",
+    "value": "echo 'Finished editing file'"
+  }
+]

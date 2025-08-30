@@ -1,22 +1,20 @@
 """
-Test cases for JSON merge rules.
+Test cases for JSON patch rules.
 """
 
 load("//rules:validation.bzl", "json_validation_test")
-load("//rules/json_merge:defs.bzl", "json_merge")
+load("//rules/json_merge:defs.bzl", "json_patch")
 
-# Test basic JSON merge
-json_merge(
-    name = "test_basic_merge",
-    srcs = [
-        "additional_hooks.json",
-        "base_hooks.json",
-    ],
-    out = "merged_hooks.json",
+# Test JSON patch application
+json_patch(
+    name = "test_patch_hooks",
+    base = "base_hooks.json",
+    patches = ["add_tools.jsonpatch"],
+    out = "patched_hooks.json",
 )
 
 # Validation test
 json_validation_test(
-    name = "test_merge_valid",
-    srcs = [":test_basic_merge"],
+    name = "test_patch_valid",
+    srcs = [":test_patch_hooks"],
 )
