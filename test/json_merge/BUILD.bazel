@@ -8,9 +8,9 @@ load("//rules/json_merge:defs.bzl", "json_patch")
 # Test JSON patch application
 json_patch(
     name = "test_patch_hooks",
+    out = "patched_hooks.json",
     base = "base_hooks.json",
     patches = ["add_tools.jsonpatch"],
-    out = "patched_hooks.json",
 )
 
 # Validation test

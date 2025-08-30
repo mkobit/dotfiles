@@ -12,6 +12,9 @@ py_binary(
     main = "json_merge_tool.py",
     python_version = "PY3",
     visibility = ["//visibility:public"],
+    deps = [
+        "@pypi//jsonpatch",
+    ],
 )
 
 exports_files([
