@@ -6,5 +6,4 @@ package(default_visibility = ["//rules/json_merge:__subpackages__"])
 
 exports_files([
     "json_merge.bzl",
-    "json_merge_install.bzl",
 ])
