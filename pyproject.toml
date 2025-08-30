@@ -1,0 +1,51 @@
+[tool.ruff]
+# Target Python 3.13 to match Bazel Python toolchain
+target-version = "py313"
+
+# Enable specific linting rules
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings  
+    "F",   # Pyflakes
+    "I",   # isort
+    "N",   # pep8-naming
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+]
+
+# Configure line length
+line-length = 88
+
+# Files to exclude
+exclude = [
+    "bazel-*",
+    ".git",
+    "__pycache__",
+    "*.pyc",
+]
+
+[tool.ruff.format]
+# Use double quotes for strings
+quote-style = "double"
+
+# Prefer splitting imports 
+docstring-code-format = true
+
+[tool.mypy] 
+# Type checking configuration
+python_version = "3.13"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+
+# Handle missing imports gracefully
+ignore_missing_imports = true
+
+# Files to exclude  
+exclude = [
+    "bazel-.*",
+]

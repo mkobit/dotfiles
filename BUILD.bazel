@@ -5,6 +5,11 @@ load("//rules:python_tools.bzl", "python_files_fix")
 
 package(default_visibility = ["//visibility:public"])
 
+# Export Python tooling configuration
+exports_files([
+    "pyproject.toml",
+])
+
 compile_pip_requirements(
     name = "requirements",
     src = "requirements.in",
