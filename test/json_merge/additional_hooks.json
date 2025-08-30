@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PreToolUse": {
+      "Write": "echo 'About to write file'",
+      "Grep": "echo 'About to search files'"
+    },
+    "PostToolUse": {
+      "Write": "echo 'Finished writing file'",
+      "Edit": "echo 'Finished editing file'"
+    }
+  }
+}

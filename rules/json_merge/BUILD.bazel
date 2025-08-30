@@ -1,0 +1,19 @@
+"""
+JSON merge rule package.
+"""
+
+load("@rules_python//python:defs.bzl", "py_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+py_binary(
+    name = "json_merge_tool",
+    srcs = ["json_merge_tool.py"],
+    main = "json_merge_tool.py",
+    python_version = "PY3",
+    visibility = ["//visibility:public"],
+)
+
+exports_files([
+    "defs.bzl",
+])

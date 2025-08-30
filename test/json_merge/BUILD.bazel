@@ -1,0 +1,57 @@
+"""
+Test cases for JSON merge rules.
+"""
+
+load("@rules_python//python:defs.bzl", "py_test")
+load("//rules:validation.bzl", "json_validation_test")
+load("//rules/json_merge:defs.bzl", "json_merge")
+
+# Test basic JSON merge
+json_merge(
+    name = "test_basic_merge",
+    srcs = [
+        "additional_hooks.json",
+        "base_hooks.json",
+    ],
+    out = "merged_basic.json",
+    strategy = "deep_merge",
+)
+
+# Test Claude hooks specific merge
+json_merge(
+    name = "test_claude_hooks_merge",
+    srcs = [
+        "additional_hooks.json",
+        "base_hooks.json",
+    ],
+    out = "merged_claude_hooks.json",
+    strategy = "claude_hooks",
+    validate_claude_hooks = True,
+)
+
+# Validation tests
+json_validation_test(
+    name = "test_basic_merge_valid",
+    srcs = [":test_basic_merge"],
+)
+
+json_validation_test(
+    name = "test_claude_hooks_merge_valid",
+    srcs = [":test_claude_hooks_merge"],
+)
+
+# Python test for merge tool functionality
+py_test(
+    name = "test_merge_tool",
+    srcs = ["test_merge_tool.py"],
+    data = [
+        "additional_hooks.json",
+        "base_hooks.json",
+        ":test_basic_merge",
+        ":test_claude_hooks_merge",
+    ],
+    python_version = "PY3",
+    deps = [
+        "//rules/json_merge:json_merge_tool",
+    ],
+)

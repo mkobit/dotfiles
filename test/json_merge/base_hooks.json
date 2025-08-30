@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "PreToolUse": {
+      "Bash": "echo 'About to run bash command'",
+      "Edit": "echo 'About to edit file'"
+    },
+    "PostToolUse": {
+      "Bash": "echo 'Finished bash command'",
+      "Read": "echo 'Finished reading file'"
+    }
+  }
+}
