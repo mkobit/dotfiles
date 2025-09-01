@@ -1,5 +1,6 @@
 #!/bin/bash
 # Jules environment setup for Bazel dotfiles repository
+# For more information, see: https://jules.google/docs/environment/
 
 set -euo pipefail
 
