@@ -32,6 +32,7 @@ def main():
     parser.add_argument("--output", required=True, help="Output file path")
     parser.add_argument("--merge", action="store_true", help="Merge mode: deep merge base with src")
     parser.add_argument("--src", help="Source JSON file to merge (merge mode only)")
+    parser.add_argument("--inline-patch", help="Inline patch file (generated from patch_ops)")
     parser.add_argument("patches", nargs="*", help="JSON patch files to apply (patch mode only)")
     
     args = parser.parse_args()
@@ -54,7 +55,16 @@ def main():
         doc = deep_merge(doc, src_doc)
     else:
         # Patch mode: apply patches in order
-        for patch_file in args.patches:
+        patch_files = []
+        
+        # Add inline patch if provided
+        if args.inline_patch:
+            patch_files.append(args.inline_patch)
+            
+        # Add file-based patches
+        patch_files.extend(args.patches)
+        
+        for patch_file in patch_files:
             with open(patch_file, 'r') as f:
                 patch_ops = json.load(f)
             

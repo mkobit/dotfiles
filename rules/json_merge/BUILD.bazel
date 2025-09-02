@@ -4,7 +4,7 @@ JSON merge rule package.
 
 load("@rules_python//python:defs.bzl", "py_binary")
 load("//rules:validation.bzl", "json_validation_test")
-load("//rules/json_merge:defs.bzl", "json_merge", "json_patch")
+load("//rules/json_merge:defs.bzl", "json_add", "json_merge", "json_patch")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -61,4 +61,31 @@ json_validation_test(
 json_validation_test(
     name = "test_chain_valid",
     srcs = [":test_chain_merge_patch"],
+)
+
+# Test inline patch operations
+json_patch(
+    name = "test_inline_patch",
+    out = "inline_patched_hooks.json",
+    base = "base_hooks.json",
+    patch_ops = '[{"op": "add", "path": "/hooks/PreToolUse/Test", "value": "echo test"}]',
+)
+
+# Test dedicated operation rules
+json_add(
+    name = "test_add_hook",
+    out = "with_new_tool.json",
+    base = "base_hooks.json",
+    path = "/hooks/PreToolUse/NewTool",
+    value = '"echo new tool"',
+)
+
+json_validation_test(
+    name = "test_inline_patch_valid",
+    srcs = [":test_inline_patch"],
+)
+
+json_validation_test(
+    name = "test_add_valid",
+    srcs = [":test_add_hook"],
 )
