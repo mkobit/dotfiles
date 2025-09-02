@@ -4,7 +4,7 @@ JSON merge rule package.
 
 load("@rules_python//python:defs.bzl", "py_binary")
 load("//rules:validation.bzl", "json_validation_test")
-load("//rules/json_merge:defs.bzl", "json_patch")
+load("//rules/json_merge:defs.bzl", "json_merge", "json_patch")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -23,6 +23,14 @@ exports_files([
     "defs.bzl",
 ])
 
+# Test JSON merge chaining
+json_merge(
+    name = "test_merge_hooks",
+    src = "additional_hooks.json",
+    out = "merged_hooks.json",
+    base = "base_hooks.json",
+)
+
 # Test JSON patch application
 json_patch(
     name = "test_patch_hooks",
@@ -31,8 +39,26 @@ json_patch(
     patches = ["add_tools.jsonpatch"],
 )
 
-# Validation test
+# Test chaining merge then patch
+json_patch(
+    name = "test_chain_merge_patch",
+    out = "chained_hooks.json",
+    base = ":test_merge_hooks",  # Use output from merge
+    patches = ["add_tools.jsonpatch"],
+)
+
+# Validation tests
+json_validation_test(
+    name = "test_merge_valid",
+    srcs = [":test_merge_hooks"],
+)
+
 json_validation_test(
     name = "test_patch_valid",
     srcs = [":test_patch_hooks"],
+)
+
+json_validation_test(
+    name = "test_chain_valid",
+    srcs = [":test_chain_merge_patch"],
 )
