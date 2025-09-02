@@ -1,4 +1,5 @@
 load("@rules_python//python:defs.bzl", "py_binary")
+load("//rules:simple_per_target_python.bzl", "python_quality_tests")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -15,19 +16,8 @@ py_binary(
     main = "config_generator.py",
 )
 
-# Python tooling wrappers
-py_binary(
-    name = "ruff_wrapper",
-    srcs = ["//rules:python_wrappers.py"],
-    args = ["ruff"],
-    main = "//rules:python_wrappers.py",
-    deps = ["@pypi//ruff"],
-)
-
-py_binary(
-    name = "mypy_wrapper",
-    srcs = ["//rules:python_wrappers.py"],
-    args = ["mypy"],
-    main = "//rules:python_wrappers.py",
-    deps = ["@pypi//mypy"],
+# Python quality tests for config_generator.py using simplified approach
+python_quality_tests(
+    name = "config_generator_quality",
+    srcs = ["config_generator.py"],
 )

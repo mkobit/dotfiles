@@ -4,5 +4,16 @@ package(default_visibility = ["//visibility:public"])
 exports_files([
     "linting.bzl",
     "lsp.bzl",
+    # Python tooling files
+    "python_aspects.bzl",
+    "simple_per_target_python.bzl",
+    "per_target_python.bzl",
+    "python_check_wrapper.sh",
+    "simple_shell_test.sh",
+    # Python test scripts
+    "ruff_format_test.py",
+    "ruff_check_test.py",
+    "mypy_test.py",
+    # Legacy (to be removed)
     "python_wrappers.py",
 ])

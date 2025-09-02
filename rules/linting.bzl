@@ -7,7 +7,7 @@ tooling integration.
 """
 
 load("@buildifier_prebuilt//:rules.bzl", "buildifier", "buildifier_test")
-load("//rules:python_tools.bzl", "python_files_format", "python_files_format_test", "python_files_type_check_test")
+load("//rules:simple_per_target_python.bzl", "python_quality_tests")
 
 def bazel_files_format_test(name, exclude_patterns = None, **kwargs):
     """Test that all Bazel files are properly formatted using hermetic buildifier.
@@ -99,7 +99,7 @@ unified_format = rule(
             default = "//:format_bazel",
         ),
         "_python_target": attr.string(
-            default = "//:python_fix",
+            default = "//:format_python",
         ),
     },
 )
@@ -123,9 +123,12 @@ def all_files_format(name, exclude_patterns = None, **kwargs):
         **kwargs
     )
 
-    python_files_format(
+    # Python formatting will be handled via manual ruff run command
+    # as the new simplified approach doesn't provide format targets
+    native.genrule(
         name = name + "_python",
-        exclude_patterns = exclude_patterns,
+        outs = [name + "_python.log"],
+        cmd = "echo 'Python formatting: Run manually with python -m ruff format .' > $@",
         **kwargs
     )
 
@@ -145,16 +148,9 @@ def all_files_format_test(name, exclude_patterns = None, **kwargs):
         **kwargs
     )
 
-    # Test Python files
-    python_files_format_test(
-        name = name + "_python_format",
-        exclude_patterns = exclude_patterns,
-        **kwargs
-    )
-
-    # Test Python type checking
-    python_files_type_check_test(
-        name = name + "_python_types",
+    # Test Python files using simplified approach
+    python_quality_tests(
+        name = name + "_python",
         exclude_patterns = exclude_patterns,
         **kwargs
     )

@@ -4,6 +4,9 @@
 # Claude Code local settings
 .claude/settings.local.json
 
+# Project tracking documents (temporary)
+20250828-python-tooling.md
+
 # Created by https://www.toptal.com/developers/gitignore/api/visualstudiocode,git,macos,windows,linux,bazel,vim,kotlin,python,java,intellij+all
 # Edit at https://www.toptal.com/developers/gitignore?templates=visualstudiocode,git,macos,windows,linux,bazel,vim,kotlin,python,java,intellij+all
 

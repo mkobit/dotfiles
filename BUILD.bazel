@@ -1,7 +1,7 @@
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("//rules:linting.bzl", "all_files_format_test", "bazel_files_format")
 load("//rules:lsp_simple.bzl", "setup_simple_lsp")
-load("//rules:python_tools.bzl", "python_files_fix")
+load("//rules:simple_per_target_python.bzl", "python_quality_tests")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -19,8 +19,8 @@ compile_pip_requirements(
 # Format Bazel files (main format target)
 bazel_files_format(name = "format")
 
-# Auto-fix Python files
-python_files_fix(name = "python_fix")
+# Python quality tests using simplified per-target approach
+python_quality_tests(name = "python_quality")
 
 # Test that all supported files are properly formatted and type-checked
 all_files_format_test(
@@ -37,8 +37,8 @@ test_suite(
     name = "config_tests",
     tests = [
         ":format_test_bazel",
-        ":format_test_python_format",
-        ":format_test_python_types",
+        # New simplified Python quality tests
+        ":python_quality",
         "//.agents/claude:claude_settings_schema_test",
         "//src/git:selected_gitconfig_test",
         "//src/tmux:tmux_conf_test",
