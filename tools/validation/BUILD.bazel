@@ -6,7 +6,7 @@ across the project for testing file formats and schemas.
 """
 
 load("@rules_python//python:defs.bzl", "py_library")
-load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//rules:simple_per_target_python.bzl", "python_quality_tests")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -21,36 +21,10 @@ py_library(
     ],
 )
 
-# Python tooling checks for json_schema_test.py
-sh_test(
-    name = "json_schema_test_format",
-    srcs = ["//rules/common:ruff_wrapper"],
-    args = [
-        "format",
-        "--check",
-        "$(location json_schema_test.py)",
-    ],
-    data = ["json_schema_test.py"],
-)
-
-sh_test(
-    name = "json_schema_test_lint",
-    srcs = ["//rules/common:ruff_wrapper"],
-    args = [
-        "check",
-        "$(location json_schema_test.py)",
-    ],
-    data = ["json_schema_test.py"],
-)
-
-sh_test(
-    name = "json_schema_test_types",
-    srcs = ["//rules/common:mypy_wrapper"],
-    args = [
-        "--ignore-missing-imports",
-        "$(location json_schema_test.py)",
-    ],
-    data = ["json_schema_test.py"],
+# Python quality tests for json_schema_test.py using simplified approach
+python_quality_tests(
+    name = "json_schema_test_quality",
+    srcs = ["json_schema_test.py"],
 )
 
 # Export the macro
