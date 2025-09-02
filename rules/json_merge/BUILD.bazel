@@ -3,6 +3,8 @@ JSON merge rule package.
 """
 
 load("@rules_python//python:defs.bzl", "py_binary")
+load("//rules:validation.bzl", "json_validation_test")
+load("//rules/json_merge:defs.bzl", "json_patch")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -20,3 +22,17 @@ py_binary(
 exports_files([
     "defs.bzl",
 ])
+
+# Test JSON patch application
+json_patch(
+    name = "test_patch_hooks",
+    out = "patched_hooks.json",
+    base = "base_hooks.json",
+    patches = ["add_tools.jsonpatch"],
+)
+
+# Validation test
+json_validation_test(
+    name = "test_patch_valid",
+    srcs = [":test_patch_hooks"],
+)
