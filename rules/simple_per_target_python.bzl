@@ -14,7 +14,7 @@ def python_ruff_format_test(name, srcs, **kwargs):
         srcs = ["//rules:ruff_format_test.py"],
         main = "//rules:ruff_format_test.py",
         args = srcs,
-        data = srcs,
+        data = srcs + ["//rules:ruff"],
         deps = ["@pypi//ruff"],
         **kwargs
     )

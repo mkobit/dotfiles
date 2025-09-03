@@ -11,8 +11,15 @@ def main():
     files = sys.argv[1:]
     
     try:
+        # Use the ruff wrapper that works with Bazel environment
+        import os
+        ruff_wrapper = os.path.join(os.path.dirname(sys.executable), "rules", "ruff")
+        if not os.path.exists(ruff_wrapper):
+            # Fallback to runfiles location
+            ruff_wrapper = "rules/ruff"
+        
         result = subprocess.run(
-            [sys.executable, "-m", "ruff", "format", "--check"] + files,
+            [ruff_wrapper, "format", "--check"] + files,
             capture_output=True,
             text=True
         )

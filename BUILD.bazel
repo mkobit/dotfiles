@@ -1,3 +1,4 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("//rules:linting.bzl", "all_files_format_test", "bazel_files_format")
 load("//rules:lsp_simple.bzl", "setup_simple_lsp")
@@ -21,6 +22,41 @@ bazel_files_format(name = "format")
 
 # Python quality tests using simplified per-target approach
 python_quality_tests(name = "python_quality")
+
+# Test ruff functionality
+py_test(
+    name = "test_ruff_simple",
+    srcs = [":test_ruff_simple.py"],
+    main = ":test_ruff_simple.py",
+    deps = ["@pypi//ruff"],
+)
+
+# Test ruff format on test_ruff_simple.py
+py_test(
+    name = "test_ruff_format_manual",
+    srcs = ["//rules:ruff_format_test.py"],
+    args = ["test_ruff_simple.py"],
+    data = [":test_ruff_simple.py", "//rules:ruff"],
+    main = "//rules:ruff_format_test.py",
+    deps = ["@pypi//ruff"],
+)
+
+# Test ruff API directly
+py_test(
+    name = "test_ruff_api",
+    srcs = [":test_ruff_api.py"],
+    data = [":test_ruff_simple.py"],
+    main = ":test_ruff_api.py",
+    deps = ["@pypi//ruff"],
+)
+
+# Debug ruff paths
+py_binary(
+    name = "debug_ruff_paths",
+    srcs = [":debug_ruff_paths.py"],
+    main = ":debug_ruff_paths.py",
+    deps = ["@pypi//ruff"],
+)
 
 # Test that all supported files are properly formatted and type-checked
 all_files_format_test(

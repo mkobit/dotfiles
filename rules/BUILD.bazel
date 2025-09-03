@@ -1,3 +1,5 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+
 package(default_visibility = ["//visibility:public"])
 
 # Export linting and LSP related files
@@ -17,3 +19,19 @@ exports_files([
     # Legacy (to be removed)
     "python_wrappers.py",
 ])
+
+# Ruff executable wrapper
+py_binary(
+    name = "ruff",
+    srcs = [":ruff_wrapper.py"],
+    main = ":ruff_wrapper.py",
+    deps = ["@pypi//ruff"],
+)
+
+# Mypy executable wrapper
+py_binary(
+    name = "mypy",
+    srcs = [":mypy_wrapper.py"],
+    main = ":mypy_wrapper.py",
+    deps = ["@pypi//mypy"],
+)

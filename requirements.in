@@ -3,8 +3,8 @@ pytest
 pytest-asyncio
 
 # Linting and formatting
-ruff
-mypy
+ruff==0.12.11
+mypy==1.15.0
 
 # HTTP tools
 aiohttp
