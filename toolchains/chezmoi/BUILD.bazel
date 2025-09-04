@@ -1,14 +1,15 @@
+# Hermetic chezmoi toolchains for different platforms
+load("//:chezmoi_version.bzl", "CHEZMOI_VERSION")
 load(":toolchain.bzl", "chezmoi_toolchain")
 
 package(default_visibility = ["//visibility:public"])
 
 toolchain_type(name = "toolchain_type")
 
-# Hermetic chezmoi toolchains for different platforms
 chezmoi_toolchain(
     name = "chezmoi_linux_amd64_impl",
     chezmoi_path = "@chezmoi_linux_amd64//:chezmoi",
-    chezmoi_version = "2.65.0",
+    chezmoi_version = CHEZMOI_VERSION,
 )
 
 toolchain(
@@ -28,7 +29,7 @@ toolchain(
 chezmoi_toolchain(
     name = "chezmoi_darwin_amd64_impl",
     chezmoi_path = "@chezmoi_darwin_amd64//:chezmoi",
-    chezmoi_version = "2.65.0",
+    chezmoi_version = CHEZMOI_VERSION,
 )
 
 toolchain(
@@ -48,7 +49,7 @@ toolchain(
 chezmoi_toolchain(
     name = "chezmoi_darwin_arm64_impl",
     chezmoi_path = "@chezmoi_darwin_arm64//:chezmoi",
-    chezmoi_version = "2.65.0",
+    chezmoi_version = CHEZMOI_VERSION,
 )
 
 toolchain(

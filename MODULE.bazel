@@ -58,6 +58,9 @@ git_repository(
     remote = "https://github.com/erikw/tmux-powerline.git",
 )
 
+# Chezmoi version - also defined in //:chezmoi_version.bzl
+CHEZMOI_VERSION = "2.65.0"
+
 # Binary dependencies with platform-specific URLs
 http_archive(
     name = "fzf_darwin_arm64",
@@ -91,7 +94,7 @@ http_archive(
     build_file_content = """
 exports_files(["chezmoi"])
 """,
-    urls = ["https://github.com/twpayne/chezmoi/releases/download/v2.65.0/chezmoi_2.65.0_darwin_arm64.tar.gz"],
+    urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_darwin_arm64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
 )
 
 http_archive(
@@ -99,7 +102,7 @@ http_archive(
     build_file_content = """
 exports_files(["chezmoi"])
 """,
-    urls = ["https://github.com/twpayne/chezmoi/releases/download/v2.65.0/chezmoi_2.65.0_darwin_amd64.tar.gz"],
+    urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_darwin_amd64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
 )
 
 http_archive(
@@ -107,5 +110,5 @@ http_archive(
     build_file_content = """
 exports_files(["chezmoi"])
 """,
-    urls = ["https://github.com/twpayne/chezmoi/releases/download/v2.65.0/chezmoi_2.65.0_linux_amd64.tar.gz"],
+    urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_linux_amd64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
 )
