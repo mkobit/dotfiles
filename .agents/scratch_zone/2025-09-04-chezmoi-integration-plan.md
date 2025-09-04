@@ -158,7 +158,7 @@ git:
 
 **Toolchain:** Hermetic downloads with platform selection
 **Rules:** `chezmoi_source_tree`, `chezmoi_validate_test`, `chezmoi_test`  
-**HOME:** `/tmp` default - **TODO:** Use declared output dir for reproducibility
+**HOME:** Declared output directories (rule-specific, deterministic)
 **Binaries:** Archive root level, no `strip_prefix` needed
 
 ## Phase 1 Starting Point
