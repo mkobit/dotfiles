@@ -24,4 +24,8 @@ bazel run //config:install_all
 - Guarded installation prevents corruption
 - Test both personal/work profiles
 
+## Scratch zone
+
+Use `.agents/scratch_zone/` for temporary project files, notes, and task tracking during sessions. See [.agents/scratch_zone/README.md](.agents/scratch_zone/README.md) for usage guidelines.
+
 Refer to [AGENTS.md](../AGENTS.md) for architecture, workflows, and guidelines.
