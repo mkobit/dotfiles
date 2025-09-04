@@ -24,6 +24,12 @@ bazel run //config:install_all
 - Guarded installation (safe config injection)
 - Security-first (pinned dependencies, automated updates)
 
+== Current Project Status
+
+**🚧 Active Development**: Integrating chezmoi as deployment engine while preserving Bazel validation and testing.
+
+See link:.agents/scratch_zone/2025-09-04-chezmoi-integration-plan.md[Chezmoi Integration Project Plan] for current development status, phases, and progress tracking.
+
 == Installation
 
 Guarded installation safely injects configs without overwriting existing files:
