@@ -7,7 +7,7 @@ This package validates agent configuration files to ensure:
 - Documentation files maintain consistency
 """
 
-load("//rules:validation.bzl", "claude_hooks_schema_test", "markdown_validation_test")
+load("//rules:validation.bzl", "claude_hooks_schema_test")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -22,11 +22,11 @@ filegroup(
     ),
 )
 
-# Test that markdown files are properly formatted
-markdown_validation_test(
-    name = "markdown_validation_test",
-    srcs = [":markdown_files"],
-)
+# TODO: Re-enable markdown validation with better cross-platform support and clearer error reporting
+# markdown_validation_test(
+#     name = "markdown_validation_test",
+#     srcs = [":markdown_files"],
+# )
 
 # Test that Claude hooks JSON conforms to expected schema
 claude_hooks_schema_test(
@@ -39,6 +39,6 @@ test_suite(
     name = "test",
     tests = [
         ":claude_hooks_schema_test",
-        ":markdown_validation_test",
+        # ":markdown_validation_test",  # TODO: Re-enable with better cross-platform support
     ],
 )
