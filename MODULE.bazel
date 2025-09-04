@@ -41,6 +41,12 @@ use_repo(git_ext, "local_git")
 
 register_toolchains("@local_git//:git_local")
 
+register_toolchains(
+    "//toolchains/chezmoi:chezmoi_linux_amd64",
+    "//toolchains/chezmoi:chezmoi_darwin_amd64",
+    "//toolchains/chezmoi:chezmoi_darwin_arm64",
+)
+
 # External dependencies
 git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
@@ -78,4 +84,28 @@ exports_files(["fzf"])
 """,
     sha256 = "b1ee29f7dac89c6dc501300d930580fdee93f42317e16aae656cfaedbd09f2a4",
     urls = ["https://github.com/junegunn/fzf/releases/download/v0.65.1/fzf-0.65.1-linux_amd64.tar.gz"],
+)
+
+http_archive(
+    name = "chezmoi_darwin_arm64",
+    build_file_content = """
+exports_files(["chezmoi"])
+""",
+    urls = ["https://github.com/twpayne/chezmoi/releases/download/v2.65.0/chezmoi_2.65.0_darwin_arm64.tar.gz"],
+)
+
+http_archive(
+    name = "chezmoi_darwin_amd64",
+    build_file_content = """
+exports_files(["chezmoi"])
+""",
+    urls = ["https://github.com/twpayne/chezmoi/releases/download/v2.65.0/chezmoi_2.65.0_darwin_amd64.tar.gz"],
+)
+
+http_archive(
+    name = "chezmoi_linux_amd64",
+    build_file_content = """
+exports_files(["chezmoi"])
+""",
+    urls = ["https://github.com/twpayne/chezmoi/releases/download/v2.65.0/chezmoi_2.65.0_linux_amd64.tar.gz"],
 )
