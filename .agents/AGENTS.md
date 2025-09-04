@@ -4,6 +4,8 @@
 
 Personal dotfiles repository using Bazel for cross-platform configuration management. Configurations in `src/` with personal/work profiles and guarded installation.
 
+**🚧 Active Projects**: See [.agents/scratch_zone/](.agents/scratch_zone/) for current development status and tasks.
+
 ## Repository structure
 
 - `src/` - Tool configurations (git, zsh, tmux, vim, hammerspoon, jq)
