@@ -7,16 +7,25 @@ def _chezmoi_test_impl(ctx):
     # Create a simple test script that runs chezmoi --version
     test_script = ctx.actions.declare_file("%s_test.sh" % ctx.label.name)
 
-    # Use provided home directory or default to /tmp
-    home_dir = ctx.attr.home if ctx.attr.home else "/tmp"
+    # Create deterministic home directory
+    home_dir = ctx.actions.declare_directory("%s_home" % ctx.label.name)
+
+    # Create the home directory first
+    ctx.actions.run_shell(
+        inputs = [],
+        outputs = [home_dir],
+        command = "mkdir -p %s" % home_dir.path,
+        mnemonic = "CreateHomeDir",
+    )
 
     ctx.actions.write(
         output = test_script,
         content = """#!/bin/bash
 set -e
 echo "Testing chezmoi toolchain..."
-# Set required environment variables for chezmoi
+# Use deterministic home directory
 export HOME={home_dir}
+
 # Use runfiles path for hermetic execution  
 CHEZMOI_PATH="$0.runfiles/_main/{chezmoi_path}"
 if [[ -f "$CHEZMOI_PATH" ]]; then
@@ -26,23 +35,17 @@ else
     {chezmoi_path} --version
 fi
 echo "Chezmoi toolchain test passed!"
-""".format(chezmoi_path = chezmoi_info.chezmoi_path.short_path, home_dir = home_dir),
+""".format(chezmoi_path = chezmoi_info.chezmoi_path.short_path, home_dir = home_dir.path),
         is_executable = True,
     )
 
     return [DefaultInfo(
         executable = test_script,
-        runfiles = ctx.runfiles(files = [chezmoi_info.chezmoi_path]),
+        runfiles = ctx.runfiles(files = [chezmoi_info.chezmoi_path, home_dir]),
     )]
 
 chezmoi_test = rule(
     implementation = _chezmoi_test_impl,
-    attrs = {
-        "home": attr.string(
-            doc = "HOME directory to use during chezmoi operations",
-            default = "/tmp",
-        ),
-    },
     test = True,
     toolchains = ["//toolchains/chezmoi:toolchain_type"],
 )
@@ -66,21 +69,23 @@ def _chezmoi_source_tree_impl(ctx):
         profile_data_file = ctx.file.profile_data
         input_files.append(profile_data_file)
 
+    # Create deterministic home directory
+    home_dir = ctx.actions.declare_directory("%s_home" % ctx.label.name)
+
     # Create script to generate source tree
     script = ctx.actions.declare_file("%s_generate.sh" % ctx.label.name)
 
-    # Use provided home directory or default to /tmp
-    home_dir = ctx.attr.home if ctx.attr.home else "/tmp"
-
     script_content = """#!/bin/bash
 set -e
+# Create deterministic home directory
+mkdir -p {home_dir}
 export HOME={home_dir}
 
 # Create source tree directory
 mkdir -p {output_dir}
 
 # Copy source files to output directory
-""".format(output_dir = source_tree.path, home_dir = home_dir)
+""".format(output_dir = source_tree.path, home_dir = home_dir.path)
 
     # Add commands to copy source files
     for src_file in input_files:
@@ -106,7 +111,7 @@ cp "{profile_data}" "{output_dir}/.chezmoidata/config.yaml"
     # Run the generation script
     ctx.actions.run(
         inputs = input_files + [chezmoi_info.chezmoi_path],
-        outputs = [source_tree],
+        outputs = [source_tree, home_dir],
         executable = script,
         mnemonic = "ChezmoiSourceTree",
         progress_message = "Generating chezmoi source tree %s" % ctx.label.name,
@@ -126,10 +131,6 @@ chezmoi_source_tree = rule(
             doc = "Profile data file (will be copied to .chezmoidata/config.yaml)",
             allow_single_file = True,
         ),
-        "home": attr.string(
-            doc = "HOME directory to use during chezmoi operations",
-            default = "/tmp",
-        ),
     },
     toolchains = ["//toolchains/chezmoi:toolchain_type"],
 )
@@ -145,13 +146,15 @@ def _chezmoi_validate_impl(ctx):
     # Create validation script
     validation_script = ctx.actions.declare_file("%s_validate.sh" % ctx.label.name)
 
-    # Use provided home directory or default to /tmp
-    home_dir = ctx.attr.home if ctx.attr.home else "/tmp"
+    # Create deterministic home directory
+    home_dir = ctx.actions.declare_directory("%s_home" % ctx.label.name)
 
     ctx.actions.write(
         output = validation_script,
         content = """#!/bin/bash
 set -e
+# Create deterministic home directory
+mkdir -p {home_dir}
 export HOME={home_dir}
 
 echo "Validating chezmoi source tree..."
@@ -164,14 +167,14 @@ echo "Chezmoi validation passed!"
 """.format(
             source_tree = source_tree.path,
             chezmoi_path = chezmoi_info.chezmoi_path.path,
-            home_dir = home_dir,
+            home_dir = home_dir.path,
         ),
         is_executable = True,
     )
 
     return [DefaultInfo(
         executable = validation_script,
-        runfiles = ctx.runfiles(files = [source_tree, chezmoi_info.chezmoi_path]),
+        runfiles = ctx.runfiles(files = [source_tree, chezmoi_info.chezmoi_path, home_dir]),
     )]
 
 chezmoi_validate_test = rule(
@@ -180,10 +183,6 @@ chezmoi_validate_test = rule(
         "source_tree": attr.label(
             doc = "Chezmoi source tree to validate",
             mandatory = True,
-        ),
-        "home": attr.string(
-            doc = "HOME directory to use during chezmoi operations",
-            default = "/tmp",
         ),
     },
     test = True,
