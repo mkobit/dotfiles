@@ -1,7 +1,11 @@
-load(":defs.bzl", "chezmoi_test")
+load(":defs.bzl", "chezmoi_test", "chezmoi_version")
 
 package(default_visibility = ["//visibility:public"])
 
 chezmoi_test(
     name = "toolchain_test",
+)
+
+chezmoi_version(
+    name = "version",
 )
