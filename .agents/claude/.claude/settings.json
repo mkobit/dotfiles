@@ -20,7 +20,7 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Edit|MultiEdit",
+        "matcher": "Write|Edit|MultiEdit",
         "hooks": [
           {
             "type": "command",
