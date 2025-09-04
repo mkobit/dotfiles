@@ -49,7 +49,8 @@ for file in "${files[@]}"; do
     fi
 
     # Check for missing trailing newlines (files should end with newline)
-    if [ "$(tail -c 1 "$file" | wc -l)" -eq 0 ]; then
+    # Use a more portable approach that works on both macOS (BSD) and Linux (GNU)
+    if [ -n "$(tail -c 1 "$file" | tr -d '\n')" ]; then
         echo "ERROR: $file does not end with newline"
         all_valid=false
         continue
