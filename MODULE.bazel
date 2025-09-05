@@ -94,6 +94,7 @@ http_archive(
     build_file_content = """
 exports_files(["chezmoi"])
 """,
+    sha256 = "8c51344a88bd1738fa8a0e6ea940bd3392102d536623884908382a2468aa5ebf",
     urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_darwin_arm64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
 )
 
@@ -102,6 +103,7 @@ http_archive(
     build_file_content = """
 exports_files(["chezmoi"])
 """,
+    sha256 = "332a960c93b65d68d5a9cdb2e54b87f2fc55d4b728173ff7f62bf4052c31a5fb",
     urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_darwin_amd64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
 )
 
@@ -110,5 +112,6 @@ http_archive(
     build_file_content = """
 exports_files(["chezmoi"])
 """,
+    sha256 = "bbfa7061da039a1e1da5ced5bf58b4d37ad425cf13d8c14ac684dd30b280a78f",
     urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_linux_amd64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
 )
