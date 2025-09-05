@@ -17,3 +17,20 @@ updates:
       - "dependencies"
       - "github-actions"
       - "automated"
+
+  # Dev Container Features updates
+  - package-ecosystem: "devcontainers"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "mikekobit"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "devcontainers"
+      - "automated"
