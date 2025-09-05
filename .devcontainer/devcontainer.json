@@ -1,8 +1,13 @@
 // https://code.visualstudio.com/docs/devcontainers/create-dev-container
 {
     "name": "Bazel development",
-    "image": "mcr.microsoft.com/devcontainers/universal:2-linux", // https://github.com/devcontainers/templates/tree/main/src/universal
+    "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
     "features": {
+        "ghcr.io/devcontainers/features/java:1": {
+            "version": "21",
+            "installGradle": false,
+            "installMaven": false
+        },
         "ghcr.io/devcontainers-community/features/bazel:1": {
             "bazelisk_version": "v1.26.0",
             "buildifier_version": "v8.2.1"
