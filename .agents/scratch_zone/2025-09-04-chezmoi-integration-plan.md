@@ -35,10 +35,8 @@ Integrate chezmoi as the dotfile deployment engine while preserving Bazel's vali
 
 #### 1.3 Testing Infrastructure ✅
 - [x] Hermetic test environment with `mktemp -d` HOME directories
-- [x] All tests passing (12/12)
+- [x] All tests passing
 - [x] Deterministic builds with declared output directories
-
-**Latest commit:** `ca29cb2`
 
 ### Phase 2: Proof of Concept - Single Tool (Days 4-6)
 **Goal**: Complete git config migration as working example
