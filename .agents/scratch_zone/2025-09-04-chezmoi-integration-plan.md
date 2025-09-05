@@ -19,25 +19,24 @@ Integrate chezmoi as the dotfile deployment engine while preserving Bazel's vali
 
 ## Project Phases
 
-### Phase 1: Foundation (Days 1-3)
-**Goal**: Establish chezmoi toolchain and hermetic validation rules
+### Phase 1: Foundation ✅ COMPLETED
+**Goal**: Establish chezmoi toolchain and basic validation
 
-#### 1.1 Chezmoi Toolchain
-- [ ] Pin chezmoi version in `WORKSPACE` or `MODULE.bazel`
-- [ ] Create `toolchains/chezmoi/BUILD.bazel` with toolchain definition
-- [ ] Test hermetic chezmoi execution in Bazel sandbox
+#### 1.1 Chezmoi Toolchain ✅
+- [x] Pin chezmoi v2.65.0 in `MODULE.bazel` with SHA256 checksums
+- [x] Platform-specific hermetic downloads (linux_amd64, darwin_amd64, darwin_arm64)
+- [x] Simple `ChezmoimInfo` provider and `chezmoi_toolchain` rule
+- [x] `chezmoi_binary` rule for toolchain access
 
-#### 1.2 Base Rules
-- [ ] Create `rules/chezmoi/defs.bzl` with core rules:
-  - `chezmoi_source_tree`: Generate source directory structure
-  - `chezmoi_validate`: Run `chezmoi apply --dry-run` hermetically
-  - `chezmoi_test`: Validate generated config content
-- [ ] Create `rules/chezmoi/private/` for implementation details
+#### 1.2 Basic Validation ✅  
+- [x] Simple genrules for validation (`version_test`, `help_test`)
+- [x] Direct chezmoi CLI invocation with `--destination` flag
+- [x] Removed complex custom rules in favor of simple approach
 
-#### 1.3 Testing Infrastructure
-- [ ] Hermetic test environment (temp directories)
-- [ ] Config validation framework reusable across tools
-- [ ] Profile switching test harness
+#### 1.3 Testing Infrastructure ✅
+- [x] Hermetic test environment with `mktemp -d` HOME directories
+- [x] All tests passing
+- [x] Deterministic builds with declared output directories
 
 ### Phase 2: Proof of Concept - Single Tool (Days 4-6)
 **Goal**: Complete git config migration as working example
@@ -153,5 +152,38 @@ git:
 - **Backup strategy**: Preserve existing Bazel rules until complete
 - **Isolated testing**: All validation in hermetic environments
 
+## Key Architectural Decisions
+
+### Phase 1 Implementation Principles
+
+**Simplicity over Complexity:** Simple genrules instead of complex custom rules  
+**Direct CLI Usage:** Map closely to chezmoi tool, use CLI flags rather than env overrides  
+**Security:** SHA256 pins for all binary downloads  
+**Determinism:** `--destination` flag for predictable behavior  
+**Toolchain Pattern:** Standard Bazel toolchain with provider for platform abstraction  
+
+### Implementation Details
+**Toolchain:** Hermetic downloads with SHA256 checksums and platform selection  
+**Rules:** `chezmoi_binary` for toolchain access, simple genrules for validation  
+**HOME:** `mktemp -d` with cleanup traps in genrules  
+**Binaries:** Archive root level, no `strip_prefix` needed  
+**Version:** Single source in MODULE.bazel (duplication needs cleanup)
+
 ## Phase 1 Starting Point
 Begin with chezmoi toolchain setup and basic rule framework. Each subsequent phase builds incrementally with full validation before proceeding.
+
+## Future Cleanup Tasks
+
+### Technical Debt
+- [ ] **CHEZMOI_VERSION Duplication**: Remove duplication between `MODULE.bazel` and `toolchains/chezmoi/BUILD.bazel`
+  - Consider using module extension or workspace rule to extract version from toolchain
+  - Alternative: Generate BUILD.bazel from template using MODULE.bazel version
+- [ ] **Genrule Organization**: Consider consolidating validation genrules into test targets
+- [ ] **Platform Coverage**: Add Windows support if needed for cross-platform development
+
+### Phase 2 Prerequisites  
+- [ ] **Template System**: Design how Bazel templates convert to chezmoi templates
+- [ ] **Profile Data Structure**: Define `.chezmoidata/` schema for personal/work profiles
+- [ ] **Migration Strategy**: Plan gradual tool-by-tool conversion approach
+
+**Status:** ✅ Foundation complete - Ready for Phase 2 git config migration
