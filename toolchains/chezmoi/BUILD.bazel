@@ -1,6 +1,8 @@
 # Hermetic chezmoi toolchains for different platforms
-load("//:chezmoi_version.bzl", "CHEZMOI_VERSION")
 load(":toolchain.bzl", "chezmoi_toolchain")
+
+# CHEZMOI_VERSION defined in MODULE.bazel
+CHEZMOI_VERSION = "2.65.0"
 
 package(default_visibility = ["//visibility:public"])
 

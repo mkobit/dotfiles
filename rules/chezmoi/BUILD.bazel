@@ -1,11 +1,32 @@
-load(":defs.bzl", "chezmoi_test", "chezmoi_version")
+load(":defs.bzl", "chezmoi_binary")
 
 package(default_visibility = ["//visibility:public"])
 
-chezmoi_test(
-    name = "toolchain_test",
+# Simple rule to access chezmoi binary from toolchain
+chezmoi_binary(
+    name = "chezmoi",
 )
 
-chezmoi_version(
-    name = "version",
+# Basic genrule to validate chezmoi works
+genrule(
+    name = "version_test",
+    outs = ["version.txt"],
+    cmd = """
+export HOME=$$(mktemp -d)
+trap "rm -rf $$HOME" EXIT
+$(location :chezmoi) --version > $@
+""",
+    tools = [":chezmoi"],
+)
+
+# Basic genrule to validate chezmoi can be run
+genrule(
+    name = "help_test",
+    outs = ["help.txt"],
+    cmd = """
+export HOME=$$(mktemp -d) 
+trap "rm -rf $$HOME" EXIT
+$(location :chezmoi) --help > $@
+""",
+    tools = [":chezmoi"],
 )
