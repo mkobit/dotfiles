@@ -1,0 +1,35 @@
+load(":toolchain.bzl", "ruff_toolchain", "pyright_toolchain")
+
+toolchain_type(name = "toolchain_type")
+
+toolchain(
+    name = "ruff_toolchain_instance",
+    toolchain_type = ":toolchain_type",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+    ],
+    toolchain = ":ruff_toolchain_definition",
+)
+
+ruff_toolchain(
+    name = "ruff_toolchain_definition",
+)
+
+toolchain(
+    name = "pyright_toolchain_instance",
+    toolchain_type = ":toolchain_type",
+    exec_compatible_with = [
+        "@platforms//os:linux",
+    ],
+    target_compatible_with = [
+        "@platforms//os:linux",
+    ],
+    toolchain = ":pyright_toolchain_definition",
+)
+
+pyright_toolchain(
+    name = "pyright_toolchain_definition",
+)

@@ -7,6 +7,7 @@ Uses explicit --schema argument with parametrized JSON files.
 """
 
 import json
+import os
 import pytest
 from pathlib import Path
 from typing import Any
@@ -60,6 +61,7 @@ def test_schema_validation(request: pytest.FixtureRequest) -> None:
 
 def test_json_file_validation(json_file: Path, request: pytest.FixtureRequest) -> None:
     """Test that JSON file exists, is valid JSON, and validates against the schema."""
+    json_file = "not a path"
     schema_path = request.config.getoption("--schema")
     schema_file = Path(schema_path)
     
