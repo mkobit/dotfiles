@@ -3,7 +3,6 @@ A Bazel aspect that runs ruff on py_library and py_test targets.
 """
 
 load("@rules_python//python:defs.bzl", "PyInfo")
-load("//tools/bazel/python:toolchain.bzl", "RuffToolchainInfo")
 
 def _ruff_aspect_impl(target, ctx):
     """Implementation of the ruff aspect."""
@@ -14,15 +13,18 @@ def _ruff_aspect_impl(target, ctx):
     if not srcs.to_list():
         return []
 
-    ruff_executable = ctx.toolchains["//tools/bazel/python:toolchain_type"].ruff_toolchain.ruff
+    ruff_executable = ctx.executable._ruff
     pyproject_toml = ctx.file._pyproject_toml
 
-    output = ctx.actions.declare_file(ctx.label.name + ".ruff.out")
+    repo = ctx.label.workspace_name
+    package_path = ctx.label.package.replace("/", "_")
+    output_name = repo + "_" + package_path + "_" + ctx.label.name + ".ruff.out"
+    output = ctx.actions.declare_file(output_name)
+    ctx.actions.write(output, "Ruff aspect run.")
 
     args = ctx.actions.args()
     args.add("check")
     args.add("--config", pyproject_toml.path)
-    args.add("--output-file", output.path)
     args.add(".")
 
     ctx.actions.run(
@@ -44,10 +46,14 @@ ruff_aspect = aspect(
     implementation = _ruff_aspect_impl,
     attr_aspects = ["deps"],
     attrs = {
+        "_ruff": attr.label(
+            default = Label("//tools/bazel/python:ruff_runner"),
+            executable = True,
+            cfg = "exec",
+        ),
         "_pyproject_toml": attr.label(
             default = Label("//:pyproject.toml"),
             allow_single_file = True,
         ),
     },
-    toolchains = ["//tools/bazel/python:toolchain_type"],
 )

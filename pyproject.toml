@@ -1,13 +1,5 @@
 [tool.ruff]
 include = ["src/**/*.py", "tools/**/*.py", "rules/**/*.py"]
-# Enable the pycodestyle (`E`) and Pyflakes (`F`) rules by default.
-select = ["E", "F", "I", "F401"]
-ignore = []
-
-# Allow autofix for all enabled rules (when `--fix`) is used.
-fixable = ["A", "B", "C", "D", "E", "F", "I"]
-unfixable = []
-
 # Exclude a variety of commonly ignored directories.
 exclude = [
     ".bzr",
@@ -37,7 +29,16 @@ line-length = 88
 # Assume Python 3.13
 target-version = "py313"
 
-[tool.ruff.isort]
+[tool.ruff.lint]
+# Enable the pycodestyle (`E`) and Pyflakes (`F`) rules by default.
+select = ["E", "F", "I", "F401"]
+ignore = []
+
+# Allow autofix for all enabled rules (when `--fix`) is used.
+fixable = ["A", "B", "C", "D", "E", "F", "I"]
+unfixable = []
+
+[tool.ruff.lint.isort]
 # Sort imports by module, then by names.
 force-sort-within-sections = true
 
