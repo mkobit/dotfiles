@@ -14,6 +14,9 @@ bazel run //:format
 
 # Install configs
 bazel run //config:install_all
+
+# DevContainer lockfile management
+# Note: Lockfile auto-generates in VS Code with experimental setting enabled
 ```
 
 ## Key principles
