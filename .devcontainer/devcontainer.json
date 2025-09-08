@@ -3,23 +3,23 @@
     "name": "Bazel development",
     "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
     "features": {
-        "ghcr.io/devcontainers/features/java:1.4.0": {
+        "ghcr.io/devcontainers/features/java:1": {
             "version": "21",
             "installGradle": false,
             "installMaven": false
         },
-        "ghcr.io/devcontainers-community/features/bazel:1.1.1": {
+        "ghcr.io/devcontainers-community/features/bazel:1.2.2": {
             "bazelisk_version": "v1.26.0",
             "buildifier_version": "v8.2.1"
         },
-        "ghcr.io/devcontainers-extra/features/neovim-apt-get:1.0.6": {},
-        "ghcr.io/devcontainers-extra/features/curl-apt-get:1.0.3": {},
-        "ghcr.io/devcontainers-extra/features/zsh-plugins:0.6.0": {
+        "ghcr.io/devcontainers-extra/features/neovim-apt-get:1": {},
+        "ghcr.io/devcontainers-extra/features/curl-apt-get:1": {},
+        "ghcr.io/devcontainers-extra/features/zsh-plugins:1": {
             "plugins": "ssh-agent",
             "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions",
             "username": "vscode"
         },
-        "ghcr.io/anthropics/devcontainer-features/claude-code:1.2.3": {}
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {}
     },
     "customizations": {
         "vscode": {
