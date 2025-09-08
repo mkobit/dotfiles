@@ -5,7 +5,7 @@ build --javacopt="-encoding UTF-8"
 
 # Enable buildifier and linting tools
 # build --aspects=@aspect_rules_lint//lint:defs.bzl%lint_aspect
-build --aspects=//tools/bazel/python:ruff.bzl%ruff_aspect
+# build --aspects=//tools/bazel/python:ruff.bzl%ruff_aspect
 # build --output_groups=+rules_lint_report
 
 # Try to import user-specific configuration

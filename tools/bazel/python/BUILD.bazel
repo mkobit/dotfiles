@@ -1,8 +1,5 @@
-load("@rules_python//python:defs.bzl", "py_binary")
-
-py_binary(
+sh_binary(
     name = "ruff_runner",
-    srcs = ["ruff_runner.py"],
-    main = "ruff_runner.py",
-    deps = ["@pypi//ruff"],
+    srcs = ["ruff_runner.sh"],
+    data = ["@pypi//ruff:ruff"],
 )

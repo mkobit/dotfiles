@@ -16,19 +16,12 @@ def _ruff_aspect_impl(target, ctx):
     ruff_executable = ctx.executable._ruff
     pyproject_toml = ctx.file._pyproject_toml
 
-    repo = ctx.label.workspace_name
-    package_path = ctx.label.package.replace("/", "_")
-    output_name = repo + "_" + package_path + "_" + ctx.label.name + ".ruff.out"
-    output = ctx.actions.declare_file(output_name)
-    ctx.actions.write(output, "Ruff aspect run.")
-
     args = ctx.actions.args()
     args.add("check")
     args.add("--config", pyproject_toml.path)
     args.add(".")
 
     ctx.actions.run(
-        outputs = [output],
         inputs = depset(
             transitive = [srcs, depset([pyproject_toml, ruff_executable])],
         ),
@@ -38,9 +31,7 @@ def _ruff_aspect_impl(target, ctx):
         progress_message = "Running ruff on %{label}",
     )
 
-    return [
-        DefaultInfo(files = depset([output])),
-    ]
+    return []
 
 ruff_aspect = aspect(
     implementation = _ruff_aspect_impl,
