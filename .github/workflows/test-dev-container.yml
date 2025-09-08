@@ -34,7 +34,6 @@ jobs:
         uses: devcontainers/ci@v0.3
         with:
           imageName: dotfiles-dev-container
-          cacheFrom: ghcr.io/${{ github.repository }}/devcontainer:cache
           # Only test that the container builds and basic tools work
           # Skip full bazel testing since that's covered by main CI
           runCmd: |
