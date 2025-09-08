@@ -25,7 +25,10 @@
         "vscode": {
             "extensions": [
                 "sourcegraph.cody-ai"
-            ]
+            ],
+            "settings": {
+                "dev.containers.experimentalLockfile": true
+            }
         },
         "codespaces": {
             "disableAutomaticConfiguration": true
