@@ -1,18 +1,10 @@
-name: Test Dev Container
+name: Test devcontainer
 
 on:
   pull_request:
     paths:
       - '.devcontainer/**'
       - '.bazelversion'
-      - 'MODULE.bazel'
-  # Only run on push to main if devcontainer-related files changed
-  push:
-    branches:
-      - main
-    paths:
-      - '.devcontainer/**'
-      - '.bazelversion' 
       - 'MODULE.bazel'
 
 concurrency:
@@ -27,18 +19,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and Test Dev Container
+      - name: Build and test devcontainer
         uses: devcontainers/ci@v0.3
         with:
           imageName: dotfiles-dev-container
-          # Only test that the container builds and basic tools work
-          # Skip full bazel testing since that's covered by main CI
+          # Simple smoke test - verify essential tools work
           runCmd: |
             set -e
-            echo "=== Verifying devcontainer tools ==="
+            echo "=== Essential tools check ==="
             bazel --version
-            buildifier --version
-            echo "✅ Devcontainer build successful"
+            java --version
+            nvim --version
+            echo "✅ Devcontainer ready"
