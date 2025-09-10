@@ -47,7 +47,6 @@ register_toolchains(
     "//toolchains/chezmoi:chezmoi_darwin_arm64",
 )
 
-
 # External dependencies
 git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
