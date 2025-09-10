@@ -1,38 +1,30 @@
 // https://code.visualstudio.com/docs/devcontainers/create-dev-container
 {
     "name": "Bazel development",
-    "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+    "image": "mcr.microsoft.com/devcontainers/java:1-21",
     "features": {
-        "ghcr.io/devcontainers/features/java:1": {
-            "version": "21",
-            "jdkDistro": "open",
-        },
-        "ghcr.io/devcontainers-community/features/bazel:1.2.2": {
-            "bazelisk_version": "v1.26.0",
+        "ghcr.io/devcontainers-community/features/bazel:1": {
+            "bazelisk_version": "v1.27.0",
             "buildifier_version": "v8.2.1"
         },
-        "ghcr.io/devcontainers-extra/features/neovim-apt-get:1": {},
-        "ghcr.io/devcontainers-extra/features/curl-apt-get:1": {},
-        "ghcr.io/devcontainers-extra/features/zsh-plugins:1": {
-            "plugins": "ssh-agent",
-            "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions",
-            "username": "vscode"
-        },
-        "ghcr.io/anthropics/devcontainer-features/claude-code:1.0.5": {},
-        "ghcr.io/devcontainers-community/features/bazel:1": {
-            "bazelisk_version": "latest",
-            "buildifier_version": "latest"
-        },
-        "ghcr.io/devcontainers-extra/features/zsh-plugins:0": {
-            "plugins": "ssh-agent npm",
-            "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions",
-            "username": "node"
+        "ghcr.io/anthropics/devcontainer-features/claude-code:1": {},
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/git:1": {},
+        "ghcr.io/devcontainers-extra/features/apt-get-packages:1": {
+            "clean_ppas": true,
+            "packages": [
+                "gnupg2"
+            ]
         }
     },
     "customizations": {
         "vscode": {
             "extensions": [
-                "sourcegraph.cody-ai"
+                "bazelbuild.vscode-bazel",
+                "ms-vscode.vscode-json",
+                "redhat.vscode-yaml",
+                "ms-vscode.vscode-typescript-next",
+                "ms-python.python"
             ],
             "settings": {
                 "dev.containers.experimentalLockfile": true
