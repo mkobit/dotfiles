@@ -199,14 +199,14 @@
     },
     "//toolchains/tmux:extensions.bzl%tmux_toolchain": {
       "general": {
-        "bzlTransitiveDigest": "yY+4OksgrKPlTDCfErrT0fGifMJBnk43Wp0b5m4hVEA=",
+        "bzlTransitiveDigest": "lvUz6+zBiHhbADCPssSoWUwiMmZpubsFBdXlHmzkdZY=",
         "usagesDigest": "XnM8Tmye/ekLXDVhx8B/ltC5I291mZYwPk87XSoyX8c=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
         "envVariables": {},
         "generatedRepoSpecs": {
-          "local_tmux": {
-            "repoRuleId": "@@//toolchains/tmux:toolchain.bzl%local_tmux_binary",
+          "tmux": {
+            "repoRuleId": "@@//toolchains/tmux:toolchain.bzl%tmux_repository",
             "attributes": {}
           }
         },

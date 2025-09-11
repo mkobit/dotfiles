@@ -1,0 +1,33 @@
+name: Devcontainer
+
+on:
+  pull_request:
+    paths:
+      - '.devcontainer/**'
+  push:
+    branches: [ main ]
+    paths:
+      - '.devcontainer/**'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+jobs:
+  devcontainer:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build and test devcontainer
+        uses: devcontainers/ci@v0.3
+        with:
+          imageName: dotfiles-devcontainer
+          runCmd: |
+            set -e
+            echo "=== Devcontainer validation ==="
+            bazel --version
+            java --version
+            echo "✅ Devcontainer ready"
