@@ -1,8 +1,0 @@
-# chezmoi ignore file - specifies files/patterns to ignore during apply
-# See: https://www.chezmoi.io/reference/special-files/chezmoiignore/
-
-# Ignore Bazel-related files in the dotfiles directory
-.dotfiles/**/*.bzl
-.dotfiles/**/*.bazel
-.dotfiles/**/BUILD
-.dotfiles/**/BUILD.bazel

@@ -1,0 +1,12 @@
+# chezmoi ignore file - specifies files/patterns to ignore during apply
+# See: https://www.chezmoi.io/reference/special-files/chezmoiignore/
+
+# Ignore Bazel-related files (matches target paths where they would be installed)
+*/BUILD.bazel
+*/BUILD
+*/*.bzl  
+*/*.bazel
+**/BUILD.bazel
+**/BUILD
+**/*.bzl
+**/*.bazel

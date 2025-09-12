@@ -1,3 +1,1 @@
-# chezmoi root file - defines the source directory for dotfiles
-# See: https://www.chezmoi.io/reference/special-files/chezmoiroot/
 src
