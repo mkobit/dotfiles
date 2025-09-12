@@ -76,7 +76,7 @@ git_test(
 
 # Install generated gitconfig into ~/.gitconfig
 guarded_install(
-    name = "install_gitconfig_in_home",
+    name = "install_in_home",
     srcs = [":gitconfig"],
     content = "[include]\n\tpath = $$BUILD_WORKSPACE_DIRECTORY/$(execpath :gitconfig)",
     guard_id = "dotfiles:git",

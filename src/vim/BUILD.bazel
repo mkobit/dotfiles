@@ -38,7 +38,7 @@ vim_test(
 
 # Install generated vimrc into ~/.vimrc
 guarded_install(
-    name = "install_to_home",
+    name = "install_in_home",
     srcs = [":vimrc"],
     content = "source $$BUILD_WORKSPACE_DIRECTORY/$(location :vimrc)",
     guard_id = "dotfiles:vimrc",
