@@ -36,7 +36,7 @@ tmux_conf_test(
 
 # Install tmux config into ~/.tmux.conf
 guarded_install(
-    name = "install_tmux_conf",
+    name = "install_in_home",
     srcs = [":tmux_conf"],
     content = "source-file $$BUILD_WORKSPACE_DIRECTORY/$(execpath :tmux_conf)",
     guard_id = "dotfiles:tmux",

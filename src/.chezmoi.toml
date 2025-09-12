@@ -1,0 +1,6 @@
+# chezmoi configuration file
+# See: https://www.chezmoi.io/reference/configuration-file/
+
+[git]
+    autoCommit = false
+    autoPush = false

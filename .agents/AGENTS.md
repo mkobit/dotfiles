@@ -2,131 +2,93 @@
 
 ## Project overview
 
-Personal dotfiles repository using Bazel for cross-platform configuration management. Configurations in `src/` with personal/work profiles and guarded installation.
+Personal dotfiles repository transitioning from Bazel to chezmoi for configuration management. Maintains personal/work profiles and guarded installation concepts.
 
 **🚧 Active Projects**: See [.agents/scratch_zone/](.agents/scratch_zone/) for current development status and tasks.
 
 ## Repository structure
 
 - `src/` - Tool configurations (git, zsh, tmux, vim, hammerspoon, jq)
-- `rules/` - Custom Bazel rules for configuration management
-- `toolchains/` - Bazel toolchain definitions
+- `rules/` - Bazel rules (maintained for testing/automation)
 - `config/` - Build configuration and profile management
-- `docs/` - Documentation and security practices
-
-## Features
-
-- Profile-based configurations (personal/work)
-- Bazel-managed reproducible builds
-- Guarded installation prevents overwriting existing configs
-- Cross-platform support (Linux, macOS, Windows)
-- Security-first approach with pinned dependencies
+- chezmoi files - `.chezmoi*` configuration and templates
 
 ## Commands
 
-### Build
+### Primary workflow (chezmoi)
 ```bash
-bazel build //... --//config:profile=personal  # Personal profile
-bazel build //... --//config:profile=work      # Work profile
+chezmoi apply                                   # Install/update dotfiles
+chezmoi diff                                    # Preview changes
+chezmoi edit dot_gitconfig                      # Edit source files
+```
+
+### Development (Bazel)
+```bash
+bazel test //...                                # Run tests
 bazel run //:format                             # Format code
-bazel build //:lsp_setup_vscode_settings        # Generate IDE config
 ```
-
-### Test
-```bash
-bazel test //...                                # All tests
-bazel test //src/git:test                       # Package tests
-```
-
-### Install
-```bash
-bazel run //config:install_all                  # All configs
-bazel run //src/git:install_config_home         # Specific tool
-```
-
-## Agent guidelines
-
-### Code style
-- Follow existing Bazel patterns
-- Use guarded installation for safe config injection
-- Maintain personal/work profile separation
-- Keep configurations modular and testable
-- Tag installation targets `manual`
-
-### Security
-- Never commit secrets
-- Pin all dependencies to specific versions (GitHub Actions to commit SHAs)
-- Dependabot handles automatic security updates
-- Use guarded installation to prevent corruption
-
-### File organization
-- New tools follow `src/{tool}/` pattern
-- Include Bazel BUILD files
-- Add rules in `rules/{tool}/` if needed
-- Document configuration options
-
-### Testing
-- Include tests for new configurations
-- Use existing test patterns
-- Ensure cross-platform compatibility
-- Test both personal and work profiles
-
-## Build system
-
-### Package structure
-- Self-contained packages under `src/{tool}/`
-- `BUILD.bazel` files define installation/verification/test targets
-- Installation targets tagged `manual`
-- Tests co-located with source files
-
-### Target types
-- Installation: `sh_binary` with install scripts or custom rules
-- Verification: Echo paths without side effects
-- Test: Validate configuration logic
-- Build: Generate files from templates
-
-### Queries
-```bash
-bazel build //...                               # All buildable targets
-bazel build //src/git:all                       # Specific package
-bazel query "deps(//src/tmux:all)" --output label  # Dependencies
-```
-
-## Common tasks
-
-- Add new tool: Create `src/{tool}/`, BUILD file, rule in `rules/`
-- Modify configs: Edit `src/{tool}/configs/`
-- Add profile settings: Use profile flags in BUILD files
-- Security updates: Review and update pinned dependencies
-
-## Exploration workflow
-
-Before changes:
-1. Query dependencies: `bazel query "deps(//target)" --output label`
-2. Inspect build outputs: Run `bazel build` and examine files
-3. Find patterns: `grep -r` for similar implementations
-4. Read all relevant files before suggesting changes
-
-## Guarded installation
-
-Safe injection into existing config files without overwriting user content.
-
-```bash
-# Install git config to ~/.gitconfig
-bazel run //src/git:install_config_home
-```
-
-Works by:
-- Wrapping content with guard comments (`# START/END DOTFILES MANAGED SECTION`)
-- Only updating managed sections on subsequent runs
-- Preserving existing user content before/after guards
-- Using atomic operations with temporary files
 
 ## Key principles
 
-- Guarded installation prevents overwriting user configs
-- Personal/work profiles with different settings
-- Installation targets tagged `manual` prevent accidents
-- Tests co-located for maintainability
-- Bazel for reproducible builds and dependencies
-- Security paramount with pinned versions
+- Personal/work profiles with different settings  
+- Security paramount with pinned versions and no committed secrets
+- Tests validate configurations before deployment
+- Cross-platform compatibility (Linux, macOS, Windows)
+- Preserve existing user configurations during installation
+
+## Bazel to chezmoi transition
+
+**Current state**: Mixed Bazel/chezmoi architecture during migration period.
+
+### Migration goals
+- **chezmoi**: Primary tool for file installation and management
+- **Bazel**: Retained for verification, testing, and automation tasks
+- **Hybrid approach**: Leverage strengths of both tools
+
+### Responsibilities
+
+#### chezmoi handles:
+- Dotfile installation and management (`chezmoi apply`)
+- Template processing and variable substitution
+- Cross-platform file management
+- User-specific configuration deployment
+
+#### Bazel retains:
+- **Verification**: Validate configurations before deployment
+- **Testing**: Unit tests for configuration logic
+- **Automation**: Generate chezmoi files (versions, SHAs, external dependencies)
+- **Build reproducibility**: Pinned dependencies and deterministic builds
+
+### Implementation strategy
+1. Keep existing Bazel infrastructure for testing/verification
+2. Gradually migrate installation logic to chezmoi templates
+3. Future: Use Bazel to generate dynamic chezmoi files (versions, SHAs, external dependencies)
+4. Maintain dual-path support during transition
+5. Preserve security practices (pinned versions, safe installation concepts)
+
+### Future state
+- `chezmoi apply` as primary deployment command
+- `bazel test //...` for validation
+- Simplified user workflow with maintained build system benefits
+
+## chezmoi documentation
+
+This repository uses chezmoi for dotfiles management. Key documentation links:
+
+### Special files
+- [Template format](https://www.chezmoi.io/reference/special-files/chezmoi-format-tmpl/) - `.tmpl` files with Go templating
+- [Data files](https://www.chezmoi.io/reference/special-files/chezmoidata-format/) - `.chezmoidata.*` for template variables
+- [External files](https://www.chezmoi.io/reference/special-files/chezmoiexternal-format/) - `.chezmoiexternal.*` for downloaded files
+- [Ignore patterns](https://www.chezmoi.io/reference/special-files/chezmoiignore/) - `.chezmoiignore` for exclusions
+- [Remove files](https://www.chezmoi.io/reference/special-files/chezmoiremove/) - `.chezmoiremove` for cleanup
+- [Root directory](https://www.chezmoi.io/reference/special-files/chezmoiroot/) - `.chezmoiroot` for source location
+- [Version requirements](https://www.chezmoi.io/reference/special-files/chezmoiversion/) - `.chezmoiversion` for version constraints
+
+### Special directories
+- [Data directory](https://www.chezmoi.io/reference/special-directories/chezmoidata/) - `.chezmoidata/` for template data files
+- [Externals directory](https://www.chezmoi.io/reference/special-directories/chezmoiexternals/) - `.chezmoiexternals/` for external file configs  
+- [Scripts directory](https://www.chezmoi.io/reference/special-directories/chezmoiscripts/) - `.chezmoiscripts/` for run scripts
+- [Templates directory](https://www.chezmoi.io/reference/special-directories/chezmoitemplates/) - `.chezmoitemplates/` for reusable templates
+
+### Configuration
+- [Configuration file](https://www.chezmoi.io/reference/configuration-file/) - `.chezmoi.toml` settings

@@ -1,0 +1,19 @@
+# chezmoi ignore file - specifies files/patterns to ignore during apply
+# See: https://www.chezmoi.io/reference/special-files/chezmoiignore/
+
+# Exclude everything by default to prevent polluting home directory
+*
+
+# Allow only .dotfiles output
+!.dotfiles
+!.dotfiles/**
+
+# Bazel build files
+**/*.bzl
+**/*.bazel
+**/BUILD
+**/BUILD.bazel
+
+# Git files
+**/.gitignore
+**/.gitkeep
