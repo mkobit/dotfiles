@@ -84,5 +84,11 @@ This repository uses chezmoi for dotfiles management. Key documentation links:
 - [Root directory](https://www.chezmoi.io/reference/special-files/chezmoiroot/) - `.chezmoiroot` for source location
 - [Version requirements](https://www.chezmoi.io/reference/special-files/chezmoiversion/) - `.chezmoiversion` for version constraints
 
+### Special directories
+- [Data directory](https://www.chezmoi.io/reference/special-directories/chezmoidata/) - `.chezmoidata/` for template data files
+- [Externals directory](https://www.chezmoi.io/reference/special-directories/chezmoiexternals/) - `.chezmoiexternals/` for external file configs  
+- [Scripts directory](https://www.chezmoi.io/reference/special-directories/chezmoiscripts/) - `.chezmoiscripts/` for run scripts
+- [Templates directory](https://www.chezmoi.io/reference/special-directories/chezmoitemplates/) - `.chezmoitemplates/` for reusable templates
+
 ### Configuration
-- [Configuration file](https://www.chezmoi.io/reference/configuration-file/) - `chezmoi.toml` settings
+- [Configuration file](https://www.chezmoi.io/reference/configuration-file/) - `.chezmoi.toml` settings
