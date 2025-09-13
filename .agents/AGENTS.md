@@ -92,3 +92,35 @@ This repository uses chezmoi for dotfiles management. Key documentation links:
 
 ### Configuration
 - [Configuration file](https://www.chezmoi.io/reference/configuration-file/) - `.chezmoi.toml` settings
+
+## chezmoi script patterns
+
+### Shared utility libraries
+
+For reusable code across multiple scripts, use the `scripts/` directory pattern:
+
+```bash
+# Structure
+src/
+├── scripts/
+│   └── utils.sh              # Shared utilities (logging, helpers)
+└── .chezmoiscripts/
+    └── run_once_example.sh.tmpl
+
+# Usage in scripts
+#!/bin/bash
+# utils.sh hash: {{ include "scripts/utils.sh" | sha256sum }}
+source "${CHEZMOI_SOURCE_DIR:?}/scripts/utils.sh"
+
+log_info "Using shared logging utilities..."
+```
+
+**Key principles:**
+- Use `${CHEZMOI_SOURCE_DIR:?}` for robust sourcing with error handling
+- Include hash comments for dependency tracking (script re-runs when utilities change)  
+- Keep utilities in `scripts/` directory (not managed as dotfiles)
+- Follow community pattern from [chezmoi/discussions/3506](https://github.com/twpayne/chezmoi/discussions/3506)
+
+**Utility functions available:**
+- `log_info()`, `log_success()`, `log_warn()`, `log_error()` - Colored logging
+- `check_command()` - Test if command is available

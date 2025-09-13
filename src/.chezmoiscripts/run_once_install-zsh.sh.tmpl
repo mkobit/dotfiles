@@ -1,0 +1,25 @@
+#!/bin/bash
+
+# utils.sh hash: {{ include "scripts/utils.sh" | sha256sum }}
+
+source "${CHEZMOI_SOURCE_DIR:?}/scripts/utils.sh"
+
+# Check if zsh is already installed
+if check_command zsh; then 
+    log_success "zsh already installed at $(command -v zsh)"
+    exit 0
+fi
+
+log_info "Installing zsh..."
+
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS - use Homebrew
+check_command brew || { log_error "Homebrew not found. Please install Homebrew first."; exit 1; }
+brew install zsh && log_success "zsh installed successfully" || { log_error "Failed to install zsh"; exit 1; }
+{{ else if eq .chezmoi.os "linux" -}}
+# Linux - use apt (Ubuntu/Debian)  
+sudo apt-get update && sudo apt-get install -y zsh && log_success "zsh installed successfully" || { log_error "Failed to install zsh"; exit 1; }
+{{ else -}}
+log_error "Unsupported OS: {{ .chezmoi.os }}"
+exit 1
+{{ end -}}
