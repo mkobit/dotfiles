@@ -121,6 +121,4 @@ log_info "Using shared logging utilities..."
 - Keep utilities in `scripts/` directory (not managed as dotfiles)
 - Follow community pattern from [chezmoi/discussions/3506](https://github.com/twpayne/chezmoi/discussions/3506)
 
-**Utility functions available:**
-- `log_info()`, `log_success()`, `log_warn()`, `log_error()` - Colored logging
-- `check_command()` - Test if command is available
+See `src/scripts/logging.sh` for available functions.
