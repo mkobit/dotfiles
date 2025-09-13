@@ -103,14 +103,14 @@ For reusable code across multiple scripts, use the `scripts/` directory pattern:
 # Structure
 src/
 ├── scripts/
-│   └── utils.sh              # Shared utilities (logging, helpers)
+│   └── logging.sh            # Shared logging utilities
 └── .chezmoiscripts/
     └── run_once_example.sh.tmpl
 
 # Usage in scripts
 #!/bin/bash
-# utils.sh hash: {{ include "scripts/utils.sh" | sha256sum }}
-source "${CHEZMOI_SOURCE_DIR:?}/scripts/utils.sh"
+# logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
+source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
 
 log_info "Using shared logging utilities..."
 ```

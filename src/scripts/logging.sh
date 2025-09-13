@@ -1,5 +1,5 @@
-# Shared utilities for chezmoi scripts
-# Usage: source "${CHEZMOI_SOURCE_DIR:?}/scripts/utils.sh"
+# Shared logging utilities for chezmoi scripts
+# Usage: source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
 
 # Colors
 RED='\033[0;31m'
