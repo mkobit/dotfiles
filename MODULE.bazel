@@ -89,7 +89,6 @@ exports_files(["tmux"])
     urls = ["https://github.com/mjakob-gh/build-static-tmux/releases/download/v3.5a/tmux-3.5a-linux-arm64.tar.gz"],
 )
 
-
 http_archive(
     name = "chezmoi_darwin_arm64",
     build_file_content = """
