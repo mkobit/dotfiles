@@ -1,0 +1,17 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+
+py_binary(
+    name = "ruff",
+    srcs = ["ruff_main.py"],
+    main = "ruff_main.py",
+    visibility = ["//visibility:public"],
+    deps = ["@pypi//ruff"],
+)
+
+py_binary(
+    name = "pyright",
+    srcs = ["pyright_main.py"],
+    main = "pyright_main.py",
+    visibility = ["//visibility:public"],
+    deps = ["@pypi//pyright"],
+)

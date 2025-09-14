@@ -13,31 +13,36 @@ def _tmux_repository_impl(repository_ctx):
 
     # Try to find local tmux first
     local_tmux_path = repository_ctx.which("tmux")
+    local_version = "unknown"
 
     if local_tmux_path:
         # Get version from local tmux binary
         result = repository_ctx.execute([local_tmux_path, "-V"])
-        if result.return_code != 0:
-            local_version = "unknown"
-        else:
+        if result.return_code == 0:
             version_output = result.stdout.strip()
             parts = version_output.split(" ")
             local_version = parts[1] if len(parts) > 1 else "unknown"
-    else:
-        local_tmux_path = None
-        local_version = "unknown"
 
-    # Determine platform constraints
+    # Determine platform and fallback binary
     os = repository_ctx.os.name
+    arch = repository_ctx.os.arch
+
+    # Platform constraints for current environment
     exec_constraints = []
     target_constraints = []
+    fallback_target = "linux_amd64"  # default fallback
 
     if os.startswith("mac"):
         exec_constraints = ["@platforms//os:macos"]
         target_constraints = ["@platforms//os:macos"]
+        fallback_target = "linux_amd64"  # Could add macos binaries later
     elif os.startswith("linux"):
         exec_constraints = ["@platforms//os:linux"]
         target_constraints = ["@platforms//os:linux"]
+        if arch == "aarch64" or arch == "arm64":
+            fallback_target = "linux_arm64"
+        else:
+            fallback_target = "linux_amd64"
 
     # Format constraints for BUILD file
     exec_constraints_formatted = ""
@@ -55,14 +60,21 @@ package(default_visibility = ["//visibility:public"])
 load("@dotfiles//toolchains/tmux:toolchain.bzl", "tmux_toolchain")
 '''
 
-    # Add local tmux toolchain if available
+    # Always create a local toolchain - use system tmux if available, otherwise fallback
     if local_tmux_path:
-        build_content += '''
-# Local system tmux (highest priority)
+        tmux_path = local_tmux_path
+        tmux_version = local_version
+    else:
+        # Use the appropriate platform fallback
+        tmux_path = "@tmux_{}//:tmux".format(fallback_target)
+        tmux_version = "3.5a"  # Version of downloaded binaries
+
+    build_content += '''
+# Local tmux toolchain (system tmux or platform-appropriate fallback)
 tmux_toolchain(
     name = "local_impl",
-    tmux_path = "{local_path}",
-    tmux_version = "{local_version}",
+    tmux_path = "{tmux_path}",
+    tmux_version = "{tmux_version}",
 )
 
 toolchain(
@@ -75,11 +87,11 @@ toolchain(
     toolchain_type = "@dotfiles//toolchains/tmux:toolchain_type",
 )
 '''.format(
-            local_path = local_tmux_path,
-            local_version = local_version,
-            exec_constraints = exec_constraints_formatted,
-            target_constraints = target_constraints_formatted,
-        )
+        tmux_path = tmux_path,
+        tmux_version = tmux_version,
+        exec_constraints = exec_constraints_formatted,
+        target_constraints = target_constraints_formatted,
+    )
 
     # Add downloaded static binary toolchains
     build_content += '''

@@ -30,9 +30,9 @@ tmux_ext = use_extension("//toolchains/tmux:extensions.bzl", "tmux_toolchain")
 use_repo(tmux_ext, "tmux")
 
 register_toolchains(
-    # Local tmux has highest priority (system installed)
+    # Local tmux toolchain (uses system tmux if available, otherwise platform-appropriate fallback)
     "@tmux//:local",
-    # Downloaded static binaries as fallback
+    # Explicit downloaded static binaries (for non-local toolchain selection)
     "@tmux//:linux_amd64",
     "@tmux//:linux_arm64",
 )
