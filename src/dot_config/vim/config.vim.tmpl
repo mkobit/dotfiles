@@ -1,0 +1,16 @@
+" Vim configuration managed by chezmoi
+" This file sources all individual config snippets
+
+" Core configuration
+source {{ .chezmoi.homeDir }}/.config/vim/snippets/base.vim
+source {{ .chezmoi.homeDir }}/.config/vim/snippets/indentation.vim
+source {{ .chezmoi.homeDir }}/.config/vim/snippets/search.vim
+source {{ .chezmoi.homeDir }}/.config/vim/snippets/ui.vim
+source {{ .chezmoi.homeDir }}/.config/vim/snippets/encoding.vim
+source {{ .chezmoi.homeDir }}/.config/vim/snippets/editing.vim
+source {{ .chezmoi.homeDir }}/.config/vim/snippets/performance.vim
+source {{ .chezmoi.homeDir }}/.config/vim/snippets/navigation.vim
+source {{ .chezmoi.homeDir }}/.config/vim/snippets/filetypes.vim
+
+" Local extensions (if present)
+source {{ .chezmoi.homeDir }}/.config/vim/snippets/local.vim

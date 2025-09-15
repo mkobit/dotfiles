@@ -1,0 +1,7 @@
+# Global .gitignore file
+# Documentation: https://git-scm.com/docs/gitignore
+.DS_Store
+.idea/
+*.swp
+*~
+/bazel-*

@@ -1,0 +1,5 @@
+[rerere]
+	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-rerereautoUpdate
+	autoUpdate = true
+	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-rerereenabled
+	enabled = true

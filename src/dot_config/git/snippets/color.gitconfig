@@ -1,0 +1,7 @@
+[color]
+	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-colorbranch
+	branch = auto
+	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-colorstatus
+	status = auto
+	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-colorui
+	ui = auto

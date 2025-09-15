@@ -1,0 +1,19 @@
+# Tmux configuration managed by chezmoi
+# This file sources all individual config snippets
+
+# Core configuration
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/universal.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/server_options.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/terminal_settings.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/history.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/mouse_support.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/copy_mode.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/windows.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/window_panes.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/status_bar_styling.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/notifications.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/popups.tmux
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/popups_enhanced.tmux
+
+# Local extensions (if present)
+source-file {{ .chezmoi.homeDir }}/.config/tmux/snippets/local_extensions.tmux
