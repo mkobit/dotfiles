@@ -47,21 +47,25 @@
 
 == Completed
 
-* [x] *Guarded Install Rule*
-** ✅ Idempotent config file installation with boundary guards
-** ✅ Supports vim, zsh, git, tmux configurations
-** ✅ Absolute path generation using BUILD_WORKSPACE_DIRECTORY
-** ✅ Clean separation: rule does templating, users control content
+* [x] *Chezmoi Migration*
+** ✅ Replaced Bazel guarded_install with chezmoi modify scripts
+** ✅ Individual config snippets instead of file concatenation  
+** ✅ Corporate file handling with SHA256 tracking
 
-== Current Dotfiles Coverage
+* [x] *Guarded Install Rule* (OBSOLETE)
+** ✅ Bazel-based config installation (replaced by chezmoi)
 
-=== ✅ Implemented
-* Zsh configuration with modular structure
-* Git configuration with profile selection (base/personal/work)
-* Vim configuration with organized sections
-* Tmux configuration
-* Hammerspoon configuration
-* Guarded installation system for all configs
+== Current Architecture
+
+=== Chezmoi
+* Config snippets in `src/dot_dotfiles/`
+* Modify scripts for corporate files
+* Profile templating (personal/work)
+
+=== Bazel (automation/)
+* Validation and testing
+* Linting and formatting
+* Schema validation
 
 === 🔄 Potential Enhancements
 * Ripgrep, fd, fzf, bat integration
