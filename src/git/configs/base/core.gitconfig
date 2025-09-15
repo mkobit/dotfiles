@@ -1,9 +1,0 @@
-[core]
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreeditor
-	editor = vim
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreautocrlf
-	autocrlf = input
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreexcludesFile
-	excludesFile = ~/.gitignore_global
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor
-	fsmonitor = true

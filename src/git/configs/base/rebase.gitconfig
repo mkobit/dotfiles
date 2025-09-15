@@ -1,5 +1,0 @@
-[rebase]
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-rebaseautoSquash
-	autoSquash = true
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-rebaseautoStash
-	autoStash = true

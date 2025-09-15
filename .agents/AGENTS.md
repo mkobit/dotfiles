@@ -8,7 +8,7 @@ Personal dotfiles repository transitioning from Bazel to chezmoi for configurati
 
 ## Repository structure
 
-- `src/` - Tool configurations (git, zsh, tmux, vim, hammerspoon, jq)
+- `src/` - Chezmoi templates and deployment configuration
 - `rules/` - Bazel rules (maintained for testing/automation)
 - `config/` - Build configuration and profile management
 - chezmoi files - `.chezmoi*` configuration and templates

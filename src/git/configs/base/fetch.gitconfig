@@ -1,3 +1,0 @@
-[fetch]
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-fetchprune
-	prune = true

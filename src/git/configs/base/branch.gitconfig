@@ -1,5 +1,0 @@
-[branch]
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-branchautoSetupRebase
-	autoSetupRebase = always
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-branchsort
-	sort = -committerdate

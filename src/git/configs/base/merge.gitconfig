@@ -1,3 +1,0 @@
-[merge]
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-mergeff
-	ff = false
