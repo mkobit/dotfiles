@@ -15,7 +15,6 @@ fi
 # Add our managed section
 cat >> "${tempfile}" << 'EOF'
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:tmux:{{ include "modify_dot_tmux.conf.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
-# Applied: {{ now.Format "2006-01-02T15:04:05Z07:00" }}
 source-file {{ .chezmoi.homeDir }}/.dotfiles/tmux/config.tmux
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:tmux:{{ include "modify_dot_tmux.conf.tmpl" | sha256sum | substr 0 8 }}
 EOF
