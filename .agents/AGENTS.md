@@ -9,7 +9,7 @@ Personal dotfiles repository using chezmoi for configuration management. Maintai
 ## Repository structure
 
 - `src/` - Chezmoi templates and deployment configuration
-- `build/` - Bazel rules for validation, testing, and automation
+- `tools/` - Bazel rules for validation, testing, and automation
 - `config/` - Build configuration and profile management
 - chezmoi files - `.chezmoi*` configuration and templates
 
