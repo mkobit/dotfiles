@@ -1,6 +1,6 @@
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
-load("//build:linting.bzl", "bazel_files_format", "bazel_files_format_test")
-load("//build:lsp_simple.bzl", "setup_simple_lsp")
+load("//tools:linting.bzl", "bazel_files_format", "bazel_files_format_test")
+load("//tools:lsp_simple.bzl", "setup_simple_lsp")
 
 package(default_visibility = ["//visibility:public"])
 
