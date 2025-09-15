@@ -24,10 +24,20 @@
                 "ms-vscode.vscode-json",
                 "redhat.vscode-yaml",
                 "ms-vscode.vscode-typescript-next",
-                "ms-python.python"
+                "ms-python.python",
+                "golang.go"
             ],
             "settings": {
-                "dev.containers.experimentalLockfile": true
+                "dev.containers.experimentalLockfile": true,
+                "gopls": {
+                    "templateExtensions": ["tmpl"]
+                },
+                "files.associations": {
+                    "*.tmpl": "gotmpl"
+                },
+                "[gotmpl]": {
+                    "editor.defaultFormatter": "golang.go"
+                }
             }
         },
         "codespaces": {
