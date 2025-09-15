@@ -2,14 +2,14 @@
 
 ## Project overview
 
-Personal dotfiles repository transitioning from Bazel to chezmoi for configuration management. Maintains personal/work profiles and guarded installation concepts.
+Personal dotfiles repository using chezmoi for configuration management. Maintains personal/work profiles with hybrid Bazel automation.
 
 **🚧 Active Projects**: See [.agents/scratch_zone/](.agents/scratch_zone/) for current development status and tasks.
 
 ## Repository structure
 
 - `src/` - Chezmoi templates and deployment configuration
-- `rules/` - Bazel rules (maintained for testing/automation)
+- `build/` - Bazel rules for validation, testing, and automation
 - `config/` - Build configuration and profile management
 - chezmoi files - `.chezmoi*` configuration and templates
 

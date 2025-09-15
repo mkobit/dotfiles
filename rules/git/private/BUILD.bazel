@@ -1,4 +1,0 @@
-package(default_visibility = ["//rules/git:__pkg__"])
-
-# This package is only visible to the rules/git package
-# Contains implementation details

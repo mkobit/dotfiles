@@ -1,4 +1,0 @@
-package(default_visibility = ["//rules/hammerspoon:__pkg__"])
-
-# This package is only visible to the rules/hammerspoon package
-# Contains implementation details
