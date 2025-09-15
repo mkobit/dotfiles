@@ -93,6 +93,8 @@ This repository uses chezmoi for dotfiles management. Key documentation links:
 ### Configuration
 - [Configuration file](https://www.chezmoi.io/reference/configuration-file/) - `.chezmoi.toml` settings
 
+**Note**: Raw markdown documentation is also available at [chezmoi source docs](https://github.com/twpayne/chezmoi/tree/master/assets/chezmoi.io) for more concise reference when working with agents.
+
 ## chezmoi script patterns
 
 ### Shared utility libraries

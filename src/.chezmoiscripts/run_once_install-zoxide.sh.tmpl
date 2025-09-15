@@ -1,0 +1,40 @@
+{{ if eq .zoxide.installation "package-manager" }}#!/bin/bash
+
+# logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
+source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
+
+# Check if zoxide is already installed
+if check_command zoxide; then 
+    log_success "zoxide already installed at $(command -v zoxide)"
+    exit 0
+fi
+
+log_info "Installing zoxide via package manager..."
+
+{{ if eq .chezmoi.os "darwin" }}
+# macOS - use Homebrew
+if ! check_command brew; then
+    log_error "Homebrew not found. Please install Homebrew first."
+    exit 1
+fi
+
+if brew install zoxide; then
+    log_success "zoxide installed successfully via homebrew"
+else
+    log_error "Failed to install zoxide via homebrew"
+    exit 1
+fi
+{{ else if eq .chezmoi.os "linux" }}
+# Linux - zoxide may not be in older Ubuntu repos
+if sudo apt-get update && sudo apt-get install -y zoxide; then
+    log_success "zoxide installed successfully via apt"
+else
+    log_warn "zoxide not available in apt repos"
+    log_info "Consider changing installation method to 'external-sources' for zoxide"
+    exit 1
+fi
+{{ else }}
+log_error "Unsupported OS: {{ .chezmoi.os }}"
+exit 1
+{{ end }}
+{{ end }}
