@@ -10,6 +10,7 @@ sed -i.bak '/modify_dot_zshrc\.tmpl:BEGIN:chezmoi:zsh/,/modify_dot_zshrc\.tmpl:E
 cat >> "${tempfile}" << 'EOF'
 
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:zsh:{{ include "modify_dot_zshrc.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
+# Applied: {{ now.Format "2006-01-02T15:04:05Z07:00" }}
 source {{ .chezmoi.homeDir }}/.dotfiles/zsh/config.zsh
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:zsh:{{ include "modify_dot_zshrc.tmpl" | sha256sum | substr 0 8 }}
 EOF

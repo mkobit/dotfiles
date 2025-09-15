@@ -10,6 +10,7 @@ sed -i.bak '/" modify_dot_vimrc\.tmpl:BEGIN:chezmoi:vim/,/" modify_dot_vimrc\.tm
 cat >> "${tempfile}" << 'EOF'
 
 " {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:vim:{{ include "modify_dot_vimrc.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
+" Applied: {{ now.Format "2006-01-02T15:04:05Z07:00" }}
 source {{ .chezmoi.homeDir }}/.dotfiles/vim/config.vim
 " {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:vim:{{ include "modify_dot_vimrc.tmpl" | sha256sum | substr 0 8 }}
 EOF
