@@ -93,6 +93,12 @@ This repository uses chezmoi for dotfiles management. Key documentation links:
 ### Configuration
 - [Configuration file](https://www.chezmoi.io/reference/configuration-file/) - `.chezmoi.toml` settings
 
+### Core concepts
+- [Source state attributes](https://www.chezmoi.io/reference/source-state-attributes/) - File prefixes/suffixes (dot_, create_, encrypted_, executable_, etc.)
+- [Application order](https://www.chezmoi.io/reference/application-order/) - Deterministic processing: before scripts → directories → files → after scripts (alphabetical)
+- [Target types](https://www.chezmoi.io/reference/target-types/) - Files, directories, symlinks, scripts with type-specific attributes
+- [Template functions](https://www.chezmoi.io/reference/templates/functions/) - Sprig functions + chezmoi-specific (includeTemplate, lookPath, output, etc.)
+
 **Note**: Raw markdown documentation is also available at [chezmoi source docs](https://github.com/twpayne/chezmoi/tree/master/assets/chezmoi.io) for more concise reference when working with agents.
 
 ## chezmoi script patterns
