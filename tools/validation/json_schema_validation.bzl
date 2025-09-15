@@ -23,15 +23,15 @@ def json_schema_validation_test(name, srcs, schema, deps = None, **kwargs):
 
     # Add required dependencies for pytest and jsonschema
     test_deps = [
-        "//build/validation:json_schema_test",
+        "//tools/validation:json_schema_test",
         "@pypi//pytest",
         "@pypi//jsonschema",
     ] + deps
 
     py_test(
         name = name,
-        srcs = ["//build/validation:json_schema_test.py"],
-        main = "//build/validation:json_schema_test.py",
+        srcs = ["//tools/validation:json_schema_test.py"],
+        main = "//tools/validation:json_schema_test.py",
         args = [
             "--schema",
             "$(location {})".format(schema),
