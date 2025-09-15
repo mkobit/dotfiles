@@ -3,6 +3,7 @@
 
 [bazelisk]
 version = "1.27.0"
+installation = "external-sources"
 
 [bazelisk.checksums]
 darwin_arm64 = "173c5b367b485a30ce58c1d0d560b39d257a2d7a3c859c45d7d05eb61605a2a1"
@@ -11,6 +12,7 @@ linux_amd64 = "e1508323f347ad1465a887bc5d2bfb91cffc232d11e8e997b623227c6b32fb76"
 
 [fzf]
 version = "0.65.2"
+installation = "external-sources"
 
 [fzf.checksums]
 darwin_arm64 = "4f2d7414e4dbe2469e5581c5830f29b1ed3532a3d672646e6c2e0533fc07cbea"
@@ -19,9 +21,12 @@ linux_amd64 = "5eb8efc0e94aa559f84ea83eeba99bea7dce818e63f92b4b62e60663220f1c14"
 
 [ripgrep]
 version = "14.1.1"
+installation = "external-sources"
 
 [bat]
 version = "0.25.0"
+installation = "external-sources"
 
 [zoxide]
 version = "0.9.8"
+installation = "external-sources"

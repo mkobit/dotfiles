@@ -1,36 +1,42 @@
 # chezmoi external files configuration - downloads external files
 # See: https://www.chezmoi.io/reference/special-files/chezmoiexternal-format/
-# See: https://www.chezmoi.io/user-guide/include-files-from-elsewhere/
+# See: https://www.chezmoi.io/user-guide/include-files-from-ailleurs/
 
-{{ if false }}
+{{ if eq .bazelisk.installation "external-sources" }}
 [".local/bin/bazelisk"]
 type = "file"
 url = "https://github.com/bazelbuild/bazelisk/releases/download/v{{ .bazelisk.version }}/bazelisk-{{ .chezmoi.os }}-{{ .chezmoi.arch }}"
-checksum = "sha256:{{ index .bazelisk.checksums (printf "%s_%s" .chezmoi.os .chezmoi.arch) }}"
 executable = true
+{{ end }}
 
+{{ if eq .fzf.installation "external-sources" }}
 [".local/bin/fzf"]
 type = "archive-file"
 url = "https://github.com/junegunn/fzf/releases/download/v{{ .fzf.version }}/fzf-{{ .fzf.version }}-{{ .chezmoi.os }}_{{ .chezmoi.arch }}.tar.gz"
-checksum = "sha256:{{ index .fzf.checksums (printf "%s_%s" .chezmoi.os .chezmoi.arch) }}"
 path = "fzf"
 executable = true
+{{ end }}
 
+{{ if eq .ripgrep.installation "external-sources" }}
 [".local/bin/rg"]
 type = "archive-file"
-url = "https://github.com/BurntSushi/ripgrep/releases/download/{{ .ripgrep.version }}/ripgrep-{{ .ripgrep.version }}-{{ if eq .chezmoi.os "darwin" }}{{ .chezmoi.arch }}-apple-darwin{{ else }}{{ .chezmoi.arch }}-unknown-linux-musl{{ end }}.tar.gz"
-path = "ripgrep-{{ .ripgrep.version }}-{{ if eq .chezmoi.os "darwin" }}{{ .chezmoi.arch }}-apple-darwin{{ else }}{{ .chezmoi.arch }}-unknown-linux-musl{{ end }}/rg"
+url = "https://github.com/BurntSushi/ripgrep/releases/download/{{ .ripgrep.version }}/ripgrep-{{ .ripgrep.version }}-{{ if eq .chezmoi.os "darwin" }}{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-apple-darwin{{ else }}{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-unknown-linux-musl{{ end }}.tar.gz"
+path = "ripgrep-{{ .ripgrep.version }}-{{ if eq .chezmoi.os "darwin" }}{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-apple-darwin{{ else }}{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-unknown-linux-musl{{ end }}/rg"
 executable = true
+{{ end }}
 
+{{ if eq .bat.installation "external-sources" }}
 [".local/bin/bat"]
 type = "archive-file"
-url = "https://github.com/sharkdp/bat/releases/download/v{{ .bat.version }}/bat-v{{ .bat.version }}-{{ if eq .chezmoi.os "darwin" }}{{ .chezmoi.arch }}-apple-darwin{{ else }}{{ .chezmoi.arch }}-unknown-linux-gnu{{ end }}.tar.gz"
-path = "bat-v{{ .bat.version }}-{{ if eq .chezmoi.os "darwin" }}{{ .chezmoi.arch }}-apple-darwin{{ else }}{{ .chezmoi.arch }}-unknown-linux-gnu{{ end }}/bat"
+url = "https://github.com/sharkdp/bat/releases/download/v{{ .bat.version }}/bat-v{{ .bat.version }}-{{ if eq .chezmoi.os "darwin" }}{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-apple-darwin{{ else }}{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-unknown-linux-gnu{{ end }}.tar.gz"
+path = "bat-v{{ .bat.version }}-{{ if eq .chezmoi.os "darwin" }}{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-apple-darwin{{ else }}{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-unknown-linux-gnu{{ end }}/bat"
 executable = true
+{{ end }}
 
+{{ if eq .zoxide.installation "external-sources" }}
 [".local/bin/zoxide"]
 type = "archive-file"
-url = "https://github.com/ajeetdsouza/zoxide/releases/download/v{{ .zoxide.version }}/zoxide-{{ .zoxide.version }}-{{ if eq .chezmoi.os "darwin" }}{{ .chezmoi.arch }}-apple-darwin{{ else }}{{ .chezmoi.arch }}-unknown-linux-musl{{ end }}.tar.gz"
+url = "https://github.com/ajeetdsouza/zoxide/releases/download/v{{ .zoxide.version }}/zoxide-{{ .zoxide.version }}-{{ if eq .chezmoi.os "darwin" }}{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-apple-darwin{{ else }}{{ if eq .chezmoi.arch "arm64" }}aarch64{{ else }}x86_64{{ end }}-unknown-linux-musl{{ end }}.tar.gz"
 path = "zoxide"
 executable = true
 {{ end }}

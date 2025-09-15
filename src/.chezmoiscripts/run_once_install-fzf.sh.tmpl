@@ -1,0 +1,39 @@
+{{ if eq .fzf.installation "package-manager" }}#!/bin/bash
+
+# logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
+source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
+
+# Check if fzf is already installed
+if check_command fzf; then 
+    log_success "fzf already installed at $(command -v fzf)"
+    exit 0
+fi
+
+log_info "Installing fzf via package manager..."
+
+{{ if eq .chezmoi.os "darwin" }}
+# macOS - use Homebrew
+if ! check_command brew; then
+    log_error "Homebrew not found. Please install Homebrew first."
+    exit 1
+fi
+
+if brew install fzf; then
+    log_success "fzf installed successfully via homebrew"
+else
+    log_error "Failed to install fzf via homebrew"
+    exit 1
+fi
+{{ else if eq .chezmoi.os "linux" }}
+# Linux - use apt (Ubuntu/Debian)
+if sudo apt-get update && sudo apt-get install -y fzf; then
+    log_success "fzf installed successfully via apt"
+else
+    log_error "Failed to install fzf via apt"
+    exit 1
+fi
+{{ else }}
+log_error "Unsupported OS: {{ .chezmoi.os }}"
+exit 1
+{{ end }}
+{{ end }}
