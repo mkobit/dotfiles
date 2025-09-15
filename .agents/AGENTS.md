@@ -98,6 +98,16 @@ This repository uses chezmoi for dotfiles management. Key documentation links:
 - [Application order](https://www.chezmoi.io/reference/application-order/) - Deterministic processing: before scripts → directories → files → after scripts (alphabetical)
 - [Target types](https://www.chezmoi.io/reference/target-types/) - Files, directories, symlinks, scripts with type-specific attributes
 - [Template functions](https://www.chezmoi.io/reference/templates/functions/) - Sprig functions + chezmoi-specific (includeTemplate, lookPath, output, etc.)
+- [Template variables](https://www.chezmoi.io/reference/templates/variables/) - Complete variable reference
+
+**Key template variables**:
+- `{{ .chezmoi.sourceFile }}` - Current template source file path (e.g., `modify_dot_gitconfig.tmpl`)  
+- `{{ .chezmoi.sourceDir }}` - Source directory path (e.g., `/Users/user/.local/share/chezmoi/src`)
+- `{{ .chezmoi.homeDir }}` - User home directory path (e.g., `/Users/user`)
+- `{{ .chezmoi.hostname }}` - Machine hostname
+- `{{ .chezmoi.username }}` - Current user
+- `{{ .chezmoi.os }}` - Operating system (darwin, linux, windows)
+- `{{ .chezmoi.arch }}` - Architecture (amd64, arm64)
 
 **Note**: Raw markdown documentation is also available at [chezmoi source docs](https://github.com/twpayne/chezmoi/tree/master/assets/chezmoi.io) for more concise reference when working with agents.
 

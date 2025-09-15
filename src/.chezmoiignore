@@ -8,6 +8,9 @@
 !.dotfiles
 !.dotfiles/**
 
+# Allow modify scripts to run
+!modify_*
+
 # Bazel build files
 **/*.bzl
 **/*.bazel
