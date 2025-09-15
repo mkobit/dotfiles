@@ -27,6 +27,20 @@ bazel run //config:install_all
 - Guarded installation prevents corruption
 - Test both personal/work profiles
 
+## 🚨 Corporate environment constraints
+
+**When profile = "work"**: Corporate-managed files CANNOT be wholesale replaced.
+
+**Safe patterns:**
+- `modify_` scripts → **ONLY** safe way to customize corporate `.gitconfig`, `.zshrc`, etc.
+- `dot_dotfiles/` → Create your own organized directory structure  
+- Private files in `~/.dotfiles/` → Full control for non-corporate managed locations
+
+**Forbidden in work environments:**
+- Never use `dot_gitconfig`, `dot_zshrc` when corporate infrastructure manages these files
+- Never replace system binaries or corporate-installed tools
+- `modify_` scripts are required for any file that corporate IT manages
+
 ## Active projects
 
 See [.agents/scratch_zone/](.agents/scratch_zone/) for current development status and tasks.
