@@ -7,7 +7,7 @@ This package validates agent configuration files to ensure:
 - Documentation files maintain consistency
 """
 
-load("//rules:validation.bzl", "claude_hooks_schema_test")
+load("//build:validation.bzl", "claude_hooks_schema_test")
 
 package(default_visibility = ["//visibility:public"])
 
