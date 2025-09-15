@@ -1,3 +1,4 @@
+#!/bin/bash
 # Shared logging utilities for chezmoi scripts
 # Usage: source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
 

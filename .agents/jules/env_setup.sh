@@ -10,8 +10,10 @@ echo "--- Diagnostic Information ---"
 echo "User: $(whoami)"
 echo "Environment variables:"
 env
-export GIT_COMMIT_HASH=$(git rev-parse HEAD)
-export GIT_COMMIT_DATE=$(git log -1 --format=%cI)
+GIT_COMMIT_HASH=$(git rev-parse HEAD)
+GIT_COMMIT_DATE=$(git log -1 --format=%cI)
+export GIT_COMMIT_HASH
+export GIT_COMMIT_DATE
 echo "Git Commit Hash: ${GIT_COMMIT_HASH}"
 echo "Git Commit Date: ${GIT_COMMIT_DATE}"
 echo "------------------------------"
