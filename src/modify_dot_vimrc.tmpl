@@ -1,0 +1,23 @@
+#!/bin/sh
+{{/* Improved sed range deletion for cross-platform portability */}}
+tempfile="$(mktemp)"
+trap 'rm -rf "${tempfile}"' EXIT
+cat > "${tempfile}"
+
+# Remove existing chezmoi section if present
+sed -i.bak '/.*modify_dot_vimrc\.tmpl:BEGIN:chezmoi:vim/,/.*modify_dot_vimrc\.tmpl:END:chezmoi:vim/d' "${tempfile}"
+
+# Check if file ends with newline, if not add one
+if [ -s "${tempfile}" ] && [ "$(tail -c1 "${tempfile}")" != "" ]; then
+  echo >> "${tempfile}"
+fi
+
+# Add our managed section
+cat >> "${tempfile}" << 'EOF'
+" {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:vim:{{ include "modify_dot_vimrc.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
+" Applied: {{ now.Format "2006-01-02T15:04:05Z07:00" }}
+source {{ .chezmoi.homeDir }}/.dotfiles/vim/config.vim
+" {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:vim:{{ include "modify_dot_vimrc.tmpl" | sha256sum | substr 0 8 }}
+EOF
+
+cat "${tempfile}"

@@ -2,14 +2,14 @@
 
 ## Project overview
 
-Personal dotfiles repository transitioning from Bazel to chezmoi for configuration management. Maintains personal/work profiles and guarded installation concepts.
+Personal dotfiles repository using chezmoi for configuration management. Maintains personal/work profiles with hybrid Bazel automation.
 
 **🚧 Active Projects**: See [.agents/scratch_zone/](.agents/scratch_zone/) for current development status and tasks.
 
 ## Repository structure
 
-- `src/` - Tool configurations (git, zsh, tmux, vim, hammerspoon, jq)
-- `rules/` - Bazel rules (maintained for testing/automation)
+- `src/` - Chezmoi templates and deployment configuration
+- `build/` - Bazel rules for validation, testing, and automation
 - `config/` - Build configuration and profile management
 - chezmoi files - `.chezmoi*` configuration and templates
 
@@ -98,6 +98,16 @@ This repository uses chezmoi for dotfiles management. Key documentation links:
 - [Application order](https://www.chezmoi.io/reference/application-order/) - Deterministic processing: before scripts → directories → files → after scripts (alphabetical)
 - [Target types](https://www.chezmoi.io/reference/target-types/) - Files, directories, symlinks, scripts with type-specific attributes
 - [Template functions](https://www.chezmoi.io/reference/templates/functions/) - Sprig functions + chezmoi-specific (includeTemplate, lookPath, output, etc.)
+- [Template variables](https://www.chezmoi.io/reference/templates/variables/) - Complete variable reference
+
+**Key template variables**:
+- `{{ .chezmoi.sourceFile }}` - Current template source file path (e.g., `modify_dot_gitconfig.tmpl`)  
+- `{{ .chezmoi.sourceDir }}` - Source directory path (e.g., `/Users/user/.local/share/chezmoi/src`)
+- `{{ .chezmoi.homeDir }}` - User home directory path (e.g., `/Users/user`)
+- `{{ .chezmoi.hostname }}` - Machine hostname
+- `{{ .chezmoi.username }}` - Current user
+- `{{ .chezmoi.os }}` - Operating system (darwin, linux, windows)
+- `{{ .chezmoi.arch }}` - Architecture (amd64, arm64)
 
 **Note**: Raw markdown documentation is also available at [chezmoi source docs](https://github.com/twpayne/chezmoi/tree/master/assets/chezmoi.io) for more concise reference when working with agents.
 
@@ -130,3 +140,23 @@ log_info "Using shared logging utilities..."
 - Follow community pattern from [chezmoi/discussions/3506](https://github.com/twpayne/chezmoi/discussions/3506)
 
 See `src/scripts/logging.sh` for available functions.
+
+## Chezmoi modify script essentials
+
+**Key insight**: `modify_` scripts work on ANY file via stdin/stdout - perfect for adding sections to corporate-managed files.
+
+**Critical components**:
+1. **SHA256 hash in header/footer** - enables change detection and re-execution  
+2. **Replacement logic with sed** - removes old sections before adding new ones
+3. **Matching header/footer** - defines exact boundaries for replacement
+4. **ISO8601 timestamp** - shows when section was last applied
+
+**Header pattern**:
+```bash
+# /path/to/script.tmpl:BEGIN:section:12345678 - WARNING: managed by chezmoi, do not edit
+# Applied: 2025-01-15T10:30:45Z07:00
+[configuration]
+# /path/to/script.tmpl:END:section:12345678
+```
+
+**BSD sed compatibility**: Use literal filenames in sed patterns, not template variables (they expand incorrectly).

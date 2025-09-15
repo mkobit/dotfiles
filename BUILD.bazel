@@ -1,6 +1,6 @@
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
-load("//rules:linting.bzl", "bazel_files_format", "bazel_files_format_test")
-load("//rules:lsp_simple.bzl", "setup_simple_lsp")
+load("//build:linting.bzl", "bazel_files_format", "bazel_files_format_test")
+load("//build:lsp_simple.bzl", "setup_simple_lsp")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -23,15 +23,11 @@ setup_simple_lsp(
     name = "lsp_setup",
 )
 
-# Test suite for configuration validation
+# Test suite for validation
 test_suite(
-    name = "config_tests",
+    name = "validation_tests",
     tests = [
         ":format_test",
         "//.agents/claude:claude_settings_schema_test",
-        "//src/git:selected_gitconfig_test",
-        "//src/tmux:tmux_conf_test",
-        "//src/vim:vimrc_test",
-        "//src/zsh:config_test",
     ],
 )

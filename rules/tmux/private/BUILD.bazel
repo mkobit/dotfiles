@@ -1,1 +1,0 @@
-package(default_visibility = ["//rules/tmux:__pkg__"])

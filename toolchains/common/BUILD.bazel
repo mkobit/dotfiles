@@ -1,4 +1,0 @@
-package(default_visibility = ["//visibility:public"])
-
-# Provides common utilities for toolchain implementations
-exports_files(["toolchain_utils.bzl"])

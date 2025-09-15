@@ -25,18 +25,51 @@
                 "redhat.vscode-yaml",
                 "ms-vscode.vscode-typescript-next",
                 "ms-python.python",
-                "golang.go"
+                "golang.go",
+                "sumneko.lua"
             ],
             "settings": {
                 "dev.containers.experimentalLockfile": true,
                 "gopls": {
                     "templateExtensions": ["tmpl"]
                 },
-                "files.associations": {
-                    "*.tmpl": "gotmpl"
-                },
                 "[gotmpl]": {
                     "editor.defaultFormatter": "golang.go"
+                },
+                "Lua.workspace.library": [
+                    "${3rd}/love2d/library",
+                    "${3rd}/busted/library"
+                ],
+                "Lua.workspace.checkThirdParty": false,
+                "Lua.workspace.maxPreload": 5000,
+                "Lua.workspace.preloadFileSize": 1000,
+                "Lua.workspace.userThirdParty": [],
+                "Lua.workspace.ignoreDir": [
+                    ".vscode",
+                    ".git",
+                    "node_modules"
+                ],
+                "Lua.workspace.useGitIgnore": true,
+                "Lua.hint.enable": true,
+                "Lua.hint.paramType": true,
+                "Lua.hint.setType": true,
+                "Lua.hint.paramName": "All",
+                "Lua.hint.arrayIndex": "Auto",
+                "Lua.hint.paramHints": true,
+                "Lua.hint.variableHints": true,
+                "Lua.hint.returnTypeHints": true,
+                "Lua.hint.fieldHints": true,
+                "[lua]": {
+                    "editor.defaultFormatter": "sumneko.lua",
+                    "editor.tabSize": 4,
+                    "editor.insertSpaces": true
+                },
+                "files.associations": {
+                    "*.tmpl": "gotmpl",
+                    "**/hammerspoon/**/*.lua": "lua",
+                    "**/nvim/**/*.lua": "lua",
+                    "**/.config/hammerspoon/**/*.lua": "lua",
+                    "**/.config/nvim/**/*.lua": "lua"
                 }
             }
         },
