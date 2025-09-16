@@ -71,6 +71,10 @@ bazel run //:format                             # Format code
 - `bazel test //...` for validation
 - Simplified user workflow with maintained build system benefits
 
+## Tooling Guides
+
+- **jq**: For guidelines on using `jq` and managing custom modules, see [src/dot_dotfiles/jq/jq.md](src/dot_dotfiles/jq/jq.md).
+
 ## chezmoi documentation
 
 This repository uses chezmoi for dotfiles management. Key documentation links:
