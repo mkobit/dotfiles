@@ -1,15 +1,12 @@
-# Zsh configuration managed by chezmoi
-# This file sources all individual config snippets
+{{/* Zsh configuration managed by chezmoi */}}
+{{/* Auto-sources all .zsh files in snippets and main directories */}}
 
-# Base performance configuration
-source {{ .chezmoi.homeDir }}/.dotfiles/zsh/snippets/base/performance.zsh
+# Source all snippet files
+{{- range glob (print .chezmoi.homeDir "/.dotfiles/zsh/snippets/*.zsh") }}
+source {{ . }}
+{{- end }}
 
-# Core configuration
-source {{ .chezmoi.homeDir }}/.dotfiles/zsh/snippets/history.zsh
-source {{ .chezmoi.homeDir }}/.dotfiles/zsh/snippets/performance.zsh
-source {{ .chezmoi.homeDir }}/.dotfiles/zsh/snippets/oh-my-zsh.zsh
-
-# Tool integrations
-source {{ .chezmoi.homeDir }}/.dotfiles/zsh/snippets/fzf.zsh
-source {{ .chezmoi.homeDir }}/.dotfiles/zsh/snippets/zoxide.zsh
-source {{ .chezmoi.homeDir }}/.dotfiles/zsh/snippets/jq_interactive.zsh
+# Source all main zsh files (like chezmoi.zsh)
+{{- range glob (print .chezmoi.homeDir "/.dotfiles/zsh/*.zsh") }}
+source {{ . }}
+{{- end }}

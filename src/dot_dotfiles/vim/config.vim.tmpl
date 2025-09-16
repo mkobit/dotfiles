@@ -1,16 +1,7 @@
-" Vim configuration managed by chezmoi
-" This file sources all individual config snippets
+{{/* Vim configuration managed by chezmoi */}}
+{{/* Auto-sources all .vim files in snippets directory */}}
 
-" Core configuration
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/snippets/base.vim
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/snippets/indentation.vim
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/snippets/search.vim
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/snippets/ui.vim
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/snippets/encoding.vim
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/snippets/editing.vim
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/snippets/performance.vim
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/snippets/navigation.vim
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/snippets/filetypes.vim
-
-" Local extensions (if present)
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/snippets/local.vim
+" Source all snippet files
+{{- range glob (print .chezmoi.homeDir "/.dotfiles/vim/snippets/*.vim") }}
+source {{ . }}
+{{- end }}
