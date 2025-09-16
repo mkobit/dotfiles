@@ -17,7 +17,9 @@
 #   1,2
 #   3,4
 def to_csv:
-  if length == 0 then
+  if type != "array" then
+    error("Input must be an array of objects")
+  elif length == 0 then
     empty
   else
     (.[0] | keys_unsorted) as $headers |

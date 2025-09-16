@@ -73,7 +73,7 @@ bazel run //:format                             # Format code
 
 ## Tooling Guides
 
-- **jq**: For guidelines on using `jq` and managing custom modules, see [.agents/jq.md](.agents/jq.md).
+- **jq**: For guidelines on using `jq` and managing custom modules, see [src/dot_dotfiles/jq/jq.md](src/dot_dotfiles/jq/jq.md).
 
 ## chezmoi documentation
 
