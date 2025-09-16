@@ -24,6 +24,14 @@ bazel run //config:install_all
 - Guarded installation (safe config injection)
 - Security-first (pinned dependencies, automated updates)
 
+== Hammerspoon Automation
+
+This repository uses link:https://www.hammerspoon.org[Hammerspoon] for powerful macOS automation. We use it to manage window layouts, hotkeys, and other system-level customizations via Lua scripting.
+
+For detailed information on the Hammerspoon modules and our specific configuration, see our internal documentation.
+
+* link:src/dot_dotfiles/hammerspoon/hammerspoon.md[Hammerspoon API Reference]
+
 == Current Project Status
 
 **🚧 Active Development**: Integrating chezmoi as deployment engine while preserving Bazel validation and testing.
