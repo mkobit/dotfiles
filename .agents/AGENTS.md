@@ -1,5 +1,7 @@
 # Agent context for dotfiles repository
 
+> **Note**: This file is symlinked from `.agents/AGENTS.md` for convenient access from project root.
+
 ## Project overview
 
 Personal dotfiles repository using chezmoi for configuration management. Maintains personal/work profiles with hybrid Bazel automation.
@@ -30,11 +32,72 @@ bazel run //:format                             # Format code
 
 ## Key principles
 
-- Personal/work profiles with different settings  
+- Feature flags over profiles for granular configuration control
 - Security paramount with pinned versions and no committed secrets
 - Tests validate configurations before deployment
 - Cross-platform compatibility (Linux, macOS, Windows)
 - Preserve existing user configurations during installation
+
+## Configuration patterns
+
+### Feature flags (preferred over profiles)
+Use granular feature flags in `.chezmoidata.toml` instead of monolithic profiles:
+
+```toml
+# Git personal configuration
+[git.personal]
+enabled = true
+name = "Your Name"
+email = "you@example.com"
+signing_key = "GPG_KEY_ID"
+gpg_sign = true
+```
+
+**Benefits:**
+- Granular per-feature control
+- Easy to disable specific features per machine
+- Work environments can override cleanly
+
+### Template auto-discovery
+Config templates use `glob` patterns to auto-discover snippet files:
+
+```go
+{{/* Auto-sources all .zsh files in snippets directory */}}
+{{- range glob (print .chezmoi.homeDir "/.dotfiles/zsh/snippets/*.zsh") }}
+source {{ . }}
+{{- end }}
+```
+
+**Benefits:**
+- Future-proof - just drop files in directories
+- Template validates existence at build time
+- No hardcoded file lists to maintain
+- Consistent pattern across zsh/vim/tmux
+
+### Template scoping with `with`
+Use `with` for clear scoping and cleaner templates:
+
+```go
+{{- with .git.personal }}
+{{- if .enabled }}
+[user]
+  name = {{ .name | quote }}
+  email = {{ .email | quote }}
+  signingkey = {{ .signing_key }}
+{{- end }}
+{{- end }}
+```
+
+### Early failure validation
+Validate required fields early with descriptive error messages:
+
+```go
+{{- if .git.personal.enabled }}
+{{- if not (and .git.personal.name .git.personal.email .git.personal.signing_key) }}
+{{- fail "git.personal.enabled is true but name, email, or signing_key is empty" }}
+{{- end }}
+{{- end }}
+```
 
 ## Bazel to chezmoi transition
 
@@ -164,3 +227,29 @@ See `src/scripts/logging.sh` for available functions.
 ```
 
 **BSD sed compatibility**: Use literal filenames in sed patterns, not template variables (they expand incorrectly).
+
+## General Agentic Guidance
+
+When undertaking any task, it is crucial to begin by thoroughly understanding the request and the context of the repository. Follow these steps to ensure a successful and efficient workflow:
+
+1.  **Understand the Goal:** Before writing any code, take the time to understand the user's ultimate objective. If the request is ambiguous, ask clarifying questions.
+
+2.  **Explore the Codebase:**
+    *   Get a comprehensive overview of the repository structure.
+    *   Read the `AGENTS.md` file (this file) to understand project-specific guidelines, architecture, and key principles.
+    *   Examine relevant configuration files (e.g., `chezmoi.toml`, `BUILD.bazel`) to understand how the project is set up.
+    *   Pay special attention to the `src/` directory, as it is the chezmoi root and contains the core dotfile templates.
+
+3.  **Formulate a Plan:**
+    *   Create a step-by-step plan that outlines your approach.
+    *   Include steps for verification, such as running tests or inspecting files, to confirm that your changes have been applied correctly.
+    *   Formalize your plan before starting work.
+
+4.  **Execute and Verify:**
+    *   Execute each step of your plan methodically.
+    *   After each modification, verify the changes using the available tools.
+    *   Do not proceed to the next step until you have confirmed that the previous step was successful.
+
+5.  **Seek Feedback:**
+    *   Before submitting your changes, request a code review to get feedback on your work.
+    *   Address any issues raised in the review before finalizing your changes.

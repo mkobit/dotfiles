@@ -17,11 +17,9 @@
   path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/column.gitconfig
   path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/aliases.gitconfig
 
-# Profile-specific configuration
-{{- if eq .profile "personal" }}
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/user.gitconfig
+# Personal configuration
+{{- if .git.personal.enabled }}
+  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/personal.gitconfig
   path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/github.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/gpg.gitconfig
   path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/init.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/commit.gitconfig
 {{- end }}
