@@ -1,5 +1,7 @@
 # Agent context for dotfiles repository
 
+> **Note**: This file is symlinked from `.agents/AGENTS.md` for convenient access from project root.
+
 ## Project overview
 
 Personal dotfiles repository using chezmoi for configuration management. Maintains personal/work profiles with hybrid Bazel automation.
@@ -30,11 +32,72 @@ bazel run //:format                             # Format code
 
 ## Key principles
 
-- Personal/work profiles with different settings  
+- Feature flags over profiles for granular configuration control
 - Security paramount with pinned versions and no committed secrets
 - Tests validate configurations before deployment
 - Cross-platform compatibility (Linux, macOS, Windows)
 - Preserve existing user configurations during installation
+
+## Configuration patterns
+
+### Feature flags (preferred over profiles)
+Use granular feature flags in `.chezmoidata.toml` instead of monolithic profiles:
+
+```toml
+# Git personal configuration
+[git.personal]
+enabled = true
+name = "Your Name"
+email = "you@example.com"
+signing_key = "GPG_KEY_ID"
+gpg_sign = true
+```
+
+**Benefits:**
+- Granular per-feature control
+- Easy to disable specific features per machine
+- Work environments can override cleanly
+
+### Template auto-discovery
+Config templates use `glob` patterns to auto-discover snippet files:
+
+```go
+{{/* Auto-sources all .zsh files in snippets directory */}}
+{{- range glob (print .chezmoi.homeDir "/.dotfiles/zsh/snippets/*.zsh") }}
+source {{ . }}
+{{- end }}
+```
+
+**Benefits:**
+- Future-proof - just drop files in directories
+- Template validates existence at build time
+- No hardcoded file lists to maintain
+- Consistent pattern across zsh/vim/tmux
+
+### Template scoping with `with`
+Use `with` for clear scoping and cleaner templates:
+
+```go
+{{- with .git.personal }}
+{{- if .enabled }}
+[user]
+  name = {{ .name | quote }}
+  email = {{ .email | quote }}
+  signingkey = {{ .signing_key }}
+{{- end }}
+{{- end }}
+```
+
+### Early failure validation
+Validate required fields early with descriptive error messages:
+
+```go
+{{- if .git.personal.enabled }}
+{{- if not (and .git.personal.name .git.personal.email .git.personal.signing_key) }}
+{{- fail "git.personal.enabled is true but name, email, or signing_key is empty" }}
+{{- end }}
+{{- end }}
+```
 
 ## Bazel to chezmoi transition
 
