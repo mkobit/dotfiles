@@ -1,14 +1,7 @@
 {{/* Zsh configuration managed by chezmoi */}}
-{{/* Auto-sources all .zsh files in snippets and main directories */}}
+{{/* Auto-sources all .zsh files in snippets directory */}}
 
 # Source all snippet files
 {{- range glob (print .chezmoi.homeDir "/.dotfiles/zsh/snippets/*.zsh") }}
 source {{ . }}
-{{- end }}
-
-# Source all main zsh files (excluding config.zsh to avoid recursion)
-{{- range glob (print .chezmoi.homeDir "/.dotfiles/zsh/*.zsh") }}
-{{- if not (hasSuffix "/config.zsh" .) }}
-source {{ . }}
-{{- end }}
 {{- end }}
