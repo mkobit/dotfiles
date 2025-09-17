@@ -41,10 +41,18 @@ path = "zoxide"
 executable = true
 {{ end }}
 
-{{ if eq .oh-my-zsh.installation "external-sources" }}
+{{ if eq .zsh.oh-my-zsh.installation "external-sources" }}
 [".oh-my-zsh"]
     type = "archive"
-    url = "https://github.com/ohmyzsh/ohmyzsh/archive/{{ .oh-my-zsh.sha }}.tar.gz"
+    url = "https://github.com/ohmyzsh/ohmyzsh/archive/{{ .zsh.oh-my-zsh.sha }}.tar.gz"
+    exact = true
+    stripComponents = 1
+{{ end }}
+
+{{ if .zsh.oh-my-zsh.powerlevel10k.enabled }}
+[".oh-my-zsh/custom/themes/powerlevel10k"]
+    type = "archive"
+    url = "https://github.com/romkatv/powerlevel10k/archive/refs/tags/{{ .zsh.oh-my-zsh.powerlevel10k.version }}.tar.gz"
     exact = true
     stripComponents = 1
 {{ end }}
