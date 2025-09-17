@@ -6,7 +6,9 @@
 source {{ . }}
 {{- end }}
 
-# Source all main zsh files (like chezmoi.zsh)
+# Source all main zsh files (excluding config.zsh to avoid recursion)
 {{- range glob (print .chezmoi.homeDir "/.dotfiles/zsh/*.zsh") }}
+{{- if not (hasSuffix "/config.zsh" .) }}
 source {{ . }}
+{{- end }}
 {{- end }}
