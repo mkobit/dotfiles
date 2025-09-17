@@ -20,9 +20,6 @@ tools/**
 **/BUILD
 **/BUILD.bazel
 
-# Ignore oh-my-zsh cache  
-**/.dotfiles/external/oh-my-zsh/cache/**
-
 # Git files
 **/.gitignore
 **/.gitkeep
