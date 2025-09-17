@@ -4,9 +4,9 @@ Claude Code is Anthropic's official CLI tool for interacting with Claude AI for 
 
 ## Official Documentation
 
-- [Claude Code Documentation](https://docs.anthropic.com/en/docs/claude-code)
-- [Getting Started Guide](https://docs.anthropic.com/en/docs/claude-code/getting-started)
-- [Installation Instructions](https://docs.anthropic.com/en/docs/claude-code/installation)
+- [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code)
+- [Getting Started Guide](https://docs.claude.com/en/docs/claude-code/getting-started)
+- [Installation Instructions](https://docs.claude.com/en/docs/claude-code/installation)
 
 ## Configuration
 
@@ -25,8 +25,8 @@ Configuration is loaded in this order (later files override earlier ones):
 
 ### Hooks
 Event-driven automation that triggers on tool calls and other events.
-- [Hooks Documentation](https://docs.anthropic.com/en/docs/claude-code/hooks)
-- [Hook Examples](https://docs.anthropic.com/en/docs/claude-code/hooks#examples)
+- [Hooks Documentation](https://docs.claude.com/en/docs/claude-code/hooks)
+- [Hook Examples](https://docs.claude.com/en/docs/claude-code/hooks#examples)
 
 Common hook types:
 - `user-prompt-submit-hook` - Runs before user input is sent
@@ -35,8 +35,8 @@ Common hook types:
 
 ### Agents
 Specialized Claude instances for specific tasks with custom contexts and tool access.
-- [Agents Documentation](https://docs.anthropic.com/en/docs/claude-code/agents)
-- [Creating Custom Agents](https://docs.anthropic.com/en/docs/claude-code/agents#custom-agents)
+- [Agents Documentation](https://docs.claude.com/en/docs/claude-code/agents)
+- [Creating Custom Agents](https://docs.claude.com/en/docs/claude-code/agents#custom-agents)
 
 ### Context Management
 - Project-level context via `CLAUDE.md`

@@ -48,20 +48,35 @@ Pro features include:
 ## Configuration Management
 
 ### CLI Integration
-Rectangle Pro supports command-line control for automation:
+Rectangle uses `defaults write` commands for configuration:
 ```bash
-# Example: Move window to left half
-osascript -e 'tell application "Rectangle Pro" to move window to left half'
+# Set keyboard shortcuts via terminal
+defaults write com.knollsoft.Rectangle leftHalf -dict-add keyCode -float 123 modifierFlags -float 1572864
+
+# Configure window behavior
+defaults write com.knollsoft.Rectangle subsequentExecutionMode -int 2
+defaults write com.knollsoft.Rectangle gapSize -float 5
 ```
 
-### Automation Scripts
-AppleScript integration for complex window management workflows:
-```applescript
-tell application "Rectangle Pro"
-    move window 1 to left half
-    move window 2 to right half
-end tell
+### URL Scheme Scripting (Pro)
+Rectangle Pro supports programmatic window actions via URL schemes:
+```bash
+# Execute window actions programmatically
+open -g 'rectangle-pro://execute-action?name=left-half'
+open -g 'rectangle-pro://execute-action?name=maximize'
+open -g 'rectangle-pro://execute-action?name=pin'
+
+# Trigger custom layouts by name
+open -g 'rectangle-pro://execute-action?name=my-custom-layout'
 ```
+
+### Terminal Commands
+Full configuration management via command line:
+- [Terminal Commands Documentation](https://github.com/rxhanson/Rectangle/blob/main/TerminalCommands.md)
+- [Rectangle Pro Community](https://github.com/rxhanson/RectanglePro-Community) - Issues and discussions
+- Keyboard shortcut customization
+- Window sizing and gap configuration
+- Display and snap behavior settings
 
 ### JSON Configuration Structure
 Exported configurations include:

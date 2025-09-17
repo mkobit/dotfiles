@@ -12,51 +12,49 @@ Alacritty is a cross-platform, GPU-accelerated terminal emulator focused on perf
 
 ### Config File Locations
 Alacritty searches for configuration files in this order:
-1. `$XDG_CONFIG_HOME/alacritty/alacritty.yml`
-2. `$XDG_CONFIG_HOME/alacritty.yml`
-3. `$HOME/.config/alacritty/alacritty.yml`
-4. `$HOME/.alacritty.yml`
+1. `$XDG_CONFIG_HOME/alacritty/alacritty.toml`
+2. `$XDG_CONFIG_HOME/alacritty.toml`
+3. `$HOME/.config/alacritty/alacritty.toml`
+4. `$HOME/.alacritty.toml`
+5. `/etc/alacritty/alacritty.toml`
 
 ### Platform-Specific Paths
-- **macOS**: `~/.config/alacritty/alacritty.yml`
-- **Linux**: `~/.config/alacritty/alacritty.yml`
-- **Windows**: `%APPDATA%\alacritty\alacritty.yml`
+- **macOS**: `~/.config/alacritty/alacritty.toml`
+- **Linux**: `~/.config/alacritty/alacritty.toml`
+- **Windows**: `%APPDATA%\alacritty\alacritty.toml`
 
 ## Configuration Structure
 
-### Basic YAML Format
-```yaml
+### Basic TOML Format
+```toml
 # Window configuration
-window:
-  dimensions:
-    columns: 120
-    lines: 40
+[window]
+columns = 120
+lines = 40
 
-# Font configuration  
-font:
-  normal:
-    family: "JetBrains Mono"
-  size: 14.0
+# Font configuration
+[font]
+size = 14.0
+
+[font.normal]
+family = "JetBrains Mono"
 
 # Colors (example: Dracula theme)
-colors:
-  primary:
-    background: '#282a36'
-    foreground: '#f8f8f2'
+[colors.primary]
+background = '#282a36'
+foreground = '#f8f8f2'
 ```
 
 ### Cross-Platform Configuration
-Use conditional blocks for platform-specific settings:
-```yaml
-# macOS specific
-font:
-  normal:
-    family: "SF Mono"
-
-# Alternative for Linux
-# font:
-#   normal:
-#     family: "DejaVu Sans Mono"
+Alacritty uses a single config file, manage platform differences via chezmoi templates:
+```toml
+# Platform-specific font via chezmoi templating
+[font.normal]
+{{- if eq .chezmoi.os "darwin" }}
+family = "SF Mono"
+{{- else }}
+family = "DejaVu Sans Mono"
+{{- end }}
 ```
 
 ## Key Features
@@ -76,12 +74,21 @@ Advanced font rendering with ligature support:
 
 ### Key Bindings
 Custom keyboard shortcuts:
-```yaml
-key_bindings:
-  - { key: V, mods: Command, action: Paste }
-  - { key: C, mods: Command, action: Copy }
-  - { key: N, mods: Command, action: SpawnNewInstance }
-  - { key: Q, mods: Command, action: Quit }
+```toml
+[[keyboard.bindings]]
+key = "V"
+mods = "Command"
+action = "Paste"
+
+[[keyboard.bindings]]
+key = "C"
+mods = "Command" 
+action = "Copy"
+
+[[keyboard.bindings]]
+key = "N"
+mods = "Command"
+action = "SpawnNewInstance"
 ```
 
 ### Color Schemes
@@ -95,47 +102,43 @@ Extensive theming support:
 
 ### Environment Variables
 Set shell environment variables:
-```yaml
-env:
-  TERM: alacritty
-  WINIT_X11_SCALE_FACTOR: "1.0"
+```toml
+[env]
+TERM = "alacritty"
+WINIT_X11_SCALE_FACTOR = "1.0"
 ```
 
 ### Shell Configuration
 Specify shell and startup commands:
-```yaml
-shell:
-  program: /bin/zsh
-  args:
-    - --login
+```toml
+[shell]
+program = "/bin/zsh"
+args = ["--login"]
 ```
 
 ### Mouse and Cursor
 Mouse behavior and cursor appearance:
-```yaml
-mouse:
-  double_click: { threshold: 300 }
-  triple_click: { threshold: 300 }
+```toml
+[mouse]
+double_click = { threshold = 300 }
+triple_click = { threshold = 300 }
 
-cursor:
-  style: Block
-  vi_mode_style: Underline
-  blinking: Never
+[cursor]
+style = "Block"
+vi_mode_style = "Underline"
+blinking = "Never"
 ```
 
 ## Integration Patterns
 
 ### With chezmoi
-```yaml
+```toml
 # Template for dynamic configuration
+[font.normal]
 {{- if eq .chezmoi.os "darwin" }}
-font:
-  normal:
-    family: "SF Mono"
+family = "SF Mono"
 {{- else if eq .chezmoi.os "linux" }}
-font:
-  normal:
-    family: "DejaVu Sans Mono"  
+family = "DejaVu Sans Mono"
 {{- end }}
 ```
 
@@ -146,20 +149,20 @@ font:
 - **Opacity**: 0.9-0.95 for subtle transparency
 
 ### Performance Tuning
-```yaml
+```toml
 # Optimize for performance
-scrolling:
-  history: 10000
-  multiplier: 3
+[scrolling]
+history = 10000
+multiplier = 3
 
-# Reduce input latency  
-mouse:
-  hide_when_typing: true
+# Reduce input latency
+[mouse]
+hide_when_typing = true
 
 # Disable visual bell
-bell:
-  animation: EaseOutExpo
-  duration: 0
+[bell]
+animation = "EaseOutExpo"
+duration = 0
 ```
 
 ## Troubleshooting
