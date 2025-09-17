@@ -30,3 +30,7 @@ installation = "external-sources"
 [zoxide]
 version = "0.9.8"
 installation = "external-sources"
+
+[oh-my-zsh]
+installation = "external-sources"
+sha = "9e23925b8581d22033f07f1983587412d3761494"
