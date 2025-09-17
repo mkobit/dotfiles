@@ -1,3 +1,5 @@
+{{ with (index .zsh "oh-my-zsh") }}
+{{ if eq .installation "external-sources" }}
 #!/usr/bin/env zsh
 # =============================================================================
 # OH-MY-ZSH LOADER & CONFIGURATION
@@ -8,7 +10,7 @@
 # =============================================================================
 # THEME
 # =============================================================================
-{{ if .zsh.oh-my-zsh.powerlevel10k.enabled }}
+{{ if .powerlevel10k.enabled }}
 ZSH_THEME="powerlevel10k/powerlevel10k"
 {{ else }}
 # robbyrussell is the fastest theme, perfect for tmux performance
@@ -19,7 +21,7 @@ ZSH_THEME="robbyrussell"
 # PLUGINS
 # =============================================================================
 plugins=(
-    {{- range .zsh.oh-my-zsh.plugins }}
+    {{- range .plugins }}
     {{ . | quote }}
     {{- end }}
 )
@@ -58,3 +60,5 @@ setopt CORRECT                     # Enable command correction
 # CRITICAL: Set vi mode AFTER oh-my-zsh loads (oh-my-zsh resets to emacs mode)
 bindkey -v                         # Enable vi mode (must be after oh-my-zsh)
 export KEYTIMEOUT=1                # Fast ESC timeout for vi mode
+{{- end }}
+{{- end }}
