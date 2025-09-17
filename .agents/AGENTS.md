@@ -88,6 +88,20 @@ Use `with` for clear scoping and cleaner templates:
 {{- end }}
 ```
 
+### Hyphenated keys in templates
+When accessing keys containing hyphens (e.g., `oh-my-zsh`), use the `index` function:
+
+```go
+{{- with (index .zsh "oh-my-zsh") }}
+{{- if eq .installation "external-sources" }}
+# Template content here
+{{- end }}
+{{- end }}
+```
+
+**Why**: Direct access like `.zsh.oh-my-zsh` causes "bad character U+002D" errors in chezmoi/Go templates.
+**Reference**: [Stack Overflow - Helm templating hyphens](https://stackoverflow.com/questions/63853679/helm-templating-doesnt-let-me-use-dash-in-names)
+
 ### Early failure validation
 Validate required fields early with descriptive error messages:
 

@@ -40,3 +40,42 @@ url = "https://github.com/ajeetdsouza/zoxide/releases/download/v{{ .zoxide.versi
 path = "zoxide"
 executable = true
 {{ end }}
+
+{{ with (index .zsh "oh-my-zsh") }}
+{{ if eq .installation "external-sources" }}
+[".dotfiles/external/oh-my-zsh"]
+    type = "archive"
+    url = "https://github.com/ohmyzsh/ohmyzsh/archive/{{ .sha }}.tar.gz"
+    exact = true
+    stripComponents = 1
+
+{{ if .powerlevel10k.enabled }}
+[".dotfiles/external/oh-my-zsh/custom/themes/powerlevel10k"]
+    type = "archive"
+    url = "https://github.com/romkatv/powerlevel10k/archive/refs/tags/{{ .powerlevel10k.version }}.tar.gz"
+    exact = true
+    stripComponents = 1
+
+# MesloLGS NF font files for Powerlevel10k
+[".dotfiles/external/fonts/MesloLGS NF Regular.ttf"]
+    type = "file"
+    url = "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Regular.ttf"
+    checksum.sha256 = "d97946186e97f8d7c0139e8983abf40a1d2d086924f2c5dbf1c29bd8f2c6e57d"
+
+[".dotfiles/external/fonts/MesloLGS NF Bold.ttf"]
+    type = "file"
+    url = "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold.ttf"
+    checksum.sha256 = "b6c0199cf7c7483c8343ea020658925e6de0aeb318b89908152fcb4d19226003"
+
+[".dotfiles/external/fonts/MesloLGS NF Italic.ttf"]
+    type = "file"
+    url = "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Italic.ttf"
+    checksum.sha256 = "6f357bcbe2597704e157a915625928bca38364a89c22a4ac36e7a116dcd392ef"
+
+[".dotfiles/external/fonts/MesloLGS NF Bold Italic.ttf"]
+    type = "file"
+    url = "https://github.com/romkatv/powerlevel10k-media/raw/master/MesloLGS%20NF%20Bold%20Italic.ttf"
+    checksum.sha256 = "56b4131adecec052c4b324efb818dd326d586dbc316fc68f98f1cae2eb8d1220"
+{{ end }}
+{{ end }}
+{{ end }}
