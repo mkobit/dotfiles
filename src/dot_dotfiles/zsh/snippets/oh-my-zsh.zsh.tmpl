@@ -43,6 +43,9 @@ fi
 # Set the ZSH environment variable to the chezmoi-managed location
 export ZSH="$HOME/.dotfiles/external/oh-my-zsh"
 
+# Redirect cache directory to prevent chezmoi tracking runtime files
+export ZSH_CACHE_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/oh-my-zsh"
+
 # Load oh-my-zsh
 if [[ -f "$ZSH/oh-my-zsh.sh" ]]; then
     source "$ZSH/oh-my-zsh.sh"
