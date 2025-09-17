@@ -40,3 +40,21 @@ url = "https://github.com/ajeetdsouza/zoxide/releases/download/v{{ .zoxide.versi
 path = "zoxide"
 executable = true
 {{ end }}
+
+{{ with .zsh.oh-my-zsh }}
+{{ if eq .installation "external-sources" }}
+[".local/share/oh-my-zsh"]
+    type = "archive"
+    url = "https://github.com/ohmyzsh/ohmyzsh/archive/{{ .sha }}.tar.gz"
+    exact = true
+    stripComponents = 1
+{{ end }}
+
+{{ if .powerlevel10k.enabled }}
+[".local/share/oh-my-zsh/custom/themes/powerlevel10k"]
+    type = "archive"
+    url = "https://github.com/romkatv/powerlevel10k/archive/refs/tags/{{ .powerlevel10k.version }}.tar.gz"
+    exact = true
+    stripComponents = 1
+{{ end }}
+{{ end }}

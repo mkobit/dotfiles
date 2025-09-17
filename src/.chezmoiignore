@@ -20,6 +20,11 @@ tools/**
 **/BUILD
 **/BUILD.bazel
 
+# Ignore oh-my-zsh cache
+{{- if .zsh.oh-my-zsh.installation "external-sources" -}}
+/.local/share/oh-my-zsh/cache/
+{{- end -}}
+
 # Git files
 **/.gitignore
 **/.gitkeep
