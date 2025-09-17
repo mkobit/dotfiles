@@ -1,5 +1,7 @@
 # Agent context for dotfiles repository
 
+> **Note**: This file is symlinked from `.agents/AGENTS.md` for convenient access from project root.
+
 ## Project overview
 
 Personal dotfiles repository using chezmoi for configuration management. Maintains personal/work profiles with hybrid Bazel automation.
