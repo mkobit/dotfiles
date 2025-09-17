@@ -134,6 +134,10 @@ Validate required fields early with descriptive error messages:
 - `bazel test //...` for validation
 - Simplified user workflow with maintained build system benefits
 
+## Tooling Guides
+
+- **jq**: For guidelines on using `jq` and managing custom modules, see [src/dot_dotfiles/jq/jq.md](src/dot_dotfiles/jq/jq.md).
+
 ## chezmoi documentation
 
 This repository uses chezmoi for dotfiles management. Key documentation links:
@@ -223,3 +227,29 @@ See `src/scripts/logging.sh` for available functions.
 ```
 
 **BSD sed compatibility**: Use literal filenames in sed patterns, not template variables (they expand incorrectly).
+
+## General Agentic Guidance
+
+When undertaking any task, it is crucial to begin by thoroughly understanding the request and the context of the repository. Follow these steps to ensure a successful and efficient workflow:
+
+1.  **Understand the Goal:** Before writing any code, take the time to understand the user's ultimate objective. If the request is ambiguous, ask clarifying questions.
+
+2.  **Explore the Codebase:**
+    *   Get a comprehensive overview of the repository structure.
+    *   Read the `AGENTS.md` file (this file) to understand project-specific guidelines, architecture, and key principles.
+    *   Examine relevant configuration files (e.g., `chezmoi.toml`, `BUILD.bazel`) to understand how the project is set up.
+    *   Pay special attention to the `src/` directory, as it is the chezmoi root and contains the core dotfile templates.
+
+3.  **Formulate a Plan:**
+    *   Create a step-by-step plan that outlines your approach.
+    *   Include steps for verification, such as running tests or inspecting files, to confirm that your changes have been applied correctly.
+    *   Formalize your plan before starting work.
+
+4.  **Execute and Verify:**
+    *   Execute each step of your plan methodically.
+    *   After each modification, verify the changes using the available tools.
+    *   Do not proceed to the next step until you have confirmed that the previous step was successful.
+
+5.  **Seek Feedback:**
+    *   Before submitting your changes, request a code review to get feedback on your work.
+    *   Address any issues raised in the review before finalizing your changes.
