@@ -1,0 +1,4 @@
+# Source all snippet files
+{{- range glob (print .chezmoi.homeDir "/.dotfiles/bash/snippets/*.bash") }}
+source {{ . }}
+{{- end }}

@@ -1,6 +1,10 @@
 [core]
 	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreeditor
+{{- if lookPath "nvim" }}
+	editor = nvim
+{{- else if lookPath "vim" }}
 	editor = vim
+{{- end }}
 	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreautocrlf
 	autocrlf = input
 	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreexcludesFile
