@@ -4,9 +4,22 @@
 
 ## Project overview
 
-Personal dotfiles repository using chezmoi for configuration management. Maintains personal/work profiles with hybrid Bazel automation.
+Personal dotfiles repository using chezmoi for configuration management.
+Maintains personal/work profiles with hybrid Bazel automation.
 
-**🚧 Active Projects**: See [.agents/scratch_zone/](.agents/scratch_zone/) for current development status and tasks.
+### Responsibilities
+
+#### chezmoi handles:
+- Dotfile installation and management (`chezmoi apply`)
+- Template processing and variable substitution
+- Cross-platform file management
+- User-specific configuration deployment
+
+#### Bazel retains:
+- **Verification**: Validate configurations before deployment
+- **Testing**: Unit tests for configuration logic
+- **Automation**: Generate chezmoi files (versions, SHAs, external dependencies)
+- **Build reproducibility**: Pinned dependencies and deterministic builds
 
 ## Repository structure
 
@@ -19,8 +32,8 @@ Personal dotfiles repository using chezmoi for configuration management. Maintai
 
 ### Primary workflow (chezmoi)
 ```bash
-chezmoi apply                                   # Install/update dotfiles
 chezmoi diff                                    # Preview changes
+chezmoi apply                                   # Install/update dotfiles
 chezmoi edit dot_gitconfig                      # Edit source files
 ```
 
@@ -32,10 +45,10 @@ bazel run //:format                             # Format code
 
 ## Key principles
 
+- Use existing patterns before creating new ones
 - Feature flags over profiles for granular configuration control
 - Security paramount with pinned versions and no committed secrets
-- Tests validate configurations before deployment
-- Cross-platform compatibility (Linux, macOS, Windows)
+- Cross-platform compatibility (Linux, macOS)
 - Preserve existing user configurations during installation
 
 ## Configuration patterns
@@ -59,6 +72,7 @@ gpg_sign = true
 - Work environments can override cleanly
 
 ### Template auto-discovery
+
 Config templates use `glob` patterns to auto-discover snippet files:
 
 ```go
@@ -75,6 +89,7 @@ source {{ . }}
 - Consistent pattern across zsh/vim/tmux
 
 ### Template scoping with `with`
+
 Use `with` for clear scoping and cleaner templates:
 
 ```go
@@ -89,6 +104,7 @@ Use `with` for clear scoping and cleaner templates:
 ```
 
 ### Hyphenated keys in templates
+
 When accessing keys containing hyphens (e.g., `oh-my-zsh`), use the `index` function:
 
 ```go
@@ -103,52 +119,38 @@ When accessing keys containing hyphens (e.g., `oh-my-zsh`), use the `index` func
 **Reference**: [Stack Overflow - Helm templating hyphens](https://stackoverflow.com/questions/63853679/helm-templating-doesnt-let-me-use-dash-in-names)
 
 ### Early failure validation
+
 Validate required fields early with descriptive error messages:
 
 ```go
 {{- if .git.personal.enabled }}
-{{- if not (and .git.personal.name .git.personal.email .git.personal.signing_key) }}
-{{- fail "git.personal.enabled is true but name, email, or signing_key is empty" }}
+{{- if not .git.personal.name }}
+{{- fail "git.personal.enabled is enabled but name is empty" }}
+{{- end }}
+{{- if not .git.personal.email }}
+{{- fail "git.personal.enabled is enabled but email is empty" }}
+{{- end }}
+{{- if not .git.personal.signing_key }}
+{{- fail "git.personal.enabled is enabled but signing_key is empty" }}
 {{- end }}
 {{- end }}
 ```
 
-## Bazel to chezmoi transition
+### 🚨 Managed environment constraints
 
-**Current state**: Mixed Bazel/chezmoi architecture during migration period.
+We need to operate within environments that have managed infrastructure that handle files typically self-managed in a user controlled system.
 
-### Migration goals
-- **chezmoi**: Primary tool for file installation and management
-- **Bazel**: Retained for verification, testing, and automation tasks
-- **Hybrid approach**: Leverage strengths of both tools
+**Safe patterns:**
+- `modify_` scripts → **ONLY** safe way to customize externally managed `.gitconfig`, `.zshrc`, etc.
+- `dot_dotfiles/` → Create your own organized directory structure
+- Private files in `~/.dotfiles/` → Full control for non-corporate managed locations
 
-### Responsibilities
+**Forbidden in managed environments:**
+- Never use `dot_gitconfig`, `dot_zshrc` when external infrastructure manages these files
+- Never replace system binaries or externally-installed tools
+- `modify_` scripts are required for any file that corporate IT manages
 
-#### chezmoi handles:
-- Dotfile installation and management (`chezmoi apply`)
-- Template processing and variable substitution
-- Cross-platform file management
-- User-specific configuration deployment
-
-#### Bazel retains:
-- **Verification**: Validate configurations before deployment
-- **Testing**: Unit tests for configuration logic
-- **Automation**: Generate chezmoi files (versions, SHAs, external dependencies)
-- **Build reproducibility**: Pinned dependencies and deterministic builds
-
-### Implementation strategy
-1. Keep existing Bazel infrastructure for testing/verification
-2. Gradually migrate installation logic to chezmoi templates
-3. Future: Use Bazel to generate dynamic chezmoi files (versions, SHAs, external dependencies)
-4. Maintain dual-path support during transition
-5. Preserve security practices (pinned versions, safe installation concepts)
-
-### Future state
-- `chezmoi apply` as primary deployment command
-- `bazel test //...` for validation
-- Simplified user workflow with maintained build system benefits
-
-## Tooling Guides
+## Tooling guides
 
 - **jq**: For guidelines on using `jq` and managing custom modules, see [src/dot_dotfiles/jq/jq.md](src/dot_dotfiles/jq/jq.md).
 - **Claude Code**: Configuration precedence and agent patterns, see [src/dot_dotfiles/claude-code/claude-code.md](src/dot_dotfiles/claude-code/claude-code.md).
@@ -158,7 +160,7 @@ Validate required fields early with descriptive error messages:
 
 ## chezmoi documentation
 
-This repository uses chezmoi for dotfiles management. Key documentation links:
+This repository uses chezmoi for dotfiles management.
 
 ### Special files
 - [Template format](https://www.chezmoi.io/reference/special-files/chezmoi-format-tmpl/) - `.tmpl` files with Go templating
@@ -171,9 +173,14 @@ This repository uses chezmoi for dotfiles management. Key documentation links:
 
 ### Special directories
 - [Data directory](https://www.chezmoi.io/reference/special-directories/chezmoidata/) - `.chezmoidata/` for template data files
-- [Externals directory](https://www.chezmoi.io/reference/special-directories/chezmoiexternals/) - `.chezmoiexternals/` for external file configs  
+    - "If any .chezmoidata/ directories exist in the source state, all files within them are interpreted as structured static data in the given formats. This data can then be used in templates. See also .chezmoidata.$FORMAT."
+- [Externals directory](https://www.chezmoi.io/reference/special-directories/chezmoiexternals/) - `.chezmoiexternals/` for external file configs
+    - "If any .chezmoiexternals/ directories exist in the source state, then all files in this directory are treated as .chezmoiexternal.<format> files relative to the source directory."
 - [Scripts directory](https://www.chezmoi.io/reference/special-directories/chezmoiscripts/) - `.chezmoiscripts/` for run scripts
+    - "If a directory called .chezmoiscripts/ exists in the root of the source directory, then any scripts in it are executed as normal scripts without creating a corresponding directory in the target state. The run_ attribute is still required."
 - [Templates directory](https://www.chezmoi.io/reference/special-directories/chezmoitemplates/) - `.chezmoitemplates/` for reusable templates
+    - "If any directory called .chezmoitemplates/ exists in the source state, then all files in this directory are available as templates with a name equal to the relative path to the .chezmoitemplates/ directory."
+    - "The template action or includeTemplate function can be used to include these templates in another template. The context value (.) must be set explicitly if needed, otherwise the template will be executed with nil context data."
 
 ### Configuration
 - [Configuration file](https://www.chezmoi.io/reference/configuration-file/) - `.chezmoi.toml` settings
@@ -186,7 +193,7 @@ This repository uses chezmoi for dotfiles management. Key documentation links:
 - [Template variables](https://www.chezmoi.io/reference/templates/variables/) - Complete variable reference
 
 **Key template variables**:
-- `{{ .chezmoi.sourceFile }}` - Current template source file path (e.g., `modify_dot_gitconfig.tmpl`)  
+- `{{ .chezmoi.sourceFile }}` - Current template source file path (e.g., `modify_dot_gitconfig.tmpl`)
 - `{{ .chezmoi.sourceDir }}` - Source directory path (e.g., `/Users/user/.local/share/chezmoi/src`)
 - `{{ .chezmoi.homeDir }}` - User home directory path (e.g., `/Users/user`)
 - `{{ .chezmoi.hostname }}` - Machine hostname
@@ -220,7 +227,7 @@ log_info "Using shared logging utilities..."
 
 **Key principles:**
 - Use `${CHEZMOI_SOURCE_DIR:?}` for robust sourcing with error handling
-- Include hash comments for dependency tracking (script re-runs when utilities change)  
+- Include hash comments for dependency tracking (script re-runs when utilities change)
 - Keep utilities in `scripts/` directory (not managed as dotfiles)
 - Follow community pattern from [chezmoi/discussions/3506](https://github.com/twpayne/chezmoi/discussions/3506)
 
@@ -231,7 +238,7 @@ See `src/scripts/logging.sh` for available functions.
 **Key insight**: `modify_` scripts work on ANY file via stdin/stdout - perfect for adding sections to corporate-managed files.
 
 **Critical components**:
-1. **SHA256 hash in header/footer** - enables change detection and re-execution  
+1. **SHA256 hash in header/footer** - enables change detection and re-execution
 2. **Replacement logic with sed** - removes old sections before adding new ones
 3. **Matching header/footer** - defines exact boundaries for replacement
 4. **ISO8601 timestamp** - shows when section was last applied

@@ -1,0 +1,15 @@
+{{ if eq .zoxide.installation "external-sources" }}
+{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
+{{- $target := "" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+  {{- $target = printf "%s-apple-darwin" (eq .chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+{{- else -}}
+  {{- $target = printf "%s-unknown-linux-musl" (eq .chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+{{- end }}
+["zoxide"]
+type = "archive-file"
+url = "https://github.com/ajeetdsouza/zoxide/releases/download/v{{ .zoxide.version }}/zoxide-{{ .zoxide.version }}-{{ $target }}.tar.gz"
+path = "zoxide"
+executable = true
+checksum.sha256 = "{{ index .zoxide.checksums $platform }}"
+{{ end }}

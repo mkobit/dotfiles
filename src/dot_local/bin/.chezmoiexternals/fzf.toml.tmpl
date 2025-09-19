@@ -1,0 +1,9 @@
+{{ if eq .fzf.installation "external-sources" }}
+{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch }}
+["fzf"]
+type = "archive-file"
+url = "https://github.com/junegunn/fzf/releases/download/v{{ .fzf.version }}/fzf-{{ .fzf.version }}-{{ .chezmoi.os }}_{{ .chezmoi.arch }}.tar.gz"
+path = "fzf"
+executable = true
+checksum.sha256 = "{{ index .fzf.checksums $platform }}"
+{{ end }}

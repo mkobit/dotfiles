@@ -1,3 +1,0 @@
-# Ignore everything in scratch_zone except README.md
-scratch_zone/**
-!scratch_zone/README.md
