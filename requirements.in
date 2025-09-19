@@ -19,5 +19,8 @@ typer
 pydantic
 jsonschema
 
+# Data formats
+toml
+
 # Time
 whenever

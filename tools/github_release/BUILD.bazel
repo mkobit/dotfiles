@@ -1,0 +1,26 @@
+exports_files([
+    "fetch.py",
+    "diff_test.sh",
+    "update.sh",
+])
+
+py_library(
+    name = "lib",
+    srcs = ["lib.py"],
+    deps = [
+        "@pypi//aiohttp",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "fetch",
+    srcs = ["fetch.py"],
+    main = "fetch.py",
+    deps = [
+        ":lib",
+        "@pypi//aiohttp",
+        "@pypi//toml",
+    ],
+    visibility = ["//visibility:public"],
+)
