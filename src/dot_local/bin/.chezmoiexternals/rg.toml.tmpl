@@ -1,15 +1,19 @@
-{{ if eq .ripgrep.installation "external-sources" }}
-{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
+{{- with .ripgrep -}}
+{{- if eq .installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
 {{- $target := "" -}}
-{{- if eq .chezmoi.os "darwin" -}}
-  {{- $target = printf "%s-apple-darwin" (eq .chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+{{- if eq $.chezmoi.os "darwin" -}}
+  {{- $target = printf "%s-apple-darwin" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
 {{- else -}}
-  {{- $target = printf "%s-unknown-linux-musl" (eq .chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+  {{- $target = printf "%s-unknown-linux-musl" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
 {{- end }}
 ["rg"]
 type = "archive-file"
-url = "https://github.com/BurntSushi/ripgrep/releases/download/{{ .ripgrep.version }}/ripgrep-{{ .ripgrep.version }}-{{ $target }}.tar.gz"
-path = "ripgrep-{{ .ripgrep.version }}-{{ $target }}/rg"
+url = {{ gitHubReleaseAssetURL "BurntSushi/ripgrep" .version (printf "ripgrep-%s-%s.tar.gz" .version $target) | quote }}
+path = "ripgrep-{{ .version }}-{{ $target }}/rg"
 executable = true
-checksum.sha256 = "{{ index .ripgrep.checksums $platform }}"
-{{ end }}
+{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") }}
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end }}
+{{- end -}}
+{{- end }}
