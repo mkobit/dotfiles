@@ -1,15 +1,7 @@
 {{ with (index .zsh "oh-my-zsh") }}
 {{ if eq .installation "external-sources" }}
 #!/usr/bin/env zsh
-# =============================================================================
-# OH-MY-ZSH LOADER & CONFIGURATION
-# =============================================================================
-# This script configures and sources oh-my-zsh.
-# oh-my-zsh is installed and managed by chezmoi.
 
-# =============================================================================
-# THEME
-# =============================================================================
 {{ if .powerlevel10k.enabled }}
 ZSH_THEME="powerlevel10k/powerlevel10k"
 {{ else }}
@@ -17,21 +9,14 @@ ZSH_THEME="powerlevel10k/powerlevel10k"
 ZSH_THEME="robbyrussell"
 {{ end }}
 
-# =============================================================================
-# PLUGINS
-# =============================================================================
 plugins=(
     {{- range .plugins }}
     {{ . | quote }}
     {{- end }}
 )
 
-# =============================================================================
-# PERFORMANCE OPTIMIZATIONS
-# =============================================================================
-# Disable features that slow down shell startup
-DISABLE_AUTO_UPDATE="true"         # Manual updates only
-DISABLE_UPDATE_PROMPT="true"       # No update prompts
+DISABLE_AUTO_UPDATE="true"         # Manual updates only, managed by chezmoi
+DISABLE_UPDATE_PROMPT="true"       # No update prompts, managed by chezmoi
 COMPLETION_WAITING_DOTS="false"    # No dots while waiting
 DISABLE_MAGIC_FUNCTIONS="true"     # Disable magic functions for speed
 

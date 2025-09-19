@@ -1,4 +1,9 @@
-{{- range glob (print .chezmoi.homeDir "/.dotfiles/bash/snippets/*.bash") }}
-{{/* Source all snippet files */}}
-source {{ . }}
+{{/* Source all bash files from dotfiles directory structure */}}
+{{- $targetDir := dir .chezmoi.targetFile }}
+{{- $sourceDir := print .chezmoi.sourceDir "/" (dir .chezmoi.sourceFile) }}
+{{- range $subdir := glob (print $sourceDir "/*/") }}
+{{- $subdirName := base $subdir }}
+{{- range $file := glob (print $subdir "/**/*.bash") }}
+source {{ $targetDir }}/{{ $subdirName }}/{{ base $file }}
+{{- end }}
 {{- end }}

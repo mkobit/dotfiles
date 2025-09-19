@@ -1,7 +1,12 @@
 {{/* Vim configuration managed by chezmoi */}}
 {{/* Auto-sources all .vim files in snippets directory */}}
 
-" Source all snippet files
-{{- range glob (print .chezmoi.homeDir "/.dotfiles/vim/snippets/*.vim") }}
-source {{ . }}
+" Source all vim files from dotfiles directory structure
+{{- $targetDir := dir .chezmoi.targetFile }}
+{{- $sourceDir := print .chezmoi.sourceDir "/" (dir .chezmoi.sourceFile) }}
+{{- range $subdir := glob (print $sourceDir "/*/") }}
+{{- $subdirName := base $subdir }}
+{{- range $file := glob (print $subdir "/**/*.vim") }}
+source {{ $targetDir }}/{{ $subdirName }}/{{ base $file }}
+{{- end }}
 {{- end }}
