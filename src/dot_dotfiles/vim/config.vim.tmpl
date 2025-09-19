@@ -3,10 +3,10 @@
 
 " Source all vim files from dotfiles directory structure
 {{- $targetDir := dir .chezmoi.targetFile }}
-{{- $sourceDir := print .chezmoi.sourceDir "/" (dir .chezmoi.sourceFile) }}
-{{- range $subdir := glob (print $sourceDir "/*/") }}
-{{- $subdirName := base $subdir }}
-{{- range $file := glob (print $subdir "/**/*.vim") }}
-source {{ $targetDir }}/{{ $subdirName }}/{{ base $file }}
-{{- end }}
-{{- end }}
+
+" Source all vim snippet files
+for file in split(glob('{{ $targetDir }}/snippets/*.vim'), '\n')
+    if filereadable(file)
+        execute 'source' file
+    endif
+endfor
