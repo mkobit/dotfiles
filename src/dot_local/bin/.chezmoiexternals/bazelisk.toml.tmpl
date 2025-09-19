@@ -1,8 +1,10 @@
-{{ if eq .bazelisk.installation "external-sources" }}
-{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch }}
+{{- with .bazelisk -}}
+{{- if eq .installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch }}
 ["bazelisk"]
 type = "file"
-url = "https://github.com/bazelbuild/bazelisk/releases/download/v{{ .bazelisk.version }}/bazelisk-{{ .chezmoi.os }}-{{ .chezmoi.arch }}"
+url = {{ gitHubReleaseAssetURL "bazelbuild/bazelisk" (printf "v%s" .version) (printf "bazelisk-%s-%s" $.chezmoi.os $.chezmoi.arch) | quote }}
 executable = true
-checksum.sha256 = "{{ index .bazelisk.checksums $platform }}"
-{{ end }}
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end -}}
+{{- end }}
