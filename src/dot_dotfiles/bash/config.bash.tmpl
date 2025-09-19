@@ -1,9 +1,7 @@
 {{/* Source all bash files from dotfiles directory structure */}}
 {{- $targetDir := dir .chezmoi.targetFile }}
-{{- $sourceDir := print .chezmoi.sourceDir "/" (dir .chezmoi.sourceFile) }}
-{{- range $subdir := glob (print $sourceDir "/*/") }}
-{{- $subdirName := base $subdir }}
-{{- range $file := glob (print $subdir "/**/*.bash") }}
-source {{ $targetDir }}/{{ $subdirName }}/{{ base $file }}
-{{- end }}
-{{- end }}
+
+# Source all bash snippet files
+for file in {{ $targetDir }}/snippets/*.bash; do
+    [[ -r "$file" ]] && source "$file"
+done

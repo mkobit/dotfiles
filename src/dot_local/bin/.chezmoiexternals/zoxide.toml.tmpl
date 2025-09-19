@@ -1,15 +1,19 @@
-{{ if eq .zoxide.installation "external-sources" }}
-{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
+{{- with .zoxide -}}
+{{- if eq .installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
 {{- $target := "" -}}
-{{- if eq .chezmoi.os "darwin" -}}
-  {{- $target = printf "%s-apple-darwin" (eq .chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+{{- if eq $.chezmoi.os "darwin" -}}
+  {{- $target = printf "%s-apple-darwin" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
 {{- else -}}
-  {{- $target = printf "%s-unknown-linux-musl" (eq .chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+  {{- $target = printf "%s-unknown-linux-musl" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
 {{- end }}
 ["zoxide"]
 type = "archive-file"
-url = "https://github.com/ajeetdsouza/zoxide/releases/download/v{{ .zoxide.version }}/zoxide-{{ .zoxide.version }}-{{ $target }}.tar.gz"
+url = {{ gitHubReleaseAssetURL "ajeetdsouza/zoxide" (printf "v%s" .version) (printf "zoxide-%s-%s.tar.gz" .version $target) | quote }}
 path = "zoxide"
 executable = true
-checksum.sha256 = "{{ index .zoxide.checksums $platform }}"
-{{ end }}
+{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") }}
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end }}
+{{- end -}}
+{{- end }}

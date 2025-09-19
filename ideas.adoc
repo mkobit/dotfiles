@@ -2,74 +2,28 @@
 
 == Active Ideas
 
-* [x] *Interactive fzf + jq Tool*
-** ✅ Simple interactive jq filtering with live preview (`ijq` command)
-** ✅ Real-time filtering as you type (like https://github.com/ynqa/jnv[jnv] but quick & dirty)
-** ✅ Handles both file input and stdin with proper error handling
-** ✅ Tmux-optimized preview windows (auto-detects environment)
-** ✅ Integrated with existing FZF configuration and styling
-** ✅ Defensive programming with dependency checks and helpful error messages
-** Reference: https://gist.github.com/reegnz/b9e40993d410b75c2d866441add2cb55[FZF+JQ Interactive Example]
-
 * [ ] *FZF for Tmux History Search*
 ** Fuzzy search for tmux command history and session navigation
 ** Integration with tmux key bindings and preview windows
 
-* [ ] *Holistic Zsh Keybinding Strategy*
-** ✅ Phase 1 Complete: Systematic conflict analysis and vi mode fix
+* [ ] *Shell Keybinding Improvements*
 ** Cross-platform keybinding design for macOS → iTerm2 → tmux → zsh → vim workflow
-** 5-layer conflict analysis: System → Terminal → Tmux → Shell → Editor
-** Established safe foundation: FZF bindings (Ctrl-R/T, Alt-C) + vi mode
-** Fixed oh-my-zsh loading order issue (vi mode was being overridden)
-** Created comprehensive audit documentation in KEYBINDING_AUDIT.md
-** [ ] Phase 2: Establish core safe keybindings (Ctrl-P/N, Ctrl-A/E, Ctrl-W)
-** [ ] Phase 3: Enhanced vim-style navigation (word/line movement)
-** [ ] Environment-specific testing (iTerm2, Terminal.app, WSL, VS Code)
-** [ ] Tmux integration considerations (prefix conflicts, copy mode)
-** [ ] Context-aware bindings (different behavior in/out of tmux)
-** Design principles: consistency, non-interference, discoverability, escape hatches
-** Tiered implementation: essential → enhanced → advanced features
+** Safe foundation: FZF bindings (Ctrl-R/T, Alt-C) + vi mode already established
+** Consider core navigation bindings and tmux integration conflicts
 
-* [x] *Enhanced Shell History with FZF*
-** ✅ Official FZF shell integration (Ctrl+R history, Ctrl+T files, Alt+C dirs)
-** ✅ Bash and Zsh support using `fzf --bash` and `fzf --zsh`
-** ✅ Defensive checking with helpful installation messages
-** ✅ Tab completion and fuzzy matching throughout shell
-** ✅ Smart directory skipping (.git, node_modules, target, bazel-*)
-** ✅ Intelligent preview (bat/cat for files, tree/ls for directories)
-** ✅ Circular navigation and enhanced key bindings
-** [ ] Context-aware history filtering (directory, git repo, branch)
-** [ ] Frequency-based ranking instead of chronological
+* [ ] *AI Assistant Context System*
+** Use existing `.agents/` structure for session persistence
+** Context breadcrumbs for discovering previous solutions
 
-* [ ] *Memory System for AI Assistants*
-** Breadcrumb system for AI agents to discover previous solutions
-** Persistent storage with indexing for context and solutions
+== Architecture
 
-== Completed
-
-* [x] *Chezmoi Migration*
-** ✅ Replaced Bazel guarded_install with chezmoi modify scripts
-** ✅ Individual config snippets instead of file concatenation  
-** ✅ Corporate file handling with SHA256 tracking
-
-* [x] *Guarded Install Rule* (OBSOLETE)
-** ✅ Bazel-based config installation (replaced by chezmoi)
-
-== Current Architecture
-
-=== Chezmoi
 * Config snippets in `src/dot_dotfiles/`
-* Modify scripts for corporate files
+* Modify scripts for corporate files  
 * Profile templating (personal/work)
 
-=== Bazel (automation/)
-* Validation and testing
-* Linting and formatting
-* Schema validation
+== Future Considerations
 
-=== 🔄 Potential Enhancements
-* Ripgrep, fd, fzf, bat integration
-* Docker/Kubernetes tools configuration
-* SSH config management
-* iTerm2/terminal emulator settings
-* Rectangle (macOS) window management
+* Enhanced tool integrations (ripgrep, fd, bat)
+* Container tools configuration
+* SSH and terminal emulator settings
+* Window management integration
