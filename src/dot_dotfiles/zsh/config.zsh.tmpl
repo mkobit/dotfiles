@@ -1,7 +1,19 @@
-{{/* Zsh configuration managed by chezmoi */}}
-{{/* Auto-sources all .zsh files in snippets directory */}}
-
-# Source all snippet files
-{{- range glob (print .chezmoi.homeDir "/.dotfiles/zsh/snippets/*.zsh") }}
-source {{ . }}
+{{/* Source all zsh files from dotfiles directory structure */}}
+{{- $targetDir := dir .chezmoi.targetFile }}
+{{- with (index .zsh "oh-my-zsh") }}
+{{- if eq .installation "external-sources" }}
+source {{ $targetDir }}/snippets/oh-my-zsh.zsh
+{{- end }}
+{{- end }}
+{{- range $file := glob (printf "%s/snippets/*.zsh" $targetDir) }}
+{{- if ne (base $file) "oh-my-zsh.zsh" }}
+source {{ $file }}
+{{- end }}
+{{- end }}
+{{- with (index .zsh "oh-my-zsh") }}
+{{- if eq .installation "external-sources" }}
+{{- range $file := glob (printf "%s/oh-my-zsh/*.zsh" $targetDir) }}
+source {{ $file }}
+{{- end }}
+{{- end }}
 {{- end }}

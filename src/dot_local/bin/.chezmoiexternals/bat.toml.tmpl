@@ -1,0 +1,15 @@
+{{ if eq .bat.installation "external-sources" }}
+{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
+{{- $target := "" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+  {{- $target = printf "%s-apple-darwin" (eq .chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+{{- else -}}
+  {{- $target = printf "%s-unknown-linux-gnu" (eq .chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+{{- end }}
+["bat"]
+type = "archive-file"
+url = "https://github.com/sharkdp/bat/releases/download/v{{ .bat.version }}/bat-v{{ .bat.version }}-{{ $target }}.tar.gz"
+path = "bat-v{{ .bat.version }}-{{ $target }}/bat"
+executable = true
+checksum.sha256 = "{{ index .bat.checksums $platform }}"
+{{ end }}

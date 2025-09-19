@@ -6,18 +6,13 @@ Oh My Zsh is a framework for managing zsh configuration with themes, plugins, an
 
 This dotfiles setup uses chezmoi's external sources to install oh-my-zsh:
 - Downloads from the official GitHub repository
-- Installs to `~/.dotfiles/external/oh-my-zsh/`
-- Managed via `.chezmoiexternal.toml.tmpl`
-
-## Configuration
-
-The main oh-my-zsh configuration is in `dot_dotfiles/zsh/snippets/oh-my-zsh.zsh.tmpl`.
+- Installs to a managed path
 
 ## Configurability Options
 
 For detailed configuration options and settings, see:
 - [Oh My Zsh Settings Wiki](https://github.com/ohmyzsh/ohmyzsh/wiki/Settings)
-- [Themes Documentation](https://github.com/ohmyzsh/ohmyzsh/wiki/Themes)  
+- [Themes Documentation](https://github.com/ohmyzsh/ohmyzsh/wiki/Themes)
 - [Plugins Documentation](https://github.com/ohmyzsh/ohmyzsh/wiki/Plugins)
 
 Key configurable environment variables include:

@@ -1,0 +1,15 @@
+{{ if eq .fd.installation "external-sources" }}
+{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
+{{- $target := "" -}}
+{{- if eq .chezmoi.os "darwin" -}}
+  {{- $target = printf "%s-apple-darwin" (eq .chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+{{- else -}}
+  {{- $target = printf "%s-unknown-linux-musl" (eq .chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+{{- end }}
+["fd"]
+type = "archive-file"
+url = "https://github.com/sharkdp/fd/releases/download/v{{ .fd.version }}/fd-v{{ .fd.version }}-{{ $target }}.tar.gz"
+path = "fd-v{{ .fd.version }}-{{ $target }}/fd"
+executable = true
+checksum.sha256 = "{{ index .fd.checksums $platform }}"
+{{ end }}

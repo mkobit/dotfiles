@@ -9,6 +9,9 @@ indent_style = space
 insert_final_newline = true
 trim_trailing_whitespace = true
 
+[src/**.toml]
+insert_final_newline = false  # Chezmoi removes files with empty content
+
 [*.{kt,kts}]
 # https://stackoverflow.com/questions/59849619/intellij-does-not-sort-kotlin-imports-according-to-ktlints-expectations and https://youtrack.jetbrains.com/issue/KT-10974
 disabled_rules=import-ordering
