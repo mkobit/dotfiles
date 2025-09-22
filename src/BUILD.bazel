@@ -1,8 +1,22 @@
-load("//tools/github_release:rules.bzl", "github_release_update")
+load("//tools/github_release:rules.bzl", "github_release")
 
-github_release_update(
-    name = "fzf",
+github_release(
+    name = "fzf_release",
+    dest = ".local/bin/fzf",
     repo = "junegunn/fzf",
     version = "v0.65.2",
     asset_glob = r"fzf-.*-linux_amd64\.tar\.gz",
+)
+
+sh_test(
+    name = "fzf_test",
+    srcs = ["//tools/github_release:diff_test.sh"],
+    args = [
+        "$(location :fzf_release)",
+        "$(location //src/.chezmoiexternals:fzf.toml)",
+    ],
+    data = [
+        ":fzf_release",
+        "//src/.chezmoiexternals:fzf.toml",
+    ],
 )

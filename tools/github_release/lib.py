@@ -1,12 +1,23 @@
 import asyncio
 import hashlib
 import re
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TypedDict
 
 import aiohttp
 
 
-def select_asset(assets: List[Dict[str, Any]], asset_glob: str) -> Optional[Dict[str, Any]]:
+class GitHubAsset(TypedDict):
+    name: str
+    browser_download_url: str
+
+
+class ChezmoiExternal(TypedDict):
+    type: str
+    url: str
+    sha256: str
+
+
+def select_asset(assets: List[GitHubAsset], asset_glob: str) -> Optional[GitHubAsset]:
     """Selects the best asset based on a glob pattern."""
     for asset in assets:
         if re.match(asset_glob, asset["name"]):
@@ -39,11 +50,10 @@ async def get_asset_sha256(session: aiohttp.ClientSession, url: str) -> str:
     return hasher.hexdigest()
 
 
-def generate_toml_dict(version: str, sha256: str, url: str, asset_name: str) -> Dict[str, Any]:
-    """Generates the chezmoi data structure as a dictionary."""
+def generate_chezmoi_external(url: str, sha256: str) -> ChezmoiExternal:
+    """Generates the chezmoi external data structure."""
     return {
-        "version": version,
+        "type": "archive",
         "url": url,
-        "asset_name": asset_name,
         "sha256": sha256,
     }

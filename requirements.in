@@ -15,12 +15,12 @@ aiohttp
 click
 typer
 
+# Data formats
+toml
+
 # Validation
 pydantic
 jsonschema
-
-# Data formats
-toml
 
 # Time
 whenever
