@@ -21,14 +21,6 @@ end)
 -- Load the Rectangle Pro API
 local RectanglePro = require("rectangle-pro")
 
--- Example hotkey using the Rectangle Pro API
-hs.hotkey.bind({"cmd", "alt", "ctrl"}, "y", function()
-  local ok, err = RectanglePro.leftHalf()
-  if not ok then
-    hs.console.printStyledtext("Rectangle Pro action failed: " .. err)
-  end
-end)
-
 hs.hotkey.bind({"cmd", "alt", "ctrl"}, "right", function()
   local win = hs.window.focusedWindow()
   local f = win:frame()

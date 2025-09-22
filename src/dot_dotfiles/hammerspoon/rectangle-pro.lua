@@ -1,5 +1,4 @@
 ---@class RectanglePro
----@author Jules
 ---@version 1.0.0
 local RectanglePro = {}
 
