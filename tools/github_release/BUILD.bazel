@@ -1,0 +1,21 @@
+py_library(
+    name = "lib",
+    srcs = ["lib.py"],
+    deps = [
+        "@pypi//aiohttp",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "main",
+    srcs = ["main.py"],
+    main = "main.py",
+    deps = [
+        ":lib",
+        "@pypi//aiohttp",
+        "@pypi//click",
+        "@pypi//toml",
+    ],
+    visibility = ["//visibility:public"],
+)

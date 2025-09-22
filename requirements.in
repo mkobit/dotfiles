@@ -15,6 +15,9 @@ aiohttp
 click
 typer
 
+# Data formats
+toml
+
 # Validation
 pydantic
 jsonschema
