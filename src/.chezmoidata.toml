@@ -80,3 +80,14 @@ version = "v1.20.0"
 
 [ghostty]
 installation = "package-manager"
+
+[claude_code]
+enabled = true
+version = "0.13.12"
+installation = "external-sources"
+
+[claude_code.checksums]
+darwin_arm64 = ""  # To be filled when checksums are available
+darwin_amd64 = ""  # To be filled when checksums are available
+linux_amd64 = ""  # To be filled when checksums are available
+linux_arm64 = ""  # To be filled when checksums are available

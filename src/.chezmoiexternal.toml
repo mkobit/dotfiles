@@ -1,0 +1,9 @@
+{{- if .claude_code.enabled }}
+[".local/bin/claude"]
+type = "file"
+url = "https://github.com/anthropics/claude-code/releases/download/v{{ .claude_code.version }}/claude-{{ .chezmoi.os }}-{{ .chezmoi.arch }}"
+executable = true
+{{- if ne (index .claude_code.checksums (printf "%s_%s" .chezmoi.os .chezmoi.arch)) "" }}
+checksum = "sha256:{{ index .claude_code.checksums (printf "%s_%s" .chezmoi.os .chezmoi.arch) }}"
+{{- end }}
+{{- end }}

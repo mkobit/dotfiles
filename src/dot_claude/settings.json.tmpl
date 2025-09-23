@@ -1,0 +1,13 @@
+{{- if .claude_code.enabled }}
+{
+  "permissions": {
+    "tools": "allow",
+    "files": "allow"
+  },
+  "cleanupPeriodDays": 30,
+  "env": {
+    "DISABLE_AUTOUPDATER": "true",
+    "DISABLE_TELEMETRY": "true"
+  }
+}
+{{- end }}

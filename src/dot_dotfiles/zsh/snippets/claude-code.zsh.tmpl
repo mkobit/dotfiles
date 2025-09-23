@@ -1,0 +1,11 @@
+{{- if .claude_code.enabled }}
+# Claude Code CLI configuration
+# Managed by chezmoi
+
+# Disable automatic updates (managed by chezmoi)
+export DISABLE_AUTOUPDATER=true
+
+# Optional: Disable telemetry and non-essential traffic
+# export DISABLE_TELEMETRY=true
+# export CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC=true
+{{- end }}
