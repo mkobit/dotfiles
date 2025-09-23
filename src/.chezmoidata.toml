@@ -77,3 +77,6 @@ plugins = ["git", "colored-man-pages"]
 [zsh.oh-my-zsh.powerlevel10k]
 enabled = false
 version = "v1.20.0"
+
+[ghostty]
+installation = "package-manager"
