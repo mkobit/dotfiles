@@ -5,26 +5,9 @@ Ghostty is a fast, feature-rich terminal emulator that is GPU-accelerated, cross
 ## Official Documentation
 
 - [Ghostty Official Site](https://ghostty.org/)
-- [Installation Guide](https://ghostty.org/docs/install/binary)
 - [Configuration Documentation](https://ghostty.org/docs/config/reference)
+- [Installation Guide](https://ghostty.org/docs/install/binary)
 - [GitHub Repository](https://github.com/ghostty-org/ghostty)
-
-## Installation
-
-### Automated Installation (via chezmoi)
-Ghostty is installed automatically via package managers when `ghostty.installation = "package-manager"` is set in `.chezmoidata.toml`.
-
-**Supported platforms:**
-- **macOS**: Homebrew Cask (`brew install --cask ghostty`)
-- **Ubuntu/Debian**: apt package manager
-- **Arch Linux**: pacman (official repositories)
-- **Fedora**: dnf package manager
-
-### Manual Installation
-For unsupported distributions, see the [official installation guide](https://ghostty.org/docs/install/binary).
-
-### Uninstallation
-Set `ghostty.installation = "disabled"` in `.chezmoidata.toml` to automatically uninstall Ghostty and clean up configuration files.
 
 ## Configuration Files
 
@@ -65,6 +48,33 @@ font-family = "SF Mono"
 {{- else }}
 font-family = "DejaVu Sans Mono"
 {{- end }}
+```
+
+### Splitting Configuration Into Multiple Files
+You can split your configuration into multiple files using the `config-file` key. This is especially useful for organizing settings by category:
+
+```
+# Main config file (~/.config/ghostty/config)
+config-file = fonts.conf
+config-file = themes.conf
+config-file = keybinds.conf
+config-file = ?local-overrides.conf
+```
+
+Key behaviors:
+- `config-file` keys are processed at the end of the current file
+- Keys after a `config-file` will NOT override keys in the loaded file
+- Relative paths are relative to the file containing the `config-file` key
+- Prefix with `?` to make files optional (ignored if they don't exist)
+
+Example structure in this repository:
+```
+~/.config/ghostty/
+├── config              # Main config with config-file includes
+├── fonts.conf          # Font configurations
+├── themes.conf         # Color themes and appearance
+├── keybinds.conf       # Key bindings
+└── local-overrides.conf # Optional local customizations
 ```
 
 ## Key Features
@@ -208,42 +218,8 @@ shell-integration-features = cursor,sudo,title,jump
 shell-integration-cursor = true
 ```
 
-## Troubleshooting
-
-### Font Issues
-- Ensure fonts are installed system-wide
-- Use `fc-list` (Linux) or Font Book (macOS) to verify font names
-- Check font file permissions and accessibility
-
-### Performance Issues
-- Disable window composition effects
-- Reduce scrollback limit
-- Disable unnecessary visual features
-- Check GPU driver compatibility
-
-### Color Problems
-- Verify terminal color support with `ghostty --print-config`
-- Test color output with standard tools
-- Check shell configuration for conflicting settings
-
-### Installation Issues
-- **macOS**: Ensure Homebrew is installed and updated
-- **Linux**: Verify package manager access and update repositories
-- **All**: Check system requirements and compatibility
-
-## Configuration Migration
-
-### From Other Terminals
+### Configuration Migration
 Ghostty provides migration tools and compatibility modes for:
 - iTerm2 color schemes
 - Alacritty configuration
 - Terminal.app settings
-
-### Backup Configuration
-```bash
-# Backup current configuration
-cp ~/.config/ghostty/config ~/.config/ghostty/config.backup
-
-# Restore from backup
-cp ~/.config/ghostty/config.backup ~/.config/ghostty/config
-```
