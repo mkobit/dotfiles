@@ -13,11 +13,11 @@ local function executeAction(actionName)
     return false, "actionName must be a non-empty string"
   end
 
-  local url = "rectangle-pro://execute-action?name=" .. actionName
-  local ok, err = pcall(hs.urlevent.openURL, url)
+  local command = "open -g 'rectangle-pro://execute-action?name=" .. actionName .. "'"
+  local ok, stdout, stderr = hs.execute(command)
 
   if not ok then
-    return false, "Failed to execute Rectangle Pro action: " .. tostring(err)
+    return false, "Failed to execute command: " .. command .. " (stdout: " .. stdout .. ", stderr: " .. stderr .. ")"
   end
 
   return true, nil
