@@ -83,7 +83,7 @@ installation = "package-manager"
 
 [claude_code]
 enabled = true
-version = "0.13.12"
+version = "1.0.123"
 installation = "external-sources"
 
 [claude_code.checksums]

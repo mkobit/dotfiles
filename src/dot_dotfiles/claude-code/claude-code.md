@@ -6,7 +6,7 @@ Claude Code CLI integration with chezmoi dotfiles management.
 
 **Installation**: Managed via `.chezmoiexternal.toml.tmpl` → `~/.local/bin/claude`
 **Configuration**: JSON files in `~/.claude/` directory
-**Environment variables**: Set via `settings.json` env section
+**Environment variables**: Set via `settings.json` env section. This is supported by Claude code.
 
 ## Configuration files
 
@@ -24,22 +24,17 @@ Claude Code CLI integration with chezmoi dotfiles management.
 
 Settings are defined in `.chezmoidata.toml` under `[claude_code.settings]` and rendered to JSON using chezmoi's `toPrettyJson` function.
 
-Current configuration:
-- Permissions: Tools and files allowed
-- Cleanup period: 30 days
-- Output style: Concise
-- Environment variables: Disable autoupdater and telemetry
-
 ## Feature control
 
-Claude Code installation controlled by `claude_code.enabled` feature flag:
-- **Personal environments**: `true` (default in `.chezmoidata.toml`)
-- **Work environments**: `false` (disabled in work `chezmoi.toml.tmpl`)
+Claude Code installation controlled by `claude_code.enabled` feature flag in `chezmoi` data.
 
-When disabled, no Claude Code files are installed or managed.
+When disabled, no Claude Code files are installed.
 
 ## Documentation links
 
 - [Overview](https://docs.claude.com/en/docs/claude-code/overview)
 - [CLI reference](https://docs.claude.com/en/docs/claude-code/cli-reference)
 - [Settings reference](https://docs.claude.com/en/docs/claude-code/settings)
+- [Sub-agents](https://docs.claude.com/en/docs/claude-code/sub-agents)
+- [Hooks](https://docs.claude.com/en/docs/claude-code/hooks-guide)
+- [MCP (model context protocol)](https://docs.claude.com/en/docs/claude-code/mcp)
