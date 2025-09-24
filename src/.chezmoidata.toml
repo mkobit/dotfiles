@@ -91,3 +91,15 @@ darwin_arm64 = ""  # To be filled when checksums are available
 darwin_amd64 = ""  # To be filled when checksums are available
 linux_amd64 = ""  # To be filled when checksums are available
 linux_arm64 = ""  # To be filled when checksums are available
+
+[claude_code.settings]
+cleanupPeriodDays = 30
+outputStyle = "concise"
+
+[claude_code.settings.permissions]
+tools = "allow"
+files = "allow"
+
+[claude_code.settings.env]
+DISABLE_AUTOUPDATER = "true"
+DISABLE_TELEMETRY = "true"
