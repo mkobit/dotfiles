@@ -1,0 +1,3 @@
+{{- if .claude_code.enabled }}
+{{ .claude_code.settings | toPrettyJson }}
+{{- end }}

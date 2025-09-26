@@ -1,56 +1,40 @@
-# Claude Code
+# Claude Code configuration guide
 
-Claude Code is Anthropic's official CLI tool for interacting with Claude AI for software engineering tasks.
+Claude Code CLI integration with chezmoi dotfiles management.
 
-## Official Documentation
+## Quick reference
 
-- [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code)
-- [Getting Started Guide](https://docs.claude.com/en/docs/claude-code/getting-started)
-- [Installation Instructions](https://docs.claude.com/en/docs/claude-code/installation)
+**Installation**: Managed via `.chezmoiexternal.toml.tmpl` → `~/.local/bin/claude`
+**Configuration**: JSON files in `~/.claude/` directory
+**Environment variables**: Set via `settings.json` env section. This is supported by Claude code.
 
-## Configuration
+## Configuration files
 
-### File Precedence
-Configuration is loaded in this order (later files override earlier ones):
-1. Global config: `~/.config/claude/config.toml`
-2. Project config: `.claude/config.toml`
-3. Project instructions: `CLAUDE.md`
+### User settings
+- **Location**: `~/.claude/settings.json`
+- **Purpose**: Global user preferences and defaults
+- **Managed by**: `src/dot_claude/settings.json.tmpl`
 
-### Key Configuration Files
-- `CLAUDE.md` - Project context and instructions for Claude
-- `.claude/config.toml` - Project-specific settings (API keys, preferences)
-- `.claude/hooks/` - Custom hooks for tool execution events
+### Project settings (optional)
+- **Location**: `~/.claude/settings.local.json`
+- **Purpose**: Personal project overrides
+- **Managed by**: User (not templated)
 
-## Core Features
+## Configuration structure
 
-### Hooks
-Event-driven automation that triggers on tool calls and other events.
-- [Hooks Documentation](https://docs.claude.com/en/docs/claude-code/hooks)
-- [Hook Examples](https://docs.claude.com/en/docs/claude-code/hooks#examples)
+Settings are defined in `.chezmoidata.toml` under `[claude_code.settings]` and rendered to JSON using chezmoi's `toPrettyJson` function.
 
-Common hook types:
-- `user-prompt-submit-hook` - Runs before user input is sent
-- `tool-call-hook` - Runs on specific tool invocations
-- `session-start-hook` - Runs when starting a new session
+## Feature control
 
-### Agents
-Specialized Claude instances for specific tasks with custom contexts and tool access.
-- [Agents Documentation](https://docs.claude.com/en/docs/claude-code/agents)
-- [Creating Custom Agents](https://docs.claude.com/en/docs/claude-code/agents#custom-agents)
+Claude Code installation controlled by `claude_code.enabled` feature flag in `chezmoi` data.
 
-### Context Management
-- Project-level context via `CLAUDE.md`
-- Session persistence and memory
-- File and directory awareness
+When disabled, no Claude Code files are installed.
 
-## Integration Patterns
+## Documentation links
 
-### With chezmoi
-- Use `CLAUDE.md` templates for dynamic project instructions
-- Hook integration for automated file processing
-- Agent-driven configuration management
-
-### Common Workflows
-- Automated testing and validation via hooks
-- Custom development agents for specific project types
-- Integration with build systems and CI/CD
+- [Overview](https://docs.claude.com/en/docs/claude-code/overview)
+- [CLI reference](https://docs.claude.com/en/docs/claude-code/cli-reference)
+- [Settings reference](https://docs.claude.com/en/docs/claude-code/settings)
+- [Sub-agents](https://docs.claude.com/en/docs/claude-code/sub-agents)
+- [Hooks](https://docs.claude.com/en/docs/claude-code/hooks-guide)
+- [MCP (model context protocol)](https://docs.claude.com/en/docs/claude-code/mcp)

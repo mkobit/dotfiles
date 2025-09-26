@@ -80,3 +80,20 @@ version = "v1.20.0"
 
 [ghostty]
 installation = "package-manager"
+
+[claude_code]
+enabled = true
+version = "1.0.126"
+installation = "external-script"
+
+[claude_code.settings]
+cleanupPeriodDays = 30
+outputStyle = "concise"
+
+[claude_code.settings.permissions]
+tools = "allow"
+files = "allow"
+
+[claude_code.settings.env]
+DISABLE_AUTOUPDATER = "true"
+DISABLE_TELEMETRY = "true"
