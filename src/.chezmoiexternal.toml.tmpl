@@ -1,9 +1,11 @@
 {{- if .claude_code.enabled }}
 [".local/bin/claude"]
-type = "file"
-url = "https://github.com/anthropics/claude-code/releases/download/v{{ .claude_code.version }}/claude-{{ .chezmoi.os }}-{{ .chezmoi.arch }}"
-executable = true
-{{- if ne (index .claude_code.checksums (printf "%s_%s" .chezmoi.os .chezmoi.arch)) "" }}
-checksum = "sha256:{{ index .claude_code.checksums (printf "%s_%s" .chezmoi.os .chezmoi.arch) }}"
-{{- end }}
+type = "script"
+script = '''
+#!/bin/bash
+set -euo pipefail
+# Install Claude Code using official installer
+# See: https://docs.claude.com/en/docs/claude-code/setup#native-binary-installation-beta
+curl -fsSL https://claude.ai/install.sh | bash -s -- {{ .claude_code.version }}
+'''
 {{- end }}
