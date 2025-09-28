@@ -1,0 +1,37 @@
+{{ if eq .eza.installation "package-manager" }}#!/bin/bash
+
+# logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
+source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
+
+# Check if eza is already installed
+if check_command eza; then
+    log_success "eza already installed at $(command -v eza)"
+    exit 0
+fi
+
+log_info "Installing eza via package manager..."
+
+{{ if eq .chezmoi.os "darwin" }}
+# macOS - use Homebrew
+if ! check_command brew; then
+    log_error "Homebrew not found. Please install Homebrew first."
+    exit 1
+fi
+
+if brew install eza; then
+    log_success "eza installed successfully via homebrew"
+else
+    log_error "Failed to install eza via homebrew"
+    exit 1
+fi
+{{ else if eq .chezmoi.os "linux" }}
+# Linux - eza not in standard apt repos, suggest external sources
+log_warn "eza not available in standard apt repos"
+log_info "Consider changing installation method to 'external-sources' for eza"
+log_info "Or install via cargo: cargo install eza"
+exit 1
+{{ else }}
+log_error "Unsupported OS: {{ .chezmoi.os }}"
+exit 1
+{{ end }}
+{{ end }}

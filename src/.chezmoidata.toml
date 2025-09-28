@@ -80,6 +80,14 @@ darwin_amd64 = "e80dbe0d2a2597e3c11c404f03337b981d74b4a8504b70586c354b7697a7c27f
 linux_amd64 = "020468de7539ce70ef1bceaf7cde2e8c4f2ca6c3afb84642aabc5c97d9fc2a0d"
 linux_arm64 = "6bc62f25981328edd3cfcfe6fe51b073f2d7e7710d7ef7fcdac28d4e384fc3d4"
 
+[eza]
+version = "0.23.3"
+installation = "external-sources"
+
+[eza.checksums]
+linux_amd64 = "9394077c94ced5a39b895092a4e59b21c3949b414a1affb08c47be6a3af17eca"
+linux_arm64 = "333246365f1a3325df1068ff8bc994ea3a3e04abe4e118fa11015d589c5cc41d"
+
 [zsh]
 set_as_default_login_shell = true
 

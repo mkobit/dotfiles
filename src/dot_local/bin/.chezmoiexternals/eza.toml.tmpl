@@ -1,0 +1,22 @@
+{{- with .eza -}}
+{{- if eq .installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
+{{- $target := "" -}}
+{{- if eq $.chezmoi.os "linux" -}}
+  {{- if eq $.chezmoi.arch "arm64" -}}
+    {{- $target = "aarch64-unknown-linux-gnu" -}}
+  {{- else -}}
+    {{- $target = "x86_64-unknown-linux-musl" -}}
+  {{- end -}}
+["eza"]
+type = "archive-file"
+url = {{ gitHubReleaseAssetURL "eza-community/eza" (printf "v%s" .version) (printf "eza_%s.tar.gz" $target) | quote }}
+path = "eza"
+stripComponents = 1
+executable = true
+{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") }}
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end -}}
+{{- end -}}
+{{- end -}}
+{{- end }}
