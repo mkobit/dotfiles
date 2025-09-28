@@ -1,6 +1,5 @@
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("//tools:linting.bzl", "bazel_files_format", "bazel_files_format_test")
-load("//tools:lsp_simple.bzl", "setup_simple_lsp")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -16,11 +15,6 @@ bazel_files_format(name = "format")
 # Test that all Bazel files are properly formatted
 bazel_files_format_test(
     name = "format_test",
-)
-
-# Set up simplified LSP configuration for the project
-setup_simple_lsp(
-    name = "lsp_setup",
 )
 
 # Test suite for validation
