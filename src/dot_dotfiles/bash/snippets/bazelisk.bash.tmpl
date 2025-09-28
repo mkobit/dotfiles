@@ -1,0 +1,8 @@
+{{- with .bazelisk -}}
+{{- if eq .installation "external-sources" -}}
+# Bazelisk completion for bash
+if command -v bazelisk >/dev/null 2>&1; then
+    eval "$(bazelisk completion bash)"
+fi
+{{- end -}}
+{{- end }}

@@ -1,14 +1,17 @@
-{{/* Source all zsh files from dotfiles directory structure */}}
 {{- $targetDir := dir .chezmoi.targetFile }}
-for file in {{ $targetDir }}/snippets/*.zsh; do
+
+for file in {{ $targetDir }}/pre/*.zsh; do
     [[ -r "$file" ]] && source "$file"
 done
 
 {{- with (index .zsh "oh-my-zsh") }}
 {{- if eq .installation "external-sources" }}
-# Source oh-my-zsh configuration files
 for file in {{ $targetDir }}/oh-my-zsh/*.zsh; do
     [[ -r "$file" ]] && source "$file"
 done
 {{- end }}
 {{- end }}
+
+for file in {{ $targetDir }}/post/*.zsh; do
+    [[ -r "$file" ]] && source "$file"
+done
