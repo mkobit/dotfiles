@@ -1,6 +1,5 @@
 {{/* Tmux configuration managed by chezmoi */}}
 {{/* Auto-sources all .tmux files in snippets directory */}}
 
-# Source all snippet files
-{{- $targetDir := dir .chezmoi.targetFile }}
-run-shell 'for file in {{ $targetDir }}/snippets/*.tmux; do [[ -r "$file" ]] && tmux source-file "$file"; done'
+# Source all snippet files using tmux 3.2+ format expansion and glob patterns
+source-file -F "#{d:current_file}/snippets/*.tmux"
