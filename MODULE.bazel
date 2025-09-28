@@ -25,6 +25,9 @@ pip.parse(
 )
 use_repo(pip, "pypi")
 
+# Register toolchains
+register_toolchains("@//tools/chezmoi/private:chezmoi_toolchain")
+
 # External dependencies
 git_repository = use_repo_rule("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 
