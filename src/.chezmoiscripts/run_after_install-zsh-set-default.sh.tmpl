@@ -1,5 +1,4 @@
-{{- if .zsh.set_as_default_login_shell }}
-#!/bin/bash
+{{- if .zsh.set_as_default_login_shell }}#!/bin/bash
 
 # logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
 source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
