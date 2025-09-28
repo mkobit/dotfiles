@@ -27,14 +27,18 @@ fi
 {{ else if eq .chezmoi.os "linux" }}
 # Linux
 if command -v apt-get >/dev/null 2>&1; then
-    # Ubuntu/Debian
-    log_info "Installing ghostty via apt (Ubuntu/Debian)"
-    
-    if sudo apt-get update && sudo apt-get install -y ghostty; then
-        log_success "ghostty installed successfully via apt"
+    # Ubuntu/Debian - use snap for ghostty
+    log_info "Installing ghostty via snap (Ubuntu/Debian)"
+
+    if ! command -v snap >/dev/null 2>&1; then
+        log_error "snap not found. Please install snapd first."
+        exit 1
+    fi
+
+    if sudo snap install ghostty --classic; then
+        log_success "ghostty installed successfully via snap"
     else
-        log_error "Failed to install ghostty via apt"
-        log_info "ghostty may not be available in your distribution's repositories"
+        log_error "Failed to install ghostty via snap"
         log_info "See https://ghostty.org/docs/install/binary for manual installation"
         exit 1
     fi
