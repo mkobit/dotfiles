@@ -13,3 +13,5 @@
 # Git files
 **/.gitignore
 **/.gitkeep
+
+scripts/
