@@ -8,40 +8,63 @@ import aiohttp
 import click
 
 from tools.github_release.lib import (
-    generate_chezmoi_external,
+    ChezmoiData,
+    GitHubAsset,
+    extract_arch_os,
     get_asset_sha256,
+    get_checksums_from_file,
     get_release_info,
-    select_asset,
 )
 
 
 @click.command()
 @click.option("--repo", required=True, help="GitHub repository in 'owner/repo' format.")
 @click.option("--version", required=True, help="Release version/tag (or 'latest').")
-@click.option("--dest", required=True, help="Destination path for the extracted file in chezmoi.")
-@click.option("--asset-glob", required=True, help="Regex pattern to select the release asset.")
+@click.option("--tool-name", required=True, help="Name of the tool for the TOML file.")
 @click.option("--output", required=True, type=click.Path(), help="Output file path, or '-' for stdout.")
 @click.option(
     "--check",
     is_flag=True,
     help="Check if the file is up-to-date and exit with an error if not.",
 )
-def main(repo, version, dest, asset_glob, output, check):
-    """Fetch GitHub release info and generate chezmoi external data."""
+def main(repo, version, tool_name, output, check):
+    """Fetch GitHub release info and generate chezmoi data."""
     async def async_main():
         async with aiohttp.ClientSession() as session:
             try:
                 release_info = await get_release_info(session, repo, version)
-                selected_asset = select_asset(release_info["assets"], asset_glob)
+                assets: list[GitHubAsset] = release_info["assets"]
+                release_version = release_info["tag_name"]
+                checksums = {}
 
-                if not selected_asset:
-                    click.echo(f"Error: No asset found for repo '{repo}' with glob '{asset_glob}'", err=True)
-                    sys.exit(1)
+                checksum_asset = next((a for a in assets if "checksum" in a["name"].lower() or "sha256" in a["name"].lower()), None)
 
-                asset_url = selected_asset["browser_download_url"]
-                sha256 = await get_asset_sha256(session, asset_url)
+                if checksum_asset:
+                    click.echo(f"Found checksum file: {checksum_asset['name']}", err=True)
+                    checksums_from_file = await get_checksums_from_file(session, checksum_asset["browser_download_url"])
+                else:
+                    checksums_from_file = {}
 
-                generated_data = {dest: generate_chezmoi_external(asset_url, sha256)}
+                for asset in assets:
+                    arch_os = extract_arch_os(asset["name"])
+                    if not arch_os:
+                        continue
+
+                    if asset["name"] in checksums_from_file:
+                        sha256 = checksums_from_file[asset["name"]]
+                        click.echo(f"Found SHA for {asset['name']} in checksum file.", err=True)
+                    else:
+                        click.echo(f"Calculating SHA for {asset['name']} by downloading.", err=True)
+                        sha256 = await get_asset_sha256(session, asset["browser_download_url"])
+
+                    checksums[arch_os] = sha256
+
+                generated_data: ChezmoiData = {
+                    "version": release_version,
+                    "checksums": checksums,
+                }
+
+                final_toml_data = {tool_name: generated_data}
 
                 if check:
                     if output == "-":
@@ -56,7 +79,7 @@ def main(repo, version, dest, asset_glob, output, check):
                     with open(output_path, "rb") as f:
                         existing_data = tomllib.load(f)
 
-                    if existing_data == generated_data:
+                    if existing_data == final_toml_data:
                         click.echo(f"Success: {output_path} is up-to-date.", err=True)
                         sys.exit(0)
                     else:
@@ -64,13 +87,13 @@ def main(repo, version, dest, asset_glob, output, check):
                         sys.exit(1)
                 else:
                     if output == "-":
-                        sys.stdout.write(toml.dumps(generated_data))
+                        sys.stdout.write(toml.dumps(final_toml_data))
                     else:
                         output_path = Path(output)
                         output_path.parent.mkdir(parents=True, exist_ok=True)
                         with open(output_path, "w") as f:
-                            toml.dump(generated_data, f)
-                        click.echo(f"Successfully generated chezmoi external for {dest} at {output_path}", err=True)
+                            toml.dump(final_toml_data, f)
+                        click.echo(f"Successfully generated chezmoi data for {tool_name} {release_version} at {output_path}", err=True)
 
             except aiohttp.ClientError as e:
                 click.echo(f"Error fetching data from GitHub: {e}", err=True)

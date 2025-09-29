@@ -11,17 +11,25 @@ class GitHubAsset(TypedDict):
     browser_download_url: str
 
 
-class ChezmoiExternal(TypedDict):
-    type: str
-    url: str
-    sha256: str
+class ChezmoiData(TypedDict):
+    version: str
+    checksums: Dict[str, str]
 
 
-def select_asset(assets: List[GitHubAsset], asset_glob: str) -> Optional[GitHubAsset]:
-    """Selects the best asset based on a glob pattern."""
-    for asset in assets:
-        if re.match(asset_glob, asset["name"]):
-            return asset
+# A mapping of regex patterns to architecture/OS keys
+ARCH_OS_PATTERNS = {
+    "darwin_amd64": r".*darwin.*(x86_64|amd64).*",
+    "darwin_arm64": r".*darwin.*(arm64|aarch64).*",
+    "linux_amd64": r".*linux.*(x86_64|amd64).*",
+    "linux_arm64": r".*linux.*(arm64|aarch64).*",
+}
+
+
+def extract_arch_os(asset_name: str) -> Optional[str]:
+    """Extracts the architecture and OS from an asset name."""
+    for key, pattern in ARCH_OS_PATTERNS.items():
+        if re.match(pattern, asset_name, re.IGNORECASE):
+            return key
     return None
 
 
@@ -50,10 +58,16 @@ async def get_asset_sha256(session: aiohttp.ClientSession, url: str) -> str:
     return hasher.hexdigest()
 
 
-def generate_chezmoi_external(url: str, sha256: str) -> ChezmoiExternal:
-    """Generates the chezmoi external data structure."""
-    return {
-        "type": "archive",
-        "url": url,
-        "sha256": sha256,
-    }
+async def get_checksums_from_file(session: aiohttp.ClientSession, url: str) -> Dict[str, str]:
+    """Downloads and parses a checksum file."""
+    checksums = {}
+    async with session.get(url) as response:
+        response.raise_for_status()
+        text = await response.text()
+        for line in text.splitlines():
+            parts = line.split()
+            if len(parts) == 2:
+                sha, filename = parts
+                filename = filename.lstrip("./")
+                checksums[filename] = sha
+    return checksums

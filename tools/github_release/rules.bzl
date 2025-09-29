@@ -6,17 +6,15 @@ def _github_release_impl(ctx):
     args = ctx.actions.args()
     args.add("--repo", ctx.attr.repo)
     args.add("--version", ctx.attr.version)
-    args.add("--dest", ctx.attr.dest)
-    args.add("--asset-glob", ctx.attr.asset_glob)
+    args.add("--tool-name", ctx.attr.tool_name)
     args.add("--output", output_file.path)
 
     ctx.actions.run(
         outputs = [output_file],
-        inputs = [],
         executable = ctx.executable._fetch_binary,
         arguments = [args],
         mnemonic = "FetchGitHubRelease",
-        progress_message = "Fetching release info for " + ctx.attr.dest,
+        progress_message = "Fetching release info for " + ctx.attr.tool_name,
     )
 
     return [DefaultInfo(files = depset([output_file]))]
@@ -24,58 +22,55 @@ def _github_release_impl(ctx):
 github_release = rule(
     implementation = _github_release_impl,
     attrs = {
-        "dest": attr.string(mandatory = True),
+        "tool_name": attr.string(mandatory = True),
         "repo": attr.string(mandatory = True),
         "version": attr.string(mandatory = True),
-        "asset_glob": attr.string(mandatory = True),
         "_fetch_binary": attr.label(
-            default = "//tools/github_release:main",
+            default = "//tools/github_release:fetch",
             executable = True,
             cfg = "exec",
         ),
     },
 )
 
-def github_release_update(name, dest, repo, version, asset_glob):
+def github_release_update(name, repo, version):
     """
     Macro for creating targets to manage a GitHub release chezmoi data file.
 
     This creates two main targets:
     1. A `{name}_test` target that compares the generated file with the
        checked-in source file.
-    2. A `{name}_update` target that prints the new file content to stdout.
+    2. A `{name}.update` target that prints the new file content to stdout.
 
     To update the file, run:
-      bazel run //src:{name}_update > src/.chezmoiexternals/{name}.toml
+      bazel run //src:{name}.update > src/.chezmoiexternals/{name}.toml
     """
-    source_file = "src/.chezmoiexternals/" + name + ".toml"
+    generated_file_target = name + ".generated"
+    source_file_label = "//src/.chezmoiexternals:" + name + ".toml"
 
     github_release(
-        name = name + "_generated",
-        dest = dest,
+        name = generated_file_target,
+        tool_name = name,
         repo = repo,
         version = version,
-        asset_glob = asset_glob,
     )
 
     native.py_test(
         name = name + "_test",
-        srcs = ["//tools/github_release:main.py"],
-        main = "//tools/github_release:main.py",
+        srcs = ["//tools/github_release:fetch.py"],
+        main = "//tools/github_release:fetch.py",
         args = [
             "--repo",
             repo,
             "--version",
             version,
-            "--dest",
-            dest,
-            "--asset-glob",
-            asset_glob,
+            "--tool-name",
+            name,
             "--output",
-            source_file,
+            "$(location " + source_file_label + ")",
             "--check",
         ],
-        data = [source_file],
+        data = [source_file_label],
         deps = [
             "//tools/github_release:lib",
             "@pypi//aiohttp",
@@ -85,18 +80,16 @@ def github_release_update(name, dest, repo, version, asset_glob):
     )
 
     native.py_binary(
-        name = name + "_update",
-        srcs = ["//tools/github_release:main.py"],
-        main = "//tools/github_release:main.py",
+        name = name + ".update",
+        srcs = ["//tools/github_release:fetch.py"],
+        main = "//tools/github_release:fetch.py",
         args = [
             "--repo",
             repo,
             "--version",
             version,
-            "--dest",
-            dest,
-            "--asset-glob",
-            asset_glob,
+            "--tool-name",
+            name,
             "--output",
             "-",
         ],

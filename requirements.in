@@ -8,9 +8,6 @@ black
 isort
 mypy
 
-# HTTP tools
-aiohttp
-
 # CLI tools
 click
 typer

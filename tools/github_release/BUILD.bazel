@@ -1,3 +1,7 @@
+exports_files([
+    "fetch.py",
+])
+
 py_library(
     name = "lib",
     srcs = ["lib.py"],
@@ -8,9 +12,9 @@ py_library(
 )
 
 py_binary(
-    name = "main",
-    srcs = ["main.py"],
-    main = "main.py",
+    name = "fetch",
+    srcs = ["fetch.py"],
+    main = "fetch.py",
     deps = [
         ":lib",
         "@pypi//aiohttp",
