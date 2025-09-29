@@ -1,0 +1,25 @@
+{{ if and (eq .chezmoi.os "darwin") (stat "/Applications/iTerm.app") }}#!/bin/bash
+
+# logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
+source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
+
+log_info "Configuring iTerm2 to disable bell sounds..."
+
+# iTerm2 configuration is stored in com.googlecode.iterm2.plist
+PLIST_PATH="$HOME/Library/Preferences/com.googlecode.iterm2.plist"
+
+# Check if iTerm2 has been run at least once (plist exists)
+if [[ ! -f "$PLIST_PATH" ]]; then
+    log_error "iTerm2 preferences not found. Please run iTerm2 at least once, then rerun 'chezmoi apply'"
+    exit 1
+fi
+
+# Use defaults command to set silence bell option
+if defaults write com.googlecode.iterm2 "SilenceBell" -bool true; then
+    log_success "iTerm2 bell sounds disabled successfully"
+    log_info "Restart iTerm2 for changes to take effect"
+else
+    log_error "Failed to configure iTerm2 bell settings"
+    exit 1
+fi
+{{ end }}

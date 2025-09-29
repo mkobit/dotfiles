@@ -13,12 +13,12 @@ set-option -g visual-activity off  # No messages for activity
 # See: https://man.openbsd.org/tmux#activity-action
 set-option -g activity-action other  # Only mark windows that aren't current
 
-# Configure bell notifications with visual indicators but no messages
+# Configure bell notifications - COMPLETELY DISABLED
 # See: https://man.openbsd.org/tmux#visual-bell
-set-option -g visual-bell off  # No messages for bell alerts
+set-option -g visual-bell off  # No visual bell messages
 
 # See: https://man.openbsd.org/tmux#bell-action
-set-option -g bell-action any  # Mark any window that triggers a bell
+set-option -g bell-action none  # Completely ignore all bells
 
 # Status bar indicators - highlight activity in windows with color
 # Window title formats with activity highlighting
