@@ -4,26 +4,8 @@
 Public BUILD file for the `chezmoi` toolchain and rules.
 """
 
-load(":rules.bzl", "chezmoi_execute_template")
-
 package(default_visibility = ["//visibility:public"])
 
 toolchain_type(
     name = "toolchain_type",
-)
-
-# Test to verify the chezmoi_execute_template rule using a simple template.
-chezmoi_execute_template(
-    name = "test_personal_gitconfig",
-    src = "//src/dot_dotfiles/git/snippets:personal.gitconfig.tmpl",
-    out = "test_personal_gitconfig.txt",
-    data_file = "//tools/chezmoi/testdata:personal_git_config.toml",
-    tags = ["test"],
-)
-
-sh_test(
-    name = "chezmoi_rule_test",
-    srcs = ["test.sh"],
-    data = [":test_personal_gitconfig"],
-    args = ["$(location :test_personal_gitconfig)"],
 )

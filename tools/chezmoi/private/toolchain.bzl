@@ -34,9 +34,6 @@ def _execute_template_action(
     if data:
         script_lines.append("cp -L " + data.path + " $WORK_DIR/.chezmoidata.toml")
 
-    # Set the source directory for chezmoi to our new working directory.
-    script_lines.append("export CHEZMOI_SOURCE_DIR=$WORK_DIR")
-
     # --- Execute chezmoi ---
     # The path to the template inside the new, writable source directory.
     template_in_work_dir = "$WORK_DIR/" + src.basename
@@ -45,6 +42,7 @@ def _execute_template_action(
         # Use the absolute path to the executable, as we're changing directory.
         "$(pwd)/" + chezmoi_executable.path,
         "execute-template",
+        "--source $WORK_DIR", # Use the CLI flag instead of env var
         "--file",
         # Use the absolute path for the output file.
         "--output $(pwd)/" + out.path,

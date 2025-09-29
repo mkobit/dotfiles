@@ -4,7 +4,6 @@
 Public-facing rules for interacting with `chezmoi`.
 """
 
-# The rule implementation. It's now much simpler.
 def _chezmoi_execute_template_impl(ctx):
     """
     Core implementation of the `chezmoi_execute_template` rule.
@@ -23,11 +22,24 @@ def _chezmoi_execute_template_impl(ctx):
 
     return [
         DefaultInfo(files = depset([ctx.outputs.out])),
+        ChezmoiTemplateInfo(
+            out = ctx.outputs.out,
+            chezmoi_executable = chezmoi_info.chezmoi_executable,
+        ),
     ]
+
+ChezmoiTemplateInfo = provider(
+    fields = {
+        "out": "The output file.",
+        "chezmoi_executable": "The chezmoi executable file.",
+    },
+    doc = "Provider for information about a rendered chezmoi template.",
+)
 
 # The private rule definition. The attributes remain the same.
 _chezmoi_execute_template = rule(
     implementation = _chezmoi_execute_template_impl,
+    provides = [DefaultInfo, ChezmoiTemplateInfo],
     attrs = {
         "src": attr.label(
             allow_single_file = True,
