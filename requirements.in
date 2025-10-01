@@ -8,13 +8,6 @@ black
 isort
 mypy
 
-# CLI tools
-click
-typer
-
-# Data formats
-toml
-
 # Validation
 pydantic
 jsonschema

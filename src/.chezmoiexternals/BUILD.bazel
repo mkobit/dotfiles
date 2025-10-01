@@ -1,1 +1,9 @@
-exports_files(["fzf.toml"])
+load("//tools/github_release:rules.bzl", "github_release")
+
+github_release(
+    name = "fzf",
+    dest = ".local/bin/fzf",
+    repo = "junegunn/fzf",
+    version = "v0.65.2",
+    asset_glob = r"fzf-.*-linux_amd64\.tar\.gz",
+)

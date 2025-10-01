@@ -1,13 +1,6 @@
-exports_files([
-    "fetch.py",
-])
-
 py_library(
     name = "lib",
     srcs = ["lib.py"],
-    deps = [
-        "@pypi//aiohttp",
-    ],
     visibility = ["//visibility:public"],
 )
 
@@ -17,9 +10,7 @@ py_binary(
     main = "fetch.py",
     deps = [
         ":lib",
-        "@pypi//aiohttp",
-        "@pypi//click",
-        "@pypi//toml",
+        "@pypi//tomli_w",
     ],
     visibility = ["//visibility:public"],
 )
