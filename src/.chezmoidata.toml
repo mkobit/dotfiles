@@ -119,3 +119,7 @@ files = "allow"
 [claude_code.settings.env]
 DISABLE_AUTOUPDATER = "true"
 DISABLE_TELEMETRY = "true"
+
+[hammerspoon]
+enabled = true
+installation = "package-manager"
