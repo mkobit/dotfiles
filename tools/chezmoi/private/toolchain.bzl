@@ -9,55 +9,58 @@ def _execute_template_action(
         data,
         source_dir_files):
     """
-    Creates a `run_shell` action to execute a chezmoi template.
+    Creates actions to execute a chezmoi template.
+
+    This implementation creates a hermetic temporary directory with all
+    necessary files and runs chezmoi execute-template against it.
     """
     chezmoi_info = ctx.toolchains["@//tools/chezmoi:toolchain_type"]
     chezmoi_executable = chezmoi_info.chezmoi_executable
 
+    # Build script to create source directory and execute chezmoi
     script_lines = [
         "#!/bin/bash",
         "set -euo pipefail",
-
-        # --- Create a self-contained, writable environment for chezmoi ---
+        "",
+        "# Set HOME to avoid chezmoi trying to use user's home directory",
         "export HOME=$(mktemp -d)",
-        "WORK_DIR=$(mktemp -d)",
-
-        # Copy all source files into the working directory.
-        # The -L flag is important to dereference symlinks from the Bazel sandbox.
-        "cp -LR " + "$(dirname " + source_dir_files.to_list()[0].path + ")/." + " $WORK_DIR",
-
-        # Copy the template to be executed into the working directory.
-        "cp -L " + src.path + " $WORK_DIR/" + src.basename,
-
-        # If a data file is provided, copy it to the location where chezmoi expects it.
+        "",
+        "# Create temporary chezmoi source directory",
+        "SOURCE_DIR=$(mktemp -d)",
+        "",
+        "# Copy template file",
+        "cp -L \"" + src.path + "\" \"$SOURCE_DIR/" + src.basename + "\"",
     ]
+
+    # Copy data file if provided
     if data:
-        script_lines.append("cp -L " + data.path + " $WORK_DIR/.chezmoidata.toml")
+        script_lines.append("cp -L \"" + data.path + "\" \"$SOURCE_DIR/.chezmoidata.toml\"")
 
-    # --- Execute chezmoi ---
-    # The path to the template inside the new, writable source directory.
-    template_in_work_dir = "$WORK_DIR/" + src.basename
+    # Copy any additional source files
+    source_files_list = source_dir_files.to_list() if source_dir_files else []
+    for src_file in source_files_list:
+        script_lines.append("cp -L \"" + src_file.path + "\" \"$SOURCE_DIR/" + src_file.basename + "\"")
 
-    chezmoi_cmd_parts = [
-        # Use the absolute path to the executable, as we're changing directory.
-        "$(pwd)/" + chezmoi_executable.path,
-        "execute-template",
-        "--source $WORK_DIR", # Use the CLI flag instead of env var
-        "--file",
-        # Use the absolute path for the output file.
-        "--output $(pwd)/" + out.path,
-        template_in_work_dir,
-    ]
-    script_lines.append(" ".join(chezmoi_cmd_parts))
+    # Execute chezmoi
+    script_lines.extend([
+        "",
+        "# Execute chezmoi template",
+        " ".join([
+            "\"" + chezmoi_executable.path + "\"",
+            "execute-template",
+            "--source \"$SOURCE_DIR\"",
+            "--file",
+            "--output \"" + out.path + "\"",
+            "\"$SOURCE_DIR/" + src.basename + "\"",
+        ]),
+    ])
 
-    direct_inputs = [src, chezmoi_executable]
+    # Collect all inputs
+    inputs = [src, chezmoi_executable]
     if data:
-        direct_inputs.append(data)
-
-    inputs = depset(
-        direct = direct_inputs,
-        transitive = [source_dir_files],
-    )
+        inputs.append(data)
+    if source_files_list:
+        inputs.extend(source_files_list)
 
     ctx.actions.run_shell(
         outputs = [out],

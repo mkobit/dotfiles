@@ -1,7 +1,0 @@
-[git]
-  [git.personal]
-    enabled = true
-    name = "Test User"
-    email = "test@example.com"
-    signing_key = "ABCDEF123"
-    gpg_sign = true

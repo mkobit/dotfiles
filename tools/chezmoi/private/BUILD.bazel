@@ -7,6 +7,8 @@ This file defines the platform-specific toolchain configurations
 and registers them for use in the repository.
 """
 
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+load("//tools/chezmoi:rules.bzl", "chezmoi_execute_template")
 load(":toolchain.bzl", "chezmoi_toolchain")
 
 # Define constraints for different platforms.
@@ -43,7 +45,7 @@ chezmoi_toolchain(
         ":darwin_arm64": "@chezmoi_darwin_arm64//:chezmoi",
         ":darwin_amd64": "@chezmoi_darwin_amd64//:chezmoi",
         ":linux_amd64": "@chezmoi_linux_amd64//:chezmoi",
-        "//conditions:default": "@chezmoi_linux_amd64//:chezmoi", # Default for now
+        "//conditions:default": "@chezmoi_linux_amd64//:chezmoi",  # Default for now
     }),
 )
 
@@ -54,12 +56,10 @@ toolchain(
     toolchain_type = "@//tools/chezmoi:toolchain_type",
 )
 
-# Test implementation
-load("//tools/chezmoi:rules.bzl", "chezmoi_execute_template")
-
 chezmoi_execute_template(
     name = "test_hello",
     src = "//tools/chezmoi/private/testdata:hello.tmpl",
+    srcs = [],
     out = "hello.txt",
     data_file = "//tools/chezmoi/private/testdata:hello.toml",
     tags = ["test"],
@@ -68,6 +68,6 @@ chezmoi_execute_template(
 sh_test(
     name = "chezmoi_toolchain_test",
     srcs = ["test.sh"],
-    data = [":test_hello"],
     args = ["$(location :test_hello)"],
+    data = [":test_hello"],
 )
