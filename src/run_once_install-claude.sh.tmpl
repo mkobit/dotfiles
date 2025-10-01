@@ -1,0 +1,18 @@
+{{- if .claude_code.enabled }}#!/bin/bash
+set -euo pipefail
+
+# Install Claude Code using official installer
+# See: https://docs.claude.com/en/docs/claude-code/setup#native-binary-installation-beta
+
+# Check if claude is already installed and at the right version
+if command -v claude &> /dev/null; then
+    current_version=$(claude --version 2>/dev/null | head -n1 | awk '{print $NF}' || echo "unknown")
+    if [[ "$current_version" == "{{ .claude_code.version }}" ]]; then
+        echo "Claude Code {{ .claude_code.version }} already installed"
+        exit 0
+    fi
+fi
+
+echo "Installing Claude Code {{ .claude_code.version }}..."
+curl -fsSL https://claude.ai/install.sh | bash -s -- {{ .claude_code.version }}
+{{- end }}

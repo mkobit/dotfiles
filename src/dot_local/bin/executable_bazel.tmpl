@@ -1,0 +1,3 @@
+{{ if ne .bazelisk.installation "disabled" }}#!/bin/sh
+exec bazelisk "$@"
+{{ end }}

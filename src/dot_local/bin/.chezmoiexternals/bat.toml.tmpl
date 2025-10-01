@@ -12,7 +12,10 @@ type = "archive-file"
 url = {{ gitHubReleaseAssetURL "sharkdp/bat" (printf "v%s" .version) (printf "bat-v%s-%s.tar.gz" .version $target) | quote }}
 path = "bat-v{{ .version }}-{{ $target }}/bat"
 executable = true
-{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") }}
+{{- if ne .checksums.type "disabled" }}
+  {{- if not (hasKey .checksums $platform) }}
+    {{- fail (printf "Checksum validation enabled but no checksum found for platform: %s" $platform) }}
+  {{- end }}
 checksum.sha256 = "{{ index .checksums $platform }}"
 {{- end }}
 {{- end -}}
