@@ -1,0 +1,7 @@
+load("//tools/github_release:rules.bzl", "github_release_update")
+
+github_release_update(
+    name = "fzf",
+    repo = "junegunn/fzf",
+    version = "v0.65.2",
+)
