@@ -1,0 +1,10 @@
+{{- with .eza -}}
+{{- $installation := index .installation $.chezmoi.os -}}
+{{- if and $installation (ne $installation "disabled") -}}
+# Disable oh-my-zsh directory aliases when using eza
+# This must be set before oh-my-zsh loads
+# See: https://github.com/ohmyzsh/ohmyzsh?tab=readme-ov-file#skip-aliases
+# See: https://github.com/ohmyzsh/ohmyzsh/blob/master/lib/directories.zsh
+zstyle ':omz:lib:directories' aliases no
+{{- end -}}
+{{- end }}

@@ -1,4 +1,4 @@
-{{ if eq .eza.installation "package-manager" }}#!/bin/bash
+{{ if eq (index .eza.installation .chezmoi.os) "package-manager" }}#!/bin/bash
 
 # logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
 source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"

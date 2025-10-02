@@ -1,5 +1,5 @@
 {{- with .eza -}}
-{{- if eq .installation "external-sources" -}}
+{{- if eq (index .installation $.chezmoi.os) "external-sources" -}}
 {{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
 {{- $target := "" -}}
 {{- if eq $.chezmoi.os "linux" -}}
@@ -8,6 +8,14 @@
   {{- else -}}
     {{- $target = "x86_64-unknown-linux-musl" -}}
   {{- end -}}
+{{- else if eq $.chezmoi.os "darwin" -}}
+  {{- if eq $.chezmoi.arch "arm64" -}}
+    {{- $target = "aarch64-apple-darwin" -}}
+  {{- else -}}
+    {{- $target = "x86_64-apple-darwin" -}}
+  {{- end -}}
+{{- end -}}
+{{- if ne $target "" -}}
 ["eza"]
 type = "archive-file"
 url = {{ gitHubReleaseAssetURL "eza-community/eza" (printf "v%s" .version) (printf "eza_%s.tar.gz" $target) | quote }}

@@ -1,5 +1,6 @@
 {{- with .eza -}}
-{{- if ne .installation "disabled" -}}
+{{- $installation := index .installation $.chezmoi.os -}}
+{{- if and $installation (ne $installation "disabled") -}}
 ["eza-completions"]
 type = "archive"
 url = {{ gitHubReleaseAssetURL "eza-community/eza" (printf "v%s" .version) (printf "completions-%s.tar.gz" .version) | quote }}
