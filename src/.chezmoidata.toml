@@ -82,7 +82,12 @@ linux_arm64 = "6bc62f25981328edd3cfcfe6fe51b073f2d7e7710d7ef7fcdac28d4e384fc3d4"
 
 [eza]
 version = "0.23.3"
-installation = "external-sources"
+
+[eza.installation]
+# macOS: use package-manager (Homebrew), eza doesn't publish macOS binaries to GitHub releases
+darwin = "package-manager"
+# Linux: use external-sources for pre-built binaries from GitHub releases
+linux = "external-sources"
 
 [eza.checksums]
 linux_amd64 = "9394077c94ced5a39b895092a4e59b21c3949b414a1affb08c47be6a3af17eca"
@@ -119,3 +124,7 @@ files = "allow"
 [claude_code.settings.env]
 DISABLE_AUTOUPDATER = "true"
 DISABLE_TELEMETRY = "true"
+
+[hammerspoon]
+enabled = true
+installation = "package-manager"
