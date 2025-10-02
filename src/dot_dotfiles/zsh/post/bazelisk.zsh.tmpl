@@ -1,15 +1,7 @@
 {{- $chezmoiSourceDir := .chezmoi.sourceDir -}}
 {{- with .bazelisk -}}
 {{- if ne .installation "disabled" -}}
-# logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
-source "{{ $chezmoiSourceDir }}/scripts/logging.sh"
-
-if command -v bazelisk >/dev/null 2>&1; then
-    if type bashcompinit >/dev/null 2>&1; then
-        eval "$(bazelisk completion bash)"
-    else
-        log_warn "bashcompinit not available - bazelisk completion disabled"
-    fi
-fi
+# Bazelisk shell configuration
+# Autocompletion removed due to slow startup times
 {{- end -}}
 {{- end }}
