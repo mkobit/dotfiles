@@ -2,7 +2,8 @@
 # See: https://www.chezmoi.io/reference/special-files/chezmoiignore/
 
 .editorconfig
-**/*.md
+**/docs/**/*
+**/CLAUDE.md
 
 # Bazel build files
 **/*.bzl
