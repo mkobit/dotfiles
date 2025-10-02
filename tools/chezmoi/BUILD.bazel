@@ -1,0 +1,11 @@
+# -*- Starlark -*-
+
+"""
+Public BUILD file for the `chezmoi` toolchain and rules.
+"""
+
+package(default_visibility = ["//visibility:public"])
+
+toolchain_type(
+    name = "toolchain_type",
+)

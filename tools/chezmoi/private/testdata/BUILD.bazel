@@ -1,0 +1,12 @@
+# -*- Starlark -*-
+
+"""
+BUILD file for private chezmoi test data.
+"""
+
+package(default_visibility = ["//tools/chezmoi:__subpackages__"])
+
+exports_files([
+    "hello.tmpl",
+    "hello.toml",
+])
