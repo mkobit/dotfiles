@@ -1,4 +1,4 @@
-{{ if and .hammerspoon.enabled (eq .hammerspoon.installation "package-manager") }}#!/bin/bash
+{{ if and .hammerspoon.enabled (eq .hammerspoon.installation "package-manager") (eq .chezmoi.os "darwin") }}#!/bin/bash
 
 # logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
 source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
