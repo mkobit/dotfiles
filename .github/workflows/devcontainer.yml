@@ -4,10 +4,12 @@ on:
   pull_request:
     paths:
       - '.devcontainer/**'
+      - '.github/workflows/devcontainer.yml'
   push:
     branches: [ main ]
     paths:
       - '.devcontainer/**'
+      - '.github/workflows/devcontainer.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.sha }}
@@ -25,6 +27,7 @@ jobs:
         uses: devcontainers/ci@v0.3
         with:
           imageName: dotfiles-devcontainer
+          push: never
           runCmd: |
             set -e
             echo "=== Devcontainer validation ==="
