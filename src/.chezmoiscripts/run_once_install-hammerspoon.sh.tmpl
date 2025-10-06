@@ -1,4 +1,4 @@
-{{ if and .hammerspoon.enabled (eq .hammerspoon.installation "package-manager") }}#!/bin/bash
+{{ if and .hammerspoon.enabled (eq .hammerspoon.installation "package-manager") (eq .chezmoi.os "darwin") }}#!/bin/bash
 
 # logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
 source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
@@ -9,7 +9,6 @@ if check_command brew && brew list --cask hammerspoon &>/dev/null; then
 else
     log_info "Installing hammerspoon via package manager..."
 
-{{ if eq .chezmoi.os "darwin" }}
     # macOS - use Homebrew Cask
     if ! check_command brew; then
         log_error "Homebrew not found. Please install Homebrew first."
@@ -22,11 +21,6 @@ else
         log_error "Failed to install hammerspoon via homebrew cask"
         exit 1
     fi
-{{ else }}
-    log_error "Unsupported OS: {{ .chezmoi.os }}"
-    log_info "Hammerspoon is only available on macOS"
-    exit 1
-{{ end }}
 fi
 
 # Configure custom config directory
