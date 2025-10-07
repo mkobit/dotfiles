@@ -1,0 +1,82 @@
+name: '✨ New tool integration'
+description: 'Request to add a new command-line tool or application.'
+labels: ['enhancement', 'new-tool']
+body:
+  - type: input
+    id: tool-name
+    attributes:
+      label: 'Tool name'
+      description: 'What is the name of the tool? (e.g., fzf, ripgrep)'
+    validations:
+      required: true
+  - type: input
+    id: tool-website
+    attributes:
+      label: 'Tool website / repository'
+      description: 'What is the official website or repository for the tool?'
+    validations:
+      required: true
+  - type: textarea
+    id: tool-reason
+    attributes:
+      label: 'Why is this tool needed?'
+      description: 'Explain the problem this tool solves or the workflow it improves. Provide a clear use case.'
+    validations:
+      required: true
+  - type: checkboxes
+    id: installation-methods
+    attributes:
+      label: 'Supported installation methods'
+      description: 'Select all installation methods that should be supported. The agent will implement a `chezmoi` script to handle this.'
+      options:
+        - label: 'Homebrew (macOS/Linux)'
+        - label: 'apt (Debian/Ubuntu)'
+        - label: 'Download pre-compiled binary'
+        - label: 'Build from source'
+        - label: 'Other (please specify below)'
+  - type: textarea
+    id: installation-details
+    attributes:
+      label: 'Other installation details'
+      description: 'If you selected "Other" or there are specific version requirements, please provide details here.'
+  - type: textarea
+    id: configuration-requirements
+    attributes:
+      label: 'Configuration requirements'
+      description: |
+        Describe how the tool should be configured. Consider the following:
+        *   Are there configuration files? Where should they live? (e.g., `~/.config/tool/config.toml`)
+        *   Does it require shell integration (e.g., adding something to `.zshrc`)?
+        *   Are there keybindings to set up?
+        *   Does it use environment variables for configuration?
+        *   Does it integrate with other tools (e.g., Vim, tmux)?
+      placeholder: |
+        - The main config file is ~/.config/fzf/fzf.toml
+        - Keybindings for CTRL-T and CTRL-R should be enabled in Zsh.
+        - Set the FZF_DEFAULT_COMMAND environment variable to use 'fd'.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 'Acceptance criteria'
+      description: 'Provide a checklist of conditions that must be met for this to be considered complete. This will be used for verification.'
+      placeholder: |
+        - [ ] The "fzf" binary is available on the PATH after running "chezmoi apply".
+        - [ ] The tool is installed via Homebrew on macOS.
+        - [ ] The tool is installed via apt on Debian-based systems.
+        - [ ] Shell keybindings (CTRL-T, CTRL-R) are working in Zsh.
+        - [ ] A Bazel test exists in `tools/test/` that verifies the binary is executable.
+        - [ ] Default configuration is created via a chezmoi template.
+    validations:
+      required: true
+  - type: textarea
+    id: resource-links
+    attributes:
+      label: 'Resource links'
+      description: 'Provide any relevant links to documentation, tutorials, or articles.'
+  - type: textarea
+    id: internal-examples
+    attributes:
+      label: 'Internal examples'
+      description: 'Are there similar tools or configurations in this repository that can be used as a reference? Please provide paths to the relevant files.'

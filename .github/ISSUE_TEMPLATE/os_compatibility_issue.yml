@@ -1,0 +1,57 @@
+name: '🐛 Os compatibility issue'
+description: 'Report an issue related to a specific operating system.'
+labels: ['bug', 'os-compatibility']
+body:
+  - type: input
+    id: summary
+    attributes:
+      label: 'Summary'
+      description: 'A brief summary of the compatibility issue.'
+    validations:
+      required: true
+  - type: checkboxes
+    id: affected-os
+    attributes:
+      label: 'Affected operating systems'
+      options:
+        - label: 'macOS'
+        - label: 'Linux (Debian/Ubuntu)'
+        - label: 'Linux (Other)'
+        - label: 'Windows'
+    validations:
+      required: true
+  - type: textarea
+    id: problem-description
+    attributes:
+      label: 'Problem description'
+      description: 'A detailed description of the problem. What works on other systems but fails on the affected one?'
+    validations:
+      required: true
+  - type: textarea
+    id: steps-to-reproduce
+    attributes:
+      label: 'Steps to reproduce'
+      description: 'The exact steps to trigger the issue.'
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: 'Expected behavior'
+      description: 'What should have happened?'
+    validations:
+      required: true
+  - type: textarea
+    id: actual-behavior
+    attributes:
+      label: 'Actual behavior'
+      description: 'What actually happened? Please include logs or error messages.'
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 'Acceptance criteria'
+      description: 'A checklist for what defines a successful resolution.'
+    validations:
+      required: true
