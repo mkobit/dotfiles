@@ -1,0 +1,44 @@
+name: '📦 New custom binary'
+description: 'Request to build a new binary from source within this repository.'
+labels: ['enhancement', 'new-binary']
+body:
+  - type: input
+    id: binary-name
+    attributes:
+      label: 'Binary name'
+      description: 'What should the new binary be called?'
+    validations:
+      required: true
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 'Purpose'
+      description: 'What is the function of this binary? What problem does it solve?'
+    validations:
+      required: true
+  - type: input
+    id: language-build-tools
+    attributes:
+      label: 'Language / build tools'
+      description: 'What language will this be written in? (e.g., Go, Rust, Shell).'
+    validations:
+      required: true
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: 'Dependencies'
+      description: 'List any external or internal dependencies required.'
+  - type: textarea
+    id: usage
+    attributes:
+      label: 'Usage'
+      description: 'How should the binary be executed? Describe its command-line interface.'
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 'Acceptance criteria'
+      description: 'A checklist for a successful implementation (e.g., `bazel build //...` succeeds, tests are included, binary executes correctly).'
+    validations:
+      required: true

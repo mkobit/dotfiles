@@ -1,0 +1,47 @@
+name: '🤖 New ai tooling'
+description: 'Request to create a new AI agent, command, or other tool.'
+labels: ['enhancement', 'ai-tooling']
+body:
+  - type: dropdown
+    id: tooling-type
+    attributes:
+      label: 'Tooling type'
+      options:
+        - 'Claude subagent'
+        - 'Claude slash command'
+        - 'Other'
+    validations:
+      required: true
+  - type: input
+    id: name
+    attributes:
+      label: 'Name'
+      description: 'What is the name of the new agent or command?'
+    validations:
+      required: true
+  - type: textarea
+    id: purpose-and-capabilities
+    attributes:
+      label: 'Purpose and capabilities'
+      description: 'What is the goal of this tool? What should it be able to do?'
+    validations:
+      required: true
+  - type: textarea
+    id: implementation-details
+    attributes:
+      label: 'Implementation details'
+      description: 'Provide details for the implementation. For a subagent, what rules should it enforce? For a slash command, what should the prompt be?'
+    validations:
+      required: true
+  - type: textarea
+    id: example-interaction
+    attributes:
+      label: 'Example interaction'
+      description: 'Provide an example of how a user would interact with this tool.'
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 'Acceptance criteria'
+      description: 'A checklist to verify the tool is working correctly.'
+    validations:
+      required: true

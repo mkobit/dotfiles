@@ -1,0 +1,39 @@
+name: '🚀 Developer productivity improvement'
+description: 'Propose an improvement to the developer workflow.'
+labels: ['enhancement', 'developer-experience']
+body:
+  - type: input
+    id: proposed-improvement
+    attributes:
+      label: 'Proposed improvement'
+      description: 'A brief summary of the improvement.'
+    validations:
+      required: true
+  - type: textarea
+    id: current-workflow
+    attributes:
+      label: 'Current workflow'
+      description: 'Describe the current process and its pain points.'
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-workflow
+    attributes:
+      label: 'Proposed workflow'
+      description: 'Describe the new, improved process.'
+    validations:
+      required: true
+  - type: textarea
+    id: benefits
+    attributes:
+      label: 'Benefits'
+      description: 'How does this change improve productivity or reduce friction?'
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 'Acceptance criteria'
+      description: 'How can we verify that the new workflow is in place and working as expected?'
+    validations:
+      required: true

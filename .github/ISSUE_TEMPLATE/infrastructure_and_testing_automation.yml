@@ -1,0 +1,44 @@
+name: '🛠️ Infrastructure and testing automation'
+description: 'Propose a change to the CI, build system, or test infrastructure.'
+labels: ['enhancement', 'infrastructure']
+body:
+  - type: input
+    id: proposed-change
+    attributes:
+      label: 'Proposed change'
+      description: 'A brief summary of the proposed change.'
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 'Motivation'
+      description: 'Why is this change needed? What problem does it solve?'
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: 'Proposed solution'
+      description: 'A detailed description of the implementation.'
+    validations:
+      required: true
+  - type: textarea
+    id: affected-areas
+    attributes:
+      label: 'Affected areas'
+      description: 'Which parts of the repository will this change? (e.g., `.github/workflows`, `tools/`, `BUILD.bazel`).'
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 'Acceptance criteria'
+      description: 'How can we verify that the new infrastructure works correctly?'
+    validations:
+      required: true
+  - type: textarea
+    id: resource-links
+    attributes:
+      label: 'Resource links'
+      description: 'Any links to documentation for new tools or actions.'
