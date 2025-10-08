@@ -1,0 +1,5 @@
+# Defines the default global versions for tools managed by asdf.
+# This file is symlinked to ~/.tool-versions by chezmoi.
+
+nodejs 20.11.0
+python 3.11.7
