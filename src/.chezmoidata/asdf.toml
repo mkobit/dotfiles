@@ -1,0 +1,11 @@
+# ASDF Version Manager configuration
+# Used by run_once_install-asdf.sh.tmpl to install asdf
+# and manage plugins.
+[asdf]
+  enabled = true
+  git_url = "https://github.com/asdf-vm/asdf.git"
+  git_ref = "v0.18.0"
+  plugins = [
+    { name = "nodejs", git_url = "https://github.com/asdf-vm/asdf-nodejs.git" },
+    { name = "python" }
+  ]

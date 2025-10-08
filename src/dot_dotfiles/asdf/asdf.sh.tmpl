@@ -1,0 +1,21 @@
+{{- if .asdf.enabled }}
+#
+# asdf version manager setup
+#
+# - Sources asdf.sh to add it to the PATH.
+# - Sets up shell completions.
+#
+
+ASDF_DIR="${ASDF_DATA_DIR:-$HOME/.asdf}"
+
+# Source asdf.sh if it exists
+if [ -f "$ASDF_DIR/asdf.sh" ]; then
+  . "$ASDF_DIR/asdf.sh"
+
+  # Set up shell completions for ZSH, if not already configured.
+  # The fpath check prevents adding the directory multiple times.
+  if [[ "${SHELL}" == *"zsh"* ]] && [[ ":$fpath:" != *":${ASDF_DIR}/completions:"* ]]; then
+    fpath=(${ASDF_DIR}/completions $fpath)
+  fi
+fi
+{{- end }}

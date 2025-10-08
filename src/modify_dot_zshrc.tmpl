@@ -15,6 +15,7 @@ fi
 # Add our managed section
 cat >> "${tempfile}" << 'EOF'
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:zsh:{{ include "modify_dot_zshrc.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
+source {{ .chezmoi.homeDir }}/.dotfiles/asdf/asdf.sh
 source {{ .chezmoi.homeDir }}/.dotfiles/zsh/config.zsh
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:zsh:{{ include "modify_dot_zshrc.tmpl" | sha256sum | substr 0 8 }}
 EOF
