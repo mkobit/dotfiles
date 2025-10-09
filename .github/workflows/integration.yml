@@ -34,5 +34,10 @@ jobs:
           which chezmoi
           chezmoi --version
 
+      - name: Initialize chezmoi with repository
+        run: |
+          # Initialize chezmoi with the checked out repository as the source
+          chezmoi init --source ${{ github.workspace }}
+
       - name: Run chezmoi apply
-        run: chezmoi apply --dry-run --verbose --source-path ${{ github.workspace }}
+        run: chezmoi apply --dry-run --verbose
