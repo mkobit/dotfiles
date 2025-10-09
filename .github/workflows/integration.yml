@@ -29,7 +29,10 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Verify chezmoi installation
-        run: chezmoi --version
+        run: |
+          echo "PATH=$PATH"
+          which chezmoi
+          chezmoi --version
 
       - name: Run chezmoi apply
-        run: chezmoi apply --source-path ${{ github.workspace }}
+        run: chezmoi apply --dry-run --verbose --source-path ${{ github.workspace }}
