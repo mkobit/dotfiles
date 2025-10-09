@@ -37,7 +37,12 @@ jobs:
       - name: Initialize chezmoi with repository
         run: |
           # Initialize chezmoi with the checked out repository as the source
-          chezmoi init --source=${{ github.workspace }}
+          # Create temporary destination directory for testing
+          mkdir -p /tmp/chezmoi-test
+          chezmoi init --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
+
+      - name: Run chezmoi doctor
+        run: chezmoi doctor --destination=/tmp/chezmoi-test
 
       - name: Run chezmoi apply
-        run: chezmoi apply --verbose
+        run: chezmoi apply --destination=/tmp/chezmoi-test --verbose --debug
