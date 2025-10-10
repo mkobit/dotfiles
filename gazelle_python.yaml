@@ -1,0 +1,59 @@
+# GENERATED FILE - DO NOT EDIT!
+#
+# To update this file, run:
+#   bazel run //:gazelle_python_manifest.update
+
+---
+manifest:
+  modules_mapping:
+    30fcd23745efe32ce681__mypyc: black
+    3204bda914b7f2c6f497__mypyc: mypy
+    aiohappyeyeballs: aiohappyeyeballs
+    aiohttp: aiohttp
+    aiosignal: aiosignal
+    annotated_types: annotated_types
+    attr: attrs
+    attrs: attrs
+    black: black
+    blackd: black
+    blib2to3: black
+    click: click
+    flake8: flake8
+    frozenlist: frozenlist
+    idna: idna
+    iniconfig: iniconfig
+    isort: isort
+    jsonschema: jsonschema
+    jsonschema_specifications: jsonschema_specifications
+    markdown_it: markdown_it_py
+    mccabe: mccabe
+    mdurl: mdurl
+    multidict: multidict
+    mypy: mypy
+    mypy_extensions: mypy_extensions
+    mypyc: mypy
+    packaging: packaging
+    pathspec: pathspec
+    platformdirs: platformdirs
+    pluggy: pluggy
+    propcache: propcache
+    py: pytest
+    pycodestyle: pycodestyle
+    pydantic: pydantic
+    pydantic_core: pydantic_core
+    pyflakes: pyflakes
+    pygments: pygments
+    pytest: pytest
+    pytest_asyncio: pytest_asyncio
+    referencing: referencing
+    rich: rich
+    rpds: rpds_py
+    shellingham: shellingham
+    typer: typer
+    typing_extensions: typing_extensions
+    typing_inspection: typing_inspection
+    whenever: whenever
+    yarl: yarl
+  pip_repository:
+    name: pypi
+integrity: b7c799b3ff51f8762b651fc8c26c86037218e82b944adf5d4b7f4d2b247845d4
