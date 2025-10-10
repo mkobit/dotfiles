@@ -42,7 +42,7 @@ jobs:
           chezmoi init --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
 
       - name: Run chezmoi doctor
-        run: chezmoi doctor --destination=/tmp/chezmoi-test --no-network
+        run: chezmoi doctor --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --no-network
 
       - name: Run chezmoi apply
-        run: chezmoi apply --destination=/tmp/chezmoi-test --verbose --debug
+        run: chezmoi apply --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --verbose --debug
