@@ -13,7 +13,8 @@ fi
 
 if [[ "$SHELL" != "$zsh_path" ]]; then
     log_info "Changing default shell from $SHELL to $zsh_path"
-    if chsh -s "$zsh_path"; then
+    # Use sudo to avoid password prompt (works in both CI and interactive environments)
+    if sudo chsh -s "$zsh_path" "$(whoami)"; then
         log_success "Default shell changed to zsh"
     else
         log_error "Failed to change shell to $zsh_path"
