@@ -1,4 +1,4 @@
-name: Chezmoi Integration Tests
+name: Chezmoi integration tests
 on:
   push:
     branches:
@@ -45,4 +45,7 @@ jobs:
         run: chezmoi doctor --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --no-network
 
       - name: Run chezmoi apply
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          APT_LISTCHANGES_FRONTEND: none
         run: chezmoi apply --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --verbose
