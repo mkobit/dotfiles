@@ -48,4 +48,5 @@ jobs:
         env:
           DEBIAN_FRONTEND: noninteractive
           APT_LISTCHANGES_FRONTEND: none
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: chezmoi apply --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --verbose
