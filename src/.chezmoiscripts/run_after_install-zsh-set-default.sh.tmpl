@@ -3,12 +3,6 @@
 # logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
 source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
 
-# Skip chsh in CI environments (requires user credentials)
-if [[ -n "${CI:-}" ]]; then
-    log_info "Skipping shell change in CI environment"
-    exit 0
-fi
-
 # Set zsh as default shell (runs after zsh installation)
 zsh_path="$(which zsh)"
 
@@ -19,7 +13,8 @@ fi
 
 if [[ "$SHELL" != "$zsh_path" ]]; then
     log_info "Changing default shell from $SHELL to $zsh_path"
-    if chsh -s "$zsh_path"; then
+    # Use sudo to avoid password prompt (works in both CI and interactive environments)
+    if sudo chsh -s "$zsh_path" "$(whoami)"; then
         log_success "Default shell changed to zsh"
     else
         log_error "Failed to change shell to $zsh_path"
