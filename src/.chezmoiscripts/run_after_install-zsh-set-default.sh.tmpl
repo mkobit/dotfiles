@@ -3,6 +3,12 @@
 # logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
 source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
 
+# Skip chsh in CI environments (requires user credentials)
+if [[ -n "${CI:-}" ]]; then
+    log_info "Skipping shell change in CI environment"
+    exit 0
+fi
+
 # Set zsh as default shell (runs after zsh installation)
 zsh_path="$(which zsh)"
 

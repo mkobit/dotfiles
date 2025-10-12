@@ -50,4 +50,4 @@ jobs:
           APT_LISTCHANGES_FRONTEND: none
           # Authenticate GitHub API requests to avoid rate limiting when downloading external assets
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: chezmoi apply --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --verbose
+        run: chezmoi apply --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
