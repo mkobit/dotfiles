@@ -1,21 +1,18 @@
 {{- if .asdf.enabled }}
 #
-# asdf version manager setup
+# asdf version manager setup (pre-compiled binary installation)
 #
-# - Sources asdf.sh to add it to the PATH.
-# - Sets up shell completions.
+# - asdf binary is installed to ~/.local/bin via chezmoi externals
+# - Uses XDG_DATA_HOME for asdf data directory (plugins, installs, shims)
+# - Adds asdf shims directory to PATH for tool access
 #
+# Reference: https://asdf-vm.com/guide/getting-started.html
 
-ASDF_DIR="${ASDF_DATA_DIR:-$HOME/.asdf}"
+# Use XDG Base Directory specification for asdf data
+export ASDF_DATA_DIR="${ASDF_DATA_DIR:-${XDG_DATA_HOME:-$HOME/.local/share}/asdf}"
 
-# Source asdf.sh if it exists
-if [ -f "$ASDF_DIR/asdf.sh" ]; then
-  . "$ASDF_DIR/asdf.sh"
-
-  # Set up shell completions for ZSH, if not already configured.
-  # The fpath check prevents adding the directory multiple times.
-  if [[ "${SHELL}" == *"zsh"* ]] && [[ ":$fpath:" != *":${ASDF_DIR}/completions:"* ]]; then
-    fpath=(${ASDF_DIR}/completions $fpath)
-  fi
+# Add asdf shims to PATH
+if [ -d "$ASDF_DATA_DIR/shims" ]; then
+  export PATH="$ASDF_DATA_DIR/shims:$PATH"
 fi
 {{- end }}

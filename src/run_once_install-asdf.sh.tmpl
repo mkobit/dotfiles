@@ -1,86 +1,75 @@
 #!/bin/bash
 # vim: set ft=sh
+{{- /* Calculate hash from sorted JSON of plugins array for change detection */ -}}
+{{- $pluginsJson := .asdf.plugins | sortAlpha | toJson -}}
+{{- $pluginsHash := $pluginsJson | sha256sum -}}
+# run_once_install-asdf-{{ $pluginsHash }}.sh.tmpl
 #
-# Installs asdf, its plugins, and the tools defined in .tool-versions.
-# This script is designed to be idempotent and runs only once.
+# Configures asdf plugins and installs tools defined in .tool-versions.
+# The asdf binary is installed to ~/.local/bin via chezmoi externals.
+# This script re-runs when the plugins array changes (tracked via JSON hash).
 #
 # Script logic:
 # 1. Check if asdf is enabled in chezmoi data.
-# 2. Check for required system packages (for Debian/Ubuntu) and warn if missing.
-# 3. If asdf is not installed, clone the repo and check out the correct version.
-# 4. Source asdf.sh to make the `asdf` command available for the rest of the script.
-# 5. Install all plugins defined in chezmoi data.
-# 6. Install all tool versions from ~/.tool-versions.
+# 2. Verify asdf binary is available.
+# 3. Sync plugins: install missing, remove unlisted.
+# 4. Install all tool versions from ~/.tool-versions.
+#
+# References:
+# - https://asdf-vm.com/guide/getting-started.html
 
 set -euo pipefail
 
 {{- if .asdf.enabled }}
 
-ASDF_DIR="${ASDF_DATA_DIR:-$HOME/.asdf}"
-
-# --- Dependency Check ---
-check_dependencies() {
-  # This check is tailored for Debian/Ubuntu systems.
-  if ! command -v dpkg >/dev/null; then
-    echo "Warning: 'dpkg' command not found. Skipping Debian/Ubuntu dependency check."
-    return
-  fi
-
-  local missing_pkgs=""
-  # Common build dependencies for asdf-python on Debian/Ubuntu
-  # From https://github.com/asdf-community/asdf-python#dependencies
-  local python_pkgs="make build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev wget curl llvm libncurses5-dev libncursesw5-dev xz-utils tk-dev libffi-dev liblzma-dev git"
-
-  echo "Checking for required packages (for Debian/Ubuntu)..."
-  for pkg in $python_pkgs; do
-    if ! dpkg -s "$pkg" >/dev/null 2>&1; then
-      missing_pkgs="$missing_pkgs $pkg"
-    fi
-  done
-
-  if [ -n "$missing_pkgs" ]; then
-    echo "Warning: The following required packages appear to be missing:"
-    echo " ${missing_pkgs}"
-    echo "Installation of Python versions may fail. To install them, run:"
-    echo " sudo apt-get update && sudo apt-get install -y${missing_pkgs}"
-  else
-    echo "All required packages seem to be present."
-  fi
-}
-
-check_dependencies
-
-# --- Install asdf Core ---
-if [ ! -d "$ASDF_DIR" ]; then
-  echo "Installing asdf..."
-  git clone "{{ .asdf.git_url }}" "$ASDF_DIR"
-  (cd "$ASDF_DIR" && git checkout -qf "{{ .asdf.git_ref }}")
-  echo "asdf installed successfully."
-else
-  echo "asdf is already installed."
+# --- Verify asdf is accessible ---
+if ! command -v asdf >/dev/null 2>&1; then
+  echo "Error: asdf binary not found in PATH"
+  echo "Expected location: ~/.local/bin/asdf (installed via chezmoi externals)"
+  exit 1
 fi
 
-# --- Source asdf & Install Plugins/Tools ---
-if [ -f "$ASDF_DIR/asdf.sh" ]; then
-  . "$ASDF_DIR/asdf.sh"
+echo "asdf version: $(asdf version)"
 
-  echo "Checking for asdf plugins..."
-  {{- range .asdf.plugins }}
-  if ! asdf plugin list | grep -qF "{{ .name }}"; then
-    echo "Installing asdf plugin: {{ .name }}"
-    asdf plugin add {{ .name }} {{ with .git_url }}{{ . }}{{ end }}
-  fi
-  {{- end }}
+# Define desired plugins from chezmoi data
+declare -a DESIRED_PLUGINS=(
+{{- range .asdf.plugins }}
+  "{{ .name }}"
+{{- end }}
+)
 
-  echo "Installing tool versions from ~/.tool-versions..."
-  if [ -f "${HOME}/.tool-versions" ]; then
-    asdf install
-    echo "Tool installation complete."
-  else
-    echo "Warning: ~/.tool-versions file not found. Skipping tool installation."
+# --- Remove Unlisted Plugins ---
+echo "Checking for plugins to remove..."
+while IFS= read -r installed_plugin; do
+  found=false
+  for desired_plugin in "${DESIRED_PLUGINS[@]}"; do
+    if [[ "$installed_plugin" == "$desired_plugin" ]]; then
+      found=true
+      break
+    fi
+  done
+  if [[ "$found" == false ]]; then
+    echo "Removing unlisted plugin: $installed_plugin"
+    asdf plugin remove "$installed_plugin"
   fi
+done < <(asdf plugin list 2>/dev/null || true)
+
+# --- Install Missing Plugins ---
+echo "Checking for plugins to install..."
+{{- range .asdf.plugins }}
+if ! asdf plugin list | grep -qF "{{ .name }}"; then
+  echo "Installing asdf plugin: {{ .name }}"
+  asdf plugin add {{ .name }} {{ with .git_url }}{{ . }}{{ end }}
+fi
+{{- end }}
+
+# --- Install Tools ---
+echo "Installing tool versions from ~/.tool-versions..."
+if [ -f "${HOME}/.tool-versions" ]; then
+  asdf install
+  echo "Tool installation complete."
 else
-  echo "Warning: asdf.sh not found. Cannot configure plugins or install tools."
+  echo "Warning: ~/.tool-versions file not found. Skipping tool installation."
 fi
 
 {{- end }}

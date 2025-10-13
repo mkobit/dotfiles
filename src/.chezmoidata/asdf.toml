@@ -1,11 +1,31 @@
 # ASDF Version Manager configuration
-# Used by run_once_install-asdf.sh.tmpl to install asdf
-# and manage plugins.
+# Used by run_once_install-asdf.sh.tmpl to configure asdf plugins
+# Binary is installed via .chezmoiexternals to ~/.local/bin/asdf
+#
+# Plugin shortnames reference:
+# - When git_url is omitted, asdf uses the official shortname registry
+# - See: https://github.com/asdf-vm/asdf-plugins
+#
+# References:
+# - https://asdf-vm.com/guide/getting-started.html
+# - https://github.com/asdf-vm/asdf/releases
+
 [asdf]
   enabled = true
-  git_url = "https://github.com/asdf-vm/asdf.git"
-  git_ref = "v0.18.0"
+  version = "0.18.0"
+
+  # Language version management plugins
+  # Plugins are installed/removed based on this array
   plugins = [
-    { name = "nodejs", git_url = "https://github.com/asdf-vm/asdf-nodejs.git" },
-    { name = "python" }
+    { name = "nodejs" },     # https://github.com/asdf-vm/asdf-nodejs
+    { name = "python" },     # https://github.com/danhper/asdf-python
+    { name = "java" },       # https://github.com/halcyon/asdf-java
+    { name = "golang" },     # https://github.com/asdf-community/asdf-golang
+    { name = "rust" },       # https://github.com/code-lever/asdf-rust
   ]
+
+[asdf.checksums]
+darwin_arm64 = "5bcf8e7b4e0c2a7df0b40e36797a06fc5f8e6bd0bf2ee7e37d06b5c28e5ec1bc"
+darwin_amd64 = "e9feff0ec73b1207a5b8f77cc6e16efb0d96b52119eecff47e18fb73ede2c8c5"
+linux_amd64 = "e1c5b43cebb4e4da1f7c3172aba3bf4c00ea7e2b6e0fc17a1bf7e8ca36cdcbfc"
+linux_arm64 = "e1c5b43cebb4e4da1f7c3172aba3bf4c00ea7e2b6e0fc17a1bf7e8ca36cdcbfc"

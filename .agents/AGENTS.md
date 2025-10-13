@@ -176,6 +176,8 @@ This repository uses chezmoi for dotfiles management.
     - "If any .chezmoidata/ directories exist in the source state, all files within them are interpreted as structured static data in the given formats. This data can then be used in templates. See also .chezmoidata.$FORMAT."
 - [Externals directory](https://www.chezmoi.io/reference/special-directories/chezmoiexternals/) - `.chezmoiexternals/` for external file configs
     - "If any .chezmoiexternals/ directories exist in the source state, then all files in this directory are treated as .chezmoiexternal.<format> files relative to the source directory."
+    - **IMPORTANT**: Always prefer chezmoi externals over custom download scripts for binaries, archives, and files from URLs
+    - See [chezmoi externals patterns](#chezmoi-externals-patterns) below for detailed guidance
 - [Scripts directory](https://www.chezmoi.io/reference/special-directories/chezmoiscripts/) - `.chezmoiscripts/` for run scripts
     - "If a directory called .chezmoiscripts/ exists in the root of the source directory, then any scripts in it are executed as normal scripts without creating a corresponding directory in the target state. The run_ attribute is still required."
 - [Templates directory](https://www.chezmoi.io/reference/special-directories/chezmoitemplates/) - `.chezmoitemplates/` for reusable templates
@@ -202,6 +204,111 @@ This repository uses chezmoi for dotfiles management.
 - `{{ .chezmoi.arch }}` - Architecture (amd64, arm64)
 
 **Note**: Raw markdown documentation is also available at [chezmoi source docs](https://github.com/twpayne/chezmoi/tree/master/assets/chezmoi.io) for more concise reference when working with agents.
+
+## chezmoi externals patterns
+
+**CRITICAL**: Always use chezmoi externals (`.chezmoiexternals/`) for downloading binaries, archives, and files from URLs. Never write custom curl/wget download scripts.
+
+### Directory structure
+
+```
+src/
+├── dot_local/bin/.chezmoiexternals/
+│   ├── fzf.toml.tmpl      # Binary to ~/.local/bin/fzf
+│   ├── asdf.toml.tmpl     # Binary to ~/.local/bin/asdf
+│   └── jq.toml.tmpl       # Binary to ~/.local/bin/jq
+└── .chezmoidata.toml       # Version and checksum data
+```
+
+### Basic patterns
+
+**Single binary from tar.gz archive:**
+```toml
+{{- with .fzf -}}
+{{- if eq .installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch }}
+["fzf"]
+type = "archive-file"
+url = {{ gitHubReleaseAssetURL "junegunn/fzf" (printf "v%s" .version) (printf "fzf-%s-%s_%s.tar.gz" .version $.chezmoi.os $.chezmoi.arch) | quote }}
+path = "fzf"
+executable = true
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end -}}
+{{- end }}
+```
+
+**With custom target platform names:**
+```toml
+{{- with .eza -}}
+{{- if eq (index .installation $.chezmoi.os) "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
+{{- $target := "" -}}
+{{- if eq $.chezmoi.os "linux" -}}
+  {{- if eq $.chezmoi.arch "arm64" -}}
+    {{- $target = "aarch64-unknown-linux-gnu" -}}
+  {{- else -}}
+    {{- $target = "x86_64-unknown-linux-musl" -}}
+  {{- end -}}
+{{- else if eq $.chezmoi.os "darwin" -}}
+  {{- if eq $.chezmoi.arch "arm64" -}}
+    {{- $target = "aarch64-apple-darwin" -}}
+  {{- else -}}
+    {{- $target = "x86_64-apple-darwin" -}}
+  {{- end -}}
+{{- end -}}
+["eza"]
+type = "archive-file"
+url = {{ gitHubReleaseAssetURL "eza-community/eza" (printf "v%s" .version) (printf "eza_%s.tar.gz" $target) | quote }}
+path = "eza"
+executable = true
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end -}}
+{{- end }}
+```
+
+### Data file format
+
+Store versions and checksums in `.chezmoidata.toml`:
+
+```toml
+[fzf]
+version = "0.65.2"
+installation = "external-sources"
+
+[fzf.checksums]
+darwin_arm64 = "a1464f1d4b75c3a92975f67055f9e407800ed35820ea7d73f2afb90aeb0491e8"
+darwin_amd64 = "3bb8b0e746b6238aa2ce43550c06f16a81fc9a46687b06456d996cb54be762e4"
+linux_amd64 = "5eb8efc0e94aa559f84ea83eeba99bea7dce818e63f92b4b62e60663220f1c14"
+linux_arm64 = "097347160595bf03a426d2abe0a17e14ca060540ddfc0ea45c0a9be62bb29a2b"
+```
+
+### Key fields reference
+
+- `type`: `"file"` (single file), `"archive"` (full archive), `"archive-file"` (one file from archive)
+- `url`: Download URL, use `gitHubReleaseAssetURL` helper for GitHub releases
+- `executable`: `true` for binaries
+- `path`: Path within archive for `archive-file` type
+- `stripComponents`: Remove N leading path components from archive
+- `checksum.sha256`: SHA256 checksum for verification
+- `refreshPeriod`: How often to check for updates (e.g., `"720h"` = 30 days)
+
+### When to use externals vs scripts
+
+**Use chezmoi externals for:**
+- GitHub release binaries
+- Pre-compiled binaries from URLs
+- Archives that need extraction
+- Single files from URLs
+
+**Use run_once scripts for:**
+- Plugin management (e.g., asdf plugins)
+- Complex multi-step configuration
+- Installation requiring compilation
+- Package manager installations
+
+### Unsupported compression formats
+
+For unsupported archive formats, see [chezmoi docs on custom filters](https://www.chezmoi.io/user-guide/include-files-from-elsewhere/#handle-tar-archives-in-an-unsupported-compression-format).
 
 ## chezmoi script patterns
 
