@@ -25,7 +25,7 @@
   ]
 
 [asdf.checksums]
-darwin_arm64 = "5bcf8e7b4e0c2a7df0b40e36797a06fc5f8e6bd0bf2ee7e37d06b5c28e5ec1bc"
-darwin_amd64 = "e9feff0ec73b1207a5b8f77cc6e16efb0d96b52119eecff47e18fb73ede2c8c5"
-linux_amd64 = "e1c5b43cebb4e4da1f7c3172aba3bf4c00ea7e2b6e0fc17a1bf7e8ca36cdcbfc"
-linux_arm64 = "e1c5b43cebb4e4da1f7c3172aba3bf4c00ea7e2b6e0fc17a1bf7e8ca36cdcbfc"
+darwin_arm64 = "5c82af09a9b17bb71195cd1c0a6baa1c7c4491b837ac601c42853e553b50a618"
+darwin_amd64 = "aa698a8146fcdcb1145224ffb135f1b3ce2b7e4c2daceb00229ff82bb923d13b"
+linux_amd64 = "4d3007070166cb0a652af26c3f0462b021e04cb26c4ab13894d13689da89f5b8"
+linux_arm64 = "1749b89039e4af51b549aa0919812fd68722c1a26a90eaf84db0b46a39f557a9"
