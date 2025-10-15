@@ -4,6 +4,7 @@ This directory contains tool-specific documentation for the dotfiles setup.
 
 ## Available Documentation
 
+- [`docs/asdf.md`](docs/asdf.md) - asdf version manager for multiple runtime versions
 - [`docs/claude-code.md`](docs/claude-code.md) - Claude Code configuration and usage
 - [`docs/eza.md`](docs/eza.md) - Modern ls replacement with enhanced features
 - [`docs/ghostty.md`](docs/ghostty.md) - Ghostty terminal emulator

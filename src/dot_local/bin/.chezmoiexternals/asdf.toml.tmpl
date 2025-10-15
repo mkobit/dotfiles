@@ -1,0 +1,13 @@
+{{- with .asdf -}}
+{{- if .enabled -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch }}
+["asdf"]
+type = "archive-file"
+url = {{ gitHubReleaseAssetURL "asdf-vm/asdf" (printf "v%s" .version) (printf "asdf-v%s-%s-%s.tar.gz" .version $.chezmoi.os $.chezmoi.arch) | quote }}
+path = "asdf"
+executable = true
+{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") }}
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end -}}
+{{- end -}}
+{{- end }}
