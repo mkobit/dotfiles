@@ -59,7 +59,7 @@ echo "Checking for plugins to install..."
 {{- range .asdf.plugins }}
 if ! asdf plugin list | grep -qF "{{ .name }}"; then
   echo "Installing asdf plugin: {{ .name }}"
-  asdf plugin add {{ .name }} {{ with .git_url }}{{ . }}{{ end }}
+  asdf plugin add {{ .name }}
 fi
 {{- end }}
 
