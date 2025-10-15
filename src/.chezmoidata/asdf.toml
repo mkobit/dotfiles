@@ -1,10 +1,14 @@
 # ASDF Version Manager configuration
-# Used by run_once_install-asdf.sh.tmpl to configure asdf plugins
-# Binary is installed via .chezmoiexternals to ~/.local/bin/asdf
+# Manages asdf binary installation and plugin configuration
 #
-# Plugin shortnames reference:
-# - When git_url is omitted, asdf uses the official shortname registry
-# - See: https://github.com/asdf-vm/asdf-plugins
+# Binary installation:
+# - Downloaded via .chezmoiexternals to ~/.local/bin/asdf
+# - Platform-specific checksums ensure integrity
+#
+# Plugin management:
+# - run_once_install-asdf.sh.tmpl syncs plugins (install/remove)
+# - All plugins use official shortnames from https://github.com/asdf-vm/asdf-plugins
+# - Tool versions are managed per-project via .tool-versions files
 #
 # References:
 # - https://asdf-vm.com/guide/getting-started.html

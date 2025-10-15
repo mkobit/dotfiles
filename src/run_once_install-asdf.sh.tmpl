@@ -5,7 +5,7 @@
 {{- $pluginsHash := $pluginsJson | sha256sum -}}
 # run_once_install-asdf-{{ $pluginsHash }}.sh.tmpl
 #
-# Configures asdf plugins and installs tools defined in .tool-versions.
+# Manages asdf plugins based on configuration in .chezmoidata/asdf.toml.
 # The asdf binary is installed to ~/.local/bin via chezmoi externals.
 # This script re-runs when the plugins array changes (tracked via JSON hash).
 #
@@ -13,7 +13,9 @@
 # 1. Check if asdf is enabled in chezmoi data.
 # 2. Verify asdf binary is available.
 # 3. Sync plugins: install missing, remove unlisted.
-# 4. Install all tool versions from ~/.tool-versions.
+#
+# Note: This script does NOT install tool versions. Tool versions should be
+# managed per-project using .tool-versions files in project directories.
 #
 # References:
 # - https://asdf-vm.com/guide/getting-started.html
@@ -22,14 +24,16 @@ set -euo pipefail
 
 {{- if .asdf.enabled }}
 
+source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
+
 # --- Verify asdf is accessible ---
 if ! command -v asdf >/dev/null 2>&1; then
-  echo "Error: asdf binary not found in PATH"
-  echo "Expected location: ~/.local/bin/asdf (installed via chezmoi externals)"
+  log_error "asdf binary not found in PATH"
+  log_error "Expected location: ~/.local/bin/asdf (installed via chezmoi externals)"
   exit 1
 fi
 
-echo "asdf version: $(asdf version)"
+log_info "asdf version: $(asdf version)"
 
 # Define desired plugins from chezmoi data
 declare -a DESIRED_PLUGINS=(
@@ -39,7 +43,7 @@ declare -a DESIRED_PLUGINS=(
 )
 
 # --- Remove Unlisted Plugins ---
-echo "Checking for plugins to remove..."
+log_info "Checking for plugins to remove..."
 while IFS= read -r installed_plugin; do
   found=false
   for desired_plugin in "${DESIRED_PLUGINS[@]}"; do
@@ -49,27 +53,21 @@ while IFS= read -r installed_plugin; do
     fi
   done
   if [[ "$found" == false ]]; then
-    echo "Removing unlisted plugin: $installed_plugin"
+    log_warn "Removing unlisted plugin: $installed_plugin"
     asdf plugin remove "$installed_plugin"
   fi
 done < <(asdf plugin list 2>/dev/null || true)
 
 # --- Install Missing Plugins ---
-echo "Checking for plugins to install..."
+log_info "Checking for plugins to install..."
 {{- range .asdf.plugins }}
 if ! asdf plugin list | grep -qF "{{ .name }}"; then
-  echo "Installing asdf plugin: {{ .name }}"
+  log_info "Installing asdf plugin: {{ .name }}"
   asdf plugin add {{ .name }}
+  log_success "Installed plugin: {{ .name }}"
 fi
 {{- end }}
 
-# --- Install Tools ---
-echo "Installing tool versions from ~/.tool-versions..."
-if [ -f "${HOME}/.tool-versions" ]; then
-  asdf install
-  echo "Tool installation complete."
-else
-  echo "Warning: ~/.tool-versions file not found. Skipping tool installation."
-fi
+log_success "asdf plugin management complete"
 
 {{- end }}

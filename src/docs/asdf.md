@@ -5,20 +5,16 @@ asdf is a universal version manager for managing multiple runtime versions with 
 ## Quick reference
 
 **Installation**: Binary managed via `.chezmoiexternals` → `~/.local/bin/asdf`
-**Configuration**: Plugin list in `.chezmoidata/asdf.toml`, versions in `~/.tool-versions`
+**Configuration**: Plugin list in `.chezmoidata/asdf.toml`
 **Shell integration**: Managed via `dot_dotfiles/asdf/asdf.sh.tmpl` → sourced in `.zshrc`
+**Tool versions**: Managed per-project using `.tool-versions` files in project directories
 
 ## Configuration files
 
 ### Plugin configuration
 - **Location**: `.chezmoidata/asdf.toml`
 - **Purpose**: Defines asdf version, enabled plugins, and binary checksums
-- **Managed by**: Checked into repository
-
-### Tool versions
-- **Location**: `~/.tool-versions`
-- **Purpose**: Specifies which versions of each tool to install
-- **Managed by**: `src/dot_tool-versions`
+- **Managed by**: Checked into repository, synced by `run_once_install-asdf.sh.tmpl`
 
 ## How it works
 
@@ -26,8 +22,9 @@ asdf is a universal version manager for managing multiple runtime versions with 
 2. **Plugin management**: The `run_once_install-asdf.sh.tmpl` script syncs plugins:
    - Installs missing plugins from the configured list
    - Removes plugins not in the configured list
-3. **Tool installation**: Reads `~/.tool-versions` and installs specified versions
-4. **Shell integration**: The asdf shim directory is added to PATH via sourced shell script
+   - Uses colored logging to show installation progress
+3. **Shell integration**: The asdf shim directory is added to PATH via sourced shell script
+4. **Version management**: Tool versions are managed per-project using `.tool-versions` files
 
 ## Plugin configuration
 
@@ -56,11 +53,18 @@ asdf installation is controlled by the `asdf.enabled` flag in `.chezmoidata/asdf
    ]
    ```
 2. Run `chezmoi apply` to install the plugin
-3. Add desired version to `~/.tool-versions`:
-   ```
-   your-new-plugin 1.2.3
-   ```
-4. Run `asdf install` to install the version
+3. Install tool versions per-project:
+   - Create a `.tool-versions` file in your project directory
+   - Add your desired version: `your-new-plugin 1.2.3`
+   - Run `asdf install` in that directory to install the version
+
+## Managing tool versions
+
+Tool versions are **not** managed globally by this dotfiles setup. Instead:
+
+- Each project should have its own `.tool-versions` file
+- Run `asdf install` in a project directory to install versions for that project
+- This approach keeps version dependencies explicit and project-specific
 
 ## Updating asdf version
 
@@ -74,5 +78,6 @@ asdf installation is controlled by the `asdf.enabled` flag in `.chezmoidata/asdf
 ## References
 
 - [asdf documentation](https://asdf-vm.com/guide/getting-started.html)
+- [asdf plugin management](https://asdf-vm.com/manage/plugins.html)
 - [asdf GitHub releases](https://github.com/asdf-vm/asdf/releases)
 - [asdf plugins registry](https://github.com/asdf-vm/asdf-plugins)
