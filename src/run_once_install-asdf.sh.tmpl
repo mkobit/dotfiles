@@ -1,8 +1,8 @@
-#!/bin/bash
+{{ if .asdf.enabled }}#!/bin/bash
 # vim: set ft=sh
 {{- /* Calculate hash from sorted JSON of plugins array for change detection */ -}}
 {{- $pluginsJson := .asdf.plugins | sortAlpha | toJson -}}
-{{- $pluginsHash := $pluginsJson | sha256sum -}}
+{{- $pluginsHash := $pluginsJson | sha256sum }}
 # run_once_install-asdf-{{ $pluginsHash }}.sh.tmpl
 #
 # Manages asdf plugins based on configuration in .chezmoidata/asdf.toml.
@@ -22,8 +22,7 @@
 
 set -euo pipefail
 
-{{- if .asdf.enabled }}
-
+# logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
 source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
 
 # --- Verify asdf is accessible ---
