@@ -1,12 +1,12 @@
 {{ if .asdf.enabled }}#!/bin/bash
-# vim: set ft=sh
+# vim: set ft=sh syntax=sh
 {{- /* Calculate hash from sorted JSON of plugins array for change detection */ -}}
 {{- $pluginsJson := .asdf.plugins | sortAlpha | toJson -}}
 {{- $pluginsHash := $pluginsJson | sha256sum }}
 # run_once_install-asdf-{{ $pluginsHash }}.sh.tmpl
 #
 # Manages asdf plugins based on configuration in .chezmoidata/asdf.toml.
-# The asdf binary is installed to ~/.local/bin via chezmoi externals.
+# The asdf binary is installed via chezmoi externals.
 # This script re-runs when the plugins array changes (tracked via JSON hash).
 #
 # Script logic:
@@ -25,10 +25,12 @@ set -euo pipefail
 # logging.sh hash: {{ include "scripts/logging.sh" | sha256sum }}
 source "${CHEZMOI_SOURCE_DIR:?}/scripts/logging.sh"
 
+# Ensure destination .local/bin is in PATH
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+
 # --- Verify asdf is accessible ---
 if ! command -v asdf >/dev/null 2>&1; then
   log_error "asdf binary not found in PATH"
-  log_error "Expected location: ~/.local/bin/asdf (installed via chezmoi externals)"
   exit 1
 fi
 
