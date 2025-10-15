@@ -77,10 +77,12 @@ Config templates use `glob` patterns to auto-discover snippet files:
 
 ```go
 {{/* Auto-sources all .zsh files in snippets directory */}}
-{{- range glob (print .chezmoi.homeDir "/.dotfiles/zsh/snippets/*.zsh") }}
+{{- range glob (print .chezmoi.destDir "/.dotfiles/zsh/snippets/*.zsh") }}
 source {{ . }}
 {{- end }}
 ```
+
+**CRITICAL**: Always use `{{ .chezmoi.destDir }}` for ALL paths, including glob patterns.
 
 **Benefits:**
 - Future-proof - just drop files in directories
@@ -197,11 +199,27 @@ This repository uses chezmoi for dotfiles management.
 **Key template variables**:
 - `{{ .chezmoi.sourceFile }}` - Current template source file path (e.g., `modify_dot_gitconfig.tmpl`)
 - `{{ .chezmoi.sourceDir }}` - Source directory path (e.g., `/Users/user/.local/share/chezmoi/src`)
-- `{{ .chezmoi.homeDir }}` - User home directory path (e.g., `/Users/user`)
+- `{{ .chezmoi.destDir }}` - **ALWAYS USE THIS** - Destination directory path where files are installed
 - `{{ .chezmoi.hostname }}` - Machine hostname
 - `{{ .chezmoi.username }}` - Current user
 - `{{ .chezmoi.os }}` - Operating system (darwin, linux, windows)
 - `{{ .chezmoi.arch }}` - Architecture (amd64, arm64)
+
+**CRITICAL PATH RULES - READ THIS**:
+1. **ALWAYS ALWAYS ALWAYS use `{{ .chezmoi.destDir }}` for ALL paths**
+   - ✅ `export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"`
+   - ✅ `source {{ .chezmoi.destDir }}/.dotfiles/zsh/config.zsh`
+   - ✅ `{{ .chezmoi.destDir }}/.local/bin/asdf`
+
+2. **NEVER EVER use `$HOME` or `{{ .chezmoi.homeDir }}`**
+   - ❌ `export PATH="$HOME/.local/bin:${PATH}"` (WRONG - runtime variable)
+   - ❌ `export PATH="{{ .chezmoi.homeDir }}/.local/bin:${PATH}"` (WRONG - use destDir)
+   - ❌ `source {{ .chezmoi.homeDir }}/.dotfiles/config` (WRONG - use destDir)
+
+3. **We install to a target directory, NEVER assume it's home**
+   - The destination directory is configurable
+   - ALWAYS use `{{ .chezmoi.destDir }}` for ALL file and binary paths
+   - There are NO exceptions to this rule
 
 **Note**: Raw markdown documentation is also available at [chezmoi source docs](https://github.com/twpayne/chezmoi/tree/master/assets/chezmoi.io) for more concise reference when working with agents.
 
