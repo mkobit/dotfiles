@@ -16,7 +16,7 @@ fi
 cat >> "${tempfile}" << 'EOF'
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:git:{{ include "modify_dot_gitconfig.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
 [include]
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/config
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/config
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:git:{{ include "modify_dot_gitconfig.tmpl" | sha256sum | substr 0 8 }}
 EOF
 

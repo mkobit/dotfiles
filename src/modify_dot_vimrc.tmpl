@@ -15,7 +15,7 @@ fi
 # Add our managed section
 cat >> "${tempfile}" << 'EOF'
 " {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:vim:{{ include "modify_dot_vimrc.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
-source {{ .chezmoi.homeDir }}/.dotfiles/vim/config.vim
+source {{ .chezmoi.destDir }}/.dotfiles/vim/config.vim
 " {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:vim:{{ include "modify_dot_vimrc.tmpl" | sha256sum | substr 0 8 }}
 EOF
 

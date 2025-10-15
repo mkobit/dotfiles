@@ -3,23 +3,23 @@
 
 # Core configuration (all profiles)
 [include]
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/core.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/color.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/diff.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/fetch.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/merge.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/pull.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/push.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/rebase.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/rerere.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/stash.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/branch.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/column.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/aliases.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/core.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/color.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/diff.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/fetch.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/merge.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/pull.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/push.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/rebase.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/rerere.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/stash.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/branch.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/column.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/aliases.gitconfig
 
 # Personal configuration
 {{- if .git.personal.enabled }}
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/personal.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/github.gitconfig
-  path = {{ .chezmoi.homeDir }}/.dotfiles/git/snippets/init.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/personal.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/github.gitconfig
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/init.gitconfig
 {{- end }}

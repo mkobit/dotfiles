@@ -1,5 +1,5 @@
 {{- $chezmoiSourceDir := .chezmoi.sourceDir -}}
-{{- $chezmoiTargetDir := .chezmoi.homeDir -}}
+{{- $chezmoiTargetDir := .chezmoi.destDir -}}
 {{- with .eza -}}
 {{- $installation := index .installation $.chezmoi.os -}}
 {{- if and $installation (ne $installation "disabled") -}}
