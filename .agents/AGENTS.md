@@ -155,7 +155,7 @@ We need to operate within environments that have managed infrastructure that han
 ## Tooling guides
 
 - **jq**: For guidelines on using `jq` and managing custom modules, see [src/dot_dotfiles/jq/jq.md](src/dot_dotfiles/jq/jq.md).
-- **Claude Code**: Configuration precedence and agent patterns, see [src/dot_dotfiles/claude-code/claude-code.md](src/dot_dotfiles/claude-code/claude-code.md).
+- **Claude Code**: Configuration precedence and agent patterns, see [src/docs/claude-code.md](src/docs/claude-code.md).
 - **iTerm**: Profile management and scripting, see [src/dot_dotfiles/iterm/iterm.md](src/dot_dotfiles/iterm/iterm.md).
 - **Rectangle Pro**: Window management automation, see [src/dot_dotfiles/rectangle-pro/rectangle-pro.md](src/dot_dotfiles/rectangle-pro/rectangle-pro.md).
 - **Alacritty**: Cross-platform terminal configuration, see [src/dot_dotfiles/alacritty/alacritty.md](src/dot_dotfiles/alacritty/alacritty.md).
