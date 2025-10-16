@@ -26,10 +26,10 @@ Settings are defined in `.chezmoidata.toml` under `[claude_code.settings]` and r
 
 ## Skills
 
-Skills are reusable tools that an agent can use to perform specific tasks. They are defined as executable scripts or binaries and can be written in any language.
+Skills are reusable tools that an agent can use to perform specific tasks. They are defined in markdown files with YAML frontmatter.
 
 - **Location**: Skills are typically located in the `.claude/skills/` directory within a project or in the global `~/.claude/skills/` directory.
-- **Structure**: Each skill should be in its own subdirectory and include a `skill.yaml` file that describes the skill's inputs, outputs, and how to execute it.
+- **Structure**: Each skill is a directory containing a `SKILL.md` file. This file must contain YAML frontmatter with `name` and `description` fields.
 
 For detailed information on creating and using skills, see the [official documentation](https://docs.claude.com/en/docs/agents-and-tools/agent-skills/overview).
 
