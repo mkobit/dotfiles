@@ -1,0 +1,25 @@
+{{- with .uv -}}
+{{- if eq .installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch }}
+{{- $target := "" -}}
+{{- if eq $.chezmoi.os "linux" -}}
+  {{- if eq $.chezmoi.arch "arm64" -}}
+    {{- $target = "aarch64-unknown-linux-gnu" -}}
+  {{- else -}}
+    {{- $target = "x86_64-unknown-linux-gnu" -}}
+  {{- end -}}
+{{- else if eq $.chezmoi.os "darwin" -}}
+  {{- if eq $.chezmoi.arch "arm64" -}}
+    {{- $target = "aarch64-apple-darwin" -}}
+  {{- else -}}
+    {{- $target = "x86_64-apple-darwin" -}}
+  {{- end -}}
+{{- end -}}
+["uv"]
+type = "archive-file"
+url = {{ gitHubReleaseAssetURL "astral-sh/uv" (printf "v%s" .version) (printf "uv-%s.tar.gz" $target) | quote }}
+path = "uv"
+executable = true
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end -}}
+{{- end }}

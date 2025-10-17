@@ -1,0 +1,5 @@
+#!/bin/bash
+
+{{- if eq .pnpm.installation "external-sources" }}
+curl -fsSL https://get.pnpm.io/install.sh | sh -
+{{- end }}
