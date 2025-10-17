@@ -1,0 +1,11 @@
+[zsh]
+set_as_default_login_shell = true
+
+[zsh.oh-my-zsh]
+installation = "external-sources"
+sha = "9e23925b8581d22033f07f1983587412d3761494"
+plugins = ["git", "colored-man-pages"]
+
+[zsh.oh-my-zsh.powerlevel10k]
+enabled = false
+version = "v1.20.0"

@@ -1,0 +1,7 @@
+# Git personal configuration - all-or-nothing feature flag
+[git.personal]
+enabled = true
+name = "Mike Kobit"
+email = "mkobit@gmail.com"
+signing_key = "1698254E135D7ADE"
+gpg_sign = true

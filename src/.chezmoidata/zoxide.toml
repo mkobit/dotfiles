@@ -1,0 +1,9 @@
+[zoxide]
+version = "0.9.8"
+installation = "external-sources"
+
+[zoxide.checksums] # zoxide doesn't publish SHA files right now
+darwin_arm64 = ""
+darwin_amd64 = "cfa865ffd1ba87df2962f40ebd80c366f1d2b484f0c05b6da6b0104f50822f86"
+linux_amd64 = "4092ee38aa1efde42e4efb2f9c872df5388198aacae7f1a74e5eb5c3cc7f531c"
+linux_arm64 = "078cc9cc8cedb6c45edb84c0f5bad53518c610859c73bdb3009a52b89652c103"

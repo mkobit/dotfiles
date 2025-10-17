@@ -53,11 +53,15 @@ bazel run //:format                             # Format code
 
 ## Configuration patterns
 
-### Feature flags (preferred over profiles)
-Use granular feature flags in `.chezmoidata.toml` instead of monolithic profiles:
+### Modular Configuration in `.chezmoidata/`
+Configurations are broken down into individual tool files within the `src/.chezmoidata/` directory. This keeps settings modular and easy to manage.
+
+The root `.chezmoidata.toml` file is intentionally left empty, serving only as a pointer to this new structure.
+
+Instead of a single monolithic file, each tool has its own data file (e.g., `src/.chezmoidata/git.toml`):
 
 ```toml
-# Git personal configuration
+# Example from src/.chezmoidata/git.toml
 [git.personal]
 enabled = true
 name = "Your Name"
@@ -231,11 +235,14 @@ This repository uses chezmoi for dotfiles management.
 
 ```
 src/
-├── dot_local/bin/.chezmoiexternals/
-│   ├── fzf.toml.tmpl      # Binary to ~/.local/bin/fzf
-│   ├── asdf.toml.tmpl     # Binary to ~/.local/bin/asdf
-│   └── jq.toml.tmpl       # Binary to ~/.local/bin/jq
-└── .chezmoidata.toml       # Version and checksum data
+├── .chezmoidata/
+│   ├── fzf.toml
+│   ├── asdf.toml
+│   └── jq.toml
+└── dot_local/bin/.chezmoiexternals/
+    ├── fzf.toml.tmpl      # Installs fzf binary
+    ├── asdf.toml.tmpl     # Installs asdf binary
+    └── jq.toml.tmpl       # Installs jq binary
 ```
 
 ### Basic patterns
@@ -286,7 +293,7 @@ checksum.sha256 = "{{ index .checksums $platform }}"
 
 ### Data file format
 
-Store versions and checksums in `.chezmoidata.toml`:
+Store versions and checksums in their own dedicated files within the `.chezmoidata/` directory. For example, `src/.chezmoidata/fzf.toml` would contain:
 
 ```toml
 [fzf]
