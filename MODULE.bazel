@@ -11,7 +11,7 @@ bazel_dep(name = "protobuf", version = "31.0")
 bazel_dep(name = "buildifier_prebuilt", version = "8.2.0.2")
 
 # Gazelle
-bazel_dep(name = "gazelle", version = "0.45.0", repo_name = "bazel_gazelle")
+bazel_dep(name = "gazelle", version = "0.36.0", repo_name = "bazel_gazelle")
 bazel_dep(name = "rules_python_gazelle_plugin", version = "1.4.1")
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")

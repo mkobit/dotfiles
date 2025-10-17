@@ -41,9 +41,6 @@ chezmoi edit dot_gitconfig                      # Edit source files
 ```bash
 bazel test //...                                # Run tests
 bazel run //:format                             # Format code
-bazel run //:gazelle                            # Generate/update BUILD files
-bazel run //:gazelle_python_manifest.update     # Update Python import manifest
-bazel test //:gazelle_python_manifest.test      # Verify manifest is current
 ```
 
 ## Key principles
