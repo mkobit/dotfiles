@@ -1,0 +1,15 @@
+[uv]
+version = "0.9.3"
+installation = "external-sources"
+
+[uv.checksums]
+darwin_arm64 = "d6b2eaa1025b24b4779602763ad92f20112cbf19732fc6e0c72bb57a6a592c6c"
+darwin_amd64 = "ad57ed22bf793267ea97cfc0022afa096149e894dd161ee4ae5401b7c4a6db83"
+linux_amd64 = "4d6f84490da4b21bb6075ffc1c6b22e0cf37bc98d7cca8aff9fbb759093cdc23"
+linux_arm64 = "2094a3ead5a026a2f6894c4d3f71026129c8878939a57f17f0c8246a737bed1d"
+
+[uv.platforms]
+darwin_arm64 = "aarch64-apple-darwin"
+darwin_amd64 = "x86_64-apple-darwin"
+linux_amd64 = "x86_64-unknown-linux-gnu"
+linux_arm64 = "aarch64-unknown-linux-gnu"

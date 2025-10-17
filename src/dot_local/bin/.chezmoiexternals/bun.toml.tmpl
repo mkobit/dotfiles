@@ -1,0 +1,11 @@
+{{- with .bun -}}
+{{- if eq .installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch }}
+["bun"]
+type = "archive-file"
+url = {{ gitHubReleaseAssetURL "oven-sh/bun" (printf "bun-v%s" .version) (printf "%s.zip" (index .platforms $platform)) | quote }}
+path = {{ printf "%s/bun" (index .platforms $platform) }}
+executable = true
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end -}}
+{{- end }}
