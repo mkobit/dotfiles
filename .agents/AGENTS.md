@@ -71,9 +71,9 @@ gpg_sign = true
 ```
 
 **Benefits:**
-- **Clarity**: Each file has a single, clear purpose.
-- **Scalability**: Adding or modifying a tool's configuration doesn't require changing a large, shared file.
-- **Maintainability**: Smaller, focused files are easier for both humans and agents to read and edit.
+- Granular per-feature control
+- Easy to disable specific features per machine
+- Work environments can override cleanly
 
 ### Template auto-discovery
 
@@ -240,9 +240,9 @@ src/
 │   ├── asdf.toml
 │   └── jq.toml
 └── dot_local/bin/.chezmoiexternals/
-    ├── fzf.toml.tmpl      # Binary to ~/.local/bin/fzf
-    ├── asdf.toml.tmpl     # Binary to ~/.local/bin/asdf
-    └── jq.toml.tmpl       # Binary to ~/.local/bin/jq
+    ├── fzf.toml.tmpl      # Installs fzf binary
+    ├── asdf.toml.tmpl     # Installs asdf binary
+    └── jq.toml.tmpl       # Installs jq binary
 ```
 
 ### Basic patterns

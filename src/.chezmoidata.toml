@@ -1,10 +1,8 @@
 # chezmoi data file - defines template variables available in templates
 # See: https://www.chezmoi.io/reference/special-files/chezmoidata-format/
 #
-# This file is intentionally left empty. Tool configurations have been
-# refactored into individual files within the .chezmoidata/ directory.
+# This file is intentionally left empty. Tool configurations are defined
+# in individual files within the .chezmoidata/ directory.
 #
 # To add a new tool configuration, create a new file in that directory,
 # for example: .chezmoidata/new_tool.toml
-#
-# This modular approach keeps configurations isolated and easier to manage.
