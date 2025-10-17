@@ -1,0 +1,16 @@
+[claude_code]
+enabled = true
+version = "2.0.20"
+installation = "external-script"
+
+[claude_code.settings]
+cleanupPeriodDays = 30
+outputStyle = "concise"
+
+[claude_code.settings.permissions]
+tools = "allow"
+files = "allow"
+
+[claude_code.settings.env]
+DISABLE_AUTOUPDATER = "true"
+DISABLE_TELEMETRY = "true"
