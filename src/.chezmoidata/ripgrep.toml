@@ -1,9 +1,9 @@
 [ripgrep]
-version = "14.1.1"
+version = "15.0.0"
 installation = "external-sources"
 
 [ripgrep.checksums] # publishes shas as seperate files
-darwin_arm64 = "24ad76777745fbff131c8fbc466742b011f925bfa4fffa2ded6def23b5b937be"
-darwin_amd64 = "fc87e78f7cb3fea12d69072e7ef3b21509754717b746368fd40d88963630e2b3"
-linux_amd64 = "4cf9f2741e6c465ffdb7c26f38056a59e2a2544b51f7cc128ef28337eeae4d8e"
-linux_arm64 = "c827481c4ff4ea10c9dc7a4022c8de5db34a5737cb74484d62eb94a95841ab2f"
+darwin_arm64 = "98bb2e61e7277ba0ea72d2ae2592497fd8d2940934a16b122448d302a6637e3b"
+darwin_amd64 = "44128c733d127ddbda461e01225a68b5f9997cfe7635242a797f645ca674a71a"
+linux_amd64 = "253ad0fd5fef0d64cba56c70dccdacc1916d4ed70ad057cc525fcdb0c3bbd2a7"
+linux_arm64 = "15f8cc2fab12d88491c54d49f38589922a9d6a7353c29b0a0856727bcdf80754"
