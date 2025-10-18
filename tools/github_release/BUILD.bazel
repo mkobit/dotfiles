@@ -1,0 +1,16 @@
+py_library(
+    name = "lib",
+    srcs = ["lib.py"],
+    visibility = ["//visibility:public"],
+)
+
+py_binary(
+    name = "fetch",
+    srcs = ["fetch.py"],
+    main = "fetch.py",
+    deps = [
+        ":lib",
+        "@pypi//tomli_w",
+    ],
+    visibility = ["//visibility:public"],
+)
