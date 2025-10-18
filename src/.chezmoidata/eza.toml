@@ -1,5 +1,5 @@
 [eza]
-version = "0.23.3"
+version = "0.23.4"
 
 [eza.installation]
 # macOS: use package-manager (Homebrew), eza doesn't publish macOS binaries to GitHub releases
@@ -8,5 +8,5 @@ darwin = "package-manager"
 linux = "external-sources"
 
 [eza.checksums]
-linux_amd64 = "9394077c94ced5a39b895092a4e59b21c3949b414a1affb08c47be6a3af17eca"
-linux_arm64 = "333246365f1a3325df1068ff8bc994ea3a3e04abe4e118fa11015d589c5cc41d"
+linux_amd64 = "d231bb3ee33b08c76279b5888845dceb7034d055c42bb9be46dbe0dae39394df"
+linux_arm64 = "366e8430225f9955c3dc659b452150c169894833ccfef455e01765e265a3edda"
