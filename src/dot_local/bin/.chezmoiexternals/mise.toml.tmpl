@@ -1,0 +1,18 @@
+{{- with .mise -}}
+{{- if eq .installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
+{{- $target := "" -}}
+{{- if eq $.chezmoi.os "darwin" -}}
+  {{- $target = printf "macos-%s" (eq $.chezmoi.arch "arm64" | ternary "arm64" "x64") -}}
+{{- else -}}
+  {{- $target = printf "linux-%s" (eq $.chezmoi.arch "arm64" | ternary "arm64" "x64") -}}
+{{- end }}
+["mise"]
+type = "file"
+url = {{ gitHubReleaseAssetURL "jdx/mise" .version (printf "mise-%s-%s" .version $target) | quote }}
+executable = true
+{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") }}
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end }}
+{{- end -}}
+{{- end }}
