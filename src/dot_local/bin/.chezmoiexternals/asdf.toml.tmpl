@@ -1,5 +1,5 @@
 {{- with .asdf -}}
-{{- if .enabled -}}
+{{- if eq .installation "external-sources" -}}
 {{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch }}
 ["asdf"]
 type = "archive-file"

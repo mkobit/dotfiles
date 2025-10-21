@@ -15,7 +15,7 @@
 # - https://github.com/asdf-vm/asdf/releases
 
 [asdf]
-  enabled = true
+  installation = "external-sources"
   version = "0.18.0"
 
   # Language version management plugins

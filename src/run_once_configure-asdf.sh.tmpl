@@ -1,18 +1,15 @@
-{{ if .asdf.enabled }}#!/bin/bash
+{{ if eq .asdf.installation "external-sources" }}#!/bin/bash
 # vim: set ft=sh syntax=sh
 {{- /* Calculate hash from sorted JSON of plugins array for change detection */ -}}
 {{- $pluginsJson := .asdf.plugins | sortAlpha | toJson -}}
 {{- $pluginsHash := $pluginsJson | sha256sum }}
-# run_once_install-asdf-{{ $pluginsHash }}.sh.tmpl
+# data.asdf.plugins hash: {{ $pluginsHash }}
 #
-# Manages asdf plugins based on configuration in .chezmoidata/asdf.toml.
-# The asdf binary is installed via chezmoi externals.
-# This script re-runs when the plugins array changes (tracked via JSON hash).
+# Configures asdf plugins. Script re-runs when plugin array changes.
 #
 # Script logic:
-# 1. Check if asdf is enabled in chezmoi data.
-# 2. Verify asdf binary is available.
-# 3. Sync plugins: install missing, remove unlisted.
+# 1. Verify asdf binary is available.
+# 2. Sync plugins: install missing, remove unlisted.
 #
 # Note: This script does NOT install tool versions. Tool versions should be
 # managed per-project using .tool-versions files in project directories.
