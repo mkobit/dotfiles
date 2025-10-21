@@ -1,17 +1,5 @@
 {{- $targetDir := dir .chezmoi.targetFile }}
 
-for file in {{ $targetDir }}/pre/*.zsh; do
-    [[ -r "$file" ]] && source "$file"
-done
-
-{{- with (index .zsh "oh-my-zsh") }}
-{{- if eq .installation "external-sources" }}
-for file in {{ $targetDir }}/oh-my-zsh/*.zsh; do
-    [[ -r "$file" ]] && source "$file"
-done
-{{- end }}
-{{- end }}
-
-for file in {{ $targetDir }}/post/*.zsh; do
+for file in {{ $targetDir }}/scripts/*.zsh*; do
     [[ -r "$file" ]] && source "$file"
 done
