@@ -1,0 +1,5 @@
+# Files to remove from target system
+# https://www.chezmoi.io/reference/special-files/chezmoiremove/
+
+# Old asdf install script (renamed to configure-asdf)
+install-asdf.sh
