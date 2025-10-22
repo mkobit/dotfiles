@@ -1,0 +1,5 @@
+[tmux-powerline]
+  owner = "erikw"
+  repo = "tmux-powerline"
+  commit = "64722a6153641b65b143f2560e7552a4a2f8f533"
+  installation = "external-sources"
