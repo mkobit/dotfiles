@@ -1,5 +1,7 @@
 {{- $targetDir := dir .chezmoi.targetFile }}
 
-for file in {{ $targetDir }}/scripts/*.zsh*; do
+# (N)ullglob: Don't error if no files match
+# (n)umeric: Sort numerically to ensure deterministic sourcing
+for file in {{ $targetDir }}/scripts/*.zsh*(Nn); do
     [[ -r "$file" ]] && source "$file"
 done
