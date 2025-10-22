@@ -1,4 +1,4 @@
-{{- with .tmux-powerline -}}
+{{- with (index . "tmux-powerline") -}}
 {{- if eq .installation "external-sources" }}
 [".tmux-powerline"]
   type = "archive"
