@@ -2,9 +2,8 @@
 {{- if eq .installation "external-sources" }}
 [".tmux-powerline"]
   type = "archive"
-  url = "https://github.com/{{ .owner }}/{{ .repo }}/archive/{{ .commit }}.tar.gz"
+  url = "https://api.github.com/repos/erikw/tmux-powerline/tarball/{{ .commit }}"
   exact = true
   stripComponents = 1
-  refreshPeriod = "168h" # 1 week
 {{- end }}
 {{- end }}
