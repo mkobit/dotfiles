@@ -1,0 +1,6 @@
+{{- with (index . "tmux-powerline") -}}
+{{- if eq .installation "external-sources" }}
+# Source tmux-powerline plugin
+source-file "{{ $.chezmoi.destDir }}/.tmux-powerline/powerline.tmux"
+{{- end }}
+{{- end }}

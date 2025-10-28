@@ -1,0 +1,9 @@
+{{- with (index . "tmux-powerline") -}}
+{{- if eq .installation "external-sources" }}
+[".tmux-powerline"]
+  type = "archive"
+  url = "https://api.github.com/repos/erikw/tmux-powerline/tarball/{{ .commit }}"
+  exact = true
+  stripComponents = 1
+{{- end }}
+{{- end }}
