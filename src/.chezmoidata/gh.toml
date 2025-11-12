@@ -1,0 +1,9 @@
+[gh]
+version = "2.83.0"
+installation = "external-sources"
+
+[gh.checksums]
+darwin_arm64 = "fecba907bc361d5e33620dbf1145f11432c39fb2b388a839463cfbb89a84820b"
+darwin_amd64 = "0c0de650752bb92d7283e386cafd03d9ac5f47028c648c4ab821ef08a75c0716"
+linux_amd64 = "a5cf6cdb40fc67751adf561126b3314044779cea81ba4f254fbe8e9a69f1676f"
+linux_arm64 = "12311e320d4cfdb54d7fa2d58cd1e3a2ccb4c12e1c3abb32b0a2e48bd0f991bf"

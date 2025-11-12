@@ -1,0 +1,27 @@
+{{- with .gh -}}
+{{- if eq .installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
+{{- $os_name := "" -}}
+{{- if eq $.chezmoi.os "darwin" -}}
+  {{- $os_name = "macOS" -}}
+{{- else -}}
+  {{- $os_name = $.chezmoi.os -}}
+{{- end -}}
+{{- $file_ext := "" -}}
+{{- if eq $.chezmoi.os "darwin" -}}
+  {{- $file_ext = "zip" -}}
+{{- else -}}
+  {{- $file_ext = "tar.gz" -}}
+{{- end -}}
+{{- $archive_name := printf "gh_%s_%s_%s.%s" .version $os_name $.chezmoi.arch $file_ext -}}
+{{- $archive_path := printf "gh_%s_%s_%s/bin/gh" .version $os_name $.chezmoi.arch -}}
+["gh"]
+type = "archive-file"
+url = {{ gitHubReleaseAssetURL "cli/cli" (printf "v%s" .version) $archive_name | quote }}
+path = {{ $archive_path | quote }}
+executable = true
+{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") }}
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end }}
+{{- end -}}
+{{- end }}
