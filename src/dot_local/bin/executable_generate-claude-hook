@@ -1,0 +1,102 @@
+#!/usr/bin/env python3
+
+import argparse
+import json
+from dataclasses import dataclass, asdict
+
+# A definitive list of valid hook events supported by Claude Code.
+VALID_HOOK_EVENTS = [
+    "PreToolUse",
+    "PostToolUse",
+    "UserPromptSubmit",
+    "Notification",
+    "Stop",
+    "SubagentStop",
+    "PreCompact",
+    "SessionStart",
+    "SessionEnd",
+]
+
+@dataclass(frozen=True)
+class Hook:
+    """Represents a single command hook."""
+    hook_type: str
+    command: str
+
+@dataclass(frozen=True)
+class Matcher:
+    """Represents a matcher for one or more tools, and the hooks to run."""
+    matcher: str
+    hooks: list[Hook]
+
+@dataclass(frozen=True)
+class HookConfig:
+    """Represents the top-level hook configuration for a specific event."""
+    hooks: dict[str, list[Matcher]]
+
+def to_dict_factory(data):
+    """
+    Custom dict factory to handle renaming 'hook_type' to 'type' for JSON output.
+    """
+    # First, convert the dataclass to a dict using the default asdict behavior.
+    result = asdict(data)
+
+    # Now, process the dictionary to rename the key.
+    for event, matchers in result.get("hooks", {}).items():
+        for matcher in matchers:
+            for hook in matcher.get("hooks", []):
+                if "hook_type" in hook:
+                    hook["type"] = hook.pop("hook_type")
+    return result
+
+
+def main():
+    """
+    Generates a Claude Code hook configuration in JSON format.
+    """
+    parser = argparse.ArgumentParser(
+        description="Generate a Claude Code hook configuration.",
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog="""
+Example usage:
+  generate-claude-hook --event PreToolUse --matcher "Bash" --command "echo 'Hello from hook'"
+  generate-claude-hook --event PostToolUse --matcher "Edit|Write" --command "npx prettier --write \\$FILE_PATH"
+
+The --matcher argument accepts:
+  - A single tool name (e.g., "Bash")
+  - A pipe-separated list of tool names (e.g., "Edit|Write")
+  - A wildcard "*" to match all tools
+"""
+    )
+
+    parser.add_argument(
+        "--event",
+        required=True,
+        choices=VALID_HOOK_EVENTS,
+        help="The hook event type.",
+    )
+    parser.add_argument(
+        "--matcher",
+        required=True,
+        help="The tool matcher string.",
+    )
+    parser.add_argument(
+        "--command",
+        required=True,
+        help="The shell command to execute for the hook.",
+    )
+
+    args = parser.parse_args()
+
+    hook = Hook(hook_type="command", command=args.command)
+    matcher = Matcher(matcher=args.matcher, hooks=[hook])
+    config = HookConfig(hooks={args.event: [matcher]})
+
+    # Convert dataclasses to a dict, renaming 'hook_type' to 'type' in the process.
+    config_dict = to_dict_factory(config)
+
+    # Print the final JSON with indentation for readability.
+    print(json.dumps(config_dict, indent=2))
+
+if __name__ == "__main__":
+    main()
