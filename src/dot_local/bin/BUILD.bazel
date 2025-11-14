@@ -1,0 +1,22 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+
+package(default_visibility = ["//visibility:public"])
+
+py_library(
+    name = "generate_claude_hook_lib",
+    srcs = ["generate_claude_hook_lib.py"],
+)
+
+py_binary(
+    name = "generate-claude-hook",
+    srcs = ["executable_generate-claude-hook"],
+    main = "executable_generate-claude-hook",
+    deps = [":generate_claude_hook_lib"],
+)
+
+py_test(
+    name = "generate-claude-hook_test",
+    srcs = ["generate_claude_hook_test.py"],
+    main = "generate_claude_hook_test.py",
+    deps = [":generate_claude_hook_lib"],
+)
