@@ -3,6 +3,9 @@
 
 .editorconfig
 **/docs/**/*
+
+# Ignore agent-related markdown files
+**/AGENTS.md
 **/CLAUDE.md
 
 # Bazel build files
