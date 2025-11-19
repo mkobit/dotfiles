@@ -1,0 +1,10 @@
+{{- $plugin := index .tmux.plugins "tmux-powerline" -}}
+{{- if $plugin.enabled -}}
+# tmux-powerline plugin
+# Docs: https://github.com/erikw/tmux-powerline
+# Managed via chezmoi external at {{ .chezmoi.sourceDir }}/.chezmoiexternals/tmux-powerline.toml.tmpl
+# Commit: {{ $plugin.commit }}
+
+# Source the main tmux-powerline initialization script
+source-file {{ .chezmoi.destDir }}/.dotfiles/tmux/plugins/tmux-powerline/main.tmux
+{{- end -}}

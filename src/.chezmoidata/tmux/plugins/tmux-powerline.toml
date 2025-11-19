@@ -1,0 +1,5 @@
+[tmux.plugins.tmux-powerline]
+# tmux-powerline configuration
+# Pinned commit for tmux-powerline plugin
+enabled = true
+commit = "3a4a6886886aece965b359479fad35dd1fb1fd2b"
