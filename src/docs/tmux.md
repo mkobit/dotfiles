@@ -6,12 +6,12 @@ Tmux configuration is managed declaratively through snippets and plugins, withou
 
 ### Configuration Loading Order
 
-1. **Snippets** (`~/.dotfiles/tmux/snippets/*.tmux`) - Base configuration
+1. **Snippets** (`$CHEZMOI_DEST/.dotfiles/tmux/snippets/*.tmux`) - Base configuration
    - Loaded first in alphabetical order
    - Provides core tmux settings, keybindings, and styling
-   - See `~/.dotfiles/tmux/config.tmux` for the source pattern
+   - See `src/dot_dotfiles/tmux/config.tmux.tmpl` for the source pattern
 
-2. **Plugins** (`~/.dotfiles/tmux/plugins/*/*.tmux`) - Plugin initialization
+2. **Plugins** (`$CHEZMOI_DEST/.dotfiles/tmux/plugins/*/*.tmux`) - Plugin initialization
    - Loaded last, can override base configuration
    - Plugin `*.tmux` files are executed as bash scripts (mimics TPM behavior)
    - Managed via chezmoi externals with pinned commits
@@ -56,7 +56,7 @@ The plugin's `*.tmux` files will be automatically executed on tmux startup.
 - **[tmux-powerline](https://github.com/erikw/tmux-powerline)** - Powerline status bar
   - Commit: `3a4a6886886aece965b359479fad35dd1fb1fd2b`
   - Overrides status-left and status-right configuration
-  - See: `.chezmoidata/tmux/plugins/tmux-powerline.toml`
+  - See: `src/.chezmoidata/tmux/plugins/tmux-powerline.toml`
 
 ### Finding Plugins
 
@@ -110,10 +110,10 @@ Set `enabled = false` in the plugin's data file and run `chezmoi apply`.
 
 ### Plugin Not Loading
 
-1. Check plugin is enabled in `.chezmoidata/tmux/plugins/<plugin>.toml`
-2. Verify plugin downloaded: `ls ~/.dotfiles/tmux/plugins/<plugin>/`
-3. Check for `*.tmux` files: `ls ~/.dotfiles/tmux/plugins/<plugin>/*.tmux`
-4. Reload tmux config: `tmux source-file ~/.tmux.conf`
+1. Check plugin is enabled in `src/.chezmoidata/tmux/plugins/<plugin>.toml`
+2. Verify plugin downloaded: Check `$CHEZMOI_DEST/.dotfiles/tmux/plugins/<plugin>/`
+3. Check for `*.tmux` files in the plugin directory
+4. Reload tmux config: `tmux source-file $CHEZMOI_DEST/.tmux.conf`
 
 ### Status Bar Not Showing
 

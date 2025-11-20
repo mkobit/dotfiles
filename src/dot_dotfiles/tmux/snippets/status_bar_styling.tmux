@@ -25,16 +25,8 @@ set -g message-style "fg=#eceff4,bg=#3b4252,bold"
 set -g message-command-style "fg=#eceff4,bg=#5e81ac"
 
 # === STATUS BAR CONFIGURATION ===
-# Position status bar at top
-# Docs: https://man.openbsd.org/tmux#status-position
-set -g status-position top
-
-# NOTE: Status bar content (status-left, status-right, window formats) are
-# configured by tmux-powerline plugin which loads after snippets.
-# See: ~/.dotfiles/tmux/plugins/tmux-powerline/
-#
-# If tmux-powerline is disabled, you may want to uncomment and customize
-# the status bar configuration below.
+# Status bar configured by tmux-powerline plugin.
+# See: src/docs/tmux.md
 
 # === WINDOW NAMING BEHAVIOR ===
 # Focused window naming like tmux-powerline
