@@ -1,5 +1,8 @@
 {{/* Tmux configuration managed by chezmoi */}}
-{{/* Auto-sources all .tmux files in snippets directory */}}
+{{/* Auto-sources all .tmux files in snippets directory, then plugins */}}
 
-# Source all snippet files using tmux 3.2+ format expansion and glob patterns
+# Source all snippet files first (base configuration)
 source-file -F "#{d:current_file}/snippets/*.tmux"
+
+# Execute all plugin *.tmux files last (mimics TPM - runs them as bash scripts)
+run-shell 'for plugin_file in #{d:current_file}/plugins/*/*.tmux; do [ -f "$plugin_file" ] && "$plugin_file"; done'
