@@ -4,34 +4,18 @@ Tmux configuration managed through snippets and plugins, without TPM.
 
 ## Architecture
 
-**Snippets** load first (base config), then **plugins** execute as bash scripts (can override).
+Snippets load first (base config), then plugins execute as bash scripts.
 
-- Snippets: `src/dot_dotfiles/tmux/snippets/*.tmux`
-- Plugins: `src/.chezmoiexternals/<plugin>.toml.tmpl`
-- Main: `src/dot_dotfiles/tmux/config.tmux.tmpl`
+- Config: [`src/dot_dotfiles/tmux/config.tmux.tmpl`](../dot_dotfiles/tmux/config.tmux.tmpl)
+- Snippets: [`src/dot_dotfiles/tmux/snippets/`](../dot_dotfiles/tmux/snippets/)
 
 ## Adding Plugins
 
-1. Create data file at `src/.chezmoidata/tmux/plugins/<plugin-name>.toml`:
-   ```toml
-   [tmux.plugins.<plugin-name>]
-   enabled = true
-   commit = "abc123..."
-   ```
+1. Add data file in [`src/.chezmoidata/tmux/plugins/`](../.chezmoidata/tmux/plugins/)
+2. Add external in [`src/.chezmoiexternals/`](../.chezmoiexternals/)
+3. Run `chezmoi apply`
 
-2. Create external at `src/.chezmoiexternals/<plugin-name>.toml.tmpl`:
-   ```toml
-   {{- $plugin := index .tmux.plugins "<plugin-name>" -}}
-   {{- if $plugin.enabled -}}
-   [".dotfiles/tmux/plugins/<plugin-name>"]
-       type = "archive"
-       url = "https://github.com/author/plugin/archive/{{ $plugin.commit }}.tar.gz"
-       exact = true
-       stripComponents = 1
-   {{- end -}}
-   ```
-
-3. Run: `chezmoi apply`
+Plugins are pinned to specific commits and downloaded as tarballs.
 
 ## Current Plugins
 
