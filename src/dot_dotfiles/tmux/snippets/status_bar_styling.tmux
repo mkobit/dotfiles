@@ -25,6 +25,10 @@ set -g message-style "fg=#eceff4,bg=#3b4252,bold"
 set -g message-command-style "fg=#eceff4,bg=#5e81ac"
 
 # === STATUS BAR CONFIGURATION ===
+# Position status bar at top
+# Docs: https://man.openbsd.org/tmux#status-position
+set -g status-position top
+
 # Status bar configured by tmux-powerline plugin.
 # See: src/docs/tmux.md
 
