@@ -1,16 +1,6 @@
 # =============================================
-# Enhanced Status Bar with Smart Window Names
+# Visual Styling for tmux
 # =============================================
-
-# Base colors and styling
-# Docs: https://man.openbsd.org/tmux#status-style
-set -g status-style "bg=#2e3440,fg=#d8dee9"
-
-# Window status styling
-# Docs: https://man.openbsd.org/tmux#window-status-style
-set -g window-status-style "fg=#81a1c1,bg=#2e3440"
-# Docs: https://man.openbsd.org/tmux#window-status-current-style
-set -g window-status-current-style "fg=#2e3440,bg=#88c0d0,bold"
 
 # Pane border colors
 # Docs: https://man.openbsd.org/tmux#pane-border-style
@@ -42,14 +32,6 @@ set-window-option -g automatic-rename on
 set-window-option -g automatic-rename-format "#{?#{==:#{pane_current_command},zsh},#{b:pane_current_path},#{pane_current_command}}"
 
 # === BEHAVIOR SETTINGS ===
-# Update status bar every 5 seconds for seconds display
-# Docs: https://man.openbsd.org/tmux#status-interval
-set-option -g status-interval 5
-
-# Window list positioning (left-justified)
-# Docs: https://man.openbsd.org/tmux#status-justify
-set-option -g status-justify left
-
 # Use vi-style status line navigation
 # Docs: https://man.openbsd.org/tmux#status-keys
 set-option -g status-keys vi
