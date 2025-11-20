@@ -29,36 +29,12 @@ set -g message-command-style "fg=#eceff4,bg=#5e81ac"
 # Docs: https://man.openbsd.org/tmux#status-position
 set -g status-position top
 
-# Enable dual status bars
-# Docs: https://man.openbsd.org/tmux#status
-set -g status 2
-
-# Status left - Simple and reliable PREFIX indicator
-# Docs: https://man.openbsd.org/tmux#status-left-length
-set -g status-left-length 30
-# Docs: https://man.openbsd.org/tmux#status-left
-set -g status-left "#{?client_prefix,#[bg=#bf616a]#[fg=#2e3440]#[bold] PREFIX #[nobold]#[default] ,}#[bg=#88c0d0]#[fg=#2e3440]#[bold] #S #[nobold]#[default] "
-
-# Minimal window titles inspired by tmux-powerline
-# Docs: https://man.openbsd.org/tmux#window-status-format
-set -g window-status-format "#[fg=#81a1c1,bg=#2e3440] #I #[fg=#d8dee9]#W #[default]"
-
-# Docs: https://man.openbsd.org/tmux#window-status-current-format
-set -g window-status-current-format "#[fg=#2e3440,bg=#88c0d0,bold] #I #W #[default]#[fg=#88c0d0,bg=#2e3440]#[default]"
-
-# No window separator for cleaner look
-# Docs: https://man.openbsd.org/tmux#window-status-separator
-set -g window-status-separator ""
-
-# Status right - Time with seconds and hostname
-# Docs: https://man.openbsd.org/tmux#status-right-length
-set -g status-right-length 60
-# Docs: https://man.openbsd.org/tmux#status-right
-set -g status-right "#[fg=#4c566a,bg=#2e3440]#[fg=#2e3440,bg=#4c566a] %H:%M:%S #[fg=#88c0d0,bg=#4c566a]#[fg=#2e3440,bg=#88c0d0,bold] #h "
-
-# Bottom status bar - Detailed pane info with visual git status
-# Docs: https://man.openbsd.org/tmux#status-format
-set -g status-format[1] '#[align=left,fg=#81a1c1,bg=#2e3440] #{pane_current_path} #[fg=#a3be8c]#(cd #{pane_current_path} 2>/dev/null && git rev-parse --show-toplevel 2>/dev/null | xargs basename 2>/dev/null | sed "s/^/git:/" || echo "")#{?#{!=:#(cd #{pane_current_path} 2>/dev/null && git status --porcelain 2>/dev/null | wc -l | tr -d " "),0},#[fg=#bf616a]*,}#[align=centre,fg=#5e81ac] #{pane_current_command}#[align=right,fg=#ebcb8b] #(df -h . 2>/dev/null | awk "NR==2{print \$4}") free #[fg=#4c566a]│#[fg=#88c0d0] load #(uptime | sed "s/.*load average: //" | cut -d"," -f1 | sed "s/^ *//") #[fg=#4c566a]│#[fg=#b48ead] #(date "+%a %b %d") #[fg=#4c566a]│#[fg=#b48ead] #(date "+%Y-%m-%d") '
+# NOTE: Status bar content (status-left, status-right, window formats) are
+# configured by tmux-powerline plugin which loads after snippets.
+# See: ~/.dotfiles/tmux/plugins/tmux-powerline/
+#
+# If tmux-powerline is disabled, you may want to uncomment and customize
+# the status bar configuration below.
 
 # === WINDOW NAMING BEHAVIOR ===
 # Focused window naming like tmux-powerline
