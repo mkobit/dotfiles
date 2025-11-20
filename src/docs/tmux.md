@@ -126,4 +126,5 @@ Set `enabled = false` in the plugin's data file and run `chezmoi apply`.
 - [tmux Manual](https://man.openbsd.org/tmux)
 - [tmux Plugins List](https://github.com/tmux-plugins/list)
 - [Awesome tmux](https://github.com/rothgar/awesome-tmux)
+- [tmux-powerline Configuration](https://powerline.readthedocs.io/en/latest/configuration.html)
 - [Chezmoi Externals](https://www.chezmoi.io/reference/special-files/chezmoiexternal-format/)
