@@ -12,6 +12,7 @@ This directory contains tool-specific documentation for the dotfiles setup.
 - [`docs/iterm.md`](docs/iterm.md) - iTerm2 profile management and configuration
 - [`docs/jq.md`](docs/jq.md) - jq JSON processor setup and usage
 - [`docs/rectangle-pro.md`](docs/rectangle-pro.md) - Rectangle Pro window management
+- [`docs/tmux.md`](docs/tmux.md) - tmux configuration, plugin management without TPM
 
 ## Documentation Guidelines
 

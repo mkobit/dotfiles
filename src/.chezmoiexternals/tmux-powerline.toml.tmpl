@@ -1,0 +1,8 @@
+{{- $plugin := index .tmux.plugins "tmux-powerline" -}}
+{{- if $plugin.enabled -}}
+[".dotfiles/tmux/plugins/tmux-powerline"]
+    type = "archive"
+    url = "https://github.com/erikw/tmux-powerline/archive/{{ $plugin.commit }}.tar.gz"
+    exact = true
+    stripComponents = 1
+{{- end -}}
