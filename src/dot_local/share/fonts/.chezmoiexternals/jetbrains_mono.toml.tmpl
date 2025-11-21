@@ -1,0 +1,9 @@
+{{- with .jetbrains_mono -}}
+{{- if eq .installation "external-sources" -}}
+["NerdFonts/JetBrainsMono"]
+type = "archive"
+url = "https://github.com/ryanoasis/nerd-fonts/releases/download/{{ .version }}/JetBrainsMono.tar.xz"
+exact = true
+checksum.sha256 = "{{ .sha256 }}"
+{{- end -}}
+{{- end -}}
