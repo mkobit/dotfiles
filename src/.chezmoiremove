@@ -3,3 +3,6 @@
 
 # Old asdf install script (renamed to configure-asdf)
 install-asdf.sh
+
+# Custom tmux-powerline theme (using default theme with config overrides instead)
+.config/tmux-powerline/themes/dotfiles.sh

@@ -26,4 +26,5 @@ Plugins are pinned to specific commits and downloaded as tarballs.
 - [tmux Manual](https://man.openbsd.org/tmux)
 - [tmux Plugins](https://github.com/tmux-plugins/list)
 - [Awesome tmux](https://github.com/rothgar/awesome-tmux)
-- [tmux-powerline Config](https://powerline.readthedocs.io/en/latest/configuration.html)
+- [tmux-powerline](https://github.com/erikw/tmux-powerline)
+- [tmux-powerline Configuration](https://github.com/erikw/tmux-powerline#configuration)

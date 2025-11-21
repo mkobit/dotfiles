@@ -1,3 +1,5 @@
 # Claude context
 
-See @AGENTS.md for complete project documentation.
+AGENTS.md contains complete project documentation, and it should be inlined below using Claude's support for @.
+
+@AGENTS.md
