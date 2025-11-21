@@ -4,3 +4,4 @@
 # Include modular configuration files
 config-file = conf.d/bell.conf
 config-file = conf.d/claude-ide-shift-enter.conf
+config-file = conf.d/font.conf

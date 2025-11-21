@@ -61,33 +61,30 @@ Configurations are broken down into individual tool files within the `src/.chezm
 
 The root `.chezmoidata.toml` file is intentionally left empty, serving only as a pointer to this new structure.
 
-Instead of a single monolithic file, each tool has its own data file (e.g., `src/.chezmoidata/git.toml`):
-
-```toml
-# Example from src/.chezmoidata/git.toml
-[git.personal]
-enabled = true
-name = "Your Name"
-email = "you@example.com"
-signing_key = "GPG_KEY_ID"
-gpg_sign = true
-```
+Each tool has its own data file (e.g., `src/.chezmoidata/git.toml`, `src/.chezmoidata/fzf.toml`, `src/.chezmoidata/zsh.toml`).
 
 **Benefits:**
 - Granular per-feature control
 - Easy to disable specific features per machine
 - Work environments can override cleanly
 
+**Nested data organization:**
+
+For complex tools with plugins or sub-components, nest data files in subdirectories.
+Example: `src/.chezmoidata/tmux/plugins/tmux-powerline.toml` shows plugin configuration pattern.
+Access nested data using `with` and dot notation in templates.
+
 ### Template auto-discovery
 
-Config templates use `glob` patterns to auto-discover snippet files:
+Config templates use different auto-discovery mechanisms based on the target tool.
+All patterns enable dropping new files without updating templates.
 
-```go
-{{/* Auto-sources all .zsh files in snippets directory */}}
-{{- range glob (print .chezmoi.destDir "/.dotfiles/zsh/snippets/*.zsh") }}
-source {{ . }}
-{{- end }}
-```
+**Different patterns per tool**:
+- **Zsh**: Uses zsh-specific glob with sorting flags `(Nn)` - see `src/dot_dotfiles/zsh/config.zsh.tmpl`
+- **Bash**: Simple glob pattern - see `src/dot_dotfiles/bash/config.bash.tmpl`
+- **Tmux**: Native tmux glob with `source-file -F` - see `src/dot_dotfiles/tmux/config.tmux.tmpl`
+- **Vim**: Vim-native `glob()` function - see `src/dot_dotfiles/vim/config.vim.tmpl`
+- **Git**: Static includes via template - see `src/dot_dotfiles/git/config.tmpl`
 
 **CRITICAL**: Always use `{{ .chezmoi.destDir }}` for ALL paths, including glob patterns.
 
@@ -95,69 +92,32 @@ source {{ . }}
 - Future-proof - just drop files in directories
 - Template validates existence at build time
 - No hardcoded file lists to maintain
-- Consistent pattern across zsh/vim/tmux
+- Consistent pattern across all config types
 
 ### Template scoping with `with`
 
-Use `with` for clear scoping and cleaner templates:
-
-```go
-{{- with .git.personal }}
-{{- if .enabled }}
-[user]
-  name = {{ .name | quote }}
-  email = {{ .email | quote }}
-  signingkey = {{ .signing_key }}
-{{- end }}
-{{- end }}
-```
+Use `with` for clear scoping and cleaner templates. See examples in `src/dot_dotfiles/git/snippets/personal.gitconfig.tmpl` and external files in `src/dot_dotfiles/external/.chezmoiexternals/`.
 
 ### Hyphenated keys in templates
 
-When accessing keys containing hyphens (e.g., `oh-my-zsh`), use the `index` function:
-
-```go
-{{- with (index .zsh "oh-my-zsh") }}
-{{- if eq .installation "external-sources" }}
-# Template content here
-{{- end }}
-{{- end }}
-```
+When accessing keys containing hyphens (e.g., `oh-my-zsh`), use the `index` function: `{{- with (index .zsh "oh-my-zsh") }}`. See examples in `src/dot_dotfiles/external/.chezmoiexternals/oh-my-zsh.toml.tmpl` and `src/dot_dotfiles/zsh/scripts/500_oh-my-zsh.zsh.tmpl`.
 
 **Why**: Direct access like `.zsh.oh-my-zsh` causes "bad character U+002D" errors in chezmoi/Go templates.
 **Reference**: [Stack Overflow - Helm templating hyphens](https://stackoverflow.com/questions/63853679/helm-templating-doesnt-let-me-use-dash-in-names)
 
 ### Custom template delimiters
 
-When template files contain literal `{{` `}}` that should not be interpreted as template syntax (e.g., config files with their own templating), change the delimiters:
-
-```go
-{{- /* chezmoi:template:left-delimiter=[[ right-delimiter=]] */ -}}
-# Now {{ }} are literal, use [[ ]] for chezmoi templates
-export CONFIG="[[ .someVariable ]]"
-export LITERAL="{{ not_a_template }}"
-```
+When template files contain literal `{{` `}}` that should not be interpreted as template syntax, change the delimiters using: `{{- /* chezmoi:template:left-delimiter=[[ right-delimiter=]] */ -}}`.
+Then use `[[ ]]` for chezmoi templates and `{{ }}` as literals.
+See example in `src/dot_config/tmux-powerline/config.sh.tmpl`.
 
 **Why**: Prevents conflicts with config formats that use `{{ }}` syntax (e.g., playerctl format strings, Prometheus configs).
 **Reference**: [chezmoi template directives](https://www.chezmoi.io/reference/templates/directives/#delimiters)
 
 ### Early failure validation
 
-Validate required fields early with descriptive error messages:
-
-```go
-{{- if .git.personal.enabled }}
-{{- if not .git.personal.name }}
-{{- fail "git.personal.enabled is enabled but name is empty" }}
-{{- end }}
-{{- if not .git.personal.email }}
-{{- fail "git.personal.enabled is enabled but email is empty" }}
-{{- end }}
-{{- if not .git.personal.signing_key }}
-{{- fail "git.personal.enabled is enabled but signing_key is empty" }}
-{{- end }}
-{{- end }}
-```
+Validate required fields early with descriptive error messages using `{{- fail "message" }}`.
+See example in `src/dot_dotfiles/git/snippets/personal.gitconfig.tmpl`.
 
 ### 🚨 Managed environment constraints
 
@@ -175,11 +135,14 @@ We need to operate within environments that have managed infrastructure that han
 
 ## Tooling guides
 
-- **jq**: For guidelines on using `jq` and managing custom modules, see [src/dot_dotfiles/jq/jq.md](src/dot_dotfiles/jq/jq.md).
+- **jq**: For guidelines on using `jq` and managing custom modules, see [src/docs/jq.md](src/docs/jq.md).
 - **Claude Code**: Configuration precedence and agent patterns, see [src/docs/claude-code.md](src/docs/claude-code.md).
-- **iTerm**: Profile management and scripting, see [src/dot_dotfiles/iterm/iterm.md](src/dot_dotfiles/iterm/iterm.md).
-- **Rectangle Pro**: Window management automation, see [src/dot_dotfiles/rectangle-pro/rectangle-pro.md](src/dot_dotfiles/rectangle-pro/rectangle-pro.md).
-- **Alacritty**: Cross-platform terminal configuration, see [src/dot_dotfiles/alacritty/alacritty.md](src/dot_dotfiles/alacritty/alacritty.md).
+- **iTerm**: Profile management and scripting, see [src/docs/iterm.md](src/docs/iterm.md).
+- **Rectangle Pro**: Window management automation, see [src/docs/rectangle-pro.md](src/docs/rectangle-pro.md).
+- **Ghostty**: Cross-platform terminal configuration, see [src/docs/ghostty.md](src/docs/ghostty.md).
+- **tmux**: Configuration patterns and plugin management, see [src/docs/tmux.md](src/docs/tmux.md).
+- **Hammerspoon**: macOS automation and scripting, see [src/docs/hammerspoon.md](src/docs/hammerspoon.md).
+- **asdf**: Version manager configuration, see [src/docs/asdf.md](src/docs/asdf.md).
 
 ## chezmoi documentation
 
@@ -250,17 +213,26 @@ This repository uses chezmoi for dotfiles management.
 
 ### Directory structure
 
+Externals can be placed in any directory to control installation location:
+
 ```
 src/
 ├── .chezmoidata/
-│   ├── fzf.toml
-│   ├── asdf.toml
-│   └── jq.toml
-└── dot_local/bin/.chezmoiexternals/
-    ├── fzf.toml.tmpl      # Installs fzf binary
-    ├── asdf.toml.tmpl     # Installs asdf binary
-    └── jq.toml.tmpl       # Installs jq binary
+│   ├── fzf.toml              # CLI tool version/checksums
+│   ├── gh.toml               # GitHub CLI version/checksums
+│   └── tmux/
+│       └── plugins/
+│           └── tmux-powerline.toml  # Plugin commit hash
+├── dot_local/bin/.chezmoiexternals/
+│   ├── fzf.toml.tmpl         # Installs to {{ destDir }}/.local/bin/fzf
+│   ├── gh.toml.tmpl          # Installs to {{ destDir }}/.local/bin/gh
+│   └── jq.toml.tmpl          # Installs to {{ destDir }}/.local/bin/jq
+└── dot_dotfiles/external/.chezmoiexternals/
+    ├── oh-my-zsh.toml.tmpl   # Installs to {{ destDir }}/.dotfiles/external/oh-my-zsh/
+    └── meslo-fonts.toml.tmpl # Installs to {{ destDir }}/.dotfiles/external/fonts/
 ```
+
+**Pattern**: Place `.chezmoiexternals/` in the directory where files should be installed.
 
 ### Basic patterns
 
