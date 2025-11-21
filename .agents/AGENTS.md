@@ -127,6 +127,20 @@ When accessing keys containing hyphens (e.g., `oh-my-zsh`), use the `index` func
 **Why**: Direct access like `.zsh.oh-my-zsh` causes "bad character U+002D" errors in chezmoi/Go templates.
 **Reference**: [Stack Overflow - Helm templating hyphens](https://stackoverflow.com/questions/63853679/helm-templating-doesnt-let-me-use-dash-in-names)
 
+### Custom template delimiters
+
+When template files contain literal `{{` `}}` that should not be interpreted as template syntax (e.g., config files with their own templating), change the delimiters:
+
+```go
+{{- /* chezmoi:template:left-delimiter=[[ right-delimiter=]] */ -}}
+# Now {{ }} are literal, use [[ ]] for chezmoi templates
+export CONFIG="[[ .someVariable ]]"
+export LITERAL="{{ not_a_template }}"
+```
+
+**Why**: Prevents conflicts with config formats that use `{{ }}` syntax (e.g., playerctl format strings, Prometheus configs).
+**Reference**: [chezmoi template directives](https://www.chezmoi.io/reference/templates/directives/#delimiters)
+
 ### Early failure validation
 
 Validate required fields early with descriptive error messages:
