@@ -1,0 +1,9 @@
+{{- with .fira_mono -}}
+{{- if eq .installation "external-sources" -}}
+["NerdFonts/FiraMono"]
+type = "archive"
+url = "https://github.com/ryanoasis/nerd-fonts/releases/download/{{ .version }}/FiraMono.tar.xz"
+exact = true
+checksum.sha256 = "{{ .sha256 }}"
+{{- end -}}
+{{- end -}}
