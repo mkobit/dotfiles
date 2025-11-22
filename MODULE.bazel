@@ -3,16 +3,16 @@ module(
     version = "1.0",
 )
 
-bazel_dep(name = "bazel_skylib", version = "1.7.1")
-bazel_dep(name = "platforms", version = "0.0.11")
-bazel_dep(name = "rules_python", version = "1.4.1")
-bazel_dep(name = "rules_shell", version = "0.3.0")
-bazel_dep(name = "protobuf", version = "31.0")
-bazel_dep(name = "buildifier_prebuilt", version = "8.2.0.2")
+bazel_dep(name = "bazel_skylib", version = "1.8.2")
+bazel_dep(name = "platforms", version = "1.0.0")
+bazel_dep(name = "rules_python", version = "1.7.0")
+bazel_dep(name = "rules_shell", version = "0.6.1")
+bazel_dep(name = "protobuf", version = "33.1")
+bazel_dep(name = "buildifier_prebuilt", version = "8.2.1")
 
 # Gazelle
-bazel_dep(name = "gazelle", version = "0.45.0", repo_name = "bazel_gazelle")
-bazel_dep(name = "rules_python_gazelle_plugin", version = "1.4.1")
+bazel_dep(name = "gazelle", version = "0.47.0", repo_name = "bazel_gazelle")
+bazel_dep(name = "rules_python_gazelle_plugin", version = "1.6.3")
 
 python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(
@@ -37,7 +37,7 @@ register_toolchains("@//tools/chezmoi/private:chezmoi_toolchain")
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # Chezmoi version - also defined in //:chezmoi_version.bzl
-CHEZMOI_VERSION = "2.65.0"
+CHEZMOI_VERSION = "2.67.0"
 
 # Binary dependencies with platform-specific URLs
 # Static tmux binaries from mjakob-gh/build-static-tmux
@@ -66,7 +66,7 @@ http_archive(
     build_file_content = """
 exports_files(["chezmoi"])
 """,
-    sha256 = "8c51344a88bd1738fa8a0e6ea940bd3392102d536623884908382a2468aa5ebf",
+    sha256 = "debce7c1f2c18d5b804c02dce3881354fb66a71a35d0a5b015e71491fdd344c5",
     urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_darwin_arm64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
 )
 
@@ -75,7 +75,7 @@ http_archive(
     build_file_content = """
 exports_files(["chezmoi"])
 """,
-    sha256 = "332a960c93b65d68d5a9cdb2e54b87f2fc55d4b728173ff7f62bf4052c31a5fb",
+    sha256 = "f4ba4e54aed28b190c8ba93ba6f01424732146715b4f725af6c79f59edcdc5be",
     urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_darwin_amd64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
 )
 
@@ -84,6 +84,6 @@ http_archive(
     build_file_content = """
 exports_files(["chezmoi"])
 """,
-    sha256 = "bbfa7061da039a1e1da5ced5bf58b4d37ad425cf13d8c14ac684dd30b280a78f",
+    sha256 = "4b9f7fa3a740715152400c8cb9aa87d8fe1b96f555018457717f12ada6c61eff",
     urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_linux_amd64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
 )
