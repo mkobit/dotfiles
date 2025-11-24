@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       - uses: bazel-contrib/setup-bazel@4432ac8a2318fb254c5b9fe491b9d21a002d7122 # v0.15.0
 
       - name: Install required tools
@@ -100,7 +100,7 @@ jobs:
     timeout-minutes: 5
     needs: [format]
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       - uses: bazel-contrib/setup-bazel@4432ac8a2318fb254c5b9fe491b9d21a002d7122 # v0.15.0
 
       - name: Install required tools
@@ -124,7 +124,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+      - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       - uses: bazel-contrib/setup-bazel@4432ac8a2318fb254c5b9fe491b9d21a002d7122 # v0.15.0
 
       - name: Install basic tools for testing
