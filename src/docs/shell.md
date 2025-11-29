@@ -17,7 +17,7 @@ To use a shared template in a shell configuration:
 2. Use the `.tmpl` extension.
 3. Include the shared template, passing the shell context and preserving the global context:
    ```
-   {{ include "shell/template_name.sh" (merge (dict "shell" "zsh") .) }}
+   {{ template "shell/template_name.sh" (merge (dict "shell" "zsh") .) }}
    ```
 
 ### Template Logic
