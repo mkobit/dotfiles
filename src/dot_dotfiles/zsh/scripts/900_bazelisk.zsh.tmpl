@@ -1,7 +1,0 @@
-{{- $chezmoiSourceDir := .chezmoi.sourceDir -}}
-{{- with .bazelisk -}}
-{{- if ne .installation "disabled" -}}
-# Bazelisk shell configuration
-# Autocompletion removed due to slow startup times
-{{- end -}}
-{{- end }}

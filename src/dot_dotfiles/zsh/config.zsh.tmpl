@@ -1,5 +1,12 @@
 {{- $targetDir := dir .chezmoi.targetFile }}
 
+# Source shared scripts (from ../shared)
+# Sort numerically (n) and handle no matches (N)
+for file in {{ $targetDir }}/../shared/*.sh*(Nn); do
+    [[ -r "$file" ]] && source "$file"
+done
+
+# Source zsh-specific scripts
 # (N)ullglob: Don't error if no files match
 # (n)umeric: Sort numerically to ensure deterministic sourcing
 for file in {{ $targetDir }}/scripts/*.zsh*(Nn); do

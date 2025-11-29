@@ -1,6 +1,11 @@
 {{/* Source all bash files from dotfiles directory structure */}}
 {{- $targetDir := dir .chezmoi.targetFile }}
 
+# Source shared scripts
+for file in {{ $targetDir }}/../shared/*.sh; do
+    [[ -r "$file" ]] && source "$file"
+done
+
 # Source all bash snippet files
 for file in {{ $targetDir }}/snippets/*.bash; do
     [[ -r "$file" ]] && source "$file"
