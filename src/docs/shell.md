@@ -8,14 +8,28 @@ Common shell logic is maintained in `src/.chezmoitemplates/shell/` and included 
 
 ### Shared Templates
 
-Templates in `src/.chezmoitemplates/shell/` contain the core logic. These scripts are designed to be POSIX-compliant or handle shell differences using version checks (e.g., `$ZSH_VERSION`, `$BASH_VERSION`).
+Templates in `src/.chezmoitemplates/shell/` contain the core logic. These scripts are designated to avoid duplication while allowing for shell-specific rendering.
 
 ### Usage
 
 To use a shared template in a shell configuration:
 1. Create a script in the shell's specific directory (e.g., `src/dot_dotfiles/zsh/scripts/` or `src/dot_dotfiles/bash/snippets/`).
 2. Use the `.tmpl` extension.
-3. Include the shared template: `{{ include "shell/template_name.sh" . }}`.
+3. Include the shared template, passing the shell context and preserving the global context:
+   ```
+   {{ include "shell/template_name.sh" (merge (dict "shell" "zsh") .) }}
+   ```
+
+### Template Logic
+
+Templates in `src/.chezmoitemplates/shell/` can use the `.shell` variable to conditionally render content:
+```bash
+{{- if eq .shell "zsh" }}
+# Zsh specific code
+{{- else if eq .shell "bash" }}
+# Bash specific code
+{{- end }}
+```
 
 ## Zsh Specifics
 

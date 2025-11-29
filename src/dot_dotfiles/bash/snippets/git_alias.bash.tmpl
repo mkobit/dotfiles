@@ -1,1 +1,1 @@
-{{ include "shell/git_alias.sh" . }}
+{{ include "shell/git_alias.sh" (merge (dict "shell" "bash") .) }}

@@ -1,1 +1,1 @@
-{{ include "shell/disable_bell.sh" . }}
+{{ include "shell/disable_bell.sh" (merge (dict "shell" "bash") .) }}

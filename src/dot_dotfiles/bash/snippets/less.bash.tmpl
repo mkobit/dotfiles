@@ -1,1 +1,1 @@
-{{ include "shell/less.sh" . }}
+{{ include "shell/less.sh" (merge (dict "shell" "bash") .) }}
