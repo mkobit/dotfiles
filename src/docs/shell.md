@@ -4,35 +4,25 @@ This repository supports both Zsh (primary) and Bash environments.
 
 ## Shared Configuration
 
-To maintain consistency across shells, common configurations are located in `src/dot_dotfiles/shared/`.
-These scripts are sourced by both Zsh and Bash configurations.
+Common shell logic is maintained in `src/.chezmoitemplates/shell/` and included in shell-specific scripts using chezmoi templates.
 
-### Shared Scripts Structure
+### Shared Templates
 
-Shared scripts use the `.sh` or `.sh.tmpl` extension and are prefixed with numbers (e.g., `010_`, `200_`) to enforce a deterministic loading order.
-Scripts are sourced lexicographically. Lower numbers are loaded first (e.g., environment variables), while higher numbers are loaded later (e.g., aliases and tool configurations).
+Templates in `src/.chezmoitemplates/shell/` contain the core logic. These scripts are designed to be POSIX-compliant or handle shell differences using version checks (e.g., `$ZSH_VERSION`, `$BASH_VERSION`).
 
-### Adding a Shared Script
+### Usage
 
-1. Create a file in `src/dot_dotfiles/shared/` with the `.sh` extension.
-2. Ensure the code is POSIX-compliant or handles shell differences:
-
-```bash
-if [ -n "$ZSH_VERSION" ]; then
-    # Zsh specific
-elif [ -n "$BASH_VERSION" ]; then
-    # Bash specific
-fi
-```
-
-3. Prefix the filename with a number to control loading order.
+To use a shared template in a shell configuration:
+1. Create a script in the shell's specific directory (e.g., `src/dot_dotfiles/zsh/scripts/` or `src/dot_dotfiles/bash/snippets/`).
+2. Use the `.tmpl` extension.
+3. Include the shared template: `{{ include "shell/template_name.sh" . }}`.
 
 ## Zsh Specifics
 
 Zsh-specific scripts are in `src/dot_dotfiles/zsh/scripts/`.
-The configuration sources shared scripts first, then Zsh scripts.
+They are sourced in lexicographical order (numeric prefix recommended).
 
 ## Bash Specifics
 
 Bash-specific snippets are in `src/dot_dotfiles/bash/snippets/`.
-The configuration sources shared scripts first, then Bash snippets.
+They are sourced in lexicographical order.
