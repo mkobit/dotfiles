@@ -9,13 +9,8 @@ These scripts are sourced by both Zsh and Bash configurations.
 
 ### Shared Scripts Structure
 
-Shared scripts use the `.sh` or `.sh.tmpl` extension and are prefixed with numbers for deterministic loading order:
-
-- `000-099`: Environment variables and basic settings
-- `100-199`: Tool setup (e.g., asdf)
-- `200-299`: Interactive tools (fzf, zoxide)
-- `300-899`: Aliases and functions
-- `900-999`: Tool-specific configurations (bazelisk)
+Shared scripts use the `.sh` or `.sh.tmpl` extension and are prefixed with numbers (e.g., `010_`, `200_`) to enforce a deterministic loading order.
+Scripts are sourced lexicographically. Lower numbers are loaded first (e.g., environment variables), while higher numbers are loaded later (e.g., aliases and tool configurations).
 
 ### Adding a Shared Script
 
