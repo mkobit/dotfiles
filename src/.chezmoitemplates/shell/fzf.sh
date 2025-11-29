@@ -29,11 +29,11 @@ else
 fi
 
 if [ -n "$FZF_BINARY" ]; then
-    if [ -n "$ZSH_VERSION" ]; then
-        source <($FZF_BINARY --zsh)
-    elif [ -n "$BASH_VERSION" ]; then
-        eval "$($FZF_BINARY --bash)"
-    fi
+    {{- if eq .shell "zsh" }}
+    source <($FZF_BINARY --zsh)
+    {{- else if eq .shell "bash" }}
+    eval "$($FZF_BINARY --bash)"
+    {{- end }}
 
     if [ -z "$FZF_DEFAULT_OPTS" ]; then
         export FZF_DEFAULT_OPTS="--height 40% --layout=reverse --border --inline-info --cycle"
