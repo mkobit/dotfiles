@@ -22,12 +22,14 @@ To use a shared template in a shell configuration:
 
 ### Template Logic
 
-Templates in `src/.chezmoitemplates/shell/` can use the `.shell` variable to conditionally render content:
+Templates in `src/.chezmoitemplates/shell/` should use the `.shell` variable to conditionally render content and fail on unsupported shells:
 ```bash
 {{- if eq .shell "zsh" }}
 # Zsh specific code
 {{- else if eq .shell "bash" }}
 # Bash specific code
+{{- else }}
+{{- fail (printf "unsupported shell: %s" .shell) }}
 {{- end }}
 ```
 

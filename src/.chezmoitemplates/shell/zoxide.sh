@@ -5,7 +5,7 @@ if command -v zoxide &> /dev/null; then
     {{- else if eq .shell "bash" }}
     eval "$(zoxide init bash)"
     {{- else }}
-    eval "$(zoxide init posix)"
+    {{- fail (printf "unsupported shell: %s" .shell) }}
     {{- end }}
 
     alias cd='z'

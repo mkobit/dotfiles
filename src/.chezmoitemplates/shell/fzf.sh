@@ -33,6 +33,8 @@ if [ -n "$FZF_BINARY" ]; then
     source <($FZF_BINARY --zsh)
     {{- else if eq .shell "bash" }}
     eval "$($FZF_BINARY --bash)"
+    {{- else }}
+    {{- fail (printf "unsupported shell: %s" .shell) }}
     {{- end }}
 
     if [ -z "$FZF_DEFAULT_OPTS" ]; then
