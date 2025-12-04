@@ -1,12 +1,12 @@
 # Zoxide - smart directory jumping
 if command -v zoxide &> /dev/null; then
-    if [ -n "$ZSH_VERSION" ]; then
-        eval "$(zoxide init zsh)"
-    elif [ -n "$BASH_VERSION" ]; then
-        eval "$(zoxide init bash)"
-    else
-        eval "$(zoxide init posix)"
-    fi
+    {{- if eq .shell "zsh" }}
+    eval "$(zoxide init zsh)"
+    {{- else if eq .shell "bash" }}
+    eval "$(zoxide init bash)"
+    {{- else }}
+    {{- fail (printf "unsupported shell: %s" .shell) }}
+    {{- end }}
 
     alias cd='z'
     alias cdi='zi'

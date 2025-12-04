@@ -1,7 +1,1 @@
-{{- $chezmoiSourceDir := .chezmoi.sourceDir -}}
-{{- with .bazelisk -}}
-{{- if ne .installation "disabled" -}}
-# Bazelisk shell configuration
-# Autocompletion removed due to slow startup times
-{{- end -}}
-{{- end }}
+{{ template "shell/bazelisk.sh" (merge (dict "shell" "zsh") .) }}
