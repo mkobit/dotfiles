@@ -1,6 +1,6 @@
 [tools]
 node = "lts"
-python = "latest"
-java = "latest"
-go = "latest"
-rust = "latest"
+python = "3.12"
+java = "temurin-21"
+go = "1.23"
+rust = "1.83"
