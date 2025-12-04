@@ -6,3 +6,7 @@ install-asdf.sh
 
 # Custom tmux-powerline theme (using default theme with config overrides instead)
 .config/tmux-powerline/themes/dotfiles.sh
+
+# Remove asdf binary and configuration
+.asdf
+.local/bin/asdf
