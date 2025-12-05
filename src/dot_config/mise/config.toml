@@ -1,0 +1,5 @@
+[tools]
+node = "lts"
+python = "3.14"
+java = "temurin-21"
+rust = "1.83"
