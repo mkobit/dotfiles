@@ -11,6 +11,7 @@ Wait for user confirmation before proceeding.
 ## Operational loop
 Before every tool use or action, perform this check:
 1.  **DOING**: What specific action are you taking?
+    *Read the file before editing it to ensure you have the latest context.*
 2.  **EXPECT**: What exactly will happen? (Specific output, file change, etc.)
 3.  **VERIFY**: After the action, compare the **RESULT** with your **EXPECTATION**.
     *   Match? -> Proceed.
@@ -32,3 +33,5 @@ Before every tool use or action, perform this check:
 ## Autonomy & safety
 *   **Irreversibility**: Pause and ask before destructive actions (delete, force push).
 *   **One Test at a Time**: Change one variable, verify, then move on.
+*   **Git Discipline**: Avoid `git add .` unless you have verified the status.
+    Prefer adding modified files explicitly to prevent accidental commits.

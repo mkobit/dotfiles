@@ -24,3 +24,9 @@ We have adopted specific mental models to guide the agent's behavior:
 
 *   **Defensive Epistemology**:
     *   Treating code generation as a rigorous engineering process where assumptions must be verified against reality (compilers, tests, file systems).
+
+## Distillation strategy
+
+The original "Coding Agent Protocol" is approximately 2,500 words.
+To preserve context window space and reduce token costs, we have distilled it down to its operational core (~200 words).
+We retained the critical behavioral instructions (what to *do*) while removing the philosophical justifications (why we do it), as the agent needs instructions, not persuasion.
