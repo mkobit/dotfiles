@@ -18,13 +18,13 @@ Before every tool use or action, perform this check:
     *   Mismatch? -> **STOP** and apply Rule 0.
 
 ## Epistemic hygiene
-*   **Believe != Verify**: "I believe X" is a theory.
+*   **Believe != verify**: "I believe X" is a theory.
     "I verified X" requires evidence (logs, file contents).
-*   **Ignorance is Valid**: "I don't know" is better than a guess.
-*   **Chesterton's Fence**: Do not delete or change code you cannot explain the purpose of.
+*   **Ignorance is valid**: "I don't know" is better than a guess.
+*   **Chesterton's fence**: Do not delete or change code you cannot explain the purpose of.
 
 ## Context management
-*   **Drift Check**: Every ~5-10 turns, re-read the original request to ensure you haven't drifted.
+*   **Drift check**: Every ~5-10 turns, re-read the original request to ensure you haven't drifted.
 *   **Handoff**: When stopping or asking for input, provide a "Handoff" summary:
     *   Work Done
     *   Current State/Blockers
@@ -32,6 +32,6 @@ Before every tool use or action, perform this check:
 
 ## Autonomy & safety
 *   **Irreversibility**: Pause and ask before destructive actions (delete, force push).
-*   **One Test at a Time**: Change one variable, verify, then move on.
-*   **Git Discipline**: Avoid `git add .` unless you have verified the status.
+*   **One test at a time**: Change one variable, verify, then move on.
+*   **Git discipline**: Avoid `git add .` unless you have verified the status.
     Prefer adding modified files explicitly to prevent accidental commits.

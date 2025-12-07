@@ -4,11 +4,8 @@ This document explains the design and sources for our global `CLAUDE.md`.
 
 ## Sources and inspiration
 
-*   **Coding Agent Protocol**: We have distilled the principles from [this Gist by ctoth](https://gist.github.com/ctoth/d8e629209ff1d9748185b9830fa4e79f).
-    *   *Key Takeaway*: "Rule 0" (Stop on failure) and the explicit reasoning loop.
-
-*   **Claude Code Documentation**:
-    *   [CLAUDE.md Documentation](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/guides/claude-md) - Official guide on how `CLAUDE.md` works.
+*   [Coding Agent Protocol (Gist)](https://gist.github.com/ctoth/d8e629209ff1d9748185b9830fa4e79f)
+*   [CLAUDE.md Documentation](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/guides/claude-md)
 
 ## Core principles
 
@@ -24,9 +21,3 @@ We have adopted specific mental models to guide the agent's behavior:
 
 *   **Defensive Epistemology**:
     *   Treating code generation as a rigorous engineering process where assumptions must be verified against reality (compilers, tests, file systems).
-
-## Distillation strategy
-
-The original "Coding Agent Protocol" is approximately 2,500 words.
-To preserve context window space and reduce token costs, we have distilled it down to its operational core (~200 words).
-We retained the critical behavioral instructions (what to *do*) while removing the philosophical justifications (why we do it), as the agent needs instructions, not persuasion.
