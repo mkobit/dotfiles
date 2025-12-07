@@ -1,11 +1,12 @@
-# Global CLAUDE.md reference
+# Global CLAUDE.md memory reference
 
-This document explains the design and sources for our global `CLAUDE.md`.
+This document explains the design and sources for our global `CLAUDE.md`, which serves as the core system memory for the agent.
 
 ## Sources and inspiration
 
 *   [Coding Agent Protocol (Gist)](https://gist.github.com/ctoth/d8e629209ff1d9748185b9830fa4e79f)
 *   [CLAUDE.md Documentation](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/guides/claude-md)
+*   [Claude Code Memory Documentation](https://code.claude.com/docs/en/memory)
 
 ## Core principles
 
