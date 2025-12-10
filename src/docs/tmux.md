@@ -21,6 +21,46 @@ Plugins are pinned to specific commits and downloaded as tarballs.
 
 - [tmux-powerline](https://github.com/erikw/tmux-powerline) - Status bar
 
+## tmux-powerline Performance
+
+### Refresh Interval Impact
+
+Status bar refresh spawns shell processes for each active segment.
+Endpoint security tools like SentinelOne scan every process creation.
+This causes CPU and memory pressure with frequent refresh intervals.
+Current configuration uses 10-second refresh to balance responsiveness and resource usage.
+
+### Segment Performance Characteristics
+
+**Expensive segments** spawn subprocesses on every refresh:
+
+- `disk_usage` - Runs `df` command for filesystem queries
+- `battery` - Runs `ioreg` and `pmset` for hardware/power management queries
+- `vcs_branch` - Runs git commands like `symbolic-ref HEAD` and `rev-parse`
+
+**Lightweight segments** use minimal resources:
+
+- `weather` - Caches data for 600 seconds, only fetches every 10 minutes
+- `time`, `date`, `date_day` - Simple `date` command execution
+- `hostname`, `pwd` - Shell built-ins or simple queries
+- `mode_indicator` - Uses tmux internal state only
+
+**Currently disabled segments:**
+
+- `disk_usage` - Rarely changes, expensive subprocess spawning
+- `battery` - Changes slowly, spawns multiple hardware query processes
+- `date_day` - Merged into `date` segment format using `%a` day-of-week
+
+### Future Custom Segments
+
+Consider these patterns when authoring custom segments:
+
+- Implement file-based caching with configurable TTL (see weather segment)
+- Avoid subprocess spawning when possible
+- Prefer shell built-ins over external commands
+- Store expensive operation results in temporary files
+- Document performance characteristics and refresh behavior
+
 ## References
 
 - [tmux Manual](https://man.openbsd.org/tmux)

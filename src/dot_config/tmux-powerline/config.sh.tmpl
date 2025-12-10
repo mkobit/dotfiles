@@ -28,7 +28,8 @@
 	export TMUX_POWERLINE_WINDOW_STATUS_LINE=1
 	# The status bar refresh interval in seconds.
 	# Note that events that force-refresh the status bar (such as window renaming) will ignore this.
-	export TMUX_POWERLINE_STATUS_INTERVAL="1"
+	# Set to 10s to reduce process spawning and SentinelOne scanning overhead
+	export TMUX_POWERLINE_STATUS_INTERVAL="10"
 	# The location of the window list. Can be {"absolute-centre, centre, left, right"}.
 	# Note that "absolute-centre" is only supported on `tmux -V` >= 3.2.
 	export TMUX_POWERLINE_STATUS_JUSTIFICATION="centre"
@@ -87,7 +88,8 @@
 
 # date.sh {
 	# date(1) format for the date. If you don't, for some reason, like ISO 8601 format you might want to have "%D" or "%m/%d/%Y".
-	export TMUX_POWERLINE_SEG_DATE_FORMAT="%F"
+	# Include day name to consolidate date_day segment
+	export TMUX_POWERLINE_SEG_DATE_FORMAT="%a %F"
 # }
 
 # disk_usage.sh {
@@ -500,10 +502,9 @@ export TMUX_POWERLINE_LEFT_STATUS_SEGMENTS=(
 
 export TMUX_POWERLINE_RIGHT_STATUS_SEGMENTS=(
 	"pwd 89 211"
-	"disk_usage 240 136"
-	"battery 137 127"
+	# Removed disk_usage, battery - spawn expensive subprocesses every refresh
 	"weather 37 255"
-	"date_day 235 136"
+	# date_day merged into date format (%a %F)
 	"date 235 136"
 	"time 235 136"
 )
