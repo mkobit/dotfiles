@@ -26,9 +26,17 @@ Your goal is to help the user create a new slash command file.
 2.  **Gather Command Details**
     **Frontmatter Options**:
     - `description`: Short summary of what the command does (Required).
+      *Purpose*: Displayed in the command palette.
+      *Example*: "Run a security scan on the current file."
     - `argument-hint`: Hint for arguments displayed in the UI (Optional).
-    - `allowed-tools`: List of tools the command is allowed to use (Optional, e.g., `Read, Bash`).
+      *Purpose*: Helps the user know what input the command expects.
+      *Example*: "[issue-number] [priority]" or "[path/to/file]"
+    - `allowed-tools`: List of tools the command is allowed to use (Optional).
+      *Purpose*: Restricts the command to specific tools for safety.
+      *Example*: `Read, Bash` or `Bash(git status:*)`
     - `model`: Specific model to use for this command (Optional).
+      *Purpose*: Overrides the default model (e.g., for speed or reasoning capability).
+      *Example*: `claude-sonnet-4-5-20250929`
     **Command Logic**:
     Ask what the command should do.
     **Capabilities**:
