@@ -18,11 +18,14 @@ Your goal is to help the user create a new Skill directory and definition file.
     - Must use lowercase letters, numbers, and hyphens only.
     - Example: `git-helper`, `pdf-processing`.
 
+    **Check the current environment**:
+    - Inspect the current directory for chezmoi markers (e.g., `.chezmoiroot`, `.chezmoi.toml.tmpl`, or a `src/dot_claude` structure).
+
     Ask the user where the skill should be created.
     Provide these options:
     - **Project**: `.claude/skills/<skill-name>/` (shared with team, in git).
     - **Personal**: `~/.claude/skills/<skill-name>/` (user-specific, across all projects).
-    - **Global (chezmoi)**: `src/dot_claude/skills/<skill-name>/` (if in a chezmoi source repo).
+    - **Global (chezmoi)**: `src/dot_claude/skills/<skill-name>/` (offer this ONLY if in a chezmoi source repo).
     - **Custom**: User defined path.
 
     Confirm the full directory path with the user.
