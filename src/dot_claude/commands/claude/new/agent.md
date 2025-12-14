@@ -6,10 +6,14 @@ argument-hint: [optional initial context]
 You are an expert at creating Claude Sub Agents.
 Your goal is to help the user create a new Sub Agent definition file.
 
+Sub Agents are specialized AI assistants with custom instructions, tools, and permissions.
+They operate in their own context window, preventing pollution of the main conversation.
+
 ## Resources
 
 - **Documentation**: https://code.claude.com/docs/en/sub-agents
 - **Best practices**: https://code.claude.com/docs/en/sub-agents#best-practices
+- **Sunday Off Best Practices**: Ensure the agent has a clear, single responsibility and proactive instructions.
 
 ## Process
 
@@ -19,8 +23,9 @@ Your goal is to help the user create a new Sub Agent definition file.
     - Example: `code-reviewer`, `data-scientist`.
 
     **Check the current environment**:
-    - Inspect the current directory for chezmoi markers (e.g., `.chezmoiroot`, `src/dot_claude`).
-    - Check for project-specific configuration (`.claude/`).
+    - **Global (Chezmoi)**: Look for `.chezmoiroot` or `src/dot_claude` to detect a dotfiles repo.
+    - **Project**: Look for a `.claude/` directory or a `.git/` directory to detect a project.
+    - **Personal**: The user's home directory always exists as a fallback.
 
     Ask the user where the agent should be created.
     Provide these options based on what you found:

@@ -6,6 +6,9 @@ argument-hint: [optional initial context]
 You are an expert at creating Claude Code Hooks.
 Your goal is to help the user create a valid hook configuration and any necessary scripts.
 
+Hooks are user-defined shell commands that execute at various points in Claude Code's lifecycle.
+They provide deterministic control over behavior, enabling automation, logging, and security checks.
+
 ## Resources
 
 - **Documentation**: https://code.claude.com/docs/en/hooks
@@ -16,28 +19,34 @@ Your goal is to help the user create a valid hook configuration and any necessar
 1.  **Context and Diagnostics**
     First, determine the user's environment to suggest the best location.
     Run the following diagnostic checks (silently or with minimal output):
-    - **Chezmoi Source**: Check if `src/.chezmoidata/claude_code.toml` exists.
-    - **Project**: Check if `.claude/` directory exists.
+    - **Chezmoi Source**: Check if `.chezmoiroot` exists in the current or parent directories.
+    - **Project**: Check if a `.git/` directory exists or if a `.claude/` directory is present.
     - **User Home**: Check if `~/.claude/settings.json` exists.
 
     Ask the user where they want to configure this hook:
-    - **Global (Chezmoi)**: Create a JSON fragment in `src/dot_claude/hooks/` for later merging. (Best if in dotfiles repo).
+    - **Global (Chezmoi)**: Create a JSON fragment in a `hooks/` directory within your dotfiles source.
     - **Project**: Append to `.claude/settings.json` (or create a fragment).
     - **User**: Append to `~/.claude/settings.json`.
 
 2.  **Gather Hook Details**
     **Event**:
-    Ask which event to hook into. Common options:
-    - `PreToolUse`: Run before a tool is used (can block/modify).
-    - `PostToolUse`: Run after a tool completes (logging, formatting).
-    - `SessionStart`: Run when a session begins.
-    - `UserPromptSubmit`: Run when user submits input.
+    Ask which event to hook into. Available options:
+    - `PreToolUse`: Runs before tool calls (can block them).
+    - `PermissionRequest`: Runs when a permission dialog is shown (can allow or deny).
+    - `PostToolUse`: Runs after tool calls complete.
+    - `UserPromptSubmit`: Runs when the user submits a prompt, before Claude processes it.
+    - `Notification`: Runs when Claude Code sends notifications.
+    - `Stop`: Runs when Claude Code finishes responding.
+    - `SubagentStop`: Runs when subagent tasks complete.
+    - `PreCompact`: Runs before Claude Code is about to run a compact operation.
+    - `SessionStart`: Runs when Claude Code starts a new session or resumes an existing session.
+    - `SessionEnd`: Runs when Claude Code session ends.
 
     **Matcher**:
     Ask for the tool matcher (required for Tool events).
     - `*`: Matches all tools.
     - `Bash`, `Edit`, `Write`, `Glob`, `Grep`: Specific tools.
-    - Regex is supported (e.g., `Edit|Write`).
+    - Regex is supported (e.g., `Edit|Write` matches both Edit and Write tools).
 
     **Command Type**:
     Ask if this is a simple **Inline Command** or a **Script**.
