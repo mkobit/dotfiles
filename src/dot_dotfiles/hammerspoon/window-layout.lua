@@ -6,17 +6,24 @@ local LOG_TAG = "WindowLayout"
 local logger = hs.logger.new(LOG_TAG, "info")
 
 -- Constants
-local CACHE_DIR_NAME = "hammerspoon"
+local CACHE_DIR_NAME = "hammerspoon/window_layout"
 local STATE_FILE_NAME = "window_state.json"
 
 -- Helpers for XDG paths
 local function get_cache_dir()
+    -- Priority 1: Configuration override
+    if _G.HSConfig and _G.HSConfig.xdg_cache_home then
+        return _G.HSConfig.xdg_cache_home .. "/" .. CACHE_DIR_NAME
+    end
+
+    -- Priority 2: Environment variable
     local xdg_cache = os.getenv("XDG_CACHE_HOME")
     if xdg_cache and xdg_cache ~= "" then
         return xdg_cache .. "/" .. CACHE_DIR_NAME
-    else
-        return os.getenv("HOME") .. "/.cache/" .. CACHE_DIR_NAME
     end
+
+    -- Priority 3: Default fallback
+    return os.getenv("HOME") .. "/.cache/" .. CACHE_DIR_NAME
 end
 
 local function get_state_file_path()
@@ -26,7 +33,12 @@ end
 -- Ensure cache directory exists
 local function ensure_cache_dir()
     local path = get_cache_dir()
-    hs.fs.mkdir(path)
+    local success, err = hs.fs.mkdir(path)
+    if not success then
+        logger:e("Failed to create cache directory at " .. path .. ": " .. tostring(err))
+        hs.alert.show("Error: Could not create window layout cache directory")
+        return nil
+    end
     return path
 end
 
@@ -57,13 +69,14 @@ function WindowLayout.load_full_state_from_disk()
 end
 
 function WindowLayout.save_full_state_to_disk(full_state)
-    ensure_cache_dir()
+    if not ensure_cache_dir() then return false end
     local filepath = get_state_file_path()
     if hs.json.write(full_state, filepath, true, true) then
         logger:i("State saved to " .. filepath)
         return true
     else
         logger:e("Failed to save state to " .. filepath)
+        hs.alert.show("Error: Failed to save window layout")
         return false
     end
 end
@@ -86,11 +99,16 @@ function WindowLayout.capture_window_state()
                 spaceID = spaces[1]
             end
 
+            local frame = win:frame()
+            -- Log detailed window info for debugging
+            logger:d(string.format("Captured Window: ID=%d, App=%s, Title=%s, Frame={x=%.1f,y=%.1f,w=%.1f,h=%.1f}, Space=%s",
+                win:id(), app and app:name() or "Unknown", win:title(), frame.x, frame.y, frame.w, frame.h, tostring(spaceID)))
+
             table.insert(window_data, {
                 id = win:id(),
                 app_name = app and app:name() or "Unknown",
                 title = win:title(),
-                frame = win:frame(),
+                frame = frame,
                 screen_uuid = screen and screen:getUUID() or nil,
                 space_id = spaceID
             })
@@ -99,10 +117,14 @@ function WindowLayout.capture_window_state()
 
     local monitor_data = {}
     for _, screen in ipairs(hs.screen.allScreens()) do
+        local frame = screen:frame()
+        logger:d(string.format("Captured Monitor: UUID=%s, Name=%s, Frame={x=%.1f,y=%.1f,w=%.1f,h=%.1f}",
+            screen:getUUID(), screen:name(), frame.x, frame.y, frame.w, frame.h))
+
         table.insert(monitor_data, {
             uuid = screen:getUUID(),
             name = screen:name(),
-            frame = screen:frame()
+            frame = frame
         })
     end
 
@@ -122,6 +144,75 @@ function WindowLayout.snapshot_current_setup()
 
     WindowLayout.save_full_state_to_disk(full_state)
     hs.alert.show("Window Layout Saved (Setup: " .. #full_state.configurations[setup_id].monitors .. " Monitors)")
+end
+
+-- --- Debug View ---
+
+function WindowLayout.show_debug_view()
+    local setup_id = WindowLayout.get_monitor_setup_id()
+    local full_state = WindowLayout.load_full_state_from_disk()
+    local saved_config = full_state.configurations[setup_id]
+
+    local html = [[
+        <html>
+        <head>
+            <style>
+                body { font-family: -apple-system, sans-serif; padding: 20px; font-size: 12px; }
+                h1 { font-size: 16px; margin-bottom: 10px; }
+                h2 { font-size: 14px; margin-top: 15px; border-bottom: 1px solid #ccc; }
+                table { border-collapse: collapse; width: 100%; margin-top: 5px; }
+                th, td { text-align: left; padding: 4px; border-bottom: 1px solid #eee; }
+                th { background-color: #f5f5f5; }
+                .mono { font-family: monospace; }
+                .refresh { position: fixed; top: 10px; right: 10px; }
+            </style>
+            <script>
+                setTimeout(function(){ window.location.reload(); }, 2000);
+            </script>
+        </head>
+        <body>
+            <div class="refresh">Auto-refresh: 2s</div>
+            <h1>Current Monitor Setup ID</h1>
+            <div class="mono">]] .. setup_id .. [[</div>
+
+            <h2>Saved State (Disk)</h2>
+    ]]
+
+    if saved_config then
+        html = html .. "<p>Timestamp: " .. os.date("%Y-%m-%d %H:%M:%S", saved_config.timestamp) .. "</p>"
+        html = html .. "<table><tr><th>App</th><th>Title</th><th>Frame</th><th>Space</th></tr>"
+        for _, win in ipairs(saved_config.windows) do
+            html = html .. string.format("<tr><td>%s</td><td>%s</td><td class='mono'>%.0f,%.0f %.0fx%.0f</td><td>%s</td></tr>",
+                win.app_name, win.title:sub(1, 40), win.frame.x, win.frame.y, win.frame.w, win.frame.h, tostring(win.space_id))
+        end
+        html = html .. "</table>"
+    else
+        html = html .. "<p>No saved state for this monitor setup.</p>"
+    end
+
+    html = html .. "<h2>Current Live Windows</h2><table><tr><th>ID</th><th>App</th><th>Title</th><th>Frame</th></tr>"
+    local windows = hs.window.filter.default:getWindows()
+    for _, win in ipairs(windows) do
+         if win:isVisible() and win:isStandard() then
+            local app = win:application()
+            local frame = win:frame()
+            html = html .. string.format("<tr><td class='mono'>%d</td><td>%s</td><td>%s</td><td class='mono'>%.0f,%.0f %.0fx%.0f</td></tr>",
+                win:id(), app and app:name() or "?", win:title():sub(1, 40), frame.x, frame.y, frame.w, frame.h)
+         end
+    end
+    html = html .. "</table></body></html>"
+
+    local rect = hs.geometry.rect(100, 100, 600, 800)
+    if WindowLayout.debugWebview then
+        WindowLayout.debugWebview:html(html)
+        WindowLayout.debugWebview:show()
+    else
+        WindowLayout.debugWebview = hs.webview.new(rect)
+        WindowLayout.debugWebview:windowStyle({"titled", "closable", "resizable", "utility"})
+        WindowLayout.debugWebview:allowGestures(true)
+        WindowLayout.debugWebview:html(html)
+        WindowLayout.debugWebview:show()
+    end
 end
 
 -- --- State Restoration ---
@@ -207,7 +298,9 @@ function WindowLayout.restore_window_state()
                  if hs.spaces and hs.spaces.moveWindowToSpace then
                      hs.spaces.moveWindowToSpace(win:id(), saved.space_id)
                      -- Spaces move is an animation, we need to wait a bit before moving frame
-                     -- or the frame move might get clobbered by the space transition
+                     -- or the frame move might get clobbered by the space transition.
+                     -- Note: We rely on a timer here because there is no specific "window moved space" event
+                     -- that guarantees the animation is complete and the window is ready for frame changes.
                      hs.timer.doAfter(0.3, function()
                         -- Step 2: Move to Screen and Frame (After Space Move)
                         local dest_screen = hs.screen.find(saved.screen_uuid)
@@ -257,6 +350,8 @@ function WindowLayout.updateMenu()
         local menu_table = {
             { title = "Snapshot Current Layout", fn = WindowLayout.snapshot_current_setup },
             { title = "Restore Layout", fn = WindowLayout.restore_window_state },
+            { title = "-" },
+            { title = "Debug: Show State", fn = WindowLayout.show_debug_view },
             { title = "-" },
             { title = "Auto-Save on Lock", checked = WindowLayout.config.auto_save_on_lock, fn = function()
                 WindowLayout.config.auto_save_on_lock = not WindowLayout.config.auto_save_on_lock
