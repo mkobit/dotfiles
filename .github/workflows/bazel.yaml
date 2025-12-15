@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-      - uses: bazel-contrib/setup-bazel@5528b8082a800fc1dcf8ff0de93a30fa1c061239 # v0.15.0
+      - uses: bazel-contrib/setup-bazel@5528b8082a800fc1dcf8ff0de93a30fa1c061239
 
       - name: Install required tools
         run: |
@@ -101,7 +101,7 @@ jobs:
     needs: [format]
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-      - uses: bazel-contrib/setup-bazel@5528b8082a800fc1dcf8ff0de93a30fa1c061239 # v0.15.0
+      - uses: bazel-contrib/setup-bazel@5528b8082a800fc1dcf8ff0de93a30fa1c061239
 
       - name: Install required tools
         run: |
@@ -125,7 +125,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
-      - uses: bazel-contrib/setup-bazel@5528b8082a800fc1dcf8ff0de93a30fa1c061239 # v0.15.0
+      - uses: bazel-contrib/setup-bazel@5528b8082a800fc1dcf8ff0de93a30fa1c061239
 
       - name: Install basic tools for testing
         run: |
