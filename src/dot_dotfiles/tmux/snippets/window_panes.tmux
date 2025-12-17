@@ -32,6 +32,8 @@ bind-key h select-pane -L
 unbind-key l
 bind-key l select-pane -R
 
+# Note: Do NOT enable Option/Alt+Arrow keys (M-Left/Right/Up/Down) for pane navigation.
+# These bindings conflict with standard shell word-wise navigation (Option+Left/Right).
 
 # Vim-style resizing
 # Docs: https://man.openbsd.org/tmux#resize-pane
