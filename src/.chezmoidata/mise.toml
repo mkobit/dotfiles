@@ -7,3 +7,25 @@ darwin_arm64 = "ece0e7d3f50240fcdd562c3f4e2263596ba9162444e439617103c4a73a12409b
 darwin_amd64 = "be419453d0d13c96881e0aa6dd28d43779ee4360e744fd79f7d0be76fbc8a6d5"
 linux_amd64 = "589cac941160e404d13be6f5699a25ffdb25b732084430338bc384df9f0a4438"
 linux_arm64 = "4f9cb0ad59bd8d118f58812fc8baa3c09a732d01e10c650d49c6d0910b77e24d"
+
+[mise.global_tools]
+
+  [mise.global_tools.node]
+  version = "lts"
+  enabled = true
+
+  [mise.global_tools.python]
+  version = "3.14"
+  enabled = true
+
+  [mise.global_tools.java]
+  version = "temurin-21"
+  enabled = true
+
+  [mise.global_tools.rust]
+  version = "1.83"
+  enabled = true
+
+  [mise.global_tools.uv]
+  version = "0.9.7"
+  enabled = true

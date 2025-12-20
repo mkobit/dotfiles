@@ -1,0 +1,14 @@
+{{- $hasEnabledTools := false -}}
+{{- range $tool, $config := .mise.global_tools -}}
+  {{- if $config.enabled -}}
+    {{- $hasEnabledTools = true -}}
+  {{- end -}}
+{{- end -}}
+{{- if $hasEnabledTools -}}
+[tools]
+{{- range $tool, $config := .mise.global_tools -}}
+  {{- if $config.enabled }}
+{{ $tool }} = "{{ $config.version }}"
+  {{- end -}}
+{{- end -}}
+{{- end -}}
