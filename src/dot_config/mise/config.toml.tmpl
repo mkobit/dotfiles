@@ -1,8 +1,6 @@
 [tools]
-node = "lts"
-python = "3.14"
-java = "temurin-21"
-rust = "1.83"
-{{- if eq (index . "uv" "installation") "enabled" }}
-uv = "latest"
+{{- range $tool, $config := .mise.global_tools }}
+{{- if $config.enabled }}
+{{ $tool }} = "{{ $config.version }}"
+{{- end }}
 {{- end }}
