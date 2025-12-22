@@ -20,6 +20,3 @@ set-option -g visual-bell off  # No visual bell messages
 # See: https://man.openbsd.org/tmux#bell-action
 set-option -g bell-action none  # Completely ignore all bells
 
-# Status bar indicators - highlight activity in windows with color
-# Window title formats with activity highlighting
-set-window-option -g window-status-activity-style "fg=#bf616a,bg=#2e3440,bold"
