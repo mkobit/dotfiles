@@ -2,11 +2,12 @@
 # See: https://www.chezmoi.io/reference/special-files/chezmoiignore/
 
 .editorconfig
-**/docs/**/*
 
 # Ignore agent-related markdown files
 **/AGENTS.md
 **/CLAUDE.md
+**/RULE.md
+**/*.mdc
 
 # Bazel build files
 **/*.bzl

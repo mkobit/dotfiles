@@ -1,4 +1,4 @@
-# tmux Configuration
+# Tmux configuration
 
 Tmux configuration managed through snippets and plugins, without TPM.
 
@@ -6,31 +6,31 @@ Tmux configuration managed through snippets and plugins, without TPM.
 
 Snippets load first (base config), then plugins execute as bash scripts.
 
-- Config: [`src/dot_dotfiles/tmux/config.tmux.tmpl`](../dot_dotfiles/tmux/config.tmux.tmpl)
-- Snippets: [`src/dot_dotfiles/tmux/snippets/`](../dot_dotfiles/tmux/snippets/)
+- Config: [`config.tmux.tmpl`](config.tmux.tmpl)
+- Snippets: [`snippets/`](snippets/)
 
-## Adding Plugins
+## Adding plugins
 
-1. Add data file in [`src/.chezmoidata/tmux/plugins/`](../.chezmoidata/tmux/plugins/)
-2. Add external in [`src/.chezmoiexternals/`](../.chezmoiexternals/)
+1. Add data file in [`../../.chezmoidata/tmux/plugins/`](../../.chezmoidata/tmux/plugins/)
+2. Add external in [`../../.chezmoiexternals/`](../../.chezmoiexternals/)
 3. Run `chezmoi apply`
 
 Plugins are pinned to specific commits and downloaded as tarballs.
 
-## Current Plugins
+## Current plugins
 
 - [tmux-powerline](https://github.com/erikw/tmux-powerline) - Status bar
 
-## tmux-powerline Performance
+## Tmux-powerline performance
 
-### Refresh Interval Impact
+### Refresh interval impact
 
 Status bar refresh spawns shell processes for each active segment.
 Endpoint security tools like SentinelOne scan every process creation.
 This causes CPU and memory pressure with frequent refresh intervals.
 Current configuration uses 10-second refresh to balance responsiveness and resource usage.
 
-### Segment Performance Characteristics
+### Segment performance characteristics
 
 **Expensive segments** spawn subprocesses on every refresh:
 
@@ -51,7 +51,7 @@ Current configuration uses 10-second refresh to balance responsiveness and resou
 - `battery` - Changes slowly, spawns multiple hardware query processes
 - `date_day` - Merged into `date` segment format using `%a` day-of-week
 
-### Future Custom Segments
+### Future custom segments
 
 Consider these patterns when authoring custom segments:
 
