@@ -4,7 +4,7 @@ Hammerspoon is a tool for powerful automation of macOS. At its core, Hammerspoon
 
 Official documentation can be found at [https://www.hammerspoon.org/docs/](https://www.hammerspoon.org/docs/).
 
-## Configuration Directory
+## Configuration directory
 
 By default, Hammerspoon uses `~/.hammerspoon` for configuration. This dotfiles setup configures Hammerspoon to use the chezmoi-managed configuration directory at `.dotfiles/hammerspoon`.
 
@@ -16,7 +16,7 @@ References:
 - [GitHub Issue #1734 - XDG config directory support](https://github.com/Hammerspoon/hammerspoon/issues/1734)
 - [GitHub Discussion #3730 - Custom config with nix-darwin](https://github.com/Hammerspoon/hammerspoon/discussions/3730)
 
-## API Reference
+## API reference
 
 Below is a table of the core Hammerspoon API modules, with links to their official documentation pages.
 

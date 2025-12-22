@@ -1,13 +1,13 @@
-# jq Guide for Agents
+# jq guide for agents
 
 This document provides guidance on using `jq` within this repository.
 
-## Official Documentation
+## Official documentation
 
 For a comprehensive understanding of `jq`, refer to the [official jq manual](https://jqlang.org/manual/).
 For downloads and release information, see the [official jq downloads page](https://jqlang.org/download/).
 
-## `jq` Module System
+## jq module system
 
 `jq` supports modules, which allow for the reuse of functions and filters across different `jq` scripts.
 
@@ -26,7 +26,7 @@ There are two primary ways to use modules:
 2.  `$ORIGIN/../lib/jq`: A directory relative to the `jq` executable.
 3.  Directories specified in the `$JQLIB` environment variable. This is the recommended way to expand the search path for our modules.
 
-## Managing `jq` modules in this repository
+## Managing jq modules in this repository
 
 To ensure that our custom `jq` modules are available to all agents and scripts, we will adopt the following convention:
 

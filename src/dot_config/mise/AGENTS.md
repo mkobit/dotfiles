@@ -10,7 +10,7 @@ It's a replacement for tools like `asdf`, `nvm`, and `pyenv`.
 - Uses a `.mise.toml` configuration file to define tool versions.
 - Activates and deactivates tool versions automatically when you enter a directory.
 
-### Example Usage
+### Example usage
 
 A typical `.mise.toml` file might look like this:
 
@@ -28,7 +28,7 @@ Managed via chezmoi external sources.
 The binary is downloaded directly from the official GitHub releases.
 It is made available in the `{{ .chezmoi.destDir }}/.local/bin` directory.
 
-## Shell Integration
+## Shell integration
 
 Mise hooks into the shell to manage the environment.
 Activation is handled by the shell's startup files (e.g., `.zshrc`).
