@@ -2,6 +2,13 @@
 # FZF Tab Completion for Bash
 # https://github.com/lincheney/fzf-tab-completion
 
+# Logging setup
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+LOGGING_SCRIPT="$CHEZMOI_SOURCE_DIR/scripts/logging.sh"
+if [[ -f "$LOGGING_SCRIPT" ]]; then
+    source "$LOGGING_SCRIPT"
+fi
+
 FZF_TAB_COMPLETION_DIR="{{ .chezmoi.destDir }}/.dotfiles/external/fzf-tab-completion"
 
 if [[ -f "$FZF_TAB_COMPLETION_DIR/bash/fzf-bash-completion.sh" ]]; then
@@ -17,11 +24,7 @@ if [[ -f "$FZF_TAB_COMPLETION_DIR/bash/fzf-bash-completion.sh" ]]; then
 else
     # Only warn if interactive
     if [[ $- == *i* ]]; then
-        # Try to use shared logging script if available
-        CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
-        LOGGING_SCRIPT="$CHEZMOI_SOURCE_DIR/scripts/logging.sh"
-        if [[ -f "$LOGGING_SCRIPT" ]]; then
-            source "$LOGGING_SCRIPT"
+        if command -v log_warn >/dev/null 2>&1; then
             log_warn "fzf-tab-completion not found at $FZF_TAB_COMPLETION_DIR"
         else
             echo "fzf-tab-completion not found at $FZF_TAB_COMPLETION_DIR"
@@ -31,6 +34,13 @@ fi
 {{- else if eq .shell "zsh" }}
 # FZF Tab Completion for Zsh
 # https://github.com/Aloxaf/fzf-tab
+
+# Logging setup
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+LOGGING_SCRIPT="$CHEZMOI_SOURCE_DIR/scripts/logging.sh"
+if [[ -f "$LOGGING_SCRIPT" ]]; then
+    source "$LOGGING_SCRIPT"
+fi
 
 FZF_TAB_DIR="{{ .chezmoi.destDir }}/.dotfiles/external/fzf-tab"
 
@@ -68,11 +78,7 @@ if [[ -f "$FZF_TAB_DIR/fzf-tab.plugin.zsh" ]]; then
 else
     # Only warn if interactive
     if [[ -o interactive ]]; then
-        # Try to use shared logging script if available
-        CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
-        LOGGING_SCRIPT="$CHEZMOI_SOURCE_DIR/scripts/logging.sh"
-        if [[ -f "$LOGGING_SCRIPT" ]]; then
-            source "$LOGGING_SCRIPT"
+        if command -v log_warn >/dev/null 2>&1; then
             log_warn "fzf-tab not found at $FZF_TAB_DIR"
         else
             echo "fzf-tab not found at $FZF_TAB_DIR"
