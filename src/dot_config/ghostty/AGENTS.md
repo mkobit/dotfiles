@@ -2,29 +2,29 @@
 
 Ghostty is a fast, feature-rich terminal emulator that is GPU-accelerated, cross-platform, and supports various advanced terminal features.
 
-## Official Documentation
+## Official documentation
 
 - [Ghostty Official Site](https://ghostty.org/)
 - [Configuration Documentation](https://ghostty.org/docs/config/reference)
 - [Installation Guide](https://ghostty.org/docs/install/binary)
 - [GitHub Repository](https://github.com/ghostty-org/ghostty)
 
-## Configuration Files
+## Configuration files
 
-### Config File Location
+### Config file location
 Ghostty searches for configuration files in this order:
 1. `$XDG_CONFIG_HOME/ghostty/config`
 2. `$HOME/.config/ghostty/config`
 3. `$HOME/.ghostty`
 
-### Platform-Specific Paths
+### Platform-specific paths
 - **macOS**: `~/.config/ghostty/config`
 - **Linux**: `~/.config/ghostty/config`
 - **Windows**: `%APPDATA%\ghostty\config`
 
-## Configuration Structure
+## Configuration structure
 
-### Basic Configuration Format
+### Basic configuration format
 Ghostty uses a simple key-value configuration format:
 ```
 # Window configuration
@@ -39,7 +39,7 @@ font-family = "JetBrains Mono"
 theme = "dracula"
 ```
 
-### Cross-Platform Configuration
+### Cross-platform configuration
 Ghostty uses a single config file; manage platform differences via chezmoi templates:
 ```
 # Platform-specific font via chezmoi templating
@@ -50,7 +50,7 @@ font-family = "DejaVu Sans Mono"
 {{- end }}
 ```
 
-### Splitting Configuration Into Multiple Files
+### Splitting configuration into multiple files
 You can split your configuration into multiple files using the `config-file` key. This is especially useful for organizing settings by category:
 
 ```
@@ -77,16 +77,16 @@ Example structure in this repository:
 └── local-overrides.conf # Optional local customizations
 ```
 
-## Key Features
+## Key features
 
-### GPU Acceleration
+### GPU acceleration
 Hardware-accelerated rendering for improved performance:
 - Metal rendering on macOS
 - OpenGL rendering on Linux
 - Efficient text rendering and scrolling
 - Low input latency
 
-### Advanced Terminal Features
+### Advanced terminal features
 Modern terminal capabilities:
 - True color support (24-bit)
 - Unicode support including emoji
@@ -95,7 +95,7 @@ Modern terminal capabilities:
 - Synchronized output
 - Bracketed paste mode
 
-### Font Configuration
+### Font configuration
 Advanced typography support:
 ```
 font-family = "JetBrains Mono"
@@ -108,7 +108,7 @@ font-feature = "liga"
 font-feature = "calt"
 ```
 
-### Key Bindings
+### Key bindings
 Custom keyboard shortcuts:
 ```
 # Copy/Paste
@@ -124,7 +124,7 @@ keybind = cmd+plus=increase_font_size:1
 keybind = cmd+minus=decrease_font_size:1
 ```
 
-### Themes and Colors
+### Themes and colors
 Built-in theme support:
 ```
 # Use built-in themes
@@ -143,9 +143,9 @@ palette = 1=#ff5555
 palette = 2=#50fa7b
 ```
 
-## Advanced Configuration
+## Advanced configuration
 
-### Shell Configuration
+### Shell configuration
 Specify shell and startup behavior:
 ```
 shell-integration = zsh
@@ -153,7 +153,7 @@ shell-integration-features = cursor,sudo,title
 command = /bin/zsh
 ```
 
-### Window Behavior
+### Window behavior
 Window appearance and behavior:
 ```
 window-decoration = true
@@ -162,7 +162,7 @@ window-save-state = default
 window-new-tab-position = after
 ```
 
-### Mouse and Cursor
+### Mouse and cursor
 Mouse behavior and cursor appearance:
 ```
 mouse-hide-while-typing = true
@@ -171,7 +171,7 @@ cursor-style-blink = false
 cursor-text = background
 ```
 
-### Performance Tuning
+### Performance tuning
 ```
 # Optimize for performance
 scrollback-limit = 100000
@@ -181,7 +181,7 @@ minimum-contrast = 1.0
 window-vsync = false
 ```
 
-## Integration Patterns
+## Integration patterns
 
 ### With chezmoi
 ```
@@ -202,13 +202,13 @@ window-title = "Ghostty - Work"
 {{- end }}
 ```
 
-### Common Configurations
+### Common configurations
 - **Font**: JetBrains Mono, Fira Code, SF Mono (macOS), Cascadia Code
 - **Theme**: Dracula, Catppuccin, Solarized Dark, One Dark Pro
 - **Size**: 12-14pt for standard displays, 16-18pt for HiDPI
 - **Performance**: Disable vsync for lower latency, increase scrollback for history
 
-### Shell Integration
+### Shell integration
 ```
 # Enable shell integration for enhanced features
 shell-integration = zsh
@@ -218,7 +218,7 @@ shell-integration-features = cursor,sudo,title,jump
 shell-integration-cursor = true
 ```
 
-### Configuration Migration
+### Configuration migration
 Ghostty provides migration tools and compatibility modes for:
 - iTerm2 color schemes
 - Alacritty configuration

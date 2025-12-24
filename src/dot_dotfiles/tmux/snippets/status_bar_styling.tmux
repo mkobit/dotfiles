@@ -49,14 +49,6 @@ set-window-option -g window-status-activity-style "fg=#ebcb8b,bg=#2e3440,bold"
 # Docs: https://man.openbsd.org/tmux#window-status-bell-style
 set-window-option -g window-status-bell-style "fg=#bf616a,bg=#2e3440,bold,blink"
 
-# Monitor activity but reduce visual noise
-# Docs: https://man.openbsd.org/tmux#monitor-activity
-set-window-option -g monitor-activity on
-# Docs: https://man.openbsd.org/tmux#visual-activity
-set-option -g visual-activity off
-# Docs: https://man.openbsd.org/tmux#visual-bell
-set-option -g visual-bell off
-
 # === ADDITIONAL STYLING ===
 # Copy mode styling
 # Docs: https://man.openbsd.org/tmux#mode-style

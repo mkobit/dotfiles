@@ -131,16 +131,22 @@ We need to operate within environments that have managed infrastructure that han
 - Never replace system binaries or externally-installed tools
 - `modify_` scripts are required for any file that corporate IT manages
 
-## Tooling guides
+## Tool-specific documentation
 
-- **jq**: For guidelines on using `jq` and managing custom modules, see [src/docs/jq.md](src/docs/jq.md).
-- **Claude Code**: Configuration precedence and agent patterns, see [src/docs/claude-code.md](src/docs/claude-code.md).
-- **iTerm**: Profile management and scripting, see [src/docs/iterm.md](src/docs/iterm.md).
-- **Rectangle Pro**: Window management automation, see [src/docs/rectangle-pro.md](src/docs/rectangle-pro.md).
-- **Ghostty**: Cross-platform terminal configuration, see [src/docs/ghostty.md](src/docs/ghostty.md).
-- **tmux**: Configuration patterns and plugin management, see [src/docs/tmux.md](src/docs/tmux.md).
-- **Hammerspoon**: macOS automation and scripting, see [src/docs/hammerspoon.md](src/docs/hammerspoon.md).
-- **asdf**: Version manager configuration, see [src/docs/asdf.md](src/docs/asdf.md).
+Tool-specific documentation is co-located with configuration files. Each tool directory contains:
+- `AGENTS.md` - Tool-specific patterns, architecture, and guidelines
+- `CLAUDE.md` - Identical copy for compatibility
+
+Tool directories:
+- `src/dot_dotfiles/asdf/` - asdf version manager configuration
+- `src/dot_dotfiles/git/` - Git configuration and snippets
+- `src/dot_dotfiles/hammerspoon/` - macOS automation and scripting
+- `src/dot_dotfiles/jq/` - JSON processor configuration and module management
+- `src/dot_dotfiles/tmux/` - Terminal multiplexer setup and plugin management
+- `src/dot_dotfiles/zsh/` - Shell configuration, Oh My Zsh, and Powerlevel10k
+- `src/dot_config/ghostty/` - Cross-platform terminal emulator
+- `src/dot_config/mise/` - Polyglot development environment manager
+- `src/dot_claude/` - Claude Code CLI configuration and integration
 
 ## chezmoi documentation
 
