@@ -6,33 +6,38 @@ local LOG_TAG = "WindowLayout"
 local logger = hs.logger.new(LOG_TAG, "info")
 
 -- Constants
-local CACHE_DIR_NAME = "hammerspoon/window_layout"
+local CACHE_DIR_SUBPATH = "hammerspoon/window_layout"
 local STATE_FILE_NAME = "window_state.json"
 
 -- Helpers for XDG paths
 local function get_cache_dir()
     -- Priority 1: Configuration override
-    if _G.HSConfig and _G.HSConfig.xdg_cache_home then
-        return _G.HSConfig.xdg_cache_home .. "/" .. CACHE_DIR_NAME
+    if _G.DotfilesConfig and _G.DotfilesConfig.cache_dir then
+        return _G.DotfilesConfig.cache_dir .. "/" .. CACHE_DIR_SUBPATH
     end
 
     -- Priority 2: Environment variable
     local xdg_cache = os.getenv("XDG_CACHE_HOME")
     if xdg_cache and xdg_cache ~= "" then
-        return xdg_cache .. "/" .. CACHE_DIR_NAME
+        return xdg_cache .. "/" .. CACHE_DIR_SUBPATH
     end
 
-    -- Priority 3: Default fallback
-    return os.getenv("HOME") .. "/.cache/" .. CACHE_DIR_NAME
+    -- Priority 3: No fallback allowed, as requested
+    logger:e("Could not determine cache directory. _G.DotfilesConfig.cache_dir and XDG_CACHE_HOME are both unset.")
+    return nil
 end
 
 local function get_state_file_path()
-    return get_cache_dir() .. "/" .. STATE_FILE_NAME
+    local cache_dir = get_cache_dir()
+    if not cache_dir then return nil end
+    return cache_dir .. "/" .. STATE_FILE_NAME
 end
 
 -- Ensure cache directory exists
 local function ensure_cache_dir()
     local path = get_cache_dir()
+    if not path then return nil end
+
     local success, err = hs.fs.mkdir(path)
     if not success then
         logger:e("Failed to create cache directory at " .. path .. ": " .. tostring(err))
@@ -57,6 +62,8 @@ end
 
 function WindowLayout.load_full_state_from_disk()
     local filepath = get_state_file_path()
+    if not filepath then return { configurations = {} } end
+
     local state = hs.json.read(filepath)
     if not state then
         return { configurations = {} }
@@ -71,6 +78,8 @@ end
 function WindowLayout.save_full_state_to_disk(full_state)
     if not ensure_cache_dir() then return false end
     local filepath = get_state_file_path()
+    if not filepath then return false end
+
     if hs.json.write(full_state, filepath, true, true) then
         logger:i("State saved to " .. filepath)
         return true
@@ -247,13 +256,13 @@ function WindowLayout.restore_window_state()
     for _, saved_win in ipairs(saved_config.windows) do
         local matched_win = nil
 
-        -- Strategy 1: Match by ID
+        -- Strategy 1: Match by ID (Best case: Same session, window object persisted)
         local win_by_id = hs.window.get(saved_win.id)
         if win_by_id and win_by_id:id() == saved_win.id then
             matched_win = win_by_id
         end
 
-        -- Strategy 2: Match by App Name + Title
+        -- Strategy 2: Match by App Name + Title (App Restarted)
         if not matched_win and windows_by_app[saved_win.app_name] then
             for _, candidate in ipairs(windows_by_app[saved_win.app_name]) do
                 if not used_windows[candidate:id()] and candidate:title() == saved_win.title then
@@ -263,7 +272,9 @@ function WindowLayout.restore_window_state()
             end
         end
 
-        -- Strategy 3: Slot Filling
+        -- Strategy 3: Slot Filling (Identical Windows, e.g., 2 generic Chrome windows)
+        -- This assigns available windows of the correct app to the saved positions arbitrarily.
+        -- Without OS-level unique persistent IDs for windows across restarts, this is the best effort.
         if not matched_win and windows_by_app[saved_win.app_name] then
             for _, candidate in ipairs(windows_by_app[saved_win.app_name]) do
                 if not used_windows[candidate:id()] then
@@ -299,8 +310,9 @@ function WindowLayout.restore_window_state()
                      hs.spaces.moveWindowToSpace(win:id(), saved.space_id)
                      -- Spaces move is an animation, we need to wait a bit before moving frame
                      -- or the frame move might get clobbered by the space transition.
-                     -- Note: We rely on a timer here because there is no specific "window moved space" event
-                     -- that guarantees the animation is complete and the window is ready for frame changes.
+                     -- FIXME: Hammerspoon currently lacks a reliable 'windowMovedToSpace' event callback.
+                     -- We use a timer as a heuristic to allow the macOS animation to complete.
+                     -- If/when HS adds an event for this, we should replace the timer.
                      hs.timer.doAfter(0.3, function()
                         -- Step 2: Move to Screen and Frame (After Space Move)
                         local dest_screen = hs.screen.find(saved.screen_uuid)

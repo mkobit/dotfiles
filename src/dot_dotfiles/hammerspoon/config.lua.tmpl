@@ -2,9 +2,10 @@
 -- This file sources all individual config snippets
 
 -- Global Configuration Table
-_G.HSConfig = {
+_G.DotfilesConfig = {
+    cache_dir = "{{ .chezmoi.homeDir }}/.cache",
     window_manager = {
-        enabled = {{ .hammerspoon.enable_window_manager | default "false" }}
+        enabled = {{ .hammerspoon.window_manager.enabled | default "false" }}
     }
 }
 

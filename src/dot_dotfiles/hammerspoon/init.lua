@@ -26,7 +26,7 @@ hs.alert.show("Hammerspoon config loaded")
 local RectanglePro = require("rectangle-pro")
 
 -- Load the Window Layout Manager if enabled in config
-if _G.HSConfig and _G.HSConfig.window_manager and _G.HSConfig.window_manager.enabled then
+if _G.DotfilesConfig and _G.DotfilesConfig.window_manager and _G.DotfilesConfig.window_manager.enabled then
     local WindowLayout = require("window-layout")
     WindowLayout.start()
 end

@@ -1,4 +1,6 @@
 [hammerspoon]
 enabled = true
 installation = "package-manager"
-enable_window_manager = true
+
+[hammerspoon.window_manager]
+enabled = true
