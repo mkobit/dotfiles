@@ -232,7 +232,7 @@
 
 	## Maildir
 	# Path to the maildir to check.
-	export TMUX_POWERLINE_SEG_MAILCOUNT_MAILDIR_INBOX="/Users/mikekobit/.mail/inbox/new"
+	export TMUX_POWERLINE_SEG_MAILCOUNT_MAILDIR_INBOX="[[ .chezmoi.destDir ]]/.mail/inbox/new"
 
 	## mbox
 	# Path to the mbox to check.
@@ -240,7 +240,7 @@
 
 	## mailcheck
 	# Optional path to mailcheckrc
-	export TMUX_POWERLINE_SEG_MAILCOUNT_MAILCHECKRC="/Users/mikekobit/.mailcheckrc"
+	export TMUX_POWERLINE_SEG_MAILCOUNT_MAILCHECKRC="[[ .chezmoi.destDir ]]/.mailcheckrc"
 # }
 
 # mem_used.sh {
@@ -295,7 +295,7 @@
 	# If set to 'true', 'yes', 'on' or '1', played tracks will be logged to a file.
 	# export TMUX_POWERLINE_SEG_NOW_PLAYING_TRACK_LOG_ENABLE="false"
 	# If enabled, log played tracks to the following file:
-	# export TMUX_POWERLINE_SEG_NOW_PLAYING_TRACK_LOG_FILEPATH="/Users/mikekobit/.now_playing.log"
+	# export TMUX_POWERLINE_SEG_NOW_PLAYING_TRACK_LOG_FILEPATH="[[ .chezmoi.destDir ]]/.now_playing.log"
 	# Maximum number of logged song entries. Set to "unlimited" for unlimited entries.
 	# export TMUX_POWERLINE_SEG_NOW_PLAYING_TRACK_LOG_MAX_ENTRIES="100"
 
@@ -353,12 +353,12 @@
 
 # tmux_continuum_save.sh {
 	# Path to the tmux-continuum git repo.
-	export TMUX_POWERLINE_SEG_TMUX_CONTINUUM_PATH="/Users/mikekobit/.tmux/plugins/tmux-continuum"
+	export TMUX_POWERLINE_SEG_TMUX_CONTINUUM_PATH="[[ .chezmoi.destDir ]]/.tmux/plugins/tmux-continuum"
 # }
 
 # tmux_continuum_status.sh {
 	# Path to the tmux-continuum git repo.
-	export TMUX_POWERLINE_SEG_TMUX_CONTINUUM_PATH="/Users/mikekobit/.tmux/plugins/tmux-continuum"
+	export TMUX_POWERLINE_SEG_TMUX_CONTINUUM_PATH="[[ .chezmoi.destDir ]]/.tmux/plugins/tmux-continuum"
 	# Message to perfix the status indication with.
 	export TMUX_POWERLINE_SEG_TMUX_CONTINUUM_PREFIX="Continuum status: "
 # }
