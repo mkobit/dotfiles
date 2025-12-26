@@ -1,3 +1,6 @@
 [hammerspoon]
 enabled = true
 installation = "package-manager"
+
+[hammerspoon.window_manager]
+enabled = true

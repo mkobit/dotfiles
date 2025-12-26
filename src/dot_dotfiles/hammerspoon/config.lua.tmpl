@@ -1,5 +1,13 @@
 -- Hammerspoon configuration managed by chezmoi
 -- This file sources all individual config snippets
 
+-- Global Configuration Table
+_G.DotfilesConfig = {
+    cache_dir = "{{ .chezmoi.homeDir }}/.cache",
+    window_manager = {
+        enabled = {{ .hammerspoon.window_manager.enabled | default "false" }}
+    }
+}
+
 -- Load base configuration
 dofile("{{ .chezmoi.destDir }}/.dotfiles/hammerspoon/snippets/init.lua")
