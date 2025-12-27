@@ -1,5 +1,5 @@
-load("//tools/chezmoi:rules.bzl", "chezmoi_execute_template")
 load("@bazel_skylib//rules:diff_test.bzl", "diff_test")
+load("//tools/chezmoi:rules.bzl", "chezmoi_execute_template")
 
 package(default_visibility = ["//visibility:public"])
 
