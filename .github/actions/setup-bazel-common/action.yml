@@ -1,9 +1,5 @@
 name: 'Setup Bazel with Caching'
 description: 'Sets up Bazel with standard caching configuration'
-inputs:
-  workflow_name:
-    description: 'Name of the workflow for disk-cache scoping'
-    required: true
 
 runs:
   using: "composite"
@@ -13,6 +9,6 @@ runs:
         # Avoid downloading Bazel every time
         bazelisk-cache: true
         # Store build cache per workflow
-        disk-cache: ${{ inputs.workflow_name }}
+        disk-cache: ${{ github.workflow }}
         # Share repository cache between workflows
         repository-cache: true

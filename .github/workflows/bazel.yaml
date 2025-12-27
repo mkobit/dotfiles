@@ -35,8 +35,6 @@ jobs:
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       - uses: ./.github/actions/setup-bazel-common
-        with:
-          workflow_name: ${{ github.workflow }}
 
       - name: Install required tools
         run: |
@@ -104,8 +102,6 @@ jobs:
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       - uses: ./.github/actions/setup-bazel-common
-        with:
-          workflow_name: ${{ github.workflow }}
 
       - name: Install required tools
         run: |
@@ -130,8 +126,6 @@ jobs:
     steps:
       - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
       - uses: ./.github/actions/setup-bazel-common
-        with:
-          workflow_name: ${{ github.workflow }}
 
       - name: Install basic tools for testing
         run: |
