@@ -21,6 +21,16 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v6
 
+      - name: Cache chezmoi downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/chezmoi
+            ~/Library/Caches/chezmoi
+          key: chezmoi-cache-${{ runner.os }}-${{ hashFiles('src/.chezmoidata/**', 'src/.chezmoiexternals/**') }}
+          restore-keys: |
+            chezmoi-cache-${{ runner.os }}-
+
       - name: Install chezmoi
         run: |
           # Install chezmoi to ~/.local/bin
