@@ -19,4 +19,8 @@
 **/.gitignore
 **/.gitkeep
 
+# Test artifacts
+**/expected_*
+**/test_data.toml
+
 scripts/
