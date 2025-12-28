@@ -1,0 +1,29 @@
+# /// script
+# dependencies = [
+#   "click",
+#   "faster-whisper",
+#   "jinja2",
+#   "tqdm",
+# ]
+# ///
+
+import os
+import time
+import click
+import hashlib
+from datetime import datetime
+from pathlib import Path
+from tqdm import tqdm
+import sys
+import jinja2
+from dataclasses import dataclass, field
+from typing import Dict, Any, Optional
+
+# --- Inlined schemas.py ---
+{{ include (joinPath .chezmoi.sourceDir "transcriber/schemas.py") | replace "from typing import Dict, Any, Optional" "" | replace "from dataclasses import dataclass, field" "" }}
+
+# --- Inlined render.py ---
+{{ include (joinPath .chezmoi.sourceDir "transcriber/render.py") | replace "import jinja2" "" | replace "from typing import Dict, Any" "" }}
+
+# --- Inlined main.py ---
+{{ include (joinPath .chezmoi.sourceDir "transcriber/main.py") | replace "# --- START_IMPORTS ---" "" | replace "# --- END_IMPORTS ---" "" | replace "sys.path.append(os.path.dirname(os.path.abspath(__file__)))" "" | replace "try:" "" | replace "    from schemas import ModelInfo, FileInfo, TranscriptionMetadata, TranscriptionResult" "" | replace "    from render import render_template" "" | replace "except ImportError as e1:" "" | replace "    try:" "" | replace "        from src.transcriber.schemas import ModelInfo, FileInfo, TranscriptionMetadata, TranscriptionResult" "" | replace "        from src.transcriber.render import render_template" "" | replace "    except ImportError as e2:" "" | replace "        # Check if classes are already defined (e.g. by inlining/concatenation)" "" | replace "        if 'FileInfo' in globals():" "" | replace "            pass" "" | replace "        else:" "" | replace '            raise ImportError(f"Imports failed. CWD: {os.getcwd()}. sys.path: {sys.path}. E1: {e1}. E2: {e2}")' "" | replace "# /// script" "" | replace "# dependencies = [" "" | replace '#   "click",' "" | replace '#   "faster-whisper",' "" | replace '#   "jinja2",' "" | replace '#   "tqdm",' "" | replace "# ]" "" | replace "# ///" "" | replace "import os" "" | replace "import time" "" | replace "import click" "" | replace "import hashlib" "" | replace "from datetime import datetime" "" | replace "from pathlib import Path" "" | replace "from tqdm import tqdm" "" | replace "import sys" "" }}

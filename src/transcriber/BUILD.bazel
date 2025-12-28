@@ -1,0 +1,37 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_test", "py_library")
+load("@pypi//:requirements.bzl", "requirement")
+
+py_library(
+    name = "transcriber_lib",
+    srcs = [
+        "__init__.py",
+        "main.py",
+        "schemas.py",
+        "render.py",
+    ],
+    deps = [
+        requirement("click"),
+        requirement("faster-whisper"),
+        requirement("jinja2"),
+        requirement("tqdm"),
+    ],
+    imports = ["../.."], # Allows importing as src.transcriber.main
+)
+
+py_binary(
+    name = "transcriber",
+    srcs = ["main.py"],
+    main = "main.py",
+    deps = [":transcriber_lib"],
+    visibility = ["//visibility:public"],
+)
+
+py_test(
+    name = "test_transcribe",
+    srcs = ["tests/test_transcribe.py"],
+    deps = [
+        ":transcriber_lib",
+        requirement("click"),
+        requirement("faster-whisper"),
+    ],
+)

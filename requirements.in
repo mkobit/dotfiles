@@ -21,3 +21,8 @@ jsonschema
 
 # Time
 whenever
+
+# Transcription
+faster-whisper
+jinja2
+tqdm
