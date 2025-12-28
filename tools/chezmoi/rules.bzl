@@ -95,7 +95,7 @@ def chezmoi_execute_template(name, src, out, srcs = [], data_file = None, data_d
         native.genrule(
             name = data_gen_rule_name,
             outs = [data_file_name],
-            cmd = "echo -e '" + toml_content + "' > $@",
+            cmd = "cat <<EOF > $@\n" + toml_content + "\nEOF",
         )
         data_target = ":" + data_gen_rule_name
 
