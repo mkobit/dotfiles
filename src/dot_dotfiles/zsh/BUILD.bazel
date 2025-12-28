@@ -1,35 +1,17 @@
 load("@bazel_skylib//rules:diff_test.bzl", "diff_test")
 load("//tools/chezmoi:rules.bzl", "chezmoi_execute_template")
 
-package(default_visibility = ["//visibility:public"])
+package(default_visibility = ["//visibility:private"])
 
 chezmoi_execute_template(
     name = "config_zsh",
     src = "config.zsh.tmpl",
     out = "config.zsh",
-    data_file = "test_data.toml",
-)
-
-# Create an expected output file to verify the content
-# Note: .chezmoi.targetFile is empty in execute-template mode, so dir returns "."
-genrule(
-    name = "expected_config_zsh",
-    outs = ["expected_config.zsh"],
-    cmd = """
-cat <<EOF > $@
-
-
-# (N)ullglob: Don't error if no files match
-# (n)umeric: Sort numerically to ensure deterministic sourcing
-for file in ./scripts/*.zsh*(Nn); do
-    [[ -r "\\$$file" ]] && source "\\$$file"
-done
-EOF
-""",
+    data_srcs = ["//src:chezmoi_data"],
 )
 
 diff_test(
     name = "config_zsh_test",
     file1 = ":config_zsh",
-    file2 = ":expected_config_zsh",
+    file2 = "expected_config.zsh",
 )
