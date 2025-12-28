@@ -26,6 +26,19 @@ py_binary(
     visibility = ["//visibility:public"],
 )
 
+genrule(
+    name = "transcribe_bundled",
+    srcs = [
+        "main.py",
+        "schemas.py",
+        "render.py",
+    ],
+    outs = ["transcribe.py"],
+    cmd = "$(location //tools:python_bundler) --main $(location main.py) --inline schemas:$(location schemas.py) --inline render:$(location render.py) --output $@",
+    tools = ["//tools:python_bundler"],
+    visibility = ["//visibility:public"],
+)
+
 py_test(
     name = "test_transcribe",
     srcs = ["tests/test_transcribe.py"],

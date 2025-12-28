@@ -1,0 +1,10 @@
+# chezmoi configuration file
+# See: https://www.chezmoi.io/reference/configuration-file/
+
+[git]
+    autoCommit = false
+    autoPush = false
+
+[hooks.read-source-state.pre]
+    command = "sh"
+    args = ["-c", "command -v bazel >/dev/null && bazel build //src/transcriber:transcribe_bundled || echo 'Bazel not found, skipping build'"]
