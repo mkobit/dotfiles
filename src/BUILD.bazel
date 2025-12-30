@@ -1,0 +1,10 @@
+package(default_visibility = ["//visibility:public"])
+
+filegroup(
+    name = "chezmoi_data",
+    srcs = glob([
+        ".chezmoidata/**/*.toml",
+    ]) + [
+        ".chezmoidata.toml",
+    ],
+)

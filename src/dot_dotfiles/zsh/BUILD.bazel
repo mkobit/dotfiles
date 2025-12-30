@@ -1,0 +1,17 @@
+load("@bazel_skylib//rules:diff_test.bzl", "diff_test")
+load("//tools/chezmoi:rules.bzl", "chezmoi_execute_template")
+
+package(default_visibility = ["//visibility:private"])
+
+chezmoi_execute_template(
+    name = "config_zsh",
+    src = "config.zsh.tmpl",
+    out = "config.zsh",
+    data_srcs = ["//src:chezmoi_data"],
+)
+
+diff_test(
+    name = "config_zsh_test",
+    file1 = ":config_zsh",
+    file2 = "expected_config.zsh",
+)

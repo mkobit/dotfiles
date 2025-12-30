@@ -16,7 +16,8 @@ def _chezmoi_execute_template_impl(ctx):
         ctx = ctx,  # Pass our context to the toolchain helper
         src = ctx.file.src,
         out = ctx.outputs.out,
-        data = ctx.file.data,
+        data_file = ctx.file.data_file,
+        data_srcs = depset(ctx.files.data_srcs),
         source_dir_files = depset(ctx.files.srcs),
     )
 
@@ -50,9 +51,13 @@ _chezmoi_execute_template = rule(
             mandatory = True,
             doc = "The output file to generate.",
         ),
-        "data": attr.label(
+        "data_file": attr.label(
             allow_single_file = True,
-            doc = "The data file (e.g., .chezmoidata.toml) to use for templating.",
+            doc = "A single data file (e.g., .chezmoidata.toml) to use for templating.",
+        ),
+        "data_srcs": attr.label_list(
+            allow_files = True,
+            doc = "A list of data files (e.g. .chezmoidata/**/*.toml) to use.",
         ),
         "srcs": attr.label_list(
             allow_files = True,
@@ -63,7 +68,7 @@ _chezmoi_execute_template = rule(
 )
 
 # The public-facing macro.
-def chezmoi_execute_template(name, src, out, srcs = [], data_file = None, data_dict = None, tags = [], visibility = None):
+def chezmoi_execute_template(name, src, out, srcs = [], data_file = None, data_srcs = [], data_dict = None, tags = [], visibility = None):
     """
     Executes a `chezmoi` template in a hermetic environment.
 
@@ -71,14 +76,17 @@ def chezmoi_execute_template(name, src, out, srcs = [], data_file = None, data_d
         name: The name of the rule.
         src: The source template file to execute.
         out: The output file to generate.
-        srcs: Additional source files needed by the template (e.g., for chezmoi template functions that read files).
-        data_file: An optional data file (e.g., .chezmoidata.toml) for templating.
+        srcs: Additional source files needed by the template.
+        data_file: An optional data file (e.g., .chezmoidata.toml).
+        data_srcs: An optional list of data files.
         data_dict: An optional dictionary of data to use for templating.
         tags: Standard Bazel tags.
         visibility: Standard Bazel visibility.
     """
     if data_file and data_dict:
         fail("Cannot specify both `data_file` and `data_dict`.")
+    if data_dict and data_srcs:
+        fail("Cannot specify both `data_dict` and `data_srcs` currently.")
 
     data_target = data_file
 
@@ -95,7 +103,7 @@ def chezmoi_execute_template(name, src, out, srcs = [], data_file = None, data_d
         native.genrule(
             name = data_gen_rule_name,
             outs = [data_file_name],
-            cmd = "echo -e '" + toml_content + "' > $@",
+            cmd = "cat <<EOF > $@\n" + toml_content + "\nEOF",
         )
         data_target = ":" + data_gen_rule_name
 
@@ -104,7 +112,8 @@ def chezmoi_execute_template(name, src, out, srcs = [], data_file = None, data_d
         src = src,
         out = out,
         srcs = srcs,
-        data = data_target,
+        data_file = data_target,
+        data_srcs = data_srcs,
         tags = tags,
         visibility = visibility,
     )
