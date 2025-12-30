@@ -7,4 +7,4 @@
 
 [hooks.read-source-state.pre]
     command = "sh"
-    args = ["-c", "command -v bazel >/dev/null && bazel build //src/transcriber:transcribe_bundled || echo 'Bazel not found, skipping build'"]
+    args = ["{{ .chezmoi.sourceDir }}/tools/ensure_build.sh"]

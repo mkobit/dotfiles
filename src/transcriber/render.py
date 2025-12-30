@@ -1,10 +1,11 @@
 import jinja2
 from typing import Dict, Any
+from pathlib import Path
 
-def render_template(template_path: str, data: Dict[str, Any]) -> str:
+def render_template(template_path: Path, data: Dict[str, Any]) -> str:
     """Renders a Jinja2 template with the provided data."""
     try:
-        with open(template_path, 'r') as f:
+        with template_path.open('r') as f:
             template_content = f.read()
 
         env = jinja2.Environment(

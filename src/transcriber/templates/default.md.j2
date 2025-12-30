@@ -1,21 +1,20 @@
 ---
 title: Transcription of {{ metadata.file.name }}
 date: {{ metadata.cli_args.date }}
-tags: [transcription, audio, {{ metadata.model.name }}]
+tags:
+  - transcription
+  - audio
+  - {{ metadata.model.name }}
+file:
+  path: "{{ metadata.file.path }}"
+  duration: {{ "%.2f"|format(metadata.file.duration_seconds) if metadata.file.duration_seconds else "Unknown" }}
+model:
+  name: {{ metadata.model.name }}
+  compute_type: {{ metadata.model.compute_type }}
+transcription_time: {{ "%.2f"|format(metadata.transcription_time_seconds) }}
+tool_version: {{ metadata.tool_version }}
 ---
 
 # Transcription
 
-**File:** `{{ metadata.file.path }}`
-**Duration:** {{ "%.2f"|format(metadata.file.duration_seconds) if metadata.file.duration_seconds else "Unknown" }}s
-**Model:** {{ metadata.model.name }} ({{ metadata.model.compute_type }})
-**Date:** {{ metadata.cli_args.date }}
-
-## Content
-
 {{ text }}
-
-## Metadata
-
-*   **Transcription Time:** {{ "%.2f"|format(metadata.transcription_time_seconds) }}s
-*   **Tool Version:** {{ metadata.tool_version }}

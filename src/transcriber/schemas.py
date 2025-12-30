@@ -1,5 +1,24 @@
 from dataclasses import dataclass, field
 from typing import Dict, Any, Optional
+from enum import Enum
+
+class ModelSize(str, Enum):
+    TINY = "tiny"
+    BASE = "base"
+    SMALL = "small"
+    MEDIUM = "medium"
+    LARGE_V3 = "large-v3"
+
+class Device(str, Enum):
+    AUTO = "auto"
+    CUDA = "cuda"
+    CPU = "cpu"
+
+class ComputeType(str, Enum):
+    DEFAULT = "default"
+    FLOAT16 = "float16"
+    INT8_FLOAT16 = "int8_float16"
+    INT8 = "int8"
 
 @dataclass(frozen=True)
 class ModelInfo:
@@ -18,6 +37,7 @@ class FileInfo:
 @dataclass(frozen=True)
 class TranscriptionMetadata:
     transcription_time_seconds: float
+    load_time_seconds: float
     model: ModelInfo
     file: FileInfo
     cli_args: Dict[str, Any]
@@ -27,7 +47,7 @@ class TranscriptionMetadata:
 @dataclass(frozen=True)
 class TranscriptionResult:
     text: str
-    segments: Any  # Storing raw segments if needed, though they might not be serializable directly
+    segments: Any
     metadata: TranscriptionMetadata
 
     def to_dict(self) -> Dict[str, Any]:
@@ -36,6 +56,7 @@ class TranscriptionResult:
             "text": self.text,
             "metadata": {
                 "transcription_time_seconds": self.metadata.transcription_time_seconds,
+                "load_time_seconds": self.metadata.load_time_seconds,
                 "model": {
                     "name": self.metadata.model.name,
                     "size": self.metadata.model.size,

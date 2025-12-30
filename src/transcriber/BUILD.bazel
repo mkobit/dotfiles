@@ -14,6 +14,7 @@ py_library(
         requirement("faster-whisper"),
         requirement("jinja2"),
         requirement("tqdm"),
+        requirement("whenever"),
     ],
     imports = ["../.."], # Allows importing as src.transcriber.main
 )
@@ -32,9 +33,10 @@ genrule(
         "main.py",
         "schemas.py",
         "render.py",
+        "//:requirements.in",
     ],
     outs = ["transcribe.py"],
-    cmd = "$(location //tools:python_bundler) --main $(location main.py) --inline schemas:$(location schemas.py) --inline render:$(location render.py) --output $@",
+    cmd = "$(location //tools:python_bundler) --main $(location main.py) --inline schemas:$(location schemas.py) --inline render:$(location render.py) --requirements $(location //:requirements.in) --output $@",
     tools = ["//tools:python_bundler"],
     visibility = ["//visibility:public"],
 )

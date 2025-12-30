@@ -8,6 +8,7 @@ def parse_args():
     parser.add_argument("--main", required=True, help="Main entry point script.")
     parser.add_argument("--inline", action="append", help="Module to inline in format module_name:file_path")
     parser.add_argument("--output", required=True, help="Output file path.")
+    parser.add_argument("--requirements", help="Path to requirements.in file to generate PEP 723 header.")
     return parser.parse_args()
 
 def extract_header(content):
@@ -31,13 +32,43 @@ def extract_header(content):
 
     return "\n".join(header) + "\n", "\n".join(rest)
 
+def generate_header_from_requirements(req_path):
+    """Generates PEP 723 header from requirements.in file."""
+    if not req_path:
+        return ""
+
+    path = Path(req_path)
+    if not path.exists():
+        return ""
+
+    deps = []
+    lines = path.read_text(encoding="utf-8").splitlines()
+    for line in lines:
+        line = line.strip()
+        if line and not line.startswith("#"):
+            deps.append(line)
+
+    header = ["# /// script", "# dependencies = ["]
+    for dep in deps:
+        header.append(f'#   "{dep}",')
+    header.append("# ]")
+    header.append("# ///")
+    return "\n".join(header) + "\n"
+
 def main():
     args = parse_args()
 
     main_path = Path(args.main)
     main_content = main_path.read_text(encoding="utf-8")
 
-    header, main_body = extract_header(main_content)
+    # If requirements file is provided, generate header.
+    # Otherwise check if main already has it.
+    if args.requirements:
+        header = generate_header_from_requirements(args.requirements)
+        # Strip existing header from main if any
+        _, main_body = extract_header(main_content)
+    else:
+        header, main_body = extract_header(main_content)
 
     inlined_content = []
 
@@ -48,7 +79,7 @@ def main():
             path = Path(file_path)
             content = path.read_text(encoding="utf-8")
 
-            # Simple stripping of the script header if present in libs (unlikely but safe)
+            # Simple stripping of the script header if present in libs
             _, body = extract_header(content)
 
             inlined_content.append(f"# --- Inlined {mod_name} ({file_path}) ---")
@@ -56,20 +87,11 @@ def main():
             inlined_content.append("")
 
             # Remove imports of this module from main_body
-            # Regex to match: 'from <mod_name> import ...' or 'import <mod_name>'
-            # We be conservative and only remove specific patterns we use.
-            # "from schemas import ..."
-            # "from src.transcriber.schemas import ..."
-
-            # Remove direct imports
             main_body = re.sub(f'^from {mod_name} import .*$', '', main_body, flags=re.MULTILINE)
             main_body = re.sub(f'^import {mod_name}.*$', '', main_body, flags=re.MULTILINE)
-
-            # Remove package imports (assuming src.transcriber or similar prefix)
             main_body = re.sub(f'^from .*\\.{mod_name} import .*$', '', main_body, flags=re.MULTILINE)
 
-    # Also remove the "sys.path.append" block we added for local dev/bazel compatibility
-    # Identify the block markers
+    # Remove the "sys.path.append" block and import try/except logic
     start_marker = "# --- START_IMPORTS ---"
     end_marker = "# --- END_IMPORTS ---"
 
