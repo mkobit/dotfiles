@@ -1,0 +1,29 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+load("@pypi//:requirements.bzl", "requirement")
+
+py_library(
+    name = "lib",
+    srcs = ["lib.py"],
+    deps = [
+        requirement("pydantic"),
+    ],
+)
+
+py_binary(
+    name = "hello_world",
+    srcs = ["main.py"],
+    main = "main.py",
+    deps = [
+        ":lib",
+        requirement("click"),
+    ],
+)
+
+py_test(
+    name = "lib_test",
+    srcs = ["lib_test.py"],
+    deps = [
+        ":lib",
+        requirement("pytest"),
+    ],
+)

@@ -4,3 +4,6 @@
 [git]
     autoCommit = false
     autoPush = false
+
+[hooks.read-source-state.pre]
+    command = "{{ .chezmoi.sourceDir }}/scripts/build_artifacts.sh"
