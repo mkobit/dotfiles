@@ -1,6 +1,5 @@
 #!/bin/bash
 # Shared logging utilities for chezmoi scripts
-# Usage: source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
 # Colors
 RED='\033[0;31m'
