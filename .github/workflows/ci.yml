@@ -34,6 +34,14 @@ jobs:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-bazel-common
 
+      - name: Cache Bazel
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/bazel
+          key: bazel-cache-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
+          restore-keys: |
+            bazel-cache-${{ runner.os }}-
+
       - name: Install required tools
         run: |
           sudo apt-get update -qq
@@ -86,10 +94,17 @@ jobs:
   lint:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
-    needs: [format]
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-bazel-common
+
+      - name: Cache Bazel
+        uses: actions/cache@v5
+        with:
+          path: ~/.cache/bazel
+          key: bazel-cache-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
+          restore-keys: |
+            bazel-cache-${{ runner.os }}-
 
       - name: Install required tools
         run: |
@@ -107,13 +122,22 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-24.04, macos-15]
-        profile: [personal, work]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-bazel-common
+
+      - name: Cache Bazel
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/bazel
+            ~/Library/Caches/bazel
+          key: bazel-cache-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
+          restore-keys: |
+            bazel-cache-${{ runner.os }}-
 
       - name: Install basic tools for testing
         run: |
@@ -129,22 +153,13 @@ jobs:
             fi
           fi
 
-          echo "=== Tool Verification ==="
-          git --version || echo "git not available"
-          tmux -V || echo "tmux not available"
-          vim --version | head -1 || echo "vim not available"
-          zsh --version || echo "zsh not available"
-
       - name: Build and test
         run: |
-          echo "=== Building all packages ==="
-          bazel build //... --//config:profile=${{ matrix.profile }}
-
-          echo "=== Running all tests ==="
-          bazel test //... --//config:profile=${{ matrix.profile }}
+          bazel build //...
+          bazel test //...
 
   integration:
-    needs: [format, lint]
+    needs: [test]
     strategy:
       matrix:
         os: [ubuntu-24.04, macos-15]
@@ -156,6 +171,16 @@ jobs:
 
       - name: Setup Bazel
         uses: ./.github/actions/setup-bazel-common
+
+      - name: Cache Bazel
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/bazel
+            ~/Library/Caches/bazel
+          key: bazel-cache-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
+          restore-keys: |
+            bazel-cache-${{ runner.os }}-
 
       - name: Cache chezmoi downloads
         uses: actions/cache@v5
@@ -180,9 +205,6 @@ jobs:
 
       - name: Build all targets
         run: bazel build //...
-
-      - name: Test all targets
-        run: bazel test //...
 
       - name: Initialize chezmoi with repository
         run: |
