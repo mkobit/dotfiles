@@ -1,0 +1,54 @@
+load("@pypi//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+load("//tools/python/private:zipapp.bzl", "python_zipapp")
+
+package(default_visibility = ["//visibility:private"])
+
+py_library(
+    name = "models",
+    srcs = ["models.py"],
+    deps = [
+        requirement("pydantic"),
+        requirement("whenever"),
+    ],
+)
+
+py_library(
+    name = "client",
+    srcs = ["client.py"],
+    deps = [
+        ":models",
+        requirement("aiohttp"),
+        requirement("pydantic"),
+    ],
+)
+
+py_binary(
+    name = "jules_cli",
+    srcs = ["main.py"],
+    main = "main.py",
+    deps = [
+        ":client",
+        ":models",
+        requirement("click"),
+    ],
+)
+
+python_zipapp(
+    name = "jules_cli_exe",
+    binary = ":jules_cli",
+    visibility = ["//visibility:public"],
+)
+
+py_test(
+    name = "test_jules",
+    srcs = ["test_jules.py"],
+    deps = [
+        ":client",
+        ":models",
+        requirement("pytest"),
+        requirement("pytest-asyncio"),
+        requirement("aiohttp"),
+        requirement("whenever"),
+    ],
+)
