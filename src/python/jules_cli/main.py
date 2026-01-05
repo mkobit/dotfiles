@@ -4,6 +4,7 @@ import shutil
 import subprocess
 import os
 import sys
+from pathlib import Path
 from src.python.jules_cli.client import JulesClient
 from src.python.jules_cli.models import Session, Activity
 
@@ -13,10 +14,21 @@ def cli():
     pass
 
 def get_api_key() -> str:
-    """Retrieves the Jules API key from the environment."""
+    """
+    Retrieves the Jules API key.
+    Checks XDG config location (~/.config/jules/api_key) first, then environment variable.
+    """
+    # Check XDG config
+    xdg_config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+    config_file = Path(xdg_config_home) / "jules" / "api_key"
+
+    if config_file.exists():
+        return config_file.read_text().strip()
+
+    # Fallback to environment variable
     api_key = os.environ.get("JULES_API_KEY")
     if not api_key:
-        click.echo("Error: JULES_API_KEY environment variable is not set.", err=True)
+        click.echo("Error: JULES_API_KEY not found in environment or config.", err=True)
         sys.exit(1)
     return api_key
 
@@ -44,9 +56,7 @@ async def interactive_session_loop(client: JulesClient, session_id: str):
     while True:
         click.clear()
         try:
-            activities = []
-            async for activity in client.list_activities(session_id):
-                activities.append(activity)
+            activities = [activity async for activity in client.list_activities(session_id)]
         except Exception as e:
             click.echo(f"Error fetching activities: {e}")
             click.pause()
@@ -99,10 +109,9 @@ async def main_menu():
             while True:
                 click.clear()
                 click.echo("Fetching sessions...")
-                sessions = []
+
                 try:
-                    async for session in client.list_sessions():
-                        sessions.append(session)
+                    sessions = [session async for session in client.list_sessions()]
                 except Exception as e:
                     click.echo(f"Error fetching sessions: {e}")
                     sys.exit(1)
@@ -120,8 +129,12 @@ async def main_menu():
                 if not selected:
                     break
 
-                session_id = selected.split(" | ")[0]
-                await interactive_session_loop(client, session_id)
+                # Safer splitting using next/default
+                parts = selected.split(" | ")
+                session_id = next(iter(parts), None)
+
+                if session_id:
+                     await interactive_session_loop(client, session_id)
 
     except ValueError as e:
         click.echo(str(e), err=True)
