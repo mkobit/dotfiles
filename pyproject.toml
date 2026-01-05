@@ -1,0 +1,47 @@
+[tool.ruff]
+line-length = 88
+target-version = "py313"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+    "N",  # pep8-naming
+    "C90", # mccabe
+]
+ignore = [
+    "UP043", # Unnecessary default type arguments (Conflics with Mypy strict mode for AsyncGenerator)
+]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "tools"]
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+ignore_missing_imports = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+warn_return_any = true
+warn_unused_ignores = true
+# Enable namespace packages support for Bazel imports
+namespace_packages = true
+explicit_package_bases = true
+# Temporarily disable subclassing Any check due to Pydantic/Bazel integration issues
+disallow_subclassing_any = false
+# Relax decorator checks for untyped libraries (Click, Pytest)
+disallow_untyped_decorators = false
+
+[[tool.mypy.overrides]]
+module = "src.python.jules_cli.test_jules"
+disallow_untyped_defs = false
+check_untyped_defs = false
+allow_any_generics = true
+warn_unused_ignores = false

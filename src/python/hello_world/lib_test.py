@@ -1,6 +1,7 @@
 """Tests for hello_world library functions."""
 
 import io
+from pathlib import Path
 
 import pytest
 
@@ -101,9 +102,9 @@ class TestWriteOutput:
         captured = capsys.readouterr()
         assert "Hello, World!" in captured.out
 
-    def test_write_to_file(self, tmp_path: pytest.TempdirFactory) -> None:
+    def test_write_to_file(self, tmp_path: Path) -> None:
         """Test writing to file."""
-        output_file = tmp_path / "test_output.txt"  # type: ignore[operator]
+        output_file = tmp_path / "test_output.txt"
         output = io.StringIO()
         config = AppConfig(log_level=LogLevel.ERROR, output_file=str(output_file))
         logger = Logger(config, output)

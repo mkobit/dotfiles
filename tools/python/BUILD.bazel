@@ -1,3 +1,21 @@
 # Python tooling rules for building and deploying CLI tools
 
+load("@rules_python//python:defs.bzl", "py_binary")
+
 package(default_visibility = ["//visibility:public"])
+
+exports_files(["lint.bzl"])
+
+py_binary(
+    name = "ruff",
+    srcs = ["ruff_wrapper.py"],
+    main = "ruff_wrapper.py",
+    deps = ["@pypi//ruff:pkg"],
+)
+
+py_binary(
+    name = "mypy",
+    srcs = ["mypy_wrapper.py"],
+    main = "mypy_wrapper.py",
+    deps = ["@pypi//mypy:pkg"],
+)
