@@ -178,6 +178,12 @@ jobs:
           which chezmoi
           chezmoi --version
 
+      - name: Build all targets
+        run: bazel build //...
+
+      - name: Test all targets
+        run: bazel test //...
+
       - name: Initialize chezmoi with repository
         run: |
           mkdir -p /tmp/chezmoi-test
