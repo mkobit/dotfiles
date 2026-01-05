@@ -6,40 +6,57 @@ from src.python.jules_cli.models import (
 )
 
 class JulesClient:
+    """
+    Client for interacting with the Jules API.
+    See: https://developers.google.com/jules/api
+    """
     def __init__(self, api_key: str):
-        self.api_key = api_key
-        if not self.api_key:
+        self._api_key = api_key
+        if not self._api_key:
             raise ValueError("API key must be provided")
-        self.base_url = "https://jules.googleapis.com/v1alpha"
-        self.headers = {
-            "X-Goog-Api-Key": self.api_key,
+        self._base_url = "https://jules.googleapis.com/v1alpha"
+        self._headers = {
+            "X-Goog-Api-Key": self._api_key,
             "Content-Type": "application/json"
         }
-        self.session = None
+        self._session = None
 
     async def __aenter__(self):
-        self.session = aiohttp.ClientSession(headers=self.headers)
+        self._session = aiohttp.ClientSession(headers=self._headers)
         return self
 
     async def __aexit__(self, exc_type, exc_val, exc_tb):
-        if self.session:
-            await self.session.close()
+        if self._session:
+            await self._session.close()
 
     async def _get(self, endpoint: str, params: dict | None = None) -> Any:
-        url = f"{self.base_url}{endpoint}"
-        async with self.session.get(url, params=params) as response:
+        url = f"{self._base_url}{endpoint}"
+        async with self._session.get(url, params=params) as response:
             response.raise_for_status()
             return await response.json()
 
     async def _post(self, endpoint: str, data: dict | None = None) -> Any:
-        url = f"{self.base_url}{endpoint}"
-        async with self.session.post(url, json=data) as response:
+        url = f"{self._base_url}{endpoint}"
+        async with self._session.post(url, json=data) as response:
             response.raise_for_status()
             return await response.json()
 
-    async def list_sources(self) -> list[Source]:
-        data = await self._get("/sources")
-        return ListSourcesResponse(**data).sources
+    async def list_sources(self) -> AsyncGenerator[Source, None]:
+        next_page_token = None
+        while True:
+            params = {}
+            if next_page_token:
+                params["pageToken"] = next_page_token
+
+            data = await self._get("/sources", params=params)
+            response = ListSourcesResponse(**data)
+
+            for source in response.sources:
+                yield source
+
+            next_page_token = response.next_page_token
+            if not next_page_token:
+                break
 
     async def list_sessions(self, page_size: int = 10) -> AsyncGenerator[Session, None]:
         next_page_token = None
@@ -54,7 +71,7 @@ class JulesClient:
             for session in response.sessions:
                 yield session
 
-            next_page_token = response.nextPageToken
+            next_page_token = response.next_page_token
             if not next_page_token:
                 break
 
@@ -76,7 +93,7 @@ class JulesClient:
             for activity in response.activities:
                 yield activity
 
-            next_page_token = response.nextPageToken
+            next_page_token = response.next_page_token
             if not next_page_token:
                 break
 

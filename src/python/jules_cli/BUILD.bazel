@@ -2,11 +2,14 @@ load("@pypi//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
 load("//tools/python/private:zipapp.bzl", "python_zipapp")
 
+package(default_visibility = ["//visibility:private"])
+
 py_library(
     name = "models",
     srcs = ["models.py"],
     deps = [
         requirement("pydantic"),
+        requirement("whenever"),
     ],
 )
 
@@ -46,5 +49,6 @@ py_test(
         requirement("pytest"),
         requirement("pytest-asyncio"),
         requirement("aiohttp"),
+        requirement("whenever"),
     ],
 )

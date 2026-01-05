@@ -3,7 +3,7 @@ import pytest_asyncio
 from src.python.jules_cli.models import Session, SourceContext
 from src.python.jules_cli.client import JulesClient
 
-# Mock data
+# Mock data matches Pydantic camelCase conversion
 MOCK_SESSION_DATA = {
     "name": "sessions/123",
     "id": "123",
@@ -23,7 +23,7 @@ def test_session_model():
     session = Session(**MOCK_SESSION_DATA)
     assert session.id == "123"
     assert session.title == "Test Session"
-    assert session.sourceContext.source == "sources/github/test/repo"
+    assert session.source_context.source == "sources/github/test/repo"
 
 @pytest.mark.asyncio
 async def test_client_init_error():
@@ -62,7 +62,7 @@ async def test_client_get_session():
             pass
 
     client = JulesClient(api_key="test_key")
-    client.session = MockSession()
+    client._session = MockSession()
 
     session = await client.get_session("sessions/123")
     assert session.id == "123"
@@ -83,7 +83,7 @@ async def test_client_list_sessions():
         async def close(self): pass
 
     client = JulesClient(api_key="test_key")
-    client.session = MockSession()
+    client._session = MockSession()
 
     sessions = []
     async for s in client.list_sessions():

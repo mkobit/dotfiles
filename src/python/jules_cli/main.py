@@ -54,13 +54,13 @@ async def interactive_session_loop(client: JulesClient, session_id: str):
                 click.echo(f"(Action: {activity.name})") # Placeholder
             else:
                 click.secho(f"Agent: ", fg="blue", bold=True, nl=False)
-                if activity.progressUpdated:
-                    click.echo(f"{activity.progressUpdated.title}")
-                    if activity.progressUpdated.description:
-                         click.echo(f"  {activity.progressUpdated.description}")
-                elif activity.planGenerated:
+                if activity.progress_updated:
+                    click.echo(f"{activity.progress_updated.title}")
+                    if activity.progress_updated.description:
+                         click.echo(f"  {activity.progress_updated.description}")
+                elif activity.plan_generated:
                     click.echo("Generated Plan:")
-                    for step in activity.planGenerated.plan.steps:
+                    for step in activity.plan_generated.plan.steps:
                         click.echo(f"  {step.index}. {step.title}")
                 else:
                     click.echo("(Other activity)")
@@ -127,6 +127,52 @@ async def main_menu():
 def interact():
     """Interactive mode to view and manage sessions."""
     asyncio.run(main_menu())
+
+@cli.command()
+def list():
+    """List recent sessions."""
+    async def _list():
+        api_key = os.environ.get("JULES_API_KEY")
+        if not api_key:
+             click.echo("JULES_API_KEY not set", err=True)
+             sys.exit(1)
+        async with JulesClient(api_key) as client:
+            async for s in client.list_sessions():
+                click.echo(f"{s.id}: {s.title}")
+    asyncio.run(_list())
+
+@cli.command()
+@click.argument("session_id")
+def show(session_id):
+    """Show details for a session."""
+    async def _show():
+        api_key = os.environ.get("JULES_API_KEY")
+        if not api_key:
+             click.echo("JULES_API_KEY not set", err=True)
+             sys.exit(1)
+        async with JulesClient(api_key) as client:
+            try:
+                # We need to construct the full name if user passes partial ID?
+                # The previous code handled this by prepending sessions/
+                # But we removed that logic.
+                # Let's assume user passes full ID or we try both?
+                # For now, just pass what we get.
+                if not session_id.startswith("sessions/"):
+                    sid = f"sessions/{session_id}"
+                else:
+                    sid = session_id
+
+                # Fetch session info
+                session = await client.get_session(sid)
+                click.echo(f"Title: {session.title}")
+                click.echo(f"Prompt: {session.prompt}")
+                click.echo(f"Source: {session.source_context.source}")
+                click.echo("-" * 20)
+                async for act in client.list_activities(sid):
+                    click.echo(f"{act.originator}: {act.name}")
+            except Exception as e:
+                click.echo(f"Error: {e}", err=True)
+    asyncio.run(_show())
 
 if __name__ == "__main__":
     cli()
