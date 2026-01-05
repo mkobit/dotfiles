@@ -31,6 +31,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-bazel-with-cache
 
       - name: Install required tools
@@ -97,6 +98,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-bazel-with-cache
 
       - name: Install basic tools for testing
@@ -126,6 +128,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
+      - uses: actions/checkout@v6
       - uses: ./.github/actions/setup-bazel-with-cache
 
       - name: Cache chezmoi downloads

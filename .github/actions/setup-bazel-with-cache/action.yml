@@ -1,12 +1,9 @@
 name: Setup Bazel with cache
-description: Checks out repository, sets up Bazel, and configures disk cache
+description: Sets up Bazel and configures disk cache
 
 runs:
   using: composite
   steps:
-    - name: Check out repository
-      uses: actions/checkout@v6
-
     - name: Setup Bazel
       uses: ./.github/actions/setup-bazel-common
 
