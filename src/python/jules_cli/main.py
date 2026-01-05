@@ -12,6 +12,14 @@ def cli():
     """Jules CLI tool for interacting with the Jules API."""
     pass
 
+def get_api_key() -> str:
+    """Retrieves the Jules API key from the environment."""
+    api_key = os.environ.get("JULES_API_KEY")
+    if not api_key:
+        click.echo("Error: JULES_API_KEY environment variable is not set.", err=True)
+        sys.exit(1)
+    return api_key
+
 def run_fzf(items: list[str]) -> str | None:
     """Runs fzf with the given items and returns the selected item."""
     if not shutil.which("fzf"):
@@ -85,11 +93,7 @@ async def interactive_session_loop(client: JulesClient, session_id: str):
                 await client.approve_plan(session_id)
 
 async def main_menu():
-    api_key = os.environ.get("JULES_API_KEY")
-    if not api_key:
-        click.echo("JULES_API_KEY environment variable is not set.", err=True)
-        sys.exit(1)
-
+    api_key = get_api_key()
     try:
         async with JulesClient(api_key=api_key) as client:
             while True:
@@ -132,10 +136,7 @@ def interact():
 def list():
     """List recent sessions."""
     async def _list():
-        api_key = os.environ.get("JULES_API_KEY")
-        if not api_key:
-             click.echo("JULES_API_KEY not set", err=True)
-             sys.exit(1)
+        api_key = get_api_key()
         async with JulesClient(api_key) as client:
             async for s in client.list_sessions():
                 click.echo(f"{s.id}: {s.title}")
@@ -146,29 +147,16 @@ def list():
 def show(session_id):
     """Show details for a session."""
     async def _show():
-        api_key = os.environ.get("JULES_API_KEY")
-        if not api_key:
-             click.echo("JULES_API_KEY not set", err=True)
-             sys.exit(1)
+        api_key = get_api_key()
         async with JulesClient(api_key) as client:
             try:
-                # We need to construct the full name if user passes partial ID?
-                # The previous code handled this by prepending sessions/
-                # But we removed that logic.
-                # Let's assume user passes full ID or we try both?
-                # For now, just pass what we get.
-                if not session_id.startswith("sessions/"):
-                    sid = f"sessions/{session_id}"
-                else:
-                    sid = session_id
-
                 # Fetch session info
-                session = await client.get_session(sid)
+                session = await client.get_session(session_id)
                 click.echo(f"Title: {session.title}")
                 click.echo(f"Prompt: {session.prompt}")
                 click.echo(f"Source: {session.source_context.source}")
                 click.echo("-" * 20)
-                async for act in client.list_activities(sid):
+                async for act in client.list_activities(session_id):
                     click.echo(f"{act.originator}: {act.name}")
             except Exception as e:
                 click.echo(f"Error: {e}", err=True)
