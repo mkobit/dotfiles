@@ -28,7 +28,6 @@ def python_cli_tool(
         data = [],
         test_srcs = [],
         test_deps = [],
-        install_name = None,
         visibility = None,
         tags = []):
     """Creates a Python CLI tool with binary, test, and zipapp targets.
@@ -46,7 +45,6 @@ def python_cli_tool(
         data: Data files
         test_srcs: Test source files
         test_deps: Additional test dependencies
-        install_name: Name for installed binary (defaults to name)
         visibility: Visibility specification
         tags: Tags for all targets
     """
