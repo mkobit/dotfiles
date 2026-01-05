@@ -1,0 +1,3 @@
+# Python tools package - contains CLI tools built with Bazel and deployed via chezmoi
+
+package(default_visibility = ["//visibility:public"])

@@ -1,0 +1,3 @@
+# Python tooling rules for building and deploying CLI tools
+
+package(default_visibility = ["//visibility:public"])

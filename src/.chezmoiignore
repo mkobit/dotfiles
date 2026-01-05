@@ -24,3 +24,6 @@
 **/test_data.toml
 
 scripts/
+
+# Python tools source (built and deployed via Bazel hook, not chezmoi)
+python_tools/

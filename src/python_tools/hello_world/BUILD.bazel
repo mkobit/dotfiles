@@ -1,0 +1,81 @@
+# hello_world - Example Python CLI tool demonstrating build/deploy workflow
+#
+# This tool demonstrates:
+# - Multi-file Python application structure
+# - Click CLI framework for command-line interface
+# - Pydantic models for data validation
+# - Bazel-based build and testing
+# - Deployment via chezmoi hooks
+#
+# Usage:
+#   bazel run //src/python_tools/hello_world -- World
+#   bazel test //src/python_tools/hello_world:all
+#   bazel build //src/python_tools/hello_world:hello_world_exe
+
+load("@pypi//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+load("//tools/python/private:zipapp.bzl", "python_zipapp")
+
+py_library(
+    name = "models",
+    srcs = ["models.py"],
+    deps = [
+        requirement("pydantic"),
+    ],
+)
+
+py_library(
+    name = "lib",
+    srcs = ["lib.py"],
+    deps = [
+        ":models",
+    ],
+)
+
+py_binary(
+    name = "hello_world",
+    srcs = ["main.py"],
+    main = "main.py",
+    deps = [
+        ":lib",
+        ":models",
+        requirement("click"),
+    ],
+)
+
+# Standalone zipapp executable with shebang
+# This can be copied directly to ~/.local/bin/
+python_zipapp(
+    name = "hello_world_exe",
+    binary = ":hello_world",
+    visibility = ["//visibility:public"],
+)
+
+py_test(
+    name = "models_test",
+    srcs = ["models_test.py"],
+    deps = [
+        ":models",
+        requirement("pydantic"),
+        requirement("pytest"),
+    ],
+)
+
+py_test(
+    name = "lib_test",
+    srcs = ["lib_test.py"],
+    deps = [
+        ":lib",
+        ":models",
+        requirement("pytest"),
+    ],
+)
+
+# Test suite for all hello_world tests
+test_suite(
+    name = "tests",
+    tests = [
+        ":lib_test",
+        ":models_test",
+    ],
+)

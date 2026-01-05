@@ -4,3 +4,10 @@
 [git]
     autoCommit = false
     autoPush = false
+
+# Build all targets before reading source state
+# This ensures all artifacts exist before .chezmoiexternals tries to reference them
+# Chezmoi will then copy the built artifacts to their destinations
+[hooks.read-source-state.pre]
+    command = "bazel"
+    args = ["build", "//..."]
