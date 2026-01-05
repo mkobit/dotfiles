@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# logging.sh hash: {{ includeTemplate "shell/logging.sh" | sha256sum }}
+
+source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+
+# Check if zsh is already installed
+if check_command zsh; then 
+    log_success "zsh already installed at $(command -v zsh)"
+    exit 0
+fi
+
+log_info "Installing zsh..."
+
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS - use Homebrew
+if ! check_command brew; then
+    log_error "Homebrew not found. Please install Homebrew first."
+    exit 1
+fi
+
+if brew install zsh; then
+    log_success "zsh installed successfully"
+else
+    log_error "Failed to install zsh"
+    exit 1
+fi
+{{ else if eq .chezmoi.os "linux" -}}
+# Linux - use apt (Ubuntu/Debian)
+if sudo apt-get update && sudo apt-get install -y zsh; then
+    log_success "zsh installed successfully"
+else
+    log_error "Failed to install zsh"
+    exit 1
+fi
+{{ else -}}
+log_error "Unsupported OS: {{ .chezmoi.os }}"
+exit 1
+{{ end -}}
