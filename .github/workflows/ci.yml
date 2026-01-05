@@ -32,7 +32,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-bazel-with-cache
+      - uses: ./.github/actions/setup-bazel-common
 
       - name: Install required tools
         run: |
@@ -99,7 +99,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-bazel-with-cache
+      - uses: ./.github/actions/setup-bazel-common
 
       - name: Install basic tools for testing
         run: |
@@ -129,7 +129,7 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-bazel-with-cache
+      - uses: ./.github/actions/setup-bazel-common
 
       - name: Cache chezmoi downloads
         uses: actions/cache@v5

@@ -8,7 +8,7 @@ runs:
       with:
         # Avoid downloading Bazel every time
         bazelisk-cache: true
-        # Store build cache per workflow
-        disk-cache: ${{ github.workflow }}
+        # Store build cache (shared across workflows)
+        disk-cache: true
         # Share repository cache between workflows
         repository-cache: true
