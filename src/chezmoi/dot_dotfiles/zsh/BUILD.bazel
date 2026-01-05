@@ -7,7 +7,7 @@ chezmoi_execute_template(
     name = "config_zsh",
     src = "config.zsh.tmpl",
     out = "config.zsh",
-    data_srcs = ["//src:chezmoi_data"],
+    data_srcs = ["//src/chezmoi:chezmoi_data"],
 )
 
 diff_test(
