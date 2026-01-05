@@ -21,3 +21,7 @@ set mouse=a
 set laststatus=2
 " Use dark background colors
 set background=dark
+" Disable bells and visual bells
+set noerrorbells
+set novisualbell
+set t_vb=

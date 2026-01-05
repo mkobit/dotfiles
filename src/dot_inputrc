@@ -1,0 +1,2 @@
+# Disable bells in all readline applications (bash, python, etc.)
+set bell-style none
