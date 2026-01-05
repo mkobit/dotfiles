@@ -1,11 +1,1 @@
-{{- /* Query Bazel for artifact path using target label */ -}}
-{{- $target := "//src/python/hello_world:hello_world_exe" -}}
-{{- $relPath := output "sh" "-c" (printf "bazel cquery --output=files '%s' 2>&1 | grep '^bazel-out'" $target) | trim -}}
-{{- $workspaceRoot := output "bazel" "info" "workspace" | trim -}}
-{{- $artifactPath := printf "%s/%s" $workspaceRoot $relPath -}}
-
-["hello_world"]
-type = "file"
-url = {{ printf "file://%s" $artifactPath | quote }}
-executable = true
-refreshPeriod = "0"
+{{- includeTemplate "dotfiles_bazel_python_tool.toml" (dict "target" "//src/python/hello_world:hello_world_exe" "name" "hello_world") -}}
