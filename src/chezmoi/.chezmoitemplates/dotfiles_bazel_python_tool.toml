@@ -9,7 +9,7 @@
      */ -}}
 {{- $target := .target -}}
 {{- $name := .name -}}
-{{- $relPath := output "sh" "-c" (printf "bazel cquery --output=files '%s' 2>&1 | grep '^bazel-out'" $target) | trim -}}
+{{- $relPath := output "bazel" "cquery" "--output=files" $target | trim -}}
 {{- $workspaceRoot := output "bazel" "info" "workspace" | trim -}}
 {{- $artifactPath := printf "%s/%s" $workspaceRoot $relPath -}}
 
