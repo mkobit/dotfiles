@@ -16,7 +16,7 @@ def cli():
 def get_api_key() -> str:
     """
     Retrieves the Jules API key.
-    Checks XDG config location (~/.config/jules/api_key) first, then environment variable.
+    Checks XDG config location (~/.config/jules/api_key) only.
     """
     # Check XDG config
     xdg_config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
@@ -25,12 +25,8 @@ def get_api_key() -> str:
     if config_file.exists():
         return config_file.read_text().strip()
 
-    # Fallback to environment variable
-    api_key = os.environ.get("JULES_API_KEY")
-    if not api_key:
-        click.echo("Error: JULES_API_KEY not found in environment or config.", err=True)
-        sys.exit(1)
-    return api_key
+    click.echo(f"Error: JULES_API_KEY not found in {config_file}.", err=True)
+    sys.exit(1)
 
 def run_fzf(items: list[str]) -> str | None:
     """Runs fzf with the given items and returns the selected item."""
