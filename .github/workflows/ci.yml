@@ -27,20 +27,11 @@ defaults:
     shell: bash
 
 jobs:
-  format:
+  check:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-bazel-common
-
-      - name: Cache Bazel
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/bazel
-          key: bazel-cache-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
-          restore-keys: |
-            bazel-cache-${{ runner.os }}-
+      - uses: ./.github/actions/setup-bazel-with-cache
 
       - name: Install required tools
         run: |
@@ -91,26 +82,6 @@ jobs:
 
           echo "✅ All Bazel files are properly formatted"
 
-  lint:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-bazel-common
-
-      - name: Cache Bazel
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/bazel
-          key: bazel-cache-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
-          restore-keys: |
-            bazel-cache-${{ runner.os }}-
-
-      - name: Install required tools
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -qq -y git tmux vim-nox zsh
-
       - name: Generate LSP config
         run: |
           echo "🔧 Generating LSP configuration..."
@@ -118,7 +89,7 @@ jobs:
           echo "✅ Generated settings.json and compile_commands.json"
 
   test:
-    needs: [format, lint]
+    needs: [check]
     strategy:
       matrix:
         os: [ubuntu-24.04, macos-15]
@@ -126,18 +97,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v6
-      - uses: ./.github/actions/setup-bazel-common
-
-      - name: Cache Bazel
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/bazel
-            ~/Library/Caches/bazel
-          key: bazel-cache-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
-          restore-keys: |
-            bazel-cache-${{ runner.os }}-
+      - uses: ./.github/actions/setup-bazel-with-cache
 
       - name: Install basic tools for testing
         run: |
@@ -166,21 +126,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - name: Check out repository
-        uses: actions/checkout@v6
-
-      - name: Setup Bazel
-        uses: ./.github/actions/setup-bazel-common
-
-      - name: Cache Bazel
-        uses: actions/cache@v5
-        with:
-          path: |
-            ~/.cache/bazel
-            ~/Library/Caches/bazel
-          key: bazel-cache-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
-          restore-keys: |
-            bazel-cache-${{ runner.os }}-
+      - uses: ./.github/actions/setup-bazel-with-cache
 
       - name: Cache chezmoi downloads
         uses: actions/cache@v5
@@ -221,19 +167,18 @@ jobs:
 
   summary:
     if: always()
-    needs: [format, lint, test, integration]
+    needs: [check, test, integration]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Report results
         run: |
           echo "=== CI Summary ==="
-          echo "Format: ${{ needs.format.result }}"
-          echo "Lint: ${{ needs.lint.result }}"
+          echo "Check: ${{ needs.check.result }}"
           echo "Test: ${{ needs.test.result }}"
           echo "Integration: ${{ needs.integration.result }}"
 
-          if [[ "${{ needs.format.result }}" == "failure" || "${{ needs.lint.result }}" == "failure" || "${{ needs.test.result }}" == "failure" || "${{ needs.integration.result }}" == "failure" ]]; then
+          if [[ "${{ needs.check.result }}" == "failure" || "${{ needs.test.result }}" == "failure" || "${{ needs.integration.result }}" == "failure" ]]; then
             echo "❌ Critical jobs failed"
             exit 1
           else
