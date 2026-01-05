@@ -1,0 +1,71 @@
+{{ if eq .asdf.installation "external-sources" }}#!/bin/bash
+# vim: set ft=sh syntax=sh
+{{- /* Calculate hash from sorted JSON of plugins array for change detection */ -}}
+{{- $pluginsJson := .asdf.plugins | sortAlpha | toJson -}}
+{{- $pluginsHash := $pluginsJson | sha256sum }}
+# data.asdf.plugins hash: {{ $pluginsHash }}
+#
+# Configures asdf plugins. Script re-runs when plugin array changes.
+#
+# Script logic:
+# 1. Verify asdf binary is available.
+# 2. Sync plugins: install missing, remove unlisted.
+#
+# Note: This script does NOT install tool versions. Tool versions should be
+# managed per-project using .tool-versions files in project directories.
+#
+# References:
+# - https://asdf-vm.com/guide/getting-started.html
+
+set -euo pipefail
+
+# logging.sh hash: {{ includeTemplate "shell/logging.sh" | sha256sum }}
+source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+
+# Ensure destination .local/bin is in PATH
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+
+# --- Verify asdf is accessible ---
+if ! command -v asdf >/dev/null 2>&1; then
+  log_error "asdf binary not found in PATH"
+  exit 1
+fi
+
+log_info "asdf version: $(asdf version)"
+
+# Define desired plugins from chezmoi data
+declare -a DESIRED_PLUGINS=(
+{{- range .asdf.plugins }}
+  "{{ .name }}"
+{{- end }}
+)
+
+# --- Remove Unlisted Plugins ---
+log_info "Checking for plugins to remove..."
+while IFS= read -r installed_plugin; do
+  found=false
+  for desired_plugin in "${DESIRED_PLUGINS[@]}"; do
+    if [[ "$installed_plugin" == "$desired_plugin" ]]; then
+      found=true
+      break
+    fi
+  done
+  if [[ "$found" == false ]]; then
+    log_warn "Removing unlisted plugin: $installed_plugin"
+    asdf plugin remove "$installed_plugin"
+  fi
+done < <(asdf plugin list 2>/dev/null || true)
+
+# --- Install Missing Plugins ---
+log_info "Checking for plugins to install..."
+{{- range .asdf.plugins }}
+if ! asdf plugin list | grep -qF "{{ .name }}"; then
+  log_info "Installing asdf plugin: {{ .name }}"
+  asdf plugin add {{ .name }}
+  log_success "Installed plugin: {{ .name }}"
+fi
+{{- end }}
+
+log_success "asdf plugin management complete"
+
+{{- end }}

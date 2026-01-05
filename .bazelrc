@@ -3,6 +3,9 @@ common --enable_bzlmod
 startup --host_jvm_args="-Dfile.encoding=UTF-8"
 build --javacopt="-encoding UTF-8"
 
+# Python zipapp support - produces .zip files for py_binary targets
+build --build_python_zip
+
 # Enable buildifier and linting tools (temporarily disabled)
 # build --aspects=@aspect_rules_lint//lint:defs.bzl%lint_aspect
 # build --output_groups=+rules_lint_report

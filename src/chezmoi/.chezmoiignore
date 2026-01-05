@@ -1,0 +1,24 @@
+# chezmoi ignore file - specifies files/patterns to ignore during apply
+# See: https://www.chezmoi.io/reference/special-files/chezmoiignore/
+
+.editorconfig
+
+# Ignore agent-related markdown files
+**/AGENTS.md
+**/CLAUDE.md
+**/RULE.md
+**/*.mdc
+
+# Bazel build files
+**/*.bzl
+**/*.bazel
+**/BUILD
+**/BUILD.bazel
+
+# Git files
+**/.gitignore
+**/.gitkeep
+
+# Test artifacts
+**/expected_*
+**/test_data.toml

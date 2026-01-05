@@ -1,0 +1,18 @@
+name: Setup Bazel with cache
+description: Sets up Bazel and configures disk cache
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Bazel
+      uses: ./.github/actions/setup-bazel-common
+
+    - name: Cache Bazel
+      uses: actions/cache@v5
+      with:
+        path: |
+          ~/.cache/bazel
+          ~/Library/Caches/bazel
+        key: bazel-cache-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
+        restore-keys: |
+          bazel-cache-${{ runner.os }}-

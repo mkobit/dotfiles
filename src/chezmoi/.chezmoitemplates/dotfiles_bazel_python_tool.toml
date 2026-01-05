@@ -1,0 +1,20 @@
+{{- /* Reusable template for Bazel-built Python tool externals
+     *
+     * Usage in .chezmoiexternals/*.toml.tmpl:
+     *   {{- includeTemplate "dotfiles_bazel_python_tool.toml" (dict "target" "//src/python/my_tool:my_tool_exe" "name" "my_tool") -}}
+     *
+     * Parameters:
+     *   - target: Bazel target label (e.g., "//src/python/hello_world:hello_world_exe")
+     *   - name: Install name (e.g., "hello_world")
+     */ -}}
+{{- $target := .target -}}
+{{- $name := .name -}}
+{{- $relPath := output "sh" "-c" (printf "bazel cquery --output=files '%s' 2>&1 | grep '^bazel-out'" $target) | trim -}}
+{{- $workspaceRoot := output "bazel" "info" "workspace" | trim -}}
+{{- $artifactPath := printf "%s/%s" $workspaceRoot $relPath -}}
+
+["{{ $name }}"]
+type = "file"
+url = {{ printf "file://%s" $artifactPath | quote }}
+executable = true
+refreshPeriod = "0"

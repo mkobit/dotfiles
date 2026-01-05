@@ -1,0 +1,189 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  actions: read
+  checks: write
+  pull-requests: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  cancel-in-progress: true
+
+env:
+  DEBIAN_FRONTEND: noninteractive
+  APT_LISTCHANGES_FRONTEND: none
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-bazel-with-cache
+
+      - name: Install required tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -qq -y git tmux vim-nox zsh
+
+      - name: Check Bazel file formatting
+        run: |
+          echo "🔍 Checking if Bazel files are properly formatted..."
+
+          if ! bazel test //:format_test --test_output=errors; then
+            echo ""
+            echo "❌ FORMATTING ISSUES DETECTED!"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "📋 DETAILED FORMATTING ERRORS:"
+            echo ""
+
+            LOG_PATH=$(bazel info bazel-testlogs 2>/dev/null)/format_test/test.log
+            if [[ -f "$LOG_PATH" ]]; then
+              echo "Files with formatting issues:"
+              echo ""
+              cat "$LOG_PATH" | sed '/^exec /d' | sed '/^Executing tests/d' | sed '/^-\+$/d'
+            else
+              echo "⚠️  Could not find detailed test log at: $LOG_PATH"
+              echo "Run locally for full details: bazel test //:format_test"
+            fi
+
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🛠️  TO FIX THESE ISSUES:"
+            echo ""
+            echo "   1. Run the auto-formatter locally:"
+            echo "      bazel run //:format"
+            echo ""
+            echo "   2. Review what was changed:"
+            echo "      git diff"
+            echo ""
+            echo "   3. Commit the formatted files:"
+            echo "      git add -A && git commit -m 'Fix Bazel file formatting'"
+            echo ""
+            echo "   4. Push your changes:"
+            echo "      git push"
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            exit 1
+          fi
+
+          echo "✅ All Bazel files are properly formatted"
+
+      - name: Generate LSP config
+        run: |
+          echo "🔧 Generating LSP configuration..."
+          bazel build //:lsp_setup_vscode_settings //:lsp_setup_compile_commands
+          echo "✅ Generated settings.json and compile_commands.json"
+
+  test:
+    needs: [check]
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+      fail-fast: false
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-bazel-with-cache
+
+      - name: Install basic tools for testing
+        run: |
+          if [[ "${{ matrix.os }}" == "ubuntu-24.04" ]]; then
+            sudo apt-get update -qq
+            sudo apt-get install -qq -y git tmux vim-nox zsh
+          elif [[ "${{ matrix.os }}" == "macos-15" ]]; then
+            if ! command -v tmux >/dev/null 2>&1; then
+              brew install tmux
+            fi
+            if ! command -v vim >/dev/null 2>&1; then
+              brew install vim
+            fi
+          fi
+
+      - name: Build and test
+        run: |
+          bazel build //...
+          bazel test //...
+
+  integration:
+    needs: [test]
+    strategy:
+      matrix:
+        os: [ubuntu-24.04, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup-bazel-with-cache
+
+      - name: Cache chezmoi downloads
+        uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cache/chezmoi
+            ~/Library/Caches/chezmoi
+          key: chezmoi-cache-${{ runner.os }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoiexternals/**') }}
+          restore-keys: |
+            chezmoi-cache-${{ runner.os }}-
+
+      - name: Install chezmoi
+        run: |
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b ~/.local/bin
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Verify chezmoi installation
+        run: |
+          echo "PATH=$PATH"
+          which chezmoi
+          chezmoi --version
+
+      - name: Build all targets
+        run: bazel build //...
+
+      - name: Initialize chezmoi with repository
+        run: |
+          mkdir -p /tmp/chezmoi-test
+          chezmoi init --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
+
+      - name: Run chezmoi doctor
+        run: chezmoi doctor --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --no-network
+
+      - name: Run chezmoi apply
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: chezmoi apply --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
+
+  summary:
+    if: always()
+    needs: [check, test, integration]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Report results
+        run: |
+          echo "=== CI Summary ==="
+          echo "Check: ${{ needs.check.result }}"
+          echo "Test: ${{ needs.test.result }}"
+          echo "Integration: ${{ needs.integration.result }}"
+
+          if [[ "${{ needs.check.result }}" == "failure" || "${{ needs.test.result }}" == "failure" || "${{ needs.integration.result }}" == "failure" ]]; then
+            echo "❌ Critical jobs failed"
+            exit 1
+          else
+            echo "✅ All pipeline steps completed successfully"
+          fi

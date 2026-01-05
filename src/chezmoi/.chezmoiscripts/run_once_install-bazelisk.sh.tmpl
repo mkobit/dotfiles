@@ -1,0 +1,36 @@
+{{ if eq .bazelisk.installation "package-manager" }}#!/bin/bash
+
+# logging.sh hash: {{ includeTemplate "shell/logging.sh" | sha256sum }}
+source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+
+# Check if bazelisk is already installed
+if check_command bazelisk; then 
+    log_success "bazelisk already installed at $(command -v bazelisk)"
+    exit 0
+fi
+
+log_info "Installing bazelisk via package manager..."
+
+{{ if eq .chezmoi.os "darwin" }}
+# macOS - use Homebrew
+if ! check_command brew; then
+    log_error "Homebrew not found. Please install Homebrew first."
+    exit 1
+fi
+
+if brew install bazelisk; then
+    log_success "bazelisk installed successfully via homebrew"
+else
+    log_error "Failed to install bazelisk via homebrew"
+    exit 1
+fi
+{{ else if eq .chezmoi.os "linux" }}
+# Linux - bazelisk not typically in standard repos
+log_warn "bazelisk not available in standard apt repos"
+log_info "Consider changing installation method to 'external-sources' for bazelisk"
+exit 1
+{{ else }}
+log_error "Unsupported OS: {{ .chezmoi.os }}"
+exit 1
+{{ end }}
+{{ end }}
