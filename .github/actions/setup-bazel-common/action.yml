@@ -1,14 +1,20 @@
 name: 'Setup Bazel with Caching'
 description: 'Sets up Bazel with standard caching configuration'
 
+inputs:
+  cache-key:
+    description: 'Cache partition key to append to the disk cache key'
+    required: false
+    default: "build"
+
 runs:
   using: "composite"
   steps:
-    - uses: bazel-contrib/setup-bazel@43d7d5ceab59a307da44fc7585faa2a2fff4f88d
+    - uses: bazel-contrib/setup-bazel@43d7d5ceab59a307da44fc7585faa2a2fff4f88d # v0.16.0
       with:
         # Avoid downloading Bazel every time
         bazelisk-cache: true
         # Store build cache per workflow
-        disk-cache: ${{ github.workflow }}
+        disk-cache: ${{ github.workflow }}-${{ inputs.cache-key }}
         # Share repository cache between workflows
         repository-cache: true
