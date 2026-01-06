@@ -11,9 +11,6 @@
 {{- $target := .target -}}
 {{- $name := .name -}}
 {{- $sourceDir := .sourceDir -}}
-{{- /* Ensure the target is built before we try to reference it */ -}}
-{{- $buildCmd := printf "cd %s && bazel build %s" ($sourceDir | quote) $target -}}
-{{- $_ := output "sh" "-c" $buildCmd -}}
 {{- /* Query the output file path */ -}}
 {{- $cqueryCmd := printf "cd %s && bazel cquery --output=files %s" ($sourceDir | quote) $target -}}
 {{- $relPath := output "sh" "-c" $cqueryCmd | trim -}}
