@@ -13,11 +13,10 @@ py_binary(
     srcs = ["ruff_wrapper.py"],
     # Include the extracted binary in data so it can be found
     data = ["@pypi//ruff:extracted_whl_files"],
-    env = {
-        # This might help ruff find its binary if it looks relative to package
-    },
     main = "ruff_wrapper.py",
-    deps = ["@pypi//ruff:pkg"],
+    deps = [
+        "@pypi//ruff:pkg",
+    ],
 )
 
 py_console_script_binary(
