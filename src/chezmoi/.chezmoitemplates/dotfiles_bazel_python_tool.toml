@@ -1,20 +1,18 @@
 {{- /* Reusable template for Bazel-built Python tool externals
      *
      * Usage in .chezmoiexternals/*.toml.tmpl:
-     *   {{- includeTemplate "dotfiles_bazel_python_tool.toml" (dict "target" "//src/python/my_tool:my_tool_exe" "name" "my_tool" "sourceDir" .chezmoi.sourceDir) -}}
+     *   {{- includeTemplate "dotfiles_bazel_python_tool.toml" (dict "target" "//src/python/my_tool:my_tool_exe" "name" "my_tool") -}}
      *
      * Parameters:
      *   - target: Bazel target label (e.g., "//src/python/hello_world:hello_world_exe")
      *   - name: Install name (e.g., "hello_world")
-     *   - sourceDir: The chezmoi source directory (used to set CWD for bazel commands)
      */ -}}
 {{- $target := .target -}}
 {{- $name := .name -}}
-{{- $sourceDir := .sourceDir -}}
-{{- /* Query the output file path */ -}}
-{{- $cqueryCmd := printf "cd %s && bazel cquery --output=files %s" ($sourceDir | quote) $target -}}
+{{- /* Query the output file path using CHEZMOI_SOURCE_DIR to locate the workspace */ -}}
+{{- $cqueryCmd := printf "cd \"${CHEZMOI_SOURCE_DIR}\" && bazel cquery --output=files %s" $target -}}
 {{- $relPath := output "sh" "-c" $cqueryCmd | trim -}}
-{{- $infoCmd := printf "cd %s && bazel info workspace" ($sourceDir | quote) -}}
+{{- $infoCmd := printf "cd \"${CHEZMOI_SOURCE_DIR}\" && bazel info workspace" -}}
 {{- $workspaceRoot := output "sh" "-c" $infoCmd | trim -}}
 {{- $artifactPath := printf "%s/%s" $workspaceRoot $relPath -}}
 
