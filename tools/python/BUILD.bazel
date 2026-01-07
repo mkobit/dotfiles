@@ -15,6 +15,7 @@ py_binary(
     main = "ruff_wrapper.py",
     deps = [
         "@pypi//ruff:pkg",
+        "@rules_python//python/runfiles",
     ],
 )
 
