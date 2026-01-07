@@ -115,10 +115,11 @@ jobs:
             fi
           fi
 
-      - name: Build and test
-        run: |
-          bazel build //...
-          bazel test //...
+      - name: Build
+        run: bazel build //...
+
+      - name: Test
+        run: bazel test //...
 
   integration:
     needs: [test]
