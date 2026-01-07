@@ -1,6 +1,7 @@
 """Tests for hello_world library functions."""
 
 import io
+import sys
 from pathlib import Path
 
 import pytest
@@ -115,3 +116,7 @@ class TestWriteOutput:
         content = output_file.read_text()
         assert "Hello, World!" in content
         assert "Hello, Again!" in content
+
+
+if __name__ == "__main__":
+    sys.exit(pytest.main([__file__] + sys.argv[1:]))

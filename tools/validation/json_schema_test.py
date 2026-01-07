@@ -7,42 +7,51 @@ Uses explicit --schema argument with parametrized JSON files.
 """
 
 import json
+import sys
 from pathlib import Path
 
 import jsonschema
 import pytest
 from jsonschema import Draft7Validator, ValidationError
 
-
-def pytest_addoption(parser: pytest.Parser) -> None:
-    """Add --schema command line option for JSON schema validation."""
-    parser.addoption(
-        "--schema",
-        action="store",
-        required=True,
-        help="Path to JSON schema file"
-    )
+# Global variables to store arguments parsed manually
+_GLOBAL_SCHEMA_PATH: Path | None = None
+_GLOBAL_JSON_FILES: list[Path] = []
 
 
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """Generate test parameters for each JSON file passed after -- separator."""
     if "json_file" in metafunc.fixturenames:
-        json_files = [Path(f) for f in metafunc.config.args]
-        if not json_files:
-            pytest.fail("No JSON files provided for validation")
-        metafunc.parametrize("json_file", json_files)
+        import os
+        schema = os.environ.get("TEST_SCHEMA_PATH")
+        files = os.environ.get("TEST_JSON_FILES")
+
+        if schema and files:
+            global _GLOBAL_SCHEMA_PATH, _GLOBAL_JSON_FILES
+            _GLOBAL_SCHEMA_PATH = Path(schema)
+            # Handle potential empty strings in split if needed
+            _GLOBAL_JSON_FILES = [Path(f) for f in files.split(os.pathsep) if f]
+
+        if not _GLOBAL_JSON_FILES:
+            pytest.fail("No JSON files provided for validation (env vars not set?)")
+
+        metafunc.parametrize("json_file", _GLOBAL_JSON_FILES)
 
 
-def test_schema_validation(request: pytest.FixtureRequest) -> None:
+def test_schema_validation() -> None:
     """Test that the schema file exists, is valid JSON, and is a valid JSON schema."""
-    schema_path = request.config.getoption("--schema")
-    schema_file = Path(schema_path)
+    if _GLOBAL_SCHEMA_PATH is None:
+        pytest.fail("Schema path not provided")
+
+    # Assert valid path for mypy
+    assert _GLOBAL_SCHEMA_PATH is not None
+    schema_file = _GLOBAL_SCHEMA_PATH
 
     assert schema_file.exists(), f"Schema file not found: {schema_file}"
     assert schema_file.is_file(), f"Schema path is not a file: {schema_file}"
 
     try:
-        with open(schema_file, encoding='utf-8') as f:
+        with open(schema_file, encoding="utf-8") as f:
             schema = json.load(f)
     except json.JSONDecodeError as e:
         pytest.fail(f"Schema file contains invalid JSON: {e}")
@@ -58,14 +67,18 @@ def test_schema_validation(request: pytest.FixtureRequest) -> None:
         pytest.fail(f"Schema file is not a valid JSON schema: {e}")
 
 
-def test_json_file_validation(json_file: Path, request: pytest.FixtureRequest) -> None:
+def test_json_file_validation(json_file: Path) -> None:
     """Test that JSON file exists, is valid JSON, and validates against the schema."""
-    schema_path = request.config.getoption("--schema")
-    schema_file = Path(schema_path)
+    if _GLOBAL_SCHEMA_PATH is None:
+        pytest.fail("Schema path not provided")
+
+    # Assert valid path for mypy
+    assert _GLOBAL_SCHEMA_PATH is not None
+    schema_file = _GLOBAL_SCHEMA_PATH
 
     # Skip if schema is invalid
     try:
-        with open(schema_file, encoding='utf-8') as f:
+        with open(schema_file, encoding="utf-8") as f:
             schema = json.load(f)
         Draft7Validator.check_schema(schema)
     except Exception as e:
@@ -76,7 +89,7 @@ def test_json_file_validation(json_file: Path, request: pytest.FixtureRequest) -
     assert json_file.is_file(), f"JSON path is not a file: {json_file}"
 
     try:
-        with open(json_file, encoding='utf-8') as f:
+        with open(json_file, encoding="utf-8") as f:
             data = json.load(f)
     except json.JSONDecodeError as e:
         pytest.fail(f"JSON file contains invalid JSON: {e}")
@@ -98,3 +111,50 @@ def test_json_file_validation(json_file: Path, request: pytest.FixtureRequest) -
         )
     except Exception as e:
         pytest.fail(f"Unexpected validation error for {json_file}: {e}")
+
+
+if __name__ == "__main__":
+    import os
+    # Manual argument parsing
+    args = sys.argv[1:]
+
+    # Extract schema path
+    schema_path_str = None
+    try:
+        if "--schema" in args:
+            idx = args.index("--schema")
+            if idx + 1 < len(args):
+                schema_path_str = args[idx + 1]
+    except ValueError:
+        pass
+
+    if not schema_path_str:
+        print("Error: --schema argument is required", file=sys.stderr)
+        sys.exit(1)
+
+    # Extract files
+    json_files_args = []
+    try:
+        if "--" in args:
+            idx = args.index("--")
+            json_files_args = args[idx + 1:]
+        else:
+            skip_next = False
+            for arg in args:
+                if skip_next:
+                    skip_next = False
+                    continue
+                if arg == "--schema":
+                    skip_next = True
+                    continue
+                if not arg.startswith("-"):
+                    json_files_args.append(arg)
+    except ValueError:
+        pass
+
+    # Pass data via environment variables so the imported module can see them
+    os.environ["TEST_SCHEMA_PATH"] = schema_path_str
+    os.environ["TEST_JSON_FILES"] = os.pathsep.join(json_files_args)
+
+    # Run pytest on this file only
+    sys.exit(pytest.main([__file__]))

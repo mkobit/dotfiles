@@ -1,5 +1,7 @@
 """Tests for hello_world models."""
 
+import sys
+
 import pytest
 from pydantic import ValidationError
 
@@ -81,3 +83,7 @@ class TestAppConfig:
         # Pydantic handles coercion, so we cast to LogLevel to satisfy mypy
         config = AppConfig(log_level=LogLevel("warning"))
         assert config.log_level == LogLevel.WARNING
+
+
+if __name__ == "__main__":
+    sys.exit(pytest.main([__file__] + sys.argv[1:]))
