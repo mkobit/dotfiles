@@ -137,9 +137,9 @@ jobs:
           path: |
             ~/.cache/chezmoi
             ~/Library/Caches/chezmoi
-          key: chezmoi-cache-${{ runner.os }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoiexternals/**') }}
+          key: chezmoi-cache-v2-${{ runner.os }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoiexternals/**') }}
           restore-keys: |
-            chezmoi-cache-${{ runner.os }}-
+            chezmoi-cache-v2-${{ runner.os }}-
 
       - name: Install chezmoi
         run: |

@@ -1,4 +1,4 @@
-load("@rules_python//python:defs.bzl", "py_test")
+load("@rules_python//python:defs.bzl", "py_library")
 
 """
 Validation tools package.
@@ -12,7 +12,8 @@ package(default_visibility = ["//visibility:public"])
 # Export the macro
 exports_files(["json_schema_validation.bzl"])
 
-py_test(
+# Library target for the test script
+py_library(
     name = "json_schema_test",
     srcs = ["json_schema_test.py"],
     deps = [
