@@ -7,11 +7,12 @@ Uses explicit --schema argument with parametrized JSON files.
 """
 
 import json
+import pytest
 from pathlib import Path
+from typing import Any
 
 import jsonschema
-import pytest
-from jsonschema import Draft7Validator, ValidationError
+from jsonschema import ValidationError, Draft7Validator
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
@@ -49,8 +50,7 @@ def test_schema_validation(request: pytest.FixtureRequest) -> None:
     except Exception as e:
         pytest.fail(f"Failed to read schema file: {e}")
 
-    assert isinstance(schema, dict), \
-        f"Schema must be a JSON object, got {type(schema).__name__}"
+    assert isinstance(schema, dict), f"Schema must be a JSON object, got {type(schema).__name__}"
 
     try:
         Draft7Validator.check_schema(schema)
@@ -87,9 +87,7 @@ def test_json_file_validation(json_file: Path, request: pytest.FixtureRequest) -
     try:
         jsonschema.validate(data, schema)
     except ValidationError as e:
-        error_path = " -> ".join(
-            str(p) for p in e.absolute_path
-        ) if e.absolute_path else "root"
+        error_path = " -> ".join(str(p) for p in e.absolute_path) if e.absolute_path else "root"
         pytest.fail(
             f"Schema validation failed for {json_file}\n"
             f"  Location: {error_path}\n"

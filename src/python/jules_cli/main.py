@@ -1,17 +1,15 @@
 import asyncio
-import os
+import click
 import shutil
 import subprocess
+import os
 import sys
 from pathlib import Path
-
-import click
-
 from src.python.jules_cli.client import JulesClient
-
+from src.python.jules_cli.models import Session, Activity
 
 @click.group()
-def cli() -> None:
+def cli():
     """Jules CLI tool for interacting with the Jules API."""
     pass
 
@@ -49,14 +47,12 @@ def run_fzf(items: list[str]) -> str | None:
         return result.stdout.strip()
     return None
 
-async def interactive_session_loop(client: JulesClient, session_id: str) -> None:
+async def interactive_session_loop(client: JulesClient, session_id: str):
     """Interactive loop for a specific session."""
     while True:
         click.clear()
         try:
-            activities = [
-                activity async for activity in client.list_activities(session_id)
-            ]
+            activities = [activity async for activity in client.list_activities(session_id)]
         except Exception as e:
             click.echo(f"Error fetching activities: {e}")
             click.pause()
@@ -68,10 +64,10 @@ async def interactive_session_loop(client: JulesClient, session_id: str) -> None
 
         for activity in activities:
             if activity.originator == "user":
-                click.secho("User: ", fg="green", bold=True, nl=False)
+                click.secho(f"User: ", fg="green", bold=True, nl=False)
                 click.echo(f"(Action: {activity.name})") # Placeholder
             else:
-                click.secho("Agent: ", fg="blue", bold=True, nl=False)
+                click.secho(f"Agent: ", fg="blue", bold=True, nl=False)
                 if activity.progress_updated:
                     click.echo(f"{activity.progress_updated.title}")
                     if activity.progress_updated.description:
@@ -102,7 +98,7 @@ async def interactive_session_loop(client: JulesClient, session_id: str) -> None
             if confirm:
                 await client.approve_plan(session_id)
 
-async def main_menu() -> None:
+async def main_menu():
     api_key = get_api_key()
     try:
         async with JulesClient(api_key=api_key) as client:
@@ -141,14 +137,14 @@ async def main_menu() -> None:
         sys.exit(1)
 
 @cli.command()
-def interact() -> None:
+def interact():
     """Interactive mode to view and manage sessions."""
     asyncio.run(main_menu())
 
-@cli.command(name="list")
-def list_sessions() -> None:
+@cli.command()
+def list():
     """List recent sessions."""
-    async def _list() -> None:
+    async def _list():
         api_key = get_api_key()
         async with JulesClient(api_key) as client:
             async for s in client.list_sessions():
@@ -157,9 +153,9 @@ def list_sessions() -> None:
 
 @cli.command()
 @click.argument("session_id")
-def show(session_id: str) -> None:
+def show(session_id):
     """Show details for a session."""
-    async def _show() -> None:
+    async def _show():
         api_key = get_api_key()
         async with JulesClient(api_key) as client:
             try:

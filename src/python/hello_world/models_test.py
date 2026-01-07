@@ -78,6 +78,5 @@ class TestAppConfig:
 
     def test_config_log_level_from_string(self) -> None:
         """Test that string log level is coerced to enum."""
-        # Pydantic handles coercion, so we cast to LogLevel to satisfy mypy
-        config = AppConfig(log_level=LogLevel("warning"))
+        config = AppConfig(log_level="warning")  # type: ignore[arg-type]
         assert config.log_level == LogLevel.WARNING

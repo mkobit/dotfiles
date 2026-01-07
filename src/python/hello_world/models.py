@@ -4,6 +4,7 @@ Demonstrates using pydantic for data validation and structured configuration.
 """
 
 from enum import Enum
+from typing import Optional
 
 from pydantic import BaseModel, Field
 
@@ -33,7 +34,7 @@ class AppConfig(BaseModel):
     """Application configuration with validation."""
 
     log_level: LogLevel = Field(default=LogLevel.INFO)
-    output_file: str | None = Field(default=None)
+    output_file: Optional[str] = Field(default=None)
     verbose: bool = Field(default=False)
 
     class Config:

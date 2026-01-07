@@ -9,6 +9,8 @@ This tool demonstrates:
 - Deployment via chezmoi hooks
 """
 
+from typing import Optional
+
 import click
 
 from src.python.hello_world.lib import Logger, generate_greetings, write_output
@@ -55,7 +57,7 @@ def main(
     name: str,
     message: str,
     times: int,
-    output: str | None,
+    output: Optional[str],
     log_level: str,
     verbose: bool,
 ) -> None:
@@ -90,7 +92,7 @@ def main(
         greeting = Greeting(name=name, message=message, times=times)
     except ValueError as e:
         logger.error(f"Invalid input: {e}")
-        raise click.ClickException(str(e)) from e
+        raise click.ClickException(str(e))
 
     # Generate and output greetings
     greetings = generate_greetings(greeting, logger)

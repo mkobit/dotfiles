@@ -1,7 +1,7 @@
 import pytest
-
+import pytest_asyncio
+from src.python.jules_cli.models import Session, SourceContext
 from src.python.jules_cli.client import JulesClient
-from src.python.jules_cli.models import Session
 
 # Mock data matches Pydantic camelCase conversion
 MOCK_SESSION_DATA = {
@@ -19,75 +19,71 @@ MOCK_LIST_SESSIONS_DATA = {
     "nextPageToken": None
 }
 
-def test_session_model() -> None:
+def test_session_model():
     session = Session(**MOCK_SESSION_DATA)
     assert session.id == "123"
     assert session.title == "Test Session"
     assert session.source_context.source == "sources/github/test/repo"
 
 @pytest.mark.asyncio
-async def test_client_init_error() -> None:
+async def test_client_init_error():
     with pytest.raises(ValueError):
         JulesClient(api_key="")
 
 @pytest.mark.asyncio
-async def test_client_get_session() -> None:
+async def test_client_get_session():
     # Mock aiohttp session
     class MockResponse:
-        def __init__(self, data: dict) -> None:
+        def __init__(self, data):
             self._data = data
 
-        async def json(self) -> dict:
+        async def json(self):
             return self._data
 
-        def raise_for_status(self) -> None:
+        def raise_for_status(self):
             pass
 
-        async def __aenter__(self) -> "MockResponse":
+        async def __aenter__(self):
             return self
 
-        async def __aexit__(
-            self, exc_type: object, exc_val: object, exc_tb: object
-        ) -> None:
+        async def __aexit__(self, exc_type, exc_val, exc_tb):
             pass
 
     class MockSession:
-        def get(self, url: str, params: dict | None = None) -> MockResponse:
+        def get(self, url, params=None):
             if "sessions/123" in url:
                 return MockResponse(MOCK_SESSION_DATA)
             return MockResponse({})
 
-        def post(self, url: str, json: dict | None = None) -> MockResponse:
+        def post(self, url, json=None):
             return MockResponse({})
 
-        async def close(self) -> None:
+        async def close(self):
             pass
 
     client = JulesClient(api_key="test_key")
-    # We are mocking internal _session which is typed as aiohttp.ClientSession
-    # So we need ignore here or make MockSession compatible.
-    client._session = MockSession() # type: ignore
+    client._session = MockSession()
 
     session = await client.get_session("sessions/123")
     assert session.id == "123"
 
 @pytest.mark.asyncio
-async def test_client_list_sessions() -> None:
+async def test_client_list_sessions():
     class MockResponse:
-        def __init__(self, data: dict) -> None:
+        def __init__(self, data):
             self._data = data
-        async def json(self) -> dict: return self._data
-        def raise_for_status(self) -> None: pass
-        async def __aenter__(self) -> "MockResponse": return self
-        async def __aexit__(self, *args: object) -> None: pass
+        async def json(self): return self._data
+        def raise_for_status(self): pass
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
 
     class MockSession:
-        def get(self, url: str, params: dict | None = None) -> MockResponse:
+        def get(self, url, params=None):
             return MockResponse(MOCK_LIST_SESSIONS_DATA)
-        async def close(self) -> None: pass
+        async def close(self): pass
 
     client = JulesClient(api_key="test_key")
-    client._session = MockSession() # type: ignore
+    client._session = MockSession()
 
     sessions = []
     async for s in client.list_sessions():
