@@ -13,6 +13,9 @@ build --incompatible_strict_action_env
 # Enable buildifier and linting tools (temporarily disabled)
 # build --aspects=@aspect_rules_lint//lint:defs.bzl%lint_aspect
 # build --output_groups=+rules_lint_report
+# Enable strict Python linting and type checking
+build --aspects=//tools/python:lint.bzl%python_lint_aspect
+build --output_groups=+rules_python_lint
 
 # Note: aspect_rules_lint configuration will be re-enabled once dependencies are resolved
 
