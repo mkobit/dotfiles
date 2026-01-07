@@ -3,12 +3,12 @@ module(
     version = "1.0",
 )
 
-bazel_dep(name = "bazel_skylib", version = "1.8.2")
+bazel_dep(name = "bazel_skylib", version = "1.9.0")
 bazel_dep(name = "platforms", version = "1.0.0")
 bazel_dep(name = "rules_python", version = "1.7.0")
 bazel_dep(name = "rules_shell", version = "0.6.1")
-bazel_dep(name = "protobuf", version = "33.1")
-bazel_dep(name = "buildifier_prebuilt", version = "8.2.1")
+bazel_dep(name = "protobuf", version = "33.2")
+bazel_dep(name = "buildifier_prebuilt", version = "8.2.1.1")
 
 # Gazelle
 bazel_dep(name = "gazelle", version = "0.47.0", repo_name = "bazel_gazelle")
@@ -18,14 +18,18 @@ python = use_extension("@rules_python//python/extensions:python.bzl", "python")
 python.toolchain(
     configure_coverage_tool = True,
     is_default = True,
-    python_version = "3.13",
+    python_version = "3.14",
 )
-use_repo(python, "python_3_13")
+use_repo(python, "python_3_14")
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
+    environment = {
+        "PYO3_USE_ABI3_FORWARD_COMPATIBILITY": "1",
+        "WHENEVER_NO_BUILD_RUST_EXT": "1",
+    },
     hub_name = "pypi",
-    python_version = "3.13",
+    python_version = "3.14",
     requirements_lock = "//:requirements.lock.txt",
 )
 use_repo(pip, "pypi")
