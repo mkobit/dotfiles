@@ -1,0 +1,13 @@
+load("@pypi//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_test")
+
+py_test(
+    name = "test_client",
+    srcs = ["test_client.py"],
+    deps = [
+        "//src/python/obsidian_local_api:obsidian_local_api_lib",
+        requirement("pytest"),
+        requirement("pytest-asyncio"),
+        requirement("aiohttp"),
+    ],
+)
