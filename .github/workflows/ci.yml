@@ -119,6 +119,14 @@ jobs:
             fi
           fi
 
+      - name: Debug Bazel Environment
+        run: |
+          bazel info
+          echo "Disk cache location:"
+          ls -ld ~/.cache/bazel-disk || echo "Disk cache not found"
+          echo "Environment variables:"
+          env | grep -E "GITHUB|CI|BAZEL" | sort
+
       - name: Build and test
         run: |
           bazel build //...
@@ -150,6 +158,14 @@ jobs:
               brew install vim
             fi
           fi
+
+      - name: Debug Bazel Environment
+        run: |
+          bazel info
+          echo "Disk cache location:"
+          ls -ld ~/.cache/bazel-disk || echo "Disk cache not found"
+          echo "Environment variables:"
+          env | grep -E "GITHUB|CI|BAZEL" | sort
 
       - name: Cache chezmoi downloads
         uses: actions/cache@9255dc7a253b0ccc959486e2bca901246202afeb # v5.0.1

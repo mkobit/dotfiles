@@ -6,6 +6,10 @@ build --javacopt="-encoding UTF-8"
 # Python zipapp support - produces .zip files for py_binary targets
 build --build_python_zip
 
+# Use strict action environment to prevent CI/CD env vars from invalidating cache
+# This ensures that variables like GITHUB_JOB, GITHUB_RUN_ID, etc. don't leak into the build actions
+build --incompatible_strict_action_env
+
 # Enable buildifier and linting tools (temporarily disabled)
 # build --aspects=@aspect_rules_lint//lint:defs.bzl%lint_aspect
 # build --output_groups=+rules_lint_report
