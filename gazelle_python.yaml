@@ -6,7 +6,6 @@
 ---
 manifest:
   modules_mapping:
-    3204bda914b7f2c6f497__mypyc: mypy
     aiohappyeyeballs: aiohappyeyeballs
     aiohttp: aiohttp
     aiosignal: aiosignal
@@ -46,4 +45,4 @@ manifest:
     yarl: yarl
   pip_repository:
     name: pypi
-integrity: f8141d099d0b776f81c865015667411c4491a368363a0463782d0e7928e92d30
+integrity: 7c3a4dc6e3657dc6243214cfe176e884a36da4c33baaf3c793bf1a84c6397600
