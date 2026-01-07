@@ -13,6 +13,6 @@ runs:
         path: |
           ~/.cache/bazel
           ~/Library/Caches/bazel
-        key: bazel-cache-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
+        key: bazel-cache-v2-${{ runner.os }}-${{ hashFiles('**/*.bazel', '**/*.bzl', 'MODULE.bazel') }}
         restore-keys: |
-          bazel-cache-${{ runner.os }}-
+          bazel-cache-v2-${{ runner.os }}-
