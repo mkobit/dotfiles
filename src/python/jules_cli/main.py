@@ -192,6 +192,12 @@ def show(session_id: str) -> None:
 @click.option(
     "--approve/--no-approve", default=False, help="Require manual plan approval."
 )
+@click.option(
+    "--interactive/--no-interactive",
+    "-i",
+    default=False,
+    help="Enter interactive mode after creating the session.",
+)
 def create(
     prompt: str,
     source: str,
@@ -199,6 +205,7 @@ def create(
     title: str | None,
     auto_pr: bool,
     approve: bool,
+    interactive: bool,
 ) -> None:
     """Create a new session."""
 
@@ -234,6 +241,10 @@ def create(
                 click.echo(f"Session created: {session.name}")
                 click.echo(f"Title: {session.title}")
                 click.echo(f"ID: {session.id}")
+
+                if interactive:
+                    await interactive_session_loop(client, session.id)
+
             except Exception as e:
                 click.echo(f"Error creating session: {e}", err=True)
                 sys.exit(1)
