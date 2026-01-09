@@ -8,6 +8,12 @@ from pathlib import Path
 import click
 
 from src.python.jules_cli.client import JulesClient
+from src.python.jules_cli.models import (
+    AutomationMode,
+    CreateSessionRequest,
+    GitHubRepoContext,
+    SourceContext,
+)
 
 
 @click.group()
@@ -174,6 +180,65 @@ def show(session_id: str) -> None:
             except Exception as e:
                 click.echo(f"Error: {e}", err=True)
     asyncio.run(_show())
+
+@cli.command()
+@click.option("--prompt", required=True, help="The initial prompt for the session.")
+@click.option("--source", required=True, help="The source (e.g., owner/repo).")
+@click.option("--branch", default="main", help="Starting branch (default: main).")
+@click.option("--title", help="Title for the session.")
+@click.option(
+    "--auto-pr/--no-auto-pr", default=False, help="Automatically create a PR."
+)
+@click.option(
+    "--approve/--no-approve", default=False, help="Require manual plan approval."
+)
+def create(
+    prompt: str,
+    source: str,
+    branch: str,
+    title: str | None,
+    auto_pr: bool,
+    approve: bool,
+) -> None:
+    """Create a new session."""
+
+    async def _create() -> None:
+        api_key = get_api_key()
+
+        # Format source string
+        if not source.startswith("sources/"):
+            # Assume github/owner/repo or owner/repo
+            if source.startswith("github/"):
+                full_source = f"sources/{source}"
+            else:
+                full_source = f"sources/github/{source}"
+        else:
+            full_source = source
+
+        source_context = SourceContext(
+            source=full_source,
+            github_repo_context=GitHubRepoContext(starting_branch=branch)
+        )
+
+        req = CreateSessionRequest(
+            prompt=prompt,
+            source_context=source_context,
+            automation_mode=AutomationMode.AUTO_CREATE_PR if auto_pr else None,
+            title=title,
+            require_plan_approval=approve
+        )
+
+        async with JulesClient(api_key) as client:
+            try:
+                session = await client.create_session(req)
+                click.echo(f"Session created: {session.name}")
+                click.echo(f"Title: {session.title}")
+                click.echo(f"ID: {session.id}")
+            except Exception as e:
+                click.echo(f"Error creating session: {e}", err=True)
+                sys.exit(1)
+
+    asyncio.run(_create())
 
 if __name__ == "__main__":
     cli()
