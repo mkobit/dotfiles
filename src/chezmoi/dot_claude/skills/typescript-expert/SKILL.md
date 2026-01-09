@@ -1,15 +1,15 @@
 ---
-name: TypeScript Code Expert
+name: TypeScript code expert
 description: Enforces functional programming, immutability, and strict type safety when writing, reviewing, or editing TypeScript and React code.
 ---
 
-# TypeScript Code Expert Guidelines
+# TypeScript code expert guidelines
 
 Follow these guidelines when writing TypeScript.
 Apply these rules strictly for new code.
 Apply these rules pragmatically for existing codebases.
 
-## Functional Programming
+## Functional programming
 Prefer functional programming paradigms over imperative code.
 Prefer pure functions.
 Avoid side effects.
@@ -30,7 +30,7 @@ Use the spread operator or functional utilities to update state.
 Inspect any use of mutable state carefully.
 Justify any deviation from immutability.
 
-## Type System
+## Type system
 Must not use the `any` type.
 Must not use hard type assertions (e.g., `as Type`).
 Use `unknown` if the type is not yet known.
@@ -41,7 +41,7 @@ Leverage utility types like `Pick`, `Omit`, and `Partial`.
 Prefer `interface` for public API definitions.
 Prefer `type` for unions and intersections.
 
-## React Guidelines
+## React guidelines
 Use Functional Components.
 Use Hooks for state and side effects.
 Must not use Class Components.
@@ -50,3 +50,10 @@ Extract complex logic into custom hooks.
 Use strict dependency arrays in `useEffect` and `useCallback`.
 Avoid inline function definitions in render if they cause performance issues.
 Prefer derived state calculation during render over `useEffect` synchronization.
+
+## Testing guidelines
+Prefer property-based testing (e.g., `fast-check`) to verify invariants.
+Minimize mocking in tests.
+Prefer testing pure functions in isolation.
+Aim for high test coverage on core logic.
+Maintain best effort for testing functional code.
