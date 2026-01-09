@@ -5,6 +5,7 @@ import aiohttp
 
 from src.python.jules_cli.models import (
     Activity,
+    CreateSessionRequest,
     ListActivitiesResponse,
     ListSessionsResponse,
     ListSourcesResponse,
@@ -69,6 +70,13 @@ class JulesClient:
             next_page_token = response.next_page_token
             if not next_page_token:
                 break
+
+    async def create_session(self, request: CreateSessionRequest) -> Session:
+        data = await self._post(
+            "/sessions",
+            data=request.model_dump(by_alias=True, exclude_none=True),
+        )
+        return Session(**data)
 
     async def list_sessions(self, page_size: int = 10) -> AsyncGenerator[Session, None]:
         next_page_token = None

@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -44,6 +45,24 @@ class SourceContext(BaseModel):
     """
     source: str
     github_repo_context: GitHubRepoContext | None = None
+    model_config = frozen_config
+
+class AutomationMode(str, Enum):
+    """
+    Automation modes for a session.
+    """
+    AUTO_CREATE_PR = "AUTO_CREATE_PR"
+
+class CreateSessionRequest(BaseModel):
+    """
+    Request body for creating a session.
+    See: https://developers.google.com/jules/api/reference/rest/v1alpha/sessions/create
+    """
+    prompt: str
+    source_context: SourceContext
+    automation_mode: AutomationMode | None = None
+    title: str | None = None
+    require_plan_approval: bool | None = None
     model_config = frozen_config
 
 class PullRequestOutput(BaseModel):
