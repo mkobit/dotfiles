@@ -1,32 +1,46 @@
-import click
 import asyncio
-import os
 import json
-from .client import ObsidianClient
+from typing import Any
 
-def async_command(f):
+import click
+
+from src.python.obsidian_local_api.client import ObsidianClient
+
+
+def async_command(f: Any) -> Any:
     from functools import update_wrapper
+
     @click.pass_context
-    def wrapper(ctx, *args, **kwargs):
+    def wrapper(ctx: Any, *args: Any, **kwargs: Any) -> Any:
         loop = asyncio.get_event_loop()
         return loop.run_until_complete(f(ctx, *args, **kwargs))
+
     return update_wrapper(wrapper, f)
 
+
 @click.group()
-@click.option('--token', envvar='OBSIDIAN_API_TOKEN', help='Obsidian Local REST API Token')
+@click.option(
+    '--token',
+    envvar='OBSIDIAN_API_TOKEN',
+    help='Obsidian Local REST API Token'
+)
 @click.option('--port', default=27124, help='Obsidian Local REST API Port')
 @click.pass_context
-def cli(ctx, token, port):
+def cli(ctx: Any, token: str, port: int) -> None:
     if not token:
-        click.echo("Error: Token is required. Set OBSIDIAN_API_TOKEN or pass --token.", err=True)
+        click.echo(
+            "Error: Token is required. Set OBSIDIAN_API_TOKEN or pass --token.",
+            err=True
+        )
         ctx.exit(1)
     ctx.obj = ObsidianClient(token=token, port=port)
+
 
 @cli.command()
 @click.argument('path')
 @async_command
 @click.pass_context
-async def read(ctx, path):
+async def read(ctx: Any, path: str) -> None:
     """Read a file from the vault."""
     client = ctx.obj
     try:
@@ -35,12 +49,13 @@ async def read(ctx, path):
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
 
+
 @cli.command()
 @click.argument('path')
 @click.argument('content')
 @async_command
 @click.pass_context
-async def write(ctx, path, content):
+async def write(ctx: Any, path: str, content: str) -> None:
     """Write content to a file in the vault."""
     client = ctx.obj
     try:
@@ -49,11 +64,12 @@ async def write(ctx, path, content):
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
 
+
 @cli.command()
 @click.argument('path')
 @async_command
 @click.pass_context
-async def delete(ctx, path):
+async def delete(ctx: Any, path: str) -> None:
     """Delete a file from the vault."""
     client = ctx.obj
     try:
@@ -62,11 +78,12 @@ async def delete(ctx, path):
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
 
-@cli.command()
+
+@cli.command(name='list')
 @click.argument('folder', default='/', required=False)
 @async_command
 @click.pass_context
-async def list(ctx, folder):
+async def list_files(ctx: Any, folder: str) -> None:
     """List files in the vault."""
     client = ctx.obj
     try:
@@ -75,11 +92,12 @@ async def list(ctx, folder):
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
 
+
 @cli.command()
 @click.argument('query')
 @async_command
 @click.pass_context
-async def search(ctx, query):
+async def search(ctx: Any, query: str) -> None:
     """Search the vault."""
     client = ctx.obj
     try:
@@ -87,6 +105,7 @@ async def search(ctx, query):
         click.echo(json.dumps(results, indent=2))
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
+
 
 if __name__ == '__main__':
     cli()

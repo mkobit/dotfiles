@@ -1,15 +1,22 @@
-import aiohttp
 import ssl
-import json
+from typing import Any
 from urllib.parse import quote
-from typing import Any, Optional
+
+import aiohttp
+
 
 class ObsidianClient:
-    def __init__(self, token: str, port: int = 27124, host: str = "127.0.0.1") -> None:
+    def __init__(
+        self,
+        token: str,
+        port: int = 27124,
+        host: str = "127.0.0.1"
+    ) -> None:
         self.token = token
         self.base_url = f"https://{host}:{port}"
         # Create an SSL context that trusts the self-signed certificate if needed
-        # In a real scenario, the user should provide the cert or we should verify it properly.
+        # In a real scenario, the user should provide the cert or we should verify
+        # it properly.
         # For now, we will verify=False but warn, or handle it via aiohttp's connector.
         # The Obsidian Local REST API generates a self-signed cert.
         self.ssl_context = ssl.create_default_context()
@@ -26,8 +33,12 @@ class ObsidianClient:
 
         url = f"{self.base_url}{path}"
 
-        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(ssl=self.ssl_context)) as session:
-            async with session.request(method, url, headers=headers, **kwargs) as response:
+        async with aiohttp.ClientSession(
+            connector=aiohttp.TCPConnector(ssl=self.ssl_context)
+        ) as session:
+            async with session.request(
+                method, url, headers=headers, **kwargs
+            ) as response:
                 if response.status == 204:
                     return None
                 try:
@@ -46,7 +57,12 @@ class ObsidianClient:
         """Create or update a file."""
         if not path.startswith("/vault/"):
             path = f"/vault/{path}"
-        return await self._request("PUT", path, data=content, headers={"Content-Type": "text/markdown"})
+        return await self._request(
+            "PUT",
+            path,
+            data=content,
+            headers={"Content-Type": "text/markdown"}
+        )
 
     async def delete_file(self, path: str) -> Any:
         """Delete a file."""
@@ -67,4 +83,7 @@ class ObsidianClient:
     async def search(self, query: str) -> Any:
         """Search for files."""
         # Assuming /search/simple?query=... based on common patterns or /search/
-        return await self._request("GET", f"/search/simple?query={quote(query)}")
+        return await self._request(
+            "GET",
+            f"/search/simple?query={quote(query)}"
+        )
