@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 from typing import Any
 
 import click
@@ -18,21 +19,51 @@ def async_command(f: Any) -> Any:
     return update_wrapper(wrapper, f)
 
 
+def get_token() -> str | None:
+    """Retrieve the Obsidian API token from environment or config."""
+    # Priority 1: Environment Variable
+    token = os.environ.get("OBSIDIAN_API_TOKEN")
+    if token:
+        return token
+
+    # Priority 2: XDG Config File (~/.config/obsidian-local-api/token)
+    xdg_config_home = os.environ.get(
+        "XDG_CONFIG_HOME", os.path.expanduser("~/.config")
+    )
+    config_file = os.path.join(xdg_config_home, "obsidian-local-api", "token")
+    if os.path.exists(config_file):
+        try:
+            with open(config_file) as f:
+                return f.read().strip()
+        except OSError:
+            pass
+
+    return None
+
+
 @click.group()
 @click.option(
     '--token',
-    envvar='OBSIDIAN_API_TOKEN',
-    help='Obsidian Local REST API Token'
+    help='Obsidian Local REST API Token. Defaults to OBSIDIAN_API_TOKEN '
+         'env var or ~/.config/obsidian-local-api/token'
 )
 @click.option('--port', default=27124, help='Obsidian Local REST API Port')
 @click.pass_context
-def cli(ctx: Any, token: str, port: int) -> None:
+def cli(ctx: Any, token: str | None, port: int) -> None:
+    if not token:
+        token = get_token()
+
     if not token:
         click.echo(
-            "Error: Token is required. Set OBSIDIAN_API_TOKEN or pass --token.",
+            "Error: Token is required. Set OBSIDIAN_API_TOKEN, pass --token, "
+            "or create ~/.config/obsidian-local-api/token",
             err=True
         )
         ctx.exit(1)
+
+    # We know token is str here because of the check above, but mypy might complain
+    # if we don't cast or assert.
+    assert token is not None
     ctx.obj = ObsidianClient(token=token, port=port)
 
 
@@ -103,6 +134,46 @@ async def search(ctx: Any, query: str) -> None:
     try:
         results = await client.search(query)
         click.echo(json.dumps(results, indent=2))
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+
+
+@cli.command()
+@async_command
+@click.pass_context
+async def active(ctx: Any) -> None:
+    """Get the active file."""
+    client = ctx.obj
+    try:
+        results = await client.get_active_file()
+        click.echo(json.dumps(results, indent=2))
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+
+
+@cli.command()
+@async_command
+@click.pass_context
+async def commands(ctx: Any) -> None:
+    """List available commands."""
+    client = ctx.obj
+    try:
+        results = await client.list_commands()
+        click.echo(json.dumps(results, indent=2))
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+
+
+@cli.command()
+@click.argument('command_id')
+@async_command
+@click.pass_context
+async def run_command(ctx: Any, command_id: str) -> None:
+    """Run a command."""
+    client = ctx.obj
+    try:
+        await client.execute_command(command_id)
+        click.echo(f"Executed command: {command_id}")
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
 
