@@ -21,12 +21,21 @@ def async_command(f: Any) -> Any:
 
 def get_token() -> str | None:
     """Retrieve the Obsidian API token from environment or config."""
-    # Priority 1: Environment Variable
+    # Priority 1: Environment Variable (Direct Token)
     token = os.environ.get("OBSIDIAN_API_TOKEN")
     if token:
         return token
 
-    # Priority 2: XDG Config File (~/.config/obsidian-local-api/token)
+    # Priority 2: Environment Variable (Token File)
+    token_file = os.environ.get("OBSIDIAN_API_TOKEN_FILE")
+    if token_file and os.path.exists(token_file):
+        try:
+            with open(token_file) as f:
+                return f.read().strip()
+        except OSError:
+            pass
+
+    # Priority 3: XDG Config File (~/.config/obsidian-local-api/token)
     xdg_config_home = os.environ.get(
         "XDG_CONFIG_HOME", os.path.expanduser("~/.config")
     )
@@ -45,7 +54,8 @@ def get_token() -> str | None:
 @click.option(
     '--token',
     help='Obsidian Local REST API Token. Defaults to OBSIDIAN_API_TOKEN '
-         'env var or ~/.config/obsidian-local-api/token'
+         'env var, OBSIDIAN_API_TOKEN_FILE env var, '
+         'or ~/.config/obsidian-local-api/token'
 )
 @click.option('--port', default=27124, help='Obsidian Local REST API Port')
 @click.pass_context
@@ -56,13 +66,12 @@ def cli(ctx: Any, token: str | None, port: int) -> None:
     if not token:
         click.echo(
             "Error: Token is required. Set OBSIDIAN_API_TOKEN, pass --token, "
-            "or create ~/.config/obsidian-local-api/token",
+            "set OBSIDIAN_API_TOKEN_FILE, or create "
+            "~/.config/obsidian-local-api/token",
             err=True
         )
         ctx.exit(1)
 
-    # We know token is str here because of the check above, but mypy might complain
-    # if we don't cast or assert.
     assert token is not None
     ctx.obj = ObsidianClient(token=token, port=port)
 
@@ -78,7 +87,7 @@ async def read(ctx: Any, path: str) -> None:
         content = await client.get_file(path)
         click.echo(content)
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        raise click.ClickException(str(e)) from e
 
 
 @cli.command()
@@ -93,7 +102,7 @@ async def write(ctx: Any, path: str, content: str) -> None:
         await client.create_file(path, content)
         click.echo(f"Wrote to {path}")
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        raise click.ClickException(str(e)) from e
 
 
 @cli.command()
@@ -107,7 +116,7 @@ async def delete(ctx: Any, path: str) -> None:
         await client.delete_file(path)
         click.echo(f"Deleted {path}")
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        raise click.ClickException(str(e)) from e
 
 
 @cli.command(name='list')
@@ -121,7 +130,7 @@ async def list_files(ctx: Any, folder: str) -> None:
         results = await client.list_files(folder)
         click.echo(json.dumps(results, indent=2))
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        raise click.ClickException(str(e)) from e
 
 
 @cli.command()
@@ -135,7 +144,7 @@ async def search(ctx: Any, query: str) -> None:
         results = await client.search(query)
         click.echo(json.dumps(results, indent=2))
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        raise click.ClickException(str(e)) from e
 
 
 @cli.command()
@@ -148,7 +157,7 @@ async def active(ctx: Any) -> None:
         results = await client.get_active_file()
         click.echo(json.dumps(results, indent=2))
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        raise click.ClickException(str(e)) from e
 
 
 @cli.command()
@@ -161,7 +170,7 @@ async def commands(ctx: Any) -> None:
         results = await client.list_commands()
         click.echo(json.dumps(results, indent=2))
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        raise click.ClickException(str(e)) from e
 
 
 @cli.command()
@@ -175,7 +184,7 @@ async def run_command(ctx: Any, command_id: str) -> None:
         await client.execute_command(command_id)
         click.echo(f"Executed command: {command_id}")
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        raise click.ClickException(str(e)) from e
 
 
 if __name__ == '__main__':
