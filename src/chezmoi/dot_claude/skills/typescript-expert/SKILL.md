@@ -5,7 +5,7 @@ description: Enforces functional programming, immutability, and strict type safe
 
 # TypeScript code expert guidelines
 
-Follow these guidelines when writing TypeScript.
+Follow these guidelines when writing or reviewing TypeScript.
 Apply these rules strictly for new code.
 Apply these rules pragmatically for existing codebases.
 
