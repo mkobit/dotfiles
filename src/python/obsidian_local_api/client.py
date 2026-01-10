@@ -5,6 +5,7 @@ from urllib.parse import quote
 import aiohttp
 
 Token = NewType("Token", str)
+Host = NewType("Host", str)
 
 
 class ObsidianClient:
@@ -20,7 +21,8 @@ class ObsidianClient:
         host: str = "127.0.0.1"
     ) -> None:
         self.token = Token(token)
-        self.base_url = f"https://{host}:{port}"
+        self.host = Host(host)
+        self.base_url = f"https://{self.host}:{port}"
         # Create an SSL context that trusts the self-signed certificate if needed
         # In a real scenario, the user should provide the cert or we should verify
         # it properly.
