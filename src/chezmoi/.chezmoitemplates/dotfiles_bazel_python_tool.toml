@@ -12,9 +12,10 @@
 {{- /* Query the output file path using CHEZMOI_SOURCE_DIR to locate the workspace */ -}}
 {{- $cqueryCmd := printf "cd \"${CHEZMOI_SOURCE_DIR}\" && bazel cquery --output=files %s" $target -}}
 {{- $relPath := output "sh" "-c" $cqueryCmd | trim -}}
-{{- $infoCmd := printf "cd \"${CHEZMOI_SOURCE_DIR}\" && bazel info workspace" -}}
-{{- $workspaceRoot := output "sh" "-c" $infoCmd | trim -}}
-{{- $artifactPath := printf "%s/%s" $workspaceRoot $relPath -}}
+{{- /* Use execution_root because cquery output is relative to it, and it avoids relying on workspace symlinks */ -}}
+{{- $infoCmd := printf "cd \"${CHEZMOI_SOURCE_DIR}\" && bazel info execution_root" -}}
+{{- $execRoot := output "sh" "-c" $infoCmd | trim -}}
+{{- $artifactPath := printf "%s/%s" $execRoot $relPath -}}
 
 ["{{ $name }}"]
 type = "file"
