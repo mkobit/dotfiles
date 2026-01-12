@@ -10,3 +10,7 @@ install-asdf.sh
 # Remove asdf binary and configuration
 .asdf
 .local/bin/asdf
+
+# Unused chezmoi config file (chezmoi only reads from ~/.config/chezmoi/chezmoi.toml)
+# This was accidentally placed in source directory and never actually used
+.chezmoi.toml

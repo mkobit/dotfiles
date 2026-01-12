@@ -175,7 +175,10 @@ This repository uses chezmoi for dotfiles management.
     - "The template action or includeTemplate function can be used to include these templates in another template. The context value (.) must be set explicitly if needed, otherwise the template will be executed with nil context data."
 
 ### Configuration
-- [Configuration file](https://www.chezmoi.io/reference/configuration-file/) - `.chezmoi.toml` settings
+- [Configuration file](https://www.chezmoi.io/reference/configuration-file/) - chezmoi configuration
+  - **IMPORTANT**: Chezmoi only reads config from `~/.config/chezmoi/chezmoi.toml`, NOT from the source directory
+  - The `.chezmoiroot` file only affects source file location, not config file location
+  - Pre/post hooks can be defined in the config, but must be at `~/.config/chezmoi/chezmoi.toml` to work
 
 ### Core concepts
 - [Source state attributes](https://www.chezmoi.io/reference/source-state-attributes/) - File prefixes/suffixes (dot_, create_, encrypted_, executable_, etc.)
@@ -323,6 +326,27 @@ linux_arm64 = "097347160595bf03a426d2abe0a17e14ca060540ddfc0ea45c0a9be62bb29a2b"
 - Complex multi-step configuration
 - Installation requiring compilation
 - Package manager installations
+
+### Bazel-built binaries
+
+**Pattern**: For binaries built with Bazel, use the `.chezmoitemplates/dotfiles_bazel_python_tool.toml` template.
+
+The template handles:
+1. **Building the target** - Runs `bazel build` to ensure the artifact exists
+2. **Querying the path** - Uses `bazel cquery` to find the output location
+3. **Creating the external** - Configures a `file://` URL pointing to the built artifact
+
+**Why not use hooks?** Chezmoi only reads config from `~/.config/chezmoi/chezmoi.toml`, which creates a chicken-egg problem:
+- Can't deploy the config until `chezmoi apply` runs
+- But hooks need to be configured before `chezmoi apply` reads source state
+- Solution: Each Bazel external builds its own target during template evaluation
+
+**Example usage** in `.chezmoiexternals/*.toml.tmpl`:
+```toml
+{{- includeTemplate "dotfiles_bazel_python_tool.toml" (dict "target" "//src/python/my_tool:my_tool_exe" "name" "my_tool") -}}
+```
+
+See `src/chezmoi/dot_local/bin/tools/.chezmoiexternals/hello_world.toml.tmpl` for a complete example.
 
 ### Unsupported compression formats
 
