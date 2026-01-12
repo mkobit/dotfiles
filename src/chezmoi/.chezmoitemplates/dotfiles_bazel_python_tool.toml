@@ -9,6 +9,9 @@
      */ -}}
 {{- $target := .target -}}
 {{- $name := .name -}}
+{{- /* Build the target first to ensure the artifact exists */ -}}
+{{- $buildCmd := printf "cd \"${CHEZMOI_SOURCE_DIR}\" && bazel build %s >/dev/null 2>&1" $target -}}
+{{- output "sh" "-c" $buildCmd -}}
 {{- /* Query the output file path using CHEZMOI_SOURCE_DIR to locate the workspace */ -}}
 {{- $cqueryCmd := printf "cd \"${CHEZMOI_SOURCE_DIR}\" && bazel cquery --output=files %s" $target -}}
 {{- $relPath := output "sh" "-c" $cqueryCmd | trim -}}
