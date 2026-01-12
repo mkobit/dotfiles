@@ -25,6 +25,7 @@ use_repo(python, "python_3_14")
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
     environment = {
+        "CC": "gcc",
         "PYO3_USE_ABI3_FORWARD_COMPATIBILITY": "1",
         "WHENEVER_NO_BUILD_RUST_EXT": "1",
     },
