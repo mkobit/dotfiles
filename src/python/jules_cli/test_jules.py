@@ -1,4 +1,7 @@
+from typing import cast
+
 import pytest
+from aiohttp import ClientSession
 
 from src.python.jules_cli.client import JulesClient
 from src.python.jules_cli.models import Session
@@ -65,8 +68,8 @@ async def test_client_get_session() -> None:
 
     client = JulesClient(api_key="test_key")
     # We are mocking internal _session which is typed as aiohttp.ClientSession
-    # So we need ignore here or make MockSession compatible.
-    client._session = MockSession() # type: ignore
+    # Use cast to satisfy type checker while mocking
+    client._session = cast(ClientSession, MockSession())
 
     session = await client.get_session("sessions/123")
     assert session.id == "123"
@@ -87,7 +90,7 @@ async def test_client_list_sessions() -> None:
         async def close(self) -> None: pass
 
     client = JulesClient(api_key="test_key")
-    client._session = MockSession() # type: ignore
+    client._session = cast(ClientSession, MockSession())
 
     sessions = []
     async for s in client.list_sessions():

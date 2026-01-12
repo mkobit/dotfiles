@@ -25,6 +25,7 @@ known-first-party = ["src", "tools"]
 
 [tool.mypy]
 python_version = "3.13"
+# plugins = ["pydantic.mypy"] # Disabled because mypy cannot find pydantic in the lint action environment
 strict = true
 ignore_missing_imports = true
 check_untyped_defs = true
