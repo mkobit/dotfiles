@@ -4,6 +4,12 @@ set -euo pipefail
 # Install Claude Code using official installer
 # See: https://docs.claude.com/en/docs/claude-code/setup#native-binary-installation-beta
 
+# Skip installation in CI environment to prevent hanging on interactive prompts
+if [[ "${CI:-}" == "true" ]]; then
+    echo "Skipping Claude Code installation in CI environment"
+    exit 0
+fi
+
 # Check if claude is already installed and at the right version
 if command -v claude &> /dev/null; then
     current_version=$(claude --version 2>/dev/null | head -n1 | awk '{print $NF}' || echo "unknown")
