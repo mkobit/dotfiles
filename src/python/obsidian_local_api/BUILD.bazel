@@ -1,0 +1,31 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_library")
+load("//tools/python/private:zipapp.bzl", "python_zipapp")
+
+py_library(
+    name = "obsidian_local_api_lib",
+    srcs = [
+        "__init__.py",
+        "client.py",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@pypi//aiohttp",
+        "@pypi//click",
+    ],
+)
+
+py_binary(
+    name = "obsidian_local_api_bin",
+    srcs = ["cli.py"],
+    main = "cli.py",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":obsidian_local_api_lib",
+    ],
+)
+
+python_zipapp(
+    name = "obsidian_local_api",
+    binary = ":obsidian_local_api_bin",
+    visibility = ["//visibility:public"],
+)
