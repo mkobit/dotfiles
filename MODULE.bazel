@@ -25,6 +25,8 @@ use_repo(python, "python_3_14")
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(
     environment = {
+        # Python 3.14 toolchain is built with clang, but users might only have gcc.
+        # Force gcc for extensions built from source (like aiohttp).
         "CC": "gcc",
         "PYO3_USE_ABI3_FORWARD_COMPATIBILITY": "1",
         "WHENEVER_NO_BUILD_RUST_EXT": "1",
