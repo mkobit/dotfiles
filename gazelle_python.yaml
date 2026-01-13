@@ -6,6 +6,7 @@
 ---
 manifest:
   modules_mapping:
+    4c842c94c09923bae9e4__mypyc: mypy
     aiohappyeyeballs: aiohappyeyeballs
     aiohttp: aiohttp
     aiosignal: aiosignal
@@ -18,6 +19,9 @@ manifest:
     iniconfig: iniconfig
     jsonschema: jsonschema
     jsonschema_specifications: jsonschema_specifications
+    librt.base64: librt
+    librt.internal: librt
+    librt.strings: librt
     markdown_it: markdown_it_py
     mdurl: mdurl
     multidict: multidict
@@ -25,6 +29,7 @@ manifest:
     mypy_extensions: mypy_extensions
     mypyc: mypy
     packaging: packaging
+    pathspec: pathspec
     pluggy: pluggy
     propcache: propcache
     py: pytest
@@ -45,4 +50,4 @@ manifest:
     yarl: yarl
   pip_repository:
     name: pypi
-integrity: 7c3a4dc6e3657dc6243214cfe176e884a36da4c33baaf3c793bf1a84c6397600
+integrity: fe1d6fe38cdd8d4cb367d93d70d834a9e10b0dbe6af3ba2950c3157004d0a817
