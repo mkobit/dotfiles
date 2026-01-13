@@ -98,6 +98,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
+      - name: Pre-build disk space check
+        run: |
+          echo "=== Disk Usage Before Build ==="
+          df -h
+          echo "=== Top 20 Directories ==="
+          du -h -d 2 . 2>/dev/null | sort -hr | head -n 20 || true
+
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
       - uses: ./.github/actions/setup-bazel-with-cache
 
@@ -118,8 +125,24 @@ jobs:
       - name: Build
         run: bazel build //...
 
+      - name: Post-build disk space check
+        if: always()
+        run: |
+          echo "=== Disk Usage After Build ==="
+          df -h
+          echo "=== Top 20 Directories in Workspace ==="
+          du -h -d 2 . 2>/dev/null | sort -hr | head -n 20 || true
+          echo "=== Bazel Bin Size ==="
+          du -sh bazel-bin 2>/dev/null || true
+
       - name: Test (Unit)
         run: bazel test //... --test_tag_filters=-requires-network --test_output=errors
+
+      - name: Post-test disk space check
+        if: always()
+        run: |
+          echo "=== Disk Usage After Test ==="
+          df -h
 
       - name: Test (Network)
         run: bazel test //... --test_tag_filters=requires-network --test_output=errors
