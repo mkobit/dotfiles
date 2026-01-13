@@ -1,0 +1,5 @@
+{{- with .obsidian_local_api -}}
+{{- if eq .installation "bazel-build" -}}
+{{- includeTemplate "dotfiles_bazel_python_tool.toml" (dict "target" "//src/python/obsidian_local_api:obsidian_local_api" "name" "obsidian-local-api") -}}
+{{- end -}}
+{{- end -}}
