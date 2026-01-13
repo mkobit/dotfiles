@@ -118,8 +118,11 @@ jobs:
       - name: Build
         run: bazel build //...
 
-      - name: Test
-        run: bazel test //...
+      - name: Test (Unit)
+        run: bazel test //... --test_tag_filters=-requires-network --test_output=errors
+
+      - name: Test (Network)
+        run: bazel test //... --test_tag_filters=requires-network --test_output=errors
 
   integration:
     needs: [test]
