@@ -1,5 +1,5 @@
 import ssl
-from typing import Any, NewType, List, Optional
+from typing import Any, NewType
 from urllib.parse import quote
 
 import aiohttp
@@ -13,10 +13,10 @@ class FileMetadata(BaseModel):
     model_config = ConfigDict(frozen=True, extra="allow")
     name: str
     path: str
-    size: Optional[int] = None
-    mtime: Optional[int] = None
-    ctime: Optional[int] = None
-    stat: Optional[dict[str, Any]] = None  # Original stat object
+    size: int | None = None
+    mtime: int | None = None
+    ctime: int | None = None
+    stat: dict[str, Any] | None = None  # Original stat object
 
 
 class SearchMatch(BaseModel):
@@ -28,7 +28,7 @@ class SearchResult(BaseModel):
     model_config = ConfigDict(frozen=True, extra="allow")
     filename: str
     score: float
-    matches: List[dict[str, Any]]  # Complex match object, keeping dict for now
+    matches: list[dict[str, Any]]  # Complex match object, keeping dict for now
 
 
 class Command(BaseModel):
@@ -116,7 +116,7 @@ class ObsidianClient:
             path = f"/vault/{path}"
         return await self._request("DELETE", path)
 
-    async def list_files(self, folder: str = "/") -> List[FileMetadata]:
+    async def list_files(self, folder: str = "/") -> list[FileMetadata]:
         """List files in the vault.
 
         https://coddingtonbear.github.io/obsidian-local-rest-api/#/Vault%20Files/get_vault_
@@ -130,7 +130,8 @@ class ObsidianClient:
         if isinstance(data, dict) and "files" in data:
             return [FileMetadata(**f) for f in data["files"]]
         elif isinstance(data, list):
-            # The API sometimes returns a list directly? Or the existing tests suggest so.
+            # The API sometimes returns a list directly?
+            # Or the existing tests suggest so.
             # If it's a list of strings (filenames), convert to metadata?
             # Or if it's a list of dicts.
             if data and isinstance(data[0], str):
@@ -139,7 +140,7 @@ class ObsidianClient:
             return [FileMetadata(**f) for f in data]
         return []
 
-    async def search(self, query: str) -> List[SearchResult]:
+    async def search(self, query: str) -> list[SearchResult]:
         """Search for files using Simple Search.
 
         https://coddingtonbear.github.io/obsidian-local-rest-api/#/Search/get_search_simple
@@ -150,7 +151,7 @@ class ObsidianClient:
         )
         return [SearchResult(**r) for r in data]
 
-    async def get_active_file(self) -> Optional[FileMetadata]:
+    async def get_active_file(self) -> FileMetadata | None:
         """Get the currently active file.
 
         https://coddingtonbear.github.io/obsidian-local-rest-api/#/Active%20File/get_active_
@@ -160,7 +161,7 @@ class ObsidianClient:
             return None
         return FileMetadata(**data)
 
-    async def list_commands(self) -> List[Command]:
+    async def list_commands(self) -> list[Command]:
         """List available commands.
 
         https://coddingtonbear.github.io/obsidian-local-rest-api/#/Commands/get_commands_
