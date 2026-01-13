@@ -74,15 +74,23 @@ def serialize(obj: Any) -> str:
 @click.group()
 @click.option(
     '--token',
-    help='Obsidian Local REST API Token. Direct string.'
+    help='Obsidian Local REST API token. Direct string.'
 )
 @click.option(
     '--token-file',
     help='Path to file containing the token.'
 )
-@click.option('--port', default=27124, help='Obsidian Local REST API Port')
+@click.option('--port', default=27124, help='Obsidian Local REST API port.')
 @click.pass_context
 def cli(ctx: Any, token: str | None, token_file: str | None, port: int) -> None:
+    """Interact with Obsidian via the Local REST API.
+
+    Authentication token is resolved in the following order:
+    1. --token argument
+    2. --token-file argument
+    3. OBSIDIAN_API_TOKEN in .env file
+    4. ~/.config/obsidian-local-api/token
+    """
     if not token:
         token = get_token(token_file)
 
