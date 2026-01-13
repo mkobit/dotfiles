@@ -1,39 +1,10 @@
 version: 2
 updates:
-  # GitHub Actions updates
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "monthly"
-      day: "monday"
-      time: "08:00"
-    open-pull-requests-limit: 10
-    reviewers:
-      - "mkobit"
-    assignees:
-      - "mkobit"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "github-actions"
-      - "automated"
-
-  # Dev Container Features updates
-  - package-ecosystem: "devcontainers"
-    directory: "/"
-    schedule:
-      interval: "monthly"
-    open-pull-requests-limit: 5
-    reviewers:
-      - "mkobit"
-    assignees:
-      - "mkobit"
-    commit-message:
-      prefix: "chore(deps)"
-      include: "scope"
-    labels:
-      - "dependencies"
-      - "devcontainers"
-      - "automated"
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
