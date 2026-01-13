@@ -19,3 +19,4 @@ jsonschema
 
 # Time
 whenever
+python-dotenv

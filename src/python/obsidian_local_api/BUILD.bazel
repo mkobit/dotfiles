@@ -5,12 +5,15 @@ py_library(
     name = "obsidian_local_api_lib",
     srcs = [
         "__init__.py",
+        "cli.py",
         "client.py",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "@pypi//aiohttp",
         "@pypi//click",
+        "@pypi//pydantic",
+        "@pypi//python_dotenv",
     ],
 )
 

@@ -4,6 +4,8 @@ import os
 from typing import Any
 
 import click
+from dotenv import dotenv_values
+from pydantic import BaseModel
 
 from src.python.obsidian_local_api.client import ObsidianClient
 
@@ -19,21 +21,25 @@ def async_command(f: Any) -> Any:
     return update_wrapper(wrapper, f)
 
 
-def get_token() -> str | None:
-    """Retrieve the Obsidian API token from environment or config."""
-    # Priority 1: Environment Variable (Direct Token)
-    token = os.environ.get("OBSIDIAN_API_TOKEN")
-    if token:
-        return token
-
-    # Priority 2: Environment Variable (Token File)
-    token_file = os.environ.get("OBSIDIAN_API_TOKEN_FILE")
-    if token_file and os.path.exists(token_file):
+def get_token(token_file: str | None = None) -> str | None:
+    """Retrieve the Obsidian API token from specific file or config."""
+    # Priority 1: Direct File
+    if token_file:
+        if not os.path.exists(token_file):
+            raise FileNotFoundError(f"Token file not found: {token_file}")
         try:
             with open(token_file) as f:
                 return f.read().strip()
-        except OSError:
-            pass
+        except OSError as e:
+            raise OSError(f"Could not read token file {token_file}: {e}") from e
+
+    # Priority 2: .env file (looking for OBSIDIAN_API_TOKEN inside)
+    # We search in current directory and parents manually or rely on dotenv
+    # python-dotenv load_dotenv loads into environ, but we want to avoid implicit env.
+    # dotenv_values returns a dict without touching environ.
+    env_config = dotenv_values(".env")
+    if "OBSIDIAN_API_TOKEN" in env_config:
+        return str(env_config["OBSIDIAN_API_TOKEN"])
 
     # Priority 3: XDG Config File (~/.config/obsidian-local-api/token)
     xdg_config_home = os.environ.get(
@@ -49,24 +55,41 @@ def get_token() -> str | None:
 
     return None
 
+def serialize(obj: Any) -> str:
+    if isinstance(obj, list):
+        return str(json.dumps(
+            [
+                item.model_dump() if isinstance(item, BaseModel) else item
+                for item in obj
+            ],
+            indent=2,
+        ))
+    if isinstance(obj, BaseModel):
+        return str(obj.model_dump_json(indent=2))
+    # json.dumps returns a string, but mypy thinks it might return Any
+    # if it can't infer input
+    return str(json.dumps(obj, indent=2))
+
 
 @click.group()
 @click.option(
     '--token',
-    help='Obsidian Local REST API Token. Defaults to OBSIDIAN_API_TOKEN '
-         'env var, OBSIDIAN_API_TOKEN_FILE env var, '
-         'or ~/.config/obsidian-local-api/token'
+    help='Obsidian Local REST API Token. Direct string.'
+)
+@click.option(
+    '--token-file',
+    help='Path to file containing the token.'
 )
 @click.option('--port', default=27124, help='Obsidian Local REST API Port')
 @click.pass_context
-def cli(ctx: Any, token: str | None, port: int) -> None:
+def cli(ctx: Any, token: str | None, token_file: str | None, port: int) -> None:
     if not token:
-        token = get_token()
+        token = get_token(token_file)
 
     if not token:
         click.echo(
-            "Error: Token is required. Set OBSIDIAN_API_TOKEN, pass --token, "
-            "set OBSIDIAN_API_TOKEN_FILE, or create "
+            "Error: Token is required. Pass --token, --token-file, "
+            "provide a .env file with OBSIDIAN_API_TOKEN, or create "
             "~/.config/obsidian-local-api/token",
             err=True
         )
@@ -128,7 +151,7 @@ async def list_files(ctx: Any, folder: str) -> None:
     client = ctx.obj
     try:
         results = await client.list_files(folder)
-        click.echo(json.dumps(results, indent=2))
+        click.echo(serialize(results))
     except Exception as e:
         raise click.ClickException(str(e)) from e
 
@@ -142,7 +165,7 @@ async def search(ctx: Any, query: str) -> None:
     client = ctx.obj
     try:
         results = await client.search(query)
-        click.echo(json.dumps(results, indent=2))
+        click.echo(serialize(results))
     except Exception as e:
         raise click.ClickException(str(e)) from e
 
@@ -155,7 +178,10 @@ async def active(ctx: Any) -> None:
     client = ctx.obj
     try:
         results = await client.get_active_file()
-        click.echo(json.dumps(results, indent=2))
+        if results:
+            click.echo(serialize(results))
+        else:
+            click.echo("No active file")
     except Exception as e:
         raise click.ClickException(str(e)) from e
 
@@ -168,7 +194,7 @@ async def commands(ctx: Any) -> None:
     client = ctx.obj
     try:
         results = await client.list_commands()
-        click.echo(json.dumps(results, indent=2))
+        click.echo(serialize(results))
     except Exception as e:
         raise click.ClickException(str(e)) from e
 
