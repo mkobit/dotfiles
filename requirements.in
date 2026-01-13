@@ -14,7 +14,7 @@ click
 typer
 
 # Validation
-pydantic>=2.12
+pydantic
 jsonschema
 
 # Time
