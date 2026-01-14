@@ -1,12 +1,24 @@
 """Bazel rules for creating Python zipapp executables with shebang.
 
 This module provides rules to create standalone Python executables from py_binary targets.
-The rule assumes --build_python_zip is enabled (either via command line or .bazelrc).
+It uses a configuration transition to ensure --build_python_zip is enabled for the
+binary dependency, regardless of the global configuration.
 """
+
+def _zip_transition_impl(settings, attr):
+    return {"//command_line_option:build_python_zip": "true"}
+
+_zip_transition = transition(
+    implementation = _zip_transition_impl,
+    inputs = [],
+    outputs = ["//command_line_option:build_python_zip"],
+)
 
 def _python_zipapp_impl(ctx):
     """Creates an executable by prepending a shebang to a py_binary .zip file."""
-    py_binary = ctx.attr.binary
+    # When an attribute has a transition, the value is a list of configured targets.
+    # Since we have a 1:1 transition, we take the first element.
+    py_binary = ctx.attr.binary[0]
 
     # Find the .zip file in the py_binary outputs
     zip_file = None
@@ -16,7 +28,7 @@ def _python_zipapp_impl(ctx):
             break
 
     if not zip_file:
-        fail("No .zip output found for {}. Enable --build_python_zip in .bazelrc".format(ctx.attr.binary.label))
+        fail("No .zip output found for {}. The transition should have enabled --build_python_zip.".format(ctx.attr.binary[0].label))
 
     # Create output file with shebang prepended
     output = ctx.actions.declare_file(ctx.attr.name)
@@ -44,14 +56,17 @@ python_zipapp = rule(
         "binary": attr.label(
             mandatory = True,
             executable = True,
-            cfg = "target",
+            cfg = _zip_transition,
             doc = "py_binary target (built with --build_python_zip)",
+        ),
+        "_allowlist_function_transition": attr.label(
+            default = "@bazel_tools//tools/allowlists/function_transition_allowlist",
         ),
     },
     executable = True,
     doc = """Creates a Python zipapp executable with shebang from a py_binary.
 
-    Requires: --build_python_zip in .bazelrc
+    Automatically enables --build_python_zip for the binary dependency.
 
     Example:
         python_zipapp(
