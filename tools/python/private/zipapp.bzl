@@ -16,6 +16,7 @@ _zip_transition = transition(
 
 def _python_zipapp_impl(ctx):
     """Creates an executable by prepending a shebang to a py_binary .zip file."""
+
     # When an attribute has a transition, the value is a list of configured targets.
     # Since we have a 1:1 transition, we take the first element.
     py_binary = ctx.attr.binary[0]
