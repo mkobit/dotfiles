@@ -107,12 +107,11 @@ async def test_client_list_files_subdir() -> None:
 def test_token_loading_env_var_ignored() -> None:
     # Mock environment (Should NOT be read anymore)
     with patch.dict(os.environ, {"OBSIDIAN_API_TOKEN": "env_token"}, clear=True):
-        # We need to mock .env loading to ensure it doesn't pick up something
-        with patch("src.python.obsidian_local_api.cli.dotenv_values", return_value={}):
-             # And ensure no token file
-             with patch("os.path.exists", return_value=False):
-                token = get_token()
-                assert token is None, "OBSIDIAN_API_TOKEN env var should be ignored"
+        # And ensure no token file
+        with patch("os.path.exists", return_value=False):
+            token = get_token()
+            assert token is None, "OBSIDIAN_API_TOKEN env var should be ignored"
+
 
 def test_token_loading_file_arg() -> None:
     # Mock token file arg
@@ -122,6 +121,7 @@ def test_token_loading_file_arg() -> None:
             token = get_token(token_file=token_file)
             assert token == "file_token_content"
 
+
 def test_token_loading_file_arg_missing() -> None:
     # Mock token file arg missing
     token_file = "/tmp/missing_token"
@@ -129,12 +129,11 @@ def test_token_loading_file_arg_missing() -> None:
         with pytest.raises(FileNotFoundError):
             get_token(token_file=token_file)
 
-def test_token_loading_dotenv() -> None:
-    # Mock .env file
-    with patch(
-        "src.python.obsidian_local_api.cli.dotenv_values",
-        return_value={"OBSIDIAN_API_TOKEN": "dotenv_token"},
-    ):
-        with patch("os.path.exists", return_value=False):
+
+def test_token_loading_toml() -> None:
+    # Mock obsidian-local-api.toml file
+    with patch("os.path.exists", return_value=True):
+        # We need to mock open to return bytes for 'rb' mode for tomllib
+        with patch("builtins.open", mock_open(read_data=b'token = "toml_token"')):
             token = get_token()
-            assert token == "dotenv_token"
+            assert token == "toml_token"

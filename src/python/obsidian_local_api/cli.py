@@ -1,10 +1,10 @@
 import asyncio
 import json
 import os
+import tomllib
 from typing import Any
 
 import click
-from dotenv import dotenv_values
 from pydantic import BaseModel
 
 from src.python.obsidian_local_api.client import ObsidianClient
@@ -33,13 +33,16 @@ def get_token(token_file: str | None = None) -> str | None:
         except OSError as e:
             raise OSError(f"Could not read token file {token_file}: {e}") from e
 
-    # Priority 2: .env file (looking for OBSIDIAN_API_TOKEN inside)
-    # We search in current directory and parents manually or rely on dotenv
-    # python-dotenv load_dotenv loads into environ, but we want to avoid implicit env.
-    # dotenv_values returns a dict without touching environ.
-    env_config = dotenv_values(".env")
-    if "OBSIDIAN_API_TOKEN" in env_config:
-        return str(env_config["OBSIDIAN_API_TOKEN"])
+    # Priority 2: obsidian-local-api.toml in current directory
+    local_config = "obsidian-local-api.toml"
+    if os.path.exists(local_config):
+        try:
+            with open(local_config, "rb") as f:
+                config = tomllib.load(f)
+                if "token" in config:
+                    return str(config["token"])
+        except (OSError, tomllib.TOMLDecodeError):
+            pass
 
     # Priority 3: XDG Config File (~/.config/obsidian-local-api/token)
     xdg_config_home = os.environ.get(
@@ -88,8 +91,18 @@ def cli(ctx: Any, token: str | None, token_file: str | None, port: int) -> None:
     Authentication token is resolved in the following order:
     1. --token argument
     2. --token-file argument
-    3. OBSIDIAN_API_TOKEN in .env file
+    3. 'token' in obsidian-local-api.toml in current directory
     4. ~/.config/obsidian-local-api/token
+
+    Commands:
+    active       Get the currently active file.
+    commands     List available commands.
+    delete       Delete a file from the vault.
+    list         List files in the vault.
+    read         Read a file from the vault.
+    run-command  Run a command.
+    search       Search the vault.
+    write        Write content to a file in the vault.
     """
     if not token:
         token = get_token(token_file)
@@ -97,7 +110,7 @@ def cli(ctx: Any, token: str | None, token_file: str | None, port: int) -> None:
     if not token:
         click.echo(
             "Error: Token is required. Pass --token, --token-file, "
-            "provide a .env file with OBSIDIAN_API_TOKEN, or create "
+            "provide a obsidian-local-api.toml with 'token', or create "
             "~/.config/obsidian-local-api/token",
             err=True
         )

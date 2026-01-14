@@ -13,7 +13,6 @@ py_library(
         "@pypi//aiohttp",
         "@pypi//click",
         "@pypi//pydantic",
-        "@pypi//python_dotenv",
     ],
 )
 
