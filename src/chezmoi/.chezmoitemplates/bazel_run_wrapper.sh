@@ -1,11 +1,21 @@
 #!/bin/sh
 cd "{{ .chezmoi.sourceDir }}"
 
-# First build the target and redirect logs. Only show logs if build breaks.
-if ! bazel build {{ .target }} > /dev/null 2>&1; then
+# Create a temporary file for build logs
+log_file=$(mktemp)
+
+# Ensure cleanup on exit (e.g., if build fails or script is interrupted)
+trap 'rm -f "$log_file"' EXIT INT TERM
+
+# First build the target and redirect logs.
+if ! bazel build {{ .target }} > "$log_file" 2>&1; then
     # Show the build error
-    bazel build {{ .target }}
+    cat "$log_file"
     exit 1
 fi
+
+# Build succeeded. Clean up log file and untrap before exec.
+rm -f "$log_file"
+trap - EXIT INT TERM
 
 exec bazel run --ui_event_filters=-info,-stdout,-stderr --noshow_progress {{ .target }} -- "$@"
