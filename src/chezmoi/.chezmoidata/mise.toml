@@ -18,12 +18,16 @@ linux_arm64 = "4f9cb0ad59bd8d118f58812fc8baa3c09a732d01e10c650d49c6d0910b77e24d"
   version = "3.14"
   enabled = true
 
+  [mise.global_tools.pnpm]
+  version = "10.2.0"
+  enabled = true
+
   [mise.global_tools.java]
-  version = "temurin-21"
+  version = "temurin-21.0.5"
   enabled = true
 
   [mise.global_tools.rust]
-  version = "1.83"
+  version = "1.83.0"
   enabled = true
 
   [mise.global_tools.uv]
