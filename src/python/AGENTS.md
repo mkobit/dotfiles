@@ -2,10 +2,10 @@
 
 ## Overview
 
-Python CLI tools are built with Bazel and deployed to `~/.local/bin/tools/` via chezmoi using a wrapper script that invokes `bazel run`.
+Python CLI tools are built with Bazel and deployed to the destination directory (typically `~/.local/bin/tools/`) via chezmoi using a wrapper script that invokes `bazel run`.
 
 **Workflow:**
-1. `chezmoi apply` generates a wrapper script in `~/.local/bin/tools/` for the tool.
+1. `chezmoi apply` generates a wrapper script in the destination directory (typically `~/.local/bin/tools/`) for the tool.
 2. The wrapper script executes `bazel run //src/python/my_tool:my_tool`.
 3. Bazel builds and runs the tool on demand (or uses cached build).
 
