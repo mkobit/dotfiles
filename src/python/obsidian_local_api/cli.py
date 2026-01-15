@@ -1,6 +1,6 @@
 import asyncio
 import json
-import os
+from pathlib import Path
 from typing import Any
 
 import click
@@ -20,35 +20,54 @@ def async_command(f: Any) -> Any:
     return update_wrapper(wrapper, f)
 
 
+def load_config_callback(ctx: Any, param: Any, value: str | None) -> str | None:
+    try:
+        cfg = load_config(value)
+        # Convert config model to dict, filtering out None values
+        config_dict = {
+            k: v
+            for k, v in cfg.model_dump().items()
+            if v is not None
+        }
+        ctx.default_map = config_dict
+    except Exception as e:
+        raise click.ClickException(f"Error loading config: {e}") from e
+    return value
+
+
 @click.group()
+@click.option(
+    '--config',
+    default=None,
+    help='Path to configuration file',
+    type=click.Path(exists=True, dir_okay=False, path_type=Path),
+    callback=load_config_callback,
+    is_eager=True,
+    expose_value=False
+)
 @click.option(
     '--token',
     help='Obsidian Local REST API Token. Can also be set in config file.'
 )
-@click.option('--port', type=int, default=None, help='Obsidian Local REST API Port (default 27124)')
-@click.option('--host', default=None, help='Obsidian Local REST API Host (default 127.0.0.1)')
-@click.option('--config', default=None, help='Path to configuration file')
+@click.option(
+    '--port',
+    type=int,
+    default=27124,
+    help='Obsidian Local REST API Port'
+)
+@click.option(
+    '--host',
+    default="127.0.0.1",
+    help='Obsidian Local REST API Host'
+)
 @click.pass_context
 def cli(
     ctx: Any,
     token: str | None,
-    port: int | None,
-    host: str | None,
-    config: str | None
+    port: int,
+    host: str
 ) -> None:
-    # Load config
-    try:
-        cfg = load_config(config)
-    except Exception as e:
-        click.echo(f"Error loading config: {e}", err=True)
-        ctx.exit(1)
-
-    # Resolve values (CLI args > Config file > Defaults)
-    final_token = token if token else cfg.token
-    final_port = port if port is not None else cfg.port
-    final_host = host if host else cfg.host
-
-    if not final_token:
+    if not token:
         click.echo(
             "Error: Token is required. Pass --token, or set 'token' in "
             "config file (./obsidian-local-api.toml or "
@@ -57,7 +76,7 @@ def cli(
         )
         ctx.exit(1)
 
-    ctx.obj = ObsidianClient(token=final_token, port=final_port, host=final_host)
+    ctx.obj = ObsidianClient(token=token, port=port, host=host)
 
 
 @cli.command()
