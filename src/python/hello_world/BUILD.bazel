@@ -14,7 +14,6 @@
 
 load("@pypi//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
-load("//tools/python/private:zipapp.bzl", "python_zipapp")
 
 py_library(
     name = "models",
@@ -41,14 +40,6 @@ py_binary(
         ":models",
         requirement("click"),
     ],
-)
-
-# Standalone zipapp executable with shebang
-# This can be copied directly to ~/.local/bin/
-python_zipapp(
-    name = "hello_world_exe",
-    binary = ":hello_world",
-    visibility = ["//visibility:public"],
 )
 
 py_test(
