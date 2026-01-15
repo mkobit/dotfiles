@@ -1,3 +1,1 @@
-#!/bin/bash
-cd "{{ .chezmoi.sourceDir }}"
-exec bazel run //src/python/obsidian_local_api:obsidian_local_api_bin -- "$@"
+{{- template "bazel_run_wrapper.sh" (dict "chezmoi" .chezmoi "target" "//src/python/obsidian_local_api:obsidian_local_api_bin") -}}
