@@ -11,3 +11,12 @@ py_test(
         requirement("aiohttp"),
     ],
 )
+
+py_test(
+    name = "test_config",
+    srcs = ["test_config.py"],
+    deps = [
+        "//src/python/obsidian_local_api:obsidian_local_api_lib",
+        requirement("pytest"),
+    ],
+)

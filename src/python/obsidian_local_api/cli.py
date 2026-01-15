@@ -6,6 +6,7 @@ from typing import Any
 import click
 
 from src.python.obsidian_local_api.client import ObsidianClient
+from src.python.obsidian_local_api.config import load_config
 
 
 def async_command(f: Any) -> Any:
@@ -19,61 +20,44 @@ def async_command(f: Any) -> Any:
     return update_wrapper(wrapper, f)
 
 
-def get_token() -> str | None:
-    """Retrieve the Obsidian API token from environment or config."""
-    # Priority 1: Environment Variable (Direct Token)
-    token = os.environ.get("OBSIDIAN_API_TOKEN")
-    if token:
-        return token
-
-    # Priority 2: Environment Variable (Token File)
-    token_file = os.environ.get("OBSIDIAN_API_TOKEN_FILE")
-    if token_file and os.path.exists(token_file):
-        try:
-            with open(token_file) as f:
-                return f.read().strip()
-        except OSError:
-            pass
-
-    # Priority 3: XDG Config File (~/.config/obsidian-local-api/token)
-    xdg_config_home = os.environ.get(
-        "XDG_CONFIG_HOME", os.path.expanduser("~/.config")
-    )
-    config_file = os.path.join(xdg_config_home, "obsidian-local-api", "token")
-    if os.path.exists(config_file):
-        try:
-            with open(config_file) as f:
-                return f.read().strip()
-        except OSError:
-            pass
-
-    return None
-
-
 @click.group()
 @click.option(
     '--token',
-    help='Obsidian Local REST API Token. Defaults to OBSIDIAN_API_TOKEN '
-         'env var, OBSIDIAN_API_TOKEN_FILE env var, '
-         'or ~/.config/obsidian-local-api/token'
+    help='Obsidian Local REST API Token. Can also be set in config file.'
 )
-@click.option('--port', default=27124, help='Obsidian Local REST API Port')
+@click.option('--port', type=int, default=None, help='Obsidian Local REST API Port (default 27124)')
+@click.option('--host', default=None, help='Obsidian Local REST API Host (default 127.0.0.1)')
+@click.option('--config', default=None, help='Path to configuration file')
 @click.pass_context
-def cli(ctx: Any, token: str | None, port: int) -> None:
-    if not token:
-        token = get_token()
+def cli(
+    ctx: Any,
+    token: str | None,
+    port: int | None,
+    host: str | None,
+    config: str | None
+) -> None:
+    # Load config
+    try:
+        cfg = load_config(config)
+    except Exception as e:
+        click.echo(f"Error loading config: {e}", err=True)
+        ctx.exit(1)
 
-    if not token:
+    # Resolve values (CLI args > Config file > Defaults)
+    final_token = token if token else cfg.token
+    final_port = port if port is not None else cfg.port
+    final_host = host if host else cfg.host
+
+    if not final_token:
         click.echo(
-            "Error: Token is required. Set OBSIDIAN_API_TOKEN, pass --token, "
-            "set OBSIDIAN_API_TOKEN_FILE, or create "
-            "~/.config/obsidian-local-api/token",
+            "Error: Token is required. Pass --token, or set 'token' in "
+            "config file (./obsidian-local-api.toml or "
+            "~/.config/obsidian-local-api/config.toml)",
             err=True
         )
         ctx.exit(1)
 
-    assert token is not None
-    ctx.obj = ObsidianClient(token=token, port=port)
+    ctx.obj = ObsidianClient(token=final_token, port=final_port, host=final_host)
 
 
 @cli.command()
