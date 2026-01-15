@@ -1,0 +1,3 @@
+#!/bin/bash
+cd "{{ .chezmoi.sourceDir }}"
+exec bazel run //src/python/obsidian_local_api:obsidian_local_api_bin -- "$@"

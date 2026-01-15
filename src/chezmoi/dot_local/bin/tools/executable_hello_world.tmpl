@@ -1,0 +1,5 @@
+#!/bin/bash
+# Change to the repo root (CHEZMOI_SOURCE_DIR is where the repo is)
+cd "{{ .chezmoi.sourceDir }}"
+# Exec bazel run
+exec bazel run //src/python/hello_world:hello_world -- "$@"

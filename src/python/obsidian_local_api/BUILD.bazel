@@ -1,5 +1,4 @@
 load("@rules_python//python:defs.bzl", "py_binary", "py_library")
-load("//tools/python/private:zipapp.bzl", "python_zipapp")
 
 py_library(
     name = "obsidian_local_api_lib",
@@ -22,10 +21,4 @@ py_binary(
     deps = [
         ":obsidian_local_api_lib",
     ],
-)
-
-python_zipapp(
-    name = "obsidian_local_api",
-    binary = ":obsidian_local_api_bin",
-    visibility = ["//visibility:public"],
 )
