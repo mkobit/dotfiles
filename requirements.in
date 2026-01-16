@@ -19,3 +19,8 @@ jsonschema
 
 # Time
 whenever
+
+# Transcription
+# faster-whisper # blocked by av build on Python 3.14
+jinja2
+tqdm

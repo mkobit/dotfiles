@@ -17,12 +17,14 @@ manifest:
     frozenlist: frozenlist
     idna: idna
     iniconfig: iniconfig
+    jinja2: jinja2
     jsonschema: jsonschema
     jsonschema_specifications: jsonschema_specifications
     librt.base64: librt
     librt.internal: librt
     librt.strings: librt
     markdown_it: markdown_it_py
+    markupsafe: markupsafe
     mdurl: mdurl
     multidict: multidict
     mypy: mypy
@@ -43,6 +45,7 @@ manifest:
     rpds: rpds_py
     ruff: ruff
     shellingham: shellingham
+    tqdm: tqdm
     typer: typer
     typing_extensions: typing_extensions
     typing_inspection: typing_inspection
@@ -50,4 +53,4 @@ manifest:
     yarl: yarl
   pip_repository:
     name: pypi
-integrity: fe1d6fe38cdd8d4cb367d93d70d834a9e10b0dbe6af3ba2950c3157004d0a817
+integrity: 5e8e5db854b9664a365279585e95a96efbabd89e3d9e3a074f33619a8e1a2c39
