@@ -14,12 +14,7 @@ class ObsidianClient:
     See: https://coddingtonbear.github.io/obsidian-local-rest-api/
     """
 
-    def __init__(
-        self,
-        token: str,
-        port: int = 27124,
-        host: str = "127.0.0.1"
-    ) -> None:
+    def __init__(self, token: str, port: int = 27124, host: str = "127.0.0.1") -> None:
         self.token = Token(token)
         self.host = Host(host)
         self.base_url = f"https://{self.host}:{port}"
@@ -72,10 +67,7 @@ class ObsidianClient:
         if not path.startswith("/vault/"):
             path = f"/vault/{path}"
         return await self._request(
-            "PUT",
-            path,
-            data=content,
-            headers={"Content-Type": "text/markdown"}
+            "PUT", path, data=content, headers={"Content-Type": "text/markdown"}
         )
 
     async def delete_file(self, path: str) -> Any:
@@ -104,10 +96,7 @@ class ObsidianClient:
 
         https://coddingtonbear.github.io/obsidian-local-rest-api/#/Search/get_search_simple
         """
-        return await self._request(
-            "GET",
-            f"/search/simple?query={quote(query)}"
-        )
+        return await self._request("GET", f"/search/simple?query={quote(query)}")
 
     async def get_active_file(self) -> Any:
         """Get the currently active file.

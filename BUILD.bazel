@@ -1,9 +1,9 @@
+load("@aspect_rules_lint//format:defs.bzl", "format_multirun", "format_test")
 load("@bazel_gazelle//:def.bzl", "gazelle", "gazelle_binary")
 load("@pypi//:requirements.bzl", "all_whl_requirements")
 load("@rules_python//python:pip.bzl", "compile_pip_requirements")
 load("@rules_python_gazelle_plugin//manifest:defs.bzl", "gazelle_python_manifest")
 load("@rules_python_gazelle_plugin//modules_mapping:def.bzl", "modules_mapping")
-load("//tools:linting.bzl", "bazel_files_format", "bazel_files_format_test")
 load("//tools:lsp_simple.bzl", "setup_simple_lsp")
 
 package(default_visibility = ["//visibility:public"])
@@ -17,11 +17,19 @@ compile_pip_requirements(
 )
 
 # Format all Bazel files in the repository
-bazel_files_format(name = "format")
+format_multirun(
+    name = "format",
+    python = "@aspect_rules_lint//format:ruff",
+    starlark = "@buildifier_prebuilt//:buildifier",
+)
 
 # Test that all Bazel files are properly formatted
-bazel_files_format_test(
+format_test(
     name = "format_test",
+    no_sandbox = True,
+    python = "@aspect_rules_lint//format:ruff",
+    starlark = "@buildifier_prebuilt//:buildifier",
+    workspace = "//:MODULE.bazel",
 )
 
 # Set up simplified LSP configuration for the project

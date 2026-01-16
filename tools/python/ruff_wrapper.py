@@ -76,7 +76,7 @@ def main() -> None:
     if not candidates:
         print(
             f"Error: Could not find 'ruff' binary. RUNFILES_DIR={runfiles_dir}",
-            file=sys.stderr
+            file=sys.stderr,
         )
         sys.exit(1)
 

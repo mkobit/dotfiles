@@ -19,6 +19,7 @@ class JulesClient:
     Client for interacting with the Jules API.
     See: https://developers.google.com/jules/api
     """
+
     def __init__(self, api_key: str) -> None:
         self._api_key = api_key
         if not self._api_key:
@@ -26,7 +27,7 @@ class JulesClient:
         self._base_url = "https://jules.googleapis.com/v1alpha"
         self._headers = {
             "X-Goog-Api-Key": self._api_key,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
         }
         self._session: aiohttp.ClientSession | None = None
 

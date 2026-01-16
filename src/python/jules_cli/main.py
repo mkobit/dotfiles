@@ -21,6 +21,7 @@ def cli() -> None:
     """Jules CLI tool for interacting with the Jules API."""
     pass
 
+
 def get_api_key() -> str:
     """
     Retrieves the Jules API key.
@@ -36,6 +37,7 @@ def get_api_key() -> str:
     click.echo(f"Error: JULES_API_KEY not found in {config_file}.", err=True)
     sys.exit(1)
 
+
 def run_fzf(items: list[str]) -> str | None:
     """Runs fzf with the given items and returns the selected item."""
     if not shutil.which("fzf"):
@@ -48,12 +50,13 @@ def run_fzf(items: list[str]) -> str | None:
         input=input_str,
         text=True,
         stdout=subprocess.PIPE,
-        stderr=None
+        stderr=None,
     )
 
     if result.returncode == 0 and result.stdout:
         return result.stdout.strip()
     return None
+
 
 async def interactive_session_loop(client: JulesClient, session_id: str) -> None:
     """Interactive loop for a specific session."""
@@ -75,13 +78,13 @@ async def interactive_session_loop(client: JulesClient, session_id: str) -> None
         for activity in activities:
             if activity.originator == "user":
                 click.secho("User: ", fg="green", bold=True, nl=False)
-                click.echo(f"(Action: {activity.name})") # Placeholder
+                click.echo(f"(Action: {activity.name})")  # Placeholder
             else:
                 click.secho("Agent: ", fg="blue", bold=True, nl=False)
                 if activity.progress_updated:
                     click.echo(f"{activity.progress_updated.title}")
                     if activity.progress_updated.description:
-                         click.echo(f"  {activity.progress_updated.description}")
+                        click.echo(f"  {activity.progress_updated.description}")
                 elif activity.plan_generated:
                     click.echo("Generated Plan:")
                     for step in activity.plan_generated.plan.steps:
@@ -96,17 +99,18 @@ async def interactive_session_loop(client: JulesClient, session_id: str) -> None
         click.echo("[r]eply, [a]pprove plan, [R]efresh, [b]ack")
 
         char = click.getchar()
-        if char == 'b':
+        if char == "b":
             break
-        elif char == 'R':
+        elif char == "R":
             continue
-        elif char == 'r':
+        elif char == "r":
             msg = click.prompt("Message")
             await client.send_message(session_id, msg)
-        elif char == 'a':
+        elif char == "a":
             confirm = click.confirm("Approve latest plan?")
             if confirm:
                 await client.approve_plan(session_id)
+
 
 async def main_menu() -> None:
     api_key = get_api_key()
@@ -140,31 +144,37 @@ async def main_menu() -> None:
                 session_id = next(iter(parts), None)
 
                 if session_id:
-                     await interactive_session_loop(client, session_id)
+                    await interactive_session_loop(client, session_id)
 
     except ValueError as e:
         click.echo(str(e), err=True)
         sys.exit(1)
+
 
 @cli.command()
 def interact() -> None:
     """Interactive mode to view and manage sessions."""
     asyncio.run(main_menu())
 
+
 @cli.command(name="list")
 def list_sessions() -> None:
     """List recent sessions."""
+
     async def _list() -> None:
         api_key = get_api_key()
         async with JulesClient(api_key) as client:
             async for s in client.list_sessions():
                 click.echo(f"{s.id}: {s.title}")
+
     asyncio.run(_list())
+
 
 @cli.command()
 @click.argument("session_id")
 def show(session_id: str) -> None:
     """Show details for a session."""
+
     async def _show() -> None:
         api_key = get_api_key()
         async with JulesClient(api_key) as client:
@@ -179,7 +189,9 @@ def show(session_id: str) -> None:
                     click.echo(f"{act.originator}: {act.name}")
             except Exception as e:
                 click.echo(f"Error: {e}", err=True)
+
     asyncio.run(_show())
+
 
 @cli.command()
 @click.option("--prompt", required=True, help="The initial prompt for the session.")
@@ -224,7 +236,7 @@ def create(
 
         source_context = SourceContext(
             source=full_source,
-            github_repo_context=GitHubRepoContext(starting_branch=branch)
+            github_repo_context=GitHubRepoContext(starting_branch=branch),
         )
 
         req = CreateSessionRequest(
@@ -232,7 +244,7 @@ def create(
             source_context=source_context,
             automation_mode=AutomationMode.AUTO_CREATE_PR if auto_pr else None,
             title=title,
-            require_plan_approval=approve
+            require_plan_approval=approve,
         )
 
         async with JulesClient(api_key) as client:
@@ -250,6 +262,7 @@ def create(
                 sys.exit(1)
 
     asyncio.run(_create())
+
 
 if __name__ == "__main__":
     cli()

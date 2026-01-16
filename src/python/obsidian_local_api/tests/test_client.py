@@ -26,6 +26,7 @@ async def test_client_get_file() -> None:
         assert args[1] == "https://127.0.0.1:27124/vault/test.md"
         assert kwargs["headers"]["Authorization"] == "Bearer test-token"
 
+
 @pytest.mark.asyncio
 async def test_client_create_file() -> None:
     token = "test-token"
@@ -45,6 +46,7 @@ async def test_client_create_file() -> None:
         # Verify Content-Type is set to markdown
         assert kwargs["headers"]["Content-Type"] == "text/markdown"
 
+
 @pytest.mark.asyncio
 async def test_client_delete_file() -> None:
     token = "test-token"
@@ -60,6 +62,7 @@ async def test_client_delete_file() -> None:
         args, kwargs = mock_request.call_args
         assert args[0] == "DELETE"
         assert args[1] == "https://127.0.0.1:27124/vault/del.md"
+
 
 @pytest.mark.asyncio
 async def test_client_list_files_root() -> None:
@@ -77,6 +80,7 @@ async def test_client_list_files_root() -> None:
         args, kwargs = mock_request.call_args
         assert args[0] == "GET"
         assert args[1] == "https://127.0.0.1:27124/vault/"
+
 
 @pytest.mark.asyncio
 async def test_client_list_files_subdir() -> None:

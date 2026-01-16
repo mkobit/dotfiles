@@ -24,11 +24,7 @@ def load_config_callback(ctx: Any, param: Any, value: str | None) -> str | None:
     try:
         cfg = load_config(value)
         # Convert config model to dict, filtering out None values
-        config_dict = {
-            k: v
-            for k, v in cfg.model_dump().items()
-            if v is not None
-        }
+        config_dict = {k: v for k, v in cfg.model_dump().items() if v is not None}
         ctx.default_map = config_dict
     except Exception as e:
         raise click.ClickException(f"Error loading config: {e}") from e
@@ -37,50 +33,37 @@ def load_config_callback(ctx: Any, param: Any, value: str | None) -> str | None:
 
 @click.group()
 @click.option(
-    '--config',
+    "--config",
     default=None,
-    help='Path to configuration file',
+    help="Path to configuration file",
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     callback=load_config_callback,
     is_eager=True,
-    expose_value=False
+    expose_value=False,
 )
 @click.option(
-    '--token',
-    help='Obsidian Local REST API Token. Can also be set in config file.'
+    "--token", help="Obsidian Local REST API Token. Can also be set in config file."
 )
-@click.option(
-    '--port',
-    type=int,
-    default=27124,
-    help='Obsidian Local REST API Port'
-)
-@click.option(
-    '--host',
-    default="127.0.0.1",
-    help='Obsidian Local REST API Host'
-)
+@click.option("--port", type=int, default=27124, help="Obsidian Local REST API Port")
+@click.option("--host", default="127.0.0.1", help="Obsidian Local REST API Host")
 @click.pass_context
-def cli(
-    ctx: Any,
-    token: str | None,
-    port: int,
-    host: str
-) -> None:
+def cli(ctx: Any, token: str | None, port: int, host: str) -> None:
     if not token:
         click.echo(
             "Error: Token is required. Pass --token, or set 'token' in "
             "config file (./obsidian-local-api.toml or "
             "~/.config/obsidian-local-api/config.toml)",
-            err=True
+            err=True,
         )
         ctx.exit(1)
 
+    # We know token is not None here because of the check above
+    assert token is not None
     ctx.obj = ObsidianClient(token=token, port=port, host=host)
 
 
 @cli.command()
-@click.argument('path')
+@click.argument("path")
 @async_command
 @click.pass_context
 async def read(ctx: Any, path: str) -> None:
@@ -94,8 +77,8 @@ async def read(ctx: Any, path: str) -> None:
 
 
 @cli.command()
-@click.argument('path')
-@click.argument('content')
+@click.argument("path")
+@click.argument("content")
 @async_command
 @click.pass_context
 async def write(ctx: Any, path: str, content: str) -> None:
@@ -109,7 +92,7 @@ async def write(ctx: Any, path: str, content: str) -> None:
 
 
 @cli.command()
-@click.argument('path')
+@click.argument("path")
 @async_command
 @click.pass_context
 async def delete(ctx: Any, path: str) -> None:
@@ -122,8 +105,8 @@ async def delete(ctx: Any, path: str) -> None:
         raise click.ClickException(str(e)) from e
 
 
-@cli.command(name='list')
-@click.argument('folder', default='/', required=False)
+@cli.command(name="list")
+@click.argument("folder", default="/", required=False)
 @async_command
 @click.pass_context
 async def list_files(ctx: Any, folder: str) -> None:
@@ -137,7 +120,7 @@ async def list_files(ctx: Any, folder: str) -> None:
 
 
 @cli.command()
-@click.argument('query')
+@click.argument("query")
 @async_command
 @click.pass_context
 async def search(ctx: Any, query: str) -> None:
@@ -177,7 +160,7 @@ async def commands(ctx: Any) -> None:
 
 
 @cli.command()
-@click.argument('command_id')
+@click.argument("command_id")
 @async_command
 @click.pass_context
 async def run_command(ctx: Any, command_id: str) -> None:
@@ -190,5 +173,5 @@ async def run_command(ctx: Any, command_id: str) -> None:
         raise click.ClickException(str(e)) from e
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()
