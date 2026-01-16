@@ -5,11 +5,13 @@ py_library(
     srcs = [
         "__init__.py",
         "client.py",
+        "config.py",
     ],
     visibility = ["//visibility:public"],
     deps = [
         "@pypi//aiohttp",
         "@pypi//click",
+        "@pypi//pydantic",
     ],
 )
 
