@@ -9,15 +9,11 @@ MOCK_SESSION_DATA = {
     "id": "123",
     "title": "Test Session",
     "prompt": "Test Prompt",
-    "sourceContext": {
-        "source": "sources/github/test/repo"
-    }
+    "sourceContext": {"source": "sources/github/test/repo"},
 }
 
-MOCK_LIST_SESSIONS_DATA = {
-    "sessions": [MOCK_SESSION_DATA],
-    "nextPageToken": None
-}
+MOCK_LIST_SESSIONS_DATA = {"sessions": [MOCK_SESSION_DATA], "nextPageToken": None}
+
 
 def test_session_model() -> None:
     session = Session(**MOCK_SESSION_DATA)
@@ -25,10 +21,12 @@ def test_session_model() -> None:
     assert session.title == "Test Session"
     assert session.source_context.source == "sources/github/test/repo"
 
+
 @pytest.mark.asyncio
 async def test_client_init_error() -> None:
     with pytest.raises(ValueError):
         JulesClient(api_key="")
+
 
 @pytest.mark.asyncio
 async def test_client_get_session() -> None:
@@ -66,28 +64,39 @@ async def test_client_get_session() -> None:
     client = JulesClient(api_key="test_key")
     # We are mocking internal _session which is typed as aiohttp.ClientSession
     # So we need ignore here or make MockSession compatible.
-    client._session = MockSession() # type: ignore
+    client._session = MockSession()  # type: ignore
 
     session = await client.get_session("sessions/123")
     assert session.id == "123"
+
 
 @pytest.mark.asyncio
 async def test_client_list_sessions() -> None:
     class MockResponse:
         def __init__(self, data: dict) -> None:
             self._data = data
-        async def json(self) -> dict: return self._data
-        def raise_for_status(self) -> None: pass
-        async def __aenter__(self) -> "MockResponse": return self
-        async def __aexit__(self, *args: object) -> None: pass
+
+        async def json(self) -> dict:
+            return self._data
+
+        def raise_for_status(self) -> None:
+            pass
+
+        async def __aenter__(self) -> "MockResponse":
+            return self
+
+        async def __aexit__(self, *args: object) -> None:
+            pass
 
     class MockSession:
         def get(self, url: str, params: dict | None = None) -> MockResponse:
             return MockResponse(MOCK_LIST_SESSIONS_DATA)
-        async def close(self) -> None: pass
+
+        async def close(self) -> None:
+            pass
 
     client = JulesClient(api_key="test_key")
-    client._session = MockSession() # type: ignore
+    client._session = MockSession()  # type: ignore
 
     sessions = []
     async for s in client.list_sessions():

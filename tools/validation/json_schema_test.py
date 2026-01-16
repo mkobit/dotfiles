@@ -23,6 +23,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """Generate test parameters for each JSON file passed after -- separator."""
     if "json_file" in metafunc.fixturenames:
         import os
+
         schema = os.environ.get("TEST_SCHEMA_PATH")
         files = os.environ.get("TEST_JSON_FILES")
 
@@ -58,8 +59,9 @@ def test_schema_validation() -> None:
     except Exception as e:
         pytest.fail(f"Failed to read schema file: {e}")
 
-    assert isinstance(schema, dict), \
+    assert isinstance(schema, dict), (
         f"Schema must be a JSON object, got {type(schema).__name__}"
+    )
 
     try:
         Draft7Validator.check_schema(schema)
@@ -100,9 +102,9 @@ def test_json_file_validation(json_file: Path) -> None:
     try:
         jsonschema.validate(data, schema)
     except ValidationError as e:
-        error_path = " -> ".join(
-            str(p) for p in e.absolute_path
-        ) if e.absolute_path else "root"
+        error_path = (
+            " -> ".join(str(p) for p in e.absolute_path) if e.absolute_path else "root"
+        )
         pytest.fail(
             f"Schema validation failed for {json_file}\n"
             f"  Location: {error_path}\n"
@@ -115,6 +117,7 @@ def test_json_file_validation(json_file: Path) -> None:
 
 if __name__ == "__main__":
     import os
+
     # Manual argument parsing
     args = sys.argv[1:]
 
@@ -137,7 +140,7 @@ if __name__ == "__main__":
     try:
         if "--" in args:
             idx = args.index("--")
-            json_files_args = args[idx + 1:]
+            json_files_args = args[idx + 1 :]
         else:
             skip_next = False
             for arg in args:

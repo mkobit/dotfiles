@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 class ObsidianConfig(BaseModel):
     """Configuration for Obsidian Local API."""
+
     token: str | None = None
     port: int = 27124
     host: str = "127.0.0.1"
