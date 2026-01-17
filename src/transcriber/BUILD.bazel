@@ -11,9 +11,8 @@ py_library(
     visibility = ["//visibility:public"],
     deps = [
         requirement("click"),
-        # requirement("faster-whisper"),
+        requirement("openai-whisper"),
         requirement("jinja2"),
-        requirement("tqdm"),
         requirement("whenever"),
     ],
 )

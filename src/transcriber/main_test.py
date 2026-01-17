@@ -8,27 +8,23 @@ from src.transcriber.main import main
 
 
 class TestTranscriber(unittest.TestCase):
-    @patch("src.transcriber.main.WhisperModel")
-    def test_transcription_cli(self, mock_whisper_model: MagicMock) -> None:
-        """Test the CLI flow with mocked WhisperModel."""
+    @patch("src.transcriber.main.whisper.load_model")
+    def test_transcription_cli(self, mock_load_model: MagicMock) -> None:
+        """Test the CLI flow with mocked whisper model."""
         # Setup Mock Model Instance
         mock_model_instance = MagicMock()
-        mock_whisper_model.return_value = mock_model_instance
+        mock_load_model.return_value = mock_model_instance
 
         # Setup Mock Transcribe Result
-        # segments must be a generator or iterable
-        mock_segment = MagicMock()
-        mock_segment.text = "Hello world "
-        mock_segment.end = 1.0
+        mock_result = {
+            "text": "Hello world ",
+            "segments": [
+                {"text": "Hello world ", "end": 1.0}
+            ]
+        }
 
-        mock_info = MagicMock()
-        mock_info.duration = 1.0
-
-        # transcribe returns (segments, info)
-        mock_model_instance.transcribe.return_value = (
-            iter([mock_segment]),
-            mock_info,
-        )
+        # transcribe returns result dict
+        mock_model_instance.transcribe.return_value = mock_result
 
         runner = CliRunner()
         with runner.isolated_filesystem():
@@ -45,18 +41,16 @@ class TestTranscriber(unittest.TestCase):
             self.assertEqual(result.exit_code, 0)
 
             # Verify Model Initialization
-            mock_whisper_model.assert_called_once()
+            mock_load_model.assert_called_once()
             # Check default args
-            call_args = mock_whisper_model.call_args
+            call_args = mock_load_model.call_args
             self.assertEqual(call_args[0][0], "base.en")  # positional arg model_size
             self.assertEqual(call_args[1]["device"], "auto")
-            self.assertEqual(call_args[1]["compute_type"], "auto")
 
             # Verify Transcribe Call
             mock_model_instance.transcribe.assert_called_once()
             transcribe_args = mock_model_instance.transcribe.call_args
             # Click passes the path as provided, which might be relative or absolute
-            # In isolated_filesystem, it's relative 'test_audio.mp3'
             self.assertEqual(transcribe_args[0][0], str(input_path))
             self.assertEqual(transcribe_args[1]["beam_size"], 5)
 
@@ -66,15 +60,17 @@ class TestTranscriber(unittest.TestCase):
             self.assertIn("size: base.en", output_content)  # From default template
             self.assertIn("duration_seconds: 1.0", output_content)
 
-    @patch("src.transcriber.main.WhisperModel")
-    def test_custom_template(self, mock_whisper_model: MagicMock) -> None:
+    @patch("src.transcriber.main.whisper.load_model")
+    def test_custom_template(self, mock_load_model: MagicMock) -> None:
         """Test using a custom Jinja2 template."""
         mock_model_instance = MagicMock()
-        mock_whisper_model.return_value = mock_model_instance
-        mock_model_instance.transcribe.return_value = (
-            iter([]),
-            MagicMock(duration=0.0),
-        )
+        mock_load_model.return_value = mock_model_instance
+
+        mock_result = {
+            "text": "Hello world",
+            "segments": [] # No segments, duration should be 0.0
+        }
+        mock_model_instance.transcribe.return_value = mock_result
 
         runner = CliRunner()
         with runner.isolated_filesystem():

@@ -1,29 +1,13 @@
 #!/usr/bin/env python3
-import os
 import sys
 import time
 from pathlib import Path
 from dataclasses import replace
 
-# --- START_IMPORTS ---
-if __name__ == "__main__":
-    # Allow running from source/tests without Bazel
-    current_file = Path(__file__).resolve()
-    repo_root = current_file.parents[2]
-    if str(repo_root) not in sys.path:
-        sys.path.append(str(repo_root))
-# --- END_IMPORTS ---
-
 import click
 import whenever
-from tqdm import tqdm
 
-try:
-    from faster_whisper import WhisperModel
-except ImportError:
-    # Fallback for when faster-whisper is not installed (e.g., build failure)
-    # This allows the tool to compile and run tests that mock it.
-    WhisperModel = None
+import whisper
 
 from src.transcriber.schemas import ModelSize, Device, ComputeType, ModelInfo, FileInfo, TranscriptionMetadata
 from src.transcriber.render import render_template
@@ -47,16 +31,15 @@ def main(
 ) -> None:
     """Transcribe audio files using faster-whisper."""
 
-    if WhisperModel is None:
-        raise click.ClickException("faster-whisper is not installed. Please install it to use this tool.")
-
     start_time = time.monotonic()
 
     # Load Model
     model_load_start = time.monotonic()
     click.echo(f"Loading model {model_size} on {device}...", err=True)
 
-    model = WhisperModel(model_size, device=device, compute_type=compute_type)
+    # OpenAI Whisper load_model takes 'name' and 'device'. 'compute_type' is handled differently or ignored for load_model
+    # but we can pass it if we were using faster-whisper. For openai-whisper, we stick to standard args.
+    model = whisper.load_model(model_size, device=device)
 
     model_load_end = time.monotonic()
     load_time = model_load_end - model_load_start
@@ -74,22 +57,23 @@ def main(
     transcription_start = time.monotonic()
     click.echo(f"Transcribing {input_file}...", err=True)
 
-    segments_generator, info = model.transcribe(str(input_file), beam_size=BEAM_SIZE)
-
-    # Update duration from info
-    file_info = replace(file_info, duration_seconds=info.duration)
-
-    segments = []
-    with tqdm(total=info.duration, unit="s", file=sys.stderr) as pbar:
-        for segment in segments_generator:
-            segments.append(segment)
-            pbar.update(segment.end - pbar.n) # Update progress to current segment end
+    # OpenAI Whisper transcribe returns a dict
+    result = model.transcribe(str(input_file), beam_size=BEAM_SIZE, verbose=False)
 
     transcription_end = time.monotonic()
     transcription_time = transcription_end - transcription_start
 
     # Collect Text
-    full_text = "".join([segment.text for segment in segments]).strip()
+    full_text = result["text"].strip()
+
+    # OpenAI Whisper doesn't give info.duration easily in the return without inspecting audio first?
+    # Actually it's not in the result dict usually. We might need to rely on ffmpeg or just skip duration if unknown.
+    # But wait, result['segments'] might have timing.
+    segments = result.get("segments", [])
+    duration = segments[-1]["end"] if segments else 0.0
+
+    # Update duration
+    file_info = replace(file_info, duration_seconds=duration)
 
     # Prepare Metadata
     metadata = TranscriptionMetadata(
