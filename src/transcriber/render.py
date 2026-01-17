@@ -6,7 +6,6 @@ DEFAULT_TEMPLATE = """---
 model:
   size: {{ metadata.model.size.value }}
   device: {{ metadata.model.device.value }}
-  compute_type: {{ metadata.model.compute_type.value }}
   load_time_seconds: {{ metadata.model.load_time_seconds }}
 file:
   path: {{ metadata.file.path }}
@@ -31,9 +30,6 @@ def render_template(template_path: Path | None, data: dict[str, Any]) -> str:
         Rendered string.
     """
     if template_path:
-        # User constraint: accept pathlib.Path object.
-        if not isinstance(template_path, Path):
-             raise TypeError("template_path must be a pathlib.Path object")
         content = template_path.read_text(encoding="utf-8")
         template = Template(content)
     else:

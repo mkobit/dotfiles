@@ -9,7 +9,7 @@ import whenever
 
 import whisper
 
-from src.transcriber.schemas import ModelSize, Device, ComputeType, ModelInfo, FileInfo, TranscriptionMetadata
+from src.transcriber.schemas import ModelSize, Device, ModelInfo, FileInfo, TranscriptionMetadata
 from src.transcriber.render import render_template
 
 BEAM_SIZE = 5
@@ -18,18 +18,16 @@ BEAM_SIZE = 5
 @click.argument("input_file", type=click.Path(exists=True, path_type=Path))
 @click.option("--model-size", type=click.Choice([e.value for e in ModelSize]), default=ModelSize.BASE_EN.value, help="Model size")
 @click.option("--device", type=click.Choice([e.value for e in Device]), default=Device.AUTO.value, help="Device to use")
-@click.option("--compute-type", type=click.Choice([e.value for e in ComputeType]), default=ComputeType.AUTO.value, help="Compute type")
 @click.option("--template", type=click.Path(exists=True, path_type=Path), default=None, help="Path to custom Jinja2 template")
 @click.option("--output", "-o", type=click.File("w", encoding="utf-8"), default="-", help="Output file (default: stdout)")
 def main(
     input_file: Path,
     model_size: str,
     device: str,
-    compute_type: str,
     template: Path | None,
     output: click.utils.LazyFile,
 ) -> None:
-    """Transcribe audio files using faster-whisper."""
+    """Transcribe audio files using openai-whisper."""
 
     start_time = time.monotonic()
 
@@ -37,8 +35,6 @@ def main(
     model_load_start = time.monotonic()
     click.echo(f"Loading model {model_size} on {device}...", err=True)
 
-    # OpenAI Whisper load_model takes 'name' and 'device'. 'compute_type' is handled differently or ignored for load_model
-    # but we can pass it if we were using faster-whisper. For openai-whisper, we stick to standard args.
     model = whisper.load_model(model_size, device=device)
 
     model_load_end = time.monotonic()
@@ -80,7 +76,6 @@ def main(
         model=ModelInfo(
             size=ModelSize(model_size),
             device=Device(device),
-            compute_type=ComputeType(compute_type),
             load_time_seconds=load_time
         ),
         file=file_info,

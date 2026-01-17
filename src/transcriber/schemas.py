@@ -4,6 +4,10 @@ from typing import Optional
 
 @unique
 class ModelSize(str, Enum):
+    """
+    Available Whisper model sizes.
+    Source: https://github.com/openai/whisper#available-models-and-languages
+    """
     TINY = "tiny"
     TINY_EN = "tiny.en"
     BASE = "base"
@@ -13,12 +17,7 @@ class ModelSize(str, Enum):
     MEDIUM = "medium"
     MEDIUM_EN = "medium.en"
     LARGE = "large"
-    LARGE_V1 = "large-v1"
-    LARGE_V2 = "large-v2"
     LARGE_V3 = "large-v3"
-    DISTIL_LARGE_V2 = "distil-large-v2"
-    DISTIL_MEDIUM_EN = "distil-medium.en"
-    DISTIL_SMALL_EN = "distil-small.en"
 
 @unique
 class Device(str, Enum):
@@ -26,20 +25,10 @@ class Device(str, Enum):
     CUDA = "cuda"
     AUTO = "auto"
 
-@unique
-class ComputeType(str, Enum):
-    INT8 = "int8"
-    INT8_FLOAT16 = "int8_float16"
-    INT16 = "int16"
-    FLOAT16 = "float16"
-    FLOAT32 = "float32"
-    AUTO = "auto"
-
 @dataclass(frozen=True)
 class ModelInfo:
     size: ModelSize
     device: Device
-    compute_type: ComputeType
     load_time_seconds: float
 
 @dataclass(frozen=True)

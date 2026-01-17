@@ -37,6 +37,9 @@ class TestTranscriber(unittest.TestCase):
 
             if result.exit_code != 0:
                 print(result.output)
+                print(result.exception)
+                import traceback
+                traceback.print_exception(*result.exc_info)
 
             self.assertEqual(result.exit_code, 0)
 
