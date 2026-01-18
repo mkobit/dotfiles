@@ -11,42 +11,11 @@ load("@rules_shell//shell:sh_test.bzl", "sh_test")
 load("//tools/chezmoi:rules.bzl", "chezmoi_execute_template")
 load(":toolchain.bzl", "chezmoi_toolchain")
 
-# Define constraints for different platforms.
-# These are used to select the correct pre-built binary.
-config_setting(
-    name = "darwin_arm64",
-    constraint_values = [
-        "@platforms//os:osx",
-        "@platforms//cpu:arm64",
-    ],
-)
-
-config_setting(
-    name = "darwin_amd64",
-    constraint_values = [
-        "@platforms//os:osx",
-        "@platforms//cpu:x86_64",
-    ],
-)
-
-config_setting(
-    name = "linux_amd64",
-    constraint_values = [
-        "@platforms//os:linux",
-        "@platforms//cpu:x86_64",
-    ],
-)
-
 # Define the toolchain implementation, selecting the correct
 # pre-built binary based on the host platform.
 chezmoi_toolchain(
     name = "chezmoi_toolchain_impl",
-    chezmoi = select({
-        ":darwin_arm64": "@chezmoi_darwin_arm64//:chezmoi",
-        ":darwin_amd64": "@chezmoi_darwin_amd64//:chezmoi",
-        ":linux_amd64": "@chezmoi_linux_amd64//:chezmoi",
-        "//conditions:default": "@chezmoi_linux_amd64//:chezmoi",  # Default for now
-    }),
+    chezmoi = "@multitool//tools/chezmoi",
 )
 
 # Define the toolchain itself and register the implementation.

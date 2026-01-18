@@ -1,0 +1,31 @@
+{
+  "$schema": "https://raw.githubusercontent.com/theoremlp/rules_multitool/main/lockfile.schema.json",
+  "chezmoi": {
+    "binaries": [
+      {
+        "kind": "archive",
+        "url": "https://github.com/twpayne/chezmoi/releases/download/v2.67.0/chezmoi_2.67.0_darwin_arm64.tar.gz",
+        "sha256": "debce7c1f2c18d5b804c02dce3881354fb66a71a35d0a5b015e71491fdd344c5",
+        "file": "chezmoi",
+        "os": "macos",
+        "cpu": "arm64"
+      },
+      {
+        "kind": "archive",
+        "url": "https://github.com/twpayne/chezmoi/releases/download/v2.67.0/chezmoi_2.67.0_darwin_amd64.tar.gz",
+        "sha256": "f4ba4e54aed28b190c8ba93ba6f01424732146715b4f725af6c79f59edcdc5be",
+        "file": "chezmoi",
+        "os": "macos",
+        "cpu": "x86_64"
+      },
+      {
+        "kind": "archive",
+        "url": "https://github.com/twpayne/chezmoi/releases/download/v2.67.0/chezmoi_2.67.0_linux_amd64.tar.gz",
+        "sha256": "4b9f7fa3a740715152400c8cb9aa87d8fe1b96f555018457717f12ada6c61eff",
+        "file": "chezmoi",
+        "os": "linux",
+        "cpu": "x86_64"
+      }
+    ]
+  }
+}
