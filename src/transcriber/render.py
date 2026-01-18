@@ -7,13 +7,19 @@ model:
   size: {{ metadata.model.size.value }}
   device: {{ metadata.model.device.value }}
   load_time_seconds: {{ metadata.model.load_time_seconds }}
+  is_multilingual: {{ metadata.model.is_multilingual }}
+  dims:
+    n_mels: {{ metadata.model.dims.n_mels }}
+    n_vocab: {{ metadata.model.dims.n_vocab }}
+    n_audio_layer: {{ metadata.model.dims.n_audio_layer }}
 file:
   path: {{ metadata.file.path }}
   size_bytes: {{ metadata.file.size_bytes }}
   duration_seconds: {{ metadata.file.duration_seconds }}
 transcription:
   time_seconds: {{ metadata.transcription_time_seconds }}
-  timestamp: {{ metadata.timestamp }}
+  timestamp: {{ metadata.timestamp.format_common_iso() }}
+  whisper_version: {{ metadata.whisper_version }}
 ---
 
 {{ text }}

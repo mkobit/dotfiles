@@ -2,7 +2,7 @@
 import sys
 import time
 from pathlib import Path
-from dataclasses import replace
+from dataclasses import replace, asdict
 
 import click
 import whenever
@@ -15,6 +15,7 @@ from src.transcriber.schemas import (
     ModelInfo,
     FileInfo,
     TranscriptionMetadata,
+    ModelDimensions,
 )
 from src.transcriber.render import render_template
 
@@ -84,6 +85,9 @@ def main(
     transcription_start = time.monotonic()
     click.echo(f"Transcribing {input_file}...", err=True)
 
+    # Capture timestamp before transcription starts
+    timestamp = whenever.Instant.now()
+
     # OpenAI Whisper transcribe returns a dict
     # We use verbose=verbose to optionally show progress (segments)
     result = model.transcribe(str(input_file), beam_size=BEAM_SIZE, verbose=verbose)
@@ -94,14 +98,26 @@ def main(
     # Collect Text
     full_text = result["text"].strip()
 
-    # OpenAI Whisper doesn't give info.duration easily in the return without inspecting audio first?
-    # Actually it's not in the result dict usually. We might need to rely on ffmpeg or just skip duration if unknown.
-    # But wait, result['segments'] might have timing.
     segments = result.get("segments", [])
     duration = segments[-1]["end"] if segments else 0.0
 
     # Update duration
     file_info = replace(file_info, duration_seconds=duration)
+
+    # Extract model dimensions
+    # model.dims is a NamedTuple or dataclass, convert to our schema
+    dims = ModelDimensions(
+        n_mels=model.dims.n_mels,
+        n_audio_ctx=model.dims.n_audio_ctx,
+        n_audio_state=model.dims.n_audio_state,
+        n_audio_head=model.dims.n_audio_head,
+        n_audio_layer=model.dims.n_audio_layer,
+        n_vocab=model.dims.n_vocab,
+        n_text_ctx=model.dims.n_text_ctx,
+        n_text_state=model.dims.n_text_state,
+        n_text_head=model.dims.n_text_head,
+        n_text_layer=model.dims.n_text_layer,
+    )
 
     # Prepare Metadata
     metadata = TranscriptionMetadata(
@@ -109,10 +125,13 @@ def main(
             size=ModelSize(model_size),
             device=Device(device),
             load_time_seconds=load_time,
+            dims=dims,
+            is_multilingual=model.is_multilingual,
         ),
         file=file_info,
         transcription_time_seconds=transcription_time,
-        timestamp=whenever.Instant.now().format_common_iso(),
+        timestamp=timestamp,
+        whisper_version=whisper.__version__,
     )
 
     # Render Output

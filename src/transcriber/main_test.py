@@ -13,6 +13,20 @@ class TestTranscriber(unittest.TestCase):
         """Test the CLI flow with mocked whisper model."""
         # Setup Mock Model Instance
         mock_model_instance = MagicMock()
+
+        # Setup attributes required by main.py
+        mock_model_instance.dims.n_mels = 80
+        mock_model_instance.dims.n_audio_ctx = 1500
+        mock_model_instance.dims.n_audio_state = 384
+        mock_model_instance.dims.n_audio_head = 6
+        mock_model_instance.dims.n_audio_layer = 4
+        mock_model_instance.dims.n_vocab = 51865
+        mock_model_instance.dims.n_text_ctx = 448
+        mock_model_instance.dims.n_text_state = 384
+        mock_model_instance.dims.n_text_head = 6
+        mock_model_instance.dims.n_text_layer = 4
+        mock_model_instance.is_multilingual = False
+
         mock_load_model.return_value = mock_model_instance
 
         # Setup Mock Transcribe Result
@@ -66,6 +80,20 @@ class TestTranscriber(unittest.TestCase):
     def test_custom_template(self, mock_load_model: MagicMock) -> None:
         """Test using a custom Jinja2 template."""
         mock_model_instance = MagicMock()
+
+        # Setup attributes required by main.py
+        mock_model_instance.dims.n_mels = 80
+        mock_model_instance.dims.n_audio_ctx = 1500
+        mock_model_instance.dims.n_audio_state = 384
+        mock_model_instance.dims.n_audio_head = 6
+        mock_model_instance.dims.n_audio_layer = 4
+        mock_model_instance.dims.n_vocab = 51865
+        mock_model_instance.dims.n_text_ctx = 448
+        mock_model_instance.dims.n_text_state = 384
+        mock_model_instance.dims.n_text_head = 6
+        mock_model_instance.dims.n_text_layer = 4
+        mock_model_instance.is_multilingual = False
+
         mock_load_model.return_value = mock_model_instance
 
         mock_result = {
