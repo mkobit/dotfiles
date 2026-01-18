@@ -10,6 +10,7 @@ select = [
     "I",  # isort
     "B",  # flake8-bugbear
     "UP", # pyupgrade
+    "UP045", # Explicitly enable UP045 (Optional replacement)
     "N",  # pep8-naming
     "C90", # mccabe
 ]

@@ -7,8 +7,8 @@ load("@rules_python//python:defs.bzl", "PyInfo")
 
 # Define Ruff aspect
 ruff = lint_ruff_aspect(
-    binary = "@aspect_rules_lint//format:ruff",
-    configs = ["@@//:pyproject.toml"],
+    binary = Label("//tools/lint:ruff_wrapper"),
+    configs = [Label("//:pyproject.toml")],
 )
 
 # Define Mypy aspect (custom implementation)
