@@ -41,7 +41,6 @@ multitool.hub(lockfile = "//tools:multitool.lock.json")
 use_repo(multitool, "multitool")
 
 # Register toolchains
-register_toolchains("@//tools/chezmoi/private:chezmoi_toolchain")
 
 # External dependencies
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
@@ -67,4 +66,3 @@ exports_files(["tmux"])
     strip_prefix = "tmux-3.5a-linux-arm64",
     urls = ["https://github.com/mjakob-gh/build-static-tmux/releases/download/v3.5a/tmux-3.5a-linux-arm64.tar.gz"],
 )
-

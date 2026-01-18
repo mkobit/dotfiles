@@ -7,25 +7,94 @@ Public-facing rules for interacting with `chezmoi`.
 def _chezmoi_execute_template_impl(ctx):
     """
     Core implementation of the `chezmoi_execute_template` rule.
-    This rule now delegates the action creation to the toolchain.
+    Executes a chezmoi template using the chezmoi binary.
     """
-    chezmoi_info = ctx.toolchains["@//tools/chezmoi:toolchain_type"]
+    chezmoi_executable = ctx.executable._chezmoi
+    src = ctx.file.src
+    out = ctx.outputs.out
+    data_file = ctx.file.data_file
+    data_srcs = depset(ctx.files.data_srcs)
+    source_dir_files = depset(ctx.files.srcs)
 
-    # Call the high-level API provided by the toolchain
-    chezmoi_info.execute_template(
-        ctx = ctx,  # Pass our context to the toolchain helper
-        src = ctx.file.src,
-        out = ctx.outputs.out,
-        data_file = ctx.file.data_file,
-        data_srcs = depset(ctx.files.data_srcs),
-        source_dir_files = depset(ctx.files.srcs),
+    # Build script to create source directory and execute chezmoi
+    script_lines = [
+        "#!/bin/bash",
+        "set -euo pipefail",
+        "",
+        "# Create local directories for hermetic execution",
+        "CHEZMOI_HOME=\"$PWD/chezmoi_home\"",
+        "SOURCE_DIR=\"$PWD/chezmoi_source\"",
+        "mkdir -p \"$CHEZMOI_HOME\"",
+        "mkdir -p \"$SOURCE_DIR\"",
+        "",
+        "# Set HOME to our fake home directory",
+        "export HOME=\"$CHEZMOI_HOME\"",
+        "",
+        "# Symlink template file",
+        "ln -s \"$(realpath " + src.path + ")\" \"$SOURCE_DIR/" + src.basename + "\"",
+    ]
+
+    # Handle single data file (legacy/simple mode)
+    if data_file:
+        script_lines.append("ln -s \"$(realpath " + data_file.path + ")\" \"$SOURCE_DIR/.chezmoidata.toml\"")
+
+    # Handle data sources (list of files)
+    data_files_list = data_srcs.to_list()
+
+    for f in data_files_list:
+        path = f.path
+        if ".chezmoidata/" in path:
+            # Extract the part from .chezmoidata/ onwards
+            target_rel = path[path.find(".chezmoidata/"):]
+            target_dir = "$SOURCE_DIR/" + target_rel.rsplit("/", 1)[0]
+            script_lines.append("mkdir -p \"" + target_dir + "\"")
+            script_lines.append("ln -s \"$(realpath " + path + ")\" \"$SOURCE_DIR/" + target_rel + "\"")
+        elif f.basename == ".chezmoidata.toml":
+            script_lines.append("ln -s \"$(realpath " + path + ")\" \"$SOURCE_DIR/.chezmoidata.toml\"")
+        else:
+            # Fallback: link to root
+            script_lines.append("ln -s \"$(realpath " + path + ")\" \"$SOURCE_DIR/" + f.basename + "\"")
+
+    # Copy any additional source files
+    source_files_list = source_dir_files.to_list()
+    for src_file in source_files_list:
+        script_lines.append("ln -s \"$(realpath " + src_file.path + ")\" \"$SOURCE_DIR/" + src_file.basename + "\"")
+
+    # Execute chezmoi
+    script_lines.extend([
+        "",
+        "# Execute chezmoi template",
+        " ".join([
+            "\"" + chezmoi_executable.path + "\"",
+            "execute-template",
+            "--source \"$SOURCE_DIR\"",
+            "--file",
+            "--output \"" + out.path + "\"",
+            "\"$SOURCE_DIR/" + src.basename + "\"",
+        ]),
+    ])
+
+    # Collect all inputs
+    inputs = [src, chezmoi_executable]
+    if data_file:
+        inputs.append(data_file)
+    if data_files_list:
+        inputs.extend(data_files_list)
+    if source_files_list:
+        inputs.extend(source_files_list)
+
+    ctx.actions.run_shell(
+        outputs = [out],
+        inputs = inputs,
+        command = "\n".join(script_lines),
+        progress_message = "Executing chezmoi template: {}".format(out.short_path),
     )
 
     return [
         DefaultInfo(files = depset([ctx.outputs.out])),
         ChezmoiTemplateInfo(
             out = ctx.outputs.out,
-            chezmoi_executable = chezmoi_info.chezmoi_executable,
+            chezmoi_executable = chezmoi_executable,
         ),
     ]
 
@@ -63,8 +132,12 @@ _chezmoi_execute_template = rule(
             allow_files = True,
             doc = "Additional source files needed by the template (e.g., for chezmoi template functions that read files).",
         ),
+        "_chezmoi": attr.label(
+            default = Label("@multitool//tools/chezmoi"),
+            executable = True,
+            cfg = "exec",
+        ),
     },
-    toolchains = ["@//tools/chezmoi:toolchain_type"],
 )
 
 # The public-facing macro.
