@@ -1,21 +1,3 @@
 package(default_visibility = ["//visibility:public"])
 
 exports_files(["linters.bzl"])
-
-genrule(
-    name = "gen_ruff_wrapper",
-    srcs = ["ruff_wrapper.template.sh"],
-    outs = ["ruff_wrapper.sh"],
-    cmd = "sed 's|RUFF_PATH_PLACEHOLDER|$(rlocationpath @aspect_rules_lint//format:ruff)|g' $(location ruff_wrapper.template.sh) > $@",
-    tools = ["@aspect_rules_lint//format:ruff"],
-)
-
-sh_binary(
-    name = "ruff_wrapper",
-    srcs = ["ruff_wrapper.sh"],
-    data = [
-        "//:pyproject.toml",
-        "@aspect_rules_lint//format:ruff",
-        "@bazel_tools//tools/bash/runfiles",
-    ],
-)
