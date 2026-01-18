@@ -62,18 +62,15 @@ def main(
 
     start_time = time.monotonic()
 
-    # Load Model
     model_load_start = time.monotonic()
     click.echo(f"Loading model {model_size} on {device}...", err=True)
 
-    # Note: whisper.load_model uses tqdm internally for download progress
     model = whisper.load_model(model_size, device=device)
 
     model_load_end = time.monotonic()
     load_time = model_load_end - model_load_start
     click.echo(f"Model loaded in {load_time:.2f}s", err=True)
 
-    # Prepare File Info
     file_stat = input_file.stat()
     file_info = FileInfo(
         path=str(input_file.absolute()),
@@ -81,7 +78,6 @@ def main(
         duration_seconds=None,  # Will be updated after transcription start
     )
 
-    # Transcribe
     transcription_start = time.monotonic()
     click.echo(f"Transcribing {input_file}...", err=True)
 
@@ -95,16 +91,13 @@ def main(
     transcription_end = time.monotonic()
     transcription_time = transcription_end - transcription_start
 
-    # Collect Text
     full_text = result["text"].strip()
 
     segments = result.get("segments", [])
     duration = segments[-1]["end"] if segments else 0.0
 
-    # Update duration
     file_info = replace(file_info, duration_seconds=duration)
 
-    # Extract model dimensions
     # model.dims is a NamedTuple or dataclass, convert to our schema
     dims = ModelDimensions(
         n_mels=model.dims.n_mels,
@@ -119,7 +112,6 @@ def main(
         n_text_layer=model.dims.n_text_layer,
     )
 
-    # Prepare Metadata
     metadata = TranscriptionMetadata(
         model=ModelInfo(
             size=ModelSize(model_size),
@@ -134,12 +126,10 @@ def main(
         whisper_version=whisper.__version__,
     )
 
-    # Render Output
     rendered_output = render_template(
         template, {"metadata": metadata, "text": full_text}
     )
 
-    # Write Output
     output.write(rendered_output)
     if output != sys.stdout:
         click.echo(f"Output written to {output.name}", err=True)
