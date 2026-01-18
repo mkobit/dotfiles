@@ -1,6 +1,6 @@
 [claude_code]
 enabled = true
-version = "2.1.4"
+version = "2.1.12"
 installation = "external-script"
 
 [claude_code.settings]
