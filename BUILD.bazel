@@ -8,10 +8,7 @@ load("//tools:lsp_simple.bzl", "setup_simple_lsp")
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files([
-    "pyproject.toml",
-    "ruff.toml",
-])
+exports_files(["pyproject.toml"])
 
 compile_pip_requirements(
     name = "requirements",
