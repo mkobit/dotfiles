@@ -4,6 +4,7 @@ load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
 py_library(
     name = "transcriber_lib",
     srcs = [
+        "__init__.py",
         "__main__.py",
         "main.py",
         "render.py",
