@@ -61,6 +61,7 @@ def _chezmoi_execute_template_impl(ctx):
         script_lines.append("ln -s \"$(realpath " + src_file.path + ")\" \"$SOURCE_DIR/" + src_file.basename + "\"")
 
     # Execute chezmoi
+    # Note: We execute chezmoi_executable which is passed as a tool to this script
     script_lines.extend([
         "",
         "# Execute chezmoi template",
@@ -74,8 +75,16 @@ def _chezmoi_execute_template_impl(ctx):
         ]),
     ])
 
+    # Write the script to a file
+    script_file = ctx.actions.declare_file(ctx.label.name + "_wrapper.sh")
+    ctx.actions.write(
+        output = script_file,
+        content = "\n".join(script_lines),
+        is_executable = True,
+    )
+
     # Collect all inputs
-    inputs = [src, chezmoi_executable]
+    inputs = [src]
     if data_file:
         inputs.append(data_file)
     if data_files_list:
@@ -83,10 +92,12 @@ def _chezmoi_execute_template_impl(ctx):
     if source_files_list:
         inputs.extend(source_files_list)
 
-    ctx.actions.run_shell(
+    # Run the script
+    ctx.actions.run(
         outputs = [out],
         inputs = inputs,
-        command = "\n".join(script_lines),
+        tools = [chezmoi_executable],
+        executable = script_file,
         progress_message = "Executing chezmoi template: {}".format(out.short_path),
     )
 
