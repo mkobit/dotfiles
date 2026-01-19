@@ -10,6 +10,7 @@ bazel_dep(name = "rules_shell", version = "0.6.1")
 bazel_dep(name = "protobuf", version = "33.2")
 bazel_dep(name = "aspect_rules_lint", version = "1.13.0")
 bazel_dep(name = "buildifier_prebuilt", version = "8.2.1.1")
+bazel_dep(name = "rules_multitool", version = "1.11.1")
 
 # Gazelle
 bazel_dep(name = "gazelle", version = "0.47.0", repo_name = "bazel_gazelle")
@@ -35,14 +36,14 @@ pip.parse(
 )
 use_repo(pip, "pypi")
 
+multitool = use_extension("@rules_multitool//multitool:extension.bzl", "multitool")
+multitool.hub(lockfile = "//tools:multitool.lock.json")
+use_repo(multitool, "multitool")
+
 # Register toolchains
-register_toolchains("@//tools/chezmoi/private:chezmoi_toolchain")
 
 # External dependencies
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
-# Chezmoi version - also defined in //:chezmoi_version.bzl
-CHEZMOI_VERSION = "2.67.0"
 
 # Binary dependencies with platform-specific URLs
 # Static tmux binaries from mjakob-gh/build-static-tmux
@@ -64,31 +65,4 @@ exports_files(["tmux"])
     sha256 = "b95d6d774f2c8b6c3d7b9e4b8f0c3a1e6c3a7f5d7b3f4a2c3d8e0f9b5c4d9e0f",
     strip_prefix = "tmux-3.5a-linux-arm64",
     urls = ["https://github.com/mjakob-gh/build-static-tmux/releases/download/v3.5a/tmux-3.5a-linux-arm64.tar.gz"],
-)
-
-http_archive(
-    name = "chezmoi_darwin_arm64",
-    build_file_content = """
-exports_files(["chezmoi"])
-""",
-    sha256 = "debce7c1f2c18d5b804c02dce3881354fb66a71a35d0a5b015e71491fdd344c5",
-    urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_darwin_arm64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
-)
-
-http_archive(
-    name = "chezmoi_darwin_amd64",
-    build_file_content = """
-exports_files(["chezmoi"])
-""",
-    sha256 = "f4ba4e54aed28b190c8ba93ba6f01424732146715b4f725af6c79f59edcdc5be",
-    urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_darwin_amd64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
-)
-
-http_archive(
-    name = "chezmoi_linux_amd64",
-    build_file_content = """
-exports_files(["chezmoi"])
-""",
-    sha256 = "4b9f7fa3a740715152400c8cb9aa87d8fe1b96f555018457717f12ada6c61eff",
-    urls = ["https://github.com/twpayne/chezmoi/releases/download/v{}/chezmoi_{}_linux_amd64.tar.gz".format(CHEZMOI_VERSION, CHEZMOI_VERSION)],
 )
