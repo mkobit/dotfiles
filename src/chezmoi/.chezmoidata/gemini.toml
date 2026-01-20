@@ -1,0 +1,3 @@
+[gemini]
+enabled = true
+version = "0.24.4"
