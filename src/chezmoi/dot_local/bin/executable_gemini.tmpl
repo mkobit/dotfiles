@@ -1,7 +1,0 @@
-{{- if .gemini.enabled -}}
-#!/usr/bin/env bash
-# Gemini CLI wrapper
-# Version: {{ .gemini.version }}
-
-exec {{ .chezmoi.destDir }}/.local/bin/mise exec -- npx --yes @google/gemini-cli@{{ .gemini.version }} -- "$@"
-{{- end -}}
