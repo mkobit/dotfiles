@@ -1,0 +1,12 @@
+[gemini]
+model = "gemini-3-pro-preview"
+
+[gemini.telemetry]
+enabled = true
+log_prompts = false
+
+[gemini.ui]
+show_line_numbers = true
+
+[gemini.general]
+enable_auto_update = true
