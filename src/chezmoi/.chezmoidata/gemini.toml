@@ -1,3 +1,5 @@
+# Configuration documentation: https://geminicli.com/docs/get-started/configuration/
+
 [gemini]
 model = "gemini-3-pro-preview"
 
@@ -9,4 +11,4 @@ log_prompts = false
 show_line_numbers = true
 
 [gemini.general]
-enable_auto_update = true
+enable_auto_update = false
