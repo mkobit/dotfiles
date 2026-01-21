@@ -1,8 +1,0 @@
-name: Setup Bazel with cache
-description: Sets up Bazel and configures disk cache using setup-bazel-common
-
-runs:
-  using: composite
-  steps:
-    - name: Setup Bazel
-      uses: ./.github/actions/setup-bazel-common
