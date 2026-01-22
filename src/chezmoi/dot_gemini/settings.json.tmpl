@@ -1,0 +1,17 @@
+{{- if (index .mise.global_tools "npm:@google/gemini-cli").enabled -}}
+{
+  "model": {
+    "name": {{ .gemini.model | quote }}
+  },
+  "telemetry": {
+    "enabled": {{ .gemini.telemetry.enabled }},
+    "logPrompts": {{ .gemini.telemetry.log_prompts }}
+  },
+  "ui": {
+    "showLineNumbers": {{ .gemini.ui.show_line_numbers }}
+  },
+  "general": {
+    "enableAutoUpdate": {{ .gemini.general.enable_auto_update }}
+  }
+}
+{{- end -}}
