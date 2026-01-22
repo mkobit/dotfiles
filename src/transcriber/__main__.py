@@ -1,4 +1,4 @@
-from src.transcriber.main import main
+from src.transcriber.cli import main
 
 if __name__ == "__main__":
     main()

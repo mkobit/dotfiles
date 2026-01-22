@@ -6,7 +6,7 @@ py_library(
     srcs = [
         "__init__.py",
         "__main__.py",
-        "main.py",
+        "cli.py",
         "render.py",
         "schemas.py",
     ],

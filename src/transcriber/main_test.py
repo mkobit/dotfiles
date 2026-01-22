@@ -4,11 +4,11 @@ from unittest.mock import MagicMock, patch
 
 from click.testing import CliRunner
 
-from src.transcriber.main import main
+from src.transcriber.cli import main
 
 
 class TestTranscriber(unittest.TestCase):
-    @patch("src.transcriber.main.whisper.load_model")
+    @patch("src.transcriber.cli.whisper.load_model")
     def test_transcription_cli(self, mock_load_model: MagicMock) -> None:
         """Test the CLI flow with mocked whisper model."""
         # Setup Mock Model Instance
@@ -76,7 +76,7 @@ class TestTranscriber(unittest.TestCase):
             self.assertIn("size: base.en", output_content)  # From default template
             self.assertIn("duration_seconds: 1.0", output_content)
 
-    @patch("src.transcriber.main.whisper.load_model")
+    @patch("src.transcriber.cli.whisper.load_model")
     def test_custom_template(self, mock_load_model: MagicMock) -> None:
         """Test using a custom Jinja2 template."""
         mock_model_instance = MagicMock()
