@@ -1,1 +1,5 @@
-exports_files(["manifest.toml"])
+filegroup(
+    name = "agents_files",
+    srcs = glob(["**/*.toml"]),
+    visibility = ["//visibility:public"],
+)
