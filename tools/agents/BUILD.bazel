@@ -1,0 +1,18 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+
+py_binary(
+    name = "generate_config",
+    srcs = ["generate_config.py"],
+    # Pass arguments to run directly
+    args = [
+        "--manifest",
+        "src/agents/manifest.toml",
+        "--output",
+        "src/chezmoi",
+    ],
+    data = [
+        "//src/agents:manifest.toml",
+    ],
+    main = "generate_config.py",
+    visibility = ["//visibility:public"],
+)
