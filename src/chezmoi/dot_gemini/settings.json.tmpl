@@ -1,17 +1,18 @@
 {{- if (index .mise.global_tools "npm:@google/gemini-cli").enabled -}}
-{
-  "model": {
-    "name": {{ .gemini.model | quote }}
-  },
-  "telemetry": {
-    "enabled": {{ .gemini.telemetry.enabled }},
-    "logPrompts": {{ .gemini.telemetry.log_prompts }}
-  },
-  "ui": {
-    "showLineNumbers": {{ .gemini.ui.show_line_numbers }}
-  },
-  "general": {
-    "enableAutoUpdate": {{ .gemini.general.enable_auto_update }}
-  }
-}
+{{-   $settings := dict
+        "model" (dict "name" .gemini.model)
+        "telemetry" (dict "enabled" .gemini.telemetry.enabled "logPrompts" .gemini.telemetry.log_prompts)
+        "ui" (dict
+          "showLineNumbers" .gemini.ui.show_line_numbers
+          "showMemoryUsage" .gemini.ui.show_memory_usage
+          "showModelInfoInChat" .gemini.ui.show_model_info_in_chat
+          "footer" (dict "hideContextPercentage" .gemini.ui.footer.hide_context_percentage)
+        )
+        "general" (dict
+          "enableAutoUpdate" .gemini.general.enable_auto_update
+          "previewFeatures" .gemini.general.preview_features
+          "vimMode" .gemini.general.vim_mode
+        )
+-}}
+{{-   $settings | toPrettyJson "  " -}}
 {{- end -}}
