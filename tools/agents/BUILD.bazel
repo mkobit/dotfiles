@@ -1,10 +1,18 @@
-load("@rules_python//python:defs.bzl", "py_binary")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+
+py_library(
+    name = "generate_config_lib",
+    srcs = ["generate_config.py"],
+    deps = [
+        "@pypi//click",
+    ],
+)
 
 py_binary(
     name = "generate_config",
     srcs = ["generate_config.py"],
     args = [
-        "--agents_dir",
+        "--agents-dir",
         "src/agents",
         "--output",
         "src/chezmoi",
@@ -14,4 +22,16 @@ py_binary(
     ],
     main = "generate_config.py",
     visibility = ["//visibility:public"],
+    deps = [
+        ":generate_config_lib",
+    ],
+)
+
+py_test(
+    name = "generate_config_test",
+    srcs = ["generate_config_test.py"],
+    deps = [
+        ":generate_config_lib",
+        "@pypi//pytest",
+    ],
 )
