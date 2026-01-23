@@ -1,5 +1,6 @@
 ---
 description: Interactive builder for creating new Claude Sub Agents
+targets: ["*"]
 argument-hint: [optional initial context]
 ---
 

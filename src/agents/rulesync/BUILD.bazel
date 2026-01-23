@@ -1,0 +1,129 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+package(default_visibility = ["//visibility:public"])
+
+genrule(
+    name = "claude_config",
+    srcs = glob(["**/*"]),
+    outs = ["claude_config.tar.gz"],
+    cmd = """
+        set -e
+        TOOL_PATH="$$(pwd)/$(execpath @multitool//tools/rulesync)"
+
+        mkdir -p working_dir/.rulesync
+
+        # Copy files to working directory
+        for f in $(SRCS); do
+            # rel path from package root
+            rel=$${f#src/agents/rulesync/}
+
+            if [ "$$rel" == "rulesync.jsonc" ]; then
+                cp $$f working_dir/
+            else
+                # Everything else goes into .rulesync/
+                dest=working_dir/.rulesync/$$rel
+                mkdir -p $$(dirname $$dest)
+                cp $$f $$dest
+            fi
+        done
+
+        cd working_dir
+
+        # Run rulesync
+        "$$TOOL_PATH" generate --targets claudecode --verbose
+
+        # Create archive
+        FILES_TO_TAR=""
+        [ -d ".claude" ] && FILES_TO_TAR="$$FILES_TO_TAR .claude"
+        [ -f "CLAUDE.md" ] && FILES_TO_TAR="$$FILES_TO_TAR CLAUDE.md"
+
+        if [ -z "$$FILES_TO_TAR" ]; then
+            echo "Error: Claude config not generated"
+            ls -la
+            exit 1
+        fi
+
+        tar -czf ../$(OUTS) $$FILES_TO_TAR
+    """,
+    tools = ["@multitool//tools/rulesync"],
+)
+
+genrule(
+    name = "gemini_config",
+    srcs = glob(["**/*"]),
+    outs = ["gemini_config.tar.gz"],
+    cmd = """
+        set -e
+        TOOL_PATH="$$(pwd)/$(execpath @multitool//tools/rulesync)"
+
+        mkdir -p working_dir/.rulesync
+
+        for f in $(SRCS); do
+            rel=$${f#src/agents/rulesync/}
+            if [ "$$rel" == "rulesync.jsonc" ]; then
+                cp $$f working_dir/
+            else
+                dest=working_dir/.rulesync/$$rel
+                mkdir -p $$(dirname $$dest)
+                cp $$f $$dest
+            fi
+        done
+
+        cd working_dir
+        "$$TOOL_PATH" generate --targets geminicli --verbose
+
+        # Move GEMINI.md into .gemini to simplify deployment (assuming it belongs in config dir)
+        [ -f "GEMINI.md" ] && mv GEMINI.md .gemini/
+
+        FILES_TO_TAR=""
+        [ -d ".gemini" ] && FILES_TO_TAR="$$FILES_TO_TAR .gemini"
+
+        if [ -z "$$FILES_TO_TAR" ]; then
+            echo "Error: Gemini config not generated"
+            ls -la
+            exit 1
+        fi
+
+        tar -czf ../$(OUTS) $$FILES_TO_TAR
+    """,
+    tools = ["@multitool//tools/rulesync"],
+)
+
+genrule(
+    name = "cursor_config",
+    srcs = glob(["**/*"]),
+    outs = ["cursor_config.tar.gz"],
+    cmd = """
+        set -e
+        TOOL_PATH="$$(pwd)/$(execpath @multitool//tools/rulesync)"
+
+        mkdir -p working_dir/.rulesync
+
+        for f in $(SRCS); do
+            rel=$${f#src/agents/rulesync/}
+            if [ "$$rel" == "rulesync.jsonc" ]; then
+                cp $$f working_dir/
+            else
+                dest=working_dir/.rulesync/$$rel
+                mkdir -p $$(dirname $$dest)
+                cp $$f $$dest
+            fi
+        done
+
+        cd working_dir
+        "$$TOOL_PATH" generate --targets cursor --verbose
+
+        FILES_TO_TAR=""
+        [ -d ".cursor" ] && FILES_TO_TAR="$$FILES_TO_TAR .cursor"
+        [ -f ".cursorrules" ] && FILES_TO_TAR="$$FILES_TO_TAR .cursorrules"
+
+        if [ -z "$$FILES_TO_TAR" ]; then
+            echo "Error: Cursor config not generated"
+            ls -la
+            exit 1
+        fi
+
+        tar -czf ../$(OUTS) $$FILES_TO_TAR
+    """,
+    tools = ["@multitool//tools/rulesync"],
+)
