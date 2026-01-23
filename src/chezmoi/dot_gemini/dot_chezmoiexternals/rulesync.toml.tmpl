@@ -1,0 +1,5 @@
+{{- if ne (index .gemini "enabled" | default true) false -}}
+[".gemini"]
+{{- includeTemplate "bazel_artifact.toml" (dict "chezmoi" .chezmoi "target" "//src/agents/rulesync:gemini_config") -}}
+stripComponents = 1
+{{- end -}}

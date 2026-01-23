@@ -1,5 +1,6 @@
 ---
 description: Interactive builder for creating new Claude Code Hooks
+targets: ["*"]
 argument-hint: [optional initial context]
 ---
 

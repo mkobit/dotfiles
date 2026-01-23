@@ -1,5 +1,6 @@
 ---
 description: Create database queries to search and filter vault notes by properties and tags
+targets: ["*"]
 argument-hint: <description of query> [--file <output.base>]
 ---
 

@@ -1,0 +1,19 @@
+{{- /*
+  Template to build a Bazel target and return an external configuration pointing to it.
+  Args:
+    target: The Bazel target to build
+    chezmoi: The chezmoi context (needed for sourceDir)
+*/ -}}
+{{- $target := .target -}}
+{{- $src := .chezmoi.sourceDir -}}
+{{- /* Build */ -}}
+{{- $build_cmd := printf "cd %s && bazel build %s" $src $target -}}
+{{- output "sh" "-c" $build_cmd -}}
+{{- /* Get Workspace Root */ -}}
+{{- $info_cmd := printf "cd %s && bazel info workspace" $src -}}
+{{- $workspace := output "sh" "-c" $info_cmd | trim -}}
+{{- /* Get Output Path */ -}}
+{{- $query_cmd := printf "cd %s && bazel cquery --output=files %s" $src $target -}}
+{{- $rel := output "sh" "-c" $query_cmd | trim -}}
+type = "archive"
+url = "file://{{ $workspace }}/{{ $rel }}"

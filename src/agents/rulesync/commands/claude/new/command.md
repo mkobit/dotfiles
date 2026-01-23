@@ -1,5 +1,6 @@
 ---
 description: Interactive builder for creating new Claude slash commands
+targets: ["*"]
 argument-hint: [optional initial context]
 ---
 

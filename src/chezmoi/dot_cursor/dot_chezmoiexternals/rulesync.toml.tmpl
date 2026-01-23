@@ -1,0 +1,3 @@
+[".cursor"]
+{{- includeTemplate "bazel_artifact.toml" (dict "chezmoi" .chezmoi "target" "//src/agents/rulesync:cursor_config") -}}
+stripComponents = 1
