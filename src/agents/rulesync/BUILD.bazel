@@ -33,9 +33,11 @@ genrule(
         "$$TOOL_PATH" generate --targets claudecode --verbose
 
         # Create archive
+        # Move CLAUDE.md into .claude to allow clean stripping
+        [ -f "CLAUDE.md" ] && mv CLAUDE.md .claude/
+
         FILES_TO_TAR=""
         [ -d ".claude" ] && FILES_TO_TAR="$$FILES_TO_TAR .claude"
-        [ -f "CLAUDE.md" ] && FILES_TO_TAR="$$FILES_TO_TAR CLAUDE.md"
 
         if [ -z "$$FILES_TO_TAR" ]; then
             echo "Error: Claude config not generated"
@@ -114,8 +116,10 @@ genrule(
         "$$TOOL_PATH" generate --targets cursor --verbose
 
         FILES_TO_TAR=""
+        # Move .cursorrules into .cursor to allow clean stripping
+        [ -f ".cursorrules" ] && mv .cursorrules .cursor/
+
         [ -d ".cursor" ] && FILES_TO_TAR="$$FILES_TO_TAR .cursor"
-        [ -f ".cursorrules" ] && FILES_TO_TAR="$$FILES_TO_TAR .cursorrules"
 
         if [ -z "$$FILES_TO_TAR" ]; then
             echo "Error: Cursor config not generated"
