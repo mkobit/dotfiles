@@ -35,7 +35,7 @@ linux_arm64 = "7c2d49920819d6131cad11c3ed89611d74c60f27c4af31d57a771bed28161a96"
   enabled = true
 
   [mise.global_tools."npm:@google/gemini-cli"]
-  version = "0.25.2"
+  version = "0.26.0"
   enabled = true
 
   [mise.global_tools.bun]
