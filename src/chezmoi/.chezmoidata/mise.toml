@@ -8,6 +8,9 @@ darwin_amd64 = "be5b6c08cbccafb422ccb420fbacc51489407879e6c73f122d3e69d2cef176bc
 linux_amd64 = "434effb5cd1cb8ac835a7ff59b98e3733b6588ea2d0f0f5f481fcdea51996e11"
 linux_arm64 = "7c2d49920819d6131cad11c3ed89611d74c60f27c4af31d57a771bed28161a96"
 
+[mise.settings]
+disable_hints = ["self_update"]
+
 [mise.global_tools]
 
   [mise.global_tools.node]
