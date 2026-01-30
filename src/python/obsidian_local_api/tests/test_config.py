@@ -44,6 +44,32 @@ def test_load_config_local_cwd(tmp_path: Path) -> None:
         os.chdir(orig_cwd)
 
 
+def test_load_config_local_hidden(tmp_path: Path) -> None:
+    # Test loading from .obsidian-local-api.toml
+    orig_cwd = os.getcwd()
+    os.chdir(tmp_path)
+    try:
+        (tmp_path / ".obsidian-local-api.toml").write_text('token = "hidden_token"')
+        cfg = load_config()
+        assert cfg.token == "hidden_token"
+    finally:
+        os.chdir(orig_cwd)
+
+
+def test_load_config_local_dot_config(tmp_path: Path) -> None:
+    # Test loading from .config/obsidian-local-api.toml
+    orig_cwd = os.getcwd()
+    os.chdir(tmp_path)
+    config_dir = tmp_path / ".config"
+    config_dir.mkdir()
+    try:
+        (config_dir / "obsidian-local-api.toml").write_text('token = "dot_config_token"')
+        cfg = load_config()
+        assert cfg.token == "dot_config_token"
+    finally:
+        os.chdir(orig_cwd)
+
+
 def test_load_config_xdg(tmp_path: Path) -> None:
     # Setup XDG Config Home structure
     xdg_home = tmp_path / "xdg_config"

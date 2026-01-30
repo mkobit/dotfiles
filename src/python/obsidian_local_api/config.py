@@ -29,11 +29,19 @@ def load_config(config_path: str | None = None) -> ObsidianConfig:
         if not file_path.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
     else:
-        # Check current directory
-        local_path = Path("obsidian-local-api.toml")
-        if local_path.exists():
-            file_path = local_path
-        else:
+        # Check current directory and hidden local paths
+        search_paths = [
+            Path("obsidian-local-api.toml"),
+            Path(".obsidian-local-api.toml"),
+            Path(".config") / "obsidian-local-api.toml",
+        ]
+
+        for path in search_paths:
+            if path.exists():
+                file_path = path
+                break
+
+        if not file_path:
             # Check XDG config
             xdg_config = os.environ.get(
                 "XDG_CONFIG_HOME", os.path.expanduser("~/.config")
