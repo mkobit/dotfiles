@@ -63,7 +63,9 @@ def test_load_config_local_dot_config(tmp_path: Path) -> None:
     config_dir = tmp_path / ".config"
     config_dir.mkdir()
     try:
-        (config_dir / "obsidian-local-api.toml").write_text('token = "dot_config_token"')
+        (config_dir / "obsidian-local-api.toml").write_text(
+            'token = "dot_config_token"'
+        )
         cfg = load_config()
         assert cfg.token == "dot_config_token"
     finally:

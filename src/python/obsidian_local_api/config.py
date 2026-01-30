@@ -30,6 +30,7 @@ def load_config(config_path: str | None = None) -> ObsidianConfig:
             raise FileNotFoundError(f"Config file not found: {config_path}")
     else:
         # Check current directory and hidden local paths
+        file_path = None
         search_paths = [
             Path("obsidian-local-api.toml"),
             Path(".obsidian-local-api.toml"),
