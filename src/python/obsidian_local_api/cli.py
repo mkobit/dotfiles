@@ -48,6 +48,31 @@ def load_config_callback(ctx: Any, param: Any, value: str | None) -> str | None:
 @click.option("--host", default="127.0.0.1", help="Obsidian Local REST API Host")
 @click.pass_context
 def cli(ctx: Any, token: str | None, port: int, host: str) -> None:
+    """Obsidian Local API Client.
+
+    This CLI tool interacts with the Obsidian Local REST API plugin.
+    Official documentation for the plugin: https://github.com/coddingtonbear/obsidian-local-rest-api
+
+    \b
+    Configuration:
+    The tool looks for a configuration file in the following locations (in order):
+    1. --config <path>
+    2. ./obsidian-local-api.toml
+    3. ./.obsidian-local-api.toml
+    4. ./.config/obsidian-local-api.toml
+    5. ~/.config/obsidian-local-api/config.toml (or $XDG_CONFIG_HOME/obsidian-local-api/config.toml)
+
+    \b
+    Configuration Format (TOML):
+    ----------------------------
+    token = "your-api-token"
+    port = 27124
+    host = "127.0.0.1"
+
+    \b
+    Example:
+    $ obsidian-cli read "Notes/My Note.md"
+    """
     if not token:
         click.echo(
             "Error: Token is required. Pass --token, or set 'token' in "
