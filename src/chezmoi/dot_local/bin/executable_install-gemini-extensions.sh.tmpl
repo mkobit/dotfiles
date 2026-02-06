@@ -1,24 +1,27 @@
 #!/bin/bash
-{{- /* Calculate hash from sorted JSON of extensions map for change detection */ -}}
+{{- /* Calculate hash from sorted JSON of extensions map for change detection in the script content itself */ -}}
 {{- $extensionsJson := .gemini.extensions | default dict | toJson -}}
-{{- $extensionsHash := $extensionsJson | sha256sum }}
-# gemini.extensions hash: {{ $extensionsHash }}
+# gemini.extensions hash: {{ $extensionsJson | sha256sum }}
 
 set -euo pipefail
 
-# logging.sh hash: {{ includeTemplate "shell/logging.sh" | sha256sum }}
-source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+# This script is intended to be run by mise as a postinstall hook for gemini-cli.
+
+log_info() { echo -e "[\033[34mINFO\033[0m] $1"; }
+log_warn() { echo -e "[\033[33mWARN\033[0m] $1"; }
+log_success() { echo -e "[\033[32mOK\033[0m] $1"; }
 
 log_info "Ensuring Gemini CLI extensions are installed..."
 
 if ! command -v gemini &> /dev/null; then
-    log_error "gemini command not found, skipping extension installation."
+    log_warn "gemini command not found in PATH. Skipping extension installation."
     exit 0
 fi
 
 {{- range $name, $ext := .gemini.extensions }}
 {{-   if $ext.enabled }}
 log_info "Installing/Updating extension: {{ $name }} ({{ $ext.ref }})"
+# We use --consent to bypass prompts.
 if ! gemini extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent; then
     log_warn "Failed to install {{ $name }}. It may already be installed or there was a network error."
 fi
