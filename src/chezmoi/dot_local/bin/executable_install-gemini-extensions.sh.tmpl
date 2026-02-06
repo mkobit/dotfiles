@@ -7,9 +7,9 @@ set -euo pipefail
 
 # This script is intended to be run by mise as a postinstall hook for gemini-cli.
 
-log_info() { echo -e "[\033[34mINFO\033[0m] $1"; }
-log_warn() { echo -e "[\033[33mWARN\033[0m] $1"; }
-log_success() { echo -e "[\033[32mOK\033[0m] $1"; }
+# Source logging library from chezmoi source
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 
 log_info "Ensuring Gemini CLI extensions are installed..."
 
