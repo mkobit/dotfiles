@@ -13,23 +13,49 @@ manifest:
     annotated_types: annotated_types
     attr: attrs
     attrs: attrs
+    certifi: certifi
+    charset_normalizer: charset_normalizer
     click: click
+    filelock: filelock
     frozenlist: frozenlist
+    fsspec: fsspec
+    functorch: torch
     idna: idna
     iniconfig: iniconfig
+    isympy: sympy
+    jinja2: jinja2
     jsonschema: jsonschema
     jsonschema_specifications: jsonschema_specifications
     librt.base64: librt
     librt.internal: librt
     librt.strings: librt
+    llvmlite: llvmlite
     markdown_it: markdown_it_py
+    markupsafe: markupsafe
     mdurl: mdurl
+    more_itertools: more_itertools
+    mpmath: mpmath
     multidict: multidict
     mypy: mypy
     mypy_extensions: mypy_extensions
     mypyc: mypy
+    networkx: networkx
+    numba: numba
+    numpy: numpy
+    nvidia: nvidia_nvtx_cu12
+    nvidia.cublas: nvidia_cublas_cu12
+    nvidia.cuda_cupti: nvidia_cuda_cupti_cu12
+    nvidia.cuda_nvrtc: nvidia_cuda_nvrtc_cu12
+    nvidia.cuda_runtime: nvidia_cuda_runtime_cu12
+    nvidia.cufft: nvidia_cufft_cu12
+    nvidia.cufile: nvidia_cufile_cu12
+    nvidia.curand: nvidia_curand_cu12
+    nvidia.cusolver: nvidia_cusolver_cu12
+    nvidia.cusparse: nvidia_cusparse_cu12
+    nvidia.nvjitlink: nvidia_nvjitlink_cu12
     packaging: packaging
     pathspec: pathspec
+    pkg_resources: setuptools
     pluggy: pluggy
     propcache: propcache
     py: pytest
@@ -39,15 +65,27 @@ manifest:
     pytest: pytest
     pytest_asyncio: pytest_asyncio
     referencing: referencing
+    regex: regex
+    requests: requests
     rich: rich
     rpds: rpds_py
     ruff: ruff
+    setuptools: setuptools
     shellingham: shellingham
+    sympy: sympy
+    tiktoken: tiktoken
+    tiktoken_ext.openai_public: tiktoken
+    torch: torch
+    torchgen: torch
+    tqdm: tqdm
+    triton: triton
     typer: typer
     typing_extensions: typing_extensions
     typing_inspection: typing_inspection
+    urllib3: urllib3
     whenever: whenever
+    whisper: openai_whisper
     yarl: yarl
   pip_repository:
     name: pypi
-integrity: fe1d6fe38cdd8d4cb367d93d70d834a9e10b0dbe6af3ba2950c3157004d0a817
+integrity: 79ee2f1840554580b5a216e04f3d439ec8269467ed26451c97a4143803eae3c6

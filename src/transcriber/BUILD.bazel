@@ -1,0 +1,36 @@
+load("@pypi//:requirements.bzl", "requirement")
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+
+py_library(
+    name = "transcriber_lib",
+    srcs = [
+        "__init__.py",
+        "__main__.py",
+        "cli.py",
+        "render.py",
+        "schemas.py",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        requirement("click"),
+        requirement("openai-whisper"),
+        requirement("jinja2"),
+        requirement("whenever"),
+    ],
+)
+
+py_binary(
+    name = "transcribe",
+    srcs = ["main.py"],
+    main = "main.py",
+    visibility = ["//visibility:public"],
+    deps = [":transcriber_lib"],
+)
+
+py_test(
+    name = "main_test",
+    srcs = ["main_test.py"],
+    deps = [
+        ":transcriber_lib",
+    ],
+)

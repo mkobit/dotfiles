@@ -19,3 +19,8 @@ jsonschema
 
 # Time
 whenever
+
+# Transcription
+openai-whisper
+jinja2
+tqdm
