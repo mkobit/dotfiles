@@ -18,3 +18,21 @@ set-option -g assume-paste-time 1
 # Enable focus events for better integration with vim and other programs
 # Docs: https://man.openbsd.org/tmux#focus-events
 set-option -g focus-events on
+
+# =============================================
+# Advanced Terminal Capabilities
+# =============================================
+# Allow pass-through of escape sequences (e.g. for images)
+# Docs: https://man.openbsd.org/tmux#allow-passthrough
+set -g allow-passthrough on
+
+# Enable external clipboard (OSC 52)
+# Docs: https://man.openbsd.org/tmux#set-clipboard
+set -s set-clipboard on
+
+# Explicitly define Ms capability for OSC 52 clipboard access
+# This ensures tmux can copy to the system clipboard via the terminal
+# Docs: https://github.com/sunaku/home/blob/master/.tmux.conf.erb
+set-option -ga terminal-overrides ',xterm*:Ms=\E]52;c;%p2%s\007'
+set-option -ga terminal-overrides ',xterm-kitty:Ms=\E]52;c;!\007\E]52;c;%p2%s\007'
+set-option -ga terminal-overrides ',screen*:Ms=\E]52;c;%p2%s\007'
