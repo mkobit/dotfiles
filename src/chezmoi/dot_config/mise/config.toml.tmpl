@@ -8,7 +8,7 @@
 [tools]
 {{- range $tool, $config := .mise.global_tools -}}
   {{- if $config.enabled }}
-    {{- if $config.postinstall }}
+    {{- if hasKey $config "postinstall" }}
 {{ $tool | quote }} = { version = "{{ $config.version }}", postinstall = "{{ $config.postinstall }}" }
     {{- else }}
 {{ $tool | quote }} = "{{ $config.version }}"
