@@ -11,13 +11,20 @@ def test_load_config_defaults() -> None:
     # Ensure no config files exist in search path
     with patch("src.python.jules_cli.config.Path.exists", return_value=False):
         cfg = load_config()
+        # api_key is now a property computed from api_key_path
         assert cfg.api_key is None
         assert cfg.api_key_path is None
 
 
 def test_load_config_explicit_path(tmp_path: Path) -> None:
+    # In the new model, api_key cannot be set directly in config,
+    # it MUST be via api_key_path.
+    # So we create a dummy key file
+    key_file = tmp_path / "my.key"
+    key_file.write_text("mykey")
+
     config_file = tmp_path / "custom_config.toml"
-    config_file.write_text('api_key = "mykey"')
+    config_file.write_text(f'api_key_path = "{key_file}"')
 
     cfg = load_config(str(config_file))
     assert cfg.api_key == "mykey"
@@ -34,7 +41,11 @@ def test_load_config_xdg(tmp_path: Path) -> None:
     xdg_home.mkdir()
     jules_conf_dir = xdg_home / "jules"
     jules_conf_dir.mkdir(parents=True)
-    (jules_conf_dir / "config.toml").write_text('api_key = "xdg_key"')
+
+    key_file = tmp_path / "xdg.key"
+    key_file.write_text("xdg_key")
+
+    (jules_conf_dir / "config.toml").write_text(f'api_key_path = "{key_file}"')
 
     # Create a separate empty CWD
     cwd_dir = tmp_path / "cwd"

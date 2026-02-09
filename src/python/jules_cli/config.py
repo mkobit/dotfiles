@@ -10,26 +10,34 @@ from pydantic import BaseModel, model_validator
 class JulesConfig(BaseModel):
     """Configuration for Jules CLI."""
 
-    api_key: str | None = None
     api_key_path: str | None = None
 
     @model_validator(mode="after")
-    def resolve_api_key(self) -> Self:
-        """Resolve api_key from api_key_path if not provided."""
-        if not self.api_key and self.api_key_path:
+    def validate_api_key_path(self) -> Self:
+        """Validate that api_key_path exists if provided."""
+        if self.api_key_path:
             secret_path = Path(self.api_key_path).expanduser()
-            if secret_path.exists():
-                try:
-                    self.api_key = secret_path.read_text().strip()
-                except Exception as e:
-                    # In a validator, we might want to log this but not necessarily fail
-                    # the model validation if the path exists but is unreadable?
-                    # Or fail validation? Failing seems safer.
-                    # Re-raise as ValueError for Pydantic to catch
-                    raise ValueError(
-                        f"Failed to read api_key from {secret_path}: {e}"
-                    ) from e
+            if not secret_path.exists():
+                raise ValueError(f"api_key_path does not exist: {secret_path}")
         return self
+
+    @property
+    def api_key(self) -> str | None:
+        """Retrieve the API key from the configured path."""
+        if self.api_key_path:
+            secret_path = Path(self.api_key_path).expanduser()
+            try:
+                if secret_path.exists():
+                    return secret_path.read_text().strip()
+            except Exception as e:
+                # Log or re-raise? Accessing a property shouldn't typically crash unpredictably,
+                # but if the config is invalid, we want to know.
+                print(
+                    f"Warning: Failed to read api_key from {secret_path}: {e}",
+                    file=sys.stderr,
+                )
+                return None
+        return None
 
 
 def load_config(config_path: str | None = None) -> JulesConfig:

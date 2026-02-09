@@ -10,24 +10,34 @@ from pydantic import BaseModel, model_validator
 class ObsidianConfig(BaseModel):
     """Configuration for Obsidian Local API."""
 
-    token: str | None = None
     token_path: str | None = None
     port: int = 27124
     host: str = "127.0.0.1"
 
     @model_validator(mode="after")
-    def resolve_token(self) -> Self:
-        """Resolve token from token_path if not provided."""
-        if not self.token and self.token_path:
+    def validate_token_path(self) -> Self:
+        """Validate that token_path exists if provided."""
+        if self.token_path:
             secret_path = Path(self.token_path).expanduser()
-            if secret_path.exists():
-                try:
-                    self.token = secret_path.read_text().strip()
-                except Exception as e:
-                    raise ValueError(
-                        f"Failed to read token from {secret_path}: {e}"
-                    ) from e
+            if not secret_path.exists():
+                raise ValueError(f"token_path does not exist: {secret_path}")
         return self
+
+    @property
+    def token(self) -> str | None:
+        """Retrieve the token from the configured path."""
+        if self.token_path:
+            secret_path = Path(self.token_path).expanduser()
+            try:
+                if secret_path.exists():
+                    return secret_path.read_text().strip()
+            except Exception as e:
+                print(
+                    f"Warning: Failed to read token from {secret_path}: {e}",
+                    file=sys.stderr,
+                )
+                return None
+        return None
 
 
 def load_config(config_path: str | None = None) -> ObsidianConfig:
@@ -52,7 +62,6 @@ def load_config(config_path: str | None = None) -> ObsidianConfig:
         candidates.append(Path("obsidian-local-api.toml"))
         candidates.append(Path(".obsidian-local-api.toml"))
         # Also check .config/obsidian-local-api.toml (legacy local check mentioned in docs/cli?)
-        # The previous impl checked .config/obsidian-local-api.toml in CWD too.
         candidates.append(Path(".config") / "obsidian-local-api.toml")
 
         # 3. XDG Config
