@@ -19,3 +19,10 @@ hide_context_percentage = false
 enable_auto_update = false
 preview_features = true
 vim_mode = true
+
+[gemini.extensions]
+
+  [gemini.extensions.conductor]
+  url = "https://github.com/gemini-cli-extensions/conductor"
+  ref = "v0.2.0"
+  enabled = true
