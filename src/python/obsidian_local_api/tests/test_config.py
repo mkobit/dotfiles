@@ -44,6 +44,19 @@ def test_load_config_local_cwd(tmp_path: Path) -> None:
         os.chdir(orig_cwd)
 
 
+def test_load_config_token_path(tmp_path: Path) -> None:
+    secret_file = tmp_path / "secret_token"
+    secret_file.write_text("secret_value")
+
+    config_file = tmp_path / "config.toml"
+    # Write config pointing to secret file
+    config_file.write_text(f'token_path = "{secret_file}"')
+
+    cfg = load_config(str(config_file))
+    assert cfg.token == "secret_value"
+    assert cfg.token_path == str(secret_file)
+
+
 def test_load_config_local_hidden(tmp_path: Path) -> None:
     # Test loading from .obsidian-local-api.toml
     orig_cwd = os.getcwd()

@@ -13,6 +13,14 @@ py_library(
 )
 
 py_library(
+    name = "config",
+    srcs = ["config.py"],
+    deps = [
+        requirement("pydantic"),
+    ],
+)
+
+py_library(
     name = "client",
     srcs = ["client.py"],
     deps = [
@@ -28,8 +36,18 @@ py_binary(
     main = "main.py",
     deps = [
         ":client",
+        ":config",
         ":models",
         requirement("click"),
+    ],
+)
+
+py_test(
+    name = "test_config",
+    srcs = ["test_config.py"],
+    deps = [
+        ":config",
+        requirement("pytest"),
     ],
 )
 

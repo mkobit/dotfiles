@@ -10,6 +10,7 @@ class ObsidianConfig(BaseModel):
     """Configuration for Obsidian Local API."""
 
     token: str | None = None
+    token_path: str | None = None
     port: int = 27124
     host: str = "127.0.0.1"
 
@@ -59,4 +60,12 @@ def load_config(config_path: str | None = None) -> ObsidianConfig:
         except Exception as e:
             raise ValueError(f"Failed to parse config file {file_path}: {e}") from e
 
-    return ObsidianConfig(**data)
+    config = ObsidianConfig(**data)
+
+    # Resolve token from path if needed
+    if config.token_path:
+        secret_path = Path(config.token_path).expanduser()
+        if secret_path.exists():
+            config.token = secret_path.read_text().strip()
+
+    return config

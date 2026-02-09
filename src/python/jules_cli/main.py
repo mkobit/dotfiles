@@ -8,6 +8,7 @@ from pathlib import Path
 import click
 
 from src.python.jules_cli.client import JulesClient
+from src.python.jules_cli.config import load_config
 from src.python.jules_cli.models import (
     AutomationMode,
     CreateSessionRequest,
@@ -25,16 +26,24 @@ def cli() -> None:
 def get_api_key() -> str:
     """
     Retrieves the Jules API key.
-    Checks XDG config location (~/.config/jules/api_key) only.
+    Checks config first, then legacy XDG config location (~/.config/jules/api_key).
     """
-    # Check XDG config
+    try:
+        config = load_config()
+        if config.api_key:
+            return config.api_key
+    except Exception as e:
+        # If loading fails (e.g., config file malformed), print error but proceed to legacy check
+        click.echo(f"Warning: Failed to load config: {e}", err=True)
+
+    # Legacy check XDG config
     xdg_config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-    config_file = Path(xdg_config_home) / "jules" / "api_key"
+    legacy_file = Path(xdg_config_home) / "jules" / "api_key"
 
-    if config_file.exists():
-        return config_file.read_text().strip()
+    if legacy_file.exists():
+        return legacy_file.read_text().strip()
 
-    click.echo(f"Error: JULES_API_KEY not found in {config_file}.", err=True)
+    click.echo(f"Error: JULES_API_KEY not found in config or {legacy_file}.", err=True)
     sys.exit(1)
 
 
