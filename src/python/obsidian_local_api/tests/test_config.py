@@ -22,7 +22,9 @@ def test_load_config_explicit_path(tmp_path: Path) -> None:
     token_file.write_text("mytoken")
 
     config_file = tmp_path / "custom_config.toml"
-    config_file.write_text(f'token_path = "{token_file}"\nport = 8080\nhost = "0.0.0.0"')
+    config_file.write_text(
+        f'token_path = "{token_file}"\nport = 8080\nhost = "0.0.0.0"'
+    )
 
     cfg = load_config(str(config_file))
     assert cfg.token == "mytoken"
@@ -44,7 +46,9 @@ def test_load_config_local_cwd(tmp_path: Path) -> None:
     token_file.write_text("local_token")
 
     try:
-        (tmp_path / "obsidian-local-api.toml").write_text(f'token_path = "{token_file}"')
+        (tmp_path / "obsidian-local-api.toml").write_text(
+            f'token_path = "{token_file}"'
+        )
         cfg = load_config()
         assert cfg.token == "local_token"
     finally:
@@ -73,7 +77,9 @@ def test_load_config_local_hidden(tmp_path: Path) -> None:
     token_file.write_text("hidden_token")
 
     try:
-        (tmp_path / ".obsidian-local-api.toml").write_text(f'token_path = "{token_file}"')
+        (tmp_path / ".obsidian-local-api.toml").write_text(
+            f'token_path = "{token_file}"'
+        )
         cfg = load_config()
         assert cfg.token == "hidden_token"
     finally:
