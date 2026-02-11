@@ -14,6 +14,7 @@ compile_pip_requirements(
     name = "requirements",
     src = "requirements.in",
     requirements_txt = "requirements.lock.txt",
+    timeout = "long",
 )
 
 # Format all Bazel files in the repository
