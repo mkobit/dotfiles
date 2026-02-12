@@ -7,35 +7,31 @@ from typing import Any, Self, Union
 from pydantic import BaseModel, ValidationError, model_validator
 
 
-class ObsidianConfig(BaseModel):
-    """Configuration for Obsidian Local API."""
+class JulesConfig(BaseModel):
+    """Configuration for Jules CLI."""
 
-    token_path: str | None = None
-    port: int = 27124
-    host: str = "127.0.0.1"
+    api_key_path: str | None = None
 
     @classmethod
-    def safe_validate(
-        cls, *, token_path: str | None = None, port: int = 27124, host: str = "127.0.0.1"
-    ) -> Union[Self, Exception]:
+    def safe_validate(cls, *, api_key_path: str | None = None) -> Union[Self, Exception]:
         """Safely validate and return an instance or the exception."""
         try:
-            return cls(token_path=token_path, port=port, host=host)
+            return cls(api_key_path=api_key_path)
         except (ValidationError, ValueError) as e:
             return e
 
     @model_validator(mode="after")
-    def validate_token_path(self) -> Self:
-        if self.token_path:
-            secret_path = Path(self.token_path).expanduser()
+    def validate_api_key_path(self) -> Self:
+        if self.api_key_path:
+            secret_path = Path(self.api_key_path).expanduser()
             if not secret_path.exists():
-                raise ValueError(f"token_path does not exist: {secret_path}")
+                raise ValueError(f"api_key_path does not exist: {secret_path}")
         return self
 
     @property
-    def token(self) -> str | None:
-        if self.token_path:
-            secret_path = Path(self.token_path).expanduser()
+    def api_key(self) -> str | None:
+        if self.api_key_path:
+            secret_path = Path(self.api_key_path).expanduser()
             try:
                 if secret_path.exists():
                     return secret_path.read_text().strip()
@@ -44,7 +40,7 @@ class ObsidianConfig(BaseModel):
         return None
 
 
-def load_config(config_path: str | None = None, debug: bool = False) -> ObsidianConfig:
+def load_config(config_path: str | None = None, debug: bool = False) -> JulesConfig:
     candidates: list[Path] = []
 
     if config_path:
@@ -53,17 +49,17 @@ def load_config(config_path: str | None = None, debug: bool = False) -> Obsidian
             raise FileNotFoundError(f"Config file not found: {config_path}")
         candidates.append(p)
     else:
-        candidates.append(Path("obsidian-local-api.toml"))
-        candidates.append(Path(".obsidian-local-api.toml"))
-        candidates.append(Path(".config") / "obsidian-local-api.toml")
+        # CWD first
+        candidates.append(Path("jules.toml"))
 
+        # XDG Standard
         xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
         if xdg_config_home:
-            candidates.append(Path(xdg_config_home) / "obsidian-local-api" / "config.toml")
+            candidates.append(Path(xdg_config_home) / "jules" / "config.toml")
         else:
-            candidates.append(Path.home() / ".config" / "obsidian-local-api" / "config.toml")
+            candidates.append(Path.home() / ".config" / "jules" / "config.toml")
 
-    selected_config: ObsidianConfig | None = None
+    selected_config: JulesConfig | None = None
 
     for path in candidates:
         if not path.exists():
@@ -79,7 +75,7 @@ def load_config(config_path: str | None = None, debug: bool = False) -> Obsidian
                 print(f"[DEBUG] Failed to parse config {path}: {e}", file=sys.stderr)
             continue
 
-        result = ObsidianConfig.safe_validate(**data)
+        result = JulesConfig.safe_validate(**data)
         if isinstance(result, Exception):
             if debug:
                 print(f"[DEBUG] Validation failed for {path}: {result}", file=sys.stderr)
@@ -94,4 +90,4 @@ def load_config(config_path: str | None = None, debug: bool = False) -> Obsidian
     if selected_config:
         return selected_config
 
-    return ObsidianConfig()
+    return JulesConfig()
