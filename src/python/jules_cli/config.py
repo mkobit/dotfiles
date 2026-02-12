@@ -2,15 +2,23 @@ import os
 import sys
 import tomllib
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Self, Union
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ValidationError, model_validator
 
 
 class JulesConfig(BaseModel):
     """Configuration for Jules CLI."""
 
     api_key_path: str | None = None
+
+    @classmethod
+    def safe_validate(cls, **kwargs: Any) -> Union[Self, Exception]:
+        """Safely validate and return an instance or the exception."""
+        try:
+            return cls(**kwargs)
+        except (ValidationError, ValueError) as e:
+            return e
 
     @model_validator(mode="after")
     def validate_api_key_path(self) -> Self:
@@ -27,11 +35,8 @@ class JulesConfig(BaseModel):
             try:
                 if secret_path.exists():
                     return secret_path.read_text().strip()
-            except Exception as e:
-                print(
-                    f"Warning: Failed to read api_key from {secret_path}: {e}",
-                    file=sys.stderr,
-                )
+            except Exception:
+                return None
         return None
 
 
@@ -44,29 +49,47 @@ def load_config(config_path: str | None = None, debug: bool = False) -> JulesCon
             raise FileNotFoundError(f"Config file not found: {config_path}")
         candidates.append(p)
     else:
+        # CWD first
         candidates.append(Path("jules.toml"))
 
+        # XDG Standard
         xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
         if xdg_config_home:
             candidates.append(Path(xdg_config_home) / "jules" / "config.toml")
         else:
             candidates.append(Path.home() / ".config" / "jules" / "config.toml")
 
-    selected_path = next((p for p in candidates if p.exists()), None)
+    selected_config: JulesConfig | None = None
 
-    if debug:
-        for p in candidates:
-            status = "FOUND" if p.exists() else "MISSING"
-            print(f"[DEBUG] Config candidate: {p} ({status})", file=sys.stderr)
-        print(f"[DEBUG] Selected config: {selected_path}", file=sys.stderr)
+    for path in candidates:
+        if not path.exists():
+            if debug:
+                print(f"[DEBUG] Config candidate missing: {path}", file=sys.stderr)
+            continue
 
-    if not selected_path:
-        return JulesConfig()
+        try:
+            with open(path, "rb") as f:
+                data = tomllib.load(f)
+        except Exception as e:
+            if debug:
+                print(f"[DEBUG] Failed to parse config {path}: {e}", file=sys.stderr)
+            continue
 
-    try:
-        with open(selected_path, "rb") as f:
-            data = tomllib.load(f)
-    except Exception as e:
-        raise ValueError(f"Failed to parse config file {selected_path}: {e}") from e
+        result = JulesConfig.safe_validate(**data)
+        if isinstance(result, Exception):
+            if debug:
+                print(
+                    f"[DEBUG] Validation failed for {path}: {result}", file=sys.stderr
+                )
+            continue
 
-    return JulesConfig(**data)
+        if debug:
+            print(f"[DEBUG] Loaded valid config from: {path}", file=sys.stderr)
+
+        selected_config = result
+        break
+
+    if selected_config:
+        return selected_config
+
+    return JulesConfig()

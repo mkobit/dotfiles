@@ -2,9 +2,9 @@ import os
 import sys
 import tomllib
 from pathlib import Path
-from typing import Any, Self
+from typing import Any, Self, Union
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, ValidationError, model_validator
 
 
 class ObsidianConfig(BaseModel):
@@ -13,6 +13,14 @@ class ObsidianConfig(BaseModel):
     token_path: str | None = None
     port: int = 27124
     host: str = "127.0.0.1"
+
+    @classmethod
+    def safe_validate(cls, **kwargs: Any) -> Union[Self, Exception]:
+        """Safely validate and return an instance or the exception."""
+        try:
+            return cls(**kwargs)
+        except (ValidationError, ValueError) as e:
+            return e
 
     @model_validator(mode="after")
     def validate_token_path(self) -> Self:
@@ -29,11 +37,8 @@ class ObsidianConfig(BaseModel):
             try:
                 if secret_path.exists():
                     return secret_path.read_text().strip()
-            except Exception as e:
-                print(
-                    f"Warning: Failed to read token from {secret_path}: {e}",
-                    file=sys.stderr,
-                )
+            except Exception:
+                return None
         return None
 
 
@@ -60,21 +65,37 @@ def load_config(config_path: str | None = None, debug: bool = False) -> Obsidian
                 Path.home() / ".config" / "obsidian-local-api" / "config.toml"
             )
 
-    selected_path = next((p for p in candidates if p.exists()), None)
+    selected_config: ObsidianConfig | None = None
 
-    if debug:
-        for p in candidates:
-            status = "FOUND" if p.exists() else "MISSING"
-            print(f"[DEBUG] Config candidate: {p} ({status})", file=sys.stderr)
-        print(f"[DEBUG] Selected config: {selected_path}", file=sys.stderr)
+    for path in candidates:
+        if not path.exists():
+            if debug:
+                print(f"[DEBUG] Config candidate missing: {path}", file=sys.stderr)
+            continue
 
-    if not selected_path:
-        return ObsidianConfig()
+        try:
+            with open(path, "rb") as f:
+                data = tomllib.load(f)
+        except Exception as e:
+            if debug:
+                print(f"[DEBUG] Failed to parse config {path}: {e}", file=sys.stderr)
+            continue
 
-    try:
-        with open(selected_path, "rb") as f:
-            data = tomllib.load(f)
-    except Exception as e:
-        raise ValueError(f"Failed to parse config file {selected_path}: {e}") from e
+        result = ObsidianConfig.safe_validate(**data)
+        if isinstance(result, Exception):
+            if debug:
+                print(
+                    f"[DEBUG] Validation failed for {path}: {result}", file=sys.stderr
+                )
+            continue
 
-    return ObsidianConfig(**data)
+        if debug:
+            print(f"[DEBUG] Loaded valid config from: {path}", file=sys.stderr)
+
+        selected_config = result
+        break
+
+    if selected_config:
+        return selected_config
+
+    return ObsidianConfig()
