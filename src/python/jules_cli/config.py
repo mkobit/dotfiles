@@ -13,10 +13,10 @@ class JulesConfig(BaseModel):
     api_key_path: str | None = None
 
     @classmethod
-    def safe_validate(cls, **kwargs: Any) -> Union[Self, Exception]:
+    def safe_validate(cls, *, api_key_path: str | None = None) -> Union[Self, Exception]:
         """Safely validate and return an instance or the exception."""
         try:
-            return cls(**kwargs)
+            return cls(api_key_path=api_key_path)
         except (ValidationError, ValueError) as e:
             return e
 
@@ -64,7 +64,7 @@ def load_config(config_path: str | None = None, debug: bool = False) -> JulesCon
     for path in candidates:
         if not path.exists():
             if debug:
-                print(f"[DEBUG] Config candidate missing: {path}", file=sys.stderr)
+                 print(f"[DEBUG] Config candidate missing: {path}", file=sys.stderr)
             continue
 
         try:
@@ -78,9 +78,7 @@ def load_config(config_path: str | None = None, debug: bool = False) -> JulesCon
         result = JulesConfig.safe_validate(**data)
         if isinstance(result, Exception):
             if debug:
-                print(
-                    f"[DEBUG] Validation failed for {path}: {result}", file=sys.stderr
-                )
+                print(f"[DEBUG] Validation failed for {path}: {result}", file=sys.stderr)
             continue
 
         if debug:

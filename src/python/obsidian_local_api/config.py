@@ -15,10 +15,12 @@ class ObsidianConfig(BaseModel):
     host: str = "127.0.0.1"
 
     @classmethod
-    def safe_validate(cls, **kwargs: Any) -> Union[Self, Exception]:
+    def safe_validate(
+        cls, *, token_path: str | None = None, port: int = 27124, host: str = "127.0.0.1"
+    ) -> Union[Self, Exception]:
         """Safely validate and return an instance or the exception."""
         try:
-            return cls(**kwargs)
+            return cls(token_path=token_path, port=port, host=host)
         except (ValidationError, ValueError) as e:
             return e
 
@@ -57,20 +59,16 @@ def load_config(config_path: str | None = None, debug: bool = False) -> Obsidian
 
         xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
         if xdg_config_home:
-            candidates.append(
-                Path(xdg_config_home) / "obsidian-local-api" / "config.toml"
-            )
+            candidates.append(Path(xdg_config_home) / "obsidian-local-api" / "config.toml")
         else:
-            candidates.append(
-                Path.home() / ".config" / "obsidian-local-api" / "config.toml"
-            )
+            candidates.append(Path.home() / ".config" / "obsidian-local-api" / "config.toml")
 
     selected_config: ObsidianConfig | None = None
 
     for path in candidates:
         if not path.exists():
             if debug:
-                print(f"[DEBUG] Config candidate missing: {path}", file=sys.stderr)
+                 print(f"[DEBUG] Config candidate missing: {path}", file=sys.stderr)
             continue
 
         try:
@@ -84,9 +82,7 @@ def load_config(config_path: str | None = None, debug: bool = False) -> Obsidian
         result = ObsidianConfig.safe_validate(**data)
         if isinstance(result, Exception):
             if debug:
-                print(
-                    f"[DEBUG] Validation failed for {path}: {result}", file=sys.stderr
-                )
+                print(f"[DEBUG] Validation failed for {path}: {result}", file=sys.stderr)
             continue
 
         if debug:
