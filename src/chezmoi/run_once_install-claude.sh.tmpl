@@ -1,4 +1,4 @@
-{{- if .claude_code.enabled }}#!/bin/bash
+{{- if eq .claude_code.installation "external-script" }}#!/bin/bash
 set -euo pipefail
 
 # Install Claude Code using official installer

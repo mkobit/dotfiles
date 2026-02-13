@@ -1,1 +1,3 @@
+{{- if eq .local_bin_tools.obsidian_client.installation "chezmoi" -}}
 {{- template "bazel_run_wrapper.sh" (dict "chezmoi" .chezmoi "target" "//src/python/obsidian_local_api:obsidian_local_api_bin") -}}
+{{- end -}}

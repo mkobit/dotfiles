@@ -1,3 +1,4 @@
-{{- if .claude_code.enabled }}
-{{ .claude_code.settings | toPrettyJson }}
+{{- if eq .claude_code.settings.installation "chezmoi" }}
+{{- $settings := omit .claude_code.settings "installation" -}}
+{{ $settings | toPrettyJson }}
 {{- end }}

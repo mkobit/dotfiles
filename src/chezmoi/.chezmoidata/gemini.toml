@@ -25,4 +25,4 @@ vim_mode = true
   [gemini.extensions.conductor]
   url = "https://github.com/gemini-cli-extensions/conductor"
   ref = "v0.2.0"
-  enabled = true
+  installation = "gemini-cli"

@@ -19,7 +19,7 @@ if ! command -v gemini &> /dev/null; then
 fi
 
 {{- range $name, $ext := .gemini.extensions }}
-{{-   if $ext.enabled }}
+{{-   if eq $ext.installation "gemini-cli" }}
 log_info "Installing/Updating extension: {{ $name }} ({{ $ext.ref }})"
 # We use --consent to bypass prompts.
 if ! gemini extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent; then

@@ -313,6 +313,44 @@ linux_arm64 = "097347160595bf03a426d2abe0a17e14ca060540ddfc0ea45c0a9be62bb29a2b"
 - `checksum.sha256`: SHA256 checksum for verification
 - `refreshPeriod`: How often to check for updates (e.g., `"720h"` = 30 days)
 
+### Installation key pattern
+
+All tools use a consistent `installation` key to control deployment. Standard values:
+- `"disabled"` - Do not install/deploy
+- `"chezmoi"` - Managed by chezmoi templates
+- `"external-script"` - Curl/bash installer
+- `"external-sources"` - Chezmoi externals
+- `"mise"` - Mise version manager
+- `"package-manager"` - Brew/apt-get
+
+**Use `dig` for safe nested key access:**
+```go
+{{/* With default - returns "chezmoi" if path missing */}}
+{{- if eq (dig "tool" "component" "installation" "chezmoi" .) "chezmoi" -}}
+
+{{/* Explicit failure - errors if key missing */}}
+{{- $installation := dig "tool" "installation" "" . -}}
+{{- if not $installation }}{{ fail "tool.installation is required" }}{{ end -}}
+{{- if eq $installation "chezmoi" -}}
+```
+
+**Why `dig` over `index`:**
+- Readable left-to-right key path: `dig "a" "b" "c" default .`
+- Safe traversal with explicit default value
+- Works in `.chezmoiignore` where data may not exist
+
+**Why exact equality:**
+Using `eq value "expected"` instead of `ne value "disabled"` prevents typos from accidentally enabling features.
+
+**Data structure example:**
+```toml
+[tool_name]
+installation = "chezmoi"
+
+[tool_name.settings]
+installation = "chezmoi"
+```
+
 ### When to use externals vs scripts
 
 **Use chezmoi externals for:**

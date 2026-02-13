@@ -22,3 +22,18 @@
 # Test artifacts
 **/expected_*
 **/test_data.toml
+
+# Conditionally ignore Claude Code components based on installation method
+# Flags set by work dotfiles in ~/.config/chezmoi/chezmoi.toml
+{{- if eq (dig "claude_code" "commands" "installation" "chezmoi" .) "disabled" }}
+.claude/commands
+{{- end }}
+{{- if eq (dig "claude_code" "skills" "installation" "chezmoi" .) "disabled" }}
+.claude/skills
+{{- end }}
+
+# Conditionally ignore gemini config if gemini-cli is disabled
+{{- if eq (dig "mise" "global_tools" "npm:@google/gemini-cli" "installation" "mise" .) "disabled" }}
+.gemini
+.local/bin/install-gemini-extensions.sh
+{{- end }}

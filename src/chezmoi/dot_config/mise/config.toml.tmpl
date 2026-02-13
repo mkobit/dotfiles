@@ -1,13 +1,13 @@
-{{- $hasEnabledTools := false -}}
+{{- $hasMiseTools := false -}}
 {{- range $tool, $config := .mise.global_tools -}}
-  {{- if $config.enabled -}}
-    {{- $hasEnabledTools = true -}}
+  {{- if eq $config.installation "mise" -}}
+    {{- $hasMiseTools = true -}}
   {{- end -}}
 {{- end -}}
-{{- if $hasEnabledTools -}}
+{{- if $hasMiseTools -}}
 [tools]
 {{- range $tool, $config := .mise.global_tools -}}
-  {{- if $config.enabled }}
+  {{- if eq $config.installation "mise" }}
     {{- if hasKey $config "postinstall" }}
 {{ $tool | quote }} = { version = "{{ $config.version }}", postinstall = "{{ $config.postinstall }}" }
     {{- else }}

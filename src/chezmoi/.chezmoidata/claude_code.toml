@@ -1,9 +1,9 @@
 [claude_code]
-enabled = true
 version = "2.1.37"
 installation = "external-script"
 
 [claude_code.settings]
+installation = "chezmoi"
 cleanupPeriodDays = 30
 outputStyle = "concise"
 
@@ -14,3 +14,9 @@ files = "allow"
 [claude_code.settings.env]
 DISABLE_AUTOUPDATER = "true"
 DISABLE_TELEMETRY = "true"
+
+[claude_code.commands]
+installation = "chezmoi"
+
+[claude_code.skills]
+installation = "chezmoi"

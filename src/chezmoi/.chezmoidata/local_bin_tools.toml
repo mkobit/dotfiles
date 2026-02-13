@@ -1,0 +1,11 @@
+# Local bin tools - custom scripts in ~/.local/bin/tools/
+# These are Bazel-built tools from the personal chezmoi repo
+
+[local_bin_tools.jules]
+installation = "chezmoi"
+
+[local_bin_tools.obsidian_client]
+installation = "chezmoi"
+
+[local_bin_tools.hello_world]
+installation = "chezmoi"
