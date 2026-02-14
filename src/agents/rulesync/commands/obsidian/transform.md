@@ -1,27 +1,18 @@
 ---
-description: Batch organize and transform multiple vault files or folders
-argument-hint: <@folder or @file1 @file2 ...> [vault-path]
+description: Transform raw content into clean, organized Obsidian vault notes
+targets: ["*"]
+argument-hint: <@file or raw text> [vault-path]
 ---
 
-Batch process multiple files or entire folders, applying transformation and organization conventions to bring messy content into vault standards.
-
-## What this does
-
-This command applies `/obsidian-transform` logic to multiple files at once:
-- Clean up messy folders with inconsistent formatting
-- Batch transform imported content
-- Reorganize existing Area/Meta structure
-- Apply vault conventions to legacy notes
-
-**Note:** This command can call `/obsidian-transform` for individual files if needed.
+Transform raw content (voice transcriptions, quick notes, pastes) into clean, organized markdown notes following Obsidian vault conventions.
 
 ## Workflow
 
 1. **Detect vault root** - Find `.obsidian/` directory (use provided vault-path or search from current directory)
-2. **Identify targets** - List all files to process
-3. **Research patterns** - Understand existing vault conventions (tags, properties, structures)
-4. **Process each file** - Transform content following vault standards
-5. **Report** - Summarize changes made
+2. **Research patterns** - Use Glob/Grep to understand existing tags, properties, note structures
+3. **Transform content** - Clean, restructure, and enrich the content
+4. **Create notes** - Write atomic notes with proper naming and frontmatter
+5. **Report** - Show what was created and where
 
 ## Vault conventions
 
@@ -94,35 +85,29 @@ When processing raw content:
    - Grep for existing tags to understand taxonomy
    - Look for similar notes to understand structure patterns
 
-2. **Identify files to process**
-   - If folder: recursively find all `.md` files
-   - If multiple files: validate they all exist
-   - Show list and ask for confirmation if processing >10 files
+2. **Analyze content**
+   - Identify main concepts (potential note splits)
+   - Extract key facts and information
+   - Identify potential wikilinks (people, places, concepts)
+   - Determine appropriate tags and properties
 
-3. **Process each file**
-   - Read current content
-   - Analyze and transform following conventions
-   - Update or create new file with proper naming
-   - Track original → new file mappings
-   - Update wikilinks if files renamed
+3. **Transform and create**
+   - Generate ISO 8601 timestamp: `yyyy-MM-ddTHH-mm-ss`
+   - Create atomic note files with proper naming
+   - Write frontmatter with consistent property types
+   - Format content: one sentence per line, remove fluff, add wikilinks
+   - Use emoji section headers where appropriate
 
-4. **Handle reorganization**
-   - Move files to appropriate Area/Meta locations if needed
-   - Update all backlinks across vault when files move
-   - Archive or remove source files if transformed into new locations
-
-5. **Validate**
-   - Verify all new files created successfully
-   - Check frontmatter is valid YAML
-   - Confirm property types match vault conventions
+4. **Validate**
+   - Verify files created in vault
+   - Confirm frontmatter is valid YAML
+   - Check that property types match vault conventions
    - Ensure tag hierarchy doesn't exceed 3 levels
-   - Validate wikilinks aren't broken
 
-6. **Report**
-   - Summary: X files processed, Y created, Z renamed/moved
-   - List all transformations made
-   - Show any files that need manual review
-   - Highlight any wikilink updates made
+5. **Report**
+   - List files created with paths
+   - Show key transformations made
+   - Highlight any decisions requiring user review
 
 ## Important notes
 
@@ -132,5 +117,3 @@ When processing raw content:
 - **Be decisive** - Apply conventions autonomously; aim for 98% automation
 - **Preserve meaning** - Remove fluff but keep all factual information
 - **Link extensively** - Rich wikilink networks are core to vault value
-- **Backup consideration** - For large batch operations, suggest user review git status first
-- **Can call other commands** - Use `/obsidian-transform` for individual file processing if helpful

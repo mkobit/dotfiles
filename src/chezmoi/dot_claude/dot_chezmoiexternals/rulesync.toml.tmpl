@@ -1,0 +1,5 @@
+{{- if .claude_code.enabled -}}
+[".claude"]
+{{- includeTemplate "bazel_artifact.toml" (dict "chezmoi" .chezmoi "target" "//src/agents/rulesync:claude_config") -}}
+stripComponents = 1
+{{- end -}}
