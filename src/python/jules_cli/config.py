@@ -2,23 +2,15 @@ import os
 import sys
 import tomllib
 from pathlib import Path
-from typing import Any, Self, Union
+from typing import Any, Self
 
-from pydantic import BaseModel, ValidationError, model_validator
+from pydantic import BaseModel, model_validator
 
 
 class JulesConfig(BaseModel):
     """Configuration for Jules CLI."""
 
     api_key_path: str | None = None
-
-    @classmethod
-    def safe_validate(cls, *, api_key_path: str | None = None) -> Union[Self, Exception]:
-        """Safely validate and return an instance or the exception."""
-        try:
-            return cls(api_key_path=api_key_path)
-        except (ValidationError, ValueError) as e:
-            return e
 
     @model_validator(mode="after")
     def validate_api_key_path(self) -> Self:
@@ -44,6 +36,7 @@ def load_config(config_path: str | None = None, debug: bool = False) -> JulesCon
     candidates: list[Path] = []
 
     if config_path:
+        # If explicit path provided, check ONLY that path
         p = Path(config_path)
         if not p.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
@@ -59,35 +52,27 @@ def load_config(config_path: str | None = None, debug: bool = False) -> JulesCon
         else:
             candidates.append(Path.home() / ".config" / "jules" / "config.toml")
 
-    selected_config: JulesConfig | None = None
-
-    for path in candidates:
+    def try_load(path: Path) -> JulesConfig | None:
         if not path.exists():
             if debug:
-                 print(f"[DEBUG] Config candidate missing: {path}", file=sys.stderr)
-            continue
-
+                print(f"[DEBUG] Config candidate missing: {path}", file=sys.stderr)
+            return None
         try:
             with open(path, "rb") as f:
                 data = tomllib.load(f)
+            cfg = JulesConfig(**data)
+            if debug:
+                print(f"[DEBUG] Loaded valid config from: {path}", file=sys.stderr)
+            return cfg
         except Exception as e:
             if debug:
-                print(f"[DEBUG] Failed to parse config {path}: {e}", file=sys.stderr)
-            continue
+                print(f"[DEBUG] Failed to load config {path}: {e}", file=sys.stderr)
+            return None
 
-        result = JulesConfig.safe_validate(**data)
-        if isinstance(result, Exception):
-            if debug:
-                print(f"[DEBUG] Validation failed for {path}: {result}", file=sys.stderr)
-            continue
+    # Functional first-match pattern
+    config = next((cfg for cfg in map(try_load, candidates) if cfg), None)
 
-        if debug:
-            print(f"[DEBUG] Loaded valid config from: {path}", file=sys.stderr)
-
-        selected_config = result
-        break
-
-    if selected_config:
-        return selected_config
+    if config:
+        return config
 
     return JulesConfig()
