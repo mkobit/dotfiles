@@ -1,10 +1,12 @@
+import logging
 import os
-import sys
 import tomllib
 from pathlib import Path
-from typing import Any, Self
+from typing import Self
 
 from pydantic import BaseModel, model_validator
+
+logger = logging.getLogger(__name__)
 
 
 class JulesConfig(BaseModel):
@@ -32,47 +34,35 @@ class JulesConfig(BaseModel):
         return None
 
 
-def load_config(config_path: str | None = None, debug: bool = False) -> JulesConfig:
-    candidates: list[Path] = []
-
+def load_config(config_path: str | None = None) -> JulesConfig:
     if config_path:
-        # If explicit path provided, check ONLY that path
         p = Path(config_path)
         if not p.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
-        candidates.append(p)
+        candidates = [p]
     else:
-        # CWD first
-        candidates.append(Path("jules.toml"))
-
-        # XDG Standard
-        xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
-        if xdg_config_home:
-            candidates.append(Path(xdg_config_home) / "jules" / "config.toml")
-        else:
-            candidates.append(Path.home() / ".config" / "jules" / "config.toml")
+        xdg_config = os.environ.get("XDG_CONFIG_HOME")
+        candidates = [
+            Path("jules.toml"),
+            (Path(xdg_config) / "jules" / "config.toml")
+            if xdg_config
+            else (Path.home() / ".config" / "jules" / "config.toml"),
+        ]
 
     def try_load(path: Path) -> JulesConfig | None:
         if not path.exists():
-            if debug:
-                print(f"[DEBUG] Config candidate missing: {path}", file=sys.stderr)
+            logger.debug("Config candidate missing: %s", path)
             return None
         try:
             with open(path, "rb") as f:
                 data = tomllib.load(f)
             cfg = JulesConfig(**data)
-            if debug:
-                print(f"[DEBUG] Loaded valid config from: {path}", file=sys.stderr)
+            logger.debug("Loaded valid config from: %s", path)
             return cfg
         except Exception as e:
-            if debug:
-                print(f"[DEBUG] Failed to load config {path}: {e}", file=sys.stderr)
+            logger.debug("Failed to load config %s: %s", path, e)
             return None
 
-    # Functional first-match pattern
-    config = next((cfg for cfg in map(try_load, candidates) if cfg), None)
-
-    if config:
-        return config
-
-    return JulesConfig()
+    return (
+        next((cfg for cfg in map(try_load, candidates) if cfg), None) or JulesConfig()
+    )

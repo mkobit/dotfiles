@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +33,7 @@ def load_config_callback(ctx: Any, param: Any, value: str | None) -> str | None:
 
 
 @click.group()
+@click.option("--debug/--no-debug", default=False, help="Enable debug logging.")
 @click.option(
     "--config",
     default=None,
@@ -47,7 +49,7 @@ def load_config_callback(ctx: Any, param: Any, value: str | None) -> str | None:
 @click.option("--port", type=int, default=27124, help="Obsidian Local REST API Port")
 @click.option("--host", default="127.0.0.1", help="Obsidian Local REST API Host")
 @click.pass_context
-def cli(ctx: Any, token: str | None, port: int, host: str) -> None:
+def cli(ctx: Any, debug: bool, token: str | None, port: int, host: str) -> None:
     """Obsidian Local API Client.
 
     This CLI tool interacts with the Obsidian Local REST API plugin.
@@ -73,6 +75,8 @@ def cli(ctx: Any, token: str | None, port: int, host: str) -> None:
     Example:
     $ obsidian-cli read "Notes/My Note.md"
     """
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
+
     if not token:
         click.echo(
             "Error: Token is required. Pass --token, or set 'token' in "

@@ -1,10 +1,12 @@
+import logging
 import os
-import sys
 import tomllib
 from pathlib import Path
-from typing import Any, Self
+from typing import Self
 
 from pydantic import BaseModel, model_validator
+
+logger = logging.getLogger(__name__)
 
 
 class ObsidianConfig(BaseModel):
@@ -34,50 +36,38 @@ class ObsidianConfig(BaseModel):
         return None
 
 
-def load_config(config_path: str | None = None, debug: bool = False) -> ObsidianConfig:
-    candidates: list[Path] = []
-
+def load_config(config_path: str | None = None) -> ObsidianConfig:
     if config_path:
         p = Path(config_path)
         if not p.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
-        candidates.append(p)
+        candidates = [p]
     else:
-        candidates.append(Path("obsidian-local-api.toml"))
-        candidates.append(Path(".obsidian-local-api.toml"))
-        candidates.append(Path(".config") / "obsidian-local-api.toml")
-
-        xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
-        if xdg_config_home:
-            candidates.append(
-                Path(xdg_config_home) / "obsidian-local-api" / "config.toml"
-            )
-        else:
-            candidates.append(
-                Path.home() / ".config" / "obsidian-local-api" / "config.toml"
-            )
+        xdg_config = os.environ.get("XDG_CONFIG_HOME")
+        candidates = [
+            Path("obsidian-local-api.toml"),
+            Path(".obsidian-local-api.toml"),
+            Path(".config") / "obsidian-local-api.toml",
+            (Path(xdg_config) / "obsidian-local-api" / "config.toml")
+            if xdg_config
+            else (Path.home() / ".config" / "obsidian-local-api" / "config.toml"),
+        ]
 
     def try_load(path: Path) -> ObsidianConfig | None:
         if not path.exists():
-            if debug:
-                print(f"[DEBUG] Config candidate missing: {path}", file=sys.stderr)
+            logger.debug("Config candidate missing: %s", path)
             return None
         try:
             with open(path, "rb") as f:
                 data = tomllib.load(f)
             cfg = ObsidianConfig(**data)
-            if debug:
-                print(f"[DEBUG] Loaded valid config from: {path}", file=sys.stderr)
+            logger.debug("Loaded valid config from: %s", path)
             return cfg
         except Exception as e:
-            if debug:
-                print(f"[DEBUG] Failed to load config {path}: {e}", file=sys.stderr)
+            logger.debug("Failed to load config %s: %s", path, e)
             return None
 
-    # Functional first-match pattern
-    config = next((cfg for cfg in map(try_load, candidates) if cfg), None)
-
-    if config:
-        return config
-
-    return ObsidianConfig()
+    return (
+        next((cfg for cfg in map(try_load, candidates) if cfg), None)
+        or ObsidianConfig()
+    )

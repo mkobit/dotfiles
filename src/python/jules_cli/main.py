@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 import shutil
 import subprocess
@@ -18,9 +19,10 @@ from src.python.jules_cli.models import (
 
 
 @click.group()
-def cli() -> None:
+@click.option("--debug/--no-debug", default=False, help="Enable debug logging.")
+def cli(debug: bool) -> None:
     """Jules CLI tool for interacting with the Jules API."""
-    pass
+    logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
 
 
 def get_api_key() -> str:
@@ -33,8 +35,8 @@ def get_api_key() -> str:
         if config.api_key:
             return config.api_key
     except Exception as e:
-        # If loading fails (e.g., config file malformed), print error but proceed to legacy check
-        click.echo(f"Warning: Failed to load config: {e}", err=True)
+        # If loading fails (e.g., config file malformed), log warning but proceed to legacy check
+        logging.warning("Failed to load config: %s", e)
 
     # Legacy check XDG config
     xdg_config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
