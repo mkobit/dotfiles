@@ -44,10 +44,12 @@ def load_config(config_path: str | None = None) -> JulesConfig:
         xdg_config = os.environ.get("XDG_CONFIG_HOME")
         candidates = [
             Path("jules.toml"),
-            (Path(xdg_config) / "jules" / "config.toml")
-            if xdg_config
-            else (Path.home() / ".config" / "jules" / "config.toml"),
         ]
+        if xdg_config:
+            candidates.append(Path(xdg_config) / "jules" / "config.toml")
+
+        # Always check default XDG location (fallback)
+        candidates.append(Path.home() / ".config" / "jules" / "config.toml")
 
     def try_load(path: Path) -> JulesConfig | None:
         if not path.exists():
@@ -63,6 +65,4 @@ def load_config(config_path: str | None = None) -> JulesConfig:
             logger.debug("Failed to load config %s: %s", path, e)
             return None
 
-    return (
-        next((cfg for cfg in map(try_load, candidates) if cfg), None) or JulesConfig()
-    )
+    return next((cfg for cfg in map(try_load, candidates) if cfg), None) or JulesConfig()
