@@ -54,7 +54,9 @@ def load_config(config_path: str | None = None) -> ObsidianConfig:
             candidates.append(Path(xdg_config) / "obsidian-local-api" / "config.toml")
 
         # Always check default XDG location (fallback)
-        candidates.append(Path.home() / ".config" / "obsidian-local-api" / "config.toml")
+        candidates.append(
+            Path.home() / ".config" / "obsidian-local-api" / "config.toml"
+        )
 
     def try_load(path: Path) -> ObsidianConfig | None:
         if not path.exists():
@@ -70,4 +72,7 @@ def load_config(config_path: str | None = None) -> ObsidianConfig:
             logger.debug("Failed to load config %s: %s", path, e)
             return None
 
-    return next((cfg for cfg in map(try_load, candidates) if cfg), None) or ObsidianConfig()
+    return (
+        next((cfg for cfg in map(try_load, candidates) if cfg), None)
+        or ObsidianConfig()
+    )

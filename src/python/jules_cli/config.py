@@ -65,4 +65,6 @@ def load_config(config_path: str | None = None) -> JulesConfig:
             logger.debug("Failed to load config %s: %s", path, e)
             return None
 
-    return next((cfg for cfg in map(try_load, candidates) if cfg), None) or JulesConfig()
+    return (
+        next((cfg for cfg in map(try_load, candidates) if cfg), None) or JulesConfig()
+    )
