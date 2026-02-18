@@ -6,6 +6,7 @@ installation = "external-script"
 [claude_code.settings]
 cleanupPeriodDays = 30
 outputStyle = "concise"
+editorMode = "vim"
 
 [claude_code.settings.permissions]
 tools = "allow"
