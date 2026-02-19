@@ -1,15 +1,15 @@
 # =============================================
 # Terminal Settings
 # =============================================
-# Use tmux-256color if available, otherwise screen-256color
+# Use tmux-256color for Linux/WSL (better features), screen-256color for macOS (safer default)
 # Docs: https://man.openbsd.org/tmux#default-terminal
-if-shell "infocmp tmux-256color" {
-    set -g default-terminal "tmux-256color"
-    set -ga terminal-overrides ",tmux-256color:Tc"
-} {
-    set -g default-terminal "screen-256color"
-    set -ga terminal-overrides ",screen-256color:Tc"
-}
+{{ if eq .chezmoi.os "linux" -}}
+set -g default-terminal "tmux-256color"
+set -ga terminal-overrides ",tmux-256color:Tc"
+{{ else -}}
+set -g default-terminal "screen-256color"
+set -ga terminal-overrides ",screen-256color:Tc"
+{{ end -}}
 
 # Fix backspace and delete key issues across different terminals
 # Docs: https://man.openbsd.org/tmux#assume-paste-time
