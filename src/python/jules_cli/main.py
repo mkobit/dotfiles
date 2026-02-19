@@ -21,7 +21,16 @@ from src.python.jules_cli.models import (
 @click.group()
 @click.option("--debug/--no-debug", default=False, help="Enable debug logging.")
 def cli(debug: bool) -> None:
-    """Jules CLI tool for interacting with the Jules API."""
+    """Jules CLI tool for interacting with the Jules API.
+
+    This tool allows you to create and manage coding sessions with the Jules agent.
+    For more information about the Jules API, visit:
+    https://developers.google.com/jules/api
+
+    Configuration:
+    The tool looks for a configuration file at `~/.config/jules/config.toml`.
+    You can also set the `JULES_API_KEY` environment variable.
+    """
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
 
 
@@ -164,13 +173,25 @@ async def main_menu() -> None:
 
 @cli.command()
 def interact() -> None:
-    """Interactive mode to view and manage sessions."""
+    """Interactive mode to view and manage sessions.
+
+    Launches an interactive TUI (using fzf) to browse sessions and interact with them.
+
+    Example:
+    $ jules interact
+    """
     asyncio.run(main_menu())
 
 
 @cli.command(name="list")
 def list_sessions() -> None:
-    """List recent sessions."""
+    """List recent sessions.
+
+    Displays a list of recent Jules sessions with their IDs and titles.
+
+    Example:
+    $ jules list
+    """
 
     async def _list() -> None:
         api_key = get_api_key()
@@ -184,7 +205,17 @@ def list_sessions() -> None:
 @cli.command()
 @click.argument("session_id")
 def show(session_id: str) -> None:
-    """Show details for a session."""
+    """Show details for a session.
+
+    Displays detailed information about a specific session, including its prompt,
+    source, and recent activity.
+
+    Arguments:
+        SESSION_ID: The unique identifier of the session (e.g., 'sessions/12345').
+
+    Example:
+    $ jules show sessions/12345
+    """
 
     async def _show() -> None:
         api_key = get_api_key()
@@ -230,7 +261,23 @@ def create(
     approve: bool,
     interactive: bool,
 ) -> None:
-    """Create a new session."""
+    """Create a new session.
+
+    Starts a new coding session with Jules.
+
+    Examples:
+    \b
+    # Create a basic session
+    $ jules create --prompt "Fix bug in main.py" --source owner/repo
+
+    \b
+    # Create a session on a specific branch with a title
+    $ jules create --prompt "Refactor auth" --source github/owner/repo --branch dev --title "Auth Refactor"
+
+    \b
+    # Create an interactive session
+    $ jules create --prompt "Add new feature" --source owner/repo -i
+    """
 
     async def _create() -> None:
         api_key = get_api_key()

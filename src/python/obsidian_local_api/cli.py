@@ -44,12 +44,14 @@ def load_config_callback(ctx: Any, param: Any, value: str | None) -> str | None:
     expose_value=False,
 )
 @click.option(
-    "--token", help="Obsidian Local REST API Token. Can also be set in config file."
+    "--token",
+    help="Obsidian Local REST API Token. Can also be set in config file.",
+    required=True,
 )
 @click.option("--port", type=int, default=27124, help="Obsidian Local REST API Port")
 @click.option("--host", default="127.0.0.1", help="Obsidian Local REST API Host")
 @click.pass_context
-def cli(ctx: Any, debug: bool, token: str | None, port: int, host: str) -> None:
+def cli(ctx: Any, debug: bool, token: str, port: int, host: str) -> None:
     """Obsidian Local API Client.
 
     This CLI tool interacts with the Obsidian Local REST API plugin.
@@ -76,18 +78,6 @@ def cli(ctx: Any, debug: bool, token: str | None, port: int, host: str) -> None:
     $ obsidian-cli read "Notes/My Note.md"
     """
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
-
-    if not token:
-        click.echo(
-            "Error: Token is required. Pass --token, or set 'token' in "
-            "config file (./obsidian-local-api.toml or "
-            "~/.config/obsidian-local-api/config.toml)",
-            err=True,
-        )
-        ctx.exit(1)
-
-    # We know token is not None here because of the check above
-    assert token is not None
     ctx.obj = ObsidianClient(token=token, port=port, host=host)
 
 
@@ -96,7 +86,14 @@ def cli(ctx: Any, debug: bool, token: str | None, port: int, host: str) -> None:
 @async_command
 @click.pass_context
 async def read(ctx: Any, path: str) -> None:
-    """Read a file from the vault."""
+    """Read a file from the vault.
+
+    Arguments:
+        PATH: The path to the file within the Obsidian vault.
+
+    Example:
+    $ obsidian-cli read "Notes/Daily/2023-10-27.md"
+    """
     client = ctx.obj
     try:
         content = await client.get_file(path)
@@ -111,7 +108,17 @@ async def read(ctx: Any, path: str) -> None:
 @async_command
 @click.pass_context
 async def write(ctx: Any, path: str, content: str) -> None:
-    """Write content to a file in the vault."""
+    """Write content to a file in the vault.
+
+    Creates a new file or overwrites an existing one.
+
+    Arguments:
+        PATH: The path to the file within the Obsidian vault.
+        CONTENT: The content to write to the file.
+
+    Example:
+    $ obsidian-cli write "Notes/NewIdea.md" "# My Idea\n\nThis is a great idea."
+    """
     client = ctx.obj
     try:
         await client.create_file(path, content)
@@ -125,7 +132,14 @@ async def write(ctx: Any, path: str, content: str) -> None:
 @async_command
 @click.pass_context
 async def delete(ctx: Any, path: str) -> None:
-    """Delete a file from the vault."""
+    """Delete a file from the vault.
+
+    Arguments:
+        PATH: The path to the file within the Obsidian vault to delete.
+
+    Example:
+    $ obsidian-cli delete "Notes/OldIdea.md"
+    """
     client = ctx.obj
     try:
         await client.delete_file(path)
@@ -139,7 +153,14 @@ async def delete(ctx: Any, path: str) -> None:
 @async_command
 @click.pass_context
 async def list_files(ctx: Any, folder: str) -> None:
-    """List files in the vault."""
+    """List files in the vault.
+
+    Arguments:
+        FOLDER: The folder path to list files from (default: root '/').
+
+    Example:
+    $ obsidian-cli list "Notes/"
+    """
     client = ctx.obj
     try:
         results = await client.list_files(folder)
@@ -153,7 +174,14 @@ async def list_files(ctx: Any, folder: str) -> None:
 @async_command
 @click.pass_context
 async def search(ctx: Any, query: str) -> None:
-    """Search the vault."""
+    """Search the vault.
+
+    Arguments:
+        QUERY: The search query string (Obsidian search syntax).
+
+    Example:
+    $ obsidian-cli search "tag:#urgent"
+    """
     client = ctx.obj
     try:
         results = await client.search(query)
@@ -166,7 +194,13 @@ async def search(ctx: Any, query: str) -> None:
 @async_command
 @click.pass_context
 async def active(ctx: Any) -> None:
-    """Get the active file."""
+    """Get the active file.
+
+    Returns details about the currently active file in Obsidian.
+
+    Example:
+    $ obsidian-cli active
+    """
     client = ctx.obj
     try:
         results = await client.get_active_file()
@@ -179,7 +213,13 @@ async def active(ctx: Any) -> None:
 @async_command
 @click.pass_context
 async def commands(ctx: Any) -> None:
-    """List available commands."""
+    """List available commands.
+
+    Lists all available Obsidian commands that can be executed via the API.
+
+    Example:
+    $ obsidian-cli commands
+    """
     client = ctx.obj
     try:
         results = await client.list_commands()
@@ -188,12 +228,21 @@ async def commands(ctx: Any) -> None:
         raise click.ClickException(str(e)) from e
 
 
-@cli.command()
+@cli.command(name="run-command")
 @click.argument("command_id")
 @async_command
 @click.pass_context
 async def run_command(ctx: Any, command_id: str) -> None:
-    """Run a command."""
+    """Run a command.
+
+    Executes a specific Obsidian command by its ID.
+
+    Arguments:
+        COMMAND_ID: The ID of the command to execute (find using `commands`).
+
+    Example:
+    $ obsidian-cli run-command "app:toggle-left-sidebar"
+    """
     client = ctx.obj
     try:
         await client.execute_command(command_id)
