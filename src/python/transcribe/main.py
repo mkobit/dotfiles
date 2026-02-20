@@ -1,32 +1,59 @@
 import click
 import os
 import sys
+import logging
 from src.python.transcribe.transcriber import Transcriber
 from src.python.transcribe.formatter import Formatter
-from typing import Optional
 from tqdm import tqdm
+
+# Configure logger
+logging.basicConfig(level=logging.INFO, format="%(message)s")
+logger = logging.getLogger(__name__)
+
+# Enums/Constants
+MODEL_SIZES = [
+    "tiny",
+    "tiny.en",
+    "base",
+    "base.en",
+    "small",
+    "small.en",
+    "medium",
+    "medium.en",
+    "large-v1",
+    "large-v2",
+    "large-v3",
+    "large",
+]
+DEVICES = ["cpu", "cuda", "auto"]
+COMPUTE_TYPES = ["float16", "int8_float16", "int8", "default"]
 
 
 @click.command()
 @click.argument("input_path", type=click.Path(exists=True), required=True)
 @click.option(
     "--model",
+    type=click.Choice(MODEL_SIZES),
     default="base",
-    help="Model size (tiny, base, small, medium, large-v3). Default: base.",
+    help="Model size. Default: base.",
 )
 @click.option(
-    "--device", default="auto", help="Device to use (cpu, cuda, auto). Default: auto."
+    "--device",
+    type=click.Choice(DEVICES),
+    default="auto",
+    help="Device to use. Default: auto.",
 )
 @click.option(
     "--compute-type",
+    type=click.Choice(COMPUTE_TYPES),
     default="default",
-    help="Compute type (float16, int8_float16, int8, default). Default: default.",
+    help="Compute type. Default: default.",
 )
 @click.option("--language", default=None, help="Language code (optional).")
 @click.option(
     "--template-file", type=click.Path(exists=True), help="Jinja2 template file path."
 )
-@click.option("--template-string", help="Jinja2 template string.")
+@click.option("--template", help="Jinja2 template string.")
 @click.option(
     "--output-dest",
     default="-",
@@ -37,9 +64,9 @@ def main(
     model: str,
     device: str,
     compute_type: str,
-    language: Optional[str],
-    template_file: Optional[str],
-    template_string: Optional[str],
+    language: str | None,
+    template_file: str | None,
+    template: str | None,
     output_dest: str,
 ) -> None:
     """
@@ -47,23 +74,20 @@ def main(
     """
 
     # Validation
-    if template_file and template_string:
-        raise click.UsageError(
-            "Cannot provide both --template-file and --template-string."
-        )
+    if template_file and template:
+        raise click.UsageError("Cannot provide both --template-file and --template.")
 
     try:
-        click.echo(f"Loading model '{model}' on '{device}'...", err=True)
+        logger.info(f"Loading model '{model}' on '{device}'...")
         transcriber = Transcriber(
             model_size=model, device=device, compute_type=compute_type
         )
 
-        click.echo(f"Transcribing '{input_path}'...", err=True)
+        logger.info(f"Transcribing '{input_path}'...")
         segments_gen, info = transcriber.transcribe(input_path, language=language)
 
-        click.echo(
-            f"Detected language '{info.language}' with probability {info.language_probability:.2f}",
-            err=True,
+        logger.info(
+            f"Detected language '{info.language}' with probability {info.language_probability:.2f}"
         )
 
         segments = []
@@ -76,21 +100,19 @@ def main(
                 if segment.end > current:
                     pbar.update(segment.end - current)
 
-        click.echo("Formatting output...", err=True)
+        logger.info("Formatting output...")
         # Use the static method from Formatter class
-        result = Formatter.format_segments(
-            segments, info, template_file, template_string
-        )
+        result = Formatter.format_segments(segments, info, template_file, template)
 
         if output_dest == "-":
             click.echo(result)
         else:
             with open(output_dest, "w") as f:
                 f.write(result)
-            click.echo(f"Output written to {output_dest}", err=True)
+            logger.info(f"Output written to {output_dest}")
 
     except Exception as e:
-        click.echo(f"Error: {e}", err=True)
+        logger.error(f"Error: {e}")
         sys.exit(1)
 
 
