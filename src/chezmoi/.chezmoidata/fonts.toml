@@ -1,0 +1,23 @@
+# Font configuration
+# Supported fonts:
+# - meslo: Standard Nerd Font (MesloLG)
+# - fira_mono: Fira Mono Nerd Font
+# - jetbrains_mono: JetBrains Mono Nerd Font
+
+[fonts.meslo]
+name = "Meslo"
+version = "v3.3.0"
+sha256 = "6ad716ed719e2c97794abd5856a90c6131c406606b249debdc83b04ae11f4cb7"
+enabled = true
+
+[fonts.fira_mono]
+name = "FiraMono"
+version = "v3.4.0"
+sha256 = "2e4adc97fefdfa2ad70a6e6e79bc0418acd401a305bcb5fcd848a84e03e35a74"
+enabled = true
+
+[fonts.jetbrains_mono]
+name = "JetBrainsMono"
+version = "v3.4.0"
+sha256 = "ef552a3e638f25125c6ad4c51176a6adcdce295ab1d2ffacf0db060caf8c1582"
+enabled = true
