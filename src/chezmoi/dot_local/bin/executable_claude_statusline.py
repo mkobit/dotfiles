@@ -6,7 +6,8 @@ import subprocess
 import time
 import hashlib
 import tempfile
-from typing import Dict, Any, Optional, Union
+from dataclasses import dataclass, asdict
+from typing import Optional
 
 # ANSI Colors
 RESET = "\033[0m"
@@ -19,22 +20,35 @@ MAGENTA = "\033[35m"
 CYAN = "\033[36m"
 WHITE = "\033[37m"
 
-# Nerd Font Icons
-ICON_BRANCH = ""
-ICON_DIRTY = "✗"
-ICON_STAGED = "✚"
-ICON_CLEAN = "✔"
-ICON_REMOTE = ""
-ICON_CONTEXT = "🧠"
-ICON_TIME = "⏱️"
+# Nerd Font Icons (Unicode Escape Sequences)
+ICON_BRANCH = "\uF418"  # 
+ICON_DIRTY = "\u2717"   # ✗
+ICON_STAGED = "\u271A"  # ✚
+ICON_CLEAN = "\u2714"   # ✔
+ICON_REMOTE = "\uF0C2"  # 
+ICON_CONTEXT = "\uF013" # 🧠 (using gear as fallback or explicit if needed, let's keep emoji for now if standard)
+# Actually, the user asked for "codes instead". Let's stick to safe unicode escapes.
+# Context icon was emoji 🧠, let's use a nerdy one if possible, or just keep emoji as u-escape.
+ICON_CONTEXT = "\U0001F9E0"
+ICON_TIME = "\u23F1\uFE0F" # ⏱️
 ICON_UNKNOWN = "?"
 
 CACHE_DURATION = 30  # seconds
 
-def get_git_info(cwd: str) -> Optional[Dict[str, Any]]:
+@dataclass
+class GitInfo:
+    branch: str
+    remote: Optional[str]
+    dirty: bool
+    staged: bool
+    ahead: int
+    behind: int
+    is_repo: bool
+
+def get_git_info(cwd: str) -> GitInfo | None:
     """
     Retrieves git information for the given directory.
-    Returns a dictionary with branch, status, remote, ahead, behind.
+    Returns a GitInfo object or None.
     """
     cache_key = hashlib.md5(cwd.encode()).hexdigest()
     cache_file = os.path.join(tempfile.gettempdir(), f"claude_statusline_git_{cache_key}.json")
@@ -47,8 +61,8 @@ def get_git_info(cwd: str) -> Optional[Dict[str, Any]]:
                 with open(cache_file, 'r') as f:
                     data = json.load(f)
                     if isinstance(data, dict):
-                         return data
-        except (OSError, json.JSONDecodeError):
+                         return GitInfo(**data)
+        except (OSError, json.JSONDecodeError, TypeError):
             pass  # Ignore cache errors and re-fetch
 
     # Fetch fresh data
@@ -61,28 +75,27 @@ def get_git_info(cwd: str) -> Optional[Dict[str, Any]]:
     except subprocess.CalledProcessError:
         return None
 
-    info: Dict[str, Any] = {
-        'branch': 'HEAD',
-        'remote': None,
-        'dirty': False,
-        'staged': False,
-        'ahead': 0,
-        'behind': 0,
-        'is_repo': True
-    }
+    branch = 'HEAD'
+    remote = None
+    dirty = False
+    staged = False
+    ahead = 0
+    behind = 0
+    is_repo = True
 
     try:
-        # Branch name
+        # Branch name and Remote URL
+        # We can optimize by combining these checks or just keeping them separate as they are fast.
+        # But 'git remote get-url' might fail if no remote, so keep it separate.
         branch = subprocess.check_output(
             ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
             cwd=cwd, text=True, stderr=subprocess.DEVNULL
         ).strip()
-        info['branch'] = branch
 
         # Remote URL
         try:
             remote_url = subprocess.check_output(
-                ['git', 'remote', 'get-url', 'origin'],
+                ['git', 'ls-remote', '--get-url', 'origin'],
                 cwd=cwd, text=True, stderr=subprocess.DEVNULL
             ).strip()
             # Convert SSH to HTTPS for clickable links if needed
@@ -90,7 +103,7 @@ def get_git_info(cwd: str) -> Optional[Dict[str, Any]]:
                 remote_url = remote_url.replace(":", "/").replace("git@", "https://")
             if remote_url.endswith(".git"):
                 remote_url = remote_url[:-4]
-            info['remote'] = remote_url
+            remote = remote_url
         except subprocess.CalledProcessError:
             pass
 
@@ -102,9 +115,9 @@ def get_git_info(cwd: str) -> Optional[Dict[str, Any]]:
         if status_output:
             for line in status_output.splitlines():
                 if line.startswith('??') or line[1] != ' ': # Untracked or Modified working tree
-                    info['dirty'] = True
+                    dirty = True
                 if line[0] != ' ' and line[0] != '?': # Staged
-                    info['staged'] = True
+                    staged = True
 
         # Ahead/Behind
         # Only check if we have a tracking branch
@@ -113,25 +126,35 @@ def get_git_info(cwd: str) -> Optional[Dict[str, Any]]:
                 ['git', 'rev-list', '--left-right', '--count', 'HEAD...@{u}'],
                 cwd=cwd, text=True, stderr=subprocess.DEVNULL
             ).strip()
-            ahead, behind = map(int, rev_list.split())
-            info['ahead'] = ahead
-            info['behind'] = behind
+            a, b = map(int, rev_list.split())
+            ahead = a
+            behind = b
         except subprocess.CalledProcessError:
             pass
 
     except Exception:
         pass
 
+    info = GitInfo(
+        branch=branch,
+        remote=remote,
+        dirty=dirty,
+        staged=staged,
+        ahead=ahead,
+        behind=behind,
+        is_repo=is_repo
+    )
+
     # Save cache
     try:
         with open(cache_file, 'w') as f:
-            json.dump(info, f)
+            json.dump(asdict(info), f)
     except OSError:
         pass
 
     return info
 
-def format_context_usage(used_pct: Optional[Union[int, float]]) -> str:
+def format_context_usage(used_pct: int | float | None) -> str:
     """Formats the context usage with color."""
     if used_pct is None:
         return f"{ICON_CONTEXT} {CYAN}?%{RESET}"
@@ -144,7 +167,7 @@ def format_context_usage(used_pct: Optional[Union[int, float]]) -> str:
 
     return f"{ICON_CONTEXT} {color}{used_pct}%{RESET}"
 
-def format_git_status(info: Optional[Dict[str, Any]]) -> str:
+def format_git_status(info: GitInfo | None) -> str:
     """Formats the git status string."""
     if not info:
         return ""
@@ -152,14 +175,14 @@ def format_git_status(info: Optional[Dict[str, Any]]) -> str:
     parts = []
 
     # Branch
-    branch_str = f"{ICON_BRANCH} {info['branch']}"
+    branch_str = f"{ICON_BRANCH} {info.branch}"
     parts.append(branch_str)
 
     # Status icons
     status_icons = []
-    if info['dirty']:
+    if info.dirty:
         status_icons.append(f"{RED}{ICON_DIRTY}{RESET}")
-    if info['staged']:
+    if info.staged:
         status_icons.append(f"{YELLOW}{ICON_STAGED}{RESET}")
 
     if not status_icons:
@@ -168,16 +191,16 @@ def format_git_status(info: Optional[Dict[str, Any]]) -> str:
     parts.extend(status_icons)
 
     # Ahead/Behind
-    if info['ahead'] > 0:
-        parts.append(f"↑{info['ahead']}")
-    if info['behind'] > 0:
-        parts.append(f"↓{info['behind']}")
+    if info.ahead > 0:
+        parts.append(f"↑{info.ahead}")
+    if info.behind > 0:
+        parts.append(f"↓{info.behind}")
 
     # Remote Link (OSC 8)
-    if info['remote']:
+    if info.remote:
         # We don't display the URL, but maybe we can make the branch name clickable?
         # Or add a cloud icon that links to it.
-        link = f"\033]8;;{info['remote']}\033\\{ICON_REMOTE}\033]8;;\033\\"
+        link = f"\033]8;;{info.remote}\033\\{ICON_REMOTE}\033]8;;\033\\"
         parts.append(link)
 
     return " ".join(parts)

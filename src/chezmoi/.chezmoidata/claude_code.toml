@@ -10,7 +10,7 @@ editorMode = "vim"
 
 [claude_code.settings.statusLine]
 type = "command"
-command = "~/.claude/statusline.py"
+command = "claude_statusline"
 
 [claude_code.settings.permissions]
 tools = "allow"
