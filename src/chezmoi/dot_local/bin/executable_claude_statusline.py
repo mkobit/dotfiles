@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 import json
 import sys
-import os
 import subprocess
 import time
 import hashlib
 import tempfile
+from pathlib import Path
 from dataclasses import dataclass, asdict
 from typing import Any
 
@@ -48,21 +48,23 @@ class GitInfo:
 class StatusData:
     model_name: str
     agent_name: str | None
-    cwd: str
+    cwd: Path
     context_used_pct: int | float | None
     git: GitInfo | None
 
-def get_git_info(cwd: str) -> GitInfo | None:
+def get_git_info(cwd: Path) -> GitInfo | None:
     """Retrieves git information for the given directory."""
-    cache_key = hashlib.md5(cwd.encode()).hexdigest()
-    cache_file = os.path.join(tempfile.gettempdir(), f"claude_statusline_git_{cache_key}.json")
+    # Convert Path to absolute string for consistency
+    cwd_str = str(cwd.resolve())
+    cache_key = hashlib.md5(cwd_str.encode()).hexdigest()
+    cache_file = Path(tempfile.gettempdir()) / f"claude_statusline_git_{cache_key}.json"
 
     # Check cache
-    if os.path.exists(cache_file):
+    if cache_file.exists():
         try:
-            mtime = os.path.getmtime(cache_file)
+            mtime = cache_file.stat().st_mtime
             if time.time() - mtime < CACHE_DURATION:
-                with open(cache_file, 'r') as f:
+                with cache_file.open('r') as f:
                     data = json.load(f)
                     if isinstance(data, dict):
                          return GitInfo(**data)
@@ -151,7 +153,7 @@ def get_git_info(cwd: str) -> GitInfo | None:
 
     # Save cache
     try:
-        with open(cache_file, 'w') as f:
+        with cache_file.open('w') as f:
             json.dump(asdict(info), f)
     except OSError:
         pass
@@ -233,7 +235,8 @@ def main() -> None:
     except json.JSONDecodeError:
         raw_data = {}
 
-    cwd = raw_data.get('workspace', {}).get('current_dir') or os.getcwd()
+    cwd_str = raw_data.get('workspace', {}).get('current_dir') or str(Path.cwd())
+    cwd = Path(cwd_str).resolve()
     context = raw_data.get('context_window', {})
     used_pct = context.get('used_percentage')
 
@@ -254,8 +257,17 @@ def main() -> None:
         line1_parts.append(f"{MAGENTA}({status_data.agent_name}){RESET}")
 
     # CWD Link
-    cwd_name = os.path.basename(status_data.cwd) or status_data.cwd
-    cwd_link = f"\033]8;;file://{status_data.cwd}\033\\{cwd_name}\033]8;;\033\\"
+    # Attempt to relativize path to home
+    try:
+        display_path = str(status_data.cwd.relative_to(Path.home()))
+        if display_path == ".":
+            display_path = "~"
+        else:
+            display_path = f"~/{display_path}"
+    except ValueError:
+        display_path = str(status_data.cwd)
+
+    cwd_link = f"\033]8;;file://{status_data.cwd}\033\\{display_path}\033]8;;\033\\"
     line1_parts.append(f"\U0001F4C1 {cwd_link}") # File folder emoji/icon
 
     # Context

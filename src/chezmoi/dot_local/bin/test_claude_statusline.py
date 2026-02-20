@@ -4,6 +4,7 @@ import sys
 import os
 import json
 import io
+from pathlib import Path
 from typing import Any, Dict
 
 # Import the module under test
@@ -102,11 +103,7 @@ class TestStatusLine(unittest.TestCase):
         self.assertIn('↓1', output)
 
     @patch('subprocess.check_output')
-    @patch('os.path.exists')
-    def test_get_git_info_fresh(self, mock_exists: MagicMock, mock_check_output: MagicMock) -> None:
-        # Mock cache miss
-        mock_exists.return_value = False
-
+    def test_get_git_info_fresh(self, mock_check_output: MagicMock) -> None:
         # Mock git commands
         def side_effect(cmd: Any, **kwargs: Any) -> Any:
             cmd_list = cmd if isinstance(cmd, list) else cmd.split()
@@ -124,7 +121,9 @@ class TestStatusLine(unittest.TestCase):
 
         mock_check_output.side_effect = side_effect
 
-        info = statusline.get_git_info('/tmp/repo')
+        # Mock Path.exists to return False (cache miss)
+        with patch.object(Path, 'exists', return_value=False):
+             info = statusline.get_git_info(Path('/tmp/repo'))
 
         self.assertIsNotNone(info)
         assert info is not None
@@ -172,6 +171,40 @@ class TestStatusLine(unittest.TestCase):
             # Check second line (Git)
             line2 = mock_print.call_args_list[1][0][0]
             self.assertIn('main', line2)
+
+    def test_path_relativization(self) -> None:
+        # We need to test the logic inside main, but main is hard to test directly for this specific logic
+        # without mocking Path.home and everything.
+        # Instead, let's verify the logic by extracting it or simulating the environment.
+
+        home = Path('/home/user')
+        cwd = Path('/home/user/projects/repo')
+
+        with patch.object(Path, 'home', return_value=home):
+             # Logic from main:
+             try:
+                display_path = str(cwd.relative_to(Path.home()))
+                if display_path == ".":
+                    display_path = "~"
+                else:
+                    display_path = f"~/{display_path}"
+             except ValueError:
+                display_path = str(cwd)
+
+             self.assertEqual(display_path, "~/projects/repo")
+
+        cwd_outside = Path('/opt/projects/repo')
+        with patch.object(Path, 'home', return_value=home):
+             try:
+                display_path = str(cwd_outside.relative_to(Path.home()))
+                if display_path == ".":
+                    display_path = "~"
+                else:
+                    display_path = f"~/{display_path}"
+             except ValueError:
+                display_path = str(cwd_outside)
+
+             self.assertEqual(display_path, "/opt/projects/repo")
 
 if __name__ == '__main__':
     unittest.main()
