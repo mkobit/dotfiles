@@ -10,24 +10,45 @@ manifest:
     aiohappyeyeballs: aiohappyeyeballs
     aiohttp: aiohttp
     aiosignal: aiosignal
+    annotated_doc: annotated_doc
     annotated_types: annotated_types
+    anyio: anyio
     attr: attrs
     attrs: attrs
+    av: av
+    certifi: certifi
     click: click
+    ctranslate2: ctranslate2
+    faster_whisper: faster_whisper
+    filelock: filelock
+    flatbuffers: flatbuffers
     frozenlist: frozenlist
+    fsspec: fsspec
+    google.protobuf: protobuf
+    h11: h11
+    hf_xet: hf_xet
+    httpcore: httpcore
+    httpx: httpx
+    huggingface_hub: huggingface_hub
     idna: idna
     iniconfig: iniconfig
+    isympy: sympy
+    jinja2: jinja2
     jsonschema: jsonschema
     jsonschema_specifications: jsonschema_specifications
     librt.base64: librt
     librt.internal: librt
     librt.strings: librt
     markdown_it: markdown_it_py
+    markupsafe: markupsafe
     mdurl: mdurl
+    mpmath: mpmath
     multidict: multidict
     mypy: mypy
     mypy_extensions: mypy_extensions
     mypyc: mypy
+    numpy: numpy
+    onnxruntime: onnxruntime
     packaging: packaging
     pathspec: pathspec
     pluggy: pluggy
@@ -42,12 +63,17 @@ manifest:
     rich: rich
     rpds: rpds_py
     ruff: ruff
+    setuptools: setuptools
     shellingham: shellingham
-    typer: typer
+    sympy: sympy
+    tokenizers: tokenizers
+    tqdm: tqdm
+    typer: typer_slim
     typing_extensions: typing_extensions
     typing_inspection: typing_inspection
     whenever: whenever
+    yaml: pyyaml
     yarl: yarl
   pip_repository:
     name: pypi
-integrity: fe1d6fe38cdd8d4cb367d93d70d834a9e10b0dbe6af3ba2950c3157004d0a817
+integrity: 35f351e00b47466e7d29289626ac6497c61f235751b91ae7e981b906c186641a
