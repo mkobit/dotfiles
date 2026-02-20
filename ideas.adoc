@@ -12,7 +12,7 @@
 ** Consider core navigation bindings and tmux integration conflicts
 
 * [ ] *AI Assistant Context System*
-** Use existing `.agents/` structure for session persistence
+** Use existing root agent directories (`.claude`, `.cursor`, `.jules`) for session persistence
 ** Context breadcrumbs for discovering previous solutions
 
 == Architecture

@@ -42,7 +42,8 @@ test_suite(
     name = "validation_tests",
     tests = [
         ":format_test",
-        "//.agents/claude:claude_settings_schema_test",
+        "//.claude:claude_hooks_schema_test",
+        "//.claude:claude_settings_schema_test",
     ],
 )
 

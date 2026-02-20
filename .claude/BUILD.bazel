@@ -1,12 +1,18 @@
-load("//tools:validation.bzl", "json_schema_validation_test")
+load("//tools:validation.bzl", "claude_hooks_schema_test", "json_schema_validation_test")
 
 package(default_visibility = ["//visibility:public"])
 
 # Validate Claude settings against schema
 json_schema_validation_test(
     name = "claude_settings_schema_test",
-    srcs = [".claude/settings.json"],
+    srcs = ["settings.json"],
     schema = "claude-settings-schema.json",
+)
+
+# Test that Claude hooks JSON conforms to expected schema
+claude_hooks_schema_test(
+    name = "claude_hooks_schema_test",
+    srcs = ["claude_hooks.json"],
 )
 
 # Export schema file for use by other packages
