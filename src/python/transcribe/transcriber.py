@@ -1,8 +1,14 @@
 from typing import Iterable, Tuple, Optional, Any
 from faster_whisper import WhisperModel
 
+
 class Transcriber:
-    def __init__(self, model_size: str = "base", device: str = "auto", compute_type: str = "default"):
+    def __init__(
+        self,
+        model_size: str = "base",
+        device: str = "auto",
+        compute_type: str = "default",
+    ):
         """
         Initialize the Transcriber with a specific model size and device.
 
@@ -13,7 +19,9 @@ class Transcriber:
         """
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
-    def transcribe(self, audio_path: str, language: Optional[str] = None) -> Tuple[Iterable[Any], Any]:
+    def transcribe(
+        self, audio_path: str, language: Optional[str] = None
+    ) -> Tuple[Iterable[Any], Any]:
         """
         Transcribe an audio file.
 
