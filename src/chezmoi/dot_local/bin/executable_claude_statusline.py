@@ -7,7 +7,7 @@ import time
 import hashlib
 import tempfile
 from dataclasses import dataclass, asdict
-from typing import Optional
+from typing import Any
 
 # ANSI Colors
 RESET = "\033[0m"
@@ -26,30 +26,34 @@ ICON_DIRTY = "\u2717"   # ✗
 ICON_STAGED = "\u271A"  # ✚
 ICON_CLEAN = "\u2714"   # ✔
 ICON_REMOTE = "\uF0C2"  # 
-ICON_CONTEXT = "\uF013" # 🧠 (using gear as fallback or explicit if needed, let's keep emoji for now if standard)
-# Actually, the user asked for "codes instead". Let's stick to safe unicode escapes.
-# Context icon was emoji 🧠, let's use a nerdy one if possible, or just keep emoji as u-escape.
-ICON_CONTEXT = "\U0001F9E0"
+ICON_CONTEXT_EMOJI = "\U0001F9E0"
 ICON_TIME = "\u23F1\uFE0F" # ⏱️
-ICON_UNKNOWN = "?"
+ICON_UNKNOWN = "\uF128" # 
 
 CACHE_DURATION = 30  # seconds
 
-@dataclass
+# https://code.claude.com/docs/en/statusline
+
+@dataclass(frozen=True)
 class GitInfo:
     branch: str
-    remote: Optional[str]
+    remote: str | None
     dirty: bool
     staged: bool
     ahead: int
     behind: int
     is_repo: bool
 
+@dataclass(frozen=True)
+class StatusData:
+    model_name: str
+    agent_name: str | None
+    cwd: str
+    context_used_pct: int | float | None
+    git: GitInfo | None
+
 def get_git_info(cwd: str) -> GitInfo | None:
-    """
-    Retrieves git information for the given directory.
-    Returns a GitInfo object or None.
-    """
+    """Retrieves git information for the given directory."""
     cache_key = hashlib.md5(cwd.encode()).hexdigest()
     cache_file = os.path.join(tempfile.gettempdir(), f"claude_statusline_git_{cache_key}.json")
 
@@ -155,9 +159,9 @@ def get_git_info(cwd: str) -> GitInfo | None:
     return info
 
 def format_context_usage(used_pct: int | float | None) -> str:
-    """Formats the context usage with color."""
+    """Formats the context usage with color and visual indicator."""
     if used_pct is None:
-        return f"{ICON_CONTEXT} {CYAN}?%{RESET}"
+        return f"{ICON_UNKNOWN} {CYAN}?%{RESET}"
 
     color = GREEN
     if used_pct >= 90:
@@ -165,7 +169,20 @@ def format_context_usage(used_pct: int | float | None) -> str:
     elif used_pct >= 70:
         color = YELLOW
 
-    return f"{ICON_CONTEXT} {color}{used_pct}%{RESET}"
+    # Visual indicator (10 blocks)
+    # 0-10% -> 1 block, etc.
+    blocks = int(used_pct // 10)
+    if blocks > 10:
+        blocks = 10
+
+    # "Filled" block char: \u2588 (█)
+    # "Light shade" block char: \u2591 (░)
+    filled_char = "\u2588"
+    empty_char = "\u2591"
+
+    visual_bar = (filled_char * blocks) + (empty_char * (10 - blocks))
+
+    return f"{ICON_CONTEXT_EMOJI} {color}{visual_bar} {used_pct}%{RESET}"
 
 def format_git_status(info: GitInfo | None) -> str:
     """Formats the git status string."""
@@ -209,49 +226,46 @@ def main() -> None:
     try:
         # Read JSON from stdin
         if not sys.stdin.isatty():
-            data = json.load(sys.stdin)
+            raw_data = json.load(sys.stdin)
         else:
             # Fallback for manual testing
-            data = {}
+            raw_data = {}
     except json.JSONDecodeError:
-        data = {}
+        raw_data = {}
 
-    # Extract Data
-    model_name = data.get('model', {}).get('display_name', 'Unknown Model')
-    agent_name = data.get('agent', {}).get('name')
-    cwd = data.get('workspace', {}).get('current_dir') or os.getcwd()
-
-    context = data.get('context_window', {})
+    cwd = raw_data.get('workspace', {}).get('current_dir') or os.getcwd()
+    context = raw_data.get('context_window', {})
     used_pct = context.get('used_percentage')
-    if used_pct is None and 'current_usage' in context:
-        # Calculate manually if needed, but 'used_percentage' is usually pre-calc
-        pass
 
-    # Get Git Info
-    git_info = get_git_info(cwd)
+    status_data = StatusData(
+        model_name=raw_data.get('model', {}).get('display_name', 'Unknown Model'),
+        agent_name=raw_data.get('agent', {}).get('name'),
+        cwd=cwd,
+        context_used_pct=used_pct,
+        git=get_git_info(cwd)
+    )
 
     # Format Output
-
     # Line 1: Model | Agent (if present) | CWD Link | Context
     line1_parts = []
-    line1_parts.append(f"{BOLD}{BLUE}[{model_name}]{RESET}")
+    line1_parts.append(f"{BOLD}{BLUE}[{status_data.model_name}]{RESET}")
 
-    if agent_name:
-        line1_parts.append(f"{MAGENTA}({agent_name}){RESET}")
+    if status_data.agent_name:
+        line1_parts.append(f"{MAGENTA}({status_data.agent_name}){RESET}")
 
     # CWD Link
-    cwd_name = os.path.basename(cwd) or cwd
-    cwd_link = f"\033]8;;file://{cwd}\033\\{cwd_name}\033]8;;\033\\"
-    line1_parts.append(f"📁 {cwd_link}")
+    cwd_name = os.path.basename(status_data.cwd) or status_data.cwd
+    cwd_link = f"\033]8;;file://{status_data.cwd}\033\\{cwd_name}\033]8;;\033\\"
+    line1_parts.append(f"\U0001F4C1 {cwd_link}") # File folder emoji/icon
 
     # Context
-    line1_parts.append(format_context_usage(used_pct))
+    line1_parts.append(format_context_usage(status_data.context_used_pct))
 
     print(" ".join(line1_parts))
 
     # Line 2: Git Status (if applicable)
-    if git_info:
-        git_str = format_git_status(git_info)
+    if status_data.git:
+        git_str = format_git_status(status_data.git)
         print(f"{git_str}")
 
 if __name__ == "__main__":

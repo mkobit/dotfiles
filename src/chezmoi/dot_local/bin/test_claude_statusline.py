@@ -22,14 +22,25 @@ class TestStatusLine(unittest.TestCase):
         self.assertIn(statusline.CYAN, statusline.format_context_usage(None))
 
     def test_format_git_status(self) -> None:
+        base_kwargs: Dict[str, Any] = {
+            'branch': 'main',
+            'remote': 'https://github.com/example/repo',
+            'dirty': False,
+            'staged': False,
+            'ahead': 0,
+            'behind': 0,
+            'is_repo': True
+        }
+
+        # Clean
         info = statusline.GitInfo(
-            branch='main',
-            dirty=False,
-            staged=False,
-            ahead=0,
-            behind=0,
-            remote='https://github.com/example/repo',
-            is_repo=True
+            branch=str(base_kwargs['branch']),
+            remote=str(base_kwargs['remote']),
+            dirty=bool(base_kwargs['dirty']),
+            staged=bool(base_kwargs['staged']),
+            ahead=int(base_kwargs['ahead']),
+            behind=int(base_kwargs['behind']),
+            is_repo=bool(base_kwargs['is_repo'])
         )
         output = statusline.format_git_status(info)
         self.assertIn('main', output)
@@ -37,26 +48,55 @@ class TestStatusLine(unittest.TestCase):
         self.assertIn(statusline.ICON_REMOTE, output)
 
         # Dirty
-        info.dirty = True
+        info = statusline.GitInfo(
+            branch=str(base_kwargs['branch']),
+            remote=str(base_kwargs['remote']),
+            dirty=True,
+            staged=bool(base_kwargs['staged']),
+            ahead=int(base_kwargs['ahead']),
+            behind=int(base_kwargs['behind']),
+            is_repo=bool(base_kwargs['is_repo'])
+        )
         output = statusline.format_git_status(info)
         self.assertIn(statusline.ICON_DIRTY, output)
 
         # Staged
-        info.dirty = False
-        info.staged = True
+        info = statusline.GitInfo(
+            branch=str(base_kwargs['branch']),
+            remote=str(base_kwargs['remote']),
+            dirty=bool(base_kwargs['dirty']),
+            staged=True,
+            ahead=int(base_kwargs['ahead']),
+            behind=int(base_kwargs['behind']),
+            is_repo=bool(base_kwargs['is_repo'])
+        )
         output = statusline.format_git_status(info)
         self.assertIn(statusline.ICON_STAGED, output)
 
         # Dirty and Staged
-        info.dirty = True
-        info.staged = True
+        info = statusline.GitInfo(
+            branch=str(base_kwargs['branch']),
+            remote=str(base_kwargs['remote']),
+            dirty=True,
+            staged=True,
+            ahead=int(base_kwargs['ahead']),
+            behind=int(base_kwargs['behind']),
+            is_repo=bool(base_kwargs['is_repo'])
+        )
         output = statusline.format_git_status(info)
         self.assertIn(statusline.ICON_DIRTY, output)
         self.assertIn(statusline.ICON_STAGED, output)
 
         # Ahead/Behind
-        info.ahead = 2
-        info.behind = 1
+        info = statusline.GitInfo(
+            branch=str(base_kwargs['branch']),
+            remote=str(base_kwargs['remote']),
+            dirty=bool(base_kwargs['dirty']),
+            staged=bool(base_kwargs['staged']),
+            ahead=2,
+            behind=1,
+            is_repo=bool(base_kwargs['is_repo'])
+        )
         output = statusline.format_git_status(info)
         self.assertIn('↑2', output)
         self.assertIn('↓1', output)
