@@ -1,0 +1,10 @@
+{{- range $key, $font := .fonts -}}
+{{- if $font.enabled -}}
+["NerdFonts/{{ $font.name }}"]
+type = "archive"
+url = "https://github.com/ryanoasis/nerd-fonts/releases/download/{{ $font.version }}/{{ $font.name }}.tar.xz"
+exact = true
+checksum.sha256 = "{{ $font.sha256 }}"
+
+{{ end -}}
+{{- end -}}
