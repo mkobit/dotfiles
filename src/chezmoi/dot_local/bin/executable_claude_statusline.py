@@ -30,6 +30,10 @@ ICON_CONTEXT_EMOJI = "\U0001f9e0"
 ICON_TIME = "\u23f1\ufe0f"  # ⏱️
 ICON_UNKNOWN = "\uf128"  # 
 
+# Block characters for visual progress bar
+BLOCK_FILLED = "\u2588"  # █
+BLOCK_EMPTY = "\u2591"  # ░
+
 CACHE_DURATION = 30  # seconds
 
 # https://code.claude.com/docs/en/statusline
@@ -189,13 +193,7 @@ def format_context_usage(used_pct: int | float | None) -> str:
     # Visual indicator (10 blocks)
     # 0-10% -> 1 block, etc.
     blocks = min(int(used_pct // 10), 10)
-
-    # "Filled" block char: \u2588 (█)
-    # "Light shade" block char: \u2591 (░)
-    filled_char = "\u2588"
-    empty_char = "\u2591"
-
-    visual_bar = (filled_char * blocks) + (empty_char * (10 - blocks))
+    visual_bar = (BLOCK_FILLED * blocks) + (BLOCK_EMPTY * (10 - blocks))
 
     return f"{ICON_CONTEXT_EMOJI} {color}{visual_bar} {used_pct}%{RESET}"
 
@@ -205,23 +203,27 @@ def format_git_branch(info: GitInfo) -> str:
 
 
 def format_git_state(info: GitInfo) -> str:
-    parts = []
-    if info.dirty:
-        parts.append(f"{RED}{ICON_DIRTY}{RESET}")
-    if info.staged:
-        parts.append(f"{YELLOW}{ICON_STAGED}{RESET}")
-    if not parts:
-        parts.append(f"{GREEN}{ICON_CLEAN}{RESET}")
-    return "".join(parts)
+    # Use functional construction with filter
+    parts = [
+        f"{RED}{ICON_DIRTY}{RESET}" if info.dirty else None,
+        f"{YELLOW}{ICON_STAGED}{RESET}" if info.staged else None,
+    ]
+    # Filter out None values
+    valid_parts = list(filter(None, parts))
+
+    # Default to clean if no other state
+    if not valid_parts:
+        return f"{GREEN}{ICON_CLEAN}{RESET}"
+
+    return "".join(valid_parts)
 
 
 def format_git_ahead_behind(info: GitInfo) -> str:
-    parts = []
-    if info.ahead > 0:
-        parts.append(f"↑{info.ahead}")
-    if info.behind > 0:
-        parts.append(f"↓{info.behind}")
-    return " ".join(parts)
+    parts = [
+        f"↑{info.ahead}" if info.ahead > 0 else None,
+        f"↓{info.behind}" if info.behind > 0 else None,
+    ]
+    return " ".join(filter(None, parts))
 
 
 def format_git_remote(info: GitInfo) -> str:
@@ -245,10 +247,11 @@ def format_git_status(info: GitInfo | None) -> str:
 
 
 def format_model_info(data: StatusData) -> str:
-    parts = [f"{BOLD}{BLUE}[{data.model_name}]{RESET}"]
-    if data.agent_name:
-        parts.append(f"{MAGENTA}({data.agent_name}){RESET}")
-    return " ".join(parts)
+    parts = [
+        f"{BOLD}{BLUE}[{data.model_name}]{RESET}",
+        f"{MAGENTA}({data.agent_name}){RESET}" if data.agent_name else None,
+    ]
+    return " ".join(filter(None, parts))
 
 
 def format_cwd_link(data: StatusData) -> str:
