@@ -102,6 +102,51 @@ class TestStatusLine(unittest.TestCase):
         self.assertIn("↑2", output)
         self.assertIn("↓1", output)
 
+    def test_format_git_helper_functions(self) -> None:
+        info = statusline.GitInfo(
+            branch="main",
+            remote="origin",
+            dirty=False,
+            staged=False,
+            ahead=0,
+            behind=0,
+            is_repo=True,
+        )
+        self.assertIn("main", statusline.format_git_branch(info))
+
+        info_dirty = statusline.GitInfo(
+            branch="main",
+            remote="origin",
+            dirty=True,
+            staged=False,
+            ahead=0,
+            behind=0,
+            is_repo=True,
+        )
+        self.assertIn(statusline.ICON_DIRTY, statusline.format_git_state(info_dirty))
+
+        info_ahead = statusline.GitInfo(
+            branch="main",
+            remote="origin",
+            dirty=False,
+            staged=False,
+            ahead=1,
+            behind=0,
+            is_repo=True,
+        )
+        self.assertIn("↑1", statusline.format_git_ahead_behind(info_ahead))
+
+        info_remote = statusline.GitInfo(
+            branch="main",
+            remote="https://github.com/example/repo",
+            dirty=False,
+            staged=False,
+            ahead=0,
+            behind=0,
+            is_repo=True,
+        )
+        self.assertIn(statusline.ICON_REMOTE, statusline.format_git_remote(info_remote))
+
     @patch("subprocess.check_output")
     def test_get_git_info_fresh(self, mock_check_output: MagicMock) -> None:
         # Mock git commands

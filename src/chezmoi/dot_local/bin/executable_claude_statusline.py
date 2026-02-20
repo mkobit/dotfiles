@@ -188,9 +188,7 @@ def format_context_usage(used_pct: int | float | None) -> str:
 
     # Visual indicator (10 blocks)
     # 0-10% -> 1 block, etc.
-    blocks = int(used_pct // 10)
-    if blocks > 10:
-        blocks = 10
+    blocks = min(int(used_pct // 10), 10)
 
     # "Filled" block char: \u2588 (█)
     # "Light shade" block char: \u2591 (░)
@@ -202,43 +200,69 @@ def format_context_usage(used_pct: int | float | None) -> str:
     return f"{ICON_CONTEXT_EMOJI} {color}{visual_bar} {used_pct}%{RESET}"
 
 
-def format_git_status(info: GitInfo | None) -> str:
-    """Formats the git status string."""
-    if not info:
-        return ""
+def format_git_branch(info: GitInfo) -> str:
+    return f"{ICON_BRANCH} {info.branch}"
 
+
+def format_git_state(info: GitInfo) -> str:
     parts = []
-
-    # Branch
-    branch_str = f"{ICON_BRANCH} {info.branch}"
-    parts.append(branch_str)
-
-    # Status icons
-    status_icons = []
     if info.dirty:
-        status_icons.append(f"{RED}{ICON_DIRTY}{RESET}")
+        parts.append(f"{RED}{ICON_DIRTY}{RESET}")
     if info.staged:
-        status_icons.append(f"{YELLOW}{ICON_STAGED}{RESET}")
+        parts.append(f"{YELLOW}{ICON_STAGED}{RESET}")
+    if not parts:
+        parts.append(f"{GREEN}{ICON_CLEAN}{RESET}")
+    return "".join(parts)
 
-    if not status_icons:
-        status_icons.append(f"{GREEN}{ICON_CLEAN}{RESET}")
 
-    parts.extend(status_icons)
-
-    # Ahead/Behind
+def format_git_ahead_behind(info: GitInfo) -> str:
+    parts = []
     if info.ahead > 0:
         parts.append(f"↑{info.ahead}")
     if info.behind > 0:
         parts.append(f"↓{info.behind}")
-
-    # Remote Link (OSC 8)
-    if info.remote:
-        # We don't display the URL, but maybe we can make the branch name clickable?
-        # Or add a cloud icon that links to it.
-        link = f"\033]8;;{info.remote}\033\\{ICON_REMOTE}\033]8;;\033\\"
-        parts.append(link)
-
     return " ".join(parts)
+
+
+def format_git_remote(info: GitInfo) -> str:
+    if not info.remote:
+        return ""
+    return f"\033]8;;{info.remote}\033\\{ICON_REMOTE}\033]8;;\033\\"
+
+
+def format_git_status(info: GitInfo | None) -> str:
+    """Formats the git status string using helper functions."""
+    if not info:
+        return ""
+
+    parts = [
+        format_git_branch(info),
+        format_git_state(info),
+        format_git_ahead_behind(info),
+        format_git_remote(info),
+    ]
+    return " ".join(filter(None, parts))
+
+
+def format_model_info(data: StatusData) -> str:
+    parts = [f"{BOLD}{BLUE}[{data.model_name}]{RESET}"]
+    if data.agent_name:
+        parts.append(f"{MAGENTA}({data.agent_name}){RESET}")
+    return " ".join(parts)
+
+
+def format_cwd_link(data: StatusData) -> str:
+    try:
+        display_path = str(data.cwd.relative_to(Path.home()))
+        if display_path == ".":
+            display_path = "~"
+        else:
+            display_path = f"~/{display_path}"
+    except ValueError:
+        display_path = str(data.cwd)
+
+    cwd_link = f"\033]8;;file://{data.cwd}\033\\{display_path}\033]8;;\033\\"
+    return f"\U0001f4c1 {cwd_link}"
 
 
 def main() -> None:
@@ -267,35 +291,21 @@ def main() -> None:
 
     # Format Output
     # Line 1: Model | Agent (if present) | CWD Link | Context
-    line1_parts = []
-    line1_parts.append(f"{BOLD}{BLUE}[{status_data.model_name}]{RESET}")
-
-    if status_data.agent_name:
-        line1_parts.append(f"{MAGENTA}({status_data.agent_name}){RESET}")
-
-    # CWD Link
-    # Attempt to relativize path to home
-    try:
-        display_path = str(status_data.cwd.relative_to(Path.home()))
-        if display_path == ".":
-            display_path = "~"
-        else:
-            display_path = f"~/{display_path}"
-    except ValueError:
-        display_path = str(status_data.cwd)
-
-    cwd_link = f"\033]8;;file://{status_data.cwd}\033\\{display_path}\033]8;;\033\\"
-    line1_parts.append(f"\U0001f4c1 {cwd_link}")  # File folder emoji/icon
-
-    # Context
-    line1_parts.append(format_context_usage(status_data.context_used_pct))
-
-    print(" ".join(line1_parts))
+    line1 = " ".join(
+        filter(
+            None,
+            [
+                format_model_info(status_data),
+                format_cwd_link(status_data),
+                format_context_usage(status_data.context_used_pct),
+            ],
+        )
+    )
+    print(line1)
 
     # Line 2: Git Status (if applicable)
     if status_data.git:
-        git_str = format_git_status(status_data.git)
-        print(f"{git_str}")
+        print(format_git_status(status_data.git))
 
 
 if __name__ == "__main__":
