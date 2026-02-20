@@ -21,18 +21,19 @@ CYAN = "\033[36m"
 WHITE = "\033[37m"
 
 # Nerd Font Icons (Unicode Escape Sequences)
-ICON_BRANCH = "\uF418"  # 
-ICON_DIRTY = "\u2717"   # ✗
-ICON_STAGED = "\u271A"  # ✚
-ICON_CLEAN = "\u2714"   # ✔
-ICON_REMOTE = "\uF0C2"  # 
-ICON_CONTEXT_EMOJI = "\U0001F9E0"
-ICON_TIME = "\u23F1\uFE0F" # ⏱️
-ICON_UNKNOWN = "\uF128" # 
+ICON_BRANCH = "\uf418"  # 
+ICON_DIRTY = "\u2717"  # ✗
+ICON_STAGED = "\u271a"  # ✚
+ICON_CLEAN = "\u2714"  # ✔
+ICON_REMOTE = "\uf0c2"  # 
+ICON_CONTEXT_EMOJI = "\U0001f9e0"
+ICON_TIME = "\u23f1\ufe0f"  # ⏱️
+ICON_UNKNOWN = "\uf128"  # 
 
 CACHE_DURATION = 30  # seconds
 
 # https://code.claude.com/docs/en/statusline
+
 
 @dataclass(frozen=True)
 class GitInfo:
@@ -44,6 +45,7 @@ class GitInfo:
     behind: int
     is_repo: bool
 
+
 @dataclass(frozen=True)
 class StatusData:
     model_name: str
@@ -51,6 +53,7 @@ class StatusData:
     cwd: Path
     context_used_pct: int | float | None
     git: GitInfo | None
+
 
 def get_git_info(cwd: Path) -> GitInfo | None:
     """Retrieves git information for the given directory."""
@@ -64,10 +67,10 @@ def get_git_info(cwd: Path) -> GitInfo | None:
         try:
             mtime = cache_file.stat().st_mtime
             if time.time() - mtime < CACHE_DURATION:
-                with cache_file.open('r') as f:
+                with cache_file.open("r") as f:
                     data = json.load(f)
                     if isinstance(data, dict):
-                         return GitInfo(**data)
+                        return GitInfo(**data)
         except (OSError, json.JSONDecodeError, TypeError):
             pass  # Ignore cache errors and re-fetch
 
@@ -75,13 +78,14 @@ def get_git_info(cwd: Path) -> GitInfo | None:
     try:
         # Check if git repo
         subprocess.check_output(
-            ['git', 'rev-parse', '--is-inside-work-tree'],
-            cwd=cwd, stderr=subprocess.DEVNULL
+            ["git", "rev-parse", "--is-inside-work-tree"],
+            cwd=cwd,
+            stderr=subprocess.DEVNULL,
         )
     except subprocess.CalledProcessError:
         return None
 
-    branch = 'HEAD'
+    branch = "HEAD"
     remote = None
     dirty = False
     staged = False
@@ -94,15 +98,19 @@ def get_git_info(cwd: Path) -> GitInfo | None:
         # We can optimize by combining these checks or just keeping them separate as they are fast.
         # But 'git remote get-url' might fail if no remote, so keep it separate.
         branch = subprocess.check_output(
-            ['git', 'rev-parse', '--abbrev-ref', 'HEAD'],
-            cwd=cwd, text=True, stderr=subprocess.DEVNULL
+            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+            cwd=cwd,
+            text=True,
+            stderr=subprocess.DEVNULL,
         ).strip()
 
         # Remote URL
         try:
             remote_url = subprocess.check_output(
-                ['git', 'ls-remote', '--get-url', 'origin'],
-                cwd=cwd, text=True, stderr=subprocess.DEVNULL
+                ["git", "ls-remote", "--get-url", "origin"],
+                cwd=cwd,
+                text=True,
+                stderr=subprocess.DEVNULL,
             ).strip()
             # Convert SSH to HTTPS for clickable links if needed
             if remote_url.startswith("git@"):
@@ -115,22 +123,28 @@ def get_git_info(cwd: Path) -> GitInfo | None:
 
         # Status (staged/dirty)
         status_output = subprocess.check_output(
-            ['git', 'status', '--porcelain'],
-            cwd=cwd, text=True, stderr=subprocess.DEVNULL
+            ["git", "status", "--porcelain"],
+            cwd=cwd,
+            text=True,
+            stderr=subprocess.DEVNULL,
         )
         if status_output:
             for line in status_output.splitlines():
-                if line.startswith('??') or line[1] != ' ': # Untracked or Modified working tree
+                if (
+                    line.startswith("??") or line[1] != " "
+                ):  # Untracked or Modified working tree
                     dirty = True
-                if line[0] != ' ' and line[0] != '?': # Staged
+                if line[0] != " " and line[0] != "?":  # Staged
                     staged = True
 
         # Ahead/Behind
         # Only check if we have a tracking branch
         try:
             rev_list = subprocess.check_output(
-                ['git', 'rev-list', '--left-right', '--count', 'HEAD...@{u}'],
-                cwd=cwd, text=True, stderr=subprocess.DEVNULL
+                ["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"],
+                cwd=cwd,
+                text=True,
+                stderr=subprocess.DEVNULL,
             ).strip()
             a, b = map(int, rev_list.split())
             ahead = a
@@ -148,17 +162,18 @@ def get_git_info(cwd: Path) -> GitInfo | None:
         staged=staged,
         ahead=ahead,
         behind=behind,
-        is_repo=is_repo
+        is_repo=is_repo,
     )
 
     # Save cache
     try:
-        with cache_file.open('w') as f:
+        with cache_file.open("w") as f:
             json.dump(asdict(info), f)
     except OSError:
         pass
 
     return info
+
 
 def format_context_usage(used_pct: int | float | None) -> str:
     """Formats the context usage with color and visual indicator."""
@@ -185,6 +200,7 @@ def format_context_usage(used_pct: int | float | None) -> str:
     visual_bar = (filled_char * blocks) + (empty_char * (10 - blocks))
 
     return f"{ICON_CONTEXT_EMOJI} {color}{visual_bar} {used_pct}%{RESET}"
+
 
 def format_git_status(info: GitInfo | None) -> str:
     """Formats the git status string."""
@@ -224,6 +240,7 @@ def format_git_status(info: GitInfo | None) -> str:
 
     return " ".join(parts)
 
+
 def main() -> None:
     try:
         # Read JSON from stdin
@@ -235,17 +252,17 @@ def main() -> None:
     except json.JSONDecodeError:
         raw_data = {}
 
-    cwd_str = raw_data.get('workspace', {}).get('current_dir') or str(Path.cwd())
+    cwd_str = raw_data.get("workspace", {}).get("current_dir") or str(Path.cwd())
     cwd = Path(cwd_str).resolve()
-    context = raw_data.get('context_window', {})
-    used_pct = context.get('used_percentage')
+    context = raw_data.get("context_window", {})
+    used_pct = context.get("used_percentage")
 
     status_data = StatusData(
-        model_name=raw_data.get('model', {}).get('display_name', 'Unknown Model'),
-        agent_name=raw_data.get('agent', {}).get('name'),
+        model_name=raw_data.get("model", {}).get("display_name", "Unknown Model"),
+        agent_name=raw_data.get("agent", {}).get("name"),
         cwd=cwd,
         context_used_pct=used_pct,
-        git=get_git_info(cwd)
+        git=get_git_info(cwd),
     )
 
     # Format Output
@@ -268,7 +285,7 @@ def main() -> None:
         display_path = str(status_data.cwd)
 
     cwd_link = f"\033]8;;file://{status_data.cwd}\033\\{display_path}\033]8;;\033\\"
-    line1_parts.append(f"\U0001F4C1 {cwd_link}") # File folder emoji/icon
+    line1_parts.append(f"\U0001f4c1 {cwd_link}")  # File folder emoji/icon
 
     # Context
     line1_parts.append(format_context_usage(status_data.context_used_pct))
@@ -279,6 +296,7 @@ def main() -> None:
     if status_data.git:
         git_str = format_git_status(status_data.git)
         print(f"{git_str}")
+
 
 if __name__ == "__main__":
     main()
