@@ -1,0 +1,47 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
+
+py_library(
+    name = "transcribe_lib",
+    srcs = [
+        "formatter.py",
+        "main.py",
+        "transcriber.py",
+        "utils.py",
+    ],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@pypi//click",
+        "@pypi//faster_whisper",
+        "@pypi//jinja2",
+        "@pypi//tqdm",
+    ],
+)
+
+py_binary(
+    name = "transcribe",
+    srcs = ["main.py"],
+    main = "main.py",
+    visibility = ["//visibility:public"],
+    deps = [
+        ":transcribe_lib",
+    ],
+)
+
+py_test(
+    name = "test_formatter",
+    srcs = ["tests/test_formatter.py"],
+    deps = [
+        ":transcribe_lib",
+        "@pypi//pytest",
+    ],
+)
+
+py_test(
+    name = "test_main",
+    srcs = ["tests/test_main.py"],
+    deps = [
+        ":transcribe_lib",
+        "@pypi//click",
+        "@pypi//pytest",
+    ],
+)

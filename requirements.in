@@ -19,3 +19,12 @@ jsonschema
 
 # Time
 whenever
+
+# ML
+faster-whisper
+
+# Templating
+jinja2
+
+# Progress
+tqdm
