@@ -28,6 +28,7 @@ class TestStatusLine(unittest.TestCase):
             "remote": "https://github.com/example/repo",
             "dirty": False,
             "staged": False,
+            "untracked": False,
             "ahead": 0,
             "behind": 0,
             "is_repo": True,
@@ -39,6 +40,7 @@ class TestStatusLine(unittest.TestCase):
             remote=str(base_kwargs["remote"]),
             dirty=bool(base_kwargs["dirty"]),
             staged=bool(base_kwargs["staged"]),
+            untracked=bool(base_kwargs["untracked"]),
             ahead=int(base_kwargs["ahead"]),
             behind=int(base_kwargs["behind"]),
             is_repo=bool(base_kwargs["is_repo"]),
@@ -54,6 +56,7 @@ class TestStatusLine(unittest.TestCase):
             remote=str(base_kwargs["remote"]),
             dirty=True,
             staged=bool(base_kwargs["staged"]),
+            untracked=bool(base_kwargs["untracked"]),
             ahead=int(base_kwargs["ahead"]),
             behind=int(base_kwargs["behind"]),
             is_repo=bool(base_kwargs["is_repo"]),
@@ -67,6 +70,7 @@ class TestStatusLine(unittest.TestCase):
             remote=str(base_kwargs["remote"]),
             dirty=bool(base_kwargs["dirty"]),
             staged=True,
+            untracked=bool(base_kwargs["untracked"]),
             ahead=int(base_kwargs["ahead"]),
             behind=int(base_kwargs["behind"]),
             is_repo=bool(base_kwargs["is_repo"]),
@@ -74,12 +78,27 @@ class TestStatusLine(unittest.TestCase):
         output = statusline.format_git_status(info)
         self.assertIn(statusline.ICON_STAGED, output)
 
+        # Untracked
+        info = statusline.GitInfo(
+            branch=str(base_kwargs["branch"]),
+            remote=str(base_kwargs["remote"]),
+            dirty=bool(base_kwargs["dirty"]),
+            staged=bool(base_kwargs["staged"]),
+            untracked=True,
+            ahead=int(base_kwargs["ahead"]),
+            behind=int(base_kwargs["behind"]),
+            is_repo=bool(base_kwargs["is_repo"]),
+        )
+        output = statusline.format_git_status(info)
+        self.assertIn(statusline.ICON_UNTRACKED, output)
+
         # Dirty and Staged
         info = statusline.GitInfo(
             branch=str(base_kwargs["branch"]),
             remote=str(base_kwargs["remote"]),
             dirty=True,
             staged=True,
+            untracked=bool(base_kwargs["untracked"]),
             ahead=int(base_kwargs["ahead"]),
             behind=int(base_kwargs["behind"]),
             is_repo=bool(base_kwargs["is_repo"]),
@@ -94,6 +113,7 @@ class TestStatusLine(unittest.TestCase):
             remote=str(base_kwargs["remote"]),
             dirty=bool(base_kwargs["dirty"]),
             staged=bool(base_kwargs["staged"]),
+            untracked=bool(base_kwargs["untracked"]),
             ahead=2,
             behind=1,
             is_repo=bool(base_kwargs["is_repo"]),
@@ -108,6 +128,7 @@ class TestStatusLine(unittest.TestCase):
             remote="origin",
             dirty=False,
             staged=False,
+            untracked=False,
             ahead=0,
             behind=0,
             is_repo=True,
@@ -119,6 +140,7 @@ class TestStatusLine(unittest.TestCase):
             remote="origin",
             dirty=True,
             staged=False,
+            untracked=False,
             ahead=0,
             behind=0,
             is_repo=True,
@@ -130,6 +152,7 @@ class TestStatusLine(unittest.TestCase):
             remote="origin",
             dirty=False,
             staged=False,
+            untracked=False,
             ahead=1,
             behind=0,
             is_repo=True,
@@ -141,6 +164,7 @@ class TestStatusLine(unittest.TestCase):
             remote="https://github.com/example/repo",
             dirty=False,
             staged=False,
+            untracked=False,
             ahead=0,
             behind=0,
             is_repo=True,
@@ -196,6 +220,7 @@ class TestStatusLine(unittest.TestCase):
                 branch="main",
                 dirty=False,
                 staged=False,
+                untracked=False,
                 ahead=0,
                 behind=0,
                 remote=None,

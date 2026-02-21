@@ -24,6 +24,7 @@ WHITE = "\033[37m"
 ICON_BRANCH = "\uf418"  # 
 ICON_DIRTY = "\u2717"  # ✗
 ICON_STAGED = "\u271a"  # ✚
+ICON_UNTRACKED = "\uf059"  # 
 ICON_CLEAN = "\u2714"  # ✔
 ICON_REMOTE = "\uf0c2"  # 
 ICON_CONTEXT_EMOJI = "\U0001f9e0"
@@ -45,6 +46,7 @@ class GitInfo:
     remote: str | None
     dirty: bool
     staged: bool
+    untracked: bool
     ahead: int
     behind: int
     is_repo: bool
@@ -93,14 +95,13 @@ def get_git_info(cwd: Path) -> GitInfo | None:
     remote = None
     dirty = False
     staged = False
+    untracked = False
     ahead = 0
     behind = 0
     is_repo = True
 
     try:
         # Branch name and Remote URL
-        # We can optimize by combining these checks or just keeping them separate as they are fast.
-        # But 'git remote get-url' might fail if no remote, so keep it separate.
         branch = subprocess.check_output(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             cwd=cwd,
@@ -125,7 +126,7 @@ def get_git_info(cwd: Path) -> GitInfo | None:
         except subprocess.CalledProcessError:
             pass
 
-        # Status (staged/dirty)
+        # Status (staged/dirty/untracked)
         status_output = subprocess.check_output(
             ["git", "status", "--porcelain"],
             cwd=cwd,
@@ -133,13 +134,19 @@ def get_git_info(cwd: Path) -> GitInfo | None:
             stderr=subprocess.DEVNULL,
         )
         if status_output:
-            for line in status_output.splitlines():
-                if (
-                    line.startswith("??") or line[1] != " "
-                ):  # Untracked or Modified working tree
-                    dirty = True
-                if line[0] != " " and line[0] != "?":  # Staged
-                    staged = True
+            lines = status_output.splitlines()
+            # M = modified, A = added, D = deleted, R = renamed, C = copied, U = updated but unmerged
+            # ? = untracked, ! = ignored
+            # First column is staged status, second column is worktree status
+
+            # Staged: First char is not space and not ?
+            staged = any(line[0] not in (" ", "?") for line in lines)
+
+            # Dirty: Second char is not space and line is not untracked (??)
+            dirty = any(line[1] != " " and not line.startswith("??") for line in lines)
+
+            # Untracked: Starts with ??
+            untracked = any(line.startswith("??") for line in lines)
 
         # Ahead/Behind
         # Only check if we have a tracking branch
@@ -164,6 +171,7 @@ def get_git_info(cwd: Path) -> GitInfo | None:
         remote=remote,
         dirty=dirty,
         staged=staged,
+        untracked=untracked,
         ahead=ahead,
         behind=behind,
         is_repo=is_repo,
@@ -207,6 +215,7 @@ def format_git_state(info: GitInfo) -> str:
     parts = [
         f"{RED}{ICON_DIRTY}{RESET}" if info.dirty else None,
         f"{YELLOW}{ICON_STAGED}{RESET}" if info.staged else None,
+        f"{CYAN}{ICON_UNTRACKED}{RESET}" if info.untracked else None,
     ]
     # Filter out None values
     valid_parts = list(filter(None, parts))
