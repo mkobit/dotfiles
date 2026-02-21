@@ -8,12 +8,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 # Import the module under test
-try:
-    # Try importing as a regular module (Bazel)
-    import src.python.claude_statusline.main as statusline
-except ImportError:
-    # Fallback to local import if running directly
-    import main as statusline  # type: ignore[no-redef]
+import src.python.claude_statusline.main as statusline
 
 
 class TestStatusLine(unittest.TestCase):
