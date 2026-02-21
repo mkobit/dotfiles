@@ -8,6 +8,10 @@ cleanupPeriodDays = 30
 outputStyle = "concise"
 editorMode = "vim"
 
+[claude_code.settings.statusLine]
+type = "command"
+command = "claude_statusline"
+
 [claude_code.settings.permissions]
 tools = "allow"
 files = "allow"
