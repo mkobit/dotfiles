@@ -1,0 +1,18 @@
+{{- with .rulesync -}}
+{{- if eq .installation "external-sources" -}}
+{{- $os := $.chezmoi.os -}}
+{{- $arch := $.chezmoi.arch -}}
+{{- if eq $arch "amd64" -}}
+{{-   $arch = "x64" -}}
+{{- end -}}
+{{- $asset := printf "rulesync-%s-%s" $os $arch -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
+["rulesync"]
+type = "file"
+url = {{ gitHubReleaseAssetURL "dyoshikawa/rulesync" (printf "v%s" .version) $asset | quote }}
+executable = true
+{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") }}
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end }}
+{{- end -}}
+{{- end -}}
