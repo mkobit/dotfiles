@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any, Dict
 
 # Import the module under test
-import src.chezmoi.dot_local.bin.executable_claude_statusline as statusline
+import src.python.claude_statusline.main as statusline
 
 
 class TestStatusLine(unittest.TestCase):

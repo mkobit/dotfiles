@@ -1,0 +1,16 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+
+package(default_visibility = ["//visibility:public"])
+
+py_binary(
+    name = "claude_statusline",
+    srcs = ["main.py"],
+    main = "main.py",
+)
+
+py_test(
+    name = "test_claude_statusline",
+    srcs = ["main_test.py"],
+    main = "main_test.py",
+    deps = [":claude_statusline"],
+)
