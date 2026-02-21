@@ -1,3 +1,10 @@
+# Rulesync: A Utility CLI for AI Coding Agents
+# Repo: https://github.com/dyoshikawa/rulesync
+# Documentation: https://dyoshikawa.github.io/rulesync/
+#
+# Generates configuration files for various AI development tools from unified AI rule files.
+# Features: selective generation, comprehensive import/export capabilities, and supports major AI development tools.
+
 [rulesync]
 version = "7.6.3"
 installation = "external-sources"
