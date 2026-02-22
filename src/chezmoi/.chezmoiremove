@@ -14,3 +14,7 @@ install-asdf.sh
 # Unused chezmoi config file (chezmoi only reads from ~/.config/chezmoi/chezmoi.toml)
 # This was accidentally placed in source directory and never actually used
 .chezmoi.toml
+
+# Old Claude Status Line files
+.local/bin/claude_statusline.py
+.local/bin/test_claude_statusline.py
