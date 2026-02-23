@@ -30,6 +30,17 @@ py_library(
     ],
 )
 
+py_library(
+    name = "cli_lib",
+    srcs = ["main.py"],
+    deps = [
+        ":client",
+        ":config",
+        ":models",
+        requirement("click"),
+    ],
+)
+
 py_binary(
     name = "jules_cli",
     srcs = ["main.py"],
@@ -61,5 +72,16 @@ py_test(
         requirement("pytest-asyncio"),
         requirement("aiohttp"),
         requirement("whenever"),
+    ],
+)
+
+py_test(
+    name = "test_main",
+    srcs = ["test_main.py"],
+    deps = [
+        ":cli_lib",
+        ":config",
+        requirement("pytest"),
+        requirement("click"),
     ],
 )
