@@ -1,4 +1,4 @@
-# Mise - Tool Version Manager
+# Mise tool version manager
 
 ## Installation
 

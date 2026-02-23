@@ -23,7 +23,7 @@
 
 3. **Deploy**: `chezmoi apply ~/.local/bin/tools/my_tool`
 
-## Import Troubleshooting
+## Import troubleshooting
 
 - **Import errors**: Use full module paths rooted at `src.python`:
   - ✅ `from src.python.my_tool.lib import ...`

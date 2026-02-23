@@ -1,6 +1,6 @@
-# asdf Version Manager
+# asdf version manager
 
-## Plugin Management
+## Plugin management
 
 - **Define**: Add plugins to `src/.chezmoidata/asdf.toml`:
   ```toml
@@ -10,7 +10,7 @@
   ```
 - **Apply**: `chezmoi apply` handles plugin installation.
 
-## Updating Version
+## Updating version
 
 1. Update `version` in `.chezmoidata/asdf.toml`.
 2. Update platform checksums (`darwin_arm64`, etc.) from GitHub release.

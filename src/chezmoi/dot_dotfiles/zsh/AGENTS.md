@@ -1,6 +1,6 @@
-# Zsh Configuration
+# Zsh configuration
 
-## Shared Templates
+## Shared templates
 
 - **Location**: `src/.chezmoitemplates/shell/`.
 - **Usage**: Include in shell-specific scripts (Zsh/Bash) with context:
@@ -9,6 +9,6 @@
   ```
 - **Logic**: Use `.shell` variable for conditionals (`eq .shell "zsh"`).
 
-## Font Automation
+## Font automation
 
 - **MesloLGS NF**: Automatically downloaded via `.chezmoiexternals/` to `{{ .chezmoi.destDir }}/.dotfiles/external/fonts/`.

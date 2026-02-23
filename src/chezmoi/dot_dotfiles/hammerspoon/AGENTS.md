@@ -1,6 +1,6 @@
-# Hammerspoon Configuration
+# Hammerspoon configuration
 
-## Custom Config Directory
+## Custom config directory
 
 - **Default Override**: We override the default `~/.hammerspoon` path.
 - **Location**: `{{ .chezmoi.destDir }}/.dotfiles/hammerspoon/init.lua`

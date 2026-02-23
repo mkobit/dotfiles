@@ -1,11 +1,11 @@
-# Ghostty Configuration
+# Ghostty configuration
 
-## Configuration Structure
+## Configuration structure
 
 - **Split Files**: Uses `config-file` to include multiple configs (`fonts.conf`, `themes.conf`).
 - **Processing**: Keys after a `config-file` do NOT override the included file (processed at end).
 
-## Chezmoi Integration
+## Chezmoi integration
 
 - **Platform-specific**: Templates handle font/size differences for macOS vs Linux.
   ```toml

@@ -1,6 +1,6 @@
-# jq Configuration
+# jq configuration
 
-## Module Management
+## Module management
 
 - **Directory**: `src/dot_dotfiles/jq/` (installed to `{{ .chezmoi.destDir }}/.dotfiles/jq/`).
 - **Path**: `$JQLIB` environment variable must be set to this directory.
