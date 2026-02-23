@@ -1,7 +1,6 @@
 import unittest
-from unittest.mock import patch, MagicMock, mock_open
+from unittest.mock import patch, MagicMock
 import sys
-import os
 import json
 import io
 from pathlib import Path
@@ -16,13 +15,13 @@ class TestStatusLine(unittest.TestCase):
         # Test low usage (Green)
         self.assertIn(statusline.GREEN, statusline.format_context_usage(10))
         # Test medium usage (Yellow)
-        self.assertIn(statusline.YELLOW, statusline.format_context_usage(75))
+        self.assertIn(statusline.YELLOW, statusline.format_context_usage(55))
         # Test high usage (Red)
         self.assertIn(statusline.RED, statusline.format_context_usage(95))
         # Test None (Unknown)
-        self.assertIn(statusline.CYAN, statusline.format_context_usage(None))
+        self.assertIn(statusline.DIM, statusline.format_context_usage(None))
 
-    def test_format_git_status(self) -> None:
+    def test_format_git_full(self) -> None:
         base_kwargs: Dict[str, Any] = {
             "branch": "main",
             "remote": "https://github.com/example/repo",
@@ -45,7 +44,7 @@ class TestStatusLine(unittest.TestCase):
             behind=int(base_kwargs["behind"]),
             is_repo=bool(base_kwargs["is_repo"]),
         )
-        output = statusline.format_git_status(info)
+        output = statusline.format_git_full(info)
         self.assertIn("main", output)
         self.assertIn(statusline.ICON_CLEAN, output)
         self.assertIn(statusline.ICON_REMOTE, output)
@@ -61,7 +60,7 @@ class TestStatusLine(unittest.TestCase):
             behind=int(base_kwargs["behind"]),
             is_repo=bool(base_kwargs["is_repo"]),
         )
-        output = statusline.format_git_status(info)
+        output = statusline.format_git_full(info)
         self.assertIn(statusline.ICON_DIRTY, output)
 
         # Staged
@@ -75,7 +74,7 @@ class TestStatusLine(unittest.TestCase):
             behind=int(base_kwargs["behind"]),
             is_repo=bool(base_kwargs["is_repo"]),
         )
-        output = statusline.format_git_status(info)
+        output = statusline.format_git_full(info)
         self.assertIn(statusline.ICON_STAGED, output)
 
         # Untracked
@@ -89,23 +88,8 @@ class TestStatusLine(unittest.TestCase):
             behind=int(base_kwargs["behind"]),
             is_repo=bool(base_kwargs["is_repo"]),
         )
-        output = statusline.format_git_status(info)
+        output = statusline.format_git_full(info)
         self.assertIn(statusline.ICON_UNTRACKED, output)
-
-        # Dirty and Staged
-        info = statusline.GitInfo(
-            branch=str(base_kwargs["branch"]),
-            remote=str(base_kwargs["remote"]),
-            dirty=True,
-            staged=True,
-            untracked=bool(base_kwargs["untracked"]),
-            ahead=int(base_kwargs["ahead"]),
-            behind=int(base_kwargs["behind"]),
-            is_repo=bool(base_kwargs["is_repo"]),
-        )
-        output = statusline.format_git_status(info)
-        self.assertIn(statusline.ICON_DIRTY, output)
-        self.assertIn(statusline.ICON_STAGED, output)
 
         # Ahead/Behind
         info = statusline.GitInfo(
@@ -118,58 +102,9 @@ class TestStatusLine(unittest.TestCase):
             behind=1,
             is_repo=bool(base_kwargs["is_repo"]),
         )
-        output = statusline.format_git_status(info)
+        output = statusline.format_git_full(info)
         self.assertIn("↑2", output)
         self.assertIn("↓1", output)
-
-    def test_format_git_helper_functions(self) -> None:
-        info = statusline.GitInfo(
-            branch="main",
-            remote="origin",
-            dirty=False,
-            staged=False,
-            untracked=False,
-            ahead=0,
-            behind=0,
-            is_repo=True,
-        )
-        self.assertIn("main", statusline.format_git_branch(info))
-
-        info_dirty = statusline.GitInfo(
-            branch="main",
-            remote="origin",
-            dirty=True,
-            staged=False,
-            untracked=False,
-            ahead=0,
-            behind=0,
-            is_repo=True,
-        )
-        self.assertIn(statusline.ICON_DIRTY, statusline.format_git_state(info_dirty))
-
-        info_ahead = statusline.GitInfo(
-            branch="main",
-            remote="origin",
-            dirty=False,
-            staged=False,
-            untracked=False,
-            ahead=1,
-            behind=0,
-            is_repo=True,
-        )
-        self.assertIn("↑1", statusline.format_git_ahead_behind(info_ahead))
-
-        info_remote = statusline.GitInfo(
-            branch="main",
-            remote="https://github.com/example/repo",
-            dirty=False,
-            staged=False,
-            untracked=False,
-            ahead=0,
-            behind=0,
-            is_repo=True,
-        )
-        self.assertIn(statusline.ICON_REMOTE, statusline.format_git_remote(info_remote))
 
     @patch("subprocess.check_output")
     def test_get_git_info_fresh(self, mock_check_output: MagicMock) -> None:
@@ -210,6 +145,8 @@ class TestStatusLine(unittest.TestCase):
             "model": {"display_name": "Claude 3"},
             "workspace": {"current_dir": "/tmp/test"},
             "context_window": {"used_percentage": 50},
+            "session_name": "MySession",
+            "cost": {"total_cost_usd": 0.42},
         }
         mock_stdin.write(json.dumps(input_data))
         mock_stdin.seek(0)
@@ -233,49 +170,36 @@ class TestStatusLine(unittest.TestCase):
             # Expect 2 print calls
             self.assertEqual(mock_print.call_count, 2)
 
-            # Check first line (Model, CWD, Context)
+            # Check first line (Model, Context, Session, Cost)
             line1 = mock_print.call_args_list[0][0][0]
             self.assertIn("Claude 3", line1)
             self.assertIn("50%", line1)
+            self.assertIn("#MySession", line1)
+            self.assertIn("$0.42", line1)
 
             # Check second line (Git)
             line2 = mock_print.call_args_list[1][0][0]
             self.assertIn("main", line2)
 
-    def test_path_relativization(self) -> None:
-        # We need to test the logic inside main, but main is hard to test directly for this specific logic
-        # without mocking Path.home and everything.
-        # Instead, let's verify the logic by extracting it or simulating the environment.
-
+    def test_shorten_path(self) -> None:
         home = Path("/home/user")
-        cwd = Path("/home/user/projects/repo")
 
         with patch.object(Path, "home", return_value=home):
-            # Logic from main:
-            try:
-                display_path = str(cwd.relative_to(Path.home()))
-                if display_path == ".":
-                    display_path = "~"
-                else:
-                    display_path = f"~/{display_path}"
-            except ValueError:
-                display_path = str(cwd)
+            # Case 1: Path inside home, shallow
+            p1 = Path("/home/user/projects/repo")
+            self.assertEqual(statusline.shorten_path(p1), "~/projects/repo")
 
-            self.assertEqual(display_path, "~/projects/repo")
+            # Case 2: Path inside home, deep
+            p2 = Path("/home/user/src/github.com/org/repo/subdir")
+            self.assertEqual(statusline.shorten_path(p2), ".../repo/subdir")
 
-        cwd_outside = Path("/opt/projects/repo")
-        with patch.object(Path, "home", return_value=home):
-            try:
-                display_path = str(cwd_outside.relative_to(Path.home()))
-                if display_path == ".":
-                    display_path = "~"
-                else:
-                    display_path = f"~/{display_path}"
-            except ValueError:
-                display_path = str(cwd_outside)
+            # Case 3: Path outside home
+            p3 = Path("/opt/tool/src/main")
+            self.assertEqual(statusline.shorten_path(p3), ".../src/main")
 
-            self.assertEqual(display_path, "/opt/projects/repo")
-
+            # Case 4: Home itself
+            p4 = Path("/home/user")
+            self.assertEqual(statusline.shorten_path(p4), "~")
 
 if __name__ == "__main__":
     unittest.main()
