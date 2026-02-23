@@ -201,5 +201,6 @@ class TestStatusLine(unittest.TestCase):
             p4 = Path("/home/user")
             self.assertEqual(statusline.shorten_path(p4), "~")
 
+
 if __name__ == "__main__":
     unittest.main()

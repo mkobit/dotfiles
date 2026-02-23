@@ -24,11 +24,11 @@ WHITE = "\033[37m"
 # Nerd Font Icons (Unicode Escape Sequences)
 ICON_BRANCH = "\uf418"  # 
 ICON_DIRTY = "\uf00d"  # 
-ICON_STAGED = "\uf067" # 
-ICON_UNTRACKED = "\uf128" # 
+ICON_STAGED = "\uf067"  # 
+ICON_UNTRACKED = "\uf128"  # 
 ICON_CLEAN = "\uf00c"  # 
 ICON_REMOTE = "\uf0c2"  # 
-ICON_DIR = "\uf07c"    # 
+ICON_DIR = "\uf07c"  # 
 
 # Block characters for visual progress bar
 BLOCK_FILLED = "\u2588"  # █
@@ -203,7 +203,7 @@ def format_model_info(data: StatusData) -> str:
 
 def format_session_info(data: StatusData) -> str:
     if data.session_name:
-         return f"{CYAN}#{data.session_name}{RESET}"
+        return f"{CYAN}#{data.session_name}{RESET}"
     if data.session_id:
         # Show first 8 chars of ID
         return f"{DIM}#{data.session_id[:8]}{RESET}"
