@@ -30,9 +30,9 @@ ICON_CLEAN = "\uf00c"  # 
 ICON_REMOTE = "\uf0c2"  # 
 ICON_DIR = "\uf07c"    # 
 
-# Progress Bar Characters
-BAR_FILLED = "━"
-BAR_EMPTY = "─"
+# Block characters for visual progress bar
+BLOCK_FILLED = "\u2588"  # █
+BLOCK_EMPTY = "\u2591"  # ░
 
 CACHE_DURATION = 30  # seconds
 
@@ -176,7 +176,7 @@ def get_git_info(cwd: Path) -> GitInfo | None:
 
 
 def format_context_usage(used_pct: int | float | None) -> str:
-    """Formats the context usage with a sleek progress bar."""
+    """Formats the context usage with a block-based progress bar."""
     if used_pct is None:
         return f"{DIM}ctx:{RESET}{CYAN}?%{RESET}"
 
@@ -188,7 +188,7 @@ def format_context_usage(used_pct: int | float | None) -> str:
 
     width = 10
     filled = min(int(width * (used_pct / 100)), width)
-    visual_bar = (BAR_FILLED * filled) + (BAR_EMPTY * (width - filled))
+    visual_bar = (BLOCK_FILLED * filled) + (BLOCK_EMPTY * (width - filled))
 
     return f"{DIM}ctx:{RESET} {color}{visual_bar}{RESET} {int(used_pct)}%"
 
