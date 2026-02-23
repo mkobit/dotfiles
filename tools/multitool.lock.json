@@ -27,5 +27,37 @@
         "cpu": "x86_64"
       }
     ]
+  },
+  "rulesync": {
+    "binaries": [
+      {
+        "kind": "file",
+        "url": "https://github.com/dyoshikawa/rulesync/releases/download/v7.6.3/rulesync-darwin-arm64",
+        "sha256": "55a1dc8a78092114b76b87eb35efc6e384226030c507a75843d0527cb336eada",
+        "os": "macos",
+        "cpu": "arm64"
+      },
+      {
+        "kind": "file",
+        "url": "https://github.com/dyoshikawa/rulesync/releases/download/v7.6.3/rulesync-darwin-x64",
+        "sha256": "fe89895913898e87131be5bbf134cce845f39162a83642c3594d1f9442538741",
+        "os": "macos",
+        "cpu": "x86_64"
+      },
+      {
+        "kind": "file",
+        "url": "https://github.com/dyoshikawa/rulesync/releases/download/v7.6.3/rulesync-linux-arm64",
+        "sha256": "4ab31c25aa624de18196a1b66652a942751c22d7be745896d1104e83aeef9195",
+        "os": "linux",
+        "cpu": "arm64"
+      },
+      {
+        "kind": "file",
+        "url": "https://github.com/dyoshikawa/rulesync/releases/download/v7.6.3/rulesync-linux-x64",
+        "sha256": "950d3f1bb163d168afcf69c16863736bed3457a4579fb6cde17aeed15795f864",
+        "os": "linux",
+        "cpu": "x86_64"
+      }
+    ]
   }
 }
