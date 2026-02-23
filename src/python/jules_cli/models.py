@@ -213,3 +213,11 @@ class ListActivitiesResponse(BaseModel):
     activities: list[Activity] = Field(default_factory=list)
     next_page_token: str | None = None
     model_config = frozen_config
+
+
+class JulesContext(BaseModel):
+    """
+    Context passed between Click commands.
+    """
+
+    api_key: str | None = None
