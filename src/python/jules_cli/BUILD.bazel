@@ -81,6 +81,8 @@ py_test(
     deps = [
         ":cli_lib",
         ":config",
+        ":models",
+        requirement("click"),
         requirement("pytest"),
     ],
 )
