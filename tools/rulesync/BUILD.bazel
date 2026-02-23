@@ -10,15 +10,18 @@ sh_test(
 rulesync_generate(
     name = "test_config",
     srcs = glob(["test_data/rules/*.md"]),
+    out = "test_config_out",
     config = "test_data/rulesync.jsonc",
     strip_prefix = "tools/rulesync/test_data",
-    targets = ["cursor", "claudecode"],
-    out = "test_config_out",
+    targets = [
+        "cursor",
+        "claudecode",
+    ],
 )
 
 sh_test(
     name = "verify_rulesync_output",
     srcs = ["verify_rulesync_output.sh"],
-    data = [":test_config"],
     args = ["$(location :test_config)"],
+    data = [":test_config"],
 )

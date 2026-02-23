@@ -1,4 +1,3 @@
-
 def _rulesync_generate_impl(ctx):
     out_dir = ctx.actions.declare_directory(ctx.attr.out)
     rulesync_tool = ctx.executable._rulesync
