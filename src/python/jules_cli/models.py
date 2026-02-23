@@ -219,4 +219,5 @@ class JulesContext(BaseModel):
     """
     Context passed between Click commands.
     """
+
     api_key: str | None = None

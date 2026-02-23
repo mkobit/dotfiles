@@ -1,4 +1,3 @@
-
 import os
 from unittest.mock import patch, MagicMock, AsyncMock
 from src.python.jules_cli.main import get_api_key, cli
@@ -10,6 +9,7 @@ import pytest
 from typing import AsyncGenerator
 from pathlib import Path
 
+
 def test_get_api_key_ignores_env_var() -> None:
     with patch.dict(os.environ, {"JULES_API_KEY": "env_key"}):
         # Mock load_config to return empty config
@@ -19,16 +19,21 @@ def test_get_api_key_ignores_env_var() -> None:
                 with pytest.raises(SystemExit):
                     get_api_key()
 
+
 def test_get_api_key_from_config() -> None:
     mock_config = MagicMock()
     mock_config.api_key = "config_key"
     with patch("src.python.jules_cli.main.load_config", return_value=mock_config):
         assert get_api_key() == "config_key"
 
+
 def test_get_api_key_override() -> None:
     # Even if config fails, override should win
-    with patch("src.python.jules_cli.main.load_config", side_effect=Exception("No config")):
+    with patch(
+        "src.python.jules_cli.main.load_config", side_effect=Exception("No config")
+    ):
         assert get_api_key("override_key") == "override_key"
+
 
 def test_cli_help_example_toml() -> None:
     runner = CliRunner()
@@ -36,6 +41,7 @@ def test_cli_help_example_toml() -> None:
     assert result.exit_code == 0
     assert 'api_key_path = "~/.config/jules/api_key"' in result.output
     assert "JULES_API_KEY" not in result.output
+
 
 def test_list_sessions_cli_override() -> None:
     runner = CliRunner()
@@ -47,7 +53,9 @@ def test_list_sessions_cli_override() -> None:
 
         # Mock list_sessions to return empty generator
         async def mock_list() -> AsyncGenerator[None, None]:
-            if False: yield
+            if False:
+                yield
+
         instance.list_sessions.return_value = mock_list()
 
         result = runner.invoke(cli, ["--api-key", "cli_override_key", "list"])
@@ -57,6 +65,7 @@ def test_list_sessions_cli_override() -> None:
 
         assert result.exit_code == 0
         MockClient.assert_called_with(api_key="cli_override_key")
+
 
 def test_integration_env_var_ignored(tmp_path: Path) -> None:
     # This test verifies that get_api_key truly ignores JULES_API_KEY
@@ -84,6 +93,7 @@ def test_integration_env_var_ignored(tmp_path: Path) -> None:
                 get_api_key()
     finally:
         os.chdir(cwd)
+
 
 def test_cli_context_type() -> None:
     runner = CliRunner()
