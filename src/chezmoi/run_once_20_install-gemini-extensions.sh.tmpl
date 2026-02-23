@@ -1,0 +1,25 @@
+#!/bin/bash
+{{/* Calculate hash from sorted JSON of extensions map for change detection in the script content itself */ -}}
+{{- $extensionsJson := .gemini.extensions | default dict | toJson -}}
+# gemini.extensions hash: {{ $extensionsJson | sha256sum }}
+
+set -euo pipefail
+
+# Source logging library from chezmoi source
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
+
+INSTALLER_SCRIPT="{{ .chezmoi.homeDir }}/.local/bin/install-gemini-extensions.sh"
+
+log_info "Triggering Gemini CLI extensions installation..."
+
+if [ ! -f "$INSTALLER_SCRIPT" ]; then
+    log_warn "Installer script not found at $INSTALLER_SCRIPT. Skipping extension installation."
+    exit 0
+fi
+
+# Ensure installer is executable
+chmod +x "$INSTALLER_SCRIPT"
+
+# Execute the installer script
+"$INSTALLER_SCRIPT"
