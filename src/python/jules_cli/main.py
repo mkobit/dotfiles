@@ -14,6 +14,7 @@ from src.python.jules_cli.models import (
     AutomationMode,
     CreateSessionRequest,
     GitHubRepoContext,
+    JulesContext,
     SourceContext,
 )
 
@@ -38,8 +39,7 @@ def cli(ctx: click.Context, debug: bool, api_key: str | None) -> None:
         # Path to the file containing the API key
         api_key_path = "~/.config/jules/api_key"
     """
-    ctx.ensure_object(dict)
-    ctx.obj["api_key"] = api_key
+    ctx.obj = JulesContext(api_key=api_key)
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
 
 
@@ -193,7 +193,8 @@ def interact(ctx: click.Context) -> None:
     Example:
     $ jules interact
     """
-    asyncio.run(main_menu(ctx.obj.get("api_key")))
+    jules_ctx: JulesContext = ctx.obj
+    asyncio.run(main_menu(jules_ctx.api_key))
 
 
 @cli.command(name="list")
@@ -208,7 +209,8 @@ def list_sessions(ctx: click.Context) -> None:
     """
 
     async def _list() -> None:
-        api_key = get_api_key(ctx.obj.get("api_key"))
+        jules_ctx: JulesContext = ctx.obj
+        api_key = get_api_key(jules_ctx.api_key)
         async with JulesClient(api_key) as client:
             async for s in client.list_sessions():
                 click.echo(f"{s.id}: {s.title}")
@@ -233,7 +235,8 @@ def show(ctx: click.Context, session_id: str) -> None:
     """
 
     async def _show() -> None:
-        api_key = get_api_key(ctx.obj.get("api_key"))
+        jules_ctx: JulesContext = ctx.obj
+        api_key = get_api_key(jules_ctx.api_key)
         async with JulesClient(api_key) as client:
             try:
                 # Fetch session info
@@ -297,7 +300,8 @@ def create(
     """
 
     async def _create() -> None:
-        api_key = get_api_key(ctx.obj.get("api_key"))
+        jules_ctx: JulesContext = ctx.obj
+        api_key = get_api_key(jules_ctx.api_key)
 
         # Format source string
         if not source.startswith("sources/"):

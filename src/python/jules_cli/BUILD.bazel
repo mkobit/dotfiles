@@ -82,6 +82,5 @@ py_test(
         ":cli_lib",
         ":config",
         requirement("pytest"),
-        requirement("click"),
     ],
 )
