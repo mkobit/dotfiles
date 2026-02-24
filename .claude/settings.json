@@ -7,12 +7,10 @@
       "Bash(bazel query:*)",
       "Bash(bazel run:*)",
       "Bash(bazel test:*)",
-      "Bash(cat:*)",
       "Bash(mkdir:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.anthropic.com)",
-      "WebFetch(domain:jules.google)",
-      "Bash(find:*)"
+      "WebFetch(domain:jules.google)"
     ],
     "deny": [],
     "additionalDirectories": []
