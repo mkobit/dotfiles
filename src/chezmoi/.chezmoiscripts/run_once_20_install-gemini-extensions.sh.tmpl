@@ -9,17 +9,24 @@ set -euo pipefail
 CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
 source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 
-INSTALLER_SCRIPT="{{ .chezmoi.homeDir }}/.local/bin/install-gemini-extensions.sh"
+# Ensure gemini (via mise) is in PATH
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
 
-log_info "Triggering Gemini CLI extensions installation..."
+log_info "Ensuring Gemini CLI extensions are installed..."
 
-if [ ! -f "$INSTALLER_SCRIPT" ]; then
-    log_warn "Installer script not found at $INSTALLER_SCRIPT. Skipping extension installation."
+if ! command -v gemini &> /dev/null; then
+    log_warn "gemini command not found in PATH. Skipping extension installation."
     exit 0
 fi
 
-# Ensure installer is executable
-chmod +x "$INSTALLER_SCRIPT"
+{{- range $name, $ext := .gemini.extensions }}
+{{-   if $ext.enabled }}
+log_info "Installing/Updating extension: {{ $name }} ({{ $ext.ref }})"
+# We use --consent to bypass prompts.
+if ! gemini extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent; then
+    log_warn "Failed to install {{ $name }}. It may already be installed or there was a network error."
+fi
+{{-   end }}
+{{- end }}
 
-# Execute the installer script
-"$INSTALLER_SCRIPT"
+log_success "Gemini extensions installation complete."

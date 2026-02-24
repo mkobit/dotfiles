@@ -10,7 +10,7 @@ CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
 source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 
 # Ensure mise is in PATH (assuming standard install location)
-export PATH="{{ .chezmoi.homeDir }}/.local/bin:${PATH}"
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
 
 log_info "Ensuring mise global tools are installed..."
 
