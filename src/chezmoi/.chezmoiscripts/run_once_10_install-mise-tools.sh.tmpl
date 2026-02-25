@@ -1,3 +1,4 @@
+{{- if .mise.global_tools -}}
 #!/bin/bash
 {{/* Calculate hash from sorted JSON of global tools map for change detection in the script content itself */ -}}
 {{- $toolsJson := .mise.global_tools | default dict | toJson -}}
@@ -27,3 +28,4 @@ else
     log_error "Failed to install mise global tools."
     exit 1
 fi
+{{- end -}}
