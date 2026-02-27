@@ -1,0 +1,31 @@
+{{- if .mise.global_tools -}}
+#!/bin/bash
+{{/* Calculate hash from sorted JSON of global tools map for change detection in the script content itself */ -}}
+{{- $toolsJson := .mise.global_tools | default dict | toJson -}}
+# mise.global_tools hash: {{ $toolsJson | sha256sum }}
+
+set -euo pipefail
+
+# Source logging library from chezmoi source
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
+
+# Ensure mise is in PATH (assuming standard install location)
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+
+log_info "Ensuring mise global tools are installed..."
+
+if ! command -v mise &> /dev/null; then
+    log_warn "mise command not found in PATH. Skipping global tool installation."
+    exit 0
+fi
+
+# Run mise install to ensure all tools defined in global config are installed
+log_info "Running 'mise install' for global tools..."
+if mise install; then
+    log_success "Mise global tools installation complete."
+else
+    log_error "Failed to install mise global tools."
+    exit 1
+fi
+{{- end -}}

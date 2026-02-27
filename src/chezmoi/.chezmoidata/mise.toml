@@ -40,7 +40,6 @@ disable_hints = ["self_update"]
   [mise.global_tools."npm:@google/gemini-cli"]
   version = "0.29.5"
   enabled = true
-  postinstall = "install-gemini-extensions.sh"
 
   [mise.global_tools.bun]
   version = "1.3.6"
