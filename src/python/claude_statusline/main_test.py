@@ -18,8 +18,10 @@ class TestStatusLine(unittest.TestCase):
         self.assertIn(statusline.YELLOW, statusline.format_context_usage(55))
         # Test high usage (Red)
         self.assertIn(statusline.RED, statusline.format_context_usage(95))
-        # Test None (Unknown)
-        self.assertIn(statusline.DIM, statusline.format_context_usage(None))
+        # Test None (Unknown) - should be 0%
+        output_none = statusline.format_context_usage(None)
+        self.assertIn("0%", output_none)
+        self.assertIn(statusline.GREEN, output_none)
 
     def test_format_git_full(self) -> None:
         base_kwargs: Dict[str, Any] = {

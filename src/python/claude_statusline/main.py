@@ -178,7 +178,7 @@ def get_git_info(cwd: Path) -> GitInfo | None:
 def format_context_usage(used_pct: int | float | None) -> str:
     """Formats the context usage with a block-based progress bar."""
     if used_pct is None:
-        return f"{DIM}ctx:{RESET}{CYAN}?%{RESET}"
+        used_pct = 0.0
 
     color = GREEN
     if used_pct >= 90:
