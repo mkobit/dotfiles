@@ -142,6 +142,15 @@ jobs:
           restore-keys: |
             chezmoi-cache-v3-${{ runner.os }}-
 
+      - name: Cache mise tools
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: |
+            ~/.local/share/mise
+          key: mise-tools-v1-${{ runner.os }}-${{ hashFiles('src/chezmoi/.chezmoidata/mise.toml') }}
+          restore-keys: |
+            mise-tools-v1-${{ runner.os }}-
+
       - name: Install chezmoi
         run: |
           sh -c "$(curl -fsLS get.chezmoi.io)" -- -b ~/.local/bin
