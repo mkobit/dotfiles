@@ -20,6 +20,12 @@ enable_auto_update = false
 preview_features = true
 vim_mode = true
 
+# Session Management: https://developers.googleblog.com/pick-up-exactly-where-you-left-off-with-session-management-in-gemini-cli/
+[gemini.general.sessionRetention]
+enabled = true
+max_age = "30d"
+warning_acknowledged = true
+
 [gemini.extensions]
 
   [gemini.extensions.conductor]
