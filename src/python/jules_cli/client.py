@@ -44,7 +44,9 @@ class JulesClient:
             raise RuntimeError("Client session not initialized")
         url = f"{self._base_url}{endpoint}"
         async with self._session.get(url, params=params) as response:
-            response.raise_for_status()
+            if not response.ok:
+                error_body = await response.text()
+                raise Exception(f"API Error {response.status}: {error_body}")
             return await response.json()
 
     async def _post(self, endpoint: str, data: dict[str, Any] | None = None) -> Any:
@@ -52,7 +54,9 @@ class JulesClient:
             raise RuntimeError("Client session not initialized")
         url = f"{self._base_url}{endpoint}"
         async with self._session.post(url, json=data) as response:
-            response.raise_for_status()
+            if not response.ok:
+                error_body = await response.text()
+                raise Exception(f"API Error {response.status}: {error_body}")
             return await response.json()
 
     async def list_sources(self) -> AsyncGenerator[Source, None]:
@@ -75,7 +79,7 @@ class JulesClient:
     async def create_session(self, request: CreateSessionRequest) -> Session:
         data = await self._post(
             "/sessions",
-            data=request.model_dump(by_alias=True, exclude_none=True),
+            data=request.model_dump(mode="json", by_alias=True, exclude_none=True),
         )
         return Session(**data)
 
