@@ -12,6 +12,11 @@
           "enableAutoUpdate" .gemini.general.enable_auto_update
           "previewFeatures" .gemini.general.preview_features
           "vimMode" .gemini.general.vim_mode
+          "sessionRetention" (dict
+            "enabled" .gemini.general.sessionRetention.enabled
+            "maxAge" .gemini.general.sessionRetention.max_age
+            "warningAcknowledged" .gemini.general.sessionRetention.warning_acknowledged
+          )
         )
         "security" (dict
           "auth" (dict
