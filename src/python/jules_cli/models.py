@@ -10,6 +10,15 @@ from whenever import Instant
 frozen_config = ConfigDict(frozen=True, alias_generator=to_camel, populate_by_name=True)
 
 
+class GitHubBranch(BaseModel):
+    """
+    A GitHub branch.
+    """
+
+    display_name: str
+    model_config = frozen_config
+
+
 class GitHubRepo(BaseModel):
     """
     Represents a GitHub repository.
@@ -18,6 +27,9 @@ class GitHubRepo(BaseModel):
 
     owner: str
     repo: str
+    is_private: bool | None = None
+    default_branch: GitHubBranch | None = None
+    branches: list[GitHubBranch] | None = None
     model_config = frozen_config
 
 
@@ -58,6 +70,22 @@ class AutomationMode(str, Enum):
     """
 
     AUTO_CREATE_PR = "AUTO_CREATE_PR"
+
+
+class State(str, Enum):
+    """
+    State of a session.
+    """
+
+    STATE_UNSPECIFIED = "STATE_UNSPECIFIED"
+    QUEUED = "QUEUED"
+    PLANNING = "PLANNING"
+    AWAITING_PLAN_APPROVAL = "AWAITING_PLAN_APPROVAL"
+    AWAITING_USER_FEEDBACK = "AWAITING_USER_FEEDBACK"
+    IN_PROGRESS = "IN_PROGRESS"
+    PAUSED = "PAUSED"
+    FAILED = "FAILED"
+    COMPLETED = "COMPLETED"
 
 
 class CreateSessionRequest(BaseModel):
@@ -107,6 +135,9 @@ class Session(BaseModel):
     prompt: str
     outputs: list[Output] | None = None
     create_time: Instant | None = None
+    update_time: Instant | None = None
+    state: State | None = None
+    url: str | None = None
     model_config = frozen_config
 
 
@@ -117,6 +148,7 @@ class PlanStep(BaseModel):
 
     id: str
     title: str
+    description: str | None = None
     index: int | None = None
     model_config = frozen_config
 
@@ -128,6 +160,25 @@ class Plan(BaseModel):
 
     id: str
     steps: list[PlanStep]
+    create_time: Instant | None = None
+    model_config = frozen_config
+
+
+class UserMessaged(BaseModel):
+    """
+    The user posted a message.
+    """
+
+    user_message: str
+    model_config = frozen_config
+
+
+class AgentMessaged(BaseModel):
+    """
+    The agent posted a message.
+    """
+
+    agent_message: str
     model_config = frozen_config
 
 
@@ -170,11 +221,61 @@ class BashOutput(BaseModel):
     model_config = frozen_config
 
 
+class SessionFailed(BaseModel):
+    """
+    The session failed.
+    """
+
+    reason: str
+    model_config = frozen_config
+
+
+class SessionCompleted(BaseModel):
+    """
+    The session was completed.
+    """
+
+    model_config = frozen_config
+
+
+class GitPatch(BaseModel):
+    """
+    A patch in Git format.
+    """
+
+    unidiff_patch: str
+    base_commit_id: str
+    suggested_commit_message: str
+    model_config = frozen_config
+
+
+class ChangeSet(BaseModel):
+    """
+    A change set was produced.
+    """
+
+    source: str
+    git_patch: GitPatch | None = None
+    model_config = frozen_config
+
+
+class Media(BaseModel):
+    """
+    A media output.
+    """
+
+    data: bytes
+    mime_type: str
+    model_config = frozen_config
+
+
 class Artifact(BaseModel):
     """
     Artifact produced during an activity.
     """
 
+    change_set: ChangeSet | None = None
+    media: Media | None = None
     bash_output: BashOutput | None = None
     model_config = frozen_config
 
@@ -187,13 +288,17 @@ class Activity(BaseModel):
 
     name: str
     id: str
+    description: str | None = None
     create_time: Instant
     originator: str  # 'agent' or 'user'
+    agent_messaged: AgentMessaged | None = None
+    user_messaged: UserMessaged | None = None
     plan_generated: PlanGenerated | None = None
     plan_approved: PlanApproved | None = None
     progress_updated: ProgressUpdated | None = None
     artifacts: list[Artifact] | None = None
-    session_completed: dict[str, Any] | None = None
+    session_completed: SessionCompleted | None = None
+    session_failed: SessionFailed | None = None
     model_config = frozen_config
 
 

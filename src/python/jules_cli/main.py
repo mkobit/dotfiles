@@ -28,7 +28,7 @@ def cli(ctx: click.Context, debug: bool, api_key: str | None) -> None:
 
     This tool allows you to create and manage coding sessions with the Jules agent.
     For more information about the Jules API, visit:
-    https://developers.google.com/jules/api
+    https://developers.google.com/jules/api/reference/rest
 
     Configuration:
     The tool looks for a configuration file at `~/.config/jules/config.toml`.
@@ -110,10 +110,15 @@ async def interactive_session_loop(client: JulesClient, session_id: str) -> None
         for activity in activities:
             if activity.originator == "user":
                 click.secho("User: ", fg="green", bold=True, nl=False)
-                click.echo(f"(Action: {activity.name})")  # Placeholder
+                if activity.user_messaged:
+                    click.echo(f"{activity.user_messaged.user_message}")
+                else:
+                    click.echo(f"(Action: {activity.name})")
             else:
                 click.secho("Agent: ", fg="blue", bold=True, nl=False)
-                if activity.progress_updated:
+                if activity.agent_messaged:
+                    click.echo(f"{activity.agent_messaged.agent_message}")
+                elif activity.progress_updated:
                     click.echo(f"{activity.progress_updated.title}")
                     if activity.progress_updated.description:
                         click.echo(f"  {activity.progress_updated.description}")
@@ -121,6 +126,10 @@ async def interactive_session_loop(client: JulesClient, session_id: str) -> None
                     click.echo("Generated Plan:")
                     for step in activity.plan_generated.plan.steps:
                         click.echo(f"  {step.index}. {step.title}")
+                elif activity.session_failed:
+                    click.secho(
+                        f"Session Failed: {activity.session_failed.reason}", fg="red"
+                    )
                 else:
                     click.echo("(Other activity)")
 
@@ -202,7 +211,7 @@ def interact(ctx: click.Context) -> None:
 def list_sessions(ctx: click.Context) -> None:
     """List recent sessions.
 
-    Displays a list of recent Jules sessions with their IDs and titles.
+    Displays a list of recent Jules sessions with their IDs, titles, states, and URLs.
 
     Example:
     $ jules list
@@ -224,8 +233,8 @@ def list_sessions(ctx: click.Context) -> None:
 def show(ctx: click.Context, session_id: str) -> None:
     """Show details for a session.
 
-    Displays detailed information about a specific session, including its prompt,
-    source, and recent activity.
+    Displays detailed information about a specific session, including its state,
+    URL, prompt, source, and recent activity.
 
     Arguments:
         SESSION_ID: The unique identifier of the session (e.g., 'sessions/12345').
@@ -242,6 +251,11 @@ def show(ctx: click.Context, session_id: str) -> None:
                 # Fetch session info
                 session = await client.get_session(session_id)
                 click.echo(f"Title: {session.title}")
+                click.echo(
+                    f"State: {session.state.value if session.state else 'Unknown'}"
+                )
+                if session.url:
+                    click.echo(f"URL: {session.url}")
                 click.echo(f"Prompt: {session.prompt}")
                 click.echo(f"Source: {session.source_context.source}")
                 click.echo("-" * 20)
@@ -283,7 +297,8 @@ def create(
 ) -> None:
     """Create a new session.
 
-    Starts a new coding session with Jules.
+    Starts a new coding session with Jules on the given source context.
+    The session object will contain the assigned URL and initial state.
 
     Examples:
     \b
