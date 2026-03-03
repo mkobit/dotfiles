@@ -38,8 +38,12 @@ async def test_client_get_session() -> None:
         async def json(self) -> dict:
             return self._data
 
-        def raise_for_status(self) -> None:
-            pass
+        @property
+        def ok(self) -> bool:
+            return True
+
+        async def text(self) -> str:
+            return ""
 
         async def __aenter__(self) -> "MockResponse":
             return self
@@ -79,8 +83,12 @@ async def test_client_list_sessions() -> None:
         async def json(self) -> dict:
             return self._data
 
-        def raise_for_status(self) -> None:
-            pass
+        @property
+        def ok(self) -> bool:
+            return True
+
+        async def text(self) -> str:
+            return ""
 
         async def __aenter__(self) -> "MockResponse":
             return self
