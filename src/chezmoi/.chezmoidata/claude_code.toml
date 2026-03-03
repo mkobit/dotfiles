@@ -4,8 +4,10 @@ version = "2.1.63"
 installation = "external-script"
 
 [claude_code.settings]
+# https://code.claude.com/docs/en/settings
 cleanupPeriodDays = 30
 outputStyle = "concise"
+# https://code.claude.com/docs/en/terminal-config#vim-mode
 editorMode = "vim"
 
 [claude_code.settings.statusLine]
