@@ -366,7 +366,11 @@ def create(
             try:
                 session = await client.create_session(req)
                 if as_json:
-                    click.echo(json.dumps(session.model_dump(mode="json", by_alias=True), indent=2))
+                    click.echo(
+                        json.dumps(
+                            session.model_dump(mode="json", by_alias=True), indent=2
+                        )
+                    )
                 else:
                     click.echo(f"Session created: {session.name}")
                     click.echo(f"Title: {session.title}")

@@ -68,6 +68,7 @@ def test_list_sessions_cli_override() -> None:
         assert result.exit_code == 0
         MockClient.assert_called_with(api_key="cli_override_key")
 
+
 def test_list_sessions_json() -> None:
     runner = CliRunner()
     with patch("src.python.jules_cli.main.JulesClient") as MockClient:
@@ -81,7 +82,7 @@ def test_list_sessions_json() -> None:
                 id="1",
                 title="Test Session",
                 source_context=SourceContext(source="test/repo"),
-                prompt="test prompt"
+                prompt="test prompt",
             )
 
         instance.list_sessions.return_value = mock_list()
@@ -93,6 +94,7 @@ def test_list_sessions_json() -> None:
         assert len(data) == 1
         assert data[0]["id"] == "1"
         assert data[0]["title"] == "Test Session"
+
 
 def test_show_session_json() -> None:
     runner = CliRunner()
@@ -106,7 +108,7 @@ def test_show_session_json() -> None:
             id="1",
             title="Test Session",
             source_context=SourceContext(source="test/repo"),
-            prompt="test prompt"
+            prompt="test prompt",
         )
         instance.get_session = AsyncMock(return_value=mock_session)
 
@@ -116,13 +118,16 @@ def test_show_session_json() -> None:
 
         instance.list_activities.return_value = mock_activities()
 
-        result = runner.invoke(cli, ["--api-key", "key", "show", "sessions/1", "--json"])
+        result = runner.invoke(
+            cli, ["--api-key", "key", "show", "sessions/1", "--json"]
+        )
 
         assert result.exit_code == 0
         data = json.loads(result.output)
         assert data["id"] == "1"
         assert data["title"] == "Test Session"
         assert data["activities"] == []
+
 
 def test_create_session_json() -> None:
     runner = CliRunner()
@@ -136,11 +141,23 @@ def test_create_session_json() -> None:
             id="1",
             title="Test Session",
             source_context=SourceContext(source="test/repo"),
-            prompt="test prompt"
+            prompt="test prompt",
         )
         instance.create_session = AsyncMock(return_value=mock_session)
 
-        result = runner.invoke(cli, ["--api-key", "key", "create", "--prompt", "test", "--source", "test/repo", "--json"])
+        result = runner.invoke(
+            cli,
+            [
+                "--api-key",
+                "key",
+                "create",
+                "--prompt",
+                "test",
+                "--source",
+                "test/repo",
+                "--json",
+            ],
+        )
 
         assert result.exit_code == 0
         data = json.loads(result.output)
