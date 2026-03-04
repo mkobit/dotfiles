@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "hooks": {
+    "postToolUse": [
+      {
+        "type": "command",
+        "command": "bazel run //:format",
+        "matcher": "Write|Edit|MultiEdit"
+      },
+      {
+        "type": "command",
+        "command": "./.claude/hooks/bazel-validate.sh",
+        "matcher": "Write|Edit|MultiEdit"
+      }
+    ]
+  }
+}
