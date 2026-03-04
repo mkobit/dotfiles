@@ -101,23 +101,19 @@ class JulesClient:
                 break
 
     async def get_session(self, session_id: str) -> Session:
-        if not session_id.startswith("sessions/"):
-            session_id = f"sessions/{session_id}"
-        data = await self._get(f"/{session_id}")
+        data = await self._get(f"/sessions/{session_id}")
         return Session(**data)
 
     async def list_activities(
         self, session_id: str, page_size: int = 30
     ) -> AsyncGenerator[Activity, None]:
-        if not session_id.startswith("sessions/"):
-            session_id = f"sessions/{session_id}"
         next_page_token = None
         while True:
             params: dict[str, Any] = {"pageSize": page_size}
             if next_page_token:
                 params["pageToken"] = next_page_token
 
-            data = await self._get(f"/{session_id}/activities", params=params)
+            data = await self._get(f"/sessions/{session_id}/activities", params=params)
             response = ListActivitiesResponse(**data)
 
             for activity in response.activities:
@@ -128,12 +124,8 @@ class JulesClient:
                 break
 
     async def send_message(self, session_id: str, message: str) -> Any:
-        if not session_id.startswith("sessions/"):
-            session_id = f"sessions/{session_id}"
         payload = {"prompt": message}
-        return await self._post(f"/{session_id}:sendMessage", data=payload)
+        return await self._post(f"/sessions/{session_id}:sendMessage", data=payload)
 
     async def approve_plan(self, session_id: str) -> Any:
-        if not session_id.startswith("sessions/"):
-            session_id = f"sessions/{session_id}"
-        return await self._post(f"/{session_id}:approvePlan")
+        return await self._post(f"/sessions/{session_id}:approvePlan")
