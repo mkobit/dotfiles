@@ -1,7 +1,7 @@
 # Configuration documentation: https://geminicli.com/docs/get-started/configuration/
 
 [gemini]
-model = "gemini-3-pro-preview"
+model = "auto-gemini-3"
 
 [gemini.telemetry]
 enabled = false
