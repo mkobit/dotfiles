@@ -137,7 +137,7 @@ class Session(BaseModel):
     """
 
     name: str
-    id: int
+    id: str
     title: str | None = None
     source_context: SourceContext
     prompt: str

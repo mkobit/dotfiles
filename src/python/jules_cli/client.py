@@ -100,12 +100,12 @@ class JulesClient:
             if not next_page_token:
                 break
 
-    async def get_session(self, session_id: int) -> Session:
+    async def get_session(self, session_id: str) -> Session:
         data = await self._get(f"/sessions/{session_id}")
         return Session(**data)
 
     async def list_activities(
-        self, session_id: int, page_size: int = 30
+        self, session_id: str, page_size: int = 30
     ) -> AsyncGenerator[Activity, None]:
         next_page_token = None
         while True:
@@ -123,9 +123,9 @@ class JulesClient:
             if not next_page_token:
                 break
 
-    async def send_message(self, session_id: int, message: str) -> Any:
+    async def send_message(self, session_id: str, message: str) -> Any:
         payload = {"prompt": message}
         return await self._post(f"/sessions/{session_id}:sendMessage", data=payload)
 
-    async def approve_plan(self, session_id: int) -> Any:
+    async def approve_plan(self, session_id: str) -> Any:
         return await self._post(f"/sessions/{session_id}:approvePlan")
