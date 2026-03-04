@@ -6,7 +6,7 @@ from src.python.jules_cli.models import Session
 # Mock data matches Pydantic camelCase conversion
 MOCK_SESSION_DATA = {
     "name": "sessions/123",
-    "id": "123",
+    "id": 123,
     "title": "Test Session",
     "prompt": "Test Prompt",
     "sourceContext": {"source": "sources/github/test/repo"},
@@ -17,7 +17,7 @@ MOCK_LIST_SESSIONS_DATA = {"sessions": [MOCK_SESSION_DATA], "nextPageToken": Non
 
 def test_session_model() -> None:
     session = Session(**MOCK_SESSION_DATA)
-    assert session.id == "123"
+    assert session.id == 123
     assert session.title == "Test Session"
     assert session.source_context.source == "sources/github/test/repo"
 
@@ -71,7 +71,7 @@ async def test_client_get_session() -> None:
     client._session = MockSession()  # type: ignore
 
     session = await client.get_session("sessions/123")
-    assert session.id == "123"
+    assert session.id == 123
 
 
 @pytest.mark.asyncio
@@ -111,4 +111,4 @@ async def test_client_list_sessions() -> None:
         sessions.append(s)
 
     assert len(sessions) == 1
-    assert sessions[0].id == "123"
+    assert sessions[0].id == 123

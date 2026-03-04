@@ -91,7 +91,7 @@ def run_fzf(items: list[str]) -> str | None:
     return None
 
 
-async def interactive_session_loop(client: JulesClient, session_id: str) -> None:
+async def interactive_session_loop(client: JulesClient, session_id: int | str) -> None:
     """Interactive loop for a specific session."""
     while True:
         click.clear()

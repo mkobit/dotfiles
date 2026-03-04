@@ -69,6 +69,7 @@ class AutomationMode(str, Enum):
     Automation modes for a session.
     """
 
+    AUTOMATION_MODE_UNSPECIFIED = "AUTOMATION_MODE_UNSPECIFIED"
     AUTO_CREATE_PR = "AUTO_CREATE_PR"
 
 
@@ -102,7 +103,7 @@ class CreateSessionRequest(BaseModel):
     model_config = frozen_config
 
 
-class PullRequestOutput(BaseModel):
+class PullRequest(BaseModel):
     """
     Output details for a Pull Request.
     """
@@ -113,13 +114,29 @@ class PullRequestOutput(BaseModel):
     model_config = frozen_config
 
 
-class Output(BaseModel):
+class SessionOutput(BaseModel):
     """
     Generic output wrapper.
     """
 
-    pull_request: PullRequestOutput | None = None
+    pull_request: PullRequest | None = None
     model_config = frozen_config
+
+
+class SessionState(str, Enum):
+    """
+    State of a session.
+    """
+
+    STATE_UNSPECIFIED = "STATE_UNSPECIFIED"
+    QUEUED = "QUEUED"
+    PLANNING = "PLANNING"
+    AWAITING_PLAN_APPROVAL = "AWAITING_PLAN_APPROVAL"
+    AWAITING_USER_FEEDBACK = "AWAITING_USER_FEEDBACK"
+    IN_PROGRESS = "IN_PROGRESS"
+    PAUSED = "PAUSED"
+    FAILED = "FAILED"
+    COMPLETED = "COMPLETED"
 
 
 class Session(BaseModel):
@@ -129,15 +146,17 @@ class Session(BaseModel):
     """
 
     name: str
-    id: str
-    title: str
+    id: int
+    title: str | None = None
     source_context: SourceContext
     prompt: str
-    outputs: list[Output] | None = None
+    outputs: list[SessionOutput] | None = None
     create_time: Instant | None = None
     update_time: Instant | None = None
-    state: State | None = None
+    state: SessionState | None = None
     url: str | None = None
+    require_plan_approval: bool | None = None
+    automation_mode: AutomationMode | None = None
     model_config = frozen_config
 
 
