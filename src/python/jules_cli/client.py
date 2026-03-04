@@ -101,13 +101,16 @@ class JulesClient:
                 break
 
     async def get_session(self, session_id: str) -> Session:
-        # Assuming session_id is the full resource name or the API handles it
+        if not session_id.startswith("sessions/"):
+            session_id = f"sessions/{session_id}"
         data = await self._get(f"/{session_id}")
         return Session(**data)
 
     async def list_activities(
         self, session_id: str, page_size: int = 30
     ) -> AsyncGenerator[Activity, None]:
+        if not session_id.startswith("sessions/"):
+            session_id = f"sessions/{session_id}"
         next_page_token = None
         while True:
             params: dict[str, Any] = {"pageSize": page_size}
@@ -125,8 +128,12 @@ class JulesClient:
                 break
 
     async def send_message(self, session_id: str, message: str) -> Any:
+        if not session_id.startswith("sessions/"):
+            session_id = f"sessions/{session_id}"
         payload = {"prompt": message}
         return await self._post(f"/{session_id}:sendMessage", data=payload)
 
     async def approve_plan(self, session_id: str) -> Any:
+        if not session_id.startswith("sessions/"):
+            session_id = f"sessions/{session_id}"
         return await self._post(f"/{session_id}:approvePlan")
