@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import sys
+import json
 from pathlib import Path
 
 import click
@@ -207,8 +208,9 @@ def interact(ctx: click.Context) -> None:
 
 
 @cli.command(name="list")
+@click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
 @click.pass_context
-def list_sessions(ctx: click.Context) -> None:
+def list_sessions(ctx: click.Context, as_json: bool) -> None:
     """List recent sessions.
 
     Displays a list of recent Jules sessions with their IDs, titles, states, and URLs.
@@ -221,16 +223,24 @@ def list_sessions(ctx: click.Context) -> None:
         jules_ctx: JulesContext = ctx.obj
         api_key = get_api_key(jules_ctx.api_key)
         async with JulesClient(api_key) as client:
-            async for s in client.list_sessions():
-                click.echo(f"{s.id}: {s.title}")
+            if as_json:
+                sessions = [
+                    s.model_dump(mode="json", by_alias=True)
+                    async for s in client.list_sessions()
+                ]
+                click.echo(json.dumps(sessions, indent=2))
+            else:
+                async for s in client.list_sessions():
+                    click.echo(f"{s.id}: {s.title}")
 
     asyncio.run(_list())
 
 
 @cli.command()
 @click.argument("session_id")
+@click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
 @click.pass_context
-def show(ctx: click.Context, session_id: str) -> None:
+def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
     """Show details for a session.
 
     Displays detailed information about a specific session, including its state,
@@ -250,17 +260,26 @@ def show(ctx: click.Context, session_id: str) -> None:
             try:
                 # Fetch session info
                 session = await client.get_session(session_id)
-                click.echo(f"Title: {session.title}")
-                click.echo(
-                    f"State: {session.state.value if session.state else 'Unknown'}"
-                )
-                if session.url:
-                    click.echo(f"URL: {session.url}")
-                click.echo(f"Prompt: {session.prompt}")
-                click.echo(f"Source: {session.source_context.source}")
-                click.echo("-" * 20)
-                async for act in client.list_activities(session_id):
-                    click.echo(f"{act.originator}: {act.name}")
+                if as_json:
+                    activities = [
+                        a.model_dump(mode="json", by_alias=True)
+                        async for a in client.list_activities(session_id)
+                    ]
+                    session_dict = session.model_dump(mode="json", by_alias=True)
+                    session_dict["activities"] = activities
+                    click.echo(json.dumps(session_dict, indent=2))
+                else:
+                    click.echo(f"Title: {session.title}")
+                    click.echo(
+                        f"State: {session.state.value if session.state else 'Unknown'}"
+                    )
+                    if session.url:
+                        click.echo(f"URL: {session.url}")
+                    click.echo(f"Prompt: {session.prompt}")
+                    click.echo(f"Source: {session.source_context.source}")
+                    click.echo("-" * 20)
+                    async for act in client.list_activities(session_id):
+                        click.echo(f"{act.originator}: {act.name}")
             except Exception as e:
                 click.echo(f"Error: {e}", err=True)
 
@@ -284,6 +303,7 @@ def show(ctx: click.Context, session_id: str) -> None:
     default=False,
     help="Enter interactive mode after creating the session.",
 )
+@click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
 @click.pass_context
 def create(
     ctx: click.Context,
@@ -294,6 +314,7 @@ def create(
     auto_pr: bool,
     approve: bool,
     interactive: bool,
+    as_json: bool,
 ) -> None:
     """Create a new session.
 
@@ -344,9 +365,16 @@ def create(
         async with JulesClient(api_key) as client:
             try:
                 session = await client.create_session(req)
-                click.echo(f"Session created: {session.name}")
-                click.echo(f"Title: {session.title}")
-                click.echo(f"ID: {session.id}")
+                if as_json:
+                    click.echo(
+                        json.dumps(
+                            session.model_dump(mode="json", by_alias=True), indent=2
+                        )
+                    )
+                else:
+                    click.echo(f"Session created: {session.name}")
+                    click.echo(f"Title: {session.title}")
+                    click.echo(f"ID: {session.id}")
 
                 if interactive:
                     await interactive_session_loop(client, session.id)
