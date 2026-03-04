@@ -73,6 +73,12 @@ class AutomationMode(StrEnum):
     See: https://jules.google/docs/api/reference/types#automationmode
     """
 
+    @staticmethod
+    def _generate_next_value_(
+        name: str, start: int, count: int, last_values: list[Any]
+    ) -> Any:
+        return name
+
     AUTOMATION_MODE_UNSPECIFIED = auto()
     AUTO_CREATE_PR = auto()
 
@@ -118,6 +124,12 @@ class SessionState(StrEnum):
     State of a session.
     See: https://jules.google/docs/api/reference/types#sessionstate
     """
+
+    @staticmethod
+    def _generate_next_value_(
+        name: str, start: int, count: int, last_values: list[Any]
+    ) -> Any:
+        return name
 
     STATE_UNSPECIFIED = auto()
     QUEUED = auto()
