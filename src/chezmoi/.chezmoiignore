@@ -6,8 +6,11 @@
 # Ignore agent-related markdown files
 **/AGENTS.md
 **/CLAUDE.md
+**/GEMINI.md
 **/RULE.md
 **/*.mdc
+!.claude/CLAUDE.md
+!.gemini/GEMINI.md
 
 # Bazel build files
 **/*.bzl
