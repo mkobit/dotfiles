@@ -3,5 +3,4 @@
 enabled = true
 name = "Mike Kobit"
 email = "mkobit@gmail.com"
-signing_key = "1698254E135D7ADE"
-gpg_sign = true
+signing_key = "0BCB5C5A05188FFC"
