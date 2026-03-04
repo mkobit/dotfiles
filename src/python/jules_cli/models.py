@@ -77,22 +77,6 @@ class AutomationMode(StrEnum):
     AUTO_CREATE_PR = auto()
 
 
-class State(str, Enum):
-    """
-    State of a session.
-    """
-
-    STATE_UNSPECIFIED = "STATE_UNSPECIFIED"
-    QUEUED = "QUEUED"
-    PLANNING = "PLANNING"
-    AWAITING_PLAN_APPROVAL = "AWAITING_PLAN_APPROVAL"
-    AWAITING_USER_FEEDBACK = "AWAITING_USER_FEEDBACK"
-    IN_PROGRESS = "IN_PROGRESS"
-    PAUSED = "PAUSED"
-    FAILED = "FAILED"
-    COMPLETED = "COMPLETED"
-
-
 class CreateSessionRequest(BaseModel):
     """
     Request body for creating a session.

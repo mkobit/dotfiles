@@ -91,7 +91,7 @@ def run_fzf(items: list[str]) -> str | None:
     return None
 
 
-async def interactive_session_loop(client: JulesClient, session_id: int | str) -> None:
+async def interactive_session_loop(client: JulesClient, session_id: int) -> None:
     """Interactive loop for a specific session."""
     while True:
         click.clear()
@@ -183,10 +183,16 @@ async def main_menu(api_key_override: str | None = None) -> None:
 
                 # Safer splitting using next/default
                 parts = selected.split(" | ")
-                session_id = next(iter(parts), None)
+                session_id_str = next(iter(parts), None)
 
-                if session_id:
-                    await interactive_session_loop(client, session_id)
+                if session_id_str:
+                    try:
+                        session_id = int(session_id_str)
+                        await interactive_session_loop(client, session_id)
+                    except ValueError:
+                        click.echo(
+                            f"Invalid session ID selected: {session_id_str}", err=True
+                        )
 
     except ValueError as e:
         click.echo(str(e), err=True)
@@ -243,10 +249,10 @@ def list_sessions(ctx: click.Context, as_json: bool) -> None:
 
 
 @session.command()
-@click.argument("session_id")
+@click.argument("session_id", type=int)
 @click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
 @click.pass_context
-def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
+def show(ctx: click.Context, session_id: int, as_json: bool) -> None:
     """Show details for a session.
 
     Displays detailed information about a specific session, including its state,

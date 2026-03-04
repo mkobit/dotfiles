@@ -70,7 +70,7 @@ async def test_client_get_session() -> None:
     # So we need ignore here or make MockSession compatible.
     client._session = MockSession()  # type: ignore
 
-    session = await client.get_session("sessions/123")
+    session = await client.get_session(123)
     assert session.id == 123
 
 
