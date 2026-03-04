@@ -1,16 +1,22 @@
 {{- with .git.personal }}
 {{- if .enabled }}
-{{- if not (and .name .email .signing_key) }}
-{{- fail "git.personal.enabled is true but name, email, or signing_key is empty" }}
+{{- if not (and .name .email) }}
+{{- fail "git.personal.enabled is true but name or email is empty" }}
 {{- end }}
 
 [user]
   name = {{ .name | quote }}
   email = {{ .email | quote }}
+{{- if .signing_key }}
   signingkey = {{ .signing_key }}
+{{- end }}
 
 [commit]
-  gpgsign = {{ .gpg_sign }}
+{{- if .signing_key }}
+  gpgsign = true
+{{- else }}
+  gpgsign = false
+{{- end }}
 
 [gpg]
   program = gpg

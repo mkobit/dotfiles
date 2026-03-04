@@ -1,8 +1,8 @@
 [user]
   # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-username
-  name = "Mike Kobit"
+  name = {{ .git.personal.name | quote }}
   # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-useremail
-  email = mkobit@gmail.com
+  email = {{ .git.personal.email | quote }}
   # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-usersigningKey
-  signingkey = 0BCB5C5A05188FFC
+  signingkey = {{ .git.personal.signing_key }}
 
