@@ -193,7 +193,13 @@ async def main_menu(api_key_override: str | None = None) -> None:
         sys.exit(1)
 
 
-@cli.command()
+@cli.group()
+def session() -> None:
+    """Manage sessions."""
+    pass
+
+
+@session.command()
 @click.pass_context
 def interact(ctx: click.Context) -> None:
     """Interactive mode to view and manage sessions.
@@ -201,13 +207,13 @@ def interact(ctx: click.Context) -> None:
     Launches an interactive TUI (using fzf) to browse sessions and interact with them.
 
     Example:
-    $ jules interact
+    $ jules session interact
     """
     jules_ctx: JulesContext = ctx.obj
     asyncio.run(main_menu(jules_ctx.api_key))
 
 
-@cli.command(name="list")
+@session.command(name="list")
 @click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
 @click.pass_context
 def list_sessions(ctx: click.Context, as_json: bool) -> None:
@@ -216,7 +222,7 @@ def list_sessions(ctx: click.Context, as_json: bool) -> None:
     Displays a list of recent Jules sessions with their IDs, titles, states, and URLs.
 
     Example:
-    $ jules list
+    $ jules session list
     """
 
     async def _list() -> None:
@@ -236,7 +242,7 @@ def list_sessions(ctx: click.Context, as_json: bool) -> None:
     asyncio.run(_list())
 
 
-@cli.command()
+@session.command()
 @click.argument("session_id")
 @click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
 @click.pass_context
@@ -250,7 +256,7 @@ def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
         SESSION_ID: The unique identifier of the session (e.g., 'sessions/12345').
 
     Example:
-    $ jules show sessions/12345
+    $ jules session show sessions/12345
     """
 
     async def _show() -> None:
@@ -286,7 +292,7 @@ def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
     asyncio.run(_show())
 
 
-@cli.command()
+@session.command()
 @click.option("--prompt", required=True, help="The initial prompt for the session.")
 @click.option("--source", required=True, help="The source (e.g., owner/repo).")
 @click.option("--branch", default="main", help="Starting branch (default: main).")
@@ -324,15 +330,15 @@ def create(
     Examples:
     \b
     # Create a basic session
-    $ jules create --prompt "Fix bug in main.py" --source owner/repo
+    $ jules session create --prompt "Fix bug in main.py" --source owner/repo
 
     \b
     # Create a session on a specific branch with a title
-    $ jules create --prompt "Refactor auth" --source github/owner/repo --branch dev --title "Auth Refactor"
+    $ jules session create --prompt "Refactor auth" --source github/owner/repo --branch dev --title "Auth Refactor"
 
     \b
     # Create an interactive session
-    $ jules create --prompt "Add new feature" --source owner/repo -i
+    $ jules session create --prompt "Add new feature" --source owner/repo -i
     """
 
     async def _create() -> None:
