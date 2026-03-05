@@ -40,11 +40,4 @@ fi
 # Verify Environment
 bazel --version
 
-# Build & Test
-echo "Building..."
-bazel build //...
-
-echo "Running tests..."
-bazel test //...
-
 echo "Environment ready"
