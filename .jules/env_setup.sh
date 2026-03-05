@@ -41,8 +41,8 @@ fi
 bazel --version
 
 # Build & Test
-echo "Building (personal)..."
-bazel build //... --//config:profile=personal
+echo "Building..."
+bazel build //...
 
 echo "Running tests..."
 bazel test //...
