@@ -83,6 +83,32 @@ jobs:
 
           echo "✅ All Bazel files are properly formatted"
 
+      - name: Check Rulesync generation
+        run: |
+          echo "🔍 Checking if rulesync generated files are up to date..."
+
+          if ! ~/.local/bin/rulesync generate --check --targets claudecode,cursor,geminicli --features 'rules,skills,commands'; then
+            echo ""
+            echo "❌ RULESYNC ISSUES DETECTED!"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Generated AI configuration files are out of sync with .rulesync/ source of truth."
+            echo ""
+            echo "🛠️  TO FIX THESE ISSUES:"
+            echo ""
+            echo "   1. Run the generator locally:"
+            echo "      rulesync generate --targets claudecode,cursor,geminicli --features 'rules,skills,commands'"
+            echo ""
+            echo "   2. Commit the updated files:"
+            echo "      git add -A && git commit -m 'chore: update rulesync generated files'"
+            echo ""
+            echo "   3. Push your changes:"
+            echo "      git push"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            exit 1
+          fi
+
+          echo "✅ Rulesync files are up to date"
+
       - name: Generate LSP config
         run: |
           echo "🔧 Generating LSP configuration..."
