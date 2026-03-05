@@ -22,13 +22,14 @@ You can send a follow-up message to an existing session programmatically without
 jules session message SESSION_ID --message "Follow-up instructions here"
 ```
 
-Or reading from stdin/file:
+Or reading from `stdin` via pipe or redirection:
 
 ```bash
-jules session message SESSION_ID --message-file /path/to/message.txt
+echo "Please refactor this" | jules session message SESSION_ID
+jules session message SESSION_ID < /path/to/message.txt
 ```
 
-If neither is provided, the command will default to reading from `stdin`.
+You can also explicitly pass `-m -` to read from `stdin`. If no message is provided and stdin is piped, it will automatically read from `stdin`.
 
 ### Investigation
 

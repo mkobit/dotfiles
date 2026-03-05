@@ -294,12 +294,8 @@ def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
 
 @session.command()
 @click.argument("session_id")
-@click.option("--message", "-m", help="The message to send to the session.")
 @click.option(
-    "--message-file",
-    "-f",
-    type=click.File("r"),
-    help="Read message from file (use '-' for stdin).",
+    "--message", "-m", help="The message to send to the session (use '-' for stdin)."
 )
 @click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
 @click.pass_context
@@ -307,14 +303,13 @@ def message(
     ctx: click.Context,
     session_id: str,
     message: str | None,
-    message_file: click.utils.LazyFile | None,
     as_json: bool,
 ) -> None:
     """Send a follow-up message to an existing session.
 
     Sends a message to the specified Jules session. You can provide the message
-    directly via `--message`, read it from a file via `--message-file`, or pass
-    it via stdin if neither is provided.
+    directly via `--message`. If it's not provided or is set to '-', the message
+    will be read from stdin.
 
     Arguments:
         SESSION_ID: The unique identifier of the session (e.g., 'sessions/12345').
@@ -326,7 +321,7 @@ def message(
 
     \b
     # Read message from a file
-    $ jules session message sessions/12345 -f msg.txt
+    $ jules session message sessions/12345 < msg.txt
 
     \b
     # Read message from stdin
@@ -339,17 +334,18 @@ def message(
 
         # Determine message content
         content = None
-        if message:
+        if message and message != "-":
             content = message
-        elif message_file:
-            content = message_file.read()
         else:
-            # If nothing provided, read from stdin if it's not a tty
+            # Read from stdin if `-m -` was used or no message was provided
             if not sys.stdin.isatty():
+                content = sys.stdin.read()
+            elif message == "-":
+                # Fallback if user explicitly passed `-` but it's a TTY (wait for EOF)
                 content = sys.stdin.read()
             else:
                 click.echo(
-                    "Error: No message provided. Use --message, --message-file, or stdin.",
+                    "Error: No message provided. Use --message or pipe to stdin.",
                     err=True,
                 )
                 sys.exit(1)
