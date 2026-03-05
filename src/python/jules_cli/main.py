@@ -293,6 +293,87 @@ def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
 
 
 @session.command()
+@click.argument("session_id")
+@click.option("--message", "-m", help="The message to send to the session.")
+@click.option(
+    "--message-file",
+    "-f",
+    type=click.File("r"),
+    help="Read message from file (use '-' for stdin).",
+)
+@click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
+@click.pass_context
+def message(
+    ctx: click.Context,
+    session_id: str,
+    message: str | None,
+    message_file: click.utils.LazyFile | None,
+    as_json: bool,
+) -> None:
+    """Send a follow-up message to an existing session.
+
+    Sends a message to the specified Jules session. You can provide the message
+    directly via `--message`, read it from a file via `--message-file`, or pass
+    it via stdin if neither is provided.
+
+    Arguments:
+        SESSION_ID: The unique identifier of the session (e.g., 'sessions/12345').
+
+    Examples:
+    \b
+    # Send a short message
+    $ jules session message sessions/12345 -m "Fix the tests"
+
+    \b
+    # Read message from a file
+    $ jules session message sessions/12345 -f msg.txt
+
+    \b
+    # Read message from stdin
+    $ echo "Please refactor this" | jules session message sessions/12345
+    """
+
+    async def _message() -> None:
+        jules_ctx: JulesContext = ctx.obj
+        api_key = get_api_key(jules_ctx.api_key)
+
+        # Determine message content
+        content = None
+        if message:
+            content = message
+        elif message_file:
+            content = message_file.read()
+        else:
+            # If nothing provided, read from stdin if it's not a tty
+            if not sys.stdin.isatty():
+                content = sys.stdin.read()
+            else:
+                click.echo(
+                    "Error: No message provided. Use --message, --message-file, or stdin.",
+                    err=True,
+                )
+                sys.exit(1)
+
+        content = content.strip()
+        if not content:
+            click.echo("Error: Message is empty.", err=True)
+            sys.exit(1)
+
+        async with JulesClient(api_key) as client:
+            try:
+                result = await client.send_message(session_id, content)
+                if as_json:
+                    click.echo(json.dumps(result, indent=2))
+                else:
+                    click.echo(f"Message sent to session {session_id}")
+            except Exception as e:
+                click.echo(f"Error sending message: {e}", err=True)
+                sys.exit(1)
+
+    asyncio.run(_message())
+
+
+@session.command()
 @click.option("--prompt", required=True, help="The initial prompt for the session.")
 @click.option("--source", required=True, help="The source (e.g., owner/repo).")
 @click.option("--branch", default="main", help="Starting branch (default: main).")
