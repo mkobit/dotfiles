@@ -40,11 +40,15 @@ fi
 # Verify Environment
 bazel --version
 
-# Build & Test
-echo "Building (personal)..."
-bazel build //... --//config:profile=personal
+# Build & Test only if we can reach the internet (e.g., github)
+if curl -sI https://codeload.github.com > /dev/null; then
+    echo "Building (personal)..."
+    bazel build //... --//config:profile=personal
 
-echo "Running tests..."
-bazel test //...
+    echo "Running tests..."
+    bazel test //...
+else
+    echo "Skipping bazel build and test because network is unreachable or restricted."
+fi
 
 echo "Environment ready"
