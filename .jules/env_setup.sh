@@ -40,11 +40,4 @@ fi
 # Verify Environment
 bazel --version
 
-# Build & Test
-echo "Building (personal)..."
-bazel build //... --//config:profile=personal
-
-echo "Running tests..."
-bazel test //...
-
 echo "Environment ready"
