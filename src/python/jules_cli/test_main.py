@@ -168,6 +168,24 @@ def test_create_session_json() -> None:
         assert data["title"] == "Test Session"
 
 
+def test_message_session_with_message() -> None:
+    runner = CliRunner()
+    with patch("src.python.jules_cli.main.JulesClient") as MockClient:
+        instance = MockClient.return_value
+        instance.__aenter__ = AsyncMock(return_value=instance)
+        instance.__aexit__ = AsyncMock(return_value=None)
+        instance.send_message = AsyncMock(return_value={"status": "ok"})
+
+        result = runner.invoke(
+            cli,
+            ["--api-key", "key", "session", "message", "sessions/1", "-m", "hello"],
+        )
+
+        assert result.exit_code == 0
+        instance.send_message.assert_called_once_with("sessions/1", "hello")
+        assert "Message sent to session sessions/1" in result.output
+
+
 def test_integration_env_var_ignored(tmp_path: Path) -> None:
     # This test verifies that get_api_key truly ignores JULES_API_KEY
     # when using real logic (no mocking of load_config internals).
