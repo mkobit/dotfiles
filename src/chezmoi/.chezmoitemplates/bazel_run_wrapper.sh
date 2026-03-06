@@ -8,7 +8,7 @@ log_file=$(mktemp)
 trap 'rm -f "$log_file"' EXIT
 
 # First build the target and redirect logs.
-if ! bazel build "{{ .target }}" > "$log_file" 2>&1; then
+if ! bazel build {{ quote .target }} > "$log_file" 2>&1; then
     # Show the build error
     cat "$log_file"
     exit 1
@@ -18,7 +18,7 @@ fi
 script_file=$(mktemp)
 trap 'rm -f "$log_file" "$script_file"' EXIT
 
-if ! bazel run --script_path="$script_file" "{{ .target }}" > "$log_file" 2>&1; then
+if ! bazel run --script_path="$script_file" {{ quote .target }} > "$log_file" 2>&1; then
     cat "$log_file"
     exit 1
 fi
