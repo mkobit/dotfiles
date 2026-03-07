@@ -87,7 +87,7 @@ jobs:
         run: |
           echo "🔍 Checking if rulesync generated files are up to date..."
 
-          if ! ~/.local/bin/rulesync generate --check --targets claudecode,cursor,geminicli --features 'rules,skills,commands'; then
+          if ! bazel run @multitool//tools/rulesync -- generate --check --targets claudecode,cursor,geminicli --features 'rules,skills,commands'; then
             echo ""
             echo "❌ RULESYNC ISSUES DETECTED!"
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -96,7 +96,7 @@ jobs:
             echo "🛠️  TO FIX THESE ISSUES:"
             echo ""
             echo "   1. Run the generator locally:"
-            echo "      rulesync generate --targets claudecode,cursor,geminicli --features 'rules,skills,commands'"
+            echo "      bazel run @multitool//tools/rulesync -- generate --targets claudecode,cursor,geminicli --features 'rules,skills,commands'"
             echo ""
             echo "   2. Commit the updated files:"
             echo "      git add -A && git commit -m 'chore: update rulesync generated files'"
