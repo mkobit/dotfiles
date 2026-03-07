@@ -1,10 +1,10 @@
 [bat]
-version = "0.25.0"
+version = "0.26.1"
 installation = "external-sources"
 
 [bat.checksums] # bat doesn't publish SHA files right now
 type = "disabled"
 darwin_arm64 = ""
-darwin_amd64 = "b974aa834b6b65610090aed2bc7310d11c6f500105696d23a130aee24fd8380f"
-linux_amd64 = "93f47d76abe328c402ef712e9ac92aa6d5bc84d5adcbcaf0bbc5665e5275a941"
-linux_arm64 = "d155df218dc2d662da191e2dacddc71c90197b62ebe7e2923a659e5dd055d5cb"
+darwin_amd64 = "830d63b0bba1fa040542ec569e3cf77f60d3356b9de75116a344b061e0894245"
+linux_amd64 = "0dcd8ac79732c0d5b136f11f4ee00e581440e16a44eab5b3105b611bbf2cf191"
+linux_arm64 = "422eb73e11c854fddd99f5ca8461c2f1d6e6dce0a2a8c3d5daade5ffcb6564aa"
