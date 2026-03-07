@@ -374,11 +374,9 @@ def message(
 @click.option("--source", required=True, help="The source (e.g., owner/repo).")
 @click.option("--branch", default="main", help="Starting branch (default: main).")
 @click.option("--title", help="Title for the session.")
+@click.option("--auto-pr/--no-auto-pr", default=True, help="Automatically create a PR.")
 @click.option(
-    "--auto-pr/--no-auto-pr", default=False, help="Automatically create a PR."
-)
-@click.option(
-    "--approve/--no-approve", default=False, help="Require manual plan approval."
+    "--approve/--no-approve", default=True, help="Require manual plan approval."
 )
 @click.option(
     "--interactive/--no-interactive",
@@ -458,6 +456,7 @@ def create(
                     click.echo(f"Session created: {session.name}")
                     click.echo(f"Title: {session.title}")
                     click.echo(f"ID: {session.id}")
+                    click.echo(f"URL: https://jules.google.com/session/{session.id}")
 
                 if interactive:
                     await interactive_session_loop(client, session.id)
