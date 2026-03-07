@@ -1,3 +1,14 @@
+Please also reference the following rules as needed. The list below is provided in TOON format, and `@` stands for the project root directory.
+
+rules[1]:
+  - path: @.gemini/memories/no-auto-commit.md
+    description: Disables automatic git commit and push actions unless explicitly requested
+    applyTo[1]: **/*
+
+# Additional Conventions Beyond the Built-in Functions
+
+As this project's AI coding tool, you must follow the additional conventions below, in addition to the built-in functions.
+
 # Agent context for dotfiles repository
 
 ## Repository structure

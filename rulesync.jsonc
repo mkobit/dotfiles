@@ -1,0 +1,16 @@
+{
+  "$schema": "https://raw.githubusercontent.com/dyoshikawa/rulesync/refs/heads/main/config-schema.json",
+  // Target platforms we use in this dotfiles repository
+  "targets": ["claudecode", "cursor", "geminicli"],
+  // Supported features
+  "features": ["rules", "skills", "commands"],
+  "baseDirs": ["."],
+  "delete": true,
+  "verbose": false,
+  "silent": false,
+  "global": false,
+  // Turn off simulation
+  "simulateCommands": false,
+  "simulateSubagents": false,
+  "simulateSkills": false
+}

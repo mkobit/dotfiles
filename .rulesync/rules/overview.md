@@ -1,3 +1,10 @@
+---
+root: true
+targets: ["*"]
+description: "Project overview and general development guidelines"
+globs: ["**/*"]
+---
+
 # Agent context for dotfiles repository
 
 ## Repository structure
