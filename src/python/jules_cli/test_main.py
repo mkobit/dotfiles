@@ -231,3 +231,40 @@ def test_cli_context_type() -> None:
     result = runner.invoke(cli, ["--api-key", "my_key", "debug_ctx"])
     assert result.exit_code == 0
     assert "Key: my_key" in result.output
+
+
+def test_approve_session_cli() -> None:
+    runner = CliRunner()
+    with patch("src.python.jules_cli.main.JulesClient") as MockClient:
+        instance = MockClient.return_value
+        instance.__aenter__ = AsyncMock(return_value=instance)
+        instance.__aexit__ = AsyncMock(return_value=None)
+        instance.approve_plan = AsyncMock(return_value={"status": "approved"})
+
+        result = runner.invoke(
+            cli,
+            ["--api-key", "key", "session", "approve", "sessions/1"],
+        )
+
+        assert result.exit_code == 0
+        instance.approve_plan.assert_called_once_with("sessions/1")
+        assert "Plan approved for session sessions/1" in result.output
+
+
+def test_approve_session_cli_json() -> None:
+    runner = CliRunner()
+    with patch("src.python.jules_cli.main.JulesClient") as MockClient:
+        instance = MockClient.return_value
+        instance.__aenter__ = AsyncMock(return_value=instance)
+        instance.__aexit__ = AsyncMock(return_value=None)
+        instance.approve_plan = AsyncMock(return_value={"status": "approved"})
+
+        result = runner.invoke(
+            cli,
+            ["--api-key", "key", "session", "approve", "sessions/1", "--json"],
+        )
+
+        assert result.exit_code == 0
+        instance.approve_plan.assert_called_once_with("sessions/1")
+        data = json.loads(result.output)
+        assert data["status"] == "approved"
