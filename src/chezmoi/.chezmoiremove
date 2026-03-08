@@ -18,3 +18,6 @@ install-asdf.sh
 # Old Claude Status Line files
 .local/bin/claude_statusline.py
 .local/bin/test_claude_statusline.py
+
+# Old hello_world example
+.local/bin/tools/hello_world
