@@ -1,12 +1,12 @@
 [mise]
-version = "v2026.1.8"
+version = "v2026.3.5"
 installation = "external-sources"
 
 [mise.checksums]
-darwin_arm64 = "e0390b8f5f40cd020f26b12520ad8bcc0dbffddc330b216829b1b79e621d6717"
-darwin_amd64 = "be5b6c08cbccafb422ccb420fbacc51489407879e6c73f122d3e69d2cef176bc"
-linux_amd64 = "434effb5cd1cb8ac835a7ff59b98e3733b6588ea2d0f0f5f481fcdea51996e11"
-linux_arm64 = "7c2d49920819d6131cad11c3ed89611d74c60f27c4af31d57a771bed28161a96"
+darwin_arm64 = "273595c272b5111f5791452ac4cc4f404e991e3b9e257e15cffd820c78212f21"
+darwin_amd64 = "9682e739abe95a55ea2829103e3b70e023c7a4c931639cc003b25b8c05744b87"
+linux_amd64 = "18c0934d8ffcb84712b4cf52becfd67f6b1241fab110ad6dde34f51dfb206f8f"
+linux_arm64 = "070eb5a993280d6c67a96ba061bc0244385ca9e79c0c7db10c1865f14a474d6e"
 
 [mise.settings]
 disable_hints = ["self_update"]
@@ -22,19 +22,19 @@ disable_hints = ["self_update"]
   enabled = true
 
   [mise.global_tools.pnpm]
-  version = "10.2.0"
+  version = "10.31.0"
   enabled = true
 
   [mise.global_tools.java]
-  version = "temurin-21.0.5"
+  version = "temurin-21.0.10+7"
   enabled = true
 
   [mise.global_tools.rust]
-  version = "1.83.0"
+  version = "1.94.0"
   enabled = true
 
   [mise.global_tools.uv]
-  version = "0.9.27"
+  version = "0.10.9"
   enabled = true
 
   [mise.global_tools."npm:@google/gemini-cli"]
@@ -42,5 +42,5 @@ disable_hints = ["self_update"]
   enabled = true
 
   [mise.global_tools.bun]
-  version = "1.3.6"
+  version = "1.3.10"
   enabled = true
