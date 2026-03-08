@@ -3,10 +3,10 @@ version = "v2026.3.5"
 installation = "external-sources"
 
 [mise.checksums]
-darwin_arm64 = "f6f009e9f547abe4ee949fbf362944228fd64c0849c76bc9139a4b805b157776"
-darwin_amd64 = "7897a373cded573fc8ed68d35b2d18db31b76d567e1361e44aac93175a240a6e"
-linux_amd64 = "9259a895580f55dcfeb3aca6a230709999e2d5405e8fd32d22a694e075d1c54f"
-linux_arm64 = "308b09892d9072c3997fc97b28d75cf66adf2467d6fb897de56f519d84323f79"
+darwin_arm64 = "273595c272b5111f5791452ac4cc4f404e991e3b9e257e15cffd820c78212f21"
+darwin_amd64 = "9682e739abe95a55ea2829103e3b70e023c7a4c931639cc003b25b8c05744b87"
+linux_amd64 = "18c0934d8ffcb84712b4cf52becfd67f6b1241fab110ad6dde34f51dfb206f8f"
+linux_arm64 = "070eb5a993280d6c67a96ba061bc0244385ca9e79c0c7db10c1865f14a474d6e"
 
 [mise.settings]
 disable_hints = ["self_update"]
