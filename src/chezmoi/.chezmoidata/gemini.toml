@@ -31,4 +31,4 @@ warning_acknowledged = true
   [gemini.extensions.conductor]
   url = "https://github.com/gemini-cli-extensions/conductor"
   ref = "conductor-v0.3.1"
-  enabled = true
+  installation = "gemini-cli"

@@ -1,5 +1,5 @@
 {{- range $key, $font := .fonts -}}
-{{- if $font.enabled -}}
+{{- if eq $font.installation "external-sources" -}}
 ["NerdFonts/{{ $font.name }}"]
 type = "archive"
 url = "https://github.com/ryanoasis/nerd-fonts/releases/download/{{ $font.version }}/{{ $font.name }}.tar.xz"
