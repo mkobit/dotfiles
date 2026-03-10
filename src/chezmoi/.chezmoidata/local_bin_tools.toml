@@ -1,0 +1,14 @@
+# Local bin tools built from Bazel targets in the personal chezmoi source
+# Override installation = "disabled" to prevent deployment on machines without Bazel
+
+[local_bin_tools.claude_statusline]
+installation = "bazel"
+
+[local_bin_tools.jules]
+installation = "bazel"
+
+[local_bin_tools.obsidian_client]
+installation = "bazel"
+
+[local_bin_tools.transcribe]
+installation = "bazel"
