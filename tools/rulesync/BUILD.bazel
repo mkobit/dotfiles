@@ -1,6 +1,71 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+load("@rules_shell//shell:sh_test.bzl", "sh_test")
+
 sh_test(
     name = "rulesync_test",
     srcs = ["rulesync_test.sh"],
     args = ["$(rootpath @multitool//tools/rulesync)"],
     data = ["@multitool//tools/rulesync"],
+)
+
+# Rulesync source files
+filegroup(
+    name = "rulesync_sources",
+    srcs = [
+        "//:.rulesync/rules/00-preferences.md",
+        "//:.rulesync/rules/10-technical-writing.md",
+        "//:.rulesync/rules/11-write-agent-context.md",
+        "//:rulesync.jsonc",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+# Generate configuration files for all AI tools from unified rules
+genrule(
+    name = "generate",
+    srcs = [
+        "//:.rulesync/rules/00-preferences.md",
+        "//:.rulesync/rules/10-technical-writing.md",
+        "//:.rulesync/rules/11-write-agent-context.md",
+        "//:rulesync.jsonc",
+    ],
+    outs = [
+        "out/CLAUDE.md",
+        "out/.claude/rules/10-technical-writing.md",
+        "out/.claude/rules/11-write-agent-context.md",
+        "out/GEMINI.md",
+        "out/.gemini/memories/10-technical-writing.md",
+        "out/.gemini/memories/11-write-agent-context.md",
+        "out/.cursor/rules/00-preferences.mdc",
+        "out/.cursor/rules/10-technical-writing.mdc",
+        "out/.cursor/rules/11-write-agent-context.mdc",
+    ],
+    cmd = """
+        RULESYNC="$$PWD/$(execpath @multitool//tools/rulesync)"
+        OUTDIR=$$(dirname $(location out/CLAUDE.md))
+
+        # Set up workspace structure for rulesync
+        mkdir -p "$$OUTDIR/.rulesync/rules"
+        cp $(location //:rulesync.jsonc) "$$OUTDIR/rulesync.jsonc"
+        cp $(location //:.rulesync/rules/00-preferences.md) "$$OUTDIR/.rulesync/rules/00-preferences.md"
+        cp $(location //:.rulesync/rules/10-technical-writing.md) "$$OUTDIR/.rulesync/rules/10-technical-writing.md"
+        cp $(location //:.rulesync/rules/11-write-agent-context.md) "$$OUTDIR/.rulesync/rules/11-write-agent-context.md"
+
+        # Run rulesync generate
+        cd "$$OUTDIR" && "$$RULESYNC" generate --silent
+    """,
+    tools = ["@multitool//tools/rulesync"],
+    visibility = ["//visibility:public"],
+)
+
+# Drift check: verify checked-in outputs match fresh generation.
+# Run with: bazel run //tools/rulesync:check
+# BUILD_WORKSPACE_DIRECTORY is set by `bazel run`.
+sh_binary(
+    name = "check",
+    srcs = ["rulesync_drift_test.sh"],
+    args = ["$(rootpath @multitool//tools/rulesync)"],
+    data = [
+        "@multitool//tools/rulesync",
+    ],
 )

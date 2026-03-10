@@ -66,8 +66,8 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 | Component | Status |
 |-----------|--------|
 | Rulesync binary | v7.6.3 in multitool + chezmoi external |
-| Rulesync config | None |
-| Shared always-on rules | `agents.toml` (6 preferences), rendered into CLAUDE.md.tmpl and GEMINI.md.tmpl |
+| Rulesync config | `rulesync.jsonc` targeting claudecode, geminicli, cursor |
+| Shared always-on rules | `.rulesync/rules/` (3 rules), generated to all 3 tools. `agents.toml` still exists (chezmoi templates not yet migrated). |
 | Claude skills (internal) | 5 in `src/chezmoi/dot_claude/skills/` |
 | Claude commands (internal) | `claude/new/{skill,command,agent,hook}.md`, `obsidian/{base,organize,transform}.md` |
 | Gemini commands | None |
@@ -97,14 +97,15 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 
 ### Phase 1: Bootstrap rulesync
 
-- [ ] Create `rulesync.jsonc` targeting: claude, gemini-cli, cursor
-- [ ] Create `.rulesync/rules/` with shared rules:
+- [x] Create `rulesync.jsonc` targeting: claude, gemini-cli, cursor
+- [x] Create `.rulesync/rules/` with shared rules:
   - `00-preferences.md` (from `agents.toml`)
   - `10-technical-writing.md` (always-on portion)
   - `11-write-agent-context.md` (always-on portion)
-- [ ] Run `rulesync generate`, verify outputs for all three tools
-- [ ] Decide output integration: rulesync generates static content, chezmoi templates wrap with tool-specific vars where needed
-- [ ] Commit generated outputs
+- [x] Run `rulesync generate`, verify outputs for all three tools
+- [x] Bazel integration: `//tools/rulesync:generate` genrule, `//tools/rulesync:check` drift check
+- [x] Decide output integration: preferences migrated from `agents.toml` to rulesync as single source of truth; chezmoi templates to be updated in Phase 2
+- [x] Commit generated outputs
 
 ### Phase 2: Portable skill deployment via chezmoi
 

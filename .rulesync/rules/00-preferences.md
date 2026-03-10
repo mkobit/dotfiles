@@ -1,3 +1,14 @@
+---
+root: true
+targets: ["*"]
+description: "User preferences for coding style and tool usage"
+globs: ["**/*"]
+cursor:
+  alwaysApply: true
+  description: "User preferences for coding style and tool usage"
+  globs: ["*"]
+---
+
 # Preferences
 
 - Always write titles in sentence case.
