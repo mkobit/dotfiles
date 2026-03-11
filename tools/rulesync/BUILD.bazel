@@ -1,3 +1,4 @@
+load("@bazel_skylib//rules:diff_test.bzl", "diff_test")
 load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
 load("@rules_shell//shell:sh_test.bzl", "sh_test")
 
@@ -67,5 +68,36 @@ sh_binary(
     args = ["$(rootpath @multitool//tools/rulesync)"],
     data = [
         "@multitool//tools/rulesync",
+    ],
+)
+
+# Drift tests: compare genrule outputs against committed files.
+# Maps each generated output to the corresponding committed file at the repo root.
+_DRIFT_PAIRS = {
+    "out/CLAUDE.md": "//:CLAUDE.md",
+    "out/.claude/rules/10-technical-writing.md": "//.claude:rules/10-technical-writing.md",
+    "out/.claude/rules/11-write-agent-context.md": "//.claude:rules/11-write-agent-context.md",
+    "out/GEMINI.md": "//:GEMINI.md",
+    "out/.gemini/memories/10-technical-writing.md": "//:.gemini/memories/10-technical-writing.md",
+    "out/.gemini/memories/11-write-agent-context.md": "//:.gemini/memories/11-write-agent-context.md",
+    "out/.cursor/rules/00-preferences.mdc": "//:.cursor/rules/00-preferences.mdc",
+    "out/.cursor/rules/10-technical-writing.mdc": "//:.cursor/rules/10-technical-writing.mdc",
+    "out/.cursor/rules/11-write-agent-context.mdc": "//:.cursor/rules/11-write-agent-context.mdc",
+}
+
+[
+    diff_test(
+        name = "drift_" + generated.replace("out/", "").replace("/", "_").replace(".", "_"),
+        file1 = generated,
+        file2 = committed,
+    )
+    for generated, committed in _DRIFT_PAIRS.items()
+]
+
+test_suite(
+    name = "drift_tests",
+    tests = [
+        ":drift_" + generated.replace("out/", "").replace("/", "_").replace(".", "_")
+        for generated in _DRIFT_PAIRS.keys()
     ],
 )

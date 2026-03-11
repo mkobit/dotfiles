@@ -11,9 +11,18 @@ package(default_visibility = ["//visibility:public"])
 exports_files([
     "pyproject.toml",
     "rulesync.jsonc",
+    # Rulesync source rules
     ".rulesync/rules/00-preferences.md",
     ".rulesync/rules/10-technical-writing.md",
     ".rulesync/rules/11-write-agent-context.md",
+    # Rulesync committed outputs (for drift testing)
+    "CLAUDE.md",
+    "GEMINI.md",
+    ".gemini/memories/10-technical-writing.md",
+    ".gemini/memories/11-write-agent-context.md",
+    ".cursor/rules/00-preferences.mdc",
+    ".cursor/rules/10-technical-writing.mdc",
+    ".cursor/rules/11-write-agent-context.mdc",
 ])
 
 compile_pip_requirements(
@@ -50,6 +59,8 @@ test_suite(
         ":format_test",
         "//.claude:claude_hooks_schema_test",
         "//.claude:claude_settings_schema_test",
+        "//src/agents/skills:drift_tests",
+        "//tools/rulesync:drift_tests",
     ],
 )
 
