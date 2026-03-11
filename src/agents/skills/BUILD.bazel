@@ -1,0 +1,9 @@
+package(default_visibility = ["//visibility:public"])
+
+# Canonical source for portable skills deployed to all AI tools.
+# These are replicated to src/chezmoi/dot_{claude,gemini,cursor}/skills/
+# by the //tools/agents:generate target.
+filegroup(
+    name = "portable_skills",
+    srcs = glob(["*/SKILL.md"]),
+)

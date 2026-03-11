@@ -67,8 +67,9 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 |-----------|--------|
 | Rulesync binary | v7.6.3 in multitool + chezmoi external |
 | Rulesync config | `rulesync.jsonc` targeting claudecode, geminicli, cursor |
-| Shared always-on rules | `.rulesync/rules/` (3 rules), generated to all 3 tools. `agents.toml` still exists (chezmoi templates not yet migrated). |
-| Claude skills (internal) | 5 in `src/chezmoi/dot_claude/skills/` |
+| Shared always-on rules | `.rulesync/rules/` (3 rules), generated to all 3 tools. Chezmoi templates migrated to static files; `agents.toml` deleted. |
+| Portable skills (canonical) | 4 in `src/agents/skills/`, replicated to all 3 tool dirs via `//tools/agents:generate` |
+| Claude skills (internal) | 5 in `src/chezmoi/dot_claude/skills/` (4 portable + 1 Claude-only) |
 | Claude commands (internal) | `claude/new/{skill,command,agent,hook}.md`, `obsidian/{base,organize,transform}.md` |
 | Gemini commands | None |
 | Cursor rules | 2 `.mdc` files in `.cursor/rules/` (repo-local only) |
@@ -109,12 +110,22 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 
 ### Phase 2: Portable skill deployment via chezmoi
 
-- [ ] Move existing skills to follow Agent Skills spec strictly (they're close already)
-- [ ] Update chezmoi to deploy portable skills to all three global dirs:
-  - `dot_claude/skills/` (exists)
-  - `dot_gemini/skills/` (new)
-  - `dot_cursor/skills/` (new)
-- [ ] Or: deploy to `dot_agents/skills/` and symlink from tool-specific dirs (evaluate tradeoff)
+- [x] Migrate chezmoi templates from `agents.toml` to static files matching rulesync output
+  - Replaced `dot_claude/CLAUDE.md.tmpl` → `dot_claude/CLAUDE.md` (static)
+  - Replaced `dot_gemini/GEMINI.md.tmpl` → `dot_gemini/GEMINI.md` (static)
+  - Deleted `src/chezmoi/.chezmoidata/agents.toml`
+- [x] Deploy portable skills to all three global dirs:
+  - `dot_claude/skills/` (existing, unchanged)
+  - `dot_gemini/skills/` (new: 4 portable skills)
+  - `dot_cursor/skills/` (new: 4 portable skills)
+  - `claude-extension-builder` kept Claude-only (references Claude-specific commands)
+- [x] Verified `.chezmoiignore` allows new paths (no SKILL.md patterns blocked)
+- [x] Filesystem-driven skill sync pipeline (no Bazel config to edit):
+  - Canonical source: `src/agents/skills/` (single copy of each portable skill)
+  - Sync: `bazel run //tools/agents:sync` — discovers skills and tools from filesystem, copies to chezmoi dirs
+  - Drift check: `bazel run //tools/agents:check` — verifies committed copies match canonical source
+  - Adding a new skill: create `src/agents/skills/<name>/SKILL.md`, run `sync`
+  - Adding a new tool: create `src/chezmoi/dot_<tool>/skills/` directory, run `sync`
 - [ ] Verify skill discovery works in all three tools
 
 ### Phase 3: Marketplace and skill-creator

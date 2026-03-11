@@ -1,0 +1,16 @@
+load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+
+# Sync portable skills from canonical source to chezmoi tool directories.
+# Discovers skills and target tools from the filesystem — no configuration needed.
+# Run with: bazel run //tools/agents:sync
+sh_binary(
+    name = "sync",
+    srcs = ["skills_sync.sh"],
+)
+
+# Drift check: verify committed skill copies match canonical source.
+# Run with: bazel run //tools/agents:check
+sh_binary(
+    name = "check",
+    srcs = ["skills_drift_test.sh"],
+)
