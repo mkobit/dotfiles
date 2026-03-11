@@ -84,11 +84,11 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 | `write-agent-context` | Yes | Same as above. |
 | `typescript-expert` | Yes | Keep as SKILL.md. Deploy globally. |
 | `pr-reviewer` | Yes | Keep as SKILL.md. Deploy globally. |
-| `claude-extension-builder` | Partially | Replace with `skill-creator` from anthropics/skills marketplace for Claude. The meta-skill concept (creating skills) could also be authored as a portable skill targeting `.agents/skills/`. |
+| `claude-extension-builder` | Partially | **Replaced** by upstream `skill-creator` (fetched via Bazel `http_archive`, deployed to all tools). Deleted. |
 
 | Current command | Portable? | Action |
 |----------------|-----------|--------|
-| `claude/new/skill.md` | No (Claude-specific) | Replaced by marketplace `skill-creator`. |
+| `claude/new/skill.md` | No (Claude-specific) | **Replaced** by upstream `skill-creator`. Deleted. |
 | `claude/new/command.md` | No | Keep for Claude. Consider Gemini TOML equivalent. |
 | `claude/new/agent.md` | No | Claude-specific concept. Keep. |
 | `claude/new/hook.md` | No | Claude-specific. Keep. |
@@ -128,12 +128,16 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
   - Adding a new tool: create `src/chezmoi/dot_<tool>/skills/` directory, run `sync`
 - [ ] Verify skill discovery works in all three tools
 
-### Phase 3: Marketplace and skill-creator
+### Phase 3: Upstream skill-creator integration
 
-- [ ] Register anthropics/skills as plugin marketplace in Claude
-- [ ] Install `skill-creator` (replaces internal `claude-extension-builder` + `claude/new/skill.md`)
-- [ ] Remove superseded internal skill and command
-- [ ] Document: for creating skills in other repos, use skill-creator or manually create `.agents/skills/<name>/SKILL.md`
+- [x] Fetch `skill-creator` from anthropics/skills via Bazel `http_archive` (pinned to commit `b0cbd3d`)
+- [x] Update sync pipeline to copy full skill directories (not just SKILL.md) and discover upstream skills from Bazel runfiles
+- [x] Deploy `skill-creator` to all three tool dirs via `bazel run //tools/agents:sync`
+- [x] Delete superseded internal `claude-extension-builder` skill and `claude/new/skill.md` command
+- [x] Keep `claude/new/{hook,agent,command}.md` (not covered by upstream skill-creator)
+- [x] Add directory-level `sh_test` drift tests for upstream skills (`//src/agents/skills:upstream_drift_tests`, 3 targets)
+- [x] Exclude upstream-vendored Python scripts from ruff formatting (`pyproject.toml`)
+- [x] All 28 validation tests pass (`//:validation_tests`)
 
 ### Phase 4: Gemini CLI command generation
 
@@ -147,8 +151,18 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 - [x] `rulesync_generate` genrule: `//tools/rulesync:generate` (existed from Phase 1)
 - [x] Rulesync drift tests: 9 `diff_test` targets comparing genrule outputs vs committed files (`//tools/rulesync:drift_tests`)
 - [x] Skills drift tests: 12 `diff_test` targets auto-generated via `skills_drift_tests` macro (`//src/agents/skills:drift_tests`)
-- [x] Both suites added to `//:validation_tests` (25 total tests)
-- [ ] `skill_validate` test: runs `skills-ref validate` on all SKILL.md files
+- [x] All suites added to `//:validation_tests` (40 total tests)
+- [x] `skill_validate` test: SKILL.md validation framework
+  - Fixed non-compliant skill names to match directory names (kebab-case)
+  - Pydantic models: `ValidationContext`, `ValidationResult`, `SkillValidationReport`
+  - YAML frontmatter parser (`frontmatter.py`)
+  - Spec validators aligned with agentskills.io (9 rules)
+  - Lint validators for project conventions (1 rule)
+  - Structure validators for folder layout (2 rules)
+  - Composable Bazel macros: `skill_frontmatter_test`, `skill_lint_test`, `skill_structure_test`, `skill_validation_tests`
+  - 12 per-skill test targets (4 skills x 3 types) in `//src/agents/skills:skill_validation`
+  - Interactive CLI: `bazel run //tools/agents:validate`
+  - Unit tests: `//tools/agents/skills_cli:test_validate`
 
 ### Phase 6: Cursor rule migration
 

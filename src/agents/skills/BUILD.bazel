@@ -1,4 +1,4 @@
-load("//tools/agents:rules.bzl", "skills_drift_tests")
+load("//tools/agents:rules.bzl", "skill_validation_tests", "skills_drift_tests", "upstream_skill_drift_tests")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -24,6 +24,26 @@ skills_drift_tests(
     name = "drift_tests",
     chezmoi_package = "//src/chezmoi",
     skills = _SKILL_NAMES,
+    tools = [
+        "claude",
+        "cursor",
+        "gemini",
+    ],
+)
+
+# Validation tests: spec, lint, and structure checks for each skill.
+skill_validation_tests(
+    name = "skill_validation",
+    skills = _SKILL_NAMES,
+)
+
+# Drift tests for upstream skills fetched via http_archive.
+# Generates one py_test per skill per tool (directory-level comparison).
+upstream_skill_drift_tests(
+    name = "upstream_drift_tests",
+    chezmoi_package = "//src/chezmoi",
+    external_repo = "anthropic_skills",
+    skills = ["skill-creator"],
     tools = [
         "claude",
         "cursor",

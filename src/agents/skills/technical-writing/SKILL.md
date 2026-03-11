@@ -1,5 +1,5 @@
 ---
-name: Technical writing
+name: technical-writing
 description: Enforces ventilated prose and concise technical writing standards when the user is writing or editing standalone documentation files (e.g., Markdown, AsciiDoc). This skill should not be used for code documentation or docstrings.
 ---
 

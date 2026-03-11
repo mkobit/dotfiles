@@ -1,5 +1,5 @@
 ---
-name: TypeScript code expert
+name: typescript-expert
 description: Enforces functional programming, immutability, and strict type safety when writing, reviewing, or editing TypeScript and React code.
 ---
 

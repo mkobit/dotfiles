@@ -1,16 +1,20 @@
-load("@rules_shell//shell:sh_binary.bzl", "sh_binary")
+# Aliases for backward-compatible target names.
+# The actual py_binary targets live in //tools/agents/skills_cli.
 
-# Sync portable skills from canonical source to chezmoi tool directories.
-# Discovers skills and target tools from the filesystem — no configuration needed.
-# Run with: bazel run //tools/agents:sync
-sh_binary(
+# Sync portable skills: bazel run //tools/agents:sync
+alias(
     name = "sync",
-    srcs = ["skills_sync.sh"],
+    actual = "//tools/agents/skills_cli:sync",
 )
 
-# Drift check: verify committed skill copies match canonical source.
-# Run with: bazel run //tools/agents:check
-sh_binary(
+# Drift check: bazel run //tools/agents:check
+alias(
     name = "check",
-    srcs = ["skills_drift_test.sh"],
+    actual = "//tools/agents/skills_cli:check",
+)
+
+# Validate all canonical skills: bazel run //tools/agents:validate
+alias(
+    name = "validate",
+    actual = "//tools/agents/skills_cli:validate",
 )

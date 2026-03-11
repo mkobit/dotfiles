@@ -1,5 +1,5 @@
 ---
-name: Pull request reviewer
+name: pr-reviewer
 description: Provides guidelines and workflows for programmatically reviewing pull requests and creating pending reviews with inline comments using the GitHub CLI and REST API. Use this when instructed to review a PR or when providing feedback.
 ---
 

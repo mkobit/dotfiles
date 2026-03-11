@@ -17,6 +17,9 @@ typer
 pydantic
 jsonschema
 
+# YAML parsing
+pyyaml
+
 # Time
 whenever
 

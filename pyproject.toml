@@ -1,6 +1,10 @@
 [tool.ruff]
 line-length = 88
 target-version = "py313"
+# Exclude upstream-vendored skill scripts from formatting.
+# These are synced from external repos via `bazel run //tools/agents:sync`
+# and should match upstream exactly for clean diff-based drift tests.
+extend-exclude = ["src/chezmoi/dot_*/skills/skill-creator"]
 
 [tool.ruff.lint]
 select = [
