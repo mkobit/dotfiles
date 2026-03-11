@@ -68,7 +68,7 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 | Rulesync binary | v7.6.3 in multitool + chezmoi external |
 | Rulesync config | `rulesync.jsonc` targeting claudecode, geminicli, cursor |
 | Shared always-on rules | `.rulesync/rules/` (3 rules), generated to all 3 tools. Chezmoi templates migrated to static files; `agents.toml` deleted. |
-| Portable skills (canonical) | 4 in `src/agents/skills/`, replicated to all 3 tool dirs via `//tools/agents:generate` |
+| Portable skills (canonical) | 4 in `src/agents/skills/`, replicated to all 3 tool dirs via `bazel run //tools/agents:sync` |
 | Claude skills (internal) | 5 in `src/chezmoi/dot_claude/skills/` (4 portable + 1 Claude-only) |
 | Claude commands (internal) | `claude/new/{skill,command,agent,hook}.md`, `obsidian/{base,organize,transform}.md` |
 | Gemini commands | None |
@@ -144,10 +144,11 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 
 ### Phase 5: Bazel integration
 
-- [ ] `rulesync_generate` genrule: runs `rulesync generate` with multitool binary
-- [ ] `rulesync_drift_test`: verifies checked-in outputs match fresh generation
+- [x] `rulesync_generate` genrule: `//tools/rulesync:generate` (existed from Phase 1)
+- [x] Rulesync drift tests: 9 `diff_test` targets comparing genrule outputs vs committed files (`//tools/rulesync:drift_tests`)
+- [x] Skills drift tests: 12 `diff_test` targets auto-generated via `skills_drift_tests` macro (`//src/agents/skills:drift_tests`)
+- [x] Both suites added to `//:validation_tests` (25 total tests)
 - [ ] `skill_validate` test: runs `skills-ref validate` on all SKILL.md files
-- [ ] Integrate into `bazel test //...`
 
 ### Phase 6: Cursor rule migration
 
