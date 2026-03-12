@@ -67,12 +67,12 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 |-----------|--------|
 | Rulesync binary | v7.6.3 in multitool + chezmoi external |
 | Rulesync config | `rulesync.jsonc` targeting claudecode, geminicli, cursor |
-| Shared always-on rules | `.rulesync/rules/` (3 rules), generated to all 3 tools. Chezmoi templates migrated to static files; `agents.toml` deleted. |
+| Shared always-on rules | `.rulesync/rules/` (5 rules), generated to all 3 tools. Chezmoi templates migrated to static files; `agents.toml` deleted. |
 | Portable skills (canonical) | 4 in `src/agents/skills/`, replicated to all 3 tool dirs via `bazel run //tools/agents:sync` |
 | Claude skills (internal) | 5 in `src/chezmoi/dot_claude/skills/` (4 portable + 1 Claude-only) |
 | Claude commands (internal) | `claude/new/{skill,command,agent,hook}.md`, `obsidian/{base,organize,transform}.md` |
 | Gemini commands | None |
-| Cursor rules | 2 `.mdc` files in `.cursor/rules/` (repo-local only) |
+| Cursor rules | All 5 `.mdc` files in `.cursor/rules/` now rulesync-managed (repo-local only) |
 | Anthropic skill marketplace | Not configured |
 | Gemini extensions | conductor v0.3.1 via install script |
 
@@ -166,9 +166,13 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 
 ### Phase 6: Cursor rule migration
 
-- [ ] Evaluate existing `.cursor/rules/*.mdc` files
-- [ ] Migrate portable content to rulesync rules (generates `.cursor/rules/` output)
-- [ ] Keep cursor-specific rules (like `agents-md.mdc`) as-is
+- [x] Evaluate existing `.cursor/rules/*.mdc` files (5 total: 3 rulesync-managed, 2 manually authored)
+- [x] Migrate portable content to rulesync rules:
+  - `agents-md.mdc` -> `.rulesync/rules/01-agents-md.md` (generates outputs for all 3 tools)
+  - `no-auto-commit.mdc` -> `.rulesync/rules/02-no-auto-commit.md` (generates outputs for all 3 tools)
+- [x] Delete manually-authored `.cursor/rules/agents-md.mdc` and `no-auto-commit.mdc` (now rulesync-managed)
+- [x] Update BUILD files: root `exports_files`, `.claude/BUILD.bazel`, `tools/rulesync/BUILD.bazel` (sources, genrule, drift pairs)
+- [x] All 46 validation tests pass (6 new drift tests for the 2 rules across 3 tools)
 - [ ] Deploy cursor rules to destDir if cursor is used globally (currently repo-local only)
 
 ## Open questions

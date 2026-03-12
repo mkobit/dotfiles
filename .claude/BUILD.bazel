@@ -20,6 +20,8 @@ exports_files([
     "claude-settings-schema.json",
     "claude_hooks.json",
     # Rulesync committed outputs (for drift testing)
+    "rules/01-agents-md.md",
+    "rules/02-no-auto-commit.md",
     "rules/10-technical-writing.md",
     "rules/11-write-agent-context.md",
 ])

@@ -14,6 +14,8 @@ filegroup(
     name = "rulesync_sources",
     srcs = [
         "//:.rulesync/rules/00-preferences.md",
+        "//:.rulesync/rules/01-agents-md.md",
+        "//:.rulesync/rules/02-no-auto-commit.md",
         "//:.rulesync/rules/10-technical-writing.md",
         "//:.rulesync/rules/11-write-agent-context.md",
         "//:rulesync.jsonc",
@@ -26,18 +28,26 @@ genrule(
     name = "generate",
     srcs = [
         "//:.rulesync/rules/00-preferences.md",
+        "//:.rulesync/rules/01-agents-md.md",
+        "//:.rulesync/rules/02-no-auto-commit.md",
         "//:.rulesync/rules/10-technical-writing.md",
         "//:.rulesync/rules/11-write-agent-context.md",
         "//:rulesync.jsonc",
     ],
     outs = [
         "out/CLAUDE.md",
+        "out/.claude/rules/01-agents-md.md",
+        "out/.claude/rules/02-no-auto-commit.md",
         "out/.claude/rules/10-technical-writing.md",
         "out/.claude/rules/11-write-agent-context.md",
         "out/GEMINI.md",
+        "out/.gemini/memories/01-agents-md.md",
+        "out/.gemini/memories/02-no-auto-commit.md",
         "out/.gemini/memories/10-technical-writing.md",
         "out/.gemini/memories/11-write-agent-context.md",
         "out/.cursor/rules/00-preferences.mdc",
+        "out/.cursor/rules/01-agents-md.mdc",
+        "out/.cursor/rules/02-no-auto-commit.mdc",
         "out/.cursor/rules/10-technical-writing.mdc",
         "out/.cursor/rules/11-write-agent-context.mdc",
     ],
@@ -49,6 +59,8 @@ genrule(
         mkdir -p "$$OUTDIR/.rulesync/rules"
         cp $(location //:rulesync.jsonc) "$$OUTDIR/rulesync.jsonc"
         cp $(location //:.rulesync/rules/00-preferences.md) "$$OUTDIR/.rulesync/rules/00-preferences.md"
+        cp $(location //:.rulesync/rules/01-agents-md.md) "$$OUTDIR/.rulesync/rules/01-agents-md.md"
+        cp $(location //:.rulesync/rules/02-no-auto-commit.md) "$$OUTDIR/.rulesync/rules/02-no-auto-commit.md"
         cp $(location //:.rulesync/rules/10-technical-writing.md) "$$OUTDIR/.rulesync/rules/10-technical-writing.md"
         cp $(location //:.rulesync/rules/11-write-agent-context.md) "$$OUTDIR/.rulesync/rules/11-write-agent-context.md"
 
@@ -75,12 +87,18 @@ sh_binary(
 # Maps each generated output to the corresponding committed file at the repo root.
 _DRIFT_PAIRS = {
     "out/CLAUDE.md": "//:CLAUDE.md",
+    "out/.claude/rules/01-agents-md.md": "//.claude:rules/01-agents-md.md",
+    "out/.claude/rules/02-no-auto-commit.md": "//.claude:rules/02-no-auto-commit.md",
     "out/.claude/rules/10-technical-writing.md": "//.claude:rules/10-technical-writing.md",
     "out/.claude/rules/11-write-agent-context.md": "//.claude:rules/11-write-agent-context.md",
     "out/GEMINI.md": "//:GEMINI.md",
+    "out/.gemini/memories/01-agents-md.md": "//:.gemini/memories/01-agents-md.md",
+    "out/.gemini/memories/02-no-auto-commit.md": "//:.gemini/memories/02-no-auto-commit.md",
     "out/.gemini/memories/10-technical-writing.md": "//:.gemini/memories/10-technical-writing.md",
     "out/.gemini/memories/11-write-agent-context.md": "//:.gemini/memories/11-write-agent-context.md",
     "out/.cursor/rules/00-preferences.mdc": "//:.cursor/rules/00-preferences.mdc",
+    "out/.cursor/rules/01-agents-md.mdc": "//:.cursor/rules/01-agents-md.mdc",
+    "out/.cursor/rules/02-no-auto-commit.mdc": "//:.cursor/rules/02-no-auto-commit.mdc",
     "out/.cursor/rules/10-technical-writing.mdc": "//:.cursor/rules/10-technical-writing.mdc",
     "out/.cursor/rules/11-write-agent-context.mdc": "//:.cursor/rules/11-write-agent-context.mdc",
 }

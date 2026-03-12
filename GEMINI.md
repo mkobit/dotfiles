@@ -1,6 +1,12 @@
 Please also reference the following rules as needed. The list below is provided in TOON format, and `@` stands for the project root directory.
 
-rules[2]:
+rules[4]:
+  - path: @.gemini/memories/01-agents-md.md
+    description: Reference AGENTS.md for project documentation
+    applyTo[1]: **/*
+  - path: @.gemini/memories/02-no-auto-commit.md
+    description: Never commit or push unless explicitly asked
+    applyTo[1]: **/*
   - path: @.gemini/memories/10-technical-writing.md
     description: Ventilated prose and concise writing standards for documentation files
     applyTo[5]: *.md,*.mdx,*.adoc,*.rst,*.txt
