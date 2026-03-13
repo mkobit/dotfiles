@@ -68,8 +68,8 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 | Rulesync binary | v7.6.3 in multitool + chezmoi external |
 | Rulesync config | `rulesync.jsonc` targeting claudecode, geminicli, cursor |
 | Shared always-on rules | `.rulesync/rules/` (5 rules), generated to all 3 tools. Chezmoi templates migrated to static files; `agents.toml` deleted. |
-| Portable skills (canonical) | 4 in `src/agents/skills/`, replicated to all 3 tool dirs via `bazel run //tools/agents:sync` |
-| Claude skills (internal) | 5 in `src/chezmoi/dot_claude/skills/` (4 portable + 1 Claude-only) |
+| Portable skills (canonical) | 5 in `src/agents/skills/`, replicated to all 3 tool dirs via `bazel run //tools/agents:sync` |
+| Claude skills (internal) | 6 in `src/chezmoi/dot_claude/skills/` (5 portable + 1 Claude-only) |
 | Claude commands (internal) | `claude/new/{skill,command,agent,hook}.md`, `obsidian/{base,organize,transform}.md` |
 | Gemini commands | None |
 | Cursor rules | All 5 `.mdc` files in `.cursor/rules/` now rulesync-managed (repo-local only) |
@@ -304,11 +304,11 @@ These patterns inform the repo-bootstrap skill's output.
 
 ### Phase 7: Repo bootstrap and settings management
 
-- [ ] Create `.agents/skills/repo-bootstrap/SKILL.md` - portable skill for initializing AI tool config in any directory
-- [ ] Define permission template library (python, typescript, bazel, etc.) as reference files in the skill
-- [ ] Create Gemini TOML command equivalent for repo bootstrapping
-- [ ] Document local settings patterns (what goes in settings.local.json, when to use it, common presets)
-- [ ] Consider: should chezmoi deploy a "default project settings" template somewhere accessible?
+- [x] Create `.agents/skills/repo-bootstrap/SKILL.md` — portable skill for initializing AI tool config in any directory
+- [x] Define permission template library (python, typescript, bazel, monorepo, generic) embedded in the skill
+- [x] Deploy to all 3 tool dirs via sync pipeline; all 52 validation tests pass (6 new: 3 drift + 3 skill validation)
+- [ ] Create Gemini TOML command equivalent for repo bootstrapping (depends on Phase 4)
+- [ ] Document local settings patterns (what goes in settings.local.json, when to use it, common presets) (depends on Phase 4)
 
 ## Non-goals (for now)
 
