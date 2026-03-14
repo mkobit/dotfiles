@@ -22,9 +22,11 @@ fi
 {{- range $name, $ext := .gemini.extensions }}
 {{-   if eq $ext.installation "gemini-cli" }}
 log_info "Installing/Updating extension: {{ $name }} ({{ $ext.ref }})"
+# Uninstall first to prevent "already installed" errors during updates
+gemini extensions uninstall "{{ $name }}" > /dev/null 2>&1 || true
 # We use --consent to bypass prompts.
 if ! gemini extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent; then
-    log_warn "Failed to install {{ $name }}. It may already be installed or there was a network error."
+    log_warn "Failed to install {{ $name }}. There may have been a network error."
 fi
 {{-   end }}
 {{- end }}
