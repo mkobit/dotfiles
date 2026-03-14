@@ -3,31 +3,44 @@
 Status: Draft
 Branch: `ai-rule-builder`
 Created: 2026-03-10
-Target tools: Claude Code, Gemini CLI, Cursor
+Target tools: Claude Code, Gemini CLI, Cursor, Codex CLI
+
+## Goals
+
+This project serves three priorities, in order:
+
+1. **User-level cross-tool config** — global skills, commands, rules, MCP servers, and marketplace skills deployed to all AI tools from one source of truth via chezmoi.
+2. **This repo as reference implementation** — demonstrate cross-tool rule automation patterns that will be replicated to future repos.
+3. **Build automation for repo-specific config** — tools to create repo-level commands, hooks, and skills (the skill-creator skill already handles this).
+
+Every phase below is annotated with the priority it serves.
 
 ## Problem
 
-AI tool configuration is fragmented across three concerns:
-1. Always-on rules (preferences, coding standards) - duplicated per tool.
-2. On-demand skills (SKILL.md) - portable via Agent Skills spec but only deployed to Claude today.
-3. Slash commands - tool-specific formats (Claude = skill frontmatter, Gemini = TOML, Cursor = @mentions).
+AI tool configuration is fragmented across four concerns:
+1. Always-on rules (preferences, coding standards) — duplicated per tool.
+2. On-demand skills (SKILL.md) — portable via Agent Skills spec but only deployed to Claude today.
+3. Slash commands — tool-specific formats (Claude = skill frontmatter, Gemini = TOML, Cursor = @mentions, Codex = N/A).
+4. MCP servers and plugins — configured differently per tool, no central registry.
 
 No way to author once and deploy everywhere.
-No way to quickly scaffold skills into arbitrary repos/directories.
 
 ## Cross-tool format matrix
 
-| Concern | Claude Code | Gemini CLI | Cursor |
-|---------|------------|------------|--------|
-| Always-on rules | `CLAUDE.md` | `GEMINI.md` | `.cursor/rules/*.mdc` |
-| Skills (on-demand) | `.claude/skills/*/SKILL.md` | `.gemini/skills/*/SKILL.md` | `.cursor/skills/*/SKILL.md` |
-| Portable skills | `.agents/skills/*/SKILL.md` | `.agents/skills/*/SKILL.md` | `.agents/skills/*/SKILL.md` |
-| Slash commands | Skill with `disable-model-invocation: true` | `.gemini/commands/*.toml` (TOML format, separate system) | `@rule-name` / manual apply rules |
-| Global skills dir | `~/.claude/skills/` | `~/.gemini/skills/` | `~/.cursor/skills/` |
-| Global commands dir | N/A (merged into skills) | `~/.gemini/commands/` | N/A |
+| Concern | Claude Code | Gemini CLI | Cursor | Codex CLI |
+|---------|------------|------------|--------|-----------|
+| Always-on rules | `CLAUDE.md` | `GEMINI.md` | `.cursor/rules/*.mdc` | `~/.codex/AGENTS.md` (3-tier: global, repo root, cwd) |
+| Skills (on-demand) | `.claude/skills/*/SKILL.md` | `.gemini/skills/*/SKILL.md` | `.cursor/skills/*/SKILL.md` | N/A |
+| Portable skills | `.agents/skills/*/SKILL.md` | `.agents/skills/*/SKILL.md` | `.agents/skills/*/SKILL.md` | N/A |
+| Slash commands | Skill with `disable-model-invocation: true` | `.gemini/commands/*.toml` (TOML format, separate system) | `@rule-name` / manual apply rules | N/A |
+| Global skills dir | `~/.claude/skills/` | `~/.gemini/skills/` | `~/.cursor/skills/` | N/A |
+| Global commands dir | N/A (merged into skills) | `~/.gemini/commands/` | N/A | N/A |
+| Settings file | `settings.json` | `settings.json` | UI-based | `config.json` or `config.yaml` |
+| MCP servers | `.mcp.json` (project), `~/.claude.json` (user) | MCP in `settings.json` | N/A | N/A |
 
 Key facts:
-- Skills (SKILL.md) are portable across all three tools via `.agents/skills/`.
+- Skills (SKILL.md) are portable across Claude, Gemini, and Cursor via `.agents/skills/`.
+- Codex CLI has no skill or command system; it reads only `AGENTS.md` for context.
 - Slash commands are NOT portable. Gemini uses TOML, Claude uses skill frontmatter, Cursor uses rule metadata.
 - Always-on rules have different formats per tool. Rulesync handles this transformation.
 
@@ -43,21 +56,22 @@ Repo-local outputs committed directly.
 ### Layer 2: Portable skills (Agent Skills spec)
 
 Skills as SKILL.md directories.
-Portable across all three tools via `.agents/skills/` or tool-specific paths.
+Portable across Claude, Gemini, and Cursor via `.agents/skills/` or tool-specific paths.
 Chezmoi deploys global skills to each tool's global skills dir.
-For repo-specific skills: scaffold into `.agents/skills/` in any repo.
+For repo-specific skills: scaffold into `.agents/skills/` in any repo using skill-creator.
 
 ### Slash commands (tool-specific, not unified)
 
 Claude: skills with `disable-model-invocation: true`.
 Gemini: TOML files in `.gemini/commands/`.
 Cursor: rules with manual-only application.
+Codex: no command system.
 These remain authored per-tool where needed.
 Rulesync may generate some of these (it supports commands for Claude and simulated commands for others).
 
 ### Scaffolding
 
-Use skill-creator (from anthropics/skills marketplace) or a thin wrapper to create skills in any directory.
+Use skill-creator (from anthropics/skills marketplace) to create skills in any directory.
 Target `.agents/skills/` for cross-tool portability.
 Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 
@@ -68,12 +82,14 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 | Rulesync binary | v7.6.3 in multitool + chezmoi external |
 | Rulesync config | `rulesync.jsonc` targeting claudecode, geminicli, cursor |
 | Shared always-on rules | `.rulesync/rules/` (5 rules), generated to all 3 tools. Chezmoi templates migrated to static files; `agents.toml` deleted. |
-| Portable skills (canonical) | 5 in `src/agents/skills/`, replicated to all 3 tool dirs via `bazel run //tools/agents:sync` |
-| Claude skills (internal) | 6 in `src/chezmoi/dot_claude/skills/` (5 portable + 1 Claude-only) |
-| Claude commands (internal) | `claude/new/{skill,command,agent,hook}.md`, `obsidian/{base,organize,transform}.md` |
+| Portable skills (canonical) | 4 in `src/agents/skills/`, replicated to all 3 tool dirs via `bazel run //tools/agents:sync` |
+| Upstream skills | 1 (`skill-creator`) fetched via Bazel `http_archive` from anthropics/skills |
+| Claude skills (deployed) | 5 in `src/chezmoi/dot_claude/skills/` (4 portable + 1 upstream) |
+| Claude commands (internal) | `claude/new/{command,agent,hook}.md`, `obsidian/{base,organize,transform}.md` |
 | Gemini commands | None |
 | Cursor rules | All 5 `.mdc` files in `.cursor/rules/` now rulesync-managed (repo-local only) |
-| Anthropic skill marketplace | Not configured |
+| Target tools | 4 (Claude Code, Gemini CLI, Cursor, Codex CLI) |
+| Validation tests | 40 (`//:validation_tests`), 55 total (`//...`) |
 | Gemini extensions | conductor v0.3.1 via install script |
 
 ## Skill audit and migration plan
@@ -96,7 +112,7 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 
 ## Phases
 
-### Phase 1: Bootstrap rulesync
+### Phase 1: Bootstrap rulesync (Priority 2)
 
 - [x] Create `rulesync.jsonc` targeting: claude, gemini-cli, cursor
 - [x] Create `.rulesync/rules/` with shared rules:
@@ -108,7 +124,7 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 - [x] Decide output integration: preferences migrated from `agents.toml` to rulesync as single source of truth; chezmoi templates to be updated in Phase 2
 - [x] Commit generated outputs
 
-### Phase 2: Portable skill deployment via chezmoi
+### Phase 2: Portable skill deployment via chezmoi (Priority 1)
 
 - [x] Migrate chezmoi templates from `agents.toml` to static files matching rulesync output
   - Replaced `dot_claude/CLAUDE.md.tmpl` → `dot_claude/CLAUDE.md` (static)
@@ -128,7 +144,7 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
   - Adding a new tool: create `src/chezmoi/dot_<tool>/skills/` directory, run `sync`
 - [ ] Verify skill discovery works in all three tools
 
-### Phase 3: Upstream skill-creator integration
+### Phase 3: Upstream skill-creator integration (Priority 1)
 
 - [x] Fetch `skill-creator` from anthropics/skills via Bazel `http_archive` (pinned to commit `b0cbd3d`)
 - [x] Update sync pipeline to copy full skill directories (not just SKILL.md) and discover upstream skills from Bazel runfiles
@@ -139,14 +155,17 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 - [x] Exclude upstream-vendored Python scripts from ruff formatting (`pyproject.toml`)
 - [x] All 28 validation tests pass (`//:validation_tests`)
 
-### Phase 4: Gemini CLI command generation
+### Phase 4: Gemini CLI commands and Codex CLI support (Priority 2)
 
 - [ ] Evaluate rulesync's Gemini command support (simulated commands)
 - [ ] If insufficient: create bazel genrule to transform skill-like definitions into Gemini TOML commands
 - [ ] Deploy global Gemini commands via chezmoi (`dot_gemini/commands/`)
 - [ ] Consider which Claude slash-commands warrant Gemini TOML equivalents
+- [ ] Create `src/chezmoi/dot_codex/` with `AGENTS.md` for Codex CLI global context
+- [ ] Evaluate rulesync support for a `codexcli` target (generates `AGENTS.md`)
+- [ ] Optionally deploy `config.yaml` with Codex CLI defaults
 
-### Phase 5: Bazel integration
+### Phase 5: Bazel integration (Priority 2)
 
 - [x] `rulesync_generate` genrule: `//tools/rulesync:generate` (existed from Phase 1)
 - [x] Rulesync drift tests: 9 `diff_test` targets comparing genrule outputs vs committed files (`//tools/rulesync:drift_tests`)
@@ -164,7 +183,7 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
   - Interactive CLI: `bazel run //tools/agents:validate`
   - Unit tests: `//tools/agents/skills_cli:test_validate`
 
-### Phase 6: Cursor rule migration
+### Phase 6: Cursor rule migration (Priority 2)
 
 - [x] Evaluate existing `.cursor/rules/*.mdc` files (5 total: 3 rulesync-managed, 2 manually authored)
 - [x] Migrate portable content to rulesync rules:
@@ -174,6 +193,28 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 - [x] Update BUILD files: root `exports_files`, `.claude/BUILD.bazel`, `tools/rulesync/BUILD.bazel` (sources, genrule, drift pairs)
 - [x] All 46 validation tests pass (6 new drift tests for the 2 rules across 3 tools)
 - [ ] Deploy cursor rules to destDir if cursor is used globally (currently repo-local only)
+
+### Phase 7: Upstream skill ingestion pipeline (Priority 1)
+
+Replace the reverted repo-bootstrap skill with a pipeline for deterministically fetching, validating, and deploying open-source skills from marketplaces.
+
+- [ ] **Registry format** — define a Starlark `.bzl` or JSONC file listing external skill repos with commit pins, skill names, and SHA256 hashes
+- [ ] **Extend `http_archive` pattern** — support multiple external skill repos in `MODULE.bazel` (currently only `anthropic_skills`)
+- [ ] **Automated validation** — run existing SKILL.md validators (`skill_frontmatter_test`, `skill_lint_test`, `skill_structure_test`) on upstream skills as part of the ingestion pipeline
+- [ ] **Safety analysis layer (deterministic)** — pattern-based checks for dangerous commands (`rm -rf /`, `sudo`, credential access, exfiltration URLs, encoded payloads)
+- [ ] **Safety analysis layer (probabilistic)** — LLM-based content review as opt-in Bazel test (tagged `manual`, requires API key)
+- [ ] **CI enforcement** — all deterministic checks in `//:validation_tests`; LLM safety checks runnable via `--test_tag_filters=safety`
+- [ ] **Sync integration** — upstream skills flow through existing `bazel run //tools/agents:sync` pipeline to all tool dirs
+
+### Phase 8: MCP and plugin configuration (Priority 1)
+
+Centralize MCP server and plugin configuration across tools.
+
+- [ ] Add MCP server definitions to `chezmoidata` (server name, command, args, env, per-tool enablement)
+- [ ] Generate `.mcp.json` for Claude Code via chezmoi template
+- [ ] Generate MCP entries in Gemini `settings.json` via chezmoi template
+- [ ] Manage Gemini extensions (version-pinned install commands in chezmoi run scripts)
+- [ ] Cross-tool plugin registry: single data source mapping plugins to tool-specific config formats
 
 ## Open questions
 
@@ -189,131 +230,25 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 4. **Chezmoi template vars in skills**: Skills are static SKILL.md. Some may want `destDir` or other vars.
    - Recommendation: Use `.tmpl` suffix in chezmoi source. Chezmoi renders the template, outputs a static SKILL.md.
 
-## Settings, permissions, and repo bootstrapping
+5. **Safety analysis thresholds**: What constitutes a blocking safety finding vs a warning? How large should the dangerous-pattern library be?
+   - Open: needs experimentation with real upstream skills.
 
-### Settings hierarchy per tool
+6. **LLM provider for safety review**: Using Claude API adds a CI dependency and cost. Acceptable for `manual`-tagged tests?
+   - Open: evaluate cost-per-review and whether a smaller model suffices.
 
-| Aspect | Claude Code | Gemini CLI | Cursor |
-|--------|------------|------------|--------|
-| Global settings | `~/.claude/settings.json` | `~/.gemini/settings.json` | User Settings UI |
-| Project settings (committed) | `.claude/settings.json` | `.gemini/settings.json` | `.cursor/rules/*.mdc` |
-| Local overrides (gitignored) | `.claude/settings.local.json` | CLI args / env vars | User-level settings |
-| Permissions model | allow/ask/deny rules | `tools.allowed`/`tools.exclude` | N/A |
-| Hooks | `hooks` in settings.json | N/A (extensions) | N/A |
-| Sandbox | `sandbox` in settings.json | `tools.sandbox` (docker/podman) | N/A |
-| MCP servers | `.mcp.json` (project), `~/.claude.json` (user) | MCP in settings.json | N/A |
+7. **Rulesync Codex CLI support**: Does rulesync support a `codexcli` target, or do we need a custom generator for `AGENTS.md`?
+   - Open: check rulesync docs and source.
 
-### Current settings in this repo
+8. **Registry format**: Starlark `.bzl` (native Bazel) vs JSONC (human-editable, tool-agnostic)?
+   - Recommendation: Starlark for Bazel-native integration; JSONC if we want non-Bazel consumers.
 
-**Project-level (`.claude/settings.json`, committed):**
-- Bazel permissions (build/test/query/run allowed)
-- WebFetch domains (github.com, docs.anthropic.com, jules.google)
-- PostToolUse hooks: format on write/edit, bazel validate
-
-**Global (deployed via chezmoi from `claude_code.toml`):**
-- `cleanupPeriodDays`, `outputStyle`, `statusLine` command
-- Permission defaults: tools=allow, files=allow
-- Env: telemetry/autoupdater disabled
-
-**Local (`.claude/settings.local.json`, gitignored):**
-- Personal overrides, not managed by this system
-
-### What "bootstrapping a new repo" means
-
-When starting a new project or adding AI tool support to an existing repo, you need:
-
-| File | Purpose | Portable? |
-|------|---------|-----------|
-| `.agents/skills/` | Shared skills | Yes (all tools) |
-| `AGENTS.md` | Repo context for all tools | Yes (Claude, Gemini, Cursor all read it) |
-| `.claude/settings.json` | Permissions, hooks, MCP | Claude only |
-| `.claude/CLAUDE.md` | Claude-specific instructions | Claude only |
-| `.gemini/settings.json` | Tool controls, sandbox | Gemini only |
-| `.gemini/GEMINI.md` | Gemini-specific instructions | Gemini only |
-| `.gemini/commands/*.toml` | Gemini slash commands | Gemini only |
-| `.cursor/rules/*.mdc` | Cursor rules | Cursor only |
-| `.gitignore` additions | Ignore local settings | Universal |
-
-### Repo bootstrap skill
-
-A portable skill that scaffolds AI tool config into any directory.
-This is the "create new repo config" counterpart to skill-creator's "create new skill" capability.
-
-**Inputs:**
-- Which tools to configure (claude, gemini, cursor, all)
-- Repo type (e.g., python, typescript, monorepo) - affects default permissions and rules
-- Whether to include example skills, hooks, commands
-
-**Outputs:**
-- Tool-specific settings files with sensible defaults
-- `AGENTS.md` with repo structure documentation
-- `.gitignore` additions for local override files
-- Optionally: starter skills in `.agents/skills/`
-
-This skill should itself live in `.agents/skills/repo-bootstrap/SKILL.md` so it's available from any tool.
-
-### Managing local settings
-
-Local settings (`.claude/settings.local.json`, Gemini env overrides) are:
-- Never committed to repos
-- Never managed by chezmoi (they're per-machine preferences)
-- Created manually or by the repo-bootstrap skill
-
-However, we can provide **templates** for common local settings patterns:
-- "I want to auto-approve all tools in this repo" (Claude: `defaultMode: bypassPermissions`, Gemini: `--yolo`)
-- "I want to restrict to read-only" (Claude: `defaultMode: plan`, Gemini: `defaultApprovalMode: plan`)
-- "I need these additional directories" (Claude: `additionalDirectories`, Gemini: `context.includeDirectories`)
-
-These templates could be:
-1. Documented in `AGENTS.md` as copy-paste snippets
-2. A skill that generates the local settings file interactively
-3. A Gemini TOML command that applies a preset
-
-### Permission patterns for common repo types
-
-Reusable permission templates for `.claude/settings.json`:
-
-**Python repo:**
-```json
-{
-  "permissions": {
-    "allow": ["Bash(python *)", "Bash(pip *)", "Bash(pytest *)", "Bash(ruff *)"]
-  }
-}
-```
-
-**TypeScript repo:**
-```json
-{
-  "permissions": {
-    "allow": ["Bash(npm *)", "Bash(npx *)", "Bash(bun *)", "Bash(tsc *)"]
-  }
-}
-```
-
-**Bazel repo (like this one):**
-```json
-{
-  "permissions": {
-    "allow": ["Bash(bazel build:*)", "Bash(bazel test:*)", "Bash(bazel query:*)"]
-  }
-}
-```
-
-These patterns inform the repo-bootstrap skill's output.
-
-### Phase 7: Repo bootstrap and settings management
-
-- [x] Create `.agents/skills/repo-bootstrap/SKILL.md` — portable skill for initializing AI tool config in any directory
-- [x] Define permission template library (python, typescript, bazel, monorepo, generic) embedded in the skill
-- [x] Deploy to all 3 tool dirs via sync pipeline; all 52 validation tests pass (6 new: 3 drift + 3 skill validation)
-- [ ] Create Gemini TOML command equivalent for repo bootstrapping (depends on Phase 4)
-- [ ] Document local settings patterns (what goes in settings.local.json, when to use it, common presets) (depends on Phase 4)
+9. **Skill ingestion granularity**: Fetch whole repos and cherry-pick skills, or fetch individual skill directories?
+   - Recommendation: Whole repo via `http_archive` with `strip_prefix` to select specific paths, matching current `anthropic_skills` pattern.
 
 ## Non-goals (for now)
 
 - Goose support (work uses custom version, ignore)
 - Cross-tool plugin/extension adaptation (rulesync #382, blocked)
 - Publishing skills to agentskills.io (keep private for now)
-- Gemini extension -> Claude MCP adaptation (future phase)
+- Repo bootstrapping as a skill (redundant with chezmoi global config + skill-creator)
 - Managing other users' local settings (these are personal by design)

@@ -21,3 +21,12 @@ install-asdf.sh
 
 # Old hello_world example
 .local/bin/tools/hello_world
+
+# Superseded by upstream skill-creator (Phase 3)
+.claude/skills/claude-extension-builder
+.claude/commands/claude/new/skill.md
+
+# Reverted repo-bootstrap skill (Phase 7 rewrite)
+.claude/skills/repo-bootstrap
+.cursor/skills/repo-bootstrap
+.gemini/skills/repo-bootstrap
