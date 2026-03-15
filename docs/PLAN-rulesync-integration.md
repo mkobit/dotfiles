@@ -80,7 +80,7 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 | Component | Status |
 |-----------|--------|
 | Rulesync binary | v7.6.3 in multitool + chezmoi external |
-| Rulesync config | `rulesync.jsonc` targeting claudecode, geminicli, cursor |
+| Rulesync config | `rulesync.jsonc` targeting claudecode, geminicli, cursor, codexcli |
 | Shared always-on rules | `.rulesync/rules/` (5 rules), generated to all 3 tools. Chezmoi templates migrated to static files; `agents.toml` deleted. |
 | Portable skills (canonical) | 4 in `src/agents/skills/`, replicated to all 3 tool dirs via `bazel run //tools/agents:sync` |
 | Upstream skills | 1 (`skill-creator`) fetched via Bazel `http_archive` from anthropics/skills |
@@ -89,7 +89,9 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 | Gemini commands | None |
 | Cursor rules | All 5 `.mdc` files in `.cursor/rules/` now rulesync-managed (repo-local only) |
 | Target tools | 4 (Claude Code, Gemini CLI, Cursor, Codex CLI) |
-| Validation tests | 40 (`//:validation_tests`), 55 total (`//...`) |
+| Codex CLI global config | `src/chezmoi/dot_codex/AGENTS.md` deployed to `~/.codex/AGENTS.md` via chezmoi |
+| Codex CLI repo rules | `.codex/memories/` (4 files, rulesync-managed) |
+| Validation tests | 50 (`//:validation_tests`), 65 total (`//...`) |
 | Gemini extensions | conductor v0.3.1 via install script |
 
 ## Skill audit and migration plan
@@ -161,14 +163,14 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 - [ ] If insufficient: create bazel genrule to transform skill-like definitions into Gemini TOML commands
 - [ ] Deploy global Gemini commands via chezmoi (`dot_gemini/commands/`)
 - [ ] Consider which Claude slash-commands warrant Gemini TOML equivalents
-- [ ] Create `src/chezmoi/dot_codex/` with `AGENTS.md` for Codex CLI global context
-- [ ] Evaluate rulesync support for a `codexcli` target (generates `AGENTS.md`)
+- [x] Create `src/chezmoi/dot_codex/` with `AGENTS.md` for Codex CLI global context
+- [x] Add `codexcli` target to rulesync — generates `.codex/memories/*.md` (4 rules) + `AGENTS.md` (discarded, repo keeps hand-coded version)
 - [ ] Optionally deploy `config.yaml` with Codex CLI defaults
 
 ### Phase 5: Bazel integration (Priority 2)
 
 - [x] `rulesync_generate` genrule: `//tools/rulesync:generate` (existed from Phase 1)
-- [x] Rulesync drift tests: 9 `diff_test` targets comparing genrule outputs vs committed files (`//tools/rulesync:drift_tests`)
+- [x] Rulesync drift tests: 19 `diff_test` targets comparing genrule outputs vs committed files (`//tools/rulesync:drift_tests`)
 - [x] Skills drift tests: 12 `diff_test` targets auto-generated via `skills_drift_tests` macro (`//src/agents/skills:drift_tests`)
 - [x] All suites added to `//:validation_tests` (40 total tests)
 - [x] `skill_validate` test: SKILL.md validation framework
@@ -237,7 +239,7 @@ Centralize MCP server and plugin configuration across tools.
    - Open: evaluate cost-per-review and whether a smaller model suffices.
 
 7. **Rulesync Codex CLI support**: Does rulesync support a `codexcli` target, or do we need a custom generator for `AGENTS.md`?
-   - Open: check rulesync docs and source.
+   - Resolved: rulesync v7.6.3 natively supports `codexcli` target, generating `AGENTS.md` + `.codex/memories/*.md`.
 
 8. **Registry format**: Starlark `.bzl` (native Bazel) vs JSONC (human-editable, tool-agnostic)?
    - Recommendation: Starlark for Bazel-native integration; JSONC if we want non-Bazel consumers.

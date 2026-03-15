@@ -50,6 +50,10 @@ genrule(
         "out/.cursor/rules/02-no-auto-commit.mdc",
         "out/.cursor/rules/10-technical-writing.mdc",
         "out/.cursor/rules/11-write-agent-context.mdc",
+        "out/.codex/memories/01-agents-md.md",
+        "out/.codex/memories/02-no-auto-commit.md",
+        "out/.codex/memories/10-technical-writing.md",
+        "out/.codex/memories/11-write-agent-context.md",
     ],
     cmd = """
         RULESYNC="$$PWD/$(execpath @multitool//tools/rulesync)"
@@ -101,6 +105,10 @@ _DRIFT_PAIRS = {
     "out/.cursor/rules/02-no-auto-commit.mdc": "//:.cursor/rules/02-no-auto-commit.mdc",
     "out/.cursor/rules/10-technical-writing.mdc": "//:.cursor/rules/10-technical-writing.mdc",
     "out/.cursor/rules/11-write-agent-context.mdc": "//:.cursor/rules/11-write-agent-context.mdc",
+    "out/.codex/memories/01-agents-md.md": "//:.codex/memories/01-agents-md.md",
+    "out/.codex/memories/02-no-auto-commit.md": "//:.codex/memories/02-no-auto-commit.md",
+    "out/.codex/memories/10-technical-writing.md": "//:.codex/memories/10-technical-writing.md",
+    "out/.codex/memories/11-write-agent-context.md": "//:.codex/memories/11-write-agent-context.md",
 }
 
 [

@@ -29,6 +29,10 @@ exports_files([
     ".cursor/rules/02-no-auto-commit.mdc",
     ".cursor/rules/10-technical-writing.mdc",
     ".cursor/rules/11-write-agent-context.mdc",
+    ".codex/memories/01-agents-md.md",
+    ".codex/memories/02-no-auto-commit.md",
+    ".codex/memories/10-technical-writing.md",
+    ".codex/memories/11-write-agent-context.md",
 ])
 
 compile_pip_requirements(
