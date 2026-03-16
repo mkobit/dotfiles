@@ -1,9 +1,8 @@
 [fd]
-version = "10.4.1"
+version = "10.4.2"
 installation = "external-sources"
 
 [fd.checksums]
-darwin_arm64 = "016f0fc9dd44b9c48703d742584f2d16c1144ef6a89048ec33e44646409a38cd"  # fd-v10.4.1-aarch64-apple-darwin.tar.gz
-darwin_amd64 = "0019dfc4b32d63c1392aa264aed2253c1e0c2fb09216f8e2cc269bbfb8bb49b5"  # fd-v10.4.1-x86_64-apple-darwin.tar.gz
-linux_amd64 = "d5b52cd765de7e7e15e6769eb21878bd48beec00a456b269766b297390da7047"  # fd-v10.4.1-x86_64-unknown-linux-musl.tar.gz
-linux_arm64 = "95d74ce371abb47a49ce72ca536ab1052adc445a2cbf47e7c1b4bf79d446baf6"  # fd-v10.4.1-aarch64-unknown-linux-musl.tar.gz
+darwin_arm64 = "623dc0afc81b92e4d4606b380d7bc91916ba7b97814263e554d50923a39e480a"  # fd-v10.4.2-aarch64-apple-darwin.tar.gz
+linux_amd64 = "e3257d48e29a6be965187dbd24ce9af564e0fe67b3e73c9bdcd180f4ec11bdde"  # fd-v10.4.2-x86_64-unknown-linux-musl.tar.gz
+linux_arm64 = "f32d3657473fba74e2600babc8db0b93420d51169223b7e8143b2ed55d8fd9e8"  # fd-v10.4.2-aarch64-unknown-linux-musl.tar.gz

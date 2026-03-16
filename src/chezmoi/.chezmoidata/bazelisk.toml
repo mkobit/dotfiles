@@ -1,9 +1,10 @@
 [bazelisk]
-version = "1.27.0"
+version = "1.28.1"
 installation = "external-sources"
 
-[bazelisk.checksums] # publishes shas
-darwin_arm64 = "8bf08c894ccc19ef37f286e58184c3942c58cb08da955e990522703526ddb720"
-darwin_amd64 = "d8b00ea975c823e15263c80200ac42979e17368547fbff4ab177af035badfa83"
-linux_amd64 = "e1508323f347ad1465a887bc5d2bfb91cffc232d11e8e997b623227c6b32fb76"
-linux_arm64 = "bb608519a440d45d10304eb684a73a2b6bb7699c5b0e5434361661b25f113a5d"
+[bazelisk.checksums] # bazelisk publishes sha256 files individually on releases
+type = "disabled"
+darwin_arm64 = "dea3f3f5de2dbc5e269e0132cdd369d5efe738f7b973d5d4eb2b4f7055a97b39"
+darwin_amd64 = "023225736cea5dc88f2b0807d5b1af4eb0f69a4ed45e3994b2c18c263bc80e48"
+linux_amd64 = "22e7d3a188699982f661cf4687137ee52d1f24fec1ec893d91a6c4d791a75de8"
+linux_arm64 = "8ded44b58a0d9425a4178af26cf17693feac3b87bdcfef0a2a0898fcd1afc9f2"
