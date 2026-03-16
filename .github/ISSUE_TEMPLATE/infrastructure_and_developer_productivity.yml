@@ -1,0 +1,39 @@
+name: '🚀 Infrastructure & Developer Productivity'
+description: 'Propose improvements to deployment, management, testing, or caching.'
+labels: ['enhancement', 'infrastructure', 'developer-experience']
+body:
+  - type: input
+    id: proposed-improvement
+    attributes:
+      label: 'Proposed improvement'
+      description: 'A brief summary of the infrastructure or productivity improvement.'
+    validations:
+      required: true
+  - type: textarea
+    id: current-pain-points
+    attributes:
+      label: 'Current pain points'
+      description: 'What are the current issues with deployment, testing, caching, or productivity?'
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: 'Proposed solution'
+      description: 'Describe the new workflow, configuration change, or script.'
+    validations:
+      required: true
+  - type: textarea
+    id: benefits
+    attributes:
+      label: 'Benefits'
+      description: 'How does this change improve deployment times, testing reliability, or overall developer productivity?'
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 'Acceptance criteria'
+      description: 'How can we verify that the new infrastructure or workflow is in place and working as expected?'
+    validations:
+      required: true
