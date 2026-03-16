@@ -71,7 +71,6 @@ test_suite(
         "//.claude:claude_settings_schema_test",
         "//src/agents/skills:drift_tests",
         "//src/agents/skills:skill_validation",
-        "//src/agents/skills:upstream_drift_tests",
         "//tools/rulesync:drift_tests",
     ],
 )

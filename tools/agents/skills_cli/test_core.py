@@ -10,7 +10,6 @@ from tools.agents.skills_cli.core import (
     check_skill,
     discover_local_skills,
     discover_tools,
-    discover_upstream_skills,
     sync_skill,
 )
 
@@ -63,46 +62,6 @@ class TestDiscoverLocalSkills:
         (canonical / "no-skill-md").mkdir()
 
         skills = discover_local_skills(canonical)
-        assert len(skills) == 0
-
-
-class TestDiscoverUpstreamSkills:
-    def test_finds_upstream_skills(self, workspace: Path) -> None:
-        canonical = workspace / "src" / "agents" / "skills"
-        runfiles = workspace / "runfiles"
-
-        # Create an upstream skill in runfiles (not under _main/)
-        upstream = runfiles / "anthropic_skills" / "skills" / "skill-creator"
-        upstream.mkdir(parents=True)
-        (upstream / "SKILL.md").write_text("# Upstream")
-
-        skills = discover_upstream_skills(runfiles, canonical)
-        assert len(skills) == 1
-        assert skills[0].name == "skill-creator"
-        assert skills[0].origin == "upstream"
-
-    def test_skips_main_workspace(self, workspace: Path) -> None:
-        canonical = workspace / "src" / "agents" / "skills"
-        runfiles = workspace / "runfiles"
-
-        # Skill under _main/ should be skipped
-        main_skill = runfiles / "_main" / "skills" / "local-skill"
-        main_skill.mkdir(parents=True)
-        (main_skill / "SKILL.md").write_text("# Local")
-
-        skills = discover_upstream_skills(runfiles, canonical)
-        assert len(skills) == 0
-
-    def test_skips_when_local_exists(self, workspace: Path) -> None:
-        canonical = workspace / "src" / "agents" / "skills"
-        _make_skill(canonical, "skill-creator")
-
-        runfiles = workspace / "runfiles"
-        upstream = runfiles / "anthropic_skills" / "skills" / "skill-creator"
-        upstream.mkdir(parents=True)
-        (upstream / "SKILL.md").write_text("# Upstream")
-
-        skills = discover_upstream_skills(runfiles, canonical)
         assert len(skills) == 0
 
 

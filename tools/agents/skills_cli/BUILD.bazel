@@ -1,13 +1,9 @@
 load("@pypi//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
 
-# Export dir_diff.py for use as a py_test source in drift test macros.
 # Export validate_test_runner.py for use in validation test macros.
 exports_files(
-    [
-        "dir_diff.py",
-        "validate_test_runner.py",
-    ],
+    ["validate_test_runner.py"],
     visibility = ["//src/agents/skills:__pkg__"],
 )
 
@@ -35,7 +31,6 @@ py_library(
 py_binary(
     name = "sync",
     srcs = ["sync_cmd.py"],
-    data = ["@anthropic_skills//:skill_creator_files"],
     main = "sync_cmd.py",
     visibility = ["//tools/agents:__pkg__"],
     deps = [
@@ -49,7 +44,6 @@ py_binary(
 py_binary(
     name = "check",
     srcs = ["check_cmd.py"],
-    data = ["@anthropic_skills//:skill_creator_files"],
     main = "check_cmd.py",
     visibility = ["//tools/agents:__pkg__"],
     deps = [
@@ -69,15 +63,6 @@ py_binary(
         ":skills_cli_lib",
         requirement("click"),
     ],
-)
-
-# Directory-level drift test script (used by py_test targets in rules.bzl).
-py_binary(
-    name = "dir_diff_test_bin",
-    srcs = ["dir_diff.py"],
-    main = "dir_diff.py",
-    visibility = ["//src/agents/skills:__pkg__"],
-    deps = [":skills_cli_lib"],
 )
 
 py_test(

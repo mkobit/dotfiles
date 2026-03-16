@@ -46,24 +46,6 @@ use_repo(multitool, "multitool")
 # External dependencies
 http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-# Upstream skills from anthropics/skills marketplace.
-# Pin to a specific commit for reproducibility. Update SHA to pull newer versions.
-http_archive(
-    name = "anthropic_skills",
-    build_file_content = """
-package(default_visibility = ["//visibility:public"])
-
-exports_files(glob(["skills/skill-creator/**"]))
-
-filegroup(
-    name = "skill_creator_files",
-    srcs = glob(["skills/skill-creator/**"]),
-)
-""",
-    strip_prefix = "skills-b0cbd3df1533b396d281a6886d5132f623393a9c",
-    urls = ["https://github.com/anthropics/skills/archive/b0cbd3df1533b396d281a6886d5132f623393a9c.tar.gz"],
-)
-
 # Binary dependencies with platform-specific URLs
 # Static tmux binaries from mjakob-gh/build-static-tmux
 http_archive(

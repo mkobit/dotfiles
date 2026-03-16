@@ -45,42 +45,6 @@ def discover_local_skills(canonical_dir: Path) -> list[SkillSource]:
     return skills
 
 
-def discover_upstream_skills(
-    runfiles_dir: Path, canonical_dir: Path
-) -> list[SkillSource]:
-    """Find upstream skills from Bazel runfiles.
-
-    Searches runfiles for SKILL.md files from external repos (not _main/).
-    Skips skills that already exist locally.
-
-    Args:
-        runfiles_dir: Path to the runfiles directory.
-        canonical_dir: Path to the local canonical skills directory.
-
-    Returns:
-        List of SkillSource entries for upstream-only skills.
-    """
-    skills: list[SkillSource] = []
-    if not runfiles_dir.is_dir():
-        return skills
-
-    # Walk runfiles for SKILL.md files outside _main/
-    for skill_md in sorted(runfiles_dir.rglob("skills/*/SKILL.md")):
-        # Skip files from the main workspace
-        if "_main" in skill_md.parts:
-            continue
-        skill_dir = skill_md.parent
-        skill_name = skill_dir.name
-
-        # Local skills take precedence
-        if (canonical_dir / skill_name).is_dir():
-            continue
-
-        skills.append(SkillSource(name=skill_name, path=skill_dir, origin="upstream"))
-
-    return skills
-
-
 def _dirs_match(source: Path, target: Path) -> bool:
     """Recursively compare two directories for equality.
 
@@ -211,19 +175,6 @@ def sync_all(workspace: Path, verbose: bool = False) -> tuple[list[SyncResult], 
             if verbose and updated:
                 print(f"  Synced (local): {skill.name} -> {tool}")
 
-    # Upstream skills
-    runfiles_dir = Path(_resolve_runfiles(workspace, "sync"))
-    for skill in discover_upstream_skills(runfiles_dir, canonical_dir):
-        if verbose:
-            print(f"  Upstream skill: {skill.name}")
-        for tool in tools:
-            target = chezmoi_dir / f"dot_{tool}" / "skills" / skill.name
-            updated = sync_skill(skill.path, target)
-            action = "synced" if updated else "up_to_date"
-            results.append(SyncResult(skill=skill.name, tool=tool, action=action))
-            if verbose and updated:
-                print(f"  Synced (upstream): {skill.name} -> {tool}")
-
     return results, True
 
 
@@ -265,32 +216,4 @@ def check_all(workspace: Path, verbose: bool = False) -> tuple[list[DriftResult]
                 if verbose:
                     print(f"  {result.details}")
 
-    # Upstream skills
-    runfiles_dir = Path(_resolve_runfiles(workspace, "check"))
-    for skill in discover_upstream_skills(runfiles_dir, canonical_dir):
-        for tool in tools:
-            target = chezmoi_dir / f"dot_{tool}" / "skills" / skill.name
-            result = check_skill(skill.path, target)
-            result.tool = tool
-            result.skill = skill.name
-            results.append(result)
-            if result.drifted:
-                drift_found = True
-                if verbose:
-                    print(f"  {result.details}")
-
     return results, not drift_found
-
-
-def _resolve_runfiles(workspace: Path, binary_name: str) -> str:
-    """Resolve the runfiles directory for a Bazel binary.
-
-    Checks RUNFILES_DIR env var first, then falls back to the
-    conventional bazel-bin path.
-    """
-    import os
-
-    runfiles = os.environ.get("RUNFILES_DIR")
-    if runfiles:
-        return runfiles
-    return str(workspace / "bazel-bin" / "tools" / "agents" / f"{binary_name}.runfiles")
