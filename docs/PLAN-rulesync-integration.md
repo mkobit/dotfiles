@@ -86,8 +86,8 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 | Upstream skills | 1 (`skill-creator`) fetched via Bazel `http_archive` from anthropics/skills |
 | Claude skills (deployed) | 5 in `src/chezmoi/dot_claude/skills/` (4 portable + 1 upstream) |
 | Claude commands (internal) | `claude/new/{command,agent,hook}.md`, `obsidian/{base,organize,transform}.md` |
-| Gemini commands | None |
-| Cursor rules | All 5 `.mdc` files in `.cursor/rules/` now rulesync-managed (repo-local only) |
+| Gemini commands | None (evaluated and deferred — no portable commands to deploy) |
+| Cursor rules | All 5 `.mdc` files in `.cursor/rules/` rulesync-managed (repo-local) + deployed globally via chezmoi (`dot_cursor/rules/`) |
 | Target tools | 4 (Claude Code, Gemini CLI, Cursor, Codex CLI) |
 | Codex CLI global config | `src/chezmoi/dot_codex/AGENTS.md` deployed to `~/.codex/AGENTS.md` via chezmoi |
 | Codex CLI repo rules | `.codex/memories/` (4 files, rulesync-managed) |
@@ -144,7 +144,7 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
   - Drift check: `bazel run //tools/agents:check` — verifies committed copies match canonical source
   - Adding a new skill: create `src/agents/skills/<name>/SKILL.md`, run `sync`
   - Adding a new tool: create `src/chezmoi/dot_<tool>/skills/` directory, run `sync`
-- [ ] Verify skill discovery works in all three tools
+- [x] Verify skill discovery works in all three tools (`chezmoi managed` confirms skills deployed to `.claude/skills/`, `.gemini/skills/`, `.cursor/skills/`)
 
 ### Phase 3: Upstream skill-creator integration (Priority 1)
 
@@ -159,13 +159,13 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 
 ### Phase 4: Gemini CLI commands and Codex CLI support (Priority 2)
 
-- [ ] Evaluate rulesync's Gemini command support (simulated commands)
-- [ ] If insufficient: create bazel genrule to transform skill-like definitions into Gemini TOML commands
-- [ ] Deploy global Gemini commands via chezmoi (`dot_gemini/commands/`)
-- [ ] Consider which Claude slash-commands warrant Gemini TOML equivalents
+- [x] ~~Evaluate rulesync's Gemini command support~~ — Evaluated. Rulesync supports `-f commands` and can generate Gemini TOML from Claude commands. Existing commands are tool-specific (Claude `new/*`) or work-specific (`operations/*`, `interview/*`). Only Obsidian commands are partially portable but depend on local vault paths. Deferred — no urgent need, Gemini CLI has skills for complex tasks.
+- [ ] ~~If insufficient: create bazel genrule~~ — Deferred (rulesync support is sufficient when needed)
+- [ ] ~~Deploy global Gemini commands via chezmoi~~ — Deferred (no portable commands to deploy yet)
+- [ ] ~~Consider which Claude slash-commands warrant Gemini equivalents~~ — Evaluated, none currently warrant porting
 - [x] Create `src/chezmoi/dot_codex/` with `AGENTS.md` for Codex CLI global context
 - [x] Add `codexcli` target to rulesync — generates `.codex/memories/*.md` (4 rules) + `AGENTS.md` (discarded, repo keeps hand-coded version)
-- [ ] Optionally deploy `config.yaml` with Codex CLI defaults
+- [ ] ~~Optionally deploy `config.yaml` with Codex CLI defaults~~ — Deferred (Codex CLI defaults are sufficient)
 
 ### Phase 5: Bazel integration (Priority 2)
 
@@ -194,7 +194,8 @@ Target tool-specific dirs when needed (e.g., Gemini TOML commands).
 - [x] Delete manually-authored `.cursor/rules/agents-md.mdc` and `no-auto-commit.mdc` (now rulesync-managed)
 - [x] Update BUILD files: root `exports_files`, `.claude/BUILD.bazel`, `tools/rulesync/BUILD.bazel` (sources, genrule, drift pairs)
 - [x] All 46 validation tests pass (6 new drift tests for the 2 rules across 3 tools)
-- [ ] Deploy cursor rules to destDir if cursor is used globally (currently repo-local only)
+- [x] Deploy cursor rules to destDir via chezmoi (`src/chezmoi/dot_cursor/rules/*.mdc`, 5 files)
+  - Fixed `.chezmoiignore` bug: `**/*.mdc` and `**/AGENTS.md` blocked deployment; added exceptions for `!.codex/AGENTS.md` and `!.cursor/rules/*.mdc`
 
 ### Phase 7: Upstream skill ingestion pipeline (Priority 1)
 
