@@ -1,0 +1,32 @@
+name: '🤖 AI Tooling'
+description: 'Propose a new AI tool or automation.'
+labels: ['enhancement', 'ai-tooling']
+body:
+  - type: input
+    id: proposed-tool
+    attributes:
+      label: 'Proposed tool or automation'
+      description: 'What is the name of the new AI tool or automation?'
+    validations:
+      required: true
+  - type: textarea
+    id: purpose-and-capabilities
+    attributes:
+      label: 'Purpose and capabilities'
+      description: 'What is the goal of this tool? What should it be able to do?'
+    validations:
+      required: true
+  - type: textarea
+    id: implementation-details
+    attributes:
+      label: 'Implementation details'
+      description: 'Provide details for the implementation. How should it be built? What are the inputs and outputs?'
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 'Acceptance criteria'
+      description: 'How can we verify that the new tool or automation works as expected?'
+    validations:
+      required: true

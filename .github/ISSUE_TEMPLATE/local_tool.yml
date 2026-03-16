@@ -1,0 +1,39 @@
+name: '🛠️ Local Tool'
+description: 'Propose a new local tool or automation (e.g. Jules CLI).'
+labels: ['enhancement', 'local-tool']
+body:
+  - type: input
+    id: tool-name
+    attributes:
+      label: 'Tool name'
+      description: 'What is the name of the new local tool or automation?'
+    validations:
+      required: true
+  - type: textarea
+    id: purpose
+    attributes:
+      label: 'Purpose'
+      description: 'What is the function of this tool? What problem does it solve?'
+    validations:
+      required: true
+  - type: input
+    id: language-build-tools
+    attributes:
+      label: 'Language / build tools'
+      description: 'What language or build tools will be used? (e.g., Python, Bash, Go).'
+    validations:
+      required: true
+  - type: textarea
+    id: usage
+    attributes:
+      label: 'Usage'
+      description: 'How will this tool be used? Describe its interface or usage patterns.'
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: 'Acceptance criteria'
+      description: 'A checklist for a successful implementation and how to test it.'
+    validations:
+      required: true

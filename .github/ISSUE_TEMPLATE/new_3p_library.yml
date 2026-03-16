@@ -1,0 +1,32 @@
+name: '📦 New 3p library'
+description: 'Request to add a new third-party library.'
+labels: ['enhancement', '3p-library']
+body:
+  - type: input
+    id: library-name
+    attributes:
+      label: 'Library name'
+      description: 'What is the name of the third-party library?'
+    validations:
+      required: true
+  - type: input
+    id: library-url
+    attributes:
+      label: 'Library URL / Documentation'
+      description: 'Provide a link to the library documentation or repository.'
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: 'Motivation'
+      description: 'Why is this library needed? What problem does it solve?'
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives-considered
+    attributes:
+      label: 'Alternatives considered'
+      description: 'What other libraries did you consider, and why did you choose this one?'
+    validations:
+      required: true
