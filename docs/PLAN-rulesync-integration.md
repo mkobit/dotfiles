@@ -1,8 +1,9 @@
 # Plan: Unified AI rule authoring and cross-tool deployment
 
-Status: Draft
+Status: Phases 1–6 complete, Phases 7–8 future
 Branch: `ai-rule-builder`
 Created: 2026-03-10
+Updated: 2026-03-16
 Target tools: Claude Code, Gemini CLI, Cursor, Codex CLI
 
 ## Goals
@@ -222,31 +223,31 @@ Centralize MCP server and plugin configuration across tools.
 ## Open questions
 
 1. **Skill deduplication**: If a skill is both a portable SKILL.md AND has content extracted to rulesync always-on rules, how to avoid redundancy?
-   - Recommendation: The always-on rule contains the minimal "always apply this" subset. The full skill contains detailed instructions for when it's activated. They serve different purposes.
+   - Resolved: The always-on rule contains the minimal "always apply this" subset. The full skill contains detailed instructions for when it's activated. They serve different purposes.
 
 2. **Gemini commands vs skills**: Gemini has both. Some things are better as commands (quick shortcuts with `{{args}}`), others as skills (complex on-demand expertise). How to decide?
-   - Recommendation: If it's a simple prompt template with args, Gemini TOML command. If it needs multi-step instructions, SKILL.md. Rulesync may generate both.
+   - Resolved: If it's a simple prompt template with args, Gemini TOML command. If it needs multi-step instructions, SKILL.md. Deferred — no portable commands to deploy yet.
 
 3. **`.agents/skills/` vs tool-specific dirs**: Deploy to the portable path or replicate to each tool's dir?
-   - Recommendation: For project-level, use `.agents/skills/` (all tools discover it). For global (chezmoi-deployed), replicate to each tool's dir since there's no global `.agents/` convention.
+   - Resolved: For project-level, use `.agents/skills/` (all tools discover it). For global (chezmoi-deployed), replicate to each tool's dir since there's no global `.agents/` convention.
 
 4. **Chezmoi template vars in skills**: Skills are static SKILL.md. Some may want `destDir` or other vars.
-   - Recommendation: Use `.tmpl` suffix in chezmoi source. Chezmoi renders the template, outputs a static SKILL.md.
+   - Resolved: Use `.tmpl` suffix in chezmoi source. Chezmoi renders the template, outputs a static SKILL.md.
 
 5. **Safety analysis thresholds**: What constitutes a blocking safety finding vs a warning? How large should the dangerous-pattern library be?
-   - Open: needs experimentation with real upstream skills.
+   - Open (Phase 7): needs experimentation with real upstream skills.
 
 6. **LLM provider for safety review**: Using Claude API adds a CI dependency and cost. Acceptable for `manual`-tagged tests?
-   - Open: evaluate cost-per-review and whether a smaller model suffices.
+   - Open (Phase 7): evaluate cost-per-review and whether a smaller model suffices.
 
 7. **Rulesync Codex CLI support**: Does rulesync support a `codexcli` target, or do we need a custom generator for `AGENTS.md`?
    - Resolved: rulesync v7.6.3 natively supports `codexcli` target, generating `AGENTS.md` + `.codex/memories/*.md`.
 
 8. **Registry format**: Starlark `.bzl` (native Bazel) vs JSONC (human-editable, tool-agnostic)?
-   - Recommendation: Starlark for Bazel-native integration; JSONC if we want non-Bazel consumers.
+   - Resolved: Prefer Bazel-native approach (Starlark `.bzl` or `http_archive` in `MODULE.bazel`) over rulesync's built-in ingestion features.
 
 9. **Skill ingestion granularity**: Fetch whole repos and cherry-pick skills, or fetch individual skill directories?
-   - Recommendation: Whole repo via `http_archive` with `strip_prefix` to select specific paths, matching current `anthropic_skills` pattern.
+   - Resolved: Whole repo via `http_archive` with `strip_prefix` to select specific paths, matching current `anthropic_skills` pattern.
 
 ## Non-goals (for now)
 
