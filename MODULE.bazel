@@ -44,26 +44,6 @@ use_repo(multitool, "multitool")
 # Register toolchains
 
 # External dependencies
-http_archive = use_repo_rule("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
-
-# Binary dependencies with platform-specific URLs
-# Static tmux binaries from mjakob-gh/build-static-tmux
-http_archive(
-    name = "tmux_linux_amd64",
-    build_file_content = """
-exports_files(["tmux"])
-""",
-    sha256 = "a85c5c663e1b1b5b2c6b8e3b7f9b2a9e5c2a6f4d6b2f3a1c2d7e9f8b4c3d8e9f",
-    strip_prefix = "tmux-3.5a-linux-amd64",
-    urls = ["https://github.com/mjakob-gh/build-static-tmux/releases/download/v3.5a/tmux-3.5a-linux-amd64.tar.gz"],
-)
-
-http_archive(
-    name = "tmux_linux_arm64",
-    build_file_content = """
-exports_files(["tmux"])
-""",
-    sha256 = "b95d6d774f2c8b6c3d7b9e4b8f0c3a1e6c3a7f5d7b3f4a2c3d8e0f9b5c4d9e0f",
-    strip_prefix = "tmux-3.5a-linux-arm64",
-    urls = ["https://github.com/mjakob-gh/build-static-tmux/releases/download/v3.5a/tmux-3.5a-linux-arm64.tar.gz"],
-)
+tmux = use_extension("//tools/tmux:extensions.bzl", "tmux")
+tmux.toolchain(version = "3.5a")
+use_repo(tmux, "tmux")
