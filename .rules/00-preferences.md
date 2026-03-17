@@ -1,9 +1,9 @@
 ---
-alwaysApply: true
 description: User preferences for coding style and tool usage
-globs: '*'
+paths:
+  - '**/*'
+root: true
 ---
-
 # Preferences
 
 - Always write titles in sentence case.

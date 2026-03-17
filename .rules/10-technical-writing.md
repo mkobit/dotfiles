@@ -1,12 +1,12 @@
 ---
+description: Ventilated prose and concise writing standards for documentation files
 paths:
-- '*.md'
-- '*.mdx'
-- '*.adoc'
-- '*.rst'
-- '*.txt'
+  - '*.md'
+  - '*.mdx'
+  - '*.adoc'
+  - '*.rst'
+  - '*.txt'
 ---
-
 # Technical writing
 
 Follow these rules when writing standalone documentation.

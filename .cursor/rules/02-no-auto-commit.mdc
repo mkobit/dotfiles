@@ -1,7 +1,7 @@
 ---
 alwaysApply: true
 description: Never commit or push unless explicitly asked
-globs: *
+globs: '*'
 ---
 
 # No automatic commits

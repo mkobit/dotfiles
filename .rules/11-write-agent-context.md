@@ -1,11 +1,11 @@
 ---
+description: Minimal context rules for agent configuration files
 paths:
-- AGENTS.md
-- CLAUDE.md
-- GEMINI.md
-- '*.mdc'
+  - AGENTS.md
+  - CLAUDE.md
+  - GEMINI.md
+  - '*.mdc'
 ---
-
 # Write agent context
 
 Human-written context files must describe only minimal requirements.

@@ -1,9 +1,8 @@
 ---
-alwaysApply: true
 description: Reference AGENTS.md for project documentation
-globs: '*'
+paths:
+  - '**/*'
 ---
-
 # Project documentation
 
 When working in this repository, reference AGENTS.md in the root directory for complete project documentation, build commands, architecture, and guidelines.

@@ -1,8 +1,8 @@
 ---
+description: Never commit or push unless explicitly asked
 paths:
-- '**/*'
+  - '**/*'
 ---
-
 # No automatic commits
 
 Never commit or push changes unless the user explicitly asks you to do so in that specific request.

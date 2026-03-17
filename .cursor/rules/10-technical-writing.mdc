@@ -1,7 +1,7 @@
 ---
 alwaysApply: false
 description: Ventilated prose and concise writing standards for documentation files
-globs: *.md,*.mdx,*.adoc,*.rst,*.txt
+globs: '*.md,*.mdx,*.adoc,*.rst,*.txt'
 ---
 
 # Technical writing
