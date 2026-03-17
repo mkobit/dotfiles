@@ -1,0 +1,23 @@
+# Upstream skills from anthropics/skills marketplace.
+# Pin to a specific commit for reproducibility.
+# Archive path: skills-<commit>/skills/<skill-name>/...
+# stripComponents = 3 strips the top-level dir + "skills" + skill name,
+# leaving just the skill contents in the target directory.
+
+[".claude/skills/skill-creator"]
+    type = "archive"
+    url = "https://github.com/anthropics/skills/archive/b0cbd3df1533b396d281a6886d5132f623393a9c.tar.gz"
+    stripComponents = 3
+    include = ["*/skills/skill-creator/**"]
+
+[".cursor/skills/skill-creator"]
+    type = "archive"
+    url = "https://github.com/anthropics/skills/archive/b0cbd3df1533b396d281a6886d5132f623393a9c.tar.gz"
+    stripComponents = 3
+    include = ["*/skills/skill-creator/**"]
+
+[".gemini/skills/skill-creator"]
+    type = "archive"
+    url = "https://github.com/anthropics/skills/archive/b0cbd3df1533b396d281a6886d5132f623393a9c.tar.gz"
+    stripComponents = 3
+    include = ["*/skills/skill-creator/**"]

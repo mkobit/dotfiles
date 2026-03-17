@@ -17,6 +17,9 @@ typer
 pydantic
 jsonschema
 
+# Frontmatter parsing
+python-frontmatter
+
 # Time
 whenever
 

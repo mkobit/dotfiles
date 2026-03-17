@@ -22,6 +22,7 @@ manifest:
     faster_whisper: faster_whisper
     filelock: filelock
     flatbuffers: flatbuffers
+    frontmatter: python_frontmatter
     frozenlist: frozenlist
     fsspec: fsspec
     google.protobuf: protobuf
@@ -76,4 +77,4 @@ manifest:
     yarl: yarl
   pip_repository:
     name: pypi
-integrity: bed0552cb58be5bfe1917e3bd1222245668c02806c193d0040b99b224b461aa0
+integrity: cbd6f7b79b97a7a413a704c597f6a08e5260f3c64ffebc1ea1feed856f3d830a

@@ -1,0 +1,32 @@
+load("//tools/agents:rules.bzl", "skills_drift_tests")
+
+package(default_visibility = ["//visibility:public"])
+
+# Canonical source for portable skills deployed to all AI tools.
+filegroup(
+    name = "portable_skills",
+    srcs = glob(["*/SKILL.md"]),
+)
+
+# Derive skill names from the filesystem via glob.
+# This list updates automatically when skills are added or removed.
+_SKILL_NAMES = [
+    f.removesuffix("/SKILL.md")
+    for f in glob(
+        ["*/SKILL.md"],
+        exclude_directories = 1,
+    )
+]
+
+# Drift tests: verify committed copies match canonical source.
+# Generates one diff_test per skill per tool, grouped into a test suite.
+skills_drift_tests(
+    name = "drift_tests",
+    chezmoi_package = "//src/chezmoi",
+    skills = _SKILL_NAMES,
+    tools = [
+        "claude",
+        "cursor",
+        "gemini",
+    ],
+)

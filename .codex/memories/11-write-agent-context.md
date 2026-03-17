@@ -1,0 +1,6 @@
+# Write agent context
+
+Human-written context files must describe only minimal requirements.
+Do not include generic documentation, tutorials, or non-critical context.
+Restrict these files to repository-specific constraints and critical architecture maps.
+Excessive repository context reduces task success rates and increases inference cost.

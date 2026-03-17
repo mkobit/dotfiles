@@ -11,6 +11,8 @@
 **/*.mdc
 !.claude/CLAUDE.md
 !.gemini/GEMINI.md
+!.codex/AGENTS.md
+!.cursor/rules/*.mdc
 
 # Bazel build files
 **/*.bzl
