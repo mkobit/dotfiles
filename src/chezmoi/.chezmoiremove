@@ -22,6 +22,6 @@ install-asdf.sh
 # Old hello_world example
 .local/bin/tools/hello_world
 
-# Superseded by upstream skill-creator (Phase 3)
+# Superseded by upstream skill-creator (deployed via chezmoi externals)
 .claude/skills/claude-extension-builder
 .claude/commands/claude/new/skill.md

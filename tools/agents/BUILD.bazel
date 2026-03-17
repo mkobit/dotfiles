@@ -12,9 +12,3 @@ alias(
     name = "check",
     actual = "//tools/agents/skills_cli:check",
 )
-
-# Validate all canonical skills: bazel run //tools/agents:validate
-alias(
-    name = "validate",
-    actual = "//tools/agents/skills_cli:validate",
-)

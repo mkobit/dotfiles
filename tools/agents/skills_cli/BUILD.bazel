@@ -1,29 +1,17 @@
 load("@pypi//:requirements.bzl", "requirement")
 load("@rules_python//python:defs.bzl", "py_binary", "py_library", "py_test")
 
-# Export validate_test_runner.py for use in validation test macros.
-exports_files(
-    ["validate_test_runner.py"],
-    visibility = ["//src/agents/skills:__pkg__"],
-)
-
 py_library(
     name = "skills_cli_lib",
     srcs = [
         "core.py",
-        "frontmatter.py",
         "models.py",
-        "validate.py",
-        "validate_models.py",
     ],
     visibility = [
         "//src/agents/skills:__pkg__",
         "//tools/agents:__pkg__",
     ],
-    deps = [
-        requirement("pydantic"),
-        requirement("pyyaml"),
-    ],
+    deps = [requirement("pydantic")],
 )
 
 # Sync portable skills from canonical source to chezmoi tool directories.
@@ -52,33 +40,10 @@ py_binary(
     ],
 )
 
-# Validate all canonical skills interactively.
-# Run with: bazel run //tools/agents:validate
-py_binary(
-    name = "validate",
-    srcs = ["validate_cmd.py"],
-    main = "validate_cmd.py",
-    visibility = ["//tools/agents:__pkg__"],
-    deps = [
-        ":skills_cli_lib",
-        requirement("click"),
-    ],
-)
-
 py_test(
     name = "skills_cli_test",
     srcs = ["test_core.py"],
     main = "test_core.py",
-    deps = [
-        ":skills_cli_lib",
-        requirement("pytest"),
-    ],
-)
-
-py_test(
-    name = "test_validate",
-    srcs = ["test_validate.py"],
-    main = "test_validate.py",
     deps = [
         ":skills_cli_lib",
         requirement("pytest"),

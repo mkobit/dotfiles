@@ -8,32 +8,7 @@ load("//tools:lsp_simple.bzl", "setup_simple_lsp")
 
 package(default_visibility = ["//visibility:public"])
 
-exports_files([
-    "pyproject.toml",
-    "rulesync.jsonc",
-    # Rulesync source rules
-    ".rulesync/rules/00-preferences.md",
-    ".rulesync/rules/01-agents-md.md",
-    ".rulesync/rules/02-no-auto-commit.md",
-    ".rulesync/rules/10-technical-writing.md",
-    ".rulesync/rules/11-write-agent-context.md",
-    # Rulesync committed outputs (for drift testing)
-    "CLAUDE.md",
-    "GEMINI.md",
-    ".gemini/memories/01-agents-md.md",
-    ".gemini/memories/02-no-auto-commit.md",
-    ".gemini/memories/10-technical-writing.md",
-    ".gemini/memories/11-write-agent-context.md",
-    ".cursor/rules/00-preferences.mdc",
-    ".cursor/rules/01-agents-md.mdc",
-    ".cursor/rules/02-no-auto-commit.mdc",
-    ".cursor/rules/10-technical-writing.mdc",
-    ".cursor/rules/11-write-agent-context.mdc",
-    ".codex/memories/01-agents-md.md",
-    ".codex/memories/02-no-auto-commit.md",
-    ".codex/memories/10-technical-writing.md",
-    ".codex/memories/11-write-agent-context.md",
-])
+exports_files(["pyproject.toml"])
 
 compile_pip_requirements(
     name = "requirements",
@@ -70,8 +45,6 @@ test_suite(
         "//.claude:claude_hooks_schema_test",
         "//.claude:claude_settings_schema_test",
         "//src/agents/skills:drift_tests",
-        "//src/agents/skills:skill_validation",
-        "//tools/rulesync:drift_tests",
     ],
 )
 

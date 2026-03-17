@@ -1,4 +1,4 @@
-load("//tools/agents:rules.bzl", "skill_validation_tests", "skills_drift_tests")
+load("//tools/agents:rules.bzl", "skills_drift_tests")
 
 package(default_visibility = ["//visibility:public"])
 
@@ -29,10 +29,4 @@ skills_drift_tests(
         "cursor",
         "gemini",
     ],
-)
-
-# Validation tests: spec, lint, and structure checks for each skill.
-skill_validation_tests(
-    name = "skill_validation",
-    skills = _SKILL_NAMES,
 )
