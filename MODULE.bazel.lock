@@ -305,7 +305,7 @@
   "moduleExtensions": {
     "//tools/tmux:extensions.bzl%tmux": {
       "general": {
-        "bzlTransitiveDigest": "bNyasdUUjpuaYi3Q7UHDy7QezfaRcJXLcr75R6f69AI=",
+        "bzlTransitiveDigest": "CSZ/5OYLUxxEMx4ih7DR/qq0/4X1xYVnPi196BR/nn4=",
         "usagesDigest": "mrXsD2GkKSFFoQf/Cq1LmkvWr9UoYqgK4ZT1ZVa4L60=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"

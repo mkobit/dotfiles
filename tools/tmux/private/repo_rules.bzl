@@ -1,12 +1,19 @@
 def _tmux_gz_download_impl(repository_ctx):
-    repository_ctx.download(
+    # Find the original filename from the URL, expecting a .gz file
+    url = repository_ctx.attr.urls[0]
+    filename = url.split("/")[-1]
+
+    # Strip the .gz extension to get the extracted file name
+    extracted_name = filename[:-3] if filename.endswith(".gz") else filename
+
+    repository_ctx.download_and_extract(
         url = repository_ctx.attr.urls,
         sha256 = repository_ctx.attr.sha256,
-        output = "tmux.gz",
+        output = ".",
+        rename_files = {
+            extracted_name: "tmux",
+        },
     )
-
-    # Decompress it
-    repository_ctx.execute(["gzip", "-d", "tmux.gz"])
 
     # Make it executable
     repository_ctx.execute(["chmod", "+x", "tmux"])
