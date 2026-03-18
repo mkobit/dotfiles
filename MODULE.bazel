@@ -45,5 +45,5 @@ use_repo(multitool, "multitool")
 
 # External dependencies
 tmux = use_extension("//tools/tmux:extensions.bzl", "tmux")
-tmux.toolchain(version = "3.5a")
+tmux.toolchain(version = "3.6")
 use_repo(tmux, "tmux")

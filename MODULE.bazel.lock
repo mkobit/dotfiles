@@ -303,6 +303,63 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//tools/tmux:extensions.bzl%tmux": {
+      "general": {
+        "bzlTransitiveDigest": "bNyasdUUjpuaYi3Q7UHDy7QezfaRcJXLcr75R6f69AI=",
+        "usagesDigest": "mrXsD2GkKSFFoQf/Cq1LmkvWr9UoYqgK4ZT1ZVa4L60=",
+        "recordedInputs": [
+          "REPO_MAPPING:,bazel_tools bazel_tools"
+        ],
+        "generatedRepoSpecs": {
+          "tmux_linux_amd64": {
+            "repoRuleId": "@@//tools/tmux/private:repo_rules.bzl%tmux_gz_download",
+            "attributes": {
+              "urls": [
+                "https://github.com/mjakob-gh/build-static-tmux/releases/download/v3.6/tmux.linux-amd64.gz"
+              ],
+              "sha256": "380fa2387182ed4d922eb0f6b0deab059e8b5659b0c4d3c2baa9223e1b858e09"
+            }
+          },
+          "tmux_linux_arm64": {
+            "repoRuleId": "@@//tools/tmux/private:repo_rules.bzl%tmux_gz_download",
+            "attributes": {
+              "urls": [
+                "https://github.com/mjakob-gh/build-static-tmux/releases/download/v3.6/tmux.linux-arm64.gz"
+              ],
+              "sha256": "01a9df2d9921930365804d068d26b92063682855959bb3ee2d6b19346c385f6a"
+            }
+          },
+          "tmux_darwin_amd64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "urls": [
+                "https://ghcr.io/v2/homebrew/core/tmux/blobs/sha256:b0ca1f90384e487d2316bdcaef59ba4fdf63cb04fa561d424605f86935599563"
+              ],
+              "sha256": "b0ca1f90384e487d2316bdcaef59ba4fdf63cb04fa561d424605f86935599563",
+              "strip_prefix": "tmux/3.6a/bin",
+              "build_file_content": "\nexports_files([\"tmux\"])\n",
+              "type": "tar.gz"
+            }
+          },
+          "tmux_darwin_arm64": {
+            "repoRuleId": "@@bazel_tools//tools/build_defs/repo:http.bzl%http_archive",
+            "attributes": {
+              "urls": [
+                "https://ghcr.io/v2/homebrew/core/tmux/blobs/sha256:9897a0d7b7e0159c1d09818d76e0ab88cc3fcdba8abd2bbbf349f84827ac87df"
+              ],
+              "sha256": "9897a0d7b7e0159c1d09818d76e0ab88cc3fcdba8abd2bbbf349f84827ac87df",
+              "strip_prefix": "tmux/3.6a/bin",
+              "build_file_content": "\nexports_files([\"tmux\"])\n",
+              "type": "tar.gz"
+            }
+          },
+          "tmux": {
+            "repoRuleId": "@@//tools/tmux/private:repo_rules.bzl%tmux_hub",
+            "attributes": {}
+          }
+        }
+      }
+    },
     "@@aspect_rules_js+//npm:extensions.bzl%pnpm": {
       "general": {
         "bzlTransitiveDigest": "DgwDm+MWNAsndpAMq6orkIbmSaGdElZZVtjIRkp9QXQ=",
