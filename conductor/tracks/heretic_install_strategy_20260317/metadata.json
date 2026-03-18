@@ -1,0 +1,8 @@
+{
+  "track_id": "heretic_install_strategy_20260317",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-03-17T10:00:00Z",
+  "updated_at": "2026-03-17T10:00:00Z",
+  "description": "Determine how we can safely and detrmistically install heretic https://github.com/p-e-w/heretic with our dotfiles/chezmoi/bazel strategy"
+}

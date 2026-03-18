@@ -16,3 +16,18 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 - [ ] **Track: make ci caching actually work in github actions**
   *Link: [./tracks/ci_caching_improvement_20260317/](./tracks/ci_caching_improvement_20260317/)*
+
+---
+
+- [ ] **Track: Determine how we can safely and detrmistically install impeccable (GitHub repo of agent skills) https://impeccable.style/#hero https://github.com/pbakaus/impeccable**
+  *Link: [./tracks/impeccable_install_strategy_20260317/](./tracks/impeccable_install_strategy_20260317/)*
+
+---
+
+- [ ] **Track: Determine how we can safely and detrmistically install agency agents (GitHub repo) https://github.com/msitarzewski/agency-agents yes version pinning and shas**
+  *Link: [./tracks/agency_agents_install_strategy_20260317/](./tracks/agency_agents_install_strategy_20260317/)*
+
+---
+
+- [ ] **Track: Determine how we can safely and detrmistically install promptfoo (GitHub library) https://github.com/promptfoo/promptfoo**
+  *Link: [./tracks/promptfoo_install_strategy_20260317/](./tracks/promptfoo_install_strategy_20260317/)*
