@@ -16,7 +16,7 @@
 
 [asdf]
   installation = "disabled"
-  version = "0.18.0"
+  version = "0.18.1"
 
   # Language version management plugins
   # Plugins are installed/removed based on this array
@@ -29,7 +29,7 @@
   ]
 
 [asdf.checksums]
-darwin_arm64 = "5c82af09a9b17bb71195cd1c0a6baa1c7c4491b837ac601c42853e553b50a618"
-darwin_amd64 = "aa698a8146fcdcb1145224ffb135f1b3ce2b7e4c2daceb00229ff82bb923d13b"
-linux_amd64 = "4d3007070166cb0a652af26c3f0462b021e04cb26c4ab13894d13689da89f5b8"
-linux_arm64 = "1749b89039e4af51b549aa0919812fd68722c1a26a90eaf84db0b46a39f557a9"
+darwin_arm64 = "8d738bdd18f24abda7a6750cec601c69991b25827386894161cbba7646b7846b"
+darwin_amd64 = "16d4daaa7062671ee4d3574dd4c1809495753179d27ccdf530d6567d2f98e5c2"
+linux_amd64 = "56141dc99eab75c140dcdd85cf73f3b82fed2485a8dccd4f11a4dc5cbcb6ea5c"
+linux_arm64 = "1850faf576cab7acb321e99dd98d3fe0d4665e1331086ad9ed991aeec1dc9d36"
