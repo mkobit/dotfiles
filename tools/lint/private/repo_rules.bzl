@@ -1,8 +1,4 @@
 def _ruff_hub_impl(repository_ctx):
-    # This repository acts as a simple router that provides a stable target (`@ruff//:ruff`)
-    # that uses Bazel's platform-specific mechanisms to point to the correct dynamically
-    # downloaded static binary repository (e.g., `@ruff_x86_64_unknown_linux_gnu`).
-
     build_content = """
 package(default_visibility = ["//visibility:public"])
 

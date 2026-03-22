@@ -305,7 +305,7 @@
   "moduleExtensions": {
     "//tools/lint:extensions.bzl%ruff": {
       "general": {
-        "bzlTransitiveDigest": "aPU7/ctVbmQ8ktia4+rW3reuLzCWvSXAVhxIJO6rmCA=",
+        "bzlTransitiveDigest": "4Xgqgn2RjheM2hOLk+IaoE309gaxF6l+ofEvzyw50SY=",
         "usagesDigest": "MMZvznvlS9nTF0IpoJBa6/6yh6VBscjVdsrbhVe/2Zk=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"
