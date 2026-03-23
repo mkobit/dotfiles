@@ -47,3 +47,7 @@ use_repo(multitool, "multitool")
 tmux = use_extension("//tools/tmux:extensions.bzl", "tmux")
 tmux.toolchain(version = "3.6")
 use_repo(tmux, "tmux")
+
+ruff = use_extension("//tools/lint:extensions.bzl", "ruff")
+ruff.toolchain(version = "0.15.7")
+use_repo(ruff, "ruff")

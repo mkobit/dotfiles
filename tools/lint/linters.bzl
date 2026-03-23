@@ -7,7 +7,7 @@ load("@rules_python//python:defs.bzl", "PyInfo")
 
 # Define Ruff aspect
 ruff = lint_ruff_aspect(
-    binary = "@aspect_rules_lint//format:ruff",
+    binary = "@@//tools/lint:ruff",
     configs = [Label("//:pyproject.toml")],
 )
 

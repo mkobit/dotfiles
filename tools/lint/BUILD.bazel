@@ -1,3 +1,8 @@
 package(default_visibility = ["//visibility:public"])
 
 exports_files(["linters.bzl"])
+
+alias(
+    name = "ruff",
+    actual = "@ruff//:ruff",
+)
