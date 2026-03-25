@@ -2,5 +2,5 @@ load("//tools/agentskills:rules.bzl", "agent_skill")
 
 agent_skill(
     name = "example_skill",
-    src = "SKILL.md",
+    srcs = glob(["**/*"]),
 )
