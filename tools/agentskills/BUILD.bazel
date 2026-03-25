@@ -1,0 +1,12 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+
+exports_files(["schema.json"])
+
+py_binary(
+    name = "extract_frontmatter",
+    srcs = ["extract_frontmatter.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@pypi//python_frontmatter",
+    ],
+)
