@@ -26,7 +26,6 @@ class AgentSkill(BaseModel):
     description: str = Field(
         ...,
         min_length=1,
-        max_length=1024,
         description="A short description of what the skill does and when to use it.",
     )
     license: str | None = Field(

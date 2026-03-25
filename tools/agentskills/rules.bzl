@@ -27,10 +27,12 @@ def _agent_skill_build_impl(ctx):
             progress_message = "Processing and validating %s" % md_file.short_path,
         )
 
+    # DefaultInfo returns the original sources unchanged, as dependencies
+    # typically expect to operate on the original files.
     # OutputGroupInfo explicitly separates JSON derivatives from raw asset files,
     # enabling multivariant outputs across tooling.
     return [
-        DefaultInfo(files = depset(output_files + other_files)),
+        DefaultInfo(files = depset(ctx.files.srcs)),
         OutputGroupInfo(
             json_files = depset(output_files),
             raw_assets = depset(other_files),

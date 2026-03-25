@@ -8,7 +8,7 @@ metadata:
 allowed-tools: "bash grep"
 ---
 
-# Example Skill
+# Example skill
 
 This is the body of the markdown document describing the example skill.
 It can contain typical markdown formatting, instructions, and prompts.
