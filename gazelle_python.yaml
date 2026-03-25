@@ -77,4 +77,4 @@ manifest:
     yarl: yarl
   pip_repository:
     name: pypi
-integrity: cbd6f7b79b97a7a413a704c597f6a08e5260f3c64ffebc1ea1feed856f3d830a
+integrity: be5c806ebb0abfe9ae9e4f641fbb8912092d5dace1d793289bfd59dcffc7eef9
