@@ -1,0 +1,12 @@
+load("@rules_python//python:defs.bzl", "py_binary")
+
+py_binary(
+    name = "process_skill",
+    srcs = ["process_skill.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@pypi//click",
+        "@pypi//pydantic",
+        "@pypi//python_frontmatter",
+    ],
+)
