@@ -1,17 +1,21 @@
-import argparse
 import json
 import sys
 from pathlib import Path
 from typing import Any
 
+import click
 import yaml  # type: ignore
 
+from tools.agentskills.process_skill import AgentSkill
 
-def transform_frontmatter(
-    metadata: dict[str, Any], tool: str, scope: str
-) -> dict[str, Any]:
+
+def transform_frontmatter(skill: AgentSkill, tool: str, scope: str) -> dict[str, Any]:
     """Apply tool-specific and scope-specific transformations to the frontmatter."""
-    transformed = metadata.copy()
+
+    # Dump using the Pydantic model for validation/consistency
+    transformed: dict[str, Any] = skill.model_dump(
+        mode="json", by_alias=True, exclude_none=True
+    )
 
     # Generic scope addition
     if "metadata" not in transformed or not isinstance(transformed["metadata"], dict):
@@ -31,54 +35,58 @@ def transform_frontmatter(
     return transformed
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Transform agentskills.io .md.json to tool-specific markdown."
-    )
-    parser.add_argument(
-        "input_json", type=Path, help="Input .md.json file from process_skill.py"
-    )
-    parser.add_argument("output_md", type=Path, help="Output tool-specific .md file")
-    parser.add_argument(
-        "--tool",
-        required=True,
-        choices=["claude", "gemini", "cursor"],
-        help="Target AI tool",
-    )
-    parser.add_argument(
-        "--scope", required=True, choices=["user", "repo"], help="Scope of the skill"
-    )
-
-    args = parser.parse_args()
-
+@click.command(help="Transform agentskills.io .md.json to tool-specific markdown.")
+@click.argument("input_json", type=click.Path(exists=True, path_type=Path))
+@click.argument("output_md", type=click.Path(path_type=Path))
+@click.option(
+    "--tool",
+    required=True,
+    type=click.Choice(["claude", "gemini", "cursor"]),
+    help="Target AI tool",
+)
+@click.option(
+    "--scope",
+    required=True,
+    type=click.Choice(["user", "repo"]),
+    help="Scope of the skill",
+)
+def main(input_json: Path, output_md: Path, tool: str, scope: str) -> None:
+    """Read a processed .md.json file, apply transformations, and write as Markdown."""
     try:
-        with open(args.input_json, "r", encoding="utf-8") as f:
+        with open(input_json, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        metadata = data.get("metadata", {})
+        # Parse using the same Pydantic model used during generation
+        metadata_dict = data.get("metadata", {})
+        try:
+            skill = AgentSkill.model_validate(metadata_dict)
+        except Exception as e:
+            click.echo(f"Failed to validate metadata against AgentSkill: {e}", err=True)
+            sys.exit(1)
+
         body = data.get("body", "")
 
         # Transform the metadata
-        transformed_metadata = transform_frontmatter(metadata, args.tool, args.scope)
+        transformed_metadata = transform_frontmatter(skill, tool, scope)
 
         # Generate the output markdown
         # PyYAML dumps with some defaults we want to override for frontmatter
         yaml_str = yaml.dump(
-            transformed_metadata, default_flow_style=False, sort_keys=False
+            transformed_metadata, default_flow_style=False, sort_keys=True
         )
 
         output_content = f"---\n{yaml_str}---\n\n{body}"
 
-        args.output_md.parent.mkdir(parents=True, exist_ok=True)
-        with open(args.output_md, "w", encoding="utf-8") as f:
+        output_md.parent.mkdir(parents=True, exist_ok=True)
+        with open(output_md, "w", encoding="utf-8") as f:
             f.write(output_content)
 
-        print(
-            f"Successfully transformed {args.input_json} to {args.output_md} for {args.tool} ({args.scope} scope)"
+        click.echo(
+            f"Successfully transformed {input_json} to {output_md} for {tool} ({scope} scope)"
         )
 
     except Exception as e:
-        print(f"Error transforming {args.input_json}: {e}", file=sys.stderr)
+        click.echo(f"Error transforming {input_json}: {e}", err=True)
         sys.exit(1)
 
 

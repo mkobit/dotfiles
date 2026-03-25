@@ -1,6 +1,6 @@
 ---
 name: test-skill
-description: A mock skill for testing transformation rules.
+description: A mock skill for testing transformation rules
 license: MIT
 compatibility: unix
 ---
