@@ -1,9 +1,11 @@
 ---
 name: "example-skill"
 description: "A simple example skill demonstrating the format."
-version: "1.0.0"
-author: "Jules"
-tags: ["example", "demo"]
+license: "MIT"
+compatibility: "Requires Python 3.10+"
+metadata:
+  custom_key: "value"
+allowed-tools: "bash grep"
 ---
 
 # Example Skill

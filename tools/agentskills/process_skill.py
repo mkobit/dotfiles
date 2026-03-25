@@ -14,19 +14,38 @@ class AgentSkill(BaseModel):
     for an agentskills.io skill file.
     """
 
-    model_config = ConfigDict(extra="allow")
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
-    name: str = Field(..., description="The unique name of the skill")
+    name: str = Field(
+        ...,
+        min_length=1,
+        max_length=64,
+        pattern=r"^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$",
+        description="The unique name of the skill. Lowercase letters, numbers, and hyphens only.",
+    )
     description: str = Field(
-        ..., description="A short description of what the skill does"
+        ...,
+        min_length=1,
+        max_length=1024,
+        description="A short description of what the skill does and when to use it.",
     )
-    version: str | None = Field(None, description="The version of the skill")
-    author: str | None = Field(None, description="The author of the skill")
-    repository: str | None = Field(
-        None, description="A link to the skill's source repository"
+    license: str | None = Field(
+        None, description="License name or reference to a bundled license file."
     )
-    license: str | None = Field(None, description="The license of the skill")
-    tags: list[str] | None = Field(default_factory=list, description="Categorical tags")
+    compatibility: str | None = Field(
+        None,
+        max_length=500,
+        description="Indicates environment requirements.",
+    )
+    metadata: dict[str, Any] | None = Field(
+        default_factory=dict,
+        description="Arbitrary key-value mapping for additional metadata.",
+    )
+    allowed_tools: str | None = Field(
+        None,
+        alias="allowed-tools",
+        description="Space-delimited list of pre-approved tools the skill may use.",
+    )
 
 
 @click.command(
@@ -53,7 +72,7 @@ def main(input_md: Path, output_json: Path) -> None:
 
         # Output the validated frontmatter along with the markdown body
         output_data: dict[str, Any] = {
-            "metadata": validated_skill.model_dump(mode="json"),
+            "metadata": validated_skill.model_dump(mode="json", by_alias=True),
             "body": body,
         }
 

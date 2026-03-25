@@ -27,8 +27,14 @@ def _agent_skill_build_impl(ctx):
             progress_message = "Processing and validating %s" % md_file.short_path,
         )
 
+    # OutputGroupInfo explicitly separates JSON derivatives from raw asset files,
+    # enabling multivariant outputs across tooling.
     return [
         DefaultInfo(files = depset(output_files + other_files)),
+        OutputGroupInfo(
+            json_files = depset(output_files),
+            raw_assets = depset(other_files),
+        ),
     ]
 
 agent_skill_build = rule(
@@ -52,8 +58,6 @@ def agent_skill(name, srcs, visibility = None):
         srcs: A list of files making up the skill (e.g., glob(["**/*"]))
         visibility: The visibility of the target
     """
-
-    # Use a dot separator for generated build targets as requested
     build_target_name = name + ".build"
 
     agent_skill_build(
@@ -62,8 +66,6 @@ def agent_skill(name, srcs, visibility = None):
         visibility = visibility,
     )
 
-    # For now, the main target simply aliases the generated build target.
-    # We can easily add more targets or chain outputs later if needed.
     native.alias(
         name = name,
         actual = build_target_name,
