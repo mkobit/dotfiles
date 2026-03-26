@@ -5,6 +5,6 @@ license: MIT
 compatibility: unix
 ---
 
-# Test Skill
+# Test skill
 
 This is a test skill markdown body.

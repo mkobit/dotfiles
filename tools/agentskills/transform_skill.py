@@ -9,20 +9,13 @@ import yaml  # type: ignore
 from tools.agentskills.process_skill import AgentSkill
 
 
-def transform_frontmatter(skill: AgentSkill, tool: str, scope: str) -> dict[str, Any]:
+def transform_frontmatter(skill: AgentSkill, tool: str, scope: str) -> AgentSkill:
     """Apply tool-specific and scope-specific transformations to the frontmatter."""
 
-    # Dump using the Pydantic model for validation/consistency
-    transformed: dict[str, Any] = skill.model_dump(
-        mode="json", by_alias=True, exclude_none=True
-    )
-
-    # Generic scope addition
-    if "metadata" not in transformed or not isinstance(transformed["metadata"], dict):
-        transformed["metadata"] = {}
-
-    transformed["metadata"]["scope"] = scope
-    transformed["metadata"]["target_tool"] = tool
+    # Mutate the skill object directly or create a new one based on logic
+    new_metadata = skill.metadata.copy() if skill.metadata else {}
+    new_metadata["scope"] = scope
+    new_metadata["target_tool"] = tool
 
     # Tool-specific logic (placeholder for future adaptations like extensions/slash commands)
     if tool == "claude":
@@ -32,7 +25,15 @@ def transform_frontmatter(skill: AgentSkill, tool: str, scope: str) -> dict[str,
         # Example: Gemini might require different formatting
         pass
 
-    return transformed
+    # Return a new AgentSkill instance with the updated metadata
+    return AgentSkill(
+        name=skill.name,
+        description=skill.description,
+        license=skill.license,
+        compatibility=skill.compatibility,
+        metadata=new_metadata,
+        allowed_tools=skill.allowed_tools,
+    )
 
 
 @click.command(help="Transform agentskills.io .md.json to tool-specific markdown.")
@@ -67,12 +68,14 @@ def main(input_json: Path, output_md: Path, tool: str, scope: str) -> None:
         body = data.get("body", "")
 
         # Transform the metadata
-        transformed_metadata = transform_frontmatter(skill, tool, scope)
+        transformed_skill = transform_frontmatter(skill, tool, scope)
 
         # Generate the output markdown
         # PyYAML dumps with some defaults we want to override for frontmatter
         yaml_str = yaml.dump(
-            transformed_metadata, default_flow_style=False, sort_keys=True
+            transformed_skill.model_dump(mode="json", by_alias=True, exclude_none=True),
+            default_flow_style=False,
+            sort_keys=True,
         )
 
         output_content = f"---\n{yaml_str}---\n\n{body}"
