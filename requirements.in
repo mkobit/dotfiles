@@ -19,6 +19,7 @@ jsonschema
 
 # Frontmatter parsing
 python-frontmatter
+types-PyYAML
 
 # Time
 whenever

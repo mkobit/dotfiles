@@ -10,3 +10,16 @@ py_binary(
         "@pypi//python_frontmatter",
     ],
 )
+
+py_binary(
+    name = "transform_skill",
+    srcs = ["transform_skill.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":process_skill",
+        "@pypi//click",
+        "@pypi//pydantic",
+        "@pypi//pyyaml",
+        "@pypi//types_pyyaml",
+    ],
+)

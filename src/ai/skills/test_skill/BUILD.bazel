@@ -1,0 +1,28 @@
+load("//tools/agentskills:rules.bzl", "agent_skill", "claude_skill", "gemini_skill")
+
+agent_skill(
+    name = "test_skill",
+    srcs = glob(["**/*"]),
+    visibility = ["//visibility:private"],
+)
+
+claude_skill(
+    name = "test_skill_claude_user",
+    scope = "user",
+    skill = ":test_skill",
+    visibility = ["//visibility:private"],
+)
+
+claude_skill(
+    name = "test_skill_claude_repo",
+    scope = "repo",
+    skill = ":test_skill",
+    visibility = ["//visibility:private"],
+)
+
+gemini_skill(
+    name = "test_skill_gemini_user",
+    scope = "user",
+    skill = ":test_skill",
+    visibility = ["//visibility:private"],
+)

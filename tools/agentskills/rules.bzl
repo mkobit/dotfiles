@@ -73,3 +73,97 @@ def agent_skill(name, srcs, visibility = None):
         actual = build_target_name,
         visibility = visibility,
     )
+
+def _tool_skill_impl(ctx):
+    # Retrieve the OutputGroupInfo from the depended agent_skill
+    agent_skill_target = ctx.attr.skill
+    if OutputGroupInfo not in agent_skill_target:
+        fail("The 'skill' attribute must point to an agent_skill target.")
+
+    json_files = agent_skill_target[OutputGroupInfo].json_files.to_list()
+    if not json_files:
+        fail("No json_files found in the agent_skill target.")
+
+    # There should typically be exactly one SKILL.md.json per agent_skill,
+    # but the rule structure allows for multiple markdown files.
+    output_files = []
+
+    for json_file in json_files:
+        # Reconstruct the original name without the .md.json suffix
+        # Use target name as prefix to prevent conflicting outputs from same source file
+        base_name = json_file.basename
+        if base_name.endswith(".md.json"):
+            new_basename = ctx.label.name + "_" + base_name[:-8] + "." + ctx.attr.tool + ".md"
+        else:
+            new_basename = ctx.label.name + "_" + base_name + "." + ctx.attr.tool + ".md"
+
+        output_md = ctx.actions.declare_file(new_basename)
+        output_files.append(output_md)
+
+        args = ctx.actions.args()
+        args.add(json_file.path)
+        args.add(output_md.path)
+        args.add("--tool", ctx.attr.tool)
+        args.add("--scope", ctx.attr.scope)
+
+        ctx.actions.run(
+            inputs = [json_file],
+            outputs = [output_md],
+            arguments = [args],
+            executable = ctx.executable._transformer,
+            progress_message = "Transforming %s for %s (%s scope)" % (json_file.short_path, ctx.attr.tool, ctx.attr.scope),
+        )
+
+    return [
+        DefaultInfo(files = depset(output_files)),
+    ]
+
+_tool_skill = rule(
+    implementation = _tool_skill_impl,
+    attrs = {
+        "skill": attr.label(mandatory = True, providers = [OutputGroupInfo]),
+        "tool": attr.string(mandatory = True, values = ["claude", "gemini", "cursor"]),
+        "scope": attr.string(default = "user", values = ["user", "repo"]),
+        "_transformer": attr.label(
+            default = Label("//tools/agentskills:transform_skill"),
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+)
+
+def claude_skill(name, skill, scope = "user", visibility = None):
+    """
+    Transforms an agent_skill into a format suitable for Claude.
+
+    Args:
+        name: Name of the target
+        skill: Label of the agent_skill target
+        scope: Scope of the skill ("user" or "repo")
+        visibility: The visibility of the target
+    """
+    _tool_skill(
+        name = name,
+        skill = skill,
+        tool = "claude",
+        scope = scope,
+        visibility = visibility,
+    )
+
+def gemini_skill(name, skill, scope = "user", visibility = None):
+    """
+    Transforms an agent_skill into a format suitable for Gemini.
+
+    Args:
+        name: Name of the target
+        skill: Label of the agent_skill target
+        scope: Scope of the skill ("user" or "repo")
+        visibility: The visibility of the target
+    """
+    _tool_skill(
+        name = name,
+        skill = skill,
+        tool = "gemini",
+        scope = scope,
+        visibility = visibility,
+    )
