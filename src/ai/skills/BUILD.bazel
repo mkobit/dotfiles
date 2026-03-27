@@ -1,0 +1,24 @@
+load("//tools/agentskills:rules.bzl", "claude_skill", "gemini_skill")
+
+# Transform the Conductor Gemini Extension into a Claude Skill format
+claude_skill(
+    name = "conductor_claude_skill",
+    scope = "user",
+    skill = "@gemini_conductor//:extension",
+    visibility = ["//visibility:public"],
+)
+
+# Transform selected Anthropics skills into Gemini Skill format
+gemini_skill(
+    name = "claude_api_gemini_skill",
+    scope = "user",
+    skill = "@anthropics_skills//:claude-api",
+    visibility = ["//visibility:public"],
+)
+
+gemini_skill(
+    name = "frontend_design_gemini_skill",
+    scope = "user",
+    skill = "@anthropics_skills//:frontend-design",
+    visibility = ["//visibility:public"],
+)

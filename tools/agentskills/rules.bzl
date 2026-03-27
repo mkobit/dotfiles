@@ -3,11 +3,14 @@ Bazel rules for agentskills.io
 """
 
 def _agent_skill_build_impl(ctx):
-    # Separate the markdown files (to be processed) from other files (to be passed through)
-    markdown_files = [f for f in ctx.files.srcs if f.path.endswith(".md")]
-    other_files = [f for f in ctx.files.srcs if not f.path.endswith(".md")]
+    # Only process files named "SKILL.md" as agentskills.io specifies
+    markdown_files = [f for f in ctx.files.srcs if f.basename == "SKILL.md"]
+    other_files = [f for f in ctx.files.srcs if f.basename != "SKILL.md"]
 
     output_files = []
+
+    if not markdown_files:
+        fail("No SKILL.md found in srcs for agent_skill target %s" % ctx.label)
 
     for md_file in markdown_files:
         # Generate the output JSON file alongside the input markdown
@@ -90,12 +93,17 @@ def _tool_skill_impl(ctx):
 
     for json_file in json_files:
         # Reconstruct the original name without the .md.json suffix
-        # Use target name as prefix to prevent conflicting outputs from same source file
-        base_name = json_file.basename
-        if base_name.endswith(".md.json"):
-            new_basename = ctx.label.name + "_" + base_name[:-8] + "." + ctx.attr.tool + ".md"
+        # Since external repository paths start with '../', clean them up for the filename
+        safe_path = json_file.short_path
+        if safe_path.startswith("../"):
+            safe_path = safe_path[3:]
+
+        safe_name = safe_path.replace("/", "_").replace("\\", "_")
+
+        if safe_name.endswith(".md.json"):
+            new_basename = ctx.label.name + "_" + safe_name[:-8] + "." + ctx.attr.tool + ".md"
         else:
-            new_basename = ctx.label.name + "_" + base_name + "." + ctx.attr.tool + ".md"
+            new_basename = ctx.label.name + "_" + safe_name + "." + ctx.attr.tool + ".md"
 
         output_md = ctx.actions.declare_file(new_basename)
         output_files.append(output_md)
@@ -149,6 +157,53 @@ def claude_skill(name, skill, scope = "user", visibility = None):
         scope = scope,
         visibility = visibility,
     )
+
+def _gemini_extension_impl(ctx):
+    # Locate the gemini-extension.json file within srcs
+    extension_json = None
+    for f in ctx.files.srcs:
+        if f.path.endswith(ctx.attr.extension_json):
+            extension_json = f
+            break
+
+    if not extension_json:
+        fail("Could not find the {} file in srcs".format(ctx.attr.extension_json))
+
+    # Generate the output JSON file safely within the current package
+    output_json = ctx.actions.declare_file(ctx.label.name + "_" + extension_json.basename + ".json")
+
+    args = ctx.actions.args()
+    args.add(extension_json.path)
+    args.add(output_json.path)
+
+    ctx.actions.run(
+        inputs = ctx.files.srcs,
+        outputs = [output_json],
+        arguments = [args],
+        executable = ctx.executable._processor,
+        progress_message = "Processing Gemini extension %s" % extension_json.short_path,
+    )
+
+    return [
+        DefaultInfo(files = depset(ctx.files.srcs)),
+        OutputGroupInfo(
+            json_files = depset([output_json]),
+            raw_assets = depset(ctx.files.srcs),
+        ),
+    ]
+
+gemini_extension = rule(
+    implementation = _gemini_extension_impl,
+    attrs = {
+        "srcs": attr.label_list(allow_files = True, mandatory = True),
+        "extension_json": attr.string(default = "gemini-extension.json"),
+        "_processor": attr.label(
+            default = Label("//tools/agentskills:process_gemini_extension"),
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+)
 
 def gemini_skill(name, skill, scope = "user", visibility = None):
     """

@@ -303,6 +303,37 @@
   },
   "selectedYankedVersions": {},
   "moduleExtensions": {
+    "//tools/agentskills:extensions.bzl%ai_skills": {
+      "general": {
+        "bzlTransitiveDigest": "OYLuoiRGa6qynYh63z5t7E7B3I02sY0o1UE8LqdXlr8=",
+        "usagesDigest": "Vhg3drlHWUE70xv5qURU12M9quVwdrdwfbxSI0ZfWtM=",
+        "recordedInputs": [
+          "REPO_MAPPING:,bazel_tools bazel_tools"
+        ],
+        "generatedRepoSpecs": {
+          "anthropics_skills": {
+            "repoRuleId": "@@//tools/agentskills:extensions.bzl%anthropics_skills_repo",
+            "attributes": {
+              "urls": [
+                "https://github.com/anthropics/skills/archive/98669c11ca63e9c81c11501e1437e5c47b556621.tar.gz"
+              ],
+              "sha256": "435b687005b44bbc70c1c95e4362532987fe06547f6740ceba05fbdcc200aac3",
+              "strip_prefix": "skills-98669c11ca63e9c81c11501e1437e5c47b556621"
+            }
+          },
+          "gemini_conductor": {
+            "repoRuleId": "@@//tools/agentskills:extensions.bzl%gemini_extension_repo",
+            "attributes": {
+              "urls": [
+                "https://github.com/gemini-cli-extensions/conductor/archive/refs/tags/conductor-v0.4.1.tar.gz"
+              ],
+              "sha256": "701f09ab6a2f13edf384ef6171d79b67e4b4692d3fa2a81035a6b72439129d1a",
+              "strip_prefix": "conductor-conductor-v0.4.1"
+            }
+          }
+        }
+      }
+    },
     "//tools/lint:extensions.bzl%ruff": {
       "general": {
         "bzlTransitiveDigest": "4Xgqgn2RjheM2hOLk+IaoE309gaxF6l+ofEvzyw50SY=",

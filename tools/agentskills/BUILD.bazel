@@ -23,3 +23,12 @@ py_binary(
         "@pypi//types_pyyaml",
     ],
 )
+
+py_binary(
+    name = "process_gemini_extension",
+    srcs = ["process_gemini_extension.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@pypi//click",
+    ],
+)

@@ -51,3 +51,6 @@ use_repo(tmux, "tmux")
 ruff = use_extension("//tools/lint:extensions.bzl", "ruff")
 ruff.toolchain(version = "0.15.7")
 use_repo(ruff, "ruff")
+
+ai_skills = use_extension("//tools/agentskills:extensions.bzl", "ai_skills")
+use_repo(ai_skills, "anthropics_skills", "gemini_conductor")
