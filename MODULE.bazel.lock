@@ -305,7 +305,7 @@
   "moduleExtensions": {
     "//tools/agentskills:extensions.bzl%ai_skills": {
       "general": {
-        "bzlTransitiveDigest": "OYLuoiRGa6qynYh63z5t7E7B3I02sY0o1UE8LqdXlr8=",
+        "bzlTransitiveDigest": "Gfm/1Nk/na45RZCWEun54Q5tP7Lh2dmfMoJVWtR9ON4=",
         "usagesDigest": "Vhg3drlHWUE70xv5qURU12M9quVwdrdwfbxSI0ZfWtM=",
         "recordedInputs": [
           "REPO_MAPPING:,bazel_tools bazel_tools"

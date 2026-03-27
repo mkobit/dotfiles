@@ -11,26 +11,22 @@ def _anthropics_skills_repo_impl(ctx):
 
 """
 
-    # Find all directories under skills/
-    # We use find to list directories that contain a SKILL.md
-    res = ctx.execute(["bash", "-c", "find skills -mindepth 1 -maxdepth 1 -type d"])
-    if res.return_code == 0:
-        directories = res.stdout.strip().split("\n")
-        for d in directories:
-            if not d:
-                continue
-            skill_name = d.replace("skills/", "")
-
-            # Verify SKILL.md exists
-            res_file = ctx.execute(["test", "-f", "{}/SKILL.md".format(d)])
-            if res_file.return_code == 0:
-                build_content += """
+    # Traverse using Starlark's path API instead of relying on bash/find
+    # This ensures cross-platform compatibility without external dependencies.
+    skills_dir = ctx.path("skills")
+    if skills_dir.exists:
+        for p in skills_dir.readdir():
+            if p.is_dir:
+                skill_md_path = p.get_child("SKILL.md")
+                if skill_md_path.exists:
+                    skill_name = p.basename
+                    build_content += """
 agent_skill(
     name = "{name}",
-    srcs = glob(["{path}/**/*"]),
+    srcs = glob(["skills/{name}/**/*"]),
     visibility = ["//visibility:public"],
 )
-""".format(name = skill_name, path = d)
+""".format(name = skill_name)
 
     ctx.file("BUILD.bazel", build_content)
 
