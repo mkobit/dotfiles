@@ -32,5 +32,38 @@
         ]
       }
     ]
+  },
+  "sandbox": {
+    "enabled": true,
+    "filesystem": {
+      "allowRead": [
+        "."
+      ],
+      "denyRead": [
+        "~/.ssh",
+        "~/.gnupg",
+        "~/.aws",
+        "~/.gcp",
+        "~/.azure"
+      ],
+      "allowWrite": [
+        ".",
+        "~/.config",
+        "~/.claude",
+        "~/.cursor",
+        "~/.local",
+        "~/.dotfiles",
+        "~/.gemini",
+        "~/.codex",
+        "~/.tmux.conf",
+        "~/.vimrc",
+        "~/.zshrc",
+        "~/.gitconfig",
+        "~/.local/share/chezmoi"
+      ],
+      "denyWrite": [
+        "/"
+      ]
+    }
   }
 }
