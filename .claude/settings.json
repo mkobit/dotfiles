@@ -10,7 +10,8 @@
       "Bash(mkdir:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.anthropic.com)",
-      "WebFetch(domain:jules.google)"
+      "WebFetch(domain:jules.google)",
+      "WebFetch(domain:www.chezmoi.io)"
     ],
     "deny": [],
     "additionalDirectories": []
