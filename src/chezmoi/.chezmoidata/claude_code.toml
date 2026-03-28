@@ -1,12 +1,16 @@
 [claude_code]
 enabled = true
-version = "2.1.81"
+version = "2.1.86"
 installation = "external-script"
 
 [claude_code.settings]
 # https://code.claude.com/docs/en/settings
 cleanupPeriodDays = 30
 outputStyle = "concise"
+
+[claude_code.settings.sandbox]
+enabled = true
+failIfUnavailable = true
 
 [claude_code.settings.statusLine]
 type = "command"
