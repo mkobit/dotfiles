@@ -1,0 +1,28 @@
+{{- $workspace := .chezmoi.sourceDir | dir | dir -}}
+{{- $buildCmd := printf "cd %q && bazel build //src/ai/skills/... 2>/dev/null || true" $workspace -}}
+{{- $_ := output "bash" "-c" $buildCmd -}}
+{{- $queryCmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"tool:claude\", //src/ai/skills/...)' 2>/dev/null" $workspace -}}
+{{- $queryOutput := output "bash" "-c" $queryCmd -}}
+{{- range $line := splitList "\n" $queryOutput -}}
+{{- $line = trim $line -}}
+{{- if $line -}}
+{{- if hasSuffix ".claude.commands.tar" $line -}}
+{{- $installName := base $line | trimSuffix ".claude.commands.tar" -}}
+
+["commands/{{ $installName }}"]
+    type = "archive"
+    url = "file://{{ $workspace }}/{{ $line }}"
+    exact = true
+
+{{ end -}}
+{{- if hasSuffix ".claude.skill.tar" $line -}}
+{{- $installName := base $line | trimSuffix ".claude.skill.tar" -}}
+
+["skills/{{ $installName }}"]
+    type = "archive"
+    url = "file://{{ $workspace }}/{{ $line }}"
+    exact = true
+
+{{ end -}}
+{{- end -}}
+{{- end -}}

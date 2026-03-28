@@ -32,3 +32,12 @@ py_binary(
         "@pypi//click",
     ],
 )
+
+py_binary(
+    name = "process_extension_command",
+    srcs = ["process_extension_command.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        "@pypi//click",
+    ],
+)

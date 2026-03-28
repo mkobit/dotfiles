@@ -52,5 +52,7 @@ ruff = use_extension("//tools/lint:extensions.bzl", "ruff")
 ruff.toolchain(version = "0.15.7")
 use_repo(ruff, "ruff")
 
+bazel_dep(name = "tar.bzl", version = "0.9.0")
+
 ai_skills = use_extension("//tools/agentskills:extensions.bzl", "ai_skills")
 use_repo(ai_skills, "anthropics_skills", "gemini_conductor")

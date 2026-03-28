@@ -1,24 +1,49 @@
-load("//tools/agentskills:rules.bzl", "claude_skill", "gemini_skill")
+load("//tools/agentskills:rules.bzl", "claude_from_gemini_extension", "gemini_skill")
 
-# Transform the Conductor Gemini Extension into a Claude Skill format
-claude_skill(
-    name = "conductor_claude_skill",
-    scope = "user",
-    skill = "@gemini_conductor//:extension",
+# Disable AI skill targets on work machines where external network access is restricted.
+config_setting(
+    name = "work_machine",
+    define_values = {"machine": "work"},
     visibility = ["//visibility:public"],
 )
 
-# Transform selected Anthropics skills into Gemini Skill format
+# Transform the Conductor Gemini extension into Claude-native commands and skill.
+# Produces:
+#   conductor.claude.commands.tar  (6 slash commands for ~/.claude/commands/conductor/)
+#   conductor.claude.skill.tar     (context skill for ~/.claude/skills/conductor/)
+claude_from_gemini_extension(
+    name = "conductor",
+    extension = "@gemini_conductor//:extension",
+    install_name = "conductor",
+    scope = "user",
+    target_compatible_with = select({
+        ":work_machine": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+# Transform selected Anthropic skills into Gemini skill format.
 gemini_skill(
     name = "claude_api_gemini_skill",
+    install_name = "claude-api",
     scope = "user",
     skill = "@anthropics_skills//:claude-api",
+    target_compatible_with = select({
+        ":work_machine": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
     visibility = ["//visibility:public"],
 )
 
 gemini_skill(
     name = "frontend_design_gemini_skill",
+    install_name = "frontend-design",
     scope = "user",
     skill = "@anthropics_skills//:frontend-design",
+    target_compatible_with = select({
+        ":work_machine": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
     visibility = ["//visibility:public"],
 )
