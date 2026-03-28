@@ -26,6 +26,10 @@ enabled = true
 max_age = "30d"
 warning_acknowledged = true
 
+# Sandbox Configuration: https://geminicli.com/docs/cli/sandbox/
+[gemini.tools]
+sandbox = true
+
 [gemini.extensions]
 
   [gemini.extensions.conductor]
