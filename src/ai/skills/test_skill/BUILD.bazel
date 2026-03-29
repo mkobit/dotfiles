@@ -10,6 +10,7 @@ claude_skill(
     name = "test_skill_claude_user",
     scope = "user",
     skill = ":test_skill",
+    tags = ["skip-install"],
     visibility = ["//visibility:private"],
 )
 
@@ -17,6 +18,7 @@ claude_skill(
     name = "test_skill_claude_repo",
     scope = "repo",
     skill = ":test_skill",
+    tags = ["skip-install"],
     visibility = ["//visibility:private"],
 )
 
@@ -24,5 +26,6 @@ gemini_skill(
     name = "test_skill_gemini_user",
     scope = "user",
     skill = ":test_skill",
+    tags = ["skip-install"],
     visibility = ["//visibility:private"],
 )

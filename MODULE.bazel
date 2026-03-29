@@ -51,3 +51,20 @@ use_repo(tmux, "tmux")
 ruff = use_extension("//tools/lint:extensions.bzl", "ruff")
 ruff.toolchain(version = "0.15.7")
 use_repo(ruff, "ruff")
+
+bazel_dep(name = "tar.bzl", version = "0.9.0")
+
+ai_skills = use_extension("//tools/agentskills:extensions.bzl", "ai_skills")
+ai_skills.gemini_extension(
+    name = "gemini_conductor",
+    sha256 = "701f09ab6a2f13edf384ef6171d79b67e4b4692d3fa2a81035a6b72439129d1a",
+    strip_prefix = "conductor-conductor-v0.4.1",
+    urls = ["https://github.com/gemini-cli-extensions/conductor/archive/refs/tags/conductor-v0.4.1.tar.gz"],
+)
+ai_skills.anthropics_skills(
+    name = "anthropics_skills",
+    sha256 = "435b687005b44bbc70c1c95e4362532987fe06547f6740ceba05fbdcc200aac3",
+    strip_prefix = "skills-98669c11ca63e9c81c11501e1437e5c47b556621",
+    urls = ["https://github.com/anthropics/skills/archive/98669c11ca63e9c81c11501e1437e5c47b556621.tar.gz"],
+)
+use_repo(ai_skills, "anthropics_skills", "gemini_conductor")
