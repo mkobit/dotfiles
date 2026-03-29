@@ -26,6 +26,9 @@
         "tools" (dict
           "sandbox" .gemini.tools.sandbox
         )
+        "context" (dict
+          "includeDirectories" .gemini.context.include_directories
+        )
 -}}
 {{-   $settings | toPrettyJson "  " -}}
 {{- end -}}

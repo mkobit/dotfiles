@@ -36,3 +36,6 @@ sandbox = true
   url = "https://github.com/gemini-cli-extensions/conductor"
   ref = "conductor-v0.4.1"
   installation = "gemini-cli"
+
+[gemini.context]
+include_directories = ["~/.config/gh"]
