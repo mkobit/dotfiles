@@ -38,7 +38,8 @@
     "enabled": true,
     "filesystem": {
       "allowRead": [
-        "."
+        ".",
+        "~/.config/gh"
       ],
       "denyRead": [
         "~/.ssh",
