@@ -38,7 +38,7 @@ disable_hints = ["self_update"]
   installation = "mise"
 
   [mise.global_tools."npm:@google/gemini-cli"]
-  version = "0.34.0"
+  version = "0.35.3"
   installation = "mise"
 
   [mise.global_tools.bun]
