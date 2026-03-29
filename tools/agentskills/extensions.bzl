@@ -1,4 +1,26 @@
-load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+"""
+Module extension for declaring external AI skill repositories.
+
+Usage in MODULE.bazel:
+
+    ai_skills = use_extension("//tools/agentskills:extensions.bzl", "ai_skills")
+
+    ai_skills.gemini_extension(
+        name = "gemini_conductor",
+        urls = ["https://..."],
+        sha256 = "...",
+        strip_prefix = "conductor-conductor-v0.4.1",
+    )
+
+    ai_skills.anthropics_skills(
+        name = "anthropics_skills",
+        urls = ["https://..."],
+        sha256 = "...",
+        strip_prefix = "skills-<commit>",
+    )
+
+    use_repo(ai_skills, "anthropics_skills", "gemini_conductor")
+"""
 
 def _anthropics_skills_repo_impl(ctx):
     ctx.download_and_extract(
@@ -72,23 +94,49 @@ gemini_extension_repo = repository_rule(
     },
 )
 
-def _ai_skills_extension_impl(module_ctx):
-    # This extension currently hardcodes the repositories we want to pull.
-    # We could easily expose tags to make this dynamic in the future.
-    anthropics_skills_repo(
-        name = "anthropics_skills",
-        urls = ["https://github.com/anthropics/skills/archive/98669c11ca63e9c81c11501e1437e5c47b556621.tar.gz"],
-        sha256 = "435b687005b44bbc70c1c95e4362532987fe06547f6740ceba05fbdcc200aac3",
-        strip_prefix = "skills-98669c11ca63e9c81c11501e1437e5c47b556621",
-    )
+# --- Tag classes ---
 
-    gemini_extension_repo(
-        name = "gemini_conductor",
-        urls = ["https://github.com/gemini-cli-extensions/conductor/archive/refs/tags/conductor-v0.4.1.tar.gz"],
-        sha256 = "701f09ab6a2f13edf384ef6171d79b67e4b4692d3fa2a81035a6b72439129d1a",
-        strip_prefix = "conductor-conductor-v0.4.1",
-    )
+_gemini_extension_tag = tag_class(
+    doc = "Declares an external Gemini extension repository.",
+    attrs = {
+        "name": attr.string(mandatory = True, doc = "Repository name, used in use_repo() and as @<name>//:extension"),
+        "urls": attr.string_list(mandatory = True, doc = "Download URLs for the extension archive"),
+        "sha256": attr.string(mandatory = True, doc = "SHA-256 checksum of the archive"),
+        "strip_prefix": attr.string(default = "", doc = "Path prefix to strip when extracting"),
+    },
+)
+
+_anthropics_skills_tag = tag_class(
+    doc = "Declares an external Anthropic-format skills repository (agentskills.io SKILL.md layout).",
+    attrs = {
+        "name": attr.string(mandatory = True, doc = "Repository name, used in use_repo()"),
+        "urls": attr.string_list(mandatory = True, doc = "Download URLs for the skills archive"),
+        "sha256": attr.string(mandatory = True, doc = "SHA-256 checksum of the archive"),
+        "strip_prefix": attr.string(default = "", doc = "Path prefix to strip when extracting"),
+    },
+)
+
+def _ai_skills_extension_impl(module_ctx):
+    for mod in module_ctx.modules:
+        for tag in mod.tags.gemini_extension:
+            gemini_extension_repo(
+                name = tag.name,
+                urls = tag.urls,
+                sha256 = tag.sha256,
+                strip_prefix = tag.strip_prefix,
+            )
+        for tag in mod.tags.anthropics_skills:
+            anthropics_skills_repo(
+                name = tag.name,
+                urls = tag.urls,
+                sha256 = tag.sha256,
+                strip_prefix = tag.strip_prefix,
+            )
 
 ai_skills = module_extension(
     implementation = _ai_skills_extension_impl,
+    tag_classes = {
+        "gemini_extension": _gemini_extension_tag,
+        "anthropics_skills": _anthropics_skills_tag,
+    },
 )
