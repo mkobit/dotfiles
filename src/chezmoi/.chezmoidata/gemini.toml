@@ -39,3 +39,6 @@ sandbox = true
 
 [gemini.context]
 include_directories = ["~/.config/gh"]
+
+[gemini.experimental]
+worktrees = true
