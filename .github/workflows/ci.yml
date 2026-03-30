@@ -25,7 +25,6 @@ concurrency:
 env:
   DEBIAN_FRONTEND: noninteractive
   APT_LISTCHANGES_FRONTEND: none
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 defaults:
   run:
@@ -155,7 +154,7 @@ jobs:
 
       - name: Install chezmoi
         run: |
-          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b ~/.local/bin
+          sh -c "$(curl -fsLS get.chezmoi.io)" -- -b ~/.local/bin v2.70.0
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Verify chezmoi installation
