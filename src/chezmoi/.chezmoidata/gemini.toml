@@ -28,7 +28,7 @@ warning_acknowledged = true
 
 # Sandbox Configuration: https://geminicli.com/docs/cli/sandbox/
 [gemini.tools]
-sandbox = true
+sandbox = false
 sandbox_allowed_paths = ["~/"]
 
 [gemini.extensions]
