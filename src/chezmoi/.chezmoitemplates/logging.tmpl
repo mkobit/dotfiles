@@ -1,0 +1,17 @@
+{{- /* Shared logging utilities for chezmoi templates */ -}}
+
+{{- define "log_info" -}}
+{{- $_ := output "bash" "-c" (printf "echo -e '\\033[0;34m[INFO]\\033[0m %s' >&2" .) -}}
+{{- end -}}
+
+{{- define "log_success" -}}
+{{- $_ := output "bash" "-c" (printf "echo -e '\\033[0;32m[SUCCESS]\\033[0m %s' >&2" .) -}}
+{{- end -}}
+
+{{- define "log_warn" -}}
+{{- $_ := output "bash" "-c" (printf "echo -e '\\033[0;33m[WARN]\\033[0m %s' >&2" .) -}}
+{{- end -}}
+
+{{- define "log_error" -}}
+{{- $_ := output "bash" "-c" (printf "echo -e '\\033[0;31m[ERROR]\\033[0m %s' >&2" .) -}}
+{{- end -}}

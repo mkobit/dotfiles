@@ -1,7 +1,9 @@
 {{- $workspace := output "git" "-C" .chezmoi.sourceDir "rev-parse" "--show-toplevel" | trim -}}
 {{- if lookPath "bazel" -}}
+{{- template "log_info" "Building Bazel targets for Gemini skills..." -}}
 {{- $_ := output "bash" "-c" (printf "cd %q && bazel build //src/ai/skills/..." $workspace) -}}
 {{- end -}}
+{{- template "log_info" "Querying Bazel for Gemini skills..." -}}
 {{- $queryCmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"tool:gemini\", //src/ai/skills/...) except attr(tags, \"skip-install\", //src/ai/skills/...)' 2>/dev/null" $workspace -}}
 {{- $queryOutput := output "bash" "-c" $queryCmd -}}
 {{- range $line := splitList "\n" $queryOutput -}}
