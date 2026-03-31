@@ -1,4 +1,4 @@
-{{ if .packages.min_release_age_enabled -}}
-min-release-age=7
+{{ if hasKey .npm "min_release_age_days" -}}
+min-release-age={{ .npm.min_release_age_days }}
 ignore-scripts=true
 {{ end -}}

@@ -1,4 +1,4 @@
-{{ if .packages.min_release_age_enabled -}}
+{{ if hasKey .bun "min_release_age_days" -}}
 [install]
-minimumReleaseAge = 604800
+minimumReleaseAge = {{ mul .bun.min_release_age_days 86400 }}
 {{ end -}}
