@@ -1,0 +1,3 @@
+{{ if hasKey .uv "min_release_age_days" -}}
+exclude-newer = "{{ .uv.min_release_age_days }} days"
+{{ end -}}

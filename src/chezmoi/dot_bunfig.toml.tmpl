@@ -1,0 +1,4 @@
+{{ if hasKey .bun "min_release_age_days" -}}
+[install]
+minimumReleaseAge = {{ mul .bun.min_release_age_days 86400 }}
+{{ end -}}

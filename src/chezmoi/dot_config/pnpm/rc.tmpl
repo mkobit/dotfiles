@@ -1,0 +1,5 @@
+{{ if eq .chezmoi.os "linux" -}}
+{{ if hasKey .pnpm "min_release_age_days" -}}
+minimum-release-age={{ mul .pnpm.min_release_age_days 1440 }}
+{{ end -}}
+{{ end -}}
