@@ -9,8 +9,9 @@ cleanupPeriodDays = 30
 outputStyle = "concise"
 
 [claude_code.settings.sandbox]
-enabled = true
-failIfUnavailable = true
+# Disabled globally due to current complexity using existing tools like git
+enabled = false
+failIfUnavailable = false
 
 [claude_code.settings.statusLine]
 type = "command"
