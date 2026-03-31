@@ -9,6 +9,7 @@ cleanupPeriodDays = 30
 outputStyle = "concise"
 
 [claude_code.settings.sandbox]
+# Disabled globally to allow AI agents full access for Git operations (SSH/GPG) and Chezmoi (home directory write access)
 enabled = false
 failIfUnavailable = false
 
