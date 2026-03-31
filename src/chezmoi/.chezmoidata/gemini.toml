@@ -28,7 +28,7 @@ warning_acknowledged = true
 
 # Sandbox Configuration: https://geminicli.com/docs/cli/sandbox/
 [gemini.tools]
-# Disabled globally to allow AI agents full access for Git operations (SSH/GPG) and Chezmoi (home directory write access)
+# Disabled globally due to current complexity using existing tools like git
 sandbox = false
 sandbox_allowed_paths = ["~/"]
 
