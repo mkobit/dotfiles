@@ -4,10 +4,8 @@ updates:
   directory: /
   schedule:
     interval: monthly
-    day: monday
-    time: 08:00
   cooldown:
-    default-days: 7
+    default-days: 14
   open-pull-requests-limit: 10
   groups:
     github-actions:
