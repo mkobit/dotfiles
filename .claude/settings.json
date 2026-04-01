@@ -6,6 +6,7 @@
       "Bash(bazel cquery:*)",
       "Bash(bazel query:*)",
       "Bash(bazel run:*)",
+      "Bash(bazel fetch:*)",
       "Bash(bazel test:*)",
       "Bash(mkdir:*)",
       "WebFetch(domain:github.com)",
