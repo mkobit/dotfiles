@@ -82,9 +82,9 @@ ai_skills.skill_collection(
         "setup-deploy",  # org-specific deployment setup
     ],
     namespace = "gstack",
-    sha256 = "5d1dd6062081ad04cc1002751f3c793f060ed0e5e08491cf699762d7386e5edc",
-    strip_prefix = "gstack-main",
-    urls = ["https://github.com/garrytan/gstack/archive/refs/heads/main.tar.gz"],
+    sha256 = "1de01e5d0d187f2a86ed65355d4148a138af409bcc6b949a5f85203fec6005fa",
+    strip_prefix = "gstack-6169273d16b7ab8690943241fa802e5a1ca85305",
+    urls = ["https://github.com/garrytan/gstack/archive/6169273d16b7ab8690943241fa802e5a1ca85305.tar.gz"],
 )
 ai_skills.claude_agents(
     name = "agency_agents",
