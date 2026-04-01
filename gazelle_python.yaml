@@ -6,7 +6,7 @@
 ---
 manifest:
   modules_mapping:
-    4c842c94c09923bae9e4__mypyc: mypy
+    4c842c94c09923bae9e4__tyc: ty
     aiohappyeyeballs: aiohappyeyeballs
     aiohttp: aiohttp
     aiosignal: aiosignal
@@ -45,9 +45,9 @@ manifest:
     mdurl: mdurl
     mpmath: mpmath
     multidict: multidict
-    mypy: mypy
-    mypy_extensions: mypy_extensions
-    mypyc: mypy
+    ty: ty
+    ty_extensions: ty_extensions
+    tyc: ty
     numpy: numpy
     onnxruntime: onnxruntime
     packaging: packaging

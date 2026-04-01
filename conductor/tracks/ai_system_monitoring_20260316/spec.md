@@ -14,7 +14,7 @@ The tool will integrate with existing python-based cli utilities and leverage ai
 # Non-functional requirements
 - Minimal performance overhead during metric collection.
 - High reliability and accuracy of reported metrics.
-- Compliance with existing documentation and coding standards (ruff, mypy).
+- Compliance with existing documentation and coding standards (ruff, ty).
 - Portability across supported linux environments and terminal emulators (ghostty).
 
 # Acceptance criteria

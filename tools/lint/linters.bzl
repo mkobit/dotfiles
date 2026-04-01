@@ -11,8 +11,8 @@ ruff = lint_ruff_aspect(
     configs = [Label("//:pyproject.toml")],
 )
 
-# Define Mypy aspect (custom implementation)
-def _mypy_aspect_impl(target, ctx):
+# Define Ty aspect (custom implementation)
+def _ty_aspect_impl(target, ctx):
     if not (PyInfo in target):
         return []
 
@@ -35,50 +35,48 @@ def _mypy_aspect_impl(target, ctx):
     if not srcs:
         return []
 
-    mypy_out = ctx.actions.declare_file(target.label.name + ".mypy.ok")
+    ty_out = ctx.actions.declare_file(target.label.name + ".ty.ok")
     py_info = target[PyInfo]
 
-    mypy_args = ctx.actions.args()
-    mypy_args.add("--config-file", ctx.file._config.path)
-    mypy_args.add("--cache-dir", "/dev/null")
-    mypy_args.add("--no-site-packages")
+    ty_args = ctx.actions.args()
+    ty_args.add("check")
 
     for src in srcs:
-        mypy_args.add(src.path)
+        ty_args.add(src.path)
 
     transitive_srcs = py_info.transitive_sources
     imports = py_info.imports.to_list()
     python_path = ":".join(["."] + imports)
 
     ctx.actions.run_shell(
-        outputs = [mypy_out],
+        outputs = [ty_out],
         inputs = depset(direct = srcs + [ctx.file._config], transitive = [transitive_srcs]),
-        tools = [ctx.executable._mypy],
+        tools = [ctx.executable._ty],
         command = """
         export PYTHONPATH={python_path}:$PYTHONPATH
-        {mypy} $@ && touch {out}
+        {ty} $@ && touch {out}
         """.format(
             python_path = python_path,
-            mypy = ctx.executable._mypy.path,
-            out = mypy_out.path,
+            ty = ctx.executable._ty.path,
+            out = ty_out.path,
         ),
-        arguments = [mypy_args],
-        mnemonic = "MypyCheck",
-        progress_message = "Type checking %s with Mypy" % target.label,
+        arguments = [ty_args],
+        mnemonic = "TyCheck",
+        progress_message = "Type checking %s with Ty" % target.label,
     )
 
     return [
         OutputGroupInfo(
-            rules_python_lint = depset([mypy_out]),
+            rules_python_lint = depset([ty_out]),
         ),
     ]
 
-mypy = aspect(
-    implementation = _mypy_aspect_impl,
+ty = aspect(
+    implementation = _ty_aspect_impl,
     attr_aspects = ["deps"],
     attrs = {
-        "_mypy": attr.label(
-            default = Label("//tools/python:mypy"),
+        "_ty": attr.label(
+            default = Label("//tools/python:ty"),
             executable = True,
             cfg = "exec",
         ),

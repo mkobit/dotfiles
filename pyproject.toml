@@ -23,7 +23,7 @@ max-complexity = 15
 [tool.ruff.lint.isort]
 known-first-party = ["src", "tools"]
 
-[tool.mypy]
+[tool.ty]
 python_version = "3.13"
 strict = true
 ignore_missing_imports = true
@@ -39,7 +39,7 @@ disallow_subclassing_any = false
 # Relax decorator checks for untyped libraries (Click, Pytest)
 disallow_untyped_decorators = false
 
-[[tool.mypy.overrides]]
+[[tool.ty.overrides]]
 module = "src.python.jules_cli.test_jules"
 disallow_untyped_defs = false
 check_untyped_defs = false

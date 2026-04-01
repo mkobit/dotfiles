@@ -4,7 +4,7 @@ pytest-asyncio
 
 # Linting and formatting
 ruff
-mypy
+ty
 
 # HTTP tools
 aiohttp
