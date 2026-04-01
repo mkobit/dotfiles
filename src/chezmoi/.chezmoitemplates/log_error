@@ -1,0 +1,1 @@
+{{- $_ := output "bash" "-c" (printf "echo -e '\\033[0;31m[ERROR]\\033[0m %s' >&2" .) -}}
