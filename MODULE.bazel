@@ -69,6 +69,18 @@ ai_skills.anthropics_skills(
 )
 ai_skills.skill_collection(
     name = "gstack",
+    exclude = [
+        "browse",  # requires building a TypeScript/Bun browser-automation server
+        "codex",  # OpenAI Codex-specific workflow
+        "connect-chrome",  # browser infrastructure dependency
+        "gstack-upgrade",  # meta-skill for upgrading gstack itself
+        "office-hours",  # not generally applicable
+        "plan-ceo-review",  # org-specific planning ritual
+        "plan-design-review",  # org-specific planning ritual
+        "plan-eng-review",  # org-specific planning ritual
+        "setup-browser-cookies",  # browser infrastructure dependency
+        "setup-deploy",  # org-specific deployment setup
+    ],
     namespace = "gstack",
     sha256 = "5d1dd6062081ad04cc1002751f3c793f060ed0e5e08491cf699762d7386e5edc",
     strip_prefix = "gstack-main",
