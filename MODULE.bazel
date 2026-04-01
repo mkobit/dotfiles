@@ -88,8 +88,8 @@ ai_skills.skill_collection(
 )
 ai_skills.claude_agents(
     name = "agency_agents",
-    sha256 = "06e91363c7381370aef935774be9aad015a88a34c1c2880394b8443c1adf0a38",
-    strip_prefix = "agency-agents-main",
-    urls = ["https://github.com/msitarzewski/agency-agents/archive/refs/heads/main.tar.gz"],
+    sha256 = "befd4ab2dafea1cf3c2e5a7737854b1921158211ff164bd7a034a18a963e0231",
+    strip_prefix = "agency-agents-4feb0cd736dd0e2e9830cd54dfc99770621bed90",
+    urls = ["https://github.com/msitarzewski/agency-agents/archive/4feb0cd736dd0e2e9830cd54dfc99770621bed90.tar.gz"],
 )
 use_repo(ai_skills, "agency_agents", "anthropics_skills", "gemini_conductor", "gstack")
