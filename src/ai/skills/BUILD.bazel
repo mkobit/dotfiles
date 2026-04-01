@@ -1,3 +1,4 @@
+load("@gstack//:skills.bzl", "SKILLS")
 load(
     "//tools/agentskills:defs.bzl",
     "claude_from_gemini_extension",
@@ -54,12 +55,31 @@ gemini_skill(
     visibility = ["//visibility:public"],
 )
 
-# gstack — install full namespace to ~/.claude/skills/gstack/
-# strip_prefix = "../gstack" strips the external repo short_path prefix so archive
-# contents are relative paths within the collection (e.g. qa/SKILL.md).
+# Skills from the gstack collection to exclude from installation.
+# These are excluded because they either have complex infrastructure dependencies
+# (browse: TypeScript server), are tool-specific (codex: OpenAI Codex,
+# connect-chrome, setup-browser-cookies), are gstack-internal (gstack-upgrade),
+# or are not generally useful in this context (office-hours, plan-* reviews).
+_GSTACK_EXCLUDE = [
+    "browse",  # requires building a TypeScript/Bun browser-automation server
+    "codex",  # OpenAI Codex-specific workflow
+    "connect-chrome",  # browser infrastructure dependency
+    "gstack-upgrade",  # meta-skill for upgrading gstack itself
+    "office-hours",  # not generally applicable
+    "plan-ceo-review",  # org-specific planning ritual
+    "plan-design-review",  # org-specific planning ritual
+    "plan-eng-review",  # org-specific planning ritual
+    "setup-browser-cookies",  # browser infrastructure dependency
+    "setup-deploy",  # org-specific deployment setup
+]
+
+# gstack — install curated namespace to ~/.claude/skills/gstack/.
+# SKILLS is auto-discovered by the repo rule (see @gstack//:skills.bzl).
+# We apply a blacklist here; swap to a whitelist by replacing the comprehension:
+#   srcs = ["@gstack//:" + s for s in _GSTACK_INCLUDE]
 claude_skill_group(
     name = "gstack",
-    srcs = ["@gstack//:skills"],
+    srcs = ["@gstack//:" + s for s in SKILLS if s not in _GSTACK_EXCLUDE],
     namespace = "gstack",
     strip_prefix = "",
     target_compatible_with = select({
