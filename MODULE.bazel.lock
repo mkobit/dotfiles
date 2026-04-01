@@ -308,8 +308,8 @@
   "moduleExtensions": {
     "//tools/agentskills:extensions.bzl%ai_skills": {
       "general": {
-        "bzlTransitiveDigest": "dL+7QlivrsYGDaK9jm9Mxc/FmHAH0dSzDTHHM1yCR8Q=",
-        "usagesDigest": "G7zzXsfXlO7+ZoXFOn0fiFScygBpqoD1hEeYBMw+bOE=",
+        "bzlTransitiveDigest": "nDyj/7XwG9rivpWaGf/2gsiBXYQP9vI7TbX7+W9cesI=",
+        "usagesDigest": "jnx0MMKmlsPDwXahCHHiqxqkeDsXHNES4/7OiaQrD+s=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
           "gemini_conductor": {
@@ -330,6 +330,26 @@
               ],
               "sha256": "435b687005b44bbc70c1c95e4362532987fe06547f6740ceba05fbdcc200aac3",
               "strip_prefix": "skills-98669c11ca63e9c81c11501e1437e5c47b556621"
+            }
+          },
+          "gstack": {
+            "repoRuleId": "@@//tools/agentskills:extensions.bzl%skill_collection_repo",
+            "attributes": {
+              "urls": [
+                "https://github.com/garrytan/gstack/archive/refs/heads/main.tar.gz"
+              ],
+              "sha256": "5d1dd6062081ad04cc1002751f3c793f060ed0e5e08491cf699762d7386e5edc",
+              "strip_prefix": "gstack-main"
+            }
+          },
+          "agency_agents": {
+            "repoRuleId": "@@//tools/agentskills:extensions.bzl%claude_agents_repo",
+            "attributes": {
+              "urls": [
+                "https://github.com/msitarzewski/agency-agents/archive/refs/heads/main.tar.gz"
+              ],
+              "sha256": "06e91363c7381370aef935774be9aad015a88a34c1c2880394b8443c1adf0a38",
+              "strip_prefix": "agency-agents-main"
             }
           }
         }

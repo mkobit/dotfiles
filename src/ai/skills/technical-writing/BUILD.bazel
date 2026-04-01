@@ -1,4 +1,4 @@
-load("//tools/agentskills:rules.bzl", "agent_skill", "claude_skill", "cursor_skill", "gemini_skill")
+load("//tools/agentskills:defs.bzl", "agent_skill", "claude_skill", "cursor_skill", "gemini_skill")
 
 _NOT_WORK = select({
     "//src/ai/skills:work_machine": ["@platforms//:incompatible"],
