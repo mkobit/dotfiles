@@ -13,7 +13,11 @@
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:jules.google)",
       "WebFetch(domain:www.chezmoi.io)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(chezmoi diff:*)",
+      "Bash(chezmoi source-path:*)",
+      "Bash(chezmoi status:*)",
+      "Bash(chezmoi data:*)"
     ],
     "deny": [],
     "additionalDirectories": []
