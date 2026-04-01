@@ -1,4 +1,3 @@
-import runpy
 import sys
 import subprocess
 import site
@@ -34,4 +33,9 @@ if __name__ == "__main__":
         if not bin_path:
             print("Could not find ty binary via ty module or PATH.", file=sys.stderr)
             sys.exit(1)
-    sys.exit(subprocess.call([bin_path] + sys.argv[1:]))
+
+    try:
+        sys.exit(subprocess.call([bin_path] + sys.argv[1:]))
+    except BlockingIOError:
+        # Occasionally happens on macos in subprocess when sandboxed, run with os.execv as fallback
+        os.execv(bin_path, [bin_path] + sys.argv[1:])
