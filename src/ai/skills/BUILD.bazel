@@ -1,4 +1,10 @@
-load("//tools/agentskills:rules.bzl", "claude_from_gemini_extension", "gemini_skill")
+load(
+    "//tools/agentskills:defs.bzl",
+    "claude_from_gemini_extension",
+    "claude_skill_group",
+    "claude_subagent_group",
+    "gemini_skill",
+)
 
 # Disable AI skill targets on work machines where external network access is restricted.
 config_setting(
@@ -41,6 +47,35 @@ gemini_skill(
     install_name = "frontend-design",
     scope = "user",
     skill = "@anthropics_skills//:frontend-design",
+    target_compatible_with = select({
+        ":work_machine": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+# gstack — install full namespace to ~/.claude/skills/gstack/
+# strip_prefix = "../gstack" strips the external repo short_path prefix so archive
+# contents are relative paths within the collection (e.g. qa/SKILL.md).
+claude_skill_group(
+    name = "gstack",
+    srcs = ["@gstack//:skills"],
+    namespace = "gstack",
+    strip_prefix = "",
+    target_compatible_with = select({
+        ":work_machine": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+# agency-agents engineering division — installs flat .md files to ~/.claude/agents/
+# strip_prefix strips the repo + division prefix so archive contains flat agent files.
+claude_subagent_group(
+    name = "agency_engineering",
+    srcs = ["@agency_agents//:engineering"],
+    install_name = "agency-engineering",
+    strip_prefix = "engineering",
     target_compatible_with = select({
         ":work_machine": ["@platforms//:incompatible"],
         "//conditions:default": [],

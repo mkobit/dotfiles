@@ -19,7 +19,22 @@ Usage in MODULE.bazel:
         strip_prefix = "skills-<commit>",
     )
 
-    use_repo(ai_skills, "anthropics_skills", "gemini_conductor")
+    ai_skills.skill_collection(
+        name = "gstack",
+        namespace = "gstack",
+        urls = ["https://..."],
+        sha256 = "...",
+        strip_prefix = "gstack-main",
+    )
+
+    ai_skills.claude_agents(
+        name = "agency_agents",
+        urls = ["https://..."],
+        sha256 = "...",
+        strip_prefix = "agency-agents-main",
+    )
+
+    use_repo(ai_skills, "anthropics_skills", "gemini_conductor", "gstack", "agency_agents")
 """
 
 def _anthropics_skills_repo_impl(ctx):
@@ -29,7 +44,7 @@ def _anthropics_skills_repo_impl(ctx):
         stripPrefix = ctx.attr.strip_prefix,
     )
 
-    build_content = """load("@//tools/agentskills:rules.bzl", "agent_skill")
+    build_content = """load("@//tools/agentskills:defs.bzl", "agent_skill")
 
 """
 
@@ -68,7 +83,7 @@ def _gemini_extension_repo_impl(ctx):
         stripPrefix = ctx.attr.strip_prefix,
     )
 
-    build_content = """load("@//tools/agentskills:rules.bzl", "gemini_extension")
+    build_content = """load("@//tools/agentskills:defs.bzl", "gemini_extension")
 
 filegroup(
     name = "files",
@@ -87,6 +102,123 @@ gemini_extension(
 
 gemini_extension_repo = repository_rule(
     implementation = _gemini_extension_repo_impl,
+    attrs = {
+        "urls": attr.string_list(mandatory = True),
+        "sha256": attr.string(mandatory = True),
+        "strip_prefix": attr.string(default = ""),
+    },
+)
+
+def _skill_collection_repo_impl(ctx):
+    ctx.download_and_extract(
+        url = ctx.attr.urls,
+        sha256 = ctx.attr.sha256,
+        stripPrefix = ctx.attr.strip_prefix,
+    )
+
+    build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
+
+    # Find skill subdirectories (those containing a SKILL.md)
+    skill_names = []
+    root_dir = ctx.path(".")
+    for entry in root_dir.readdir():
+        if entry.is_dir:
+            skill_md = entry.get_child("SKILL.md")
+            if skill_md.exists:
+                skill_names.append(entry.basename)
+                build_content += """
+filegroup(
+    name = "{name}",
+    srcs = glob(["{name}/**/*"]),
+)
+""".format(name = entry.basename)
+
+    # Root files filegroup (SKILL.md, CLAUDE.md, AGENTS.md, etc. at root level)
+    skills_list = '["' + '", "'.join([":" + n for n in skill_names]) + '"]' if skill_names else "[]"
+    build_content += """
+filegroup(
+    name = "root",
+    srcs = glob(["*.md", "*.json", "*.toml"], allow_empty = True),
+)
+
+# skills: aggregates only the individual skill subdirectory filegroups (no root files).
+# Use this to install just the SKILL.md trees without repo metadata.
+filegroup(
+    name = "skills",
+    srcs = {skills_list},
+)
+
+filegroup(
+    name = "all",
+    srcs = glob(
+        ["**/*"],
+        exclude = ["BUILD.bazel", "WORKSPACE", "WORKSPACE.bazel", "node_modules/**", ".git/**"],
+    ),
+)
+""".format(skills_list = skills_list)
+    ctx.file("BUILD.bazel", build_content)
+
+skill_collection_repo = repository_rule(
+    implementation = _skill_collection_repo_impl,
+    attrs = {
+        "urls": attr.string_list(mandatory = True),
+        "sha256": attr.string(mandatory = True),
+        "strip_prefix": attr.string(default = ""),
+    },
+)
+
+def _claude_agents_repo_impl(ctx):
+    ctx.download_and_extract(
+        url = ctx.attr.urls,
+        sha256 = ctx.attr.sha256,
+        stripPrefix = ctx.attr.strip_prefix,
+    )
+
+    build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
+
+    _SKIP_DIRS = ["scripts", "examples", "integrations", "docs", "node_modules"]
+
+    root_dir = ctx.path(".")
+    division_names = []
+
+    for division_entry in root_dir.readdir():
+        if not division_entry.is_dir:
+            continue
+        basename = division_entry.basename
+        if basename.startswith(".") or basename in _SKIP_DIRS:
+            continue
+
+        agent_files = []
+        for agent_entry in division_entry.readdir():
+            if agent_entry.basename.endswith(".md"):
+                agent_files.append(agent_entry)
+                agent_name = agent_entry.basename[:-3]  # strip .md
+                build_content += """
+filegroup(
+    name = "{name}",
+    srcs = ["{division}/{file}"],
+)
+""".format(name = agent_name, division = basename, file = agent_entry.basename)
+
+        if agent_files:
+            division_names.append(basename)
+            build_content += """
+filegroup(
+    name = "{division}",
+    srcs = glob(["{division}/*.md"]),
+)
+""".format(division = basename)
+
+    build_content += """
+filegroup(
+    name = "all",
+    srcs = glob(["*/*.md"]),
+)
+"""
+    ctx.file("BUILD.bazel", build_content)
+
+claude_agents_repo = repository_rule(
+    implementation = _claude_agents_repo_impl,
     attrs = {
         "urls": attr.string_list(mandatory = True),
         "sha256": attr.string(mandatory = True),
@@ -116,6 +248,28 @@ _anthropics_skills_tag = tag_class(
     },
 )
 
+_skill_collection_tag = tag_class(
+    doc = "Declares an external skill collection repository (e.g. gstack). Generates one filegroup per skill subdirectory plus an 'all' filegroup.",
+    attrs = {
+        "name": attr.string(mandatory = True, doc = "Repository name, used in use_repo()"),
+        "urls": attr.string_list(mandatory = True, doc = "Download URLs for the collection archive"),
+        "sha256": attr.string(mandatory = True, doc = "SHA-256 checksum of the archive"),
+        "strip_prefix": attr.string(default = "", doc = "Path prefix to strip when extracting"),
+        "namespace": attr.string(mandatory = True, doc = "Namespace prefix, e.g. 'gstack'"),
+    },
+)
+
+_claude_agents_tag = tag_class(
+    doc = "Declares an external Claude sub-agents repository. Generates filegroups per division and per individual agent.",
+    attrs = {
+        "name": attr.string(mandatory = True, doc = "Repository name, used in use_repo()"),
+        "urls": attr.string_list(mandatory = True, doc = "Download URLs for the agents archive"),
+        "sha256": attr.string(mandatory = True, doc = "SHA-256 checksum of the archive"),
+        "strip_prefix": attr.string(default = "", doc = "Path prefix to strip when extracting"),
+        "divisions": attr.string_list(default = [], doc = "Divisions to include (empty = all)"),
+    },
+)
+
 def _ai_skills_extension_impl(module_ctx):
     for mod in module_ctx.modules:
         for tag in mod.tags.gemini_extension:
@@ -132,11 +286,27 @@ def _ai_skills_extension_impl(module_ctx):
                 sha256 = tag.sha256,
                 strip_prefix = tag.strip_prefix,
             )
+        for tag in mod.tags.skill_collection:
+            skill_collection_repo(
+                name = tag.name,
+                urls = tag.urls,
+                sha256 = tag.sha256,
+                strip_prefix = tag.strip_prefix,
+            )
+        for tag in mod.tags.claude_agents:
+            claude_agents_repo(
+                name = tag.name,
+                urls = tag.urls,
+                sha256 = tag.sha256,
+                strip_prefix = tag.strip_prefix,
+            )
 
 ai_skills = module_extension(
     implementation = _ai_skills_extension_impl,
     tag_classes = {
         "gemini_extension": _gemini_extension_tag,
         "anthropics_skills": _anthropics_skills_tag,
+        "skill_collection": _skill_collection_tag,
+        "claude_agents": _claude_agents_tag,
     },
 )

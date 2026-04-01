@@ -67,4 +67,17 @@ ai_skills.anthropics_skills(
     strip_prefix = "skills-98669c11ca63e9c81c11501e1437e5c47b556621",
     urls = ["https://github.com/anthropics/skills/archive/98669c11ca63e9c81c11501e1437e5c47b556621.tar.gz"],
 )
-use_repo(ai_skills, "anthropics_skills", "gemini_conductor")
+ai_skills.skill_collection(
+    name = "gstack",
+    namespace = "gstack",
+    sha256 = "5d1dd6062081ad04cc1002751f3c793f060ed0e5e08491cf699762d7386e5edc",
+    strip_prefix = "gstack-main",
+    urls = ["https://github.com/garrytan/gstack/archive/refs/heads/main.tar.gz"],
+)
+ai_skills.claude_agents(
+    name = "agency_agents",
+    sha256 = "06e91363c7381370aef935774be9aad015a88a34c1c2880394b8443c1adf0a38",
+    strip_prefix = "agency-agents-main",
+    urls = ["https://github.com/msitarzewski/agency-agents/archive/refs/heads/main.tar.gz"],
+)
+use_repo(ai_skills, "agency_agents", "anthropics_skills", "gemini_conductor", "gstack")
