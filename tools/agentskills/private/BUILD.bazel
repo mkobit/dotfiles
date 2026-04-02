@@ -5,6 +5,7 @@ bzl_library(
     srcs = ["skill.bzl"],
     visibility = ["//tools/agentskills:__pkg__"],
     deps = [
+        "//tools/chezmoi:defs",
         "@tar.bzl//tar",
         "@tar.bzl//tar:mtree",
     ],
@@ -15,6 +16,7 @@ bzl_library(
     srcs = ["gemini.bzl"],
     visibility = ["//tools/agentskills:__pkg__"],
     deps = [
+        "//tools/chezmoi:defs",
         "@tar.bzl//tar",
         "@tar.bzl//tar:mtree",
     ],
@@ -25,6 +27,7 @@ bzl_library(
     srcs = ["collection.bzl"],
     visibility = ["//tools/agentskills:__pkg__"],
     deps = [
+        "//tools/chezmoi:defs",
         "@tar.bzl//tar",
         "@tar.bzl//tar:mtree",
     ],

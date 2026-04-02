@@ -2,6 +2,7 @@
 
 load("@tar.bzl", "tar")
 load("@tar.bzl//tar:mtree.bzl", "mutate")
+load("//tools/chezmoi:defs.bzl", "CHEZMOI_TOMBSTONE")
 
 def _gemini_extension_impl(ctx):
     # Locate the gemini-extension.json file within srcs
@@ -135,7 +136,7 @@ _claude_from_gemini_extension_files = rule(
     },
 )
 
-def claude_from_gemini_extension(name, extension, install_name = None, scope = "user", visibility = None, **kwargs):
+def claude_from_gemini_extension(name, extension, install_name = None, scope = "user", visibility = None, tombstone = False, **kwargs):
     """
     Transforms a gemini_extension into Claude-native artifacts.
 
@@ -151,13 +152,16 @@ def claude_from_gemini_extension(name, extension, install_name = None, scope = "
         install_name: Install directory name (defaults to name)
         scope: Scope of the skill ("user" or "repo")
         visibility: Visibility of the target
+        tombstone: If True, marks both output tars for removal by chezmoi.
+            Causes chezmoi apply to delete commands/<install_name>/ and
+            skills/<install_name>/ from the destination.
         **kwargs: Passed through (e.g. target_compatible_with)
     """
     if install_name == None:
         install_name = name
 
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude"] + extra_tags
+    tool_tags = ["tool:claude"] + ([CHEZMOI_TOMBSTONE] if tombstone else []) + extra_tags
 
     # Rule that produces individual command .md files and skill SKILL.md.
     _claude_from_gemini_extension_files(

@@ -1,0 +1,49 @@
+{{- /*
+  Removes deployed Claude AI tool targets that have been tombstoned in Bazel.
+
+  Targets are tombstoned by setting tombstone = True on the macro in
+  src/ai/skills/BUILD.bazel. This causes the "tombstone" tag to be added
+  alongside the tool:* tag, which is picked up here via cquery intersection.
+
+  Each line emitted is a path relative to ~/.claude/ that chezmoi will delete
+  on the next apply if it exists on disk.
+
+  Cquery logic:
+    Install query (bazel-skills.toml.tmpl): tool:claude except tombstone
+    Remove query (this file):               tool:claude intersect tombstone
+*/ -}}
+{{- $workspace := output "git" "-C" .chezmoi.sourceDir "rev-parse" "--show-toplevel" | trim -}}
+{{- if lookPath "bazel" -}}
+{{- $rmQueryCmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"tool:claude\", //src/ai/skills/...) intersect attr(tags, \"tombstone\", //src/ai/skills/...)' 2>/dev/null" $workspace -}}
+{{- $rmOutput := output "bash" "-c" $rmQueryCmd -}}
+{{- range $line := splitList "\n" $rmOutput -}}
+{{- $line = trim $line -}}
+{{- if $line -}}
+{{- if hasSuffix ".claude.commands.tar" $line -}}
+{{- $installName := base $line | trimSuffix ".claude.commands.tar" -}}
+commands/{{ $installName }}
+{{ end -}}
+{{- if hasSuffix ".claude.skill.tar" $line -}}
+{{- $installName := base $line | trimSuffix ".claude.skill.tar" -}}
+skills/{{ $installName }}
+{{ end -}}
+{{- if hasSuffix ".claude.skill-group.tar" $line -}}
+{{- $installName := base $line | trimSuffix ".claude.skill-group.tar" -}}
+skills/{{ $installName }}
+{{ end -}}
+{{- if hasSuffix ".claude.agents.tar" $line -}}
+agents
+{{ end -}}
+{{- end -}}
+{{- end -}}
+{{- $agentRmQueryCmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"tool:claude-agents\", //src/ai/skills/...) intersect attr(tags, \"tombstone\", //src/ai/skills/...)' 2>/dev/null" $workspace -}}
+{{- $agentRmOutput := output "bash" "-c" $agentRmQueryCmd -}}
+{{- range $line := splitList "\n" $agentRmOutput -}}
+{{- $line = trim $line -}}
+{{- if $line -}}
+{{- if hasSuffix ".claude.agents.tar" $line -}}
+agents
+{{ end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}

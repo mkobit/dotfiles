@@ -1,0 +1,25 @@
+{{- /*
+  Removes deployed Gemini AI tool targets that have been tombstoned in Bazel.
+
+  Targets are tombstoned by setting tombstone = True on the macro in
+  src/ai/skills/BUILD.bazel. Each line emitted is a path relative to ~/.gemini/
+  that chezmoi will delete on the next apply if it exists on disk.
+*/ -}}
+{{- $workspace := output "git" "-C" .chezmoi.sourceDir "rev-parse" "--show-toplevel" | trim -}}
+{{- if lookPath "bazel" -}}
+{{- $rmQueryCmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"tool:gemini\", //src/ai/skills/...) intersect attr(tags, \"tombstone\", //src/ai/skills/...)' 2>/dev/null" $workspace -}}
+{{- $rmOutput := output "bash" "-c" $rmQueryCmd -}}
+{{- range $line := splitList "\n" $rmOutput -}}
+{{- $line = trim $line -}}
+{{- if $line -}}
+{{- if hasSuffix ".gemini.skill.tar" $line -}}
+{{- $installName := base $line | trimSuffix ".gemini.skill.tar" -}}
+skills/{{ $installName }}
+{{ end -}}
+{{- if hasSuffix ".gemini.skill-group.tar" $line -}}
+{{- $installName := base $line | trimSuffix ".gemini.skill-group.tar" -}}
+skills/{{ $installName }}
+{{ end -}}
+{{- end -}}
+{{- end -}}
+{{- end -}}
