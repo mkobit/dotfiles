@@ -1,7 +1,7 @@
 import json
+import logging
 import sys
 from pathlib import Path
-from typing import Any
 
 import click
 import yaml  # type: ignore
@@ -54,7 +54,7 @@ def transform_frontmatter(skill: AgentSkill, tool: str, scope: str) -> AgentSkil
 def main(input_json: Path, output_md: Path, tool: str, scope: str) -> None:
     """Read a processed .md.json file, apply transformations, and write as Markdown."""
     try:
-        with open(input_json, "r", encoding="utf-8") as f:
+        with open(input_json, encoding="utf-8") as f:
             data = json.load(f)
 
         # Parse using the same Pydantic model used during generation
@@ -84,10 +84,9 @@ def main(input_json: Path, output_md: Path, tool: str, scope: str) -> None:
         with open(output_md, "w", encoding="utf-8") as f:
             f.write(output_content)
 
-        click.echo(
+        logging.debug(
             f"Successfully transformed {input_json} to {output_md} for {tool} ({scope} scope)"
         )
-
     except Exception as e:
         click.echo(f"Error transforming {input_json}: {e}", err=True)
         sys.exit(1)
