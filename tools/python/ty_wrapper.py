@@ -2,9 +2,10 @@ import sys
 import subprocess
 import site
 import os
-import ty._find_ty
 
 if __name__ == "__main__":
+    import ty._find_ty
+
     try:
         bin_path = ty._find_ty.find_ty_bin()
     except ty._find_ty.TyNotFound:
@@ -37,12 +38,16 @@ if __name__ == "__main__":
     sys.stdout.flush()
     sys.stderr.flush()
 
-    # Passing the exact argument structure, avoiding background threads in bazel/sandbox hanging
+    env = os.environ.copy()
+
+    # Restrict Ty to single thread to prevent CPU lockups/hanging under Bazel sandbox
+    env["RAYON_NUM_THREADS"] = "1"
+
     try:
-        os.execv(bin_path, [bin_path] + sys.argv[1:])
+        os.execve(bin_path, [bin_path] + sys.argv[1:], env)
     except BlockingIOError:
-        # Fallback to subprocess.run if execv encounters a BlockingIOError in macOS sandbox
-        res = subprocess.run([bin_path] + sys.argv[1:])
+        # Fallback for macOS sandbox limits
+        res = subprocess.run([bin_path] + sys.argv[1:], env=env)
         sys.exit(res.returncode)
     except Exception as e:
         print(f"Exception when calling ty: {e}", file=sys.stderr)
