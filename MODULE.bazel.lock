@@ -308,8 +308,8 @@
   "moduleExtensions": {
     "//tools/agentskills:extensions.bzl%ai_skills": {
       "general": {
-        "bzlTransitiveDigest": "nDyj/7XwG9rivpWaGf/2gsiBXYQP9vI7TbX7+W9cesI=",
-        "usagesDigest": "jnx0MMKmlsPDwXahCHHiqxqkeDsXHNES4/7OiaQrD+s=",
+        "bzlTransitiveDigest": "O/cLBctBtLp/b2B3U0urAv6IGz21x4I16z6zxt7Vhnc=",
+        "usagesDigest": "K1netOl/pzPvOR9hSMu9V9DH0zgvOeLSXTfn3rf15Vg=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
           "gemini_conductor": {
@@ -336,20 +336,33 @@
             "repoRuleId": "@@//tools/agentskills:extensions.bzl%skill_collection_repo",
             "attributes": {
               "urls": [
-                "https://github.com/garrytan/gstack/archive/refs/heads/main.tar.gz"
+                "https://github.com/garrytan/gstack/archive/6169273d16b7ab8690943241fa802e5a1ca85305.tar.gz"
               ],
-              "sha256": "5d1dd6062081ad04cc1002751f3c793f060ed0e5e08491cf699762d7386e5edc",
-              "strip_prefix": "gstack-main"
+              "sha256": "1de01e5d0d187f2a86ed65355d4148a138af409bcc6b949a5f85203fec6005fa",
+              "strip_prefix": "gstack-6169273d16b7ab8690943241fa802e5a1ca85305",
+              "include": [],
+              "exclude": [
+                "browse",
+                "codex",
+                "connect-chrome",
+                "gstack-upgrade",
+                "office-hours",
+                "plan-ceo-review",
+                "plan-design-review",
+                "plan-eng-review",
+                "setup-browser-cookies",
+                "setup-deploy"
+              ]
             }
           },
           "agency_agents": {
             "repoRuleId": "@@//tools/agentskills:extensions.bzl%claude_agents_repo",
             "attributes": {
               "urls": [
-                "https://github.com/msitarzewski/agency-agents/archive/refs/heads/main.tar.gz"
+                "https://github.com/msitarzewski/agency-agents/archive/4feb0cd736dd0e2e9830cd54dfc99770621bed90.tar.gz"
               ],
-              "sha256": "06e91363c7381370aef935774be9aad015a88a34c1c2880394b8443c1adf0a38",
-              "strip_prefix": "agency-agents-main"
+              "sha256": "befd4ab2dafea1cf3c2e5a7737854b1921158211ff164bd7a034a18a963e0231",
+              "strip_prefix": "agency-agents-4feb0cd736dd0e2e9830cd54dfc99770621bed90"
             }
           }
         }

@@ -1,7 +1,7 @@
 import json
+import logging
 import sys
 from pathlib import Path
-from typing import Any
 
 import click
 
@@ -16,7 +16,7 @@ def main(extension_json: Path, output_json: Path) -> None:
     that the transform_skill tools expect (like agentskills.io).
     """
     try:
-        with open(extension_json, "r", encoding="utf-8") as f:
+        with open(extension_json, encoding="utf-8") as f:
             ext_data = json.load(f)
 
         name = ext_data.get("name", "unknown")
@@ -40,7 +40,7 @@ def main(extension_json: Path, output_json: Path) -> None:
             # context file path is relative to the extension.json file
             context_path = extension_json.parent / context_file_name
             if context_path.exists():
-                with open(context_path, "r", encoding="utf-8") as f:
+                with open(context_path, encoding="utf-8") as f:
                     body = f.read()
             else:
                 body = f"<!-- Missing context file: {context_file_name} -->"
@@ -59,6 +59,7 @@ def main(extension_json: Path, output_json: Path) -> None:
         with open(output_json, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2)
 
+        logging.debug(f"Successfully processed {extension_json} to {output_json}")
     except Exception as e:
         click.echo(f"Error processing {extension_json}: {e}", err=True)
         sys.exit(1)
