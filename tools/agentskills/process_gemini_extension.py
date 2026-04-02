@@ -59,8 +59,6 @@ def main(extension_json: Path, output_json: Path) -> None:
         with open(output_json, "w", encoding="utf-8") as f:
             json.dump(output_data, f, indent=2)
 
-        click.echo(f"Successfully processed {extension_json} to {output_json}")
-
     except Exception as e:
         click.echo(f"Error processing {extension_json}: {e}", err=True)
         sys.exit(1)

@@ -84,10 +84,6 @@ def main(input_json: Path, output_md: Path, tool: str, scope: str) -> None:
         with open(output_md, "w", encoding="utf-8") as f:
             f.write(output_content)
 
-        click.echo(
-            f"Successfully transformed {input_json} to {output_md} for {tool} ({scope} scope)"
-        )
-
     except Exception as e:
         click.echo(f"Error transforming {input_json}: {e}", err=True)
         sys.exit(1)

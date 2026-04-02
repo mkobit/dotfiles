@@ -48,8 +48,6 @@ def main(command_toml: Path, context_json: Path, output_md: Path) -> None:
         output_md.parent.mkdir(parents=True, exist_ok=True)
         output_md.write_text("\n".join(lines), encoding="utf-8")
 
-        click.echo(f"Successfully processed {command_toml} to {output_md}")
-
     except Exception as e:
         click.echo(f"Error processing {command_toml}: {e}", err=True)
         sys.exit(1)
