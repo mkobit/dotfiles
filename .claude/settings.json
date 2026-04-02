@@ -14,6 +14,7 @@
       "WebFetch(domain:jules.google)",
       "WebFetch(domain:www.chezmoi.io)",
       "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:chezmoi.io)",
       "Bash(chezmoi diff:*)",
       "Bash(chezmoi source-path:*)",
       "Bash(chezmoi status:*)",
