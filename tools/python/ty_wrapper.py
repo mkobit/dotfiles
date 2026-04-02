@@ -34,15 +34,16 @@ if __name__ == "__main__":
             print("Could not find ty binary via ty module or PATH.", file=sys.stderr)
             sys.exit(1)
 
-    # Use run() which should handle BlockingIOError automatically
+    sys.stdout.flush()
+    sys.stderr.flush()
+
+    # Passing the exact argument structure, avoiding background threads in bazel/sandbox hanging
     try:
+        os.execv(bin_path, [bin_path] + sys.argv[1:])
+    except BlockingIOError:
+        # Fallback to subprocess.run if execv encounters a BlockingIOError in macOS sandbox
         res = subprocess.run([bin_path] + sys.argv[1:])
         sys.exit(res.returncode)
     except Exception as e:
-        print(f"Exception when calling subprocess.run for ty: {e}", file=sys.stderr)
-        # fallback for macos BlockingIOError
-        try:
-            os.execv(bin_path, [bin_path] + sys.argv[1:])
-        except Exception as e2:
-            print(f"Exception when calling os.execv for ty: {e2}", file=sys.stderr)
-            sys.exit(1)
+        print(f"Exception when calling ty: {e}", file=sys.stderr)
+        sys.exit(1)
