@@ -2,6 +2,7 @@
 
 load("@tar.bzl", "tar")
 load("@tar.bzl//tar:mtree.bzl", "mutate")
+load("//tools/chezmoi:defs.bzl", "ChezmoidTags")
 
 def _agent_skill_build_impl(ctx):
     # Only process files named "SKILL.md" as agentskills.io specifies
@@ -143,7 +144,7 @@ def claude_skill(name, skill, scope = "user", install_name = None, visibility = 
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude"] + extra_tags
+    tool_tags = ["tool:claude", ChezmoidTags.claude_skill] + extra_tags
     files_target = name + "_files"
 
     _tool_skill(
@@ -187,7 +188,7 @@ def gemini_skill(name, skill, scope = "user", install_name = None, visibility = 
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:gemini"] + extra_tags
+    tool_tags = ["tool:gemini", ChezmoidTags.gemini_skill] + extra_tags
     files_target = name + "_files"
 
     _tool_skill(

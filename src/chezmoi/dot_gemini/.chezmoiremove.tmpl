@@ -1,0 +1,17 @@
+{{- /*
+  Removes deployed Gemini AI tool targets that have been tombstoned in Bazel.
+  Set tags = ["tombstone"] on a target to mark it for removal.
+*/ -}}
+{{- $workspace := output "git" "-C" .chezmoi.sourceDir "rev-parse" "--show-toplevel" | trim -}}
+{{- if lookPath "bazel" -}}
+{{- $tomb := "intersect attr(tags, \"tombstone\", //src/ai/skills/...)" -}}
+
+{{- $skill := printf "cd %q && bazel cquery --output=files 'attr(tags, \"gemini:skill\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $tomb -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $skill) -}}
+{{- $line = trim $line -}}
+{{- if and $line (hasSuffix ".tar" $line) -}}
+skills/{{ base $line | trimSuffix ".gemini.skill.tar" }}
+{{ end -}}
+{{- end -}}
+
+{{- end -}}

@@ -2,6 +2,7 @@
 
 load("@tar.bzl", "tar")
 load("@tar.bzl//tar:mtree.bzl", "mutate")
+load("//tools/chezmoi:defs.bzl", "ChezmoidTags")
 
 def claude_skill_group(name, srcs, namespace, install_name = None, strip_prefix = "", visibility = None, **kwargs):
     """
@@ -28,7 +29,7 @@ def claude_skill_group(name, srcs, namespace, install_name = None, strip_prefix 
     if install_name == None:
         install_name = namespace
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude", "skill-group:" + namespace] + extra_tags
+    tool_tags = ["tool:claude", "skill-group:" + namespace, ChezmoidTags.claude_collection] + extra_tags
 
     tar(
         name = name + "_tar",
@@ -69,7 +70,7 @@ def claude_skill_item(name, srcs, namespace, install_name = None, strip_prefix =
     if install_name == None:
         install_name = namespace + "-" + name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude", "skill-group:" + namespace] + extra_tags
+    tool_tags = ["tool:claude", "skill-group:" + namespace, ChezmoidTags.claude_skill] + extra_tags
 
     tar(
         name = name + "_tar",
@@ -108,7 +109,7 @@ def claude_subagent_group(name, srcs, install_name = None, strip_prefix = "", vi
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude-agents"] + extra_tags
+    tool_tags = ["tool:claude-agents", ChezmoidTags.claude_agents] + extra_tags
 
     tar(
         name = name + "_tar",
@@ -143,7 +144,7 @@ def claude_subagent(name, srcs, install_name = None, strip_prefix = "", visibili
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude-agents"] + extra_tags
+    tool_tags = ["tool:claude-agents", ChezmoidTags.claude_agents] + extra_tags
 
     tar(
         name = name + "_tar",
