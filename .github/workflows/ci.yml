@@ -119,10 +119,10 @@ jobs:
           fi
 
       - name: Build
-        run: bazel build //...
+        run: bazel build --config=ci //...
 
       - name: Test
-        run: bazel test //...
+        run: bazel test --config=ci //...
 
   integration:
     needs: [test]
@@ -166,7 +166,7 @@ jobs:
           chezmoi --version
 
       - name: Build all targets
-        run: bazel build //...
+        run: bazel build --config=ci //...
 
       - name: Initialize chezmoi with repository
         run: |

@@ -12,6 +12,10 @@ build --aspects=//tools/lint:linters.bzl%ruff
 build --aspects=//tools/lint:linters.bzl%mypy
 build --output_groups=+rules_python_lint
 
+# CI builds skip lint aspects — linting is handled by the dedicated check job
+build:ci --aspects=
+build:ci --output_groups=-rules_python_lint
+
 # Note: aspect_rules_lint configuration will be re-enabled once dependencies are resolved
 
 # Try to import user-specific configuration
