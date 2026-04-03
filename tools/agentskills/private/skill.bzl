@@ -2,7 +2,7 @@
 
 load("@tar.bzl", "tar")
 load("@tar.bzl//tar:mtree.bzl", "mutate")
-load("//tools/chezmoi:defs.bzl", "CHEZMOI_TOMBSTONE")
+load("//tools/chezmoi:defs.bzl", "CHEZMOI_CLAUDE_COMMANDS", "CHEZMOI_CLAUDE_SKILL", "CHEZMOI_GEMINI_SKILL")
 
 def _agent_skill_build_impl(ctx):
     # Only process files named "SKILL.md" as agentskills.io specifies
@@ -128,7 +128,7 @@ _tool_skill = rule(
     },
 )
 
-def claude_skill(name, skill, scope = "user", install_name = None, visibility = None, tombstone = False, **kwargs):
+def claude_skill(name, skill, scope = "user", install_name = None, visibility = None, **kwargs):
     """
     Transforms an agent_skill into a format suitable for Claude.
     Produces <install_name>.claude.skill.tar tagged tool:claude.
@@ -139,15 +139,12 @@ def claude_skill(name, skill, scope = "user", install_name = None, visibility = 
         scope: Scope of the skill ("user" or "repo")
         install_name: Install directory name (defaults to name)
         visibility: The visibility of the target
-        tombstone: If True, marks this target for removal by chezmoi. The
-            target is excluded from install queries and included in removal
-            queries, causing chezmoi apply to delete the deployed skill.
         **kwargs: Passed through (e.g. target_compatible_with)
     """
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude"] + ([CHEZMOI_TOMBSTONE] if tombstone else []) + extra_tags
+    tool_tags = ["tool:claude", CHEZMOI_CLAUDE_SKILL] + extra_tags
     files_target = name + "_files"
 
     _tool_skill(
@@ -175,7 +172,7 @@ def claude_skill(name, skill, scope = "user", install_name = None, visibility = 
         **kwargs
     )
 
-def gemini_skill(name, skill, scope = "user", install_name = None, visibility = None, tombstone = False, **kwargs):
+def gemini_skill(name, skill, scope = "user", install_name = None, visibility = None, **kwargs):
     """
     Transforms an agent_skill into a format suitable for Gemini.
     Produces <install_name>.gemini.skill.tar tagged tool:gemini.
@@ -186,13 +183,12 @@ def gemini_skill(name, skill, scope = "user", install_name = None, visibility = 
         scope: Scope of the skill ("user" or "repo")
         install_name: Install directory name (defaults to name)
         visibility: The visibility of the target
-        tombstone: If True, marks this target for removal by chezmoi.
         **kwargs: Passed through (e.g. target_compatible_with)
     """
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:gemini"] + ([CHEZMOI_TOMBSTONE] if tombstone else []) + extra_tags
+    tool_tags = ["tool:gemini", CHEZMOI_GEMINI_SKILL] + extra_tags
     files_target = name + "_files"
 
     _tool_skill(
@@ -220,7 +216,7 @@ def gemini_skill(name, skill, scope = "user", install_name = None, visibility = 
         **kwargs
     )
 
-def cursor_skill(name, skill, scope = "user", install_name = None, visibility = None, tombstone = False, **kwargs):
+def cursor_skill(name, skill, scope = "user", install_name = None, visibility = None, **kwargs):
     """
     Transforms an agent_skill into a format suitable for Cursor.
     Produces <install_name>.cursor.skill.tar tagged tool:cursor.
@@ -231,13 +227,12 @@ def cursor_skill(name, skill, scope = "user", install_name = None, visibility = 
         scope: Scope of the skill ("user" or "repo")
         install_name: Install directory name (defaults to name)
         visibility: The visibility of the target
-        tombstone: If True, marks this target for removal by chezmoi.
         **kwargs: Passed through (e.g. target_compatible_with)
     """
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:cursor"] + ([CHEZMOI_TOMBSTONE] if tombstone else []) + extra_tags
+    tool_tags = ["tool:cursor"] + extra_tags
     files_target = name + "_files"
 
     _tool_skill(

@@ -2,9 +2,9 @@
 
 load("@tar.bzl", "tar")
 load("@tar.bzl//tar:mtree.bzl", "mutate")
-load("//tools/chezmoi:defs.bzl", "CHEZMOI_TOMBSTONE")
+load("//tools/chezmoi:defs.bzl", "CHEZMOI_CLAUDE_AGENTS", "CHEZMOI_CLAUDE_SKILL", "CHEZMOI_CLAUDE_SKILL_GROUP")
 
-def claude_skill_group(name, srcs, namespace, install_name = None, strip_prefix = "", visibility = None, tombstone = False, **kwargs):
+def claude_skill_group(name, srcs, namespace, install_name = None, strip_prefix = "", visibility = None, **kwargs):
     """
     Packages an entire skill collection as a namespaced tree for Claude.
 
@@ -24,14 +24,12 @@ def claude_skill_group(name, srcs, namespace, install_name = None, strip_prefix 
         strip_prefix: Path prefix to strip from file short_paths. For external repos
             @foo, use "../foo". For local files, use native.package_name() or "".
         visibility: The visibility of the target
-        tombstone: If True, marks this target for removal by chezmoi. Causes
-            chezmoi apply to delete skills/<install_name>/ from the destination.
         **kwargs: Passed through (e.g. target_compatible_with, tags)
     """
     if install_name == None:
         install_name = namespace
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude", "skill-group:" + namespace] + ([CHEZMOI_TOMBSTONE] if tombstone else []) + extra_tags
+    tool_tags = ["tool:claude", "skill-group:" + namespace, CHEZMOI_CLAUDE_SKILL_GROUP] + extra_tags
 
     tar(
         name = name + "_tar",
@@ -49,7 +47,7 @@ def claude_skill_group(name, srcs, namespace, install_name = None, strip_prefix 
         visibility = visibility,
     )
 
-def claude_skill_item(name, srcs, namespace, install_name = None, strip_prefix = "", visibility = None, tombstone = False, **kwargs):
+def claude_skill_item(name, srcs, namespace, install_name = None, strip_prefix = "", visibility = None, **kwargs):
     """
     Packages a single skill cherry-picked from a collection for Claude.
 
@@ -67,13 +65,12 @@ def claude_skill_item(name, srcs, namespace, install_name = None, strip_prefix =
         install_name: Install directory name under skills/ (defaults to namespace + "-" + name)
         strip_prefix: Path prefix to strip from file short_paths.
         visibility: The visibility of the target
-        tombstone: If True, marks this target for removal by chezmoi.
         **kwargs: Passed through (e.g. target_compatible_with, tags)
     """
     if install_name == None:
         install_name = namespace + "-" + name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude", "skill-group:" + namespace] + ([CHEZMOI_TOMBSTONE] if tombstone else []) + extra_tags
+    tool_tags = ["tool:claude", "skill-group:" + namespace, CHEZMOI_CLAUDE_SKILL] + extra_tags
 
     tar(
         name = name + "_tar",
@@ -91,7 +88,7 @@ def claude_skill_item(name, srcs, namespace, install_name = None, strip_prefix =
         visibility = visibility,
     )
 
-def claude_subagent_group(name, srcs, install_name = None, strip_prefix = "", visibility = None, tombstone = False, **kwargs):
+def claude_subagent_group(name, srcs, install_name = None, strip_prefix = "", visibility = None, **kwargs):
     """
     Packages a collection of Claude sub-agent .md files for installation to ~/.claude/agents/.
 
@@ -107,14 +104,12 @@ def claude_subagent_group(name, srcs, install_name = None, strip_prefix = "", vi
         install_name: Base name for the output tar (defaults to name)
         strip_prefix: Path prefix to strip from file short_paths.
         visibility: The visibility of the target
-        tombstone: If True, marks this target for removal by chezmoi. Causes
-            chezmoi apply to delete the agents/ directory contents it contributed.
         **kwargs: Passed through (e.g. target_compatible_with, tags)
     """
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude-agents"] + ([CHEZMOI_TOMBSTONE] if tombstone else []) + extra_tags
+    tool_tags = ["tool:claude-agents", CHEZMOI_CLAUDE_AGENTS] + extra_tags
 
     tar(
         name = name + "_tar",
@@ -132,7 +127,7 @@ def claude_subagent_group(name, srcs, install_name = None, strip_prefix = "", vi
         visibility = visibility,
     )
 
-def claude_subagent(name, srcs, install_name = None, strip_prefix = "", visibility = None, tombstone = False, **kwargs):
+def claude_subagent(name, srcs, install_name = None, strip_prefix = "", visibility = None, **kwargs):
     """
     Packages a single Claude sub-agent .md file for installation to ~/.claude/agents/.
 
@@ -144,13 +139,12 @@ def claude_subagent(name, srcs, install_name = None, strip_prefix = "", visibili
         install_name: Base name for the output tar (defaults to name)
         strip_prefix: Path prefix to strip from the file short_path.
         visibility: The visibility of the target
-        tombstone: If True, marks this target for removal by chezmoi.
         **kwargs: Passed through (e.g. target_compatible_with, tags)
     """
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude-agents"] + ([CHEZMOI_TOMBSTONE] if tombstone else []) + extra_tags
+    tool_tags = ["tool:claude-agents", CHEZMOI_CLAUDE_AGENTS] + extra_tags
 
     tar(
         name = name + "_tar",

@@ -2,12 +2,13 @@
 {{- if lookPath "bazel" -}}
 {{- $_ := output "bash" "-c" (printf "cd %q && bazel build //src/ai/skills/..." $workspace) -}}
 {{- end -}}
-{{- $queryCmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"tool:claude\", //src/ai/skills/...) except attr(tags, \"skip-install\", //src/ai/skills/...) except attr(tags, \"tombstone\", //src/ai/skills/...)' 2>/dev/null" $workspace -}}
-{{- $queryOutput := output "bash" "-c" $queryCmd -}}
-{{- range $line := splitList "\n" $queryOutput -}}
+{{- $skip := "except attr(tags, \"skip-install\", //src/ai/skills/...) except attr(tags, \"tombstone\", //src/ai/skills/...)" -}}
+
+{{- /* Commands: claude:commands tag → install to commands/<install_name>/ */ -}}
+{{- $cmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"claude:commands\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $skip -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $cmd) -}}
 {{- $line = trim $line -}}
-{{- if $line -}}
-{{- if hasSuffix ".claude.commands.tar" $line -}}
+{{- if and $line (hasSuffix ".tar" $line) -}}
 {{- $installName := base $line | trimSuffix ".claude.commands.tar" -}}
 
 ["commands/{{ $installName }}"]
@@ -16,7 +17,13 @@
     exact = true
 
 {{ end -}}
-{{- if hasSuffix ".claude.skill.tar" $line -}}
+{{- end -}}
+
+{{- /* Skills: claude:skill tag → install to skills/<install_name>/ */ -}}
+{{- $skill := printf "cd %q && bazel cquery --output=files 'attr(tags, \"claude:skill\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $skip -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $skill) -}}
+{{- $line = trim $line -}}
+{{- if and $line (hasSuffix ".tar" $line) -}}
 {{- $installName := base $line | trimSuffix ".claude.skill.tar" -}}
 
 ["skills/{{ $installName }}"]
@@ -25,7 +32,13 @@
     exact = true
 
 {{ end -}}
-{{- if hasSuffix ".claude.skill-group.tar" $line -}}
+{{- end -}}
+
+{{- /* Skill groups: claude:collection tag → install to skills/<install_name>/ */ -}}
+{{- $group := printf "cd %q && bazel cquery --output=files 'attr(tags, \"claude:collection\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $skip -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $group) -}}
+{{- $line = trim $line -}}
+{{- if and $line (hasSuffix ".tar" $line) -}}
 {{- $installName := base $line | trimSuffix ".claude.skill-group.tar" -}}
 
 ["skills/{{ $installName }}"]
@@ -35,13 +48,12 @@
 
 {{ end -}}
 {{- end -}}
-{{- end -}}
-{{- $agentQueryCmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"tool:claude-agents\", //src/ai/skills/...) except attr(tags, \"skip-install\", //src/ai/skills/...) except attr(tags, \"tombstone\", //src/ai/skills/...)' 2>/dev/null" $workspace -}}
-{{- $agentOutput := output "bash" "-c" $agentQueryCmd -}}
-{{- range $line := splitList "\n" $agentOutput -}}
+
+{{- /* Agents: claude:agents tag → install to agents/ */ -}}
+{{- $agents := printf "cd %q && bazel cquery --output=files 'attr(tags, \"claude:agents\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $skip -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $agents) -}}
 {{- $line = trim $line -}}
-{{- if $line -}}
-{{- if hasSuffix ".claude.agents.tar" $line -}}
+{{- if and $line (hasSuffix ".tar" $line) -}}
 
 ["agents"]
     type = "archive"
@@ -49,5 +61,4 @@
     exact = false
 
 {{ end -}}
-{{- end -}}
 {{- end -}}
