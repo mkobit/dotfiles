@@ -6,6 +6,10 @@ inputs:
     description: 'The cache key to use for disk-cache'
     required: false
     default: ${{ github.workflow }}
+  cache-save:
+    description: 'Whether to save caches'
+    required: false
+    default: 'true'
 
 runs:
   using: "composite"
@@ -20,3 +24,7 @@ runs:
         disk-cache: ${{ inputs.cache-key || github.workflow }}
         # Share repository cache between workflows
         repository-cache: true
+        # Enable external repository cache
+        external-cache: true
+        # Control whether to save caches
+        cache-save: ${{ inputs.cache-save }}
