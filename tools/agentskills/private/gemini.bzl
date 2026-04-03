@@ -2,7 +2,7 @@
 
 load("@tar.bzl", "tar")
 load("@tar.bzl//tar:mtree.bzl", "mutate")
-load("//tools/chezmoi:defs.bzl", "CHEZMOI_CLAUDE_COMMANDS", "CHEZMOI_CLAUDE_SKILL")
+load("//tools/chezmoi:defs.bzl", "ChezmoidTags")
 
 def _gemini_extension_impl(ctx):
     # Locate the gemini-extension.json file within srcs
@@ -159,8 +159,8 @@ def claude_from_gemini_extension(name, extension, install_name = None, scope = "
 
     extra_tags = kwargs.pop("tags", [])
     base_tags = ["tool:claude"] + extra_tags
-    commands_tags = base_tags + [CHEZMOI_CLAUDE_COMMANDS]
-    skill_tags = base_tags + [CHEZMOI_CLAUDE_SKILL]
+    commands_tags = base_tags + [ChezmoidTags.claude_commands]
+    skill_tags = base_tags + [ChezmoidTags.claude_skill]
 
     # Rule that produces individual command .md files and skill SKILL.md.
     _claude_from_gemini_extension_files(

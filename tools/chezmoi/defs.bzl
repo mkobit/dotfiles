@@ -1,9 +1,13 @@
-"""Public deployment tag constants for chezmoi-managed AI tool targets.
+"""Deployment tag constants for chezmoi-managed AI tool targets.
 
 These constants are referenced by Bazel macros (tools/agentskills/) and
 chezmoi templates (src/chezmoi/) to coordinate installation and removal.
 Keeping them here rather than in tools/agentskills/ makes the deployment
 semantics explicit: these tags have no build meaning, only deployment meaning.
+
+Usage in macros:
+    load("//tools/chezmoi:defs.bzl", "ChezmoidTags")
+    tags = ["tool:claude", ChezmoidTags.claude_skill]
 
 # Tag taxonomy
 
@@ -44,31 +48,28 @@ Remove:
   attr(tags, "claude:agents",     //...) intersect attr(tags, "tombstone", //...)
 """
 
-# --- Lifecycle tags ---
+ChezmoidTags = struct(
+    # Lifecycle: was deployed, must now be removed on next chezmoi apply.
+    # Add to a target via tags = [ChezmoidTags.tombstone] and it will be
+    # picked up by the intersect removal query in .chezmoiremove.tmpl.
+    tombstone = "tombstone",
 
-# Applied to targets that should be deleted from their deployment destination
-# on the next chezmoi apply. Combine with an install-type tag in the intersect query.
-CHEZMOI_TOMBSTONE = "tombstone"
+    # Lifecycle: exists in the build graph but must never be installed.
+    # Use for test fixture targets.
+    skip_install = "skip-install",
 
-# Applied to test fixture targets that exist in the build graph but must never
-# be installed by chezmoi.
-CHEZMOI_SKIP_INSTALL = "skip-install"
+    # Install-type: Claude slash commands → ~/.claude/commands/<install_name>/
+    claude_commands = "claude:commands",
 
-# --- Install-type tags: Claude ---
+    # Install-type: single transformed skill → ~/.claude/skills/<install_name>/
+    claude_skill = "claude:skill",
 
-# ~/.claude/commands/<install_name>/
-CHEZMOI_CLAUDE_COMMANDS = "claude:commands"
+    # Install-type: multi-skill namespace tree → ~/.claude/skills/<install_name>/
+    claude_collection = "claude:collection",
 
-# ~/.claude/skills/<install_name>/  (single transformed skill)
-CHEZMOI_CLAUDE_SKILL = "claude:skill"
+    # Install-type: flat .md sub-agent files → ~/.claude/agents/
+    claude_agents = "claude:agents",
 
-# ~/.claude/skills/<install_name>/  (multi-skill namespace tree from a collection)
-CHEZMOI_CLAUDE_SKILL_GROUP = "claude:collection"
-
-# ~/.claude/agents/  (flat .md sub-agent files)
-CHEZMOI_CLAUDE_AGENTS = "claude:agents"
-
-# --- Install-type tags: Gemini ---
-
-# ~/.gemini/skills/<install_name>/
-CHEZMOI_GEMINI_SKILL = "gemini:skill"
+    # Install-type: Gemini skill → ~/.gemini/skills/<install_name>/
+    gemini_skill = "gemini:skill",
+)
