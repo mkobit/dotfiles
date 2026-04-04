@@ -46,7 +46,7 @@ py_binary(
     srcs = ["transform_skill.py"],
     visibility = ["//visibility:public"],
     deps = [
-        ":process_skill",
+        ":models",
         "@pypi//click",
         "@pypi//pydantic",
         "@pypi//pyyaml",

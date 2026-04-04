@@ -435,9 +435,7 @@ _skill_collection_tag = tag_class(
 
 _claude_agents_tag = tag_class(
     doc = "Declares an external Claude sub-agents repository. Generates filegroups per division.",
-    attrs = _tag_attrs(
-        divisions = attr.string_list(default = [], doc = "Divisions to include (empty = all)."),
-    ),
+    attrs = _tag_attrs(),
 )
 
 _claude_plugin_tag = tag_class(

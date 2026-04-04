@@ -8,11 +8,10 @@ import click
 import yaml  # type: ignore
 
 from tools.agentskills.models import SkillIR
-from tools.agentskills.process_skill import AgentSkill  # noqa: F401 — re-exported for backward compat
 
 
-def _build_frontmatter(ir: SkillIR, tool: str, scope: str) -> dict[str, Any]:
-    """Build a frontmatter dict from a SkillIR, injecting scope and target_tool."""
+def _build_frontmatter(ir: SkillIR) -> dict[str, Any]:
+    """Build a frontmatter dict from a SkillIR."""
     fm: dict[str, Any] = {}
 
     fm["name"] = ir.name
@@ -41,10 +40,6 @@ def _build_frontmatter(ir: SkillIR, tool: str, scope: str) -> dict[str, Any]:
 
     # Merge extra fields
     fm.update(ir.extra)
-
-    # Inject scope and target_tool
-    fm["scope"] = scope
-    fm["target_tool"] = tool
 
     return fm
 
@@ -76,7 +71,7 @@ def main(input_json: Path, output_md: Path, tool: str, scope: str) -> None:
             click.echo(f"Failed to validate SkillIR from {input_json}: {e}", err=True)
             sys.exit(1)
 
-        fm = _build_frontmatter(ir, tool, scope)
+        fm = _build_frontmatter(ir)
 
         yaml_str = yaml.dump(
             fm,
