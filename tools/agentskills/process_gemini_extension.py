@@ -1,9 +1,12 @@
 import json
 import logging
+import re
 import sys
 from pathlib import Path
 
 import click
+
+from tools.agentskills.models import SkillIR
 
 
 @click.command()
@@ -12,8 +15,7 @@ import click
 def main(extension_json: Path, output_json: Path) -> None:
     """
     Parses a gemini-extension.json file (and its associated context file)
-    and transforms it into the intermediate JSON representation (metadata + body)
-    that the transform_skill tools expect (like agentskills.io).
+    and emits a SkillIR JSON that transform_skill can consume.
     """
     try:
         with open(extension_json, encoding="utf-8") as f:
@@ -23,8 +25,6 @@ def main(extension_json: Path, output_json: Path) -> None:
         # Ensure name conforms to agent_skill pattern
         # The skill model pattern is: ^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$
         clean_name = name.lower()
-        import re
-
         clean_name = re.sub(r"[^a-z0-9-]", "-", clean_name)
         if not clean_name:
             clean_name = "unknown"
@@ -45,19 +45,16 @@ def main(extension_json: Path, output_json: Path) -> None:
             else:
                 body = f"<!-- Missing context file: {context_file_name} -->"
 
-        metadata = {
-            "name": clean_name,
-            "description": description,
-        }
-
-        output_data = {
-            "metadata": metadata,
-            "body": body,
-        }
+        ir = SkillIR(
+            source_format="gemini-extension",
+            name=clean_name,
+            description=description,
+            body=body,
+        )
 
         output_json.parent.mkdir(parents=True, exist_ok=True)
         with open(output_json, "w", encoding="utf-8") as f:
-            json.dump(output_data, f, indent=2)
+            json.dump(ir.model_dump(mode="json", by_alias=True), f, indent=2)
 
         logging.debug(f"Successfully processed {extension_json} to {output_json}")
     except Exception as e:

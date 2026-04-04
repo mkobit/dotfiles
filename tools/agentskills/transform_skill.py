@@ -2,41 +2,54 @@ import json
 import logging
 import sys
 from pathlib import Path
+from typing import Any
 
 import click
 import yaml  # type: ignore
 
-from tools.agentskills.process_skill import AgentSkill
+from tools.agentskills.models import SkillIR
+from tools.agentskills.process_skill import AgentSkill  # noqa: F401 — re-exported for backward compat
 
 
-def transform_frontmatter(skill: AgentSkill, tool: str, scope: str) -> AgentSkill:
-    """Apply tool-specific and scope-specific transformations to the frontmatter."""
+def _build_frontmatter(ir: SkillIR, tool: str, scope: str) -> dict[str, Any]:
+    """Build a frontmatter dict from a SkillIR, injecting scope and target_tool."""
+    fm: dict[str, Any] = {}
 
-    # Mutate the skill object directly or create a new one based on logic
-    new_metadata = skill.metadata.copy() if skill.metadata else {}
-    new_metadata["scope"] = scope
-    new_metadata["target_tool"] = tool
+    fm["name"] = ir.name
+    fm["description"] = ir.description
 
-    # Tool-specific logic (placeholder for future adaptations like extensions/slash commands)
-    if tool == "claude":
-        # Example: Claude might require a different capability name
-        pass
-    elif tool == "gemini":
-        # Example: Gemini might require different formatting
-        pass
+    if ir.allowed_tools is not None:
+        fm["allowed-tools"] = ir.allowed_tools
+    if ir.argument_hint is not None:
+        fm["argument-hint"] = ir.argument_hint
+    if ir.model is not None:
+        fm["model"] = ir.model
+    if ir.effort is not None:
+        fm["effort"] = ir.effort
+    if ir.context is not None:
+        fm["context"] = ir.context
+    if ir.agent is not None:
+        fm["agent"] = ir.agent
+    if ir.user_invocable is not None:
+        fm["user-invocable"] = ir.user_invocable
+    if ir.disable_model_invocation is not None:
+        fm["disable-model-invocation"] = ir.disable_model_invocation
+    if ir.paths is not None:
+        fm["paths"] = ir.paths
+    if ir.shell is not None:
+        fm["shell"] = ir.shell
 
-    # Return a new AgentSkill instance with the updated metadata
-    return AgentSkill(
-        name=skill.name,
-        description=skill.description,
-        license=skill.license,
-        compatibility=skill.compatibility,
-        metadata=new_metadata,
-        allowed_tools=skill.allowed_tools,
-    )
+    # Merge extra fields
+    fm.update(ir.extra)
+
+    # Inject scope and target_tool
+    fm["scope"] = scope
+    fm["target_tool"] = tool
+
+    return fm
 
 
-@click.command(help="Transform agentskills.io .md.json to tool-specific markdown.")
+@click.command(help="Transform a SkillIR JSON to tool-specific markdown.")
 @click.argument("input_json", type=click.Path(exists=True, path_type=Path))
 @click.argument("output_md", type=click.Path(path_type=Path))
 @click.option(
@@ -52,33 +65,26 @@ def transform_frontmatter(skill: AgentSkill, tool: str, scope: str) -> AgentSkil
     help="Scope of the skill",
 )
 def main(input_json: Path, output_md: Path, tool: str, scope: str) -> None:
-    """Read a processed .md.json file, apply transformations, and write as Markdown."""
+    """Read a SkillIR JSON file, apply transformations, and write as Markdown."""
     try:
         with open(input_json, encoding="utf-8") as f:
             data = json.load(f)
 
-        # Parse using the same Pydantic model used during generation
-        metadata_dict = data.get("metadata", {})
         try:
-            skill = AgentSkill.model_validate(metadata_dict)
+            ir = SkillIR.model_validate(data)
         except Exception as e:
-            click.echo(f"Failed to validate metadata against AgentSkill: {e}", err=True)
+            click.echo(f"Failed to validate SkillIR from {input_json}: {e}", err=True)
             sys.exit(1)
 
-        body = data.get("body", "")
+        fm = _build_frontmatter(ir, tool, scope)
 
-        # Transform the metadata
-        transformed_skill = transform_frontmatter(skill, tool, scope)
-
-        # Generate the output markdown
-        # PyYAML dumps with some defaults we want to override for frontmatter
         yaml_str = yaml.dump(
-            transformed_skill.model_dump(mode="json", by_alias=True, exclude_none=True),
+            fm,
             default_flow_style=False,
             sort_keys=True,
         )
 
-        output_content = f"---\n{yaml_str}---\n\n{body}"
+        output_content = f"---\n{yaml_str}---\n\n{ir.body}"
 
         output_md.parent.mkdir(parents=True, exist_ok=True)
         with open(output_md, "w", encoding="utf-8") as f:
@@ -87,6 +93,8 @@ def main(input_json: Path, output_md: Path, tool: str, scope: str) -> None:
         logging.debug(
             f"Successfully transformed {input_json} to {output_md} for {tool} ({scope} scope)"
         )
+    except SystemExit:
+        raise
     except Exception as e:
         click.echo(f"Error transforming {input_json}: {e}", err=True)
         sys.exit(1)
