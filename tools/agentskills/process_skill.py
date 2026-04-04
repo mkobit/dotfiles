@@ -105,13 +105,20 @@ def _project_plugin(
     # PluginSkill uses populate_by_name=True with alias support; pass metadata directly
     validated = PluginSkill.model_validate(metadata)
 
+    if not validated.name:
+        click.echo("Error: claude-plugin skill is missing a 'name'", err=True)
+        sys.exit(1)
+    if not validated.description:
+        click.echo("Error: claude-plugin skill is missing a 'description'", err=True)
+        sys.exit(1)
+
     # Collect extra fields: anything not recognised by PluginSkill
     extra: dict[str, Any] = {k: v for k, v in metadata.items() if k not in known_keys}
 
     return SkillIR(
         source_format="claude-plugin",
-        name=validated.name or "",
-        description=validated.description or "",
+        name=validated.name,
+        description=validated.description,
         body=body,
         **{
             "allowed-tools": validated.allowed_tools,

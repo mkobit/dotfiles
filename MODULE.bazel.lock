@@ -308,7 +308,7 @@
   "moduleExtensions": {
     "//tools/agentskills:extensions.bzl%ai_skills": {
       "general": {
-        "bzlTransitiveDigest": "72PX5xfccJfTNG6E6D8pYGeWw1Lk4Z5sWugfCY67WGE=",
+        "bzlTransitiveDigest": "yfmm560esTE4+f/ewXTs3qA9r2czkNcS8m+MiyMANjQ=",
         "usagesDigest": "RcZ0TVJumIg5v9Pl9JDKoE/BpDKSMZxaQJF7B4vPIYQ=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
