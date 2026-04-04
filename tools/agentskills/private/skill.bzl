@@ -15,17 +15,21 @@ def _agent_skill_build_impl(ctx):
         fail("No SKILL.md found in srcs for agent_skill target %s" % ctx.label)
 
     for md_file in markdown_files:
-        # Generate the output JSON file alongside the input markdown
-        # E.g. SKILL.md -> SKILL.md.json
-        output_json = ctx.actions.declare_file(md_file.short_path + ".json")
+        # Generate the IR JSON output named after the skill directory.
+        # E.g. src/ai/skills/my-skill/SKILL.md -> src/ai/skills/my-skill/SKILL.md.ir.json
+        output_json = ctx.actions.declare_file(md_file.short_path + ".ir.json")
         output_files.append(output_json)
 
         args = ctx.actions.args()
-        args.add(md_file.path)
+
+        # Pass the skill directory (dirname of SKILL.md), not the file itself
+        args.add(md_file.dirname)
         args.add(output_json.path)
+        args.add("--source-format")
+        args.add("agentskills.io")
 
         ctx.actions.run(
-            inputs = [md_file],
+            inputs = ctx.files.srcs,
             outputs = [output_json],
             arguments = [args],
             executable = ctx.executable._processor,
@@ -89,9 +93,10 @@ def _tool_skill_impl(ctx):
     if not json_files:
         fail("No json_files found in the agent_skill target.")
     if len(json_files) > 1:
-        fail("Multiple SKILL.md.json files found; only one is supported per tool_skill target.")
+        fail("Multiple SKILL.md.ir.json files found; only one is supported per tool_skill target.")
 
     json_file = json_files[0]
+    raw_assets = agent_skill_target[OutputGroupInfo].raw_assets.to_list()
 
     # Output as SKILL.md in a named subdirectory for clean tar packaging.
     output_md = ctx.actions.declare_file(ctx.label.name + "_output/SKILL.md")
@@ -103,7 +108,7 @@ def _tool_skill_impl(ctx):
     args.add("--scope", ctx.attr.scope)
 
     ctx.actions.run(
-        inputs = [json_file],
+        inputs = [json_file] + raw_assets,
         outputs = [output_md],
         arguments = [args],
         executable = ctx.executable._transformer,

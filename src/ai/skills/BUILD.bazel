@@ -6,6 +6,19 @@ load(
     "gemini_skill",
 )
 
+# Fine-grained agent atom targets — compose these into subagent_group deployments.
+# Each label maps to a single .md file from an external plugin's agents/ directory.
+_COMPOUND_REVIEW_AGENTS = [
+    "@compound_engineering//:adversarial-reviewer",
+    "@compound_engineering//:api-contract-reviewer",
+    "@compound_engineering//:code-simplicity-reviewer",
+    "@compound_engineering//:correctness-reviewer",
+    "@compound_engineering//:data-integrity-guardian",
+    "@compound_engineering//:performance-oracle",
+    "@compound_engineering//:security-reviewer",
+    "@compound_engineering//:testing-reviewer",
+]
+
 # Disable AI skill targets on work machines where external network access is restricted.
 config_setting(
     name = "work_machine",
@@ -54,14 +67,32 @@ gemini_skill(
     visibility = ["//visibility:public"],
 )
 
-# gstack — install curated namespace to ~/.claude/skills/gstack/.
-# Selection (include/exclude) is configured in MODULE.bazel via the skill_collection tag.
-# Use @gstack//:all-skills or load @gstack//:skills.bzl to override.
+# gstack — TOMBSTONED. Triggers removal of ~/.claude/skills/gstack/ on next chezmoi apply.
+#
+# Why removed: gstack does not follow the agentskills.io SKILL.md format and is not a
+# good upstream source for our pipeline. Specific problems:
+#   - Every skill embeds a ~40-line gstack-specific preamble (telemetry, update checks,
+#     session tracking, config reads) that fires on every skill invocation. All calls
+#     use `|| true` fallbacks so they're silent, but the noise is still in every prompt.
+#   - Skills are auto-generated from SKILL.md.tmpl via a bun build step; the deployed
+#     SKILL.md files are derived artifacts, not authoritative sources.
+#   - Several skills are gstack infrastructure, not general purpose (learn, freeze,
+#     unfreeze, guard, canary, checkpoint manage gstack's own state machine).
+#   - The bin/ scripts include telemetry sync, an uninstall script that modifies
+#     ~/.claude/skills/, and dev-setup scripts not intended for managed deployments.
+#   - The upstream deployment model (git clone + self-upgrade) conflicts with our
+#     pinned, reproducible Bazel + chezmoi approach.
+#
+# Future: consider cherry-picking useful skills (review, health, qa, investigate,
+# design-review, ship) as local src/ai/skills/ entries rewritten to our SKILL.md format,
+# or find purpose-built upstream collections that follow agentskills.io conventions.
+# See tools/agentskills/AGENTS.md for source evaluation criteria.
 claude_skill_group(
     name = "gstack",
     srcs = ["@gstack//:skills"],
     namespace = "gstack",
     strip_prefix = "",
+    tags = ["tombstone"],
     target_compatible_with = select({
         ":work_machine": ["@platforms//:incompatible"],
         "//conditions:default": [],
@@ -76,6 +107,37 @@ claude_subagent_group(
     srcs = ["@agency_agents//:engineering"],
     install_name = "agency-engineering",
     strip_prefix = "engineering",
+    target_compatible_with = select({
+        ":work_machine": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+# compound-engineering review agents — installs curated review personas to ~/.claude/agents/.
+# Composed from individual atom targets; add/remove from _COMPOUND_REVIEW_AGENTS above.
+# strip_prefix strips "plugins/compound-engineering/agents/review" so archives contain flat .md files.
+claude_subagent_group(
+    name = "compound_review_agents",
+    srcs = _COMPOUND_REVIEW_AGENTS,
+    install_name = "compound-review-agents",
+    strip_prefix = "plugins/compound-engineering/agents/review",
+    target_compatible_with = select({
+        ":work_machine": ["@platforms//:incompatible"],
+        "//conditions:default": [],
+    }),
+    visibility = ["//visibility:public"],
+)
+
+# compound-engineering — skills to ~/.claude/skills/compound-engineering/
+# 50+ general-purpose Claude plugin skills (ce-plan, ce-review, ce-work, etc.)
+# Ingested via claude_plugin_repo; skills are already Claude-native (no transformation needed).
+claude_skill_group(
+    name = "compound_engineering",
+    srcs = ["@compound_engineering//:skills"],
+    install_name = "compound-engineering",
+    namespace = "compound-engineering",
+    strip_prefix = "plugins/compound-engineering/skills",
     target_compatible_with = select({
         ":work_machine": ["@platforms//:incompatible"],
         "//conditions:default": [],

@@ -57,18 +57,19 @@ bazel_dep(name = "tar.bzl", version = "0.9.0")
 ai_skills = use_extension("//tools/agentskills:extensions.bzl", "ai_skills")
 ai_skills.gemini_extension(
     name = "gemini_conductor",
+    github = "gemini-cli-extensions/conductor",
     sha256 = "701f09ab6a2f13edf384ef6171d79b67e4b4692d3fa2a81035a6b72439129d1a",
-    strip_prefix = "conductor-conductor-v0.4.1",
-    urls = ["https://github.com/gemini-cli-extensions/conductor/archive/refs/tags/conductor-v0.4.1.tar.gz"],
+    tag = "conductor-v0.4.1",
 )
 ai_skills.anthropics_skills(
     name = "anthropics_skills",
+    commit = "98669c11ca63e9c81c11501e1437e5c47b556621",
+    github = "anthropics/skills",
     sha256 = "435b687005b44bbc70c1c95e4362532987fe06547f6740ceba05fbdcc200aac3",
-    strip_prefix = "skills-98669c11ca63e9c81c11501e1437e5c47b556621",
-    urls = ["https://github.com/anthropics/skills/archive/98669c11ca63e9c81c11501e1437e5c47b556621.tar.gz"],
 )
 ai_skills.skill_collection(
     name = "gstack",
+    commit = "6169273d16b7ab8690943241fa802e5a1ca85305",
     exclude = [
         "browse",  # requires building a TypeScript/Bun browser-automation server
         "codex",  # OpenAI Codex-specific workflow
@@ -81,15 +82,21 @@ ai_skills.skill_collection(
         "setup-browser-cookies",  # browser infrastructure dependency
         "setup-deploy",  # org-specific deployment setup
     ],
+    github = "garrytan/gstack",
     namespace = "gstack",
     sha256 = "1de01e5d0d187f2a86ed65355d4148a138af409bcc6b949a5f85203fec6005fa",
-    strip_prefix = "gstack-6169273d16b7ab8690943241fa802e5a1ca85305",
-    urls = ["https://github.com/garrytan/gstack/archive/6169273d16b7ab8690943241fa802e5a1ca85305.tar.gz"],
 )
 ai_skills.claude_agents(
     name = "agency_agents",
+    commit = "4feb0cd736dd0e2e9830cd54dfc99770621bed90",
+    github = "msitarzewski/agency-agents",
     sha256 = "befd4ab2dafea1cf3c2e5a7737854b1921158211ff164bd7a034a18a963e0231",
-    strip_prefix = "agency-agents-4feb0cd736dd0e2e9830cd54dfc99770621bed90",
-    urls = ["https://github.com/msitarzewski/agency-agents/archive/4feb0cd736dd0e2e9830cd54dfc99770621bed90.tar.gz"],
 )
-use_repo(ai_skills, "agency_agents", "anthropics_skills", "gemini_conductor", "gstack")
+ai_skills.claude_plugin(
+    name = "compound_engineering",
+    github = "EveryInc/compound-engineering-plugin",
+    plugin_path = "plugins/compound-engineering",
+    sha256 = "ef6cd6e3dea900f355dd248b6f0db74ebb8eb4d323de3228cf15c21c6b1b8f81",
+    tag = "compound-engineering-v2.62.0",
+)
+use_repo(ai_skills, "agency_agents", "anthropics_skills", "compound_engineering", "gemini_conductor", "gstack")
