@@ -54,11 +54,12 @@
 {{- range $line := splitList "\n" (output "bash" "-c" $agents) -}}
 {{- $line = trim $line -}}
 {{- if and $line (hasSuffix ".tar" $line) -}}
+{{- $installName := base $line | trimSuffix ".claude.agents.tar" -}}
 
-["agents"]
+["agents/{{ $installName }}"]
     type = "archive"
     url = "file://{{ $workspace }}/{{ $line }}"
-    exact = false
+    exact = true
 
 {{ end -}}
 {{- end -}}
