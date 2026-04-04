@@ -72,4 +72,7 @@ ChezmoidTags = struct(
 
     # Install-type: Gemini skill → ~/.gemini/skills/<install_name>/
     gemini_skill = "gemini:skill",
+
+    # Install-type: Cursor skill → ~/.cursor/rules/<install_name>/
+    cursor_skill = "cursor:skill",
 )
