@@ -2,7 +2,7 @@ import json
 import logging
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 import click
 import frontmatter
@@ -19,7 +19,7 @@ class _AgentFrontmatter(BaseModel):
     name: str | None = None
     description: str | None = None
     model: str | None = None
-    effort: str | None = None
+    effort: Literal["low", "medium", "high", "max"] | None = None
     tools: list[str] | None = Field(None, alias="tools")
     allowed_tools: list[str] | None = Field(None, alias="allowed-tools")
     disallowed_tools: list[str] | None = Field(None, alias="disallowedTools")

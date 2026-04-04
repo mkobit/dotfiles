@@ -49,16 +49,17 @@
 {{ end -}}
 {{- end -}}
 
-{{- /* Agents: claude:agents tag → install to agents/ */ -}}
+{{- /* Agents: claude:agents tag → install to agents/<install_name>/ */ -}}
 {{- $agents := printf "cd %q && bazel cquery --output=files 'attr(tags, \"claude:agents\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $skip -}}
 {{- range $line := splitList "\n" (output "bash" "-c" $agents) -}}
 {{- $line = trim $line -}}
 {{- if and $line (hasSuffix ".tar" $line) -}}
+{{- $installName := base $line | trimSuffix ".claude.agents.tar" -}}
 
-["agents"]
+["agents/{{ $installName }}"]
     type = "archive"
     url = "file://{{ $workspace }}/{{ $line }}"
-    exact = false
+    exact = true
 
 {{ end -}}
 {{- end -}}
