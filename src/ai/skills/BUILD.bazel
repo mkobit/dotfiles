@@ -105,12 +105,12 @@ filegroup(
 
 # compound-engineering review agents — installs curated review personas to ~/.claude/agents/.
 # Composed from individual atom targets; add/remove from _COMPOUND_REVIEW_AGENTS above.
-# strip_prefix strips "plugins/compound-engineering/agents/review" so archives contain flat .md files.
+# strip_prefix strips "agents/review" so archives contain flat .md files.
 claude_subagent_group(
     name = "compound_review_agents",
     srcs = _COMPOUND_REVIEW_AGENTS,
     install_name = "compound-review-agents",
-    strip_prefix = "plugins/compound-engineering/agents/review",
+    strip_prefix = "agents/review",
     target_compatible_with = _WORK_INCOMPATIBLE,
     visibility = ["//visibility:public"],
 )
