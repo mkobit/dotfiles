@@ -29,7 +29,16 @@ Usage in MODULE.bazel:
         sha256 = "...",
     )
 
-    use_repo(ai_skills, "compound_engineering", "agency_agents")
+    # Claude plugin marketplace (embedded plugins only; external ones need separate claude_plugin entries)
+    ai_skills.claude_marketplace(
+        name = "my_marketplace",
+        github = "owner/marketplace-repo",
+        tag = "v1.0.0",
+        sha256 = "...",
+        marketplace_json = ".claude-plugin/marketplace.json",
+    )
+
+    use_repo(ai_skills, "compound_engineering", "agency_agents", "my_marketplace")
 """
 
 def _resolve_github(tag):
@@ -43,7 +52,10 @@ def _resolve_github(tag):
     repo_name = tag.github.split("/")[-1]
     if tag.tag:
         url = "https://github.com/{}/archive/refs/tags/{}.tar.gz".format(tag.github, tag.tag)
-        strip_prefix = "{}-{}".format(repo_name, tag.tag)
+
+        # GitHub strips a leading 'v' from the tag when naming the extracted directory.
+        dir_tag = tag.tag[1:] if tag.tag.startswith("v") else tag.tag
+        strip_prefix = "{}-{}".format(repo_name, dir_tag)
     else:
         url = "https://github.com/{}/archive/{}.tar.gz".format(tag.github, tag.commit)
         strip_prefix = "{}-{}".format(repo_name, tag.commit)
@@ -406,6 +418,147 @@ claude_plugin_repo = repository_rule(
     ),
 )
 
+def _claude_marketplace_repo_impl(ctx):
+    """Fetches a Claude plugin marketplace archive and generates filegroups for each embedded plugin.
+
+    A marketplace.json lists plugins with their sources. This rule handles plugins that are
+    embedded in the same archive (identified by a relative plugin_path). Externally-sourced
+    plugins (github/url sources) must be declared separately via claude_plugin tag entries.
+    """
+    urls, strip_prefix = _resolve_github(ctx.attr)
+    ctx.download_and_extract(
+        url = urls,
+        sha256 = ctx.attr.sha256,
+        stripPrefix = strip_prefix,
+    )
+
+    marketplace_path = ctx.attr.marketplace_json
+    marketplace_file = ctx.path(marketplace_path)
+    if not marketplace_file.exists:
+        fail("marketplace.json not found at: {}".format(marketplace_path))
+
+    marketplace = json.decode(ctx.read(marketplace_file))
+    marketplace_root = marketplace_file.dirname
+
+    build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
+    build_content += "# Marketplace: {}\n\n".format(marketplace.get("name", ctx.attr.name))
+
+    plugin_names = []
+
+    def _label_list(names):
+        return '["' + '", "'.join([":" + n for n in names]) + '"]' if names else "[]"
+
+    for plugin in marketplace.get("plugins", []):
+        plugin_name = plugin.get("name", "")
+        if not plugin_name:
+            continue
+
+        source = plugin.get("source", "")
+
+        # Only handle embedded plugins — those whose source is a relative path within this archive.
+        # External plugins (dicts with source="github"/"url"/etc.) need separate claude_plugin entries.
+        if type(source) != "string":
+            build_content += "# External plugin '{}' — declare separately via ai_skills.claude_plugin()\n\n".format(plugin_name)
+            continue
+
+        # Resolve plugin root: source is relative to the marketplace.json directory.
+        plugin_path = marketplace_root.get_child(source) if source else marketplace_root
+        if not plugin_path.exists:
+            build_content += "# Plugin '{}' source path not found: {}\n\n".format(plugin_name, source)
+            continue
+
+        path_prefix = (marketplace_path.rsplit("/", 1)[0] + "/" + source + "/").lstrip("/") if source else ""
+        if path_prefix and not path_prefix.endswith("/"):
+            path_prefix += "/"
+
+        # Skills
+        skill_names = []
+        skills_dir = plugin_path.get_child("skills")
+        if skills_dir.exists:
+            for entry in sorted(skills_dir.readdir(), key = lambda e: e.basename):
+                if entry.is_dir and entry.get_child("SKILL.md").exists:
+                    skill_names.append(entry.basename)
+                    build_content += """
+filegroup(
+    name = "{plugin}_{skill}",
+    srcs = glob(["{prefix}skills/{skill}/**/*"]),
+)
+""".format(plugin = plugin_name, skill = entry.basename, prefix = path_prefix)
+
+        build_content += """
+filegroup(
+    name = "{plugin}_skills",
+    srcs = {skills},
+)
+""".format(plugin = plugin_name, skills = _label_list([plugin_name + "_" + s for s in skill_names]))
+
+        # Agents
+        agent_categories = []
+        all_agent_names = []
+        agents_dir = plugin_path.get_child("agents")
+        if agents_dir.exists:
+            for cat_entry in sorted(agents_dir.readdir(), key = lambda e: e.basename):
+                if not cat_entry.is_dir:
+                    continue
+                cat_agent_names = []
+                for agent_entry in sorted(cat_entry.readdir(), key = lambda e: e.basename):
+                    if not agent_entry.basename.endswith(".md"):
+                        continue
+                    agent_name = agent_entry.basename[:-3]
+                    cat_agent_names.append(agent_name)
+                    all_agent_names.append(agent_name)
+                    build_content += """
+filegroup(
+    name = "{plugin}_{agent}",
+    srcs = ["{prefix}agents/{cat}/{agent}.md"],
+)
+""".format(plugin = plugin_name, agent = agent_name, cat = cat_entry.basename, prefix = path_prefix)
+
+                if cat_agent_names:
+                    agent_categories.append(cat_entry.basename)
+                    build_content += """
+filegroup(
+    name = "{plugin}_agents_{cat}",
+    srcs = {members},
+)
+""".format(plugin = plugin_name, cat = cat_entry.basename, members = _label_list([plugin_name + "_" + n for n in cat_agent_names]))
+
+        build_content += """
+filegroup(
+    name = "{plugin}_agents",
+    srcs = {agents},
+)
+""".format(plugin = plugin_name, agents = _label_list([plugin_name + "_agents_" + c for c in agent_categories]))
+
+        plugin_names.append(plugin_name)
+
+    # Top-level aggregate filegroups across all embedded plugins.
+    build_content += """
+filegroup(
+    name = "all_skills",
+    srcs = {skills},
+)
+
+filegroup(
+    name = "all_agents",
+    srcs = {agents},
+)
+""".format(
+        skills = _label_list([p + "_skills" for p in plugin_names]),
+        agents = _label_list([p + "_agents" for p in plugin_names]),
+    )
+
+    ctx.file("BUILD.bazel", build_content)
+
+claude_marketplace_repo = repository_rule(
+    implementation = _claude_marketplace_repo_impl,
+    attrs = dict(
+        _GITHUB_ATTRS,
+        sha256 = attr.string(mandatory = True),
+        marketplace_json = attr.string(default = ".claude-plugin/marketplace.json", doc = "Path within the archive to the marketplace.json file."),
+    ),
+)
+
 # --- Tag classes ---
 
 def _tag_attrs(**extra):
@@ -442,6 +595,13 @@ _claude_plugin_tag = tag_class(
     doc = "Declares an external Claude plugin repository (.claude-plugin/plugin.json). Use plugin_path for multi-plugin repos.",
     attrs = _tag_attrs(
         plugin_path = attr.string(default = "", doc = "Subpath to the plugin root within the archive. Empty = archive root."),
+    ),
+)
+
+_claude_marketplace_tag = tag_class(
+    doc = "Declares a Claude plugin marketplace archive (.claude-plugin/marketplace.json). Generates per-plugin filegroups for embedded plugins; external-source plugins must be declared separately via claude_plugin.",
+    attrs = _tag_attrs(
+        marketplace_json = attr.string(default = ".claude-plugin/marketplace.json", doc = "Path within the archive to the marketplace.json file."),
     ),
 )
 
@@ -500,6 +660,17 @@ def _ai_skills_extension_impl(module_ctx):
                 strip_prefix = tag.strip_prefix,
                 plugin_path = tag.plugin_path,
             )
+        for tag in mod.tags.claude_marketplace:
+            claude_marketplace_repo(
+                name = tag.name,
+                github = tag.github,
+                tag = tag.tag,
+                commit = tag.commit,
+                urls = tag.urls,
+                sha256 = tag.sha256,
+                strip_prefix = tag.strip_prefix,
+                marketplace_json = tag.marketplace_json,
+            )
 
 ai_skills = module_extension(
     implementation = _ai_skills_extension_impl,
@@ -509,5 +680,6 @@ ai_skills = module_extension(
         "skill_collection": _skill_collection_tag,
         "claude_agents": _claude_agents_tag,
         "claude_plugin": _claude_plugin_tag,
+        "claude_marketplace": _claude_marketplace_tag,
     },
 )

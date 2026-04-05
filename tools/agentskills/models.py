@@ -43,7 +43,6 @@ class PluginSkill(BaseModel):
         None, alias="disable-model-invocation"
     )
     user_invocable: bool | None = Field(None, alias="user-invocable")
-    hooks: dict[str, Any] | None = None
     paths: str | None = Field(
         None, description="Glob patterns limiting skill activation scope."
     )

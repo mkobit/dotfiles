@@ -83,6 +83,95 @@ def agent_skill(name, srcs, visibility = None):
         visibility = visibility,
     )
 
+def _agent_build_impl(ctx):
+    """Runs process_agent on a single agent .md file, emitting AgentIR JSON."""
+    md_file = ctx.file.src
+
+    output_json = ctx.actions.declare_file(md_file.short_path + ".ir.json")
+
+    args = ctx.actions.args()
+    args.add(md_file.path)
+    args.add(output_json.path)
+    args.add("--source-format")
+    args.add(ctx.attr.source_format)
+
+    ctx.actions.run(
+        inputs = [md_file],
+        outputs = [output_json],
+        arguments = [args],
+        executable = ctx.executable._processor,
+        progress_message = "Processing agent %s" % md_file.short_path,
+    )
+
+    return [
+        DefaultInfo(files = depset([md_file])),
+        OutputGroupInfo(
+            json_files = depset([output_json]),
+        ),
+    ]
+
+agent_build = rule(
+    implementation = _agent_build_impl,
+    attrs = {
+        "src": attr.label(allow_single_file = [".md"], mandatory = True),
+        "source_format": attr.string(default = "claude-agents", values = ["claude-agents", "claude-plugin"]),
+        "_processor": attr.label(
+            default = Label("//tools/agentskills:process_agent"),
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+)
+
+def _tool_agent_impl(ctx):
+    agent_target = ctx.attr.agent
+    if OutputGroupInfo not in agent_target:
+        fail("The 'agent' attribute must point to an agent_build target.")
+
+    json_files = agent_target[OutputGroupInfo].json_files.to_list()
+    if not json_files:
+        fail("No json_files found in the agent_build target.")
+    if len(json_files) > 1:
+        fail("Multiple AgentIR JSON files found; only one is supported per _tool_agent target.")
+
+    json_file = json_files[0]
+
+    # Output as <name>.md in a named subdirectory for clean tar packaging.
+    output_md = ctx.actions.declare_file(ctx.label.name + "_output/" + ctx.attr.output_name + ".md")
+
+    args = ctx.actions.args()
+    args.add(json_file.path)
+    args.add(output_md.path)
+    args.add("--tool", ctx.attr.tool)
+    args.add("--scope", ctx.attr.scope)
+
+    ctx.actions.run(
+        inputs = [json_file],
+        outputs = [output_md],
+        arguments = [args],
+        executable = ctx.executable._transformer,
+        progress_message = "Transforming agent %s for %s (%s scope)" % (json_file.short_path, ctx.attr.tool, ctx.attr.scope),
+    )
+
+    return [
+        DefaultInfo(files = depset([output_md])),
+    ]
+
+_tool_agent = rule(
+    implementation = _tool_agent_impl,
+    attrs = {
+        "agent": attr.label(mandatory = True, providers = [OutputGroupInfo]),
+        "tool": attr.string(mandatory = True, values = ["claude", "gemini", "cursor"]),
+        "scope": attr.string(default = "user", values = ["user", "repo"]),
+        "output_name": attr.string(mandatory = True),
+        "_transformer": attr.label(
+            default = Label("//tools/agentskills:transform_agent"),
+            executable = True,
+            cfg = "exec",
+        ),
+    },
+)
+
 def _tool_skill_impl(ctx):
     # Retrieve the OutputGroupInfo from the depended agent_skill
     agent_skill_target = ctx.attr.skill
@@ -252,6 +341,63 @@ def cursor_skill(name, skill, scope = "user", install_name = None, visibility = 
         name = name + "_tar",
         srcs = [":" + files_target],
         out = install_name + ".cursor.skill.tar",
+        mutate = mutate(strip_prefix = native.package_name() + "/" + files_target + "_output"),
+        tags = tool_tags,
+        **kwargs
+    )
+
+    native.filegroup(
+        name = name,
+        srcs = [":" + name + "_tar"],
+        tags = tool_tags,
+        visibility = visibility,
+        **kwargs
+    )
+
+def claude_agent(name, src, install_name = None, scope = "user", source_format = "claude-agents", visibility = None, **kwargs):
+    """
+    Processes a single agent .md file through the IR pipeline and packages it for Claude.
+
+    Runs process_agent → AgentIR → transform_agent → <install_name>.claude.agents.tar
+    tagged tool:claude-agents.
+
+    Args:
+        name: Name of the target
+        src: Label of the single agent .md file
+        install_name: Output filename stem for the agent (defaults to name)
+        scope: Scope of the agent ("user" or "repo")
+        source_format: Source format passed to process_agent ("claude-agents" or "claude-plugin")
+        visibility: The visibility of the target
+        **kwargs: Passed through (e.g. target_compatible_with)
+    """
+    if install_name == None:
+        install_name = name
+    extra_tags = kwargs.pop("tags", [])
+    tool_tags = ["tool:claude-agents", ChezmoidTags.claude_agents] + extra_tags
+
+    build_target = name + "_build"
+    files_target = name + "_files"
+
+    agent_build(
+        name = build_target,
+        src = src,
+        source_format = source_format,
+        **kwargs
+    )
+
+    _tool_agent(
+        name = files_target,
+        agent = ":" + build_target,
+        tool = "claude",
+        scope = scope,
+        output_name = install_name,
+        **kwargs
+    )
+
+    tar(
+        name = name + "_tar",
+        srcs = [":" + files_target],
+        out = install_name + ".claude.agents.tar",
         mutate = mutate(strip_prefix = native.package_name() + "/" + files_target + "_output"),
         tags = tool_tags,
         **kwargs

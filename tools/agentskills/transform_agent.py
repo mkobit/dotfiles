@@ -7,43 +7,34 @@ from typing import Any
 import click
 import yaml  # type: ignore
 
-from tools.agentskills.models import SkillIR
+from tools.agentskills.models import AgentIR
 
 # Fields that are Claude-specific and must be stripped for other targets.
-_CLAUDE_ONLY_KEYS = {"context", "agent", "user-invocable", "disable-model-invocation"}
+_CLAUDE_ONLY_KEYS = {"disallowedTools", "maxTurns", "isolation"}
 
 
-def _build_frontmatter(ir: SkillIR, tool: str) -> dict[str, Any]:
-    """Build a tool-specific frontmatter dict from a SkillIR."""
+def _build_frontmatter(ir: AgentIR, tool: str) -> dict[str, Any]:
+    """Build a tool-specific frontmatter dict from an AgentIR."""
     fm: dict[str, Any] = {}
 
     fm["name"] = ir.name
-    fm["description"] = ir.description
-
-    if ir.allowed_tools is not None:
-        fm["allowed-tools"] = ir.allowed_tools
-    if ir.argument_hint is not None:
-        fm["argument-hint"] = ir.argument_hint
+    if ir.description:
+        fm["description"] = ir.description
     if ir.model is not None:
         fm["model"] = ir.model
     if ir.effort is not None:
         fm["effort"] = ir.effort
-    if ir.paths is not None:
-        fm["paths"] = ir.paths
-    if ir.shell is not None:
-        fm["shell"] = ir.shell
+    if ir.tools is not None:
+        fm["tools"] = ir.tools
 
     if tool == "claude":
-        if ir.context is not None:
-            fm["context"] = ir.context
-        if ir.agent is not None:
-            fm["agent"] = ir.agent
-        if ir.user_invocable is not None:
-            fm["user-invocable"] = ir.user_invocable
-        if ir.disable_model_invocation is not None:
-            fm["disable-model-invocation"] = ir.disable_model_invocation
+        if ir.disallowed_tools is not None:
+            fm["disallowedTools"] = ir.disallowed_tools
+        if ir.max_turns is not None:
+            fm["maxTurns"] = ir.max_turns
+        if ir.isolation is not None:
+            fm["isolation"] = ir.isolation
 
-    # Merge extra fields, stripping Claude-only keys for non-Claude targets.
     for k, v in ir.extra.items():
         if tool != "claude" and k in _CLAUDE_ONLY_KEYS:
             continue
@@ -52,7 +43,7 @@ def _build_frontmatter(ir: SkillIR, tool: str) -> dict[str, Any]:
     return fm
 
 
-@click.command(help="Transform a SkillIR JSON to tool-specific markdown.")
+@click.command(help="Transform an AgentIR JSON to tool-specific markdown.")
 @click.argument("input_json", type=click.Path(exists=True, path_type=Path))
 @click.argument("output_md", type=click.Path(path_type=Path))
 @click.option(
@@ -65,18 +56,25 @@ def _build_frontmatter(ir: SkillIR, tool: str) -> dict[str, Any]:
     "--scope",
     required=True,
     type=click.Choice(["user", "repo"]),
-    help="Scope of the skill",
+    help="Scope of the agent",
 )
-def main(input_json: Path, output_md: Path, tool: str, scope: str) -> None:
-    """Read a SkillIR JSON file, apply transformations, and write as Markdown."""
+@click.option(
+    "--output-name",
+    default="",
+    help="Output filename stem (defaults to ir.name)",
+)
+def main(
+    input_json: Path, output_md: Path, tool: str, scope: str, output_name: str
+) -> None:
+    """Read an AgentIR JSON file, apply tool-specific projection, and write as Markdown."""
     try:
         with open(input_json, encoding="utf-8") as f:
             data = json.load(f)
 
         try:
-            ir = SkillIR.model_validate(data)
+            ir = AgentIR.model_validate(data)
         except Exception as e:
-            click.echo(f"Failed to validate SkillIR from {input_json}: {e}", err=True)
+            click.echo(f"Failed to validate AgentIR from {input_json}: {e}", err=True)
             sys.exit(1)
 
         fm = _build_frontmatter(ir, tool)
