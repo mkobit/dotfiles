@@ -443,6 +443,9 @@ def _claude_marketplace_repo_impl(ctx):
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
     build_content += "# Marketplace: {}\n\n".format(marketplace.get("name", ctx.attr.name))
 
+    def _label_list(names):
+        return '["' + '", "'.join([":" + n for n in names]) + '"]' if names else "[]"
+
     plugin_names = []
 
     def _label_list(names):
