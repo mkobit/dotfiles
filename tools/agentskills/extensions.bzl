@@ -318,6 +318,7 @@ def _claude_plugin_repo_impl(ctx):
         path_prefix = ""
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_skill_group", "claude_subagent_group")\n\n'
 
     # Read plugin name from .claude-plugin/plugin.json if present.
     plugin_name = ctx.attr.name
@@ -355,49 +356,61 @@ filegroup(
 )
 """.format(skills = _label_list(skill_names))
 
-    # --- Agents: <plugin_root>/agents/<category>/<name>.md ---
-    # Generates:
-    #   :<name>          per individual agent file (atom — composable into any deployment)
-    #   :agents_<cat>    per-category aggregate
-    #   :agents          all agents across all categories
+    # --- Agents: supports both flat and categorized layouts ---
+    # Flat:       agents/<name>.md       (most Claude plugins)
+    # Categorized: agents/<cat>/<name>.md (e.g. compound-engineering)
+    # Generates per-agent filegroup :<name> for composability, plus :agents aggregate.
+    # flat_agent_names and agent_categories are tracked separately so :agents always
+    # includes both, even when a plugin uses a mixed layout.
     agent_categories = []
-    all_agent_names = []
+    flat_agent_names = []
     agents_dir = plugin_root.get_child("agents")
     if agents_dir.exists:
-        for cat_entry in sorted(agents_dir.readdir(), key = lambda e: e.basename):
-            if not cat_entry.is_dir:
-                continue
-            cat_agent_names = []
-            for agent_entry in sorted(cat_entry.readdir(), key = lambda e: e.basename):
-                if not agent_entry.basename.endswith(".md"):
-                    continue
-                agent_name = agent_entry.basename[:-3]  # strip .md
-                cat_agent_names.append(agent_name)
-                all_agent_names.append(agent_name)
-                build_content += """
+        for entry in sorted(agents_dir.readdir(), key = lambda e: e.basename):
+            if entry.is_dir:
+                # Categorized: recurse one level
+                cat_agent_names = []
+                for agent_entry in sorted(entry.readdir(), key = lambda e: e.basename):
+                    if not agent_entry.basename.endswith(".md"):
+                        continue
+                    agent_name = agent_entry.basename[:-3]
+                    cat_agent_names.append(agent_name)
+                    build_content += """
 filegroup(
     name = "{agent}",
     srcs = ["{prefix}agents/{cat}/{agent}.md"],
 )
-""".format(agent = agent_name, cat = cat_entry.basename, prefix = path_prefix)
+""".format(agent = agent_name, cat = entry.basename, prefix = path_prefix)
 
-            if cat_agent_names:
-                agent_categories.append(cat_entry.basename)
-                build_content += """
-# agents_{cat}: all agents in the {cat} category.
+                if cat_agent_names:
+                    agent_categories.append(entry.basename)
+                    build_content += """
 filegroup(
     name = "agents_{cat}",
     srcs = {members},
 )
-""".format(cat = cat_entry.basename, members = _label_list(cat_agent_names))
+""".format(cat = entry.basename, members = _label_list(cat_agent_names))
+
+            elif entry.basename.endswith(".md"):
+                # Flat: agent file directly under agents/
+                agent_name = entry.basename[:-3]
+                flat_agent_names.append(agent_name)
+                build_content += """
+filegroup(
+    name = "{agent}",
+    srcs = ["{prefix}agents/{agent}.md"],
+)
+""".format(agent = agent_name, prefix = path_prefix)
 
     build_content += """
-# agents: all discovered agent files across all categories.
+# agents: all discovered agent files.
 filegroup(
     name = "agents",
     srcs = {agents},
 )
-""".format(agents = _label_list(["agents_" + c for c in agent_categories]))
+""".format(agents = _label_list(
+        ["agents_" + c for c in agent_categories] + flat_agent_names,
+    ))
 
     # --- Commands: <plugin_root>/commands/*.md ---
     build_content += """
@@ -406,6 +419,33 @@ filegroup(
     srcs = glob(["{prefix}commands/**/*.md"], allow_empty = True),
 )
 """.format(prefix = path_prefix)
+
+    # --- Packaging targets ---
+    # Emit claude_subagent_group / claude_skill_group wrappers so consumers can
+    # reference pre-packaged targets without repeating strip_prefix / install_name.
+    has_agents = bool(agent_categories) or bool(flat_agent_names)
+    if has_agents:
+        build_content += """
+claude_subagent_group(
+    name = "{plugin}-agents",
+    srcs = [":agents"],
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+""".format(plugin = plugin_name, strip_prefix = path_prefix + "agents")
+
+    if skill_names:
+        build_content += """
+claude_skill_group(
+    name = "{plugin}-skills",
+    srcs = [":skills"],
+    namespace = "{plugin}",
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+""".format(plugin = plugin_name, strip_prefix = path_prefix + "skills")
 
     ctx.file("BUILD.bazel", build_content)
 
@@ -438,9 +478,10 @@ def _claude_marketplace_repo_impl(ctx):
         fail("marketplace.json not found at: {}".format(marketplace_path))
 
     marketplace = json.decode(ctx.read(marketplace_file))
-    marketplace_root = marketplace_file.dirname
+    archive_root = ctx.path(".")
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_skill_group", "claude_subagent_group")\n\n'
     build_content += "# Marketplace: {}\n\n".format(marketplace.get("name", ctx.attr.name))
 
     def _label_list(names):
@@ -461,22 +502,26 @@ def _claude_marketplace_repo_impl(ctx):
             build_content += "# External plugin '{}' — declare separately via ai_skills.claude_plugin()\n\n".format(plugin_name)
             continue
 
-        # Resolve plugin root: source is relative to the marketplace.json directory.
-        # Treat empty source and "." as self-rooted (same directory as marketplace.json).
-        normalised_source = "" if (not source or source == ".") else source
-        plugin_path = marketplace_root.get_child(normalised_source) if normalised_source else marketplace_root
-        if not plugin_path.exists:
-            build_content += "# Plugin '{}' source path not found: {}\n\n".format(plugin_name, source)
-            continue
+        # Reject unsafe plugin_name values — Bazel target names forbid spaces, slashes, and colons.
+        if " " in plugin_name or "/" in plugin_name or ":" in plugin_name:
+            fail("Marketplace plugin has invalid name '{}': names must not contain spaces, '/', or ':'".format(plugin_name))
 
-        # Build the glob prefix: parent dir of marketplace.json + plugin source subpath.
-        # Use rpartition to safely handle a marketplace.json with no directory component.
-        marketplace_dir = marketplace_path.rpartition("/")[0]
-        if normalised_source:
-            raw_prefix = (marketplace_dir + "/" + normalised_source + "/") if marketplace_dir else (normalised_source + "/")
-        else:
-            raw_prefix = (marketplace_dir + "/") if marketplace_dir else ""
-        path_prefix = raw_prefix.lstrip("/")
+        # Reject path-traversal and absolute sources before resolving.
+        # The spec forbids "../" (paths must stay within the marketplace root).
+        if source.startswith("/") or ".." in source.split("/"):
+            fail("Marketplace plugin '{}' has unsafe source path: {}".format(plugin_name, source))
+
+        # Resolve plugin root: source is relative to the archive root (not marketplace.json directory).
+        # Strip the literal "./" prefix with an explicit slice — lstrip("./") strips characters from a
+        # set, not a literal prefix, and would corrupt paths like "./.hidden/foo".
+        clean_source = source[2:] if source.startswith("./") else source
+        normalised_source = "" if (not clean_source or clean_source == ".") else clean_source
+        plugin_path = archive_root.get_child(normalised_source) if normalised_source else archive_root
+        if not plugin_path.exists:
+            fail("Marketplace plugin '{}' source path not found in archive: {}".format(plugin_name, source))
+
+        # path_prefix: the glob prefix to reach files within the plugin root.
+        path_prefix = (normalised_source + "/") if normalised_source else ""
 
         # Skills
         skill_names = []
@@ -499,43 +544,91 @@ filegroup(
 )
 """.format(plugin = plugin_name, skills = _label_list([plugin_name + "_" + s for s in skill_names]))
 
-        # Agents
+        # Agents: supports both flat (agents/<name>.md) and categorized (agents/<cat>/<name>.md).
+        # flat_agent_names and agent_categories are tracked separately so the :agents aggregate
+        # always includes both, even when a plugin uses a mixed layout.
         agent_categories = []
-        all_agent_names = []
+        flat_agent_names = []
         agents_dir = plugin_path.get_child("agents")
         if agents_dir.exists:
             for cat_entry in sorted(agents_dir.readdir(), key = lambda e: e.basename):
-                if not cat_entry.is_dir:
-                    continue
-                cat_agent_names = []
-                for agent_entry in sorted(cat_entry.readdir(), key = lambda e: e.basename):
-                    if not agent_entry.basename.endswith(".md"):
-                        continue
-                    agent_name = agent_entry.basename[:-3]
-                    cat_agent_names.append(agent_name)
-                    all_agent_names.append(agent_name)
-                    build_content += """
+                if cat_entry.is_dir:
+                    # Categorized: recurse one level
+                    cat_agent_names = []
+                    for agent_entry in sorted(cat_entry.readdir(), key = lambda e: e.basename):
+                        if not agent_entry.basename.endswith(".md"):
+                            continue
+                        agent_name = agent_entry.basename[:-3]
+                        cat_agent_names.append(agent_name)
+                        build_content += """
 filegroup(
     name = "{plugin}_{agent}",
     srcs = ["{prefix}agents/{cat}/{agent}.md"],
 )
 """.format(plugin = plugin_name, agent = agent_name, cat = cat_entry.basename, prefix = path_prefix)
 
-                if cat_agent_names:
-                    agent_categories.append(cat_entry.basename)
-                    build_content += """
+                    if cat_agent_names:
+                        agent_categories.append(cat_entry.basename)
+                        build_content += """
 filegroup(
     name = "{plugin}_agents_{cat}",
     srcs = {members},
 )
 """.format(plugin = plugin_name, cat = cat_entry.basename, members = _label_list([plugin_name + "_" + n for n in cat_agent_names]))
 
+                elif cat_entry.basename.endswith(".md"):
+                    # Flat: agent file directly under agents/
+                    agent_name = cat_entry.basename[:-3]
+                    flat_agent_names.append(agent_name)
+                    build_content += """
+filegroup(
+    name = "{plugin}_{agent}",
+    srcs = ["{prefix}agents/{agent}.md"],
+)
+""".format(plugin = plugin_name, agent = agent_name, prefix = path_prefix)
+
+        # Aggregate includes category sub-groups AND any flat agents at the top level.
+        agent_aggregate_srcs = (
+            [plugin_name + "_agents_" + c for c in agent_categories] +
+            [plugin_name + "_" + n for n in flat_agent_names]
+        )
+        has_agents = bool(agent_categories) or bool(flat_agent_names)
         build_content += """
 filegroup(
     name = "{plugin}_agents",
     srcs = {agents},
 )
-""".format(plugin = plugin_name, agents = _label_list([plugin_name + "_agents_" + c for c in agent_categories]))
+""".format(plugin = plugin_name, agents = _label_list(agent_aggregate_srcs))
+
+        if has_agents:
+            build_content += """
+claude_subagent_group(
+    name = "{plugin}-agents",
+    srcs = [":{plugin}_agents"],
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+""".format(plugin = plugin_name, strip_prefix = path_prefix + "agents")
+
+        if skill_names:
+            build_content += """
+claude_skill_group(
+    name = "{plugin}-skills",
+    srcs = [":{plugin}_skills"],
+    namespace = "{plugin}",
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+""".format(plugin = plugin_name, strip_prefix = path_prefix + "skills")
+
+        build_content += """
+filegroup(
+    name = "{plugin}_commands",
+    srcs = glob(["{prefix}commands/**/*.md"], allow_empty = True),
+)
+""".format(plugin = plugin_name, prefix = path_prefix)
 
         plugin_names.append(plugin_name)
 
@@ -550,9 +643,15 @@ filegroup(
     name = "all_agents",
     srcs = {agents},
 )
+
+filegroup(
+    name = "all_commands",
+    srcs = {commands},
+)
 """.format(
         skills = _label_list([p + "_skills" for p in plugin_names]),
         agents = _label_list([p + "_agents" for p in plugin_names]),
+        commands = _label_list([p + "_commands" for p in plugin_names]),
     )
 
     ctx.file("BUILD.bazel", build_content)
