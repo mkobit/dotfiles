@@ -237,7 +237,7 @@ def cursor_skill(name, skill, scope = "user", install_name = None, visibility = 
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:cursor"] + extra_tags
+    tool_tags = ["tool:cursor", ChezmoidTags.cursor_skill] + extra_tags
     files_target = name + "_files"
 
     _tool_skill(
