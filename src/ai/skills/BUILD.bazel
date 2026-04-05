@@ -102,12 +102,10 @@ claude_skill_group(
 )
 
 # agency-agents engineering division — installs flat .md files to ~/.claude/agents/
-# strip_prefix strips the repo + division prefix so archive contains flat agent files.
-claude_subagent_group(
+filegroup(
     name = "agency_engineering",
-    srcs = ["@agency_agents//:engineering"],
-    install_name = "agency-engineering",
-    strip_prefix = "engineering",
+    srcs = ["@agency_agents//:engineering-agents"],
+    tags = ["claude:agents"],
     target_compatible_with = select({
         ":work_machine": ["@platforms//:incompatible"],
         "//conditions:default": [],

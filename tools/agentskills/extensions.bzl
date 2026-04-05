@@ -251,13 +251,14 @@ def _claude_agents_repo_impl(ctx):
     )
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_subagent_group")\n\n'
 
     _SKIP_DIRS = ["scripts", "examples", "integrations", "docs", "node_modules"]
 
     root_dir = ctx.path(".")
     division_names = []
 
-    for division_entry in root_dir.readdir():
+    for division_entry in sorted(root_dir.readdir(), key = lambda e: e.basename):
         if not division_entry.is_dir:
             continue
         basename = division_entry.basename
@@ -265,7 +266,7 @@ def _claude_agents_repo_impl(ctx):
             continue
 
         agent_files = []
-        for agent_entry in division_entry.readdir():
+        for agent_entry in sorted(division_entry.readdir(), key = lambda e: e.basename):
             if agent_entry.basename.endswith(".md"):
                 agent_files.append(agent_entry)
                 agent_name = agent_entry.basename[:-3]  # strip .md
@@ -282,6 +283,16 @@ filegroup(
 filegroup(
     name = "{division}",
     srcs = glob(["{division}/*.md"]),
+)
+""".format(division = basename)
+
+            build_content += """
+claude_subagent_group(
+    name = "{division}-agents",
+    srcs = [":{division}"],
+    install_name = "{division}",
+    strip_prefix = "{division}",
+    visibility = ["//visibility:public"],
 )
 """.format(division = basename)
 
