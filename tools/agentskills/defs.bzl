@@ -17,6 +17,7 @@ Load from this file, not from private/ subpackage:
         "claude_skill_item",
         "claude_subagent_group",
         "claude_subagent",
+        "cursor_skill_group",
     )
 """
 
@@ -27,6 +28,7 @@ load(
     _claude_skill_item = "claude_skill_item",
     _claude_subagent = "claude_subagent",
     _claude_subagent_group = "claude_subagent_group",
+    _cursor_skill_group = "cursor_skill_group",
 )
 load(
     "//tools/agentskills/private:gemini.bzl",
@@ -53,6 +55,7 @@ gemini_extension = _gemini_extension
 claude_from_gemini_extension = _claude_from_gemini_extension
 claude_plugin_commands = _claude_plugin_commands
 claude_skill_group = _claude_skill_group
+cursor_skill_group = _cursor_skill_group
 claude_skill_item = _claude_skill_item
 claude_subagent_group = _claude_subagent_group
 claude_subagent = _claude_subagent
