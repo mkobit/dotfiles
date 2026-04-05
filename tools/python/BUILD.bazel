@@ -1,13 +1,9 @@
-# Python tooling rules for building and deploying CLI tools
-
-load("@rules_python//python:defs.bzl", "py_binary")
-
 package(default_visibility = ["//visibility:public"])
 
-py_binary(
+# Direct alias to the binary distributed in the ty wheel.
+# This respects the version in requirements.lock.txt while avoiding
+# the overhead and potential hangs of a py_binary wrapper.
+alias(
     name = "ty",
-    srcs = ["ty_wrapper.py"],
-    main = "ty_wrapper.py",
-    deps = ["@pypi//ty:pkg"],
-    data = ["@@rules_python++pip+pypi_314_ty//:bin/ty"],
+    actual = "@@rules_python++pip+pypi_314_ty//:bin/ty",
 )

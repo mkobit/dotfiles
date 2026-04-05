@@ -4,7 +4,6 @@ pytest-asyncio
 
 # Linting and formatting
 ruff
-ty
 
 # HTTP tools
 aiohttp
@@ -32,3 +31,4 @@ jinja2
 
 # Progress
 tqdm
+ty
