@@ -59,5 +59,41 @@
         "cpu": "x86_64"
       }
     ]
+  },
+  "ty": {
+    "binaries": [
+      {
+        "kind": "archive",
+        "url": "https://github.com/astral-sh/ty/releases/download/0.0.28/ty-x86_64-unknown-linux-gnu.tar.gz",
+        "sha256": "c92d3566f8c3ad80ee3f46962f474396212912f775adc44075a16c16aa666c8e",
+        "file": "ty",
+        "os": "linux",
+        "cpu": "x86_64"
+      },
+      {
+        "kind": "archive",
+        "url": "https://github.com/astral-sh/ty/releases/download/0.0.28/ty-aarch64-unknown-linux-gnu.tar.gz",
+        "sha256": "6d0759674b278f27c0a0620eabf31c9f870bae105fe36da08993cd55cb6cd5d2",
+        "file": "ty",
+        "os": "linux",
+        "cpu": "arm64"
+      },
+      {
+        "kind": "archive",
+        "url": "https://github.com/astral-sh/ty/releases/download/0.0.28/ty-x86_64-apple-darwin.tar.gz",
+        "sha256": "ea08ae80a7a9cc92ac5de050f26a9e3cb6253bdd39dbc9131be747f3e3814382",
+        "file": "ty",
+        "os": "macos",
+        "cpu": "x86_64"
+      },
+      {
+        "kind": "archive",
+        "url": "https://github.com/astral-sh/ty/releases/download/0.0.28/ty-aarch64-apple-darwin.tar.gz",
+        "sha256": "6bbd117bf1b0eb13f32e095eb19b9252cf427decc7b97eb1b3e095eb19b9252cf427decc7b97eb1b3ed7cec127d42c9",
+        "file": "ty",
+        "os": "macos",
+        "cpu": "arm64"
+      }
+    ]
   }
 }
