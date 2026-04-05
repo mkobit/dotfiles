@@ -311,8 +311,8 @@
   "moduleExtensions": {
     "//tools/agentskills:extensions.bzl%ai_skills": {
       "general": {
-        "bzlTransitiveDigest": "rnbiEIoBHVxueM7UQKcnl/IBjXVmfPgOTF5FQSOvd8E=",
-        "usagesDigest": "K1netOl/pzPvOR9hSMu9V9DH0zgvOeLSXTfn3rf15Vg=",
+        "bzlTransitiveDigest": "vHOQZ6lyMGcjm+D/tb/VDJqA0i17BDMKXyhhb+oATMk=",
+        "usagesDigest": "0I1tZjZ61BodOConYZYBARvYoE8Kn1v1tG8YcB7nvQ0=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
           "gemini_conductor": {
@@ -378,6 +378,31 @@
               ],
               "sha256": "befd4ab2dafea1cf3c2e5a7737854b1921158211ff164bd7a034a18a963e0231",
               "strip_prefix": "agency-agents-4feb0cd736dd0e2e9830cd54dfc99770621bed90"
+            }
+          },
+          "compound_engineering": {
+            "repoRuleId": "@@//tools/agentskills:extensions.bzl%claude_plugin_repo",
+            "attributes": {
+              "github": "",
+              "tag": "",
+              "commit": "",
+              "urls": [
+                "https://github.com/EveryInc/compound-engineering-plugin/archive/refs/tags/compound-engineering-v2.62.0.tar.gz"
+              ],
+              "sha256": "ef6cd6e3dea900f355dd248b6f0db74ebb8eb4d323de3228cf15c21c6b1b8f81",
+              "strip_prefix": "compound-engineering-plugin-compound-engineering-v2.62.0/plugins/compound-engineering"
+            }
+          },
+          "claude_plugins_official": {
+            "repoRuleId": "@@//tools/agentskills:extensions.bzl%claude_marketplace_repo",
+            "attributes": {
+              "github": "anthropics/claude-plugins-official",
+              "tag": "",
+              "commit": "104d39be10b7b1380b2ae23a387a11a297b599c3",
+              "urls": [],
+              "sha256": "6f0e9b2b700be8d007811cd014d7a21e95697c82fbba95c0ae3036ed92d5af2f",
+              "strip_prefix": "",
+              "marketplace_json": ".claude-plugin/marketplace.json"
             }
           }
         }
