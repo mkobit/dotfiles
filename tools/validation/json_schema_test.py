@@ -44,7 +44,7 @@ def test_schema_validation() -> None:
     if _GLOBAL_SCHEMA_PATH is None:
         pytest.fail("Schema path not provided")
 
-    # Assert valid path for mypy
+    # Assert valid path for ty
     assert _GLOBAL_SCHEMA_PATH is not None
     schema_file = _GLOBAL_SCHEMA_PATH
 
@@ -74,7 +74,7 @@ def test_json_file_validation(json_file: Path) -> None:
     if _GLOBAL_SCHEMA_PATH is None:
         pytest.fail("Schema path not provided")
 
-    # Assert valid path for mypy
+    # Assert valid path for ty
     assert _GLOBAL_SCHEMA_PATH is not None
     schema_file = _GLOBAL_SCHEMA_PATH
 

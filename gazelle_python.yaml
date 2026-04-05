@@ -6,7 +6,6 @@
 ---
 manifest:
   modules_mapping:
-    4c842c94c09923bae9e4__mypyc: mypy
     aiohappyeyeballs: aiohappyeyeballs
     aiohttp: aiohttp
     aiosignal: aiosignal
@@ -37,21 +36,14 @@ manifest:
     jinja2: jinja2
     jsonschema: jsonschema
     jsonschema_specifications: jsonschema_specifications
-    librt.base64: librt
-    librt.internal: librt
-    librt.strings: librt
     markdown_it: markdown_it_py
     markupsafe: markupsafe
     mdurl: mdurl
     mpmath: mpmath
     multidict: multidict
-    mypy: mypy
-    mypy_extensions: mypy_extensions
-    mypyc: mypy
     numpy: numpy
     onnxruntime: onnxruntime
     packaging: packaging
-    pathspec: pathspec
     pluggy: pluggy
     propcache: propcache
     py: pytest
@@ -69,6 +61,7 @@ manifest:
     sympy: sympy
     tokenizers: tokenizers
     tqdm: tqdm
+    ty: ty
     typer: typer_slim
     typing_extensions: typing_extensions
     typing_inspection: typing_inspection
@@ -77,4 +70,4 @@ manifest:
     yarl: yarl
   pip_repository:
     name: pypi
-integrity: be5c806ebb0abfe9ae9e4f641fbb8912092d5dace1d793289bfd59dcffc7eef9
+integrity: bc426c5e3e0910797564d162f087a2d808a5f40d08d7e47c8da576766ed0c6a3

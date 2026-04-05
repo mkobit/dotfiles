@@ -13,7 +13,7 @@ A highly modular, reproducible, and portable configuration management system tha
 # Core features
 - **Data-driven templates**: Extensive use of chezmoi templates and toml data for flexible configuration.
 - **Modular architecture**: Easy integration of new tools, ai skills, and machine-specific plugins.
-- **Automated validation**: Integrated linting (ruff, mypy) and testing (pytest) via bazel.
+- **Automated validation**: Integrated linting (ruff, ty) and testing (pytest) via bazel.
 - **Ai integration**: Built-in support for ai-powered tasks like audio transcription and agentic workflows.
 
 # Success criteria
