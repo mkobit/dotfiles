@@ -4,6 +4,44 @@ load("@tar.bzl", "tar")
 load("@tar.bzl//tar:mtree.bzl", "mutate")
 load("//tools/chezmoi:defs.bzl", "ChezmoidTags")
 
+def gemini_skill_group(name, srcs, namespace, install_name = None, strip_prefix = "", visibility = None, **kwargs):
+    """
+    Packages an entire skill collection as a namespaced tree for Gemini.
+
+    Produces <install_name>.gemini.skill-group.tar tagged gemini:skill.
+    The archive contents are relative paths within the collection so chezmoi
+    installs them to skills/<install_name>/ in the Gemini config directory.
+
+    Args:
+        name: Name of the target
+        srcs: A label list of files from the collection
+        namespace: Namespace string — used for tagging
+        install_name: Install directory name under skills/ (defaults to namespace)
+        strip_prefix: Path prefix to strip from file short_paths
+        visibility: The visibility of the target
+        **kwargs: Passed through (e.g. target_compatible_with, tags)
+    """
+    if install_name == None:
+        install_name = namespace
+    extra_tags = kwargs.pop("tags", [])
+    tool_tags = ["tool:gemini", "skill-group:" + namespace, ChezmoidTags.gemini_skill] + extra_tags
+
+    tar(
+        name = name + "_tar",
+        srcs = srcs,
+        out = install_name + ".gemini.skill-group.tar",
+        mutate = mutate(strip_prefix = strip_prefix),
+        tags = tool_tags,
+        **kwargs
+    )
+
+    native.filegroup(
+        name = name,
+        srcs = [":" + name + "_tar"],
+        tags = tool_tags,
+        visibility = visibility,
+    )
+
 def claude_skill_group(name, srcs, namespace, install_name = None, strip_prefix = "", visibility = None, **kwargs):
     """
     Packages an entire skill collection as a namespaced tree for Claude.

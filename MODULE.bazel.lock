@@ -223,6 +223,7 @@
     "https://bcr.bazel.build/modules/rules_kotlin/1.9.6/MODULE.bazel": "d269a01a18ee74d0335450b10f62c9ed81f2321d7958a2934e44272fe82dcef3",
     "https://bcr.bazel.build/modules/rules_kotlin/1.9.6/source.json": "2faa4794364282db7c06600b7e5e34867a564ae91bda7cae7c29c64e9466b7d5",
     "https://bcr.bazel.build/modules/rules_license/0.0.3/MODULE.bazel": "627e9ab0247f7d1e05736b59dbb1b6871373de5ad31c3011880b4133cafd4bd0",
+    "https://bcr.bazel.build/modules/rules_license/0.0.4/MODULE.bazel": "6a88dd22800cf1f9f79ba32cacad0d3a423ed28efa2c2ed5582eaa78dd3ac1e5",
     "https://bcr.bazel.build/modules/rules_license/0.0.7/MODULE.bazel": "088fbeb0b6a419005b89cf93fe62d9517c0a2b8bb56af3244af65ecfe37e7d5d",
     "https://bcr.bazel.build/modules/rules_license/1.0.0/MODULE.bazel": "a7fda60eefdf3d8c827262ba499957e4df06f659330bbe6cdbdb975b768bb65c",
     "https://bcr.bazel.build/modules/rules_license/1.0.0/source.json": "a52c89e54cc311196e478f8382df91c15f7a2bfdf4c6cd0e2675cc2ff0b56efb",
@@ -276,6 +277,8 @@
     "https://bcr.bazel.build/modules/rules_swift/2.4.0/MODULE.bazel": "1639617eb1ede28d774d967a738b4a68b0accb40650beadb57c21846beab5efd",
     "https://bcr.bazel.build/modules/rules_swift/3.1.2/MODULE.bazel": "72c8f5cf9d26427cee6c76c8e3853eb46ce6b0412a081b2b6db6e8ad56267400",
     "https://bcr.bazel.build/modules/rules_swift/3.1.2/source.json": "e85761f3098a6faf40b8187695e3de6d97944e98abd0d8ce579cb2daf6319a66",
+    "https://bcr.bazel.build/modules/rules_testing/0.9.0/MODULE.bazel": "d4d9a7367978b5c589437f01dba1dc80ac6f389e9991e1c1edb3c8207526ca83",
+    "https://bcr.bazel.build/modules/rules_testing/0.9.0/source.json": "2a943853f3480f42a9a5205cc4881a147fecdcf7c8ee87750bbeffff9c9a1877",
     "https://bcr.bazel.build/modules/stardoc/0.5.0/MODULE.bazel": "f9f1f46ba8d9c3362648eea571c6f9100680efc44913618811b58cc9c02cd678",
     "https://bcr.bazel.build/modules/stardoc/0.5.1/MODULE.bazel": "1a05d92974d0c122f5ccf09291442580317cdd859f07a8655f1db9a60374f9f8",
     "https://bcr.bazel.build/modules/stardoc/0.5.3/MODULE.bazel": "c7f6948dae6999bf0db32c1858ae345f112cacf98f174c7a8bb707e41b974f1c",
@@ -308,41 +311,47 @@
   "moduleExtensions": {
     "//tools/agentskills:extensions.bzl%ai_skills": {
       "general": {
-        "bzlTransitiveDigest": "yfmm560esTE4+f/ewXTs3qA9r2czkNcS8m+MiyMANjQ=",
-        "usagesDigest": "RcZ0TVJumIg5v9Pl9JDKoE/BpDKSMZxaQJF7B4vPIYQ=",
+        "bzlTransitiveDigest": "rnbiEIoBHVxueM7UQKcnl/IBjXVmfPgOTF5FQSOvd8E=",
+        "usagesDigest": "K1netOl/pzPvOR9hSMu9V9DH0zgvOeLSXTfn3rf15Vg=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
           "gemini_conductor": {
             "repoRuleId": "@@//tools/agentskills:extensions.bzl%gemini_extension_repo",
             "attributes": {
-              "github": "gemini-cli-extensions/conductor",
-              "tag": "conductor-v0.4.1",
+              "github": "",
+              "tag": "",
               "commit": "",
-              "urls": [],
+              "urls": [
+                "https://github.com/gemini-cli-extensions/conductor/archive/refs/tags/conductor-v0.4.1.tar.gz"
+              ],
               "sha256": "701f09ab6a2f13edf384ef6171d79b67e4b4692d3fa2a81035a6b72439129d1a",
-              "strip_prefix": ""
+              "strip_prefix": "conductor-conductor-v0.4.1"
             }
           },
           "anthropics_skills": {
             "repoRuleId": "@@//tools/agentskills:extensions.bzl%anthropics_skills_repo",
             "attributes": {
-              "github": "anthropics/skills",
+              "github": "",
               "tag": "",
-              "commit": "98669c11ca63e9c81c11501e1437e5c47b556621",
-              "urls": [],
+              "commit": "",
+              "urls": [
+                "https://github.com/anthropics/skills/archive/98669c11ca63e9c81c11501e1437e5c47b556621.tar.gz"
+              ],
               "sha256": "435b687005b44bbc70c1c95e4362532987fe06547f6740ceba05fbdcc200aac3",
-              "strip_prefix": ""
+              "strip_prefix": "skills-98669c11ca63e9c81c11501e1437e5c47b556621"
             }
           },
           "gstack": {
             "repoRuleId": "@@//tools/agentskills:extensions.bzl%skill_collection_repo",
             "attributes": {
-              "github": "garrytan/gstack",
+              "github": "",
               "tag": "",
-              "commit": "6169273d16b7ab8690943241fa802e5a1ca85305",
-              "urls": [],
+              "commit": "",
+              "urls": [
+                "https://github.com/garrytan/gstack/archive/6169273d16b7ab8690943241fa802e5a1ca85305.tar.gz"
+              ],
               "sha256": "1de01e5d0d187f2a86ed65355d4148a138af409bcc6b949a5f85203fec6005fa",
-              "strip_prefix": "",
+              "strip_prefix": "gstack-6169273d16b7ab8690943241fa802e5a1ca85305",
               "include": [],
               "exclude": [
                 "browse",
@@ -361,24 +370,14 @@
           "agency_agents": {
             "repoRuleId": "@@//tools/agentskills:extensions.bzl%claude_agents_repo",
             "attributes": {
-              "github": "msitarzewski/agency-agents",
+              "github": "",
               "tag": "",
-              "commit": "4feb0cd736dd0e2e9830cd54dfc99770621bed90",
-              "urls": [],
-              "sha256": "befd4ab2dafea1cf3c2e5a7737854b1921158211ff164bd7a034a18a963e0231",
-              "strip_prefix": ""
-            }
-          },
-          "compound_engineering": {
-            "repoRuleId": "@@//tools/agentskills:extensions.bzl%claude_plugin_repo",
-            "attributes": {
-              "github": "EveryInc/compound-engineering-plugin",
-              "tag": "compound-engineering-v2.62.0",
               "commit": "",
-              "urls": [],
-              "sha256": "ef6cd6e3dea900f355dd248b6f0db74ebb8eb4d323de3228cf15c21c6b1b8f81",
-              "strip_prefix": "",
-              "plugin_path": "plugins/compound-engineering"
+              "urls": [
+                "https://github.com/msitarzewski/agency-agents/archive/4feb0cd736dd0e2e9830cd54dfc99770621bed90.tar.gz"
+              ],
+              "sha256": "befd4ab2dafea1cf3c2e5a7737854b1921158211ff164bd7a034a18a963e0231",
+              "strip_prefix": "agency-agents-4feb0cd736dd0e2e9830cd54dfc99770621bed90"
             }
           }
         }

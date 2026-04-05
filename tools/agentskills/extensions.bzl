@@ -329,7 +329,7 @@ def _claude_plugin_repo_impl(ctx):
         path_prefix = ""
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
-    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group", "cursor_skill_group")\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group", "cursor_skill_group", "gemini_skill_group")\n\n'
 
     # Read plugin name from .claude-plugin/plugin.json if present.
     plugin_name = ctx.attr.name
@@ -469,6 +469,15 @@ cursor_skill_group(
     strip_prefix = "{strip_prefix}",
     visibility = ["//visibility:public"],
 )
+
+gemini_skill_group(
+    name = "{plugin}-gemini-skills",
+    srcs = [":skills"],
+    namespace = "{plugin}",
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
 """.format(plugin = plugin_name, strip_prefix = path_prefix + "skills")
 
     if has_commands:
@@ -516,7 +525,7 @@ def _claude_marketplace_repo_impl(ctx):
     archive_root = ctx.path(".")
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
-    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group", "cursor_skill_group")\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group", "cursor_skill_group", "gemini_skill_group")\n\n'
     build_content += "# Marketplace: {}\n\n".format(marketplace.get("name", ctx.attr.name))
 
     def _label_list(names):
@@ -663,6 +672,15 @@ claude_skill_group(
 
 cursor_skill_group(
     name = "{plugin}-cursor-skills",
+    srcs = [":{plugin}_skills"],
+    namespace = "{plugin}",
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+
+gemini_skill_group(
+    name = "{plugin}-gemini-skills",
     srcs = [":{plugin}_skills"],
     namespace = "{plugin}",
     install_name = "{plugin}",
