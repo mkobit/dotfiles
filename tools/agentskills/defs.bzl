@@ -4,7 +4,9 @@ Public API for agentskills Bazel rules.
 Load from this file, not from private/ subpackage:
 
     load("//tools/agentskills:defs.bzl",
+        "agent_build",
         "agent_skill",
+        "claude_agent",
         "claude_skill",
         "gemini_skill",
         "cursor_skill",
@@ -31,13 +33,17 @@ load(
 )
 load(
     "//tools/agentskills/private:skill.bzl",
+    _agent_build = "agent_build",
     _agent_skill = "agent_skill",
+    _claude_agent = "claude_agent",
     _claude_skill = "claude_skill",
     _cursor_skill = "cursor_skill",
     _gemini_skill = "gemini_skill",
 )
 
+agent_build = _agent_build
 agent_skill = _agent_skill
+claude_agent = _claude_agent
 claude_skill = _claude_skill
 gemini_skill = _gemini_skill
 cursor_skill = _cursor_skill

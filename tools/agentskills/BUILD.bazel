@@ -89,6 +89,19 @@ py_test(
 )
 
 py_binary(
+    name = "transform_agent",
+    srcs = ["transform_agent.py"],
+    visibility = ["//visibility:public"],
+    deps = [
+        ":models",
+        "@pypi//click",
+        "@pypi//pydantic",
+        "@pypi//pyyaml",
+        "@pypi//types_pyyaml",
+    ],
+)
+
+py_binary(
     name = "process_gemini_extension",
     srcs = ["process_gemini_extension.py"],
     visibility = ["//visibility:public"],
@@ -105,6 +118,28 @@ py_binary(
     visibility = ["//visibility:public"],
     deps = [
         "@pypi//click",
+    ],
+)
+
+py_test(
+    name = "transform_skill_test",
+    srcs = ["transform_skill_test.py"],
+    deps = [
+        ":models",
+        ":transform_skill",
+        "@pypi//pytest",
+        "@pypi//pyyaml",
+    ],
+)
+
+py_test(
+    name = "transform_agent_test",
+    srcs = ["transform_agent_test.py"],
+    deps = [
+        ":models",
+        ":transform_agent",
+        "@pypi//pytest",
+        "@pypi//pyyaml",
     ],
 )
 

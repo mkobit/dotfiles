@@ -98,7 +98,6 @@ def _project_plugin(
         "agent",
         "disable-model-invocation",
         "user-invocable",
-        "hooks",
         "paths",
         "shell",
     }
