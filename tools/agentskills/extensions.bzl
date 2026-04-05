@@ -448,9 +448,6 @@ def _claude_marketplace_repo_impl(ctx):
 
     plugin_names = []
 
-    def _label_list(names):
-        return '["' + '", "'.join([":" + n for n in names]) + '"]' if names else "[]"
-
     for plugin in marketplace.get("plugins", []):
         plugin_name = plugin.get("name", "")
         if not plugin_name:
