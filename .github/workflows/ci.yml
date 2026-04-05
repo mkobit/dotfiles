@@ -145,12 +145,12 @@ jobs:
       - name: Cache chezmoi downloads
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
         with:
-          path: |
-            ~/.cache/chezmoi
-            ~/Library/Caches/chezmoi
-          key: chezmoi-cache-v3-${{ runner.os }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}
+          path: ~/.chezmoi-cache
+          key: chezmoi-cache-v4-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}
           restore-keys: |
-            chezmoi-cache-v3-${{ runner.os }}-
+            chezmoi-cache-v4-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
+            chezmoi-cache-v4-${{ runner.os }}-main-
+            chezmoi-cache-v4-${{ runner.os }}-
 
       - name: Cache mise tools
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
@@ -178,16 +178,16 @@ jobs:
       - name: Initialize chezmoi with repository
         run: |
           mkdir -p /tmp/chezmoi-test
-          chezmoi init --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
+          chezmoi init --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
 
       - name: Run chezmoi doctor
-        run: chezmoi doctor --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --no-network
+        run: chezmoi doctor --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --no-network
 
       - name: Run chezmoi apply
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
-        run: chezmoi apply --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
+        run: chezmoi apply --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
 
   summary:
     if: always()
