@@ -133,7 +133,7 @@ claude_subagent_group(
 # compound-engineering — skills to ~/.claude/skills/compound-engineering/
 # 50+ general-purpose Claude plugin skills (ce-plan, ce-review, ce-work, etc.)
 # Ingested via claude_plugin_repo; skills are already Claude-native (no transformation needed).
-native.filegroup(
+filegroup(
     name = "compound_engineering",
     srcs = ["@compound_engineering//:compound-engineering-skills"],
     tags = ["claude:collection"],
@@ -149,7 +149,7 @@ native.filegroup(
 # ---------------------------------------------------------------------------
 
 # agent-sdk-dev — Claude Agent SDK verification agents (Python + TypeScript verifiers).
-native.filegroup(
+filegroup(
     name = "agent_sdk_dev_agents",
     srcs = ["@claude_plugins_official//:agent-sdk-dev-agents"],
     tags = ["claude:agents"],
@@ -161,7 +161,7 @@ native.filegroup(
 )
 
 # feature-dev — Feature development workflow agents (architect, explorer, reviewer).
-native.filegroup(
+filegroup(
     name = "feature_dev_agents",
     srcs = ["@claude_plugins_official//:feature-dev-agents"],
     tags = ["claude:agents"],
@@ -173,7 +173,7 @@ native.filegroup(
 )
 
 # pr-review-toolkit — Specialized PR review agents (reviewer, simplifier, test analyzer, etc.).
-native.filegroup(
+filegroup(
     name = "pr_review_agents",
     srcs = ["@claude_plugins_official//:pr-review-toolkit-agents"],
     tags = ["claude:agents"],
@@ -186,7 +186,7 @@ native.filegroup(
 
 # plugin-dev — Plugin development agents (creator, validator, reviewer) and skills.
 # Skills cover skill/agent/command/hook/mcp-integration development patterns.
-native.filegroup(
+filegroup(
     name = "plugin_dev_agents",
     srcs = ["@claude_plugins_official//:plugin-dev-agents"],
     tags = ["claude:agents"],
@@ -197,7 +197,7 @@ native.filegroup(
     visibility = ["//visibility:public"],
 )
 
-native.filegroup(
+filegroup(
     name = "plugin_dev_skills",
     srcs = ["@claude_plugins_official//:plugin-dev-skills"],
     tags = ["claude:collection"],

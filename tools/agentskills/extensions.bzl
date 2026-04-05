@@ -318,7 +318,7 @@ def _claude_plugin_repo_impl(ctx):
         path_prefix = ""
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
-    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_skill_group", "claude_subagent_group")\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group")\n\n'
 
     # Read plugin name from .claude-plugin/plugin.json if present.
     plugin_name = ctx.attr.name
@@ -420,6 +420,10 @@ filegroup(
 )
 """.format(prefix = path_prefix)
 
+    # Check if any command files actually exist to avoid emitting empty packaging targets.
+    commands_dir = plugin_root.get_child("commands")
+    has_commands = commands_dir.exists
+
     # --- Packaging targets ---
     # Emit claude_subagent_group / claude_skill_group wrappers so consumers can
     # reference pre-packaged targets without repeating strip_prefix / install_name.
@@ -446,6 +450,17 @@ claude_skill_group(
     visibility = ["//visibility:public"],
 )
 """.format(plugin = plugin_name, strip_prefix = path_prefix + "skills")
+
+    if has_commands:
+        build_content += """
+claude_plugin_commands(
+    name = "{plugin}-commands",
+    srcs = [":commands"],
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+""".format(plugin = plugin_name, strip_prefix = path_prefix + "commands")
 
     ctx.file("BUILD.bazel", build_content)
 
@@ -481,7 +496,7 @@ def _claude_marketplace_repo_impl(ctx):
     archive_root = ctx.path(".")
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
-    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_skill_group", "claude_subagent_group")\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group")\n\n'
     build_content += "# Marketplace: {}\n\n".format(marketplace.get("name", ctx.attr.name))
 
     def _label_list(names):
@@ -623,12 +638,24 @@ claude_skill_group(
 )
 """.format(plugin = plugin_name, strip_prefix = path_prefix + "skills")
 
+        commands_dir = plugin_path.get_child("commands")
         build_content += """
 filegroup(
     name = "{plugin}_commands",
     srcs = glob(["{prefix}commands/**/*.md"], allow_empty = True),
 )
 """.format(plugin = plugin_name, prefix = path_prefix)
+
+        if commands_dir.exists:
+            build_content += """
+claude_plugin_commands(
+    name = "{plugin}-commands",
+    srcs = [":{plugin}_commands"],
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+""".format(plugin = plugin_name, strip_prefix = path_prefix + "commands")
 
         plugin_names.append(plugin_name)
 
