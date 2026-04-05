@@ -2,12 +2,13 @@
 {{- if lookPath "bazel" -}}
 {{- $_ := output "bash" "-c" (printf "cd %q && bazel build //src/ai/skills/..." $workspace) -}}
 {{- end -}}
-{{- $queryCmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"tool:cursor\", //src/ai/skills/...) except attr(tags, \"skip-install\", //src/ai/skills/...)' 2>/dev/null" $workspace -}}
-{{- $queryOutput := output "bash" "-c" $queryCmd -}}
-{{- range $line := splitList "\n" $queryOutput -}}
+{{- $skip := "except attr(tags, \"skip-install\", //src/ai/skills/...) except attr(tags, \"tombstone\", //src/ai/skills/...)" -}}
+
+{{- /* Skills (single): cursor:skill tag, .cursor.skill.tar → install to skills/<install_name>/ */ -}}
+{{- $skill := printf "cd %q && bazel cquery --output=files 'attr(tags, \"cursor:skill\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $skip -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $skill) -}}
 {{- $line = trim $line -}}
-{{- if $line -}}
-{{- if hasSuffix ".cursor.skill.tar" $line -}}
+{{- if and $line (hasSuffix ".cursor.skill.tar" $line) -}}
 {{- $installName := base $line | trimSuffix ".cursor.skill.tar" -}}
 
 ["skills/{{ $installName }}"]
@@ -17,4 +18,17 @@
 
 {{ end -}}
 {{- end -}}
+
+{{- /* Skill groups: cursor:skill tag, .cursor.skill-group.tar → install to skills/<install_name>/ */ -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $skill) -}}
+{{- $line = trim $line -}}
+{{- if and $line (hasSuffix ".cursor.skill-group.tar" $line) -}}
+{{- $installName := base $line | trimSuffix ".cursor.skill-group.tar" -}}
+
+["skills/{{ $installName }}"]
+    type = "archive"
+    url = "file://{{ $workspace }}/{{ $line }}"
+    exact = true
+
+{{ end -}}
 {{- end -}}
