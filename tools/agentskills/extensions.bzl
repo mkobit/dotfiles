@@ -5,13 +5,12 @@ Usage in MODULE.bazel:
 
     ai_skills = use_extension("//tools/agentskills:extensions.bzl", "ai_skills")
 
-    # Preferred: GitHub shorthand (derives urls and strip_prefix automatically)
+    # GitHub shorthand — strip_prefix navigates into a subdirectory when the plugin is not at the archive root
     ai_skills.claude_plugin(
         name = "compound_engineering",
-        github = "EveryInc/compound-engineering-plugin",
-        tag = "compound-engineering-v2.62.0",
         sha256 = "...",
-        plugin_path = "plugins/compound-engineering",
+        strip_prefix = "compound-engineering-plugin-compound-engineering-v2.62.0/plugins/compound-engineering",
+        urls = ["https://github.com/EveryInc/compound-engineering-plugin/archive/refs/tags/compound-engineering-v2.62.0.tar.gz"],
     )
 
     ai_skills.claude_agents(
@@ -317,19 +316,11 @@ def _claude_plugin_repo_impl(ctx):
         stripPrefix = strip_prefix,
     )
 
-    # plugin_path locates the plugin root within the extracted archive.
-    # For single-plugin repos it is "" (the root itself).
-    # For multi-plugin repos (e.g. compound: plugins/compound-engineering) pass the subpath.
-    plugin_path = ctx.attr.plugin_path
-    if plugin_path:
-        plugin_root = ctx.path(plugin_path)
-        path_prefix = plugin_path + "/"
-    else:
-        plugin_root = ctx.path(".")
-        path_prefix = ""
+    plugin_root = ctx.path(".")
+    path_prefix = ""
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
-    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group", "cursor_skill_group")\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group", "cursor_skill_group", "gemini_skill_group")\n\n'
 
     # Read plugin name from .claude-plugin/plugin.json if present.
     plugin_name = ctx.attr.name
@@ -469,6 +460,15 @@ cursor_skill_group(
     strip_prefix = "{strip_prefix}",
     visibility = ["//visibility:public"],
 )
+
+gemini_skill_group(
+    name = "{plugin}-gemini-skills",
+    srcs = [":skills"],
+    namespace = "{plugin}",
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
 """.format(plugin = plugin_name, strip_prefix = path_prefix + "skills")
 
     if has_commands:
@@ -489,7 +489,6 @@ claude_plugin_repo = repository_rule(
     attrs = dict(
         _GITHUB_ATTRS,
         sha256 = attr.string(mandatory = True),
-        plugin_path = attr.string(default = "", doc = "Subpath within the archive to the plugin root. Empty = archive root. For multi-plugin repos (e.g. 'plugins/compound-engineering')."),
     ),
 )
 
@@ -516,7 +515,7 @@ def _claude_marketplace_repo_impl(ctx):
     archive_root = ctx.path(".")
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
-    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group", "cursor_skill_group")\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group", "cursor_skill_group", "gemini_skill_group")\n\n'
     build_content += "# Marketplace: {}\n\n".format(marketplace.get("name", ctx.attr.name))
 
     def _label_list(names):
@@ -669,6 +668,15 @@ cursor_skill_group(
     strip_prefix = "{strip_prefix}",
     visibility = ["//visibility:public"],
 )
+
+gemini_skill_group(
+    name = "{plugin}-gemini-skills",
+    srcs = [":{plugin}_skills"],
+    namespace = "{plugin}",
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
 """.format(plugin = plugin_name, strip_prefix = path_prefix + "skills")
 
         commands_dir = plugin_path.get_child("commands")
@@ -758,10 +766,8 @@ _claude_agents_tag = tag_class(
 )
 
 _claude_plugin_tag = tag_class(
-    doc = "Declares an external Claude plugin repository (.claude-plugin/plugin.json). Use plugin_path for multi-plugin repos.",
-    attrs = _tag_attrs(
-        plugin_path = attr.string(default = "", doc = "Subpath to the plugin root within the archive. Empty = archive root."),
-    ),
+    doc = "Declares an external Claude plugin repository (.claude-plugin/plugin.json at the archive root). Use strip_prefix to navigate into a subdirectory when the plugin is not at the archive root.",
+    attrs = _tag_attrs(),
 )
 
 _claude_marketplace_tag = tag_class(
@@ -824,7 +830,6 @@ def _ai_skills_extension_impl(module_ctx):
                 urls = tag.urls,
                 sha256 = tag.sha256,
                 strip_prefix = tag.strip_prefix,
-                plugin_path = tag.plugin_path,
             )
         for tag in mod.tags.claude_marketplace:
             claude_marketplace_repo(
