@@ -359,8 +359,10 @@ filegroup(
     # Flat:       agents/<name>.md       (most Claude plugins)
     # Categorized: agents/<cat>/<name>.md (e.g. compound-engineering)
     # Generates per-agent filegroup :<name> for composability, plus :agents aggregate.
+    # flat_agent_names and agent_categories are tracked separately so :agents always
+    # includes both, even when a plugin uses a mixed layout.
     agent_categories = []
-    all_agent_names = []
+    flat_agent_names = []
     agents_dir = plugin_root.get_child("agents")
     if agents_dir.exists:
         for entry in sorted(agents_dir.readdir(), key = lambda e: e.basename):
@@ -372,7 +374,6 @@ filegroup(
                         continue
                     agent_name = agent_entry.basename[:-3]
                     cat_agent_names.append(agent_name)
-                    all_agent_names.append(agent_name)
                     build_content += """
 filegroup(
     name = "{agent}",
@@ -392,7 +393,7 @@ filegroup(
             elif entry.basename.endswith(".md"):
                 # Flat: agent file directly under agents/
                 agent_name = entry.basename[:-3]
-                all_agent_names.append(agent_name)
+                flat_agent_names.append(agent_name)
                 build_content += """
 filegroup(
     name = "{agent}",
@@ -407,7 +408,7 @@ filegroup(
     srcs = {agents},
 )
 """.format(agents = _label_list(
-        ["agents_" + c for c in agent_categories] if agent_categories else all_agent_names,
+        ["agents_" + c for c in agent_categories] + flat_agent_names,
     ))
 
     # --- Commands: <plugin_root>/commands/*.md ---
@@ -472,15 +473,23 @@ def _claude_marketplace_repo_impl(ctx):
             build_content += "# External plugin '{}' — declare separately via ai_skills.claude_plugin()\n\n".format(plugin_name)
             continue
 
+        # Reject unsafe plugin_name values — Bazel target names forbid spaces, slashes, and colons.
+        if " " in plugin_name or "/" in plugin_name or ":" in plugin_name:
+            fail("Marketplace plugin has invalid name '{}': names must not contain spaces, '/', or ':'".format(plugin_name))
+
+        # Reject path-traversal and absolute sources before resolving.
+        # The spec forbids "../" (paths must stay within the marketplace root).
+        if source.startswith("/") or ".." in source.split("/"):
+            fail("Marketplace plugin '{}' has unsafe source path: {}".format(plugin_name, source))
+
         # Resolve plugin root: source is relative to the archive root (not marketplace.json directory).
-        # Strip leading "./" (e.g. "./plugins/foo" → "plugins/foo").
-        # Treat empty source and "." as archive root.
-        clean_source = source.lstrip("./") if source.startswith("./") else source
+        # Strip the literal "./" prefix with an explicit slice — lstrip("./") strips characters from a
+        # set, not a literal prefix, and would corrupt paths like "./.hidden/foo".
+        clean_source = source[2:] if source.startswith("./") else source
         normalised_source = "" if (not clean_source or clean_source == ".") else clean_source
         plugin_path = archive_root.get_child(normalised_source) if normalised_source else archive_root
         if not plugin_path.exists:
-            build_content += "# Plugin '{}' source path not found: {}\n\n".format(plugin_name, source)
-            continue
+            fail("Marketplace plugin '{}' source path not found in archive: {}".format(plugin_name, source))
 
         # path_prefix: the glob prefix to reach files within the plugin root.
         path_prefix = (normalised_source + "/") if normalised_source else ""
@@ -507,8 +516,10 @@ filegroup(
 """.format(plugin = plugin_name, skills = _label_list([plugin_name + "_" + s for s in skill_names]))
 
         # Agents: supports both flat (agents/<name>.md) and categorized (agents/<cat>/<name>.md).
+        # flat_agent_names and agent_categories are tracked separately so the :agents aggregate
+        # always includes both, even when a plugin uses a mixed layout.
         agent_categories = []
-        all_agent_names = []
+        flat_agent_names = []
         agents_dir = plugin_path.get_child("agents")
         if agents_dir.exists:
             for cat_entry in sorted(agents_dir.readdir(), key = lambda e: e.basename):
@@ -520,7 +531,6 @@ filegroup(
                             continue
                         agent_name = agent_entry.basename[:-3]
                         cat_agent_names.append(agent_name)
-                        all_agent_names.append(agent_name)
                         build_content += """
 filegroup(
     name = "{plugin}_{agent}",
@@ -540,7 +550,7 @@ filegroup(
                 elif cat_entry.basename.endswith(".md"):
                     # Flat: agent file directly under agents/
                     agent_name = cat_entry.basename[:-3]
-                    all_agent_names.append(agent_name)
+                    flat_agent_names.append(agent_name)
                     build_content += """
 filegroup(
     name = "{plugin}_{agent}",
@@ -548,14 +558,17 @@ filegroup(
 )
 """.format(plugin = plugin_name, agent = agent_name, prefix = path_prefix)
 
+        # Aggregate includes category sub-groups AND any flat agents at the top level.
+        agent_aggregate_srcs = (
+            [plugin_name + "_agents_" + c for c in agent_categories] +
+            [plugin_name + "_" + n for n in flat_agent_names]
+        )
         build_content += """
 filegroup(
     name = "{plugin}_agents",
     srcs = {agents},
 )
-""".format(plugin = plugin_name, agents = _label_list(
-            [plugin_name + "_agents_" + c for c in agent_categories] if agent_categories else [plugin_name + "_" + n for n in all_agent_names],
-        ))
+""".format(plugin = plugin_name, agents = _label_list(agent_aggregate_srcs))
 
         build_content += """
 filegroup(
