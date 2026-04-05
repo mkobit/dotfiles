@@ -544,7 +544,11 @@ def _claude_marketplace_repo_impl(ctx):
         normalised_source = "" if (not clean_source or clean_source == ".") else clean_source
         plugin_path = archive_root.get_child(normalised_source) if normalised_source else archive_root
         if not plugin_path.exists:
-            fail("Marketplace plugin '{}' source path not found in archive: {}".format(plugin_name, source))
+            # Path declared in marketplace.json but not present in the archive — skip silently.
+            # This happens when a marketplace lists an "external_plugins/" entry as a relative
+            # path but doesn't actually bundle the files (e.g. autofix-bot in claude-plugins-official).
+            build_content += "# Plugin '{}' source path not found in archive: {}\n\n".format(plugin_name, source)
+            continue
 
         # path_prefix: the glob prefix to reach files within the plugin root.
         path_prefix = (normalised_source + "/") if normalised_source else ""
