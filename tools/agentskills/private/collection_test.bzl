@@ -13,6 +13,7 @@ load(
     "claude_skill_group",
     "claude_subagent",
     "claude_subagent_group",
+    "cursor_skill_group",
     "gemini_skill_group",
 )
 
@@ -224,6 +225,49 @@ def _claude_plugin_commands_output_impl(env, target):
     )
 
 # --------------------------------------------------------------------------- #
+# cursor_skill_group
+# --------------------------------------------------------------------------- #
+
+def _test_cursor_skill_group_tags(name):
+    cursor_skill_group(
+        name = name + "_subject",
+        srcs = ["collection.bzl"],
+        namespace = "test-cursor-ns",
+        tags = ["manual"],
+    )
+    analysis_test(
+        name = name,
+        target = name + "_subject",
+        impl = _cursor_skill_group_tags_impl,
+    )
+
+def _cursor_skill_group_tags_impl(env, target):
+    env.expect.that_target(target).tags().contains_at_least([
+        "tool:cursor",
+        "cursor:skill",
+        "skill-group:test-cursor-ns",
+    ])
+
+def _test_cursor_skill_group_output(name):
+    cursor_skill_group(
+        name = name + "_subject",
+        srcs = ["collection.bzl"],
+        namespace = "test-cursor-ns",
+        install_name = "cursor-install",
+        tags = ["manual"],
+    )
+    analysis_test(
+        name = name,
+        target = name + "_subject_tar",
+        impl = _cursor_skill_group_output_impl,
+    )
+
+def _cursor_skill_group_output_impl(env, target):
+    env.expect.that_target(target).default_outputs().contains_predicate(
+        matching.file_basename_equals("cursor-install.cursor.skill-group.tar"),
+    )
+
+# --------------------------------------------------------------------------- #
 # extra_tags pass-through
 # --------------------------------------------------------------------------- #
 
@@ -260,6 +304,8 @@ def collection_test_suite(name):
             _test_claude_skill_group_tags,
             _test_claude_skill_group_output,
             _test_claude_skill_group_namespace_default,
+            _test_cursor_skill_group_tags,
+            _test_cursor_skill_group_output,
             _test_gemini_skill_group_tags,
             _test_gemini_skill_group_output,
             _test_claude_subagent_group_tags,
