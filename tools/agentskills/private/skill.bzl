@@ -378,11 +378,11 @@ def claude_agent(name, src, install_name = None, scope = "user", source_format =
     build_target = name + "_build"
     files_target = name + "_files"
 
+    # agent_build is a custom rule with a fixed attr set; pass only what it accepts.
     agent_build(
         name = build_target,
         src = src,
         source_format = source_format,
-        **kwargs
     )
 
     _tool_agent(
