@@ -9,7 +9,7 @@ test --nobuild_python_zip
 
 # Enable strict Python linting and type checking
 build --aspects=//tools/lint:linters.bzl%ruff
-build --aspects=//tools/lint:linters.bzl%ty
+build --aspects=//tools/lint:linters.bzl%mypy
 build --output_groups=+rules_python_lint
 
 # Note: aspect_rules_lint configuration will be re-enabled once dependencies are resolved

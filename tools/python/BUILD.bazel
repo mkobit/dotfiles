@@ -5,9 +5,8 @@ load("@rules_python//python:defs.bzl", "py_binary")
 package(default_visibility = ["//visibility:public"])
 
 py_binary(
-    name = "ty",
-    srcs = ["ty_wrapper.py"],
-    data = ["@@rules_python++pip+pypi_314_ty//:bin/ty"],
-    main = "ty_wrapper.py",
-    deps = ["@pypi//ty:pkg"],
+    name = "mypy",
+    srcs = ["mypy_wrapper.py"],
+    main = "mypy_wrapper.py",
+    deps = ["@pypi//mypy:pkg"],
 )
