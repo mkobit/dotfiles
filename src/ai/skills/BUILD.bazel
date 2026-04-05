@@ -6,36 +6,9 @@ load(
     "gemini_skill",
 )
 
-# Fine-grained agent targets from the official Anthropic plugin marketplace.
-# Each label maps to a flat .md agent file from @claude_plugins_official.
-_AGENT_SDK_DEV_AGENTS = [
-    "@claude_plugins_official//:agent-sdk-dev_agent-sdk-verifier-py",
-    "@claude_plugins_official//:agent-sdk-dev_agent-sdk-verifier-ts",
-]
-
-_FEATURE_DEV_AGENTS = [
-    "@claude_plugins_official//:feature-dev_code-architect",
-    "@claude_plugins_official//:feature-dev_code-explorer",
-    "@claude_plugins_official//:feature-dev_code-reviewer",
-]
-
-_PR_REVIEW_AGENTS = [
-    "@claude_plugins_official//:pr-review-toolkit_code-reviewer",
-    "@claude_plugins_official//:pr-review-toolkit_code-simplifier",
-    "@claude_plugins_official//:pr-review-toolkit_comment-analyzer",
-    "@claude_plugins_official//:pr-review-toolkit_pr-test-analyzer",
-    "@claude_plugins_official//:pr-review-toolkit_silent-failure-hunter",
-    "@claude_plugins_official//:pr-review-toolkit_type-design-analyzer",
-]
-
-_PLUGIN_DEV_AGENTS = [
-    "@claude_plugins_official//:plugin-dev_agent-creator",
-    "@claude_plugins_official//:plugin-dev_plugin-validator",
-    "@claude_plugins_official//:plugin-dev_skill-reviewer",
-]
-
 # Fine-grained agent atom targets — compose these into subagent_group deployments.
-# Each label maps to a single .md file from an external plugin's agents/ directory.
+# Use individual labels only when selecting a *curated subset* of agents from a plugin.
+# For all agents from a plugin, reference the {plugin}_agents aggregate directly.
 _COMPOUND_REVIEW_AGENTS = [
     "@compound_engineering//:adversarial-reviewer",
     "@compound_engineering//:api-contract-reviewer",
@@ -177,11 +150,10 @@ claude_skill_group(
 # Anthropic official plugin marketplace (anthropics/claude-plugins-official)
 # ---------------------------------------------------------------------------
 
-# agent-sdk-dev — Claude Agent SDK verification agents.
-# Installs to ~/.claude/agents/ with two verifier personas (Python + TypeScript).
+# agent-sdk-dev — Claude Agent SDK verification agents (Python + TypeScript verifiers).
 claude_subagent_group(
     name = "agent_sdk_dev_agents",
-    srcs = _AGENT_SDK_DEV_AGENTS,
+    srcs = ["@claude_plugins_official//:agent-sdk-dev_agents"],
     install_name = "agent-sdk-dev-agents",
     strip_prefix = "plugins/agent-sdk-dev/agents",
     target_compatible_with = select({
@@ -194,7 +166,7 @@ claude_subagent_group(
 # feature-dev — Feature development workflow agents (architect, explorer, reviewer).
 claude_subagent_group(
     name = "feature_dev_agents",
-    srcs = _FEATURE_DEV_AGENTS,
+    srcs = ["@claude_plugins_official//:feature-dev_agents"],
     install_name = "feature-dev-agents",
     strip_prefix = "plugins/feature-dev/agents",
     target_compatible_with = select({
@@ -204,10 +176,10 @@ claude_subagent_group(
     visibility = ["//visibility:public"],
 )
 
-# pr-review-toolkit — Six specialized PR review agents.
+# pr-review-toolkit — Specialized PR review agents (reviewer, simplifier, test analyzer, etc.).
 claude_subagent_group(
     name = "pr_review_agents",
-    srcs = _PR_REVIEW_AGENTS,
+    srcs = ["@claude_plugins_official//:pr-review-toolkit_agents"],
     install_name = "pr-review-agents",
     strip_prefix = "plugins/pr-review-toolkit/agents",
     target_compatible_with = select({
@@ -217,10 +189,11 @@ claude_subagent_group(
     visibility = ["//visibility:public"],
 )
 
-# plugin-dev — Plugin development agents (creator, validator, reviewer).
+# plugin-dev — Plugin development agents (creator, validator, reviewer) and skills.
+# Skills cover skill/agent/command/hook/mcp-integration development patterns.
 claude_subagent_group(
     name = "plugin_dev_agents",
-    srcs = _PLUGIN_DEV_AGENTS,
+    srcs = ["@claude_plugins_official//:plugin-dev_agents"],
     install_name = "plugin-dev-agents",
     strip_prefix = "plugins/plugin-dev/agents",
     target_compatible_with = select({
@@ -230,8 +203,6 @@ claude_subagent_group(
     visibility = ["//visibility:public"],
 )
 
-# plugin-dev — Plugin development skills to ~/.claude/skills/plugin-dev/
-# Covers skill/agent/command/hook/mcp-integration development patterns.
 claude_skill_group(
     name = "plugin_dev_skills",
     srcs = ["@claude_plugins_official//:plugin-dev_skills"],
