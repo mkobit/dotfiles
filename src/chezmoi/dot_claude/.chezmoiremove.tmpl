@@ -1,0 +1,44 @@
+{{- /*
+  Removes deployed Claude AI tool targets that have been tombstoned in Bazel.
+
+  Set tags = ["tombstone"] on a target in src/ai/skills/BUILD.bazel to mark it
+  for removal. Each query is scoped to a specific install-type tag so Bazel does
+  the type discrimination — no string parsing needed to determine the dest path.
+*/ -}}
+{{- $workspace := output "git" "-C" .chezmoi.sourceDir "rev-parse" "--show-toplevel" | trim -}}
+{{- if lookPath "bazel" -}}
+{{- $tomb := "intersect attr(tags, \"tombstone\", //src/ai/skills/...)" -}}
+
+{{- $cmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"claude:commands\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $tomb -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $cmd) -}}
+{{- $line = trim $line -}}
+{{- if and $line (hasSuffix ".tar" $line) -}}
+commands/{{ base $line | trimSuffix ".claude.commands.tar" }}
+{{ end -}}
+{{- end -}}
+
+{{- $skill := printf "cd %q && bazel cquery --output=files 'attr(tags, \"claude:skill\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $tomb -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $skill) -}}
+{{- $line = trim $line -}}
+{{- if and $line (hasSuffix ".tar" $line) -}}
+skills/{{ base $line | trimSuffix ".claude.skill.tar" }}
+{{ end -}}
+{{- end -}}
+
+{{- $group := printf "cd %q && bazel cquery --output=files 'attr(tags, \"claude:collection\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $tomb -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $group) -}}
+{{- $line = trim $line -}}
+{{- if and $line (hasSuffix ".tar" $line) -}}
+skills/{{ base $line | trimSuffix ".claude.skill-group.tar" }}
+{{ end -}}
+{{- end -}}
+
+{{- $agents := printf "cd %q && bazel cquery --output=files 'attr(tags, \"claude:agents\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $tomb -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $agents) -}}
+{{- $line = trim $line -}}
+{{- if and $line (hasSuffix ".tar" $line) -}}
+agents
+{{ end -}}
+{{- end -}}
+
+{{- end -}}

@@ -308,38 +308,41 @@
   "moduleExtensions": {
     "//tools/agentskills:extensions.bzl%ai_skills": {
       "general": {
-        "bzlTransitiveDigest": "O/cLBctBtLp/b2B3U0urAv6IGz21x4I16z6zxt7Vhnc=",
-        "usagesDigest": "K1netOl/pzPvOR9hSMu9V9DH0zgvOeLSXTfn3rf15Vg=",
+        "bzlTransitiveDigest": "Q6B3zKmlTTxAT2jws85xuK/gbQExOTSuIPuB0D5U+Is=",
+        "usagesDigest": "i0kiH/+FVhEHLwjh8fxfocqcJqJgk+hZYIKSm8cmxdU=",
         "recordedInputs": [],
         "generatedRepoSpecs": {
           "gemini_conductor": {
             "repoRuleId": "@@//tools/agentskills:extensions.bzl%gemini_extension_repo",
             "attributes": {
-              "urls": [
-                "https://github.com/gemini-cli-extensions/conductor/archive/refs/tags/conductor-v0.4.1.tar.gz"
-              ],
+              "github": "gemini-cli-extensions/conductor",
+              "tag": "conductor-v0.4.1",
+              "commit": "",
+              "urls": [],
               "sha256": "701f09ab6a2f13edf384ef6171d79b67e4b4692d3fa2a81035a6b72439129d1a",
-              "strip_prefix": "conductor-conductor-v0.4.1"
+              "strip_prefix": ""
             }
           },
           "anthropics_skills": {
             "repoRuleId": "@@//tools/agentskills:extensions.bzl%anthropics_skills_repo",
             "attributes": {
-              "urls": [
-                "https://github.com/anthropics/skills/archive/98669c11ca63e9c81c11501e1437e5c47b556621.tar.gz"
-              ],
+              "github": "anthropics/skills",
+              "tag": "",
+              "commit": "98669c11ca63e9c81c11501e1437e5c47b556621",
+              "urls": [],
               "sha256": "435b687005b44bbc70c1c95e4362532987fe06547f6740ceba05fbdcc200aac3",
-              "strip_prefix": "skills-98669c11ca63e9c81c11501e1437e5c47b556621"
+              "strip_prefix": ""
             }
           },
           "gstack": {
             "repoRuleId": "@@//tools/agentskills:extensions.bzl%skill_collection_repo",
             "attributes": {
-              "urls": [
-                "https://github.com/garrytan/gstack/archive/6169273d16b7ab8690943241fa802e5a1ca85305.tar.gz"
-              ],
+              "github": "garrytan/gstack",
+              "tag": "",
+              "commit": "6169273d16b7ab8690943241fa802e5a1ca85305",
+              "urls": [],
               "sha256": "1de01e5d0d187f2a86ed65355d4148a138af409bcc6b949a5f85203fec6005fa",
-              "strip_prefix": "gstack-6169273d16b7ab8690943241fa802e5a1ca85305",
+              "strip_prefix": "",
               "include": [],
               "exclude": [
                 "browse",
@@ -358,11 +361,36 @@
           "agency_agents": {
             "repoRuleId": "@@//tools/agentskills:extensions.bzl%claude_agents_repo",
             "attributes": {
-              "urls": [
-                "https://github.com/msitarzewski/agency-agents/archive/4feb0cd736dd0e2e9830cd54dfc99770621bed90.tar.gz"
-              ],
+              "github": "msitarzewski/agency-agents",
+              "tag": "",
+              "commit": "4feb0cd736dd0e2e9830cd54dfc99770621bed90",
+              "urls": [],
               "sha256": "befd4ab2dafea1cf3c2e5a7737854b1921158211ff164bd7a034a18a963e0231",
-              "strip_prefix": "agency-agents-4feb0cd736dd0e2e9830cd54dfc99770621bed90"
+              "strip_prefix": ""
+            }
+          },
+          "compound_engineering": {
+            "repoRuleId": "@@//tools/agentskills:extensions.bzl%claude_plugin_repo",
+            "attributes": {
+              "github": "EveryInc/compound-engineering-plugin",
+              "tag": "compound-engineering-v2.62.0",
+              "commit": "",
+              "urls": [],
+              "sha256": "ef6cd6e3dea900f355dd248b6f0db74ebb8eb4d323de3228cf15c21c6b1b8f81",
+              "strip_prefix": "",
+              "plugin_path": "plugins/compound-engineering"
+            }
+          },
+          "claude_plugins_official": {
+            "repoRuleId": "@@//tools/agentskills:extensions.bzl%claude_marketplace_repo",
+            "attributes": {
+              "github": "anthropics/claude-plugins-official",
+              "tag": "",
+              "commit": "104d39be10b7b1380b2ae23a387a11a297b599c3",
+              "urls": [],
+              "sha256": "6f0e9b2b700be8d007811cd014d7a21e95697c82fbba95c0ae3036ed92d5af2f",
+              "strip_prefix": "",
+              "marketplace_json": ".claude-plugin/marketplace.json"
             }
           }
         }

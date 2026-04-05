@@ -2,6 +2,7 @@
 
 load("@tar.bzl", "tar")
 load("@tar.bzl//tar:mtree.bzl", "mutate")
+load("//tools/chezmoi:defs.bzl", "ChezmoidTags")
 
 def claude_skill_group(name, srcs, namespace, install_name = None, strip_prefix = "", visibility = None, **kwargs):
     """
@@ -28,7 +29,7 @@ def claude_skill_group(name, srcs, namespace, install_name = None, strip_prefix 
     if install_name == None:
         install_name = namespace
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude", "skill-group:" + namespace] + extra_tags
+    tool_tags = ["tool:claude", "skill-group:" + namespace, ChezmoidTags.claude_collection] + extra_tags
 
     tar(
         name = name + "_tar",
@@ -69,7 +70,7 @@ def claude_skill_item(name, srcs, namespace, install_name = None, strip_prefix =
     if install_name == None:
         install_name = namespace + "-" + name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude", "skill-group:" + namespace] + extra_tags
+    tool_tags = ["tool:claude", "skill-group:" + namespace, ChezmoidTags.claude_skill] + extra_tags
 
     tar(
         name = name + "_tar",
@@ -108,12 +109,47 @@ def claude_subagent_group(name, srcs, install_name = None, strip_prefix = "", vi
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude-agents"] + extra_tags
+    tool_tags = ["tool:claude-agents", ChezmoidTags.claude_agents] + extra_tags
 
     tar(
         name = name + "_tar",
         srcs = srcs,
         out = install_name + ".claude.agents.tar",
+        mutate = mutate(strip_prefix = strip_prefix),
+        tags = tool_tags,
+        **kwargs
+    )
+
+    native.filegroup(
+        name = name,
+        srcs = [":" + name + "_tar"],
+        tags = tool_tags,
+        visibility = visibility,
+    )
+
+def claude_plugin_commands(name, srcs, install_name = None, strip_prefix = "", visibility = None, **kwargs):
+    """
+    Packages a plugin's commands/ directory for installation to ~/.claude/commands/<install_name>/.
+
+    Produces <install_name>.claude.commands.tar tagged claude:commands.
+
+    Args:
+        name: Name of the target
+        srcs: A label list of command .md files
+        install_name: Install subdirectory name under commands/ (defaults to name)
+        strip_prefix: Path prefix to strip from file short_paths
+        visibility: The visibility of the target
+        **kwargs: Passed through (e.g. target_compatible_with, tags)
+    """
+    if install_name == None:
+        install_name = name
+    extra_tags = kwargs.pop("tags", [])
+    tool_tags = ["tool:claude", ChezmoidTags.claude_commands] + extra_tags
+
+    tar(
+        name = name + "_tar",
+        srcs = srcs,
+        out = install_name + ".claude.commands.tar",
         mutate = mutate(strip_prefix = strip_prefix),
         tags = tool_tags,
         **kwargs
@@ -143,7 +179,7 @@ def claude_subagent(name, srcs, install_name = None, strip_prefix = "", visibili
     if install_name == None:
         install_name = name
     extra_tags = kwargs.pop("tags", [])
-    tool_tags = ["tool:claude-agents"] + extra_tags
+    tool_tags = ["tool:claude-agents", ChezmoidTags.claude_agents] + extra_tags
 
     tar(
         name = name + "_tar",
