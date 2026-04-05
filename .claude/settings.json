@@ -17,7 +17,8 @@
       "Bash(chezmoi diff:*)",
       "Bash(chezmoi source-path:*)",
       "Bash(chezmoi status:*)",
-      "Bash(chezmoi data:*)"
+      "Bash(chezmoi data:*)",
+      "WebFetch(domain:chezmoi.io)"
     ],
     "deny": [],
     "additionalDirectories": []

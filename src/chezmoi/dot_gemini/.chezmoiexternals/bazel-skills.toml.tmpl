@@ -2,12 +2,13 @@
 {{- if lookPath "bazel" -}}
 {{- $_ := output "bash" "-c" (printf "cd %q && bazel build //src/ai/skills/..." $workspace) -}}
 {{- end -}}
-{{- $queryCmd := printf "cd %q && bazel cquery --output=files 'attr(tags, \"tool:gemini\", //src/ai/skills/...) except attr(tags, \"skip-install\", //src/ai/skills/...)' 2>/dev/null" $workspace -}}
-{{- $queryOutput := output "bash" "-c" $queryCmd -}}
-{{- range $line := splitList "\n" $queryOutput -}}
+{{- $skip := "except attr(tags, \"skip-install\", //src/ai/skills/...) except attr(tags, \"tombstone\", //src/ai/skills/...)" -}}
+
+{{- /* Skills: gemini:skill tag → install to skills/<install_name>/ */ -}}
+{{- $skill := printf "cd %q && bazel cquery --output=files 'attr(tags, \"gemini:skill\", //src/ai/skills/...) %s' 2>/dev/null" $workspace $skip -}}
+{{- range $line := splitList "\n" (output "bash" "-c" $skill) -}}
 {{- $line = trim $line -}}
-{{- if $line -}}
-{{- if hasSuffix ".gemini.skill.tar" $line -}}
+{{- if and $line (hasSuffix ".tar" $line) -}}
 {{- $installName := base $line | trimSuffix ".gemini.skill.tar" -}}
 
 ["skills/{{ $installName }}"]
@@ -16,5 +17,4 @@
     exact = true
 
 {{ end -}}
-{{- end -}}
 {{- end -}}
