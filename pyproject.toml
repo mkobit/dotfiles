@@ -23,25 +23,13 @@ max-complexity = 15
 [tool.ruff.lint.isort]
 known-first-party = ["src", "tools"]
 
-[tool.ty]
-python_version = "3.13"
-strict = true
-ignore_missing_imports = true
-check_untyped_defs = true
-disallow_untyped_defs = true
-warn_return_any = true
-warn_unused_ignores = true
-# Enable namespace packages support for Bazel imports
-namespace_packages = true
-explicit_package_bases = true
-# Temporarily disable subclassing Any check due to Pydantic/Bazel integration issues
-disallow_subclassing_any = false
-# Relax decorator checks for untyped libraries (Click, Pytest)
-disallow_untyped_decorators = false
-
-[[tool.ty.overrides]]
-module = "src.python.jules_cli.test_jules"
-disallow_untyped_defs = false
-check_untyped_defs = false
-allow_any_generics = true
-warn_unused_ignores = false
+[tool.ty.rules]
+# Treat rules as error by default
+all = "error"
+# Ignore specific rules
+missing-import = "ignore"
+subclassing-any = "ignore"
+untyped-decorator = "ignore"
+# Ignore some other common noise during beta
+untyped-def = "warn"
+untyped-defs = "warn"

@@ -9,4 +9,5 @@ py_binary(
     srcs = ["ty_wrapper.py"],
     main = "ty_wrapper.py",
     deps = ["@pypi//ty:pkg"],
+    data = ["@@rules_python++pip+pypi_314_ty//:bin/ty"],
 )
