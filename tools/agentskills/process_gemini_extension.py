@@ -26,6 +26,7 @@ def main(extension_json: Path, output_json: Path) -> None:
         # The skill model pattern is: ^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$
         clean_name = name.lower()
         clean_name = re.sub(r"[^a-z0-9-]", "-", clean_name)
+        clean_name = re.sub(r"-{2,}", "-", clean_name)
         if not clean_name:
             clean_name = "unknown"
         clean_name = clean_name.strip("-")

@@ -107,3 +107,12 @@ py_binary(
         "@pypi//click",
     ],
 )
+
+py_test(
+    name = "process_gemini_extension_test",
+    srcs = ["process_gemini_extension_test.py"],
+    deps = [
+        ":process_gemini_extension",
+        "@pypi//pytest",
+    ],
+)
