@@ -443,10 +443,10 @@ def _claude_marketplace_repo_impl(ctx):
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
     build_content += "# Marketplace: {}\n\n".format(marketplace.get("name", ctx.attr.name))
 
-    plugin_names = []
-
     def _label_list(names):
         return '["' + '", "'.join([":" + n for n in names]) + '"]' if names else "[]"
+
+    plugin_names = []
 
     for plugin in marketplace.get("plugins", []):
         plugin_name = plugin.get("name", "")
@@ -462,14 +462,21 @@ def _claude_marketplace_repo_impl(ctx):
             continue
 
         # Resolve plugin root: source is relative to the marketplace.json directory.
-        plugin_path = marketplace_root.get_child(source) if source else marketplace_root
+        # Treat empty source and "." as self-rooted (same directory as marketplace.json).
+        normalised_source = "" if (not source or source == ".") else source
+        plugin_path = marketplace_root.get_child(normalised_source) if normalised_source else marketplace_root
         if not plugin_path.exists:
             build_content += "# Plugin '{}' source path not found: {}\n\n".format(plugin_name, source)
             continue
 
-        path_prefix = (marketplace_path.rsplit("/", 1)[0] + "/" + source + "/").lstrip("/") if source else ""
-        if path_prefix and not path_prefix.endswith("/"):
-            path_prefix += "/"
+        # Build the glob prefix: parent dir of marketplace.json + plugin source subpath.
+        # Use rpartition to safely handle a marketplace.json with no directory component.
+        marketplace_dir = marketplace_path.rpartition("/")[0]
+        if normalised_source:
+            raw_prefix = (marketplace_dir + "/" + normalised_source + "/") if marketplace_dir else (normalised_source + "/")
+        else:
+            raw_prefix = (marketplace_dir + "/") if marketplace_dir else ""
+        path_prefix = raw_prefix.lstrip("/")
 
         # Skills
         skill_names = []

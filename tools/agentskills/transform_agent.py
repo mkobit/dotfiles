@@ -18,8 +18,7 @@ def _build_frontmatter(ir: AgentIR, tool: str) -> dict[str, Any]:
     fm: dict[str, Any] = {}
 
     fm["name"] = ir.name
-    if ir.description:
-        fm["description"] = ir.description
+    fm["description"] = ir.description
     if ir.model is not None:
         fm["model"] = ir.model
     if ir.effort is not None:
@@ -58,14 +57,7 @@ def _build_frontmatter(ir: AgentIR, tool: str) -> dict[str, Any]:
     type=click.Choice(["user", "repo"]),
     help="Scope of the agent",
 )
-@click.option(
-    "--output-name",
-    default="",
-    help="Output filename stem (defaults to ir.name)",
-)
-def main(
-    input_json: Path, output_md: Path, tool: str, scope: str, output_name: str
-) -> None:
+def main(input_json: Path, output_md: Path, tool: str, scope: str) -> None:
     """Read an AgentIR JSON file, apply tool-specific projection, and write as Markdown."""
     try:
         with open(input_json, encoding="utf-8") as f:
