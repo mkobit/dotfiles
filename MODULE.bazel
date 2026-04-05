@@ -99,4 +99,11 @@ ai_skills.claude_plugin(
     sha256 = "ef6cd6e3dea900f355dd248b6f0db74ebb8eb4d323de3228cf15c21c6b1b8f81",
     tag = "compound-engineering-v2.62.0",
 )
-use_repo(ai_skills, "agency_agents", "anthropics_skills", "compound_engineering", "gemini_conductor", "gstack")
+ai_skills.claude_marketplace(
+    name = "claude_plugins_official",
+    commit = "104d39be10b7b1380b2ae23a387a11a297b599c3",
+    github = "anthropics/claude-plugins-official",
+    marketplace_json = ".claude-plugin/marketplace.json",
+    sha256 = "6f0e9b2b700be8d007811cd014d7a21e95697c82fbba95c0ae3036ed92d5af2f",
+)
+use_repo(ai_skills, "agency_agents", "anthropics_skills", "claude_plugins_official", "compound_engineering", "gemini_conductor", "gstack")

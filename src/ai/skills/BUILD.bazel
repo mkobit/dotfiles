@@ -7,7 +7,8 @@ load(
 )
 
 # Fine-grained agent atom targets — compose these into subagent_group deployments.
-# Each label maps to a single .md file from an external plugin's agents/ directory.
+# Use individual labels only when selecting a *curated subset* of agents from a plugin.
+# For all agents from a plugin, reference the {plugin}_agents aggregate directly.
 _COMPOUND_REVIEW_AGENTS = [
     "@compound_engineering//:adversarial-reviewer",
     "@compound_engineering//:api-contract-reviewer",
@@ -26,6 +27,11 @@ config_setting(
     visibility = ["//visibility:public"],
 )
 
+_WORK_INCOMPATIBLE = select({
+    ":work_machine": ["@platforms//:incompatible"],
+    "//conditions:default": [],
+})
+
 # Transform the Conductor Gemini extension into Claude-native commands and skill.
 # Produces:
 #   conductor.claude.commands.tar  (6 slash commands for ~/.claude/commands/conductor/)
@@ -35,10 +41,7 @@ claude_from_gemini_extension(
     extension = "@gemini_conductor//:extension",
     install_name = "conductor",
     scope = "user",
-    target_compatible_with = select({
-        ":work_machine": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    target_compatible_with = _WORK_INCOMPATIBLE,
     visibility = ["//visibility:public"],
 )
 
@@ -48,10 +51,7 @@ gemini_skill(
     install_name = "claude-api",
     scope = "user",
     skill = "@anthropics_skills//:claude-api",
-    target_compatible_with = select({
-        ":work_machine": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    target_compatible_with = _WORK_INCOMPATIBLE,
     visibility = ["//visibility:public"],
 )
 
@@ -60,10 +60,7 @@ gemini_skill(
     install_name = "frontend-design",
     scope = "user",
     skill = "@anthropics_skills//:frontend-design",
-    target_compatible_with = select({
-        ":work_machine": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    target_compatible_with = _WORK_INCOMPATIBLE,
     visibility = ["//visibility:public"],
 )
 
@@ -93,24 +90,16 @@ claude_skill_group(
     namespace = "gstack",
     strip_prefix = "",
     tags = ["tombstone"],
-    target_compatible_with = select({
-        ":work_machine": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    target_compatible_with = _WORK_INCOMPATIBLE,
     visibility = ["//visibility:public"],
 )
 
 # agency-agents engineering division — installs flat .md files to ~/.claude/agents/
-# strip_prefix strips the repo + division prefix so archive contains flat agent files.
-claude_subagent_group(
+filegroup(
     name = "agency_engineering",
-    srcs = ["@agency_agents//:engineering"],
-    install_name = "agency-engineering",
-    strip_prefix = "engineering",
-    target_compatible_with = select({
-        ":work_machine": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    srcs = ["@agency_agents//:engineering-agents"],
+    tags = ["claude:agents"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
     visibility = ["//visibility:public"],
 )
 
@@ -122,25 +111,97 @@ claude_subagent_group(
     srcs = _COMPOUND_REVIEW_AGENTS,
     install_name = "compound-review-agents",
     strip_prefix = "plugins/compound-engineering/agents/review",
-    target_compatible_with = select({
-        ":work_machine": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    target_compatible_with = _WORK_INCOMPATIBLE,
     visibility = ["//visibility:public"],
 )
 
 # compound-engineering — skills to ~/.claude/skills/compound-engineering/
 # 50+ general-purpose Claude plugin skills (ce-plan, ce-review, ce-work, etc.)
 # Ingested via claude_plugin_repo; skills are already Claude-native (no transformation needed).
-claude_skill_group(
+filegroup(
     name = "compound_engineering",
-    srcs = ["@compound_engineering//:skills"],
-    install_name = "compound-engineering",
-    namespace = "compound-engineering",
-    strip_prefix = "plugins/compound-engineering/skills",
-    target_compatible_with = select({
-        ":work_machine": ["@platforms//:incompatible"],
-        "//conditions:default": [],
-    }),
+    srcs = ["@compound_engineering//:compound-engineering-skills"],
+    tags = ["claude:collection"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
+    visibility = ["//visibility:public"],
+)
+
+# ---------------------------------------------------------------------------
+# Anthropic official plugin marketplace (anthropics/claude-plugins-official)
+# ---------------------------------------------------------------------------
+
+# agent-sdk-dev — agents + commands (SDK verifiers for Python and TypeScript).
+filegroup(
+    name = "agent_sdk_dev_agents",
+    srcs = ["@claude_plugins_official//:agent-sdk-dev-agents"],
+    tags = ["claude:agents"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "agent_sdk_dev_commands",
+    srcs = ["@claude_plugins_official//:agent-sdk-dev-commands"],
+    tags = ["claude:commands"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
+    visibility = ["//visibility:public"],
+)
+
+# feature-dev — agents (architect, explorer, reviewer) + commands.
+filegroup(
+    name = "feature_dev_agents",
+    srcs = ["@claude_plugins_official//:feature-dev-agents"],
+    tags = ["claude:agents"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "feature_dev_commands",
+    srcs = ["@claude_plugins_official//:feature-dev-commands"],
+    tags = ["claude:commands"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
+    visibility = ["//visibility:public"],
+)
+
+# pr-review-toolkit — agents (reviewer, simplifier, test analyzer, etc.) + commands.
+filegroup(
+    name = "pr_review_agents",
+    srcs = ["@claude_plugins_official//:pr-review-toolkit-agents"],
+    tags = ["claude:agents"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "pr_review_commands",
+    srcs = ["@claude_plugins_official//:pr-review-toolkit-commands"],
+    tags = ["claude:commands"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
+    visibility = ["//visibility:public"],
+)
+
+# plugin-dev — agents (creator, validator, reviewer), skills, and commands.
+filegroup(
+    name = "plugin_dev_agents",
+    srcs = ["@claude_plugins_official//:plugin-dev-agents"],
+    tags = ["claude:agents"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "plugin_dev_skills",
+    srcs = ["@claude_plugins_official//:plugin-dev-skills"],
+    tags = ["claude:collection"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
+    visibility = ["//visibility:public"],
+)
+
+filegroup(
+    name = "plugin_dev_commands",
+    srcs = ["@claude_plugins_official//:plugin-dev-commands"],
+    tags = ["claude:commands"],
+    target_compatible_with = _WORK_INCOMPATIBLE,
     visibility = ["//visibility:public"],
 )
