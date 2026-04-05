@@ -133,12 +133,10 @@ claude_subagent_group(
 # compound-engineering — skills to ~/.claude/skills/compound-engineering/
 # 50+ general-purpose Claude plugin skills (ce-plan, ce-review, ce-work, etc.)
 # Ingested via claude_plugin_repo; skills are already Claude-native (no transformation needed).
-claude_skill_group(
+native.filegroup(
     name = "compound_engineering",
-    srcs = ["@compound_engineering//:skills"],
-    install_name = "compound-engineering",
-    namespace = "compound-engineering",
-    strip_prefix = "plugins/compound-engineering/skills",
+    srcs = ["@compound_engineering//:compound-engineering-skills"],
+    tags = ["claude:collection"],
     target_compatible_with = select({
         ":work_machine": ["@platforms//:incompatible"],
         "//conditions:default": [],
@@ -151,11 +149,10 @@ claude_skill_group(
 # ---------------------------------------------------------------------------
 
 # agent-sdk-dev — Claude Agent SDK verification agents (Python + TypeScript verifiers).
-claude_subagent_group(
+native.filegroup(
     name = "agent_sdk_dev_agents",
-    srcs = ["@claude_plugins_official//:agent-sdk-dev_agents"],
-    install_name = "agent-sdk-dev-agents",
-    strip_prefix = "plugins/agent-sdk-dev/agents",
+    srcs = ["@claude_plugins_official//:agent-sdk-dev-agents"],
+    tags = ["claude:agents"],
     target_compatible_with = select({
         ":work_machine": ["@platforms//:incompatible"],
         "//conditions:default": [],
@@ -164,11 +161,10 @@ claude_subagent_group(
 )
 
 # feature-dev — Feature development workflow agents (architect, explorer, reviewer).
-claude_subagent_group(
+native.filegroup(
     name = "feature_dev_agents",
-    srcs = ["@claude_plugins_official//:feature-dev_agents"],
-    install_name = "feature-dev-agents",
-    strip_prefix = "plugins/feature-dev/agents",
+    srcs = ["@claude_plugins_official//:feature-dev-agents"],
+    tags = ["claude:agents"],
     target_compatible_with = select({
         ":work_machine": ["@platforms//:incompatible"],
         "//conditions:default": [],
@@ -177,11 +173,10 @@ claude_subagent_group(
 )
 
 # pr-review-toolkit — Specialized PR review agents (reviewer, simplifier, test analyzer, etc.).
-claude_subagent_group(
+native.filegroup(
     name = "pr_review_agents",
-    srcs = ["@claude_plugins_official//:pr-review-toolkit_agents"],
-    install_name = "pr-review-agents",
-    strip_prefix = "plugins/pr-review-toolkit/agents",
+    srcs = ["@claude_plugins_official//:pr-review-toolkit-agents"],
+    tags = ["claude:agents"],
     target_compatible_with = select({
         ":work_machine": ["@platforms//:incompatible"],
         "//conditions:default": [],
@@ -191,11 +186,10 @@ claude_subagent_group(
 
 # plugin-dev — Plugin development agents (creator, validator, reviewer) and skills.
 # Skills cover skill/agent/command/hook/mcp-integration development patterns.
-claude_subagent_group(
+native.filegroup(
     name = "plugin_dev_agents",
-    srcs = ["@claude_plugins_official//:plugin-dev_agents"],
-    install_name = "plugin-dev-agents",
-    strip_prefix = "plugins/plugin-dev/agents",
+    srcs = ["@claude_plugins_official//:plugin-dev-agents"],
+    tags = ["claude:agents"],
     target_compatible_with = select({
         ":work_machine": ["@platforms//:incompatible"],
         "//conditions:default": [],
@@ -203,12 +197,10 @@ claude_subagent_group(
     visibility = ["//visibility:public"],
 )
 
-claude_skill_group(
+native.filegroup(
     name = "plugin_dev_skills",
-    srcs = ["@claude_plugins_official//:plugin-dev_skills"],
-    install_name = "plugin-dev",
-    namespace = "plugin-dev",
-    strip_prefix = "plugins/plugin-dev/skills",
+    srcs = ["@claude_plugins_official//:plugin-dev-skills"],
+    tags = ["claude:collection"],
     target_compatible_with = select({
         ":work_machine": ["@platforms//:incompatible"],
         "//conditions:default": [],

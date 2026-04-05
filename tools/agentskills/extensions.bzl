@@ -318,6 +318,7 @@ def _claude_plugin_repo_impl(ctx):
         path_prefix = ""
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_skill_group", "claude_subagent_group")\n\n'
 
     # Read plugin name from .claude-plugin/plugin.json if present.
     plugin_name = ctx.attr.name
@@ -419,6 +420,33 @@ filegroup(
 )
 """.format(prefix = path_prefix)
 
+    # --- Packaging targets ---
+    # Emit claude_subagent_group / claude_skill_group wrappers so consumers can
+    # reference pre-packaged targets without repeating strip_prefix / install_name.
+    has_agents = bool(agent_categories) or bool(flat_agent_names)
+    if has_agents:
+        build_content += """
+claude_subagent_group(
+    name = "{plugin}-agents",
+    srcs = [":agents"],
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+""".format(plugin = plugin_name, strip_prefix = path_prefix + "agents")
+
+    if skill_names:
+        build_content += """
+claude_skill_group(
+    name = "{plugin}-skills",
+    srcs = [":skills"],
+    namespace = "{plugin}",
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+""".format(plugin = plugin_name, strip_prefix = path_prefix + "skills")
+
     ctx.file("BUILD.bazel", build_content)
 
 claude_plugin_repo = repository_rule(
@@ -453,6 +481,7 @@ def _claude_marketplace_repo_impl(ctx):
     archive_root = ctx.path(".")
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
+    build_content += 'load("@//tools/agentskills:defs.bzl", "claude_skill_group", "claude_subagent_group")\n\n'
     build_content += "# Marketplace: {}\n\n".format(marketplace.get("name", ctx.attr.name))
 
     def _label_list(names):
@@ -563,12 +592,36 @@ filegroup(
             [plugin_name + "_agents_" + c for c in agent_categories] +
             [plugin_name + "_" + n for n in flat_agent_names]
         )
+        has_agents = bool(agent_categories) or bool(flat_agent_names)
         build_content += """
 filegroup(
     name = "{plugin}_agents",
     srcs = {agents},
 )
 """.format(plugin = plugin_name, agents = _label_list(agent_aggregate_srcs))
+
+        if has_agents:
+            build_content += """
+claude_subagent_group(
+    name = "{plugin}-agents",
+    srcs = [":{plugin}_agents"],
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+""".format(plugin = plugin_name, strip_prefix = path_prefix + "agents")
+
+        if skill_names:
+            build_content += """
+claude_skill_group(
+    name = "{plugin}-skills",
+    srcs = [":{plugin}_skills"],
+    namespace = "{plugin}",
+    install_name = "{plugin}",
+    strip_prefix = "{strip_prefix}",
+    visibility = ["//visibility:public"],
+)
+""".format(plugin = plugin_name, strip_prefix = path_prefix + "skills")
 
         build_content += """
 filegroup(
