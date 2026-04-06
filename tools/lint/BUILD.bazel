@@ -2,7 +2,10 @@ package(default_visibility = ["//visibility:public"])
 
 exports_files(["linters.bzl"])
 
+# Direct alias to the binary distributed in the ruff wheel.
+# This respects the version in requirements.lock.txt while avoiding
+# the overhead of downloading custom toolchains.
 alias(
     name = "ruff",
-    actual = "@ruff//:ruff",
+    actual = "@@rules_python++pip+pypi_314_ruff//:bin/ruff",
 )
