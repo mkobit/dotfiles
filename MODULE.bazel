@@ -104,3 +104,6 @@ ai_skills.claude_marketplace(
     sha256 = "6f0e9b2b700be8d007811cd014d7a21e95697c82fbba95c0ae3036ed92d5af2f",
 )
 use_repo(ai_skills, "agency_agents", "anthropics_skills", "claude_plugins_official", "compound_engineering", "gemini_conductor", "gstack")
+
+bazel_dep(name = "aspect_rules_js", version = "2.3.0")
+bazel_dep(name = "rules_nodejs", version = "6.7.3")
