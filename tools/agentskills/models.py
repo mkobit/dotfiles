@@ -108,8 +108,8 @@ class AgentIR(BaseModel):
     model: str | None = None
     effort: Literal["low", "medium", "high", "max"] | None = None
     tools: list[str] | None = None
-    disallowed_tools: list[str] | None = Field(None, alias="disallowedTools")
-    max_turns: int | None = Field(None, alias="maxTurns")
+    disallowed_tools: list[str] | None = Field(None, alias="disallowed-tools")
+    max_turns: int | None = Field(None, alias="max-turns")
     isolation: Literal["worktree"] | None = None
     extra: dict[str, Any] = {}
     associated_files: list[AssociatedFile] = []
