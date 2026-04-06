@@ -4,5 +4,5 @@ exports_files(["linters.bzl"])
 
 alias(
     name = "ruff",
-    actual = "@ruff//:ruff",
+    actual = "@@rules_python++pip+pypi_314_ruff//:bin/ruff",
 )
