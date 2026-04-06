@@ -1,44 +1,4 @@
-"""
-Module extension for declaring external AI skill repositories.
-
-Usage in MODULE.bazel:
-
-    ai_skills = use_extension("//tools/agentskills:extensions.bzl", "ai_skills")
-
-    # GitHub shorthand — strip_prefix navigates into a subdirectory when the plugin is not at the archive root
-    ai_skills.claude_plugin(
-        name = "compound_engineering",
-        sha256 = "...",
-        strip_prefix = "compound-engineering-plugin-compound-engineering-v2.62.0/plugins/compound-engineering",
-        urls = ["https://github.com/EveryInc/compound-engineering-plugin/archive/refs/tags/compound-engineering-v2.62.0.tar.gz"],
-    )
-
-    ai_skills.claude_agents(
-        name = "agency_agents",
-        github = "msitarzewski/agency-agents",
-        commit = "4feb0cd...",
-        sha256 = "...",
-    )
-
-    # Fallback: explicit urls/strip_prefix for non-GitHub sources
-    ai_skills.claude_plugin(
-        name = "my_plugin",
-        urls = ["https://example.com/plugin.tar.gz"],
-        strip_prefix = "plugin-1.0.0",
-        sha256 = "...",
-    )
-
-    # Claude plugin marketplace (embedded plugins only; external ones need separate claude_plugin entries)
-    ai_skills.claude_marketplace(
-        name = "my_marketplace",
-        github = "owner/marketplace-repo",
-        tag = "v1.0.0",
-        sha256 = "...",
-        marketplace_json = ".claude-plugin/marketplace.json",
-    )
-
-    use_repo(ai_skills, "compound_engineering", "agency_agents", "my_marketplace")
-"""
+"""Module extension for declaring external AI skill/agent repositories."""
 
 def _resolve_github(tag):
     """Derive urls and strip_prefix from github + tag or commit shorthand.
@@ -47,8 +7,12 @@ def _resolve_github(tag):
     Falls back to explicit tag.urls / tag.strip_prefix for non-GitHub sources.
     """
     if not tag.github:
+        if not tag.urls:
+            fail("_resolve_github: either 'github' or 'urls' must be set")
         return tag.urls, tag.strip_prefix
     repo_name = tag.github.split("/")[-1]
+    if not tag.tag and not tag.commit:
+        fail("_resolve_github: 'github' is set but neither 'tag' nor 'commit' is provided")
     if tag.tag:
         url = "https://github.com/{}/archive/refs/tags/{}.tar.gz".format(tag.github, tag.tag)
 
@@ -68,6 +32,9 @@ _GITHUB_ATTRS = {
     "urls": attr.string_list(default = [], doc = "Explicit download URLs. Required when github is not set."),
     "strip_prefix": attr.string(default = "", doc = "Explicit strip prefix. Required when github is not set."),
 }
+
+def _label_list(names):
+    return '["' + '", "'.join([":" + n for n in names]) + '"]' if names else "[]"
 
 def _anthropics_skills_repo_impl(ctx):
     urls, strip_prefix = _resolve_github(ctx.attr)
@@ -172,9 +139,6 @@ filegroup(
         selected_names = [n for n in all_skill_names if n not in exclude_set]
     else:
         selected_names = list(all_skill_names)
-
-    def _label_list(names):
-        return '["' + '", "'.join([":" + n for n in names]) + '"]' if names else "[]"
 
     build_content += """
 filegroup(
@@ -317,7 +281,6 @@ def _claude_plugin_repo_impl(ctx):
     )
 
     plugin_root = ctx.path(".")
-    path_prefix = ""
 
     build_content = 'package(default_visibility = ["//visibility:public"])\n\n'
     build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group", "cursor_skill_group", "gemini_skill_group")\n\n'
@@ -343,12 +306,9 @@ def _claude_plugin_repo_impl(ctx):
                 build_content += """
 filegroup(
     name = "{name}",
-    srcs = glob(["{prefix}skills/{name}/**/*"]),
+    srcs = glob(["skills/{name}/**/*"]),
 )
-""".format(name = entry.basename, prefix = path_prefix)
-
-    def _label_list(names):
-        return '["' + '", "'.join([":" + n for n in names]) + '"]' if names else "[]"
+""".format(name = entry.basename)
 
     build_content += """
 # skills: all discovered skill directories.
@@ -380,9 +340,9 @@ filegroup(
                     build_content += """
 filegroup(
     name = "{agent}",
-    srcs = ["{prefix}agents/{cat}/{agent}.md"],
+    srcs = ["agents/{cat}/{agent}.md"],
 )
-""".format(agent = agent_name, cat = entry.basename, prefix = path_prefix)
+""".format(agent = agent_name, cat = entry.basename)
 
                 if cat_agent_names:
                     agent_categories.append(entry.basename)
@@ -400,9 +360,9 @@ filegroup(
                 build_content += """
 filegroup(
     name = "{agent}",
-    srcs = ["{prefix}agents/{agent}.md"],
+    srcs = ["agents/{agent}.md"],
 )
-""".format(agent = agent_name, prefix = path_prefix)
+""".format(agent = agent_name)
 
     build_content += """
 # agents: all discovered agent files.
@@ -418,9 +378,9 @@ filegroup(
     build_content += """
 filegroup(
     name = "commands",
-    srcs = glob(["{prefix}commands/**/*.md"], allow_empty = True),
+    srcs = glob(["commands/**/*.md"], allow_empty = True),
 )
-""".format(prefix = path_prefix)
+"""
 
     # Check if any command files actually exist to avoid emitting empty packaging targets.
     commands_dir = plugin_root.get_child("commands")
@@ -436,10 +396,10 @@ claude_subagent_group(
     name = "{plugin}-agents",
     srcs = [":agents"],
     install_name = "{plugin}",
-    strip_prefix = "{strip_prefix}",
+    strip_prefix = "agents",
     visibility = ["//visibility:public"],
 )
-""".format(plugin = plugin_name, strip_prefix = path_prefix + "agents")
+""".format(plugin = plugin_name)
 
     if skill_names:
         build_content += """
@@ -448,7 +408,7 @@ claude_skill_group(
     srcs = [":skills"],
     namespace = "{plugin}",
     install_name = "{plugin}",
-    strip_prefix = "{strip_prefix}",
+    strip_prefix = "skills",
     visibility = ["//visibility:public"],
 )
 
@@ -457,7 +417,7 @@ cursor_skill_group(
     srcs = [":skills"],
     namespace = "{plugin}",
     install_name = "{plugin}",
-    strip_prefix = "{strip_prefix}",
+    strip_prefix = "skills",
     visibility = ["//visibility:public"],
 )
 
@@ -466,10 +426,10 @@ gemini_skill_group(
     srcs = [":skills"],
     namespace = "{plugin}",
     install_name = "{plugin}",
-    strip_prefix = "{strip_prefix}",
+    strip_prefix = "skills",
     visibility = ["//visibility:public"],
 )
-""".format(plugin = plugin_name, strip_prefix = path_prefix + "skills")
+""".format(plugin = plugin_name)
 
     if has_commands:
         build_content += """
@@ -477,10 +437,10 @@ claude_plugin_commands(
     name = "{plugin}-commands",
     srcs = [":commands"],
     install_name = "{plugin}",
-    strip_prefix = "{strip_prefix}",
+    strip_prefix = "commands",
     visibility = ["//visibility:public"],
 )
-""".format(plugin = plugin_name, strip_prefix = path_prefix + "commands")
+""".format(plugin = plugin_name)
 
     ctx.file("BUILD.bazel", build_content)
 
@@ -518,9 +478,6 @@ def _claude_marketplace_repo_impl(ctx):
     build_content += 'load("@//tools/agentskills:defs.bzl", "claude_plugin_commands", "claude_skill_group", "claude_subagent_group", "cursor_skill_group", "gemini_skill_group")\n\n'
     build_content += "# Marketplace: {}\n\n".format(marketplace.get("name", ctx.attr.name))
 
-    def _label_list(names):
-        return '["' + '", "'.join([":" + n for n in names]) + '"]' if names else "[]"
-
     plugin_names = []
 
     for plugin in marketplace.get("plugins", []):
@@ -542,7 +499,7 @@ def _claude_marketplace_repo_impl(ctx):
 
         # Reject path-traversal and absolute sources before resolving.
         # The spec forbids "../" (paths must stay within the marketplace root).
-        if source.startswith("/") or ".." in source.split("/"):
+        if source.startswith("/") or any([c == ".." for c in source.split("/")]):
             fail("Marketplace plugin '{}' has unsafe source path: {}".format(plugin_name, source))
 
         # Resolve plugin root: source is relative to the archive root (not marketplace.json directory).
