@@ -8,8 +8,6 @@ from src.python.obsidian_local_api.config import load_config
 
 
 def test_load_config_defaults() -> None:
-    # Ensure no config files exist in search path
-    # We patch Path.exists to return False so it doesn't pick up any real files
     with patch("src.python.obsidian_local_api.config.Path.exists", return_value=False):
         cfg = load_config()
         assert cfg.token is None
@@ -38,7 +36,6 @@ def test_load_config_explicit_path_not_found() -> None:
 
 
 def test_load_config_local_cwd(tmp_path: Path) -> None:
-    # Create a local config file in a temp directory and switch to it
     orig_cwd = os.getcwd()
     os.chdir(tmp_path)
 
@@ -60,7 +57,6 @@ def test_load_config_token_path(tmp_path: Path) -> None:
     secret_file.write_text("secret_value")
 
     config_file = tmp_path / "config.toml"
-    # Write config pointing to secret file
     config_file.write_text(f'token_path = "{secret_file}"')
 
     cfg = load_config(str(config_file))
@@ -69,7 +65,6 @@ def test_load_config_token_path(tmp_path: Path) -> None:
 
 
 def test_load_config_local_hidden(tmp_path: Path) -> None:
-    # Test loading from .obsidian-local-api.toml
     orig_cwd = os.getcwd()
     os.chdir(tmp_path)
 
@@ -87,7 +82,6 @@ def test_load_config_local_hidden(tmp_path: Path) -> None:
 
 
 def test_load_config_local_dot_config(tmp_path: Path) -> None:
-    # Test loading from .config/obsidian-local-api.toml
     orig_cwd = os.getcwd()
     os.chdir(tmp_path)
     config_dir = tmp_path / ".config"
@@ -107,7 +101,6 @@ def test_load_config_local_dot_config(tmp_path: Path) -> None:
 
 
 def test_load_config_xdg(tmp_path: Path) -> None:
-    # Setup XDG Config Home structure
     xdg_home = tmp_path / "xdg_config"
     xdg_home.mkdir()
     obsidian_conf_dir = xdg_home / "obsidian-local-api"
@@ -118,7 +111,6 @@ def test_load_config_xdg(tmp_path: Path) -> None:
 
     (obsidian_conf_dir / "config.toml").write_text(f'token_path = "{token_file}"')
 
-    # Create a separate empty CWD
     cwd_dir = tmp_path / "cwd"
     cwd_dir.mkdir()
 

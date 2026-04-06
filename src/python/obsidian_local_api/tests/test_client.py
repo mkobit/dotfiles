@@ -17,11 +17,9 @@ async def test_client_get_file() -> None:
         mock_response.text.return_value = '{"content": "test content"}'
         mock_request.return_value.__aenter__.return_value = mock_response
 
-        # Test basic get
         result = await client.get_file("test.md")
         assert result == {"content": "test content"}
 
-        # Verify URL construction
         args, kwargs = mock_request.call_args
         assert args[1] == "https://127.0.0.1:27124/vault/test.md"
         assert kwargs["headers"]["Authorization"] == "Bearer test-token"
@@ -43,7 +41,6 @@ async def test_client_create_file() -> None:
         assert args[0] == "PUT"
         assert args[1] == "https://127.0.0.1:27124/vault/new.md"
         assert kwargs["data"] == "content"
-        # Verify Content-Type is set to markdown
         assert kwargs["headers"]["Content-Type"] == "text/markdown"
 
 
@@ -54,7 +51,7 @@ async def test_client_delete_file() -> None:
 
     with patch("aiohttp.ClientSession.request") as mock_request:
         mock_response = AsyncMock()
-        mock_response.status = 204  # No content for delete usually
+        mock_response.status = 204
         mock_request.return_value.__aenter__.return_value = mock_response
 
         await client.delete_file("del.md")

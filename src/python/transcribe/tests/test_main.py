@@ -19,10 +19,8 @@ def test_main_help() -> None:
 
 
 def test_main_default(mock_transcriber: MagicMock) -> None:
-    # Setup mock
     instance = mock_transcriber.return_value
 
-    # Mock return values
     Segment = MagicMock()
     Segment.start = 0.0
     Segment.end = 1.0
@@ -33,7 +31,6 @@ def test_main_default(mock_transcriber: MagicMock) -> None:
     Info.language_probability = 1.0
     Info.duration = 1.0
 
-    # Mock generator
     def segment_gen() -> Generator[Any, None, None]:
         yield Segment
 
@@ -51,10 +48,8 @@ def test_main_default(mock_transcriber: MagicMock) -> None:
 
 
 def test_main_template_string(mock_transcriber: MagicMock) -> None:
-    # Setup mock
     instance = mock_transcriber.return_value
 
-    # Mock return values
     Segment = MagicMock()
     Segment.start = 0.0
     Segment.end = 1.0
@@ -65,7 +60,6 @@ def test_main_template_string(mock_transcriber: MagicMock) -> None:
     Info.language_probability = 1.0
     Info.duration = 1.0
 
-    # Mock generator
     def segment_gen() -> Generator[Any, None, None]:
         yield Segment
 

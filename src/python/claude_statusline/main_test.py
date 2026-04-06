@@ -6,19 +6,14 @@ import io
 from pathlib import Path
 from typing import Any, Dict
 
-# Import the module under test
 import src.python.claude_statusline.main as statusline
 
 
 class TestStatusLine(unittest.TestCase):
     def test_format_context_usage(self) -> None:
-        # Test low usage (Green)
         self.assertIn(statusline.GREEN, statusline.format_context_usage(10))
-        # Test medium usage (Yellow)
         self.assertIn(statusline.YELLOW, statusline.format_context_usage(55))
-        # Test high usage (Red)
         self.assertIn(statusline.RED, statusline.format_context_usage(95))
-        # Test None (Unknown) - should be 0%
         output_none = statusline.format_context_usage(None)
         self.assertIn("0%", output_none)
         self.assertIn(statusline.GREEN, output_none)
@@ -35,7 +30,6 @@ class TestStatusLine(unittest.TestCase):
             "is_repo": True,
         }
 
-        # Clean
         info = statusline.GitInfo(
             branch=str(base_kwargs["branch"]),
             remote=str(base_kwargs["remote"]),
@@ -51,7 +45,6 @@ class TestStatusLine(unittest.TestCase):
         self.assertIn(statusline.ICON_CLEAN, output)
         self.assertIn(statusline.ICON_REMOTE, output)
 
-        # Dirty
         info = statusline.GitInfo(
             branch=str(base_kwargs["branch"]),
             remote=str(base_kwargs["remote"]),
@@ -65,7 +58,6 @@ class TestStatusLine(unittest.TestCase):
         output = statusline.format_git_full(info)
         self.assertIn(statusline.ICON_DIRTY, output)
 
-        # Staged
         info = statusline.GitInfo(
             branch=str(base_kwargs["branch"]),
             remote=str(base_kwargs["remote"]),
@@ -79,7 +71,6 @@ class TestStatusLine(unittest.TestCase):
         output = statusline.format_git_full(info)
         self.assertIn(statusline.ICON_STAGED, output)
 
-        # Untracked
         info = statusline.GitInfo(
             branch=str(base_kwargs["branch"]),
             remote=str(base_kwargs["remote"]),
@@ -93,7 +84,6 @@ class TestStatusLine(unittest.TestCase):
         output = statusline.format_git_full(info)
         self.assertIn(statusline.ICON_UNTRACKED, output)
 
-        # Ahead/Behind
         info = statusline.GitInfo(
             branch=str(base_kwargs["branch"]),
             remote=str(base_kwargs["remote"]),
@@ -110,7 +100,6 @@ class TestStatusLine(unittest.TestCase):
 
     @patch("subprocess.check_output")
     def test_get_git_info_fresh(self, mock_check_output: MagicMock) -> None:
-        # Mock git commands
         def side_effect(cmd: Any, **kwargs: Any) -> Any:
             cmd_list = cmd if isinstance(cmd, list) else cmd.split()
             if "is-inside-work-tree" in cmd_list:
@@ -127,7 +116,6 @@ class TestStatusLine(unittest.TestCase):
 
         mock_check_output.side_effect = side_effect
 
-        # Mock Path.exists to return False (cache miss)
         with patch.object(Path, "exists", return_value=False):
             info = statusline.get_git_info(Path("/tmp/repo"))
 
@@ -142,7 +130,6 @@ class TestStatusLine(unittest.TestCase):
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
     def test_main(self, mock_stdin: MagicMock, mock_print: MagicMock) -> None:
-        # Mock stdin
         input_data = {
             "model": {"display_name": "Claude 3"},
             "workspace": {"current_dir": "/tmp/test"},
@@ -154,7 +141,6 @@ class TestStatusLine(unittest.TestCase):
         mock_stdin.seek(0)
 
         with patch.object(statusline, "get_git_info") as mock_get_git_info:
-            # Mock git info
             mock_get_git_info.return_value = statusline.GitInfo(
                 branch="main",
                 dirty=False,
@@ -168,18 +154,14 @@ class TestStatusLine(unittest.TestCase):
 
             statusline.main()
 
-            # Verify output
-            # Expect 2 print calls
             self.assertEqual(mock_print.call_count, 2)
 
-            # Check first line (Model, Context, Session, Cost)
             line1 = mock_print.call_args_list[0][0][0]
             self.assertIn("Claude 3", line1)
             self.assertIn("50%", line1)
             self.assertIn("#MySession", line1)
             self.assertIn("$0.42", line1)
 
-            # Check second line (Git)
             line2 = mock_print.call_args_list[1][0][0]
             self.assertIn("main", line2)
 
@@ -187,19 +169,15 @@ class TestStatusLine(unittest.TestCase):
         home = Path("/home/user")
 
         with patch.object(Path, "home", return_value=home):
-            # Case 1: Path inside home, shallow
             p1 = Path("/home/user/projects/repo")
             self.assertEqual(statusline.shorten_path(p1), "~/projects/repo")
 
-            # Case 2: Path inside home, deep
             p2 = Path("/home/user/src/github.com/org/repo/subdir")
             self.assertEqual(statusline.shorten_path(p2), ".../repo/subdir")
 
-            # Case 3: Path outside home
             p3 = Path("/opt/tool/src/main")
             self.assertEqual(statusline.shorten_path(p3), ".../src/main")
 
-            # Case 4: Home itself
             p4 = Path("/home/user")
             self.assertEqual(statusline.shorten_path(p4), "~")
 

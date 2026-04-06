@@ -24,7 +24,6 @@ def async_command(f: Any) -> Any:
 def load_config_callback(ctx: Any, param: Any, value: str | None) -> str | None:
     try:
         cfg = load_config(value)
-        # Convert config model to dict, filtering out None values
         config_dict = {k: v for k, v in cfg.model_dump().items() if v is not None}
         ctx.default_map = config_dict
     except Exception as e:

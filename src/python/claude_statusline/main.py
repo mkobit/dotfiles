@@ -9,7 +9,6 @@ from pathlib import Path
 from dataclasses import dataclass, asdict
 from typing import Any
 
-# ANSI Colors
 RESET = "\033[0m"
 BOLD = "\033[1m"
 DIM = "\033[2m"
@@ -21,7 +20,6 @@ MAGENTA = "\033[35m"
 CYAN = "\033[36m"
 WHITE = "\033[37m"
 
-# Nerd Font Icons (Unicode Escape Sequences)
 ICON_BRANCH = "\uf418"  # 
 ICON_DIRTY = "\uf00d"  # 
 ICON_STAGED = "\uf067"  # 
@@ -30,7 +28,6 @@ ICON_CLEAN = "\uf00c"  # 
 ICON_REMOTE = "\uf0c2"  # 
 ICON_DIR = "\uf07c"  # 
 
-# Block characters for visual progress bar
 BLOCK_FILLED = "\u2588"  # █
 BLOCK_EMPTY = "\u2591"  # ░
 
@@ -69,7 +66,6 @@ def get_git_info(cwd: Path) -> GitInfo | None:
     cache_key = hashlib.md5(cwd_str.encode()).hexdigest()
     cache_file = Path(tempfile.gettempdir()) / f"claude_statusline_git_{cache_key}.json"
 
-    # Check cache
     if cache_file.exists():
         try:
             mtime = cache_file.stat().st_mtime
@@ -81,7 +77,6 @@ def get_git_info(cwd: Path) -> GitInfo | None:
         except (OSError, json.JSONDecodeError, TypeError):
             pass
 
-    # Quick check if git repo
     try:
         subprocess.check_output(
             ["git", "rev-parse", "--is-inside-work-tree"],
@@ -101,7 +96,6 @@ def get_git_info(cwd: Path) -> GitInfo | None:
     is_repo = True
 
     try:
-        # Branch
         branch = subprocess.check_output(
             ["git", "rev-parse", "--abbrev-ref", "HEAD"],
             cwd=cwd,
@@ -109,7 +103,6 @@ def get_git_info(cwd: Path) -> GitInfo | None:
             stderr=subprocess.DEVNULL,
         ).strip()
 
-        # Remote
         try:
             remote_url = subprocess.check_output(
                 ["git", "ls-remote", "--get-url", "origin"],
@@ -125,7 +118,6 @@ def get_git_info(cwd: Path) -> GitInfo | None:
         except subprocess.CalledProcessError:
             pass
 
-        # Status
         status_output = subprocess.check_output(
             ["git", "status", "--porcelain"],
             cwd=cwd,
@@ -138,7 +130,6 @@ def get_git_info(cwd: Path) -> GitInfo | None:
             dirty = any(line[1] != " " and not line.startswith("??") for line in lines)
             untracked = any(line.startswith("??") for line in lines)
 
-        # Ahead/Behind
         try:
             rev_list = subprocess.check_output(
                 ["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"],
@@ -205,7 +196,6 @@ def format_session_info(data: StatusData) -> str:
     if data.session_name:
         return f"{CYAN}#{data.session_name}{RESET}"
     if data.session_id:
-        # Show first 8 chars of ID
         return f"{DIM}#{data.session_id[:8]}{RESET}"
     return ""
 
@@ -243,10 +233,8 @@ def format_git_full(info: GitInfo | None) -> str:
     if not info:
         return ""
 
-    # Branch
     parts = [f"{MAGENTA}{ICON_BRANCH} {info.branch}{RESET}"]
 
-    # Status Icons
     status_parts = []
     if info.dirty:
         status_parts.append(f"{RED}{ICON_DIRTY}{RESET}")
@@ -260,13 +248,11 @@ def format_git_full(info: GitInfo | None) -> str:
 
     parts.append("".join(status_parts))
 
-    # Ahead/Behind
     if info.ahead > 0:
         parts.append(f"{GREEN}↑{info.ahead}{RESET}")
     if info.behind > 0:
         parts.append(f"{RED}↓{info.behind}{RESET}")
 
-    # Remote Link (icon only)
     if info.remote:
         parts.append(f"\033]8;;{info.remote}\033\\{ICON_REMOTE}\033]8;;\033\\")
 
@@ -275,12 +261,7 @@ def format_git_full(info: GitInfo | None) -> str:
 
 def main() -> None:
     try:
-        # Read JSON from stdin
         if not sys.stdin.isatty():
-            # For debugging, one might want to dump to a file here
-            # with open('/tmp/claude_input.json', 'w') as f:
-            #     f.write(sys.stdin.read())
-            # sys.stdin.seek(0)
             raw_data = json.load(sys.stdin)
         else:
             raw_data = {}
@@ -307,7 +288,6 @@ def main() -> None:
         cost_usd=cost_usd,
     )
 
-    # Line 1: [Model] (Agent) [Context] #Session $Cost
     line1_parts = [
         format_model_info(status_data),
         format_context_usage(status_data.context_used_pct),
@@ -316,7 +296,6 @@ def main() -> None:
     ]
     print(" ".join(filter(None, line1_parts)))
 
-    # Line 2: [Dir] [Git Info]
     line2_parts = [
         format_directory(status_data),
         format_git_full(status_data.git),
