@@ -18,11 +18,6 @@ class ObsidianClient:
         self.token = Token(token)
         self.host = Host(host)
         self.base_url = f"https://{self.host}:{port}"
-        # Create an SSL context that trusts the self-signed certificate if needed
-        # In a real scenario, the user should provide the cert or we should verify
-        # it properly.
-        # For now, we will verify=False but warn, or handle it via aiohttp's connector.
-        # The Obsidian Local REST API generates a self-signed cert.
         self.ssl_context = ssl.create_default_context()
         self.ssl_context.check_hostname = False
         self.ssl_context.verify_mode = ssl.CERT_NONE
@@ -31,7 +26,6 @@ class ObsidianClient:
         headers = kwargs.pop("headers", {})
         headers["Authorization"] = f"Bearer {self.token}"
 
-        # Default Content-Type to application/json if not set
         if "Content-Type" not in headers:
             headers["Content-Type"] = "application/json"
 
@@ -51,19 +45,13 @@ class ObsidianClient:
                     return await response.text()
 
     async def get_file(self, path: str) -> Any:
-        """Get the content of a file.
-
-        https://coddingtonbear.github.io/obsidian-local-rest-api/#/Vault%20Files/get_vault__filename_
-        """
+        """Get the content of a file."""
         if not path.startswith("/vault/"):
             path = f"/vault/{path}"
         return await self._request("GET", path)
 
     async def create_file(self, path: str, content: str) -> Any:
-        """Create or update a file.
-
-        https://coddingtonbear.github.io/obsidian-local-rest-api/#/Vault%20Files/put_vault__filename_
-        """
+        """Create or update a file."""
         if not path.startswith("/vault/"):
             path = f"/vault/{path}"
         return await self._request(
@@ -71,19 +59,13 @@ class ObsidianClient:
         )
 
     async def delete_file(self, path: str) -> Any:
-        """Delete a file.
-
-        https://coddingtonbear.github.io/obsidian-local-rest-api/#/Vault%20Files/delete_vault__filename_
-        """
+        """Delete a file."""
         if not path.startswith("/vault/"):
             path = f"/vault/{path}"
         return await self._request("DELETE", path)
 
     async def list_files(self, folder: str = "/") -> Any:
-        """List files in the vault.
-
-        https://coddingtonbear.github.io/obsidian-local-rest-api/#/Vault%20Files/get_vault_
-        """
+        """List files in the vault."""
         if folder == "/":
             folder = ""
         elif folder.startswith("/"):
@@ -92,29 +74,17 @@ class ObsidianClient:
         return await self._request("GET", f"/vault/{folder}")
 
     async def search(self, query: str) -> Any:
-        """Search for files using Simple Search.
-
-        https://coddingtonbear.github.io/obsidian-local-rest-api/#/Search/get_search_simple
-        """
+        """Search for files using Simple Search."""
         return await self._request("GET", f"/search/simple?query={quote(query)}")
 
     async def get_active_file(self) -> Any:
-        """Get the currently active file.
-
-        https://coddingtonbear.github.io/obsidian-local-rest-api/#/Active%20File/get_active_
-        """
+        """Get the currently active file."""
         return await self._request("GET", "/active/")
 
     async def list_commands(self) -> Any:
-        """List available commands.
-
-        https://coddingtonbear.github.io/obsidian-local-rest-api/#/Commands/get_commands_
-        """
+        """List available commands."""
         return await self._request("GET", "/commands/")
 
     async def execute_command(self, command_id: str) -> Any:
-        """Execute a command.
-
-        https://coddingtonbear.github.io/obsidian-local-rest-api/#/Commands/post_commands__commandId_
-        """
+        """Execute a command."""
         return await self._request("POST", f"/commands/{command_id}/")

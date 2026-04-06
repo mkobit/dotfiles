@@ -11,20 +11,14 @@ frozen_config = ConfigDict(frozen=True, alias_generator=to_camel, populate_by_na
 
 
 class GitHubBranch(BaseModel):
-    """
-    A GitHub branch.
-    See: https://jules.google/docs/api/reference/types#githubbranch
-    """
+    """A GitHub branch."""
 
     display_name: str
     model_config = frozen_config
 
 
 class GitHubRepo(BaseModel):
-    """
-    Represents a GitHub repository.
-    See: https://jules.google/docs/api/reference/types#githubrepo
-    """
+    """Represents a GitHub repository."""
 
     owner: str
     repo: str
@@ -35,10 +29,7 @@ class GitHubRepo(BaseModel):
 
 
 class Source(BaseModel):
-    """
-    Represents a Jules source.
-    See: https://jules.google/docs/api/reference/types#source
-    """
+    """Represents a Jules source."""
 
     name: str
     id: str
@@ -47,20 +38,14 @@ class Source(BaseModel):
 
 
 class GitHubRepoContext(BaseModel):
-    """
-    Context for a GitHub repository source.
-    See: https://jules.google/docs/api/reference/types#githubrepocontext
-    """
+    """Context for a GitHub repository source."""
 
     starting_branch: str
     model_config = frozen_config
 
 
 class SourceContext(BaseModel):
-    """
-    Context identifying the source for a session.
-    See: https://jules.google/docs/api/reference/types#sourcecontext
-    """
+    """Context identifying the source for a session."""
 
     source: str
     github_repo_context: GitHubRepoContext | None = None
@@ -68,10 +53,7 @@ class SourceContext(BaseModel):
 
 
 class AutomationMode(StrEnum):
-    """
-    Automation modes for a session.
-    See: https://jules.google/docs/api/reference/types#automationmode
-    """
+    """Automation modes for a session."""
 
     @staticmethod
     def _generate_next_value_(
@@ -84,10 +66,7 @@ class AutomationMode(StrEnum):
 
 
 class CreateSessionRequest(BaseModel):
-    """
-    Request body for creating a session.
-    See: https://jules.google/docs/api/reference/sessions#create
-    """
+    """Request body for creating a session."""
 
     prompt: str
     source_context: SourceContext
@@ -98,10 +77,7 @@ class CreateSessionRequest(BaseModel):
 
 
 class PullRequest(BaseModel):
-    """
-    Output details for a Pull Request.
-    See: https://jules.google/docs/api/reference/types#pullrequest
-    """
+    """Output details for a Pull Request."""
 
     url: str
     title: str
@@ -110,20 +86,14 @@ class PullRequest(BaseModel):
 
 
 class SessionOutput(BaseModel):
-    """
-    Generic output wrapper.
-    See: https://jules.google/docs/api/reference/types#sessionoutput
-    """
+    """Generic output wrapper."""
 
     pull_request: PullRequest | None = None
     model_config = frozen_config
 
 
 class SessionState(StrEnum):
-    """
-    State of a session.
-    See: https://jules.google/docs/api/reference/types#sessionstate
-    """
+    """State of a session."""
 
     @staticmethod
     def _generate_next_value_(
@@ -143,10 +113,7 @@ class SessionState(StrEnum):
 
 
 class Session(BaseModel):
-    """
-    Represents a Jules session.
-    See: https://jules.google/docs/api/reference/types#session
-    """
+    """Represents a Jules session."""
 
     name: str
     id: str
@@ -164,10 +131,7 @@ class Session(BaseModel):
 
 
 class PlanStep(BaseModel):
-    """
-    A single step in a plan.
-    See: https://jules.google/docs/api/reference/types#planstep
-    """
+    """A single step in a plan."""
 
     id: str
     title: str
@@ -177,10 +141,7 @@ class PlanStep(BaseModel):
 
 
 class Plan(BaseModel):
-    """
-    A generated plan containing steps.
-    See: https://jules.google/docs/api/reference/types#plan
-    """
+    """A generated plan containing steps."""
 
     id: str
     steps: list[PlanStep]
@@ -189,50 +150,35 @@ class Plan(BaseModel):
 
 
 class UserMessaged(BaseModel):
-    """
-    The user posted a message.
-    See: https://jules.google/docs/api/reference/types#usermessaged
-    """
+    """The user posted a message."""
 
     user_message: str
     model_config = frozen_config
 
 
 class AgentMessaged(BaseModel):
-    """
-    The agent posted a message.
-    See: https://jules.google/docs/api/reference/types#agentmessaged
-    """
+    """The agent posted a message."""
 
     agent_message: str
     model_config = frozen_config
 
 
 class PlanGenerated(BaseModel):
-    """
-    Activity payload for a generated plan.
-    See: https://jules.google/docs/api/reference/types#plangenerated
-    """
+    """Activity payload for a generated plan."""
 
     plan: Plan
     model_config = frozen_config
 
 
 class PlanApproved(BaseModel):
-    """
-    Activity payload for an approved plan.
-    See: https://jules.google/docs/api/reference/types#planapproved
-    """
+    """Activity payload for an approved plan."""
 
     plan_id: str
     model_config = frozen_config
 
 
 class ProgressUpdated(BaseModel):
-    """
-    Activity payload for a progress update.
-    See: https://jules.google/docs/api/reference/types#progressupdated
-    """
+    """Activity payload for a progress update."""
 
     title: str
     description: str | None = None
@@ -240,10 +186,7 @@ class ProgressUpdated(BaseModel):
 
 
 class BashOutput(BaseModel):
-    """
-    Output from a bash command execution.
-    See: https://jules.google/docs/api/reference/types#bashoutput
-    """
+    """Output from a bash command execution."""
 
     command: str | None = None
     output: str
@@ -252,29 +195,20 @@ class BashOutput(BaseModel):
 
 
 class SessionFailed(BaseModel):
-    """
-    The session failed.
-    See: https://jules.google/docs/api/reference/types#sessionfailed
-    """
+    """The session failed."""
 
     reason: str
     model_config = frozen_config
 
 
 class SessionCompleted(BaseModel):
-    """
-    The session was completed.
-    See: https://jules.google/docs/api/reference/types#sessioncompleted
-    """
+    """The session was completed."""
 
     model_config = frozen_config
 
 
 class GitPatch(BaseModel):
-    """
-    A patch in Git format.
-    See: https://jules.google/docs/api/reference/types#gitpatch
-    """
+    """A patch in Git format."""
 
     unidiff_patch: str
     base_commit_id: str
@@ -283,10 +217,7 @@ class GitPatch(BaseModel):
 
 
 class ChangeSet(BaseModel):
-    """
-    A change set was produced.
-    See: https://jules.google/docs/api/reference/types#changeset
-    """
+    """A change set was produced."""
 
     source: str
     git_patch: GitPatch | None = None
@@ -294,10 +225,7 @@ class ChangeSet(BaseModel):
 
 
 class Media(BaseModel):
-    """
-    A media output.
-    See: https://jules.google/docs/api/reference/types#media
-    """
+    """A media output."""
 
     data: bytes
     mime_type: str
@@ -305,10 +233,7 @@ class Media(BaseModel):
 
 
 class Artifact(BaseModel):
-    """
-    Artifact produced during an activity.
-    See: https://jules.google/docs/api/reference/types#artifact
-    """
+    """Artifact produced during an activity."""
 
     change_set: ChangeSet | None = None
     media: Media | None = None
@@ -317,10 +242,7 @@ class Artifact(BaseModel):
 
 
 class Activity(BaseModel):
-    """
-    Represents an activity within a session.
-    See: https://jules.google/docs/api/reference/types#activity
-    """
+    """Represents an activity within a session."""
 
     name: str
     id: str
@@ -339,10 +261,7 @@ class Activity(BaseModel):
 
 
 class ListSourcesResponse(BaseModel):
-    """
-    Response from listing sources.
-    See: https://jules.google/docs/api/reference/types#listsourcesresponse
-    """
+    """Response from listing sources."""
 
     sources: list[Source]
     next_page_token: str | None = None
@@ -350,10 +269,7 @@ class ListSourcesResponse(BaseModel):
 
 
 class ListSessionsResponse(BaseModel):
-    """
-    Response from listing sessions.
-    See: https://jules.google/docs/api/reference/types#listsessionsresponse
-    """
+    """Response from listing sessions."""
 
     sessions: list[Session] = Field(default_factory=list)
     next_page_token: str | None = None
@@ -361,10 +277,7 @@ class ListSessionsResponse(BaseModel):
 
 
 class ListActivitiesResponse(BaseModel):
-    """
-    Response from listing activities.
-    See: https://jules.google/docs/api/reference/types#listactivitiesresponse
-    """
+    """Response from listing activities."""
 
     activities: list[Activity] = Field(default_factory=list)
     next_page_token: str | None = None
@@ -372,8 +285,6 @@ class ListActivitiesResponse(BaseModel):
 
 
 class JulesContext(BaseModel):
-    """
-    Context passed between Click commands.
-    """
+    """Context passed between Click commands."""
 
     api_key: str | None = None

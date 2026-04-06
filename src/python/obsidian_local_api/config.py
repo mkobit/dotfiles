@@ -53,7 +53,6 @@ def load_config(config_path: str | None = None) -> ObsidianConfig:
         if xdg_config:
             candidates.append(Path(xdg_config) / "obsidian-local-api" / "config.toml")
 
-        # Always check default XDG location (fallback)
         candidates.append(
             Path.home() / ".config" / "obsidian-local-api" / "config.toml"
         )

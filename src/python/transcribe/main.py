@@ -6,11 +6,9 @@ from src.python.transcribe.transcriber import Transcriber
 from src.python.transcribe.formatter import Formatter
 from tqdm import tqdm
 
-# Configure logger
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
-# Enums/Constants
 MODEL_SIZES = [
     "tiny",
     "tiny.en",
@@ -73,7 +71,6 @@ def main(
     Transcribe audio files using faster-whisper and Jinja2 templates.
     """
 
-    # Validation
     if template_file and template:
         raise click.UsageError("Cannot provide both --template-file and --template.")
 
@@ -91,17 +88,14 @@ def main(
         )
 
         segments = []
-        # Wrap generator with tqdm
         with tqdm(total=info.duration, unit="s", desc="Transcribing") as pbar:
             for segment in segments_gen:
                 segments.append(segment)
-                # Update progress bar based on segment end time
                 current = pbar.n
                 if segment.end > current:
                     pbar.update(segment.end - current)
 
         logger.info("Formatting output...")
-        # Use the static method from Formatter class
         result = Formatter.format_segments(segments, info, template_file, template)
 
         if output_dest == "-":

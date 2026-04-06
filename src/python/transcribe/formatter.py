@@ -14,19 +14,7 @@ class Formatter:
         template_file: Optional[str] = None,
         template_string: Optional[str] = None,
     ) -> str:
-        """
-        Format transcription segments using Jinja2 templates.
-
-        Args:
-            segments: List of transcription segments.
-            info: Transcription info.
-            template_file: Path to Jinja template file.
-            template_string: Jinja template string.
-
-        Returns:
-            Formatted string.
-        """
-        # Expose format_timestamp to the template context
+        """Format transcription segments using Jinja2 templates."""
         context = {
             "segments": segments,
             "info": info,
@@ -43,6 +31,5 @@ class Formatter:
             template = Template(template_string)
             return str(template.render(context))
         else:
-            # Use default template
             template = Template(Formatter.DEFAULT_TEMPLATE)
             return str(template.render(context))
