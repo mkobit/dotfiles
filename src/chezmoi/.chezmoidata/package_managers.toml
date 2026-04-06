@@ -1,5 +1,3 @@
-[npm]
-min_release_age_days = 14
 
 [bun]
 min_release_age_days = 14
