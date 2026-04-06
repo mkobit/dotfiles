@@ -26,10 +26,3 @@ known-first-party = ["src", "tools"]
 [tool.ty.rules]
 # Treat rules as error by default
 all = "error"
-# Ignore specific rules
-missing-import = "ignore"
-subclassing-any = "ignore"
-untyped-decorator = "ignore"
-# Ignore some other common noise during beta
-untyped-def = "warn"
-untyped-defs = "warn"
