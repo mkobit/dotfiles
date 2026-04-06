@@ -1,5 +1,10 @@
 # Cross-tool AI configuration
 
+> **Status:** The "Bazel-powered upstream skill assembly" direction described in § What's next has been superseded.
+> See `DECISION-2026-04-06-chezmoi-native-ai-skills.md`.
+
+
+
 Design for unified AI tool configuration across Claude Code, Cursor, Gemini CLI, and Codex CLI.
 Covers repo-scoped rules, portable skills, and upstream skill deployment.
 
