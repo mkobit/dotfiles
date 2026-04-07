@@ -1,7 +1,7 @@
 import pytest
 
-from src.python.jules_cli.client import JulesClient
-from src.python.jules_cli.models import Session
+from jules_cli.client import JulesClient
+from jules_cli.models import Session
 
 # Mock data matches Pydantic camelCase conversion
 MOCK_SESSION_DATA = {
@@ -16,7 +16,7 @@ MOCK_LIST_SESSIONS_DATA = {"sessions": [MOCK_SESSION_DATA], "nextPageToken": Non
 
 
 def test_session_model() -> None:
-    session = Session(**MOCK_SESSION_DATA)
+    session = Session.model_validate(MOCK_SESSION_DATA)
     assert session.id == "123"
     assert session.title == "Test Session"
     assert session.source_context.source == "sources/github/test/repo"
@@ -45,7 +45,7 @@ async def test_client_get_session() -> None:
         async def text(self) -> str:
             return ""
 
-        async def __aenter__(self) -> "MockResponse":
+        async def __aenter__(self) -> MockResponse:
             return self
 
         async def __aexit__(
@@ -90,7 +90,7 @@ async def test_client_list_sessions() -> None:
         async def text(self) -> str:
             return ""
 
-        async def __aenter__(self) -> "MockResponse":
+        async def __aenter__(self) -> MockResponse:
             return self
 
         async def __aexit__(self, *args: object) -> None:

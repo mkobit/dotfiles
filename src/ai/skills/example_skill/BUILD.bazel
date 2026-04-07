@@ -1,6 +1,0 @@
-load("//tools/agentskills:defs.bzl", "agent_skill")
-
-agent_skill(
-    name = "example_skill",
-    srcs = glob(["**/*"]),
-)

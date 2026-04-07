@@ -1,28 +1,53 @@
+[project]
+name = "dotfiles"
+version = "0.0.0"
+requires-python = ">=3.14"
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.25",
+    "ruff>=0.11",
+    "ty>=0.0.1a10",
+]
+
+[tool.uv.workspace]
+members = [
+    "src/python/jules_cli",
+    "src/python/claude_statusline",
+    "src/python/transcribe",
+]
+
 [tool.ruff]
 line-length = 88
-target-version = "py313"
+target-version = "py314"
 
 [tool.ruff.lint]
 select = [
-    "E",  # pycodestyle errors
-    "W",  # pycodestyle warnings
-    "F",  # pyflakes
-    "I",  # isort
-    "B",  # flake8-bugbear
-    "UP", # pyupgrade
-    "N",  # pep8-naming
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
     "C90", # mccabe
 ]
 ignore = [
-    "UP043", # Unnecessary default type arguments (Conflics with Mypy strict mode for AsyncGenerator)
+    "UP043", # Unnecessary default type arguments
 ]
 
 [tool.ruff.lint.mccabe]
 max-complexity = 15
 
 [tool.ruff.lint.isort]
-known-first-party = ["src", "tools"]
+known-first-party = ["jules_cli", "claude_statusline", "transcribe"]
+
+[tool.ty.environment]
+python = ".venv"
 
 [tool.ty.rules]
-# Treat rules as error by default
 all = "error"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"

@@ -1,3 +1,4 @@
-{{- if eq .local_bin_tools.jules.installation "bazel" -}}
-{{- template "bazel_run_wrapper.sh" (dict "chezmoi" .chezmoi "target" "//src/python/jules_cli:jules_cli") -}}
+{{- if eq .local_bin_tools.jules.installation "uv" -}}
+#!/bin/bash
+exec uv run --project {{ .chezmoi.sourceDir }}/src/python/jules_cli -m jules_cli.main "$@"
 {{- end -}}

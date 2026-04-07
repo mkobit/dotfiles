@@ -1,21 +1,23 @@
-import os
-from unittest.mock import patch, MagicMock, AsyncMock
-from src.python.jules_cli.main import get_api_key, cli
-from src.python.jules_cli.config import JulesConfig
-from src.python.jules_cli.models import JulesContext
-import click
-from click.testing import CliRunner
-import pytest
 import json
-from typing import Any, AsyncGenerator
+import os
+from collections.abc import AsyncGenerator
 from pathlib import Path
-from src.python.jules_cli.models import Session, SourceContext
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
+
+import click
+import pytest
+from click.testing import CliRunner
+
+from jules_cli.config import JulesConfig
+from jules_cli.main import cli, get_api_key
+from jules_cli.models import JulesContext, Session, SourceContext
 
 
 def test_get_api_key_ignores_env_var() -> None:
     with patch.dict(os.environ, {"JULES_API_KEY": "env_key"}):
         # Mock load_config to return empty config
-        with patch("src.python.jules_cli.main.load_config", return_value=JulesConfig()):
+        with patch("jules_cli.main.load_config", return_value=JulesConfig()):
             # Mock legacy file check to return False
             with patch("pathlib.Path.exists", return_value=False):
                 with pytest.raises(SystemExit):
@@ -25,15 +27,13 @@ def test_get_api_key_ignores_env_var() -> None:
 def test_get_api_key_from_config() -> None:
     mock_config = MagicMock()
     mock_config.api_key = "config_key"
-    with patch("src.python.jules_cli.main.load_config", return_value=mock_config):
+    with patch("jules_cli.main.load_config", return_value=mock_config):
         assert get_api_key() == "config_key"
 
 
 def test_get_api_key_override() -> None:
     # Even if config fails, override should win
-    with patch(
-        "src.python.jules_cli.main.load_config", side_effect=Exception("No config")
-    ):
+    with patch("jules_cli.main.load_config", side_effect=Exception("No config")):
         assert get_api_key("override_key") == "override_key"
 
 
@@ -47,9 +47,9 @@ def test_cli_help_example_toml() -> None:
 
 def test_list_sessions_cli_override() -> None:
     runner = CliRunner()
-    with patch("src.python.jules_cli.main.JulesClient") as MockClient:
+    with patch("jules_cli.main.JulesClient") as mock_client:
         # Mock context manager
-        instance = MockClient.return_value
+        instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
 
@@ -68,13 +68,13 @@ def test_list_sessions_cli_override() -> None:
             print(result.output)
 
         assert result.exit_code == 0
-        MockClient.assert_called_with(api_key="cli_override_key")
+        mock_client.assert_called_with(api_key="cli_override_key")
 
 
 def test_list_sessions_json() -> None:
     runner = CliRunner()
-    with patch("src.python.jules_cli.main.JulesClient") as MockClient:
-        instance = MockClient.return_value
+    with patch("jules_cli.main.JulesClient") as mock_client:
+        instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
 
@@ -100,8 +100,8 @@ def test_list_sessions_json() -> None:
 
 def test_show_session_json() -> None:
     runner = CliRunner()
-    with patch("src.python.jules_cli.main.JulesClient") as MockClient:
-        instance = MockClient.return_value
+    with patch("jules_cli.main.JulesClient") as mock_client:
+        instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
 
@@ -133,8 +133,8 @@ def test_show_session_json() -> None:
 
 def test_create_session_json() -> None:
     runner = CliRunner()
-    with patch("src.python.jules_cli.main.JulesClient") as MockClient:
-        instance = MockClient.return_value
+    with patch("jules_cli.main.JulesClient") as mock_client:
+        instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
 
@@ -170,8 +170,8 @@ def test_create_session_json() -> None:
 
 def test_message_session_with_message() -> None:
     runner = CliRunner()
-    with patch("src.python.jules_cli.main.JulesClient") as MockClient:
-        instance = MockClient.return_value
+    with patch("jules_cli.main.JulesClient") as mock_client:
+        instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
         instance.send_message = AsyncMock(return_value={"status": "ok"})
@@ -235,8 +235,8 @@ def test_cli_context_type() -> None:
 
 def test_approve_session_cli() -> None:
     runner = CliRunner()
-    with patch("src.python.jules_cli.main.JulesClient") as MockClient:
-        instance = MockClient.return_value
+    with patch("jules_cli.main.JulesClient") as mock_client:
+        instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
         instance.approve_plan = AsyncMock(return_value={"status": "approved"})
@@ -253,8 +253,8 @@ def test_approve_session_cli() -> None:
 
 def test_approve_session_cli_json() -> None:
     runner = CliRunner()
-    with patch("src.python.jules_cli.main.JulesClient") as MockClient:
-        instance = MockClient.return_value
+    with patch("jules_cli.main.JulesClient") as mock_client:
+        instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
         instance.approve_plan = AsyncMock(return_value={"status": "approved"})

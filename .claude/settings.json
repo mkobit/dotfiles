@@ -1,45 +1,24 @@
 {
   "permissions": {
     "allow": [
-      "Bash(bazel build:*)",
-      "Bash(bazel aquery:*)",
-      "Bash(bazel cquery:*)",
-      "Bash(bazel query:*)",
-      "Bash(bazel run:*)",
-      "Bash(bazel fetch:*)",
-      "Bash(bazel test:*)",
       "Bash(mkdir:*)",
       "WebFetch(domain:github.com)",
       "WebFetch(domain:docs.anthropic.com)",
       "WebFetch(domain:jules.google)",
       "WebFetch(domain:www.chezmoi.io)",
       "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:chezmoi.io)",
       "Bash(chezmoi diff:*)",
       "Bash(chezmoi source-path:*)",
       "Bash(chezmoi status:*)",
-      "Bash(chezmoi data:*)",
-      "WebFetch(domain:chezmoi.io)"
+      "Bash(chezmoi data:*)"
     ],
     "deny": [],
     "additionalDirectories": []
   },
   "hooks": {
     "PreToolUse": [],
-    "PostToolUse": [
-      {
-        "matcher": "Write|Edit|MultiEdit",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bazel run //:format"
-          },
-          {
-            "type": "command",
-            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/bazel-validate.sh"
-          }
-        ]
-      }
-    ]
+    "PostToolUse": []
   },
   "sandbox": {
     "enabled": true,

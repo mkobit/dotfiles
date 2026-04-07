@@ -1,8 +1,0 @@
-load("@rules_shell//shell:sh_test.bzl", "sh_test")
-
-sh_test(
-    name = "rulesync_test",
-    srcs = ["rulesync_test.sh"],
-    args = ["$(rootpath @multitool//tools/rulesync)"],
-    data = ["@multitool//tools/rulesync"],
-)

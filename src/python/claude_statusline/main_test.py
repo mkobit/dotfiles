@@ -1,12 +1,11 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import sys
-import json
 import io
+import json
+import unittest
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any
+from unittest.mock import MagicMock, patch
 
-import src.python.claude_statusline.main as statusline
+import claude_statusline.main as statusline
 
 
 class TestStatusLine(unittest.TestCase):
@@ -19,7 +18,7 @@ class TestStatusLine(unittest.TestCase):
         self.assertIn(statusline.GREEN, output_none)
 
     def test_format_git_full(self) -> None:
-        base_kwargs: Dict[str, Any] = {
+        base_kwargs: dict[str, Any] = {
             "branch": "main",
             "remote": "https://github.com/example/repo",
             "dirty": False,

@@ -1,14 +1,11 @@
-# Local bin tools built from Bazel targets in the personal chezmoi source
-# Override installation = "disabled" to prevent deployment on machines without Bazel
+# Local Python tools installed via uv from src/python/ workspace.
+# Set installation = "disabled" to skip on machines where you don't want them.
 
 [local_bin_tools.claude_statusline]
-installation = "bazel"
+installation = "uv"
 
 [local_bin_tools.jules]
-installation = "bazel"
-
-[local_bin_tools.obsidian_client]
-installation = "bazel"
+installation = "uv"
 
 [local_bin_tools.transcribe]
-installation = "bazel"
+installation = "uv"
