@@ -74,7 +74,7 @@ def test_main_template_string(mock_transcriber: MagicMock) -> None:
             f.write("dummy")
 
         result = runner.invoke(
-            main, ["test.wav", "--template-string", "custom: {{ segments[0].text }}"]
+            main, ["test.wav", "--template", "custom: {{ segments[0].text }}"]
         )
 
         assert result.exit_code == 0

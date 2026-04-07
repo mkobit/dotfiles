@@ -231,7 +231,7 @@ def list_sessions(ctx: click.Context, as_json: bool) -> None:
     async def _list() -> None:
         jules_ctx: JulesContext = ctx.obj
         api_key = get_api_key(jules_ctx.api_key)
-        async with JulesClient(api_key) as client:
+        async with JulesClient(api_key=api_key) as client:
             if as_json:
                 sessions = [
                     s.model_dump(mode="json", by_alias=True)
@@ -265,7 +265,7 @@ def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
     async def _show() -> None:
         jules_ctx: JulesContext = ctx.obj
         api_key = get_api_key(jules_ctx.api_key)
-        async with JulesClient(api_key) as client:
+        async with JulesClient(api_key=api_key) as client:
             try:
                 # Fetch session info
                 session = await client.get_session(session_id)
@@ -358,7 +358,7 @@ def message(
             click.echo("Error: Message is empty.", err=True)
             sys.exit(1)
 
-        async with JulesClient(api_key) as client:
+        async with JulesClient(api_key=api_key) as client:
             try:
                 result = await client.send_message(session_id, content)
                 if as_json:
@@ -393,7 +393,7 @@ def approve(ctx: click.Context, session_id: str, as_json: bool) -> None:
         jules_ctx: JulesContext = ctx.obj
         api_key = get_api_key(jules_ctx.api_key)
 
-        async with JulesClient(api_key) as client:
+        async with JulesClient(api_key=api_key) as client:
             try:
                 result = await client.approve_plan(session_id)
                 if as_json:
@@ -482,7 +482,7 @@ def create(
             require_plan_approval=approve,
         )
 
-        async with JulesClient(api_key) as client:
+        async with JulesClient(api_key=api_key) as client:
             try:
                 session = await client.create_session(req)
                 if as_json:
