@@ -1,0 +1,3 @@
+{{- if and (eq .chezmoi.os "darwin") (stat "/Applications/Obsidian.app") -}}
+/Applications/Obsidian.app/Contents/MacOS/obsidian-cli
+{{- end -}}
