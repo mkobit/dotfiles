@@ -1,9 +1,0 @@
-package(default_visibility = ["//visibility:public"])
-
-# Direct alias to the binary distributed in the ty wheel.
-# This respects the version in requirements.lock.txt while avoiding
-# the overhead and potential hangs of a py_binary wrapper.
-alias(
-    name = "ty",
-    actual = "@@rules_python++pip+pypi_314_ty//:bin/ty",
-)
