@@ -17,7 +17,7 @@ jobs:
       - uses: jdx/mise-action@v2
 
       - name: Update Python dependencies
-        run: uv lock --upgrade
+        run: uv lock --upgrade --exclude-newer $(date -I -d "14 days ago")
 
       - name: Create pull request
         uses: peter-evans/create-pull-request@c0f553fe549906ede9cf27b5156039d195d2ece0 # v8.1.0
