@@ -1,0 +1,6 @@
+{{- /* The CLI binary inside Obsidian.app is named obsidian-cli, but the docs
+     * refer to it as obsidian — so we expose it under that name. macOS only.
+     */ -}}
+{{- if and (eq .chezmoi.os "darwin") (stat "/Applications/Obsidian.app") -}}
+/Applications/Obsidian.app/Contents/MacOS/obsidian-cli
+{{- end -}}
