@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from src.python.jules_cli.config import load_config
+from jules_cli.config import load_config
 
 
 def test_load_config_defaults() -> None:

@@ -1,7 +1,7 @@
 import pytest
 
-from src.python.jules_cli.client import JulesClient
-from src.python.jules_cli.models import Session
+from jules_cli.client import JulesClient
+from jules_cli.models import Session
 
 # Mock data matches Pydantic camelCase conversion
 MOCK_SESSION_DATA = {

@@ -1,15 +1,15 @@
 import os
 from unittest.mock import patch, MagicMock, AsyncMock
-from src.python.jules_cli.main import get_api_key, cli
-from src.python.jules_cli.config import JulesConfig
-from src.python.jules_cli.models import JulesContext
+from jules_cli.main import get_api_key, cli
+from jules_cli.config import JulesConfig
+from jules_cli.models import JulesContext
 import click
 from click.testing import CliRunner
 import pytest
 import json
 from typing import Any, AsyncGenerator
 from pathlib import Path
-from src.python.jules_cli.models import Session, SourceContext
+from jules_cli.models import Session, SourceContext
 
 
 def test_get_api_key_ignores_env_var() -> None:

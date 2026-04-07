@@ -1,7 +1,7 @@
 from typing import List, Any, Optional
 import os
 from jinja2 import Template, Environment, FileSystemLoader
-from src.python.transcribe.utils import format_timestamp
+from transcribe.utils import format_timestamp
 
 
 class Formatter:

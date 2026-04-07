@@ -9,9 +9,9 @@ from pathlib import Path
 
 import click
 
-from src.python.jules_cli.client import JulesClient
-from src.python.jules_cli.config import load_config
-from src.python.jules_cli.models import (
+from jules_cli.client import JulesClient
+from jules_cli.config import load_config
+from jules_cli.models import (
     AutomationMode,
     CreateSessionRequest,
     GitHubRepoContext,

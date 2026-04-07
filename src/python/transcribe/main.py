@@ -2,8 +2,8 @@ import click
 import os
 import sys
 import logging
-from src.python.transcribe.transcriber import Transcriber
-from src.python.transcribe.formatter import Formatter
+from transcribe.transcriber import Transcriber
+from transcribe.formatter import Formatter
 from tqdm import tqdm
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")

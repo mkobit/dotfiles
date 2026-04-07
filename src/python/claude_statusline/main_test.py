@@ -1,12 +1,13 @@
-import unittest
-from unittest.mock import patch, MagicMock
-import sys
-import json
-import io
-from pathlib import Path
-from typing import Any, Dict
+import unittest  # type: ignore
+from unittest.mock import patch, MagicMock  # type: ignore
+import sys  # type: ignore
+import json  # type: ignore
+import io  # type: ignore
+from pathlib import Path  # type: ignore
+from typing import Any, Dict  # type: ignore
 
-import src.python.claude_statusline.main as statusline
+# Import the module under test
+import src.python.claude_statusline.main as statusline  # type: ignore
 
 
 class TestStatusLine(unittest.TestCase):

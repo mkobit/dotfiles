@@ -3,7 +3,7 @@ from typing import Any, Self
 
 import aiohttp
 
-from src.python.jules_cli.models import (
+from jules_cli.models import (
     Activity,
     CreateSessionRequest,
     ListActivitiesResponse,
