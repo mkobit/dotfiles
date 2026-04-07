@@ -29,7 +29,6 @@
       ],
       "denyRead": [
         "~/.ssh",
-        "~/.gnupg",
         "~/.aws",
         "~/.gcp",
         "~/.azure"

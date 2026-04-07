@@ -27,3 +27,7 @@
 # Test artifacts
 **/expected_*
 **/test_data.toml
+
+{{- if ne .npmrc.installation "enabled" }}
+.npmrc
+{{- end }}
