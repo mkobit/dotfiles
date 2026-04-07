@@ -1,3 +1,2 @@
 [tools]
-python = "3.14"
-uv = "latest"
+uv = "0.11.3"
