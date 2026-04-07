@@ -20,6 +20,7 @@ concurrency:
 
 env:
   DEBIAN_FRONTEND: noninteractive
+  UV_CACHE_DIR: /tmp/.uv-cache
 
 defaults:
   run:
@@ -32,13 +33,14 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: jdx/mise-action@v2
-      - name: Cache uv
-        uses: actions/cache@v4
+      - name: Restore uv cache
+        uses: actions/cache@v5
         with:
-          path: ~/.cache/uv
+          path: /tmp/.uv-cache
           key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
-            uv-${{ runner.os }}-
+            uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+            uv-${{ runner.os }}
       - name: Install dependencies
         run: uv sync --all-packages --frozen
       - name: Lint (ruff)
@@ -47,6 +49,8 @@ jobs:
         run: uv run ruff format --check .
       - name: Type check (ty)
         run: uv run ty check src/python
+      - name: Minimize uv cache
+        run: uv cache prune --ci
 
   test:
     needs: [lint]
@@ -59,17 +63,20 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: jdx/mise-action@v2
-      - name: Cache uv
-        uses: actions/cache@v4
+      - name: Restore uv cache
+        uses: actions/cache@v5
         with:
-          path: ~/.cache/uv
+          path: /tmp/.uv-cache
           key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
-            uv-${{ runner.os }}-
+            uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+            uv-${{ runner.os }}
       - name: Install dependencies
         run: uv sync --all-packages --frozen
       - name: Test
         run: uv run pytest src/python
+      - name: Minimize uv cache
+        run: uv cache prune --ci
 
   integration:
     needs: [test]
