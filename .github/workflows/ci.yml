@@ -32,6 +32,13 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: jdx/mise-action@v2
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
       - name: Install dependencies
         run: uv sync --all-packages --frozen
       - name: Lint (ruff)
@@ -52,6 +59,13 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - uses: jdx/mise-action@v2
+      - name: Cache uv
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: uv-${{ runner.os }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-
       - name: Install dependencies
         run: uv sync --all-packages --frozen
       - name: Test
@@ -94,6 +108,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
+          CI: "true"
         run: chezmoi apply --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
 
   summary:

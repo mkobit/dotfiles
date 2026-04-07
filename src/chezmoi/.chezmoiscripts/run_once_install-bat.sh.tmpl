@@ -1,5 +1,11 @@
 {{ if eq .bat.installation "package-manager" }}#!/bin/bash
 
+if [[ -n "${CI:-}" ]]; then
+    echo "Skipping installation in CI environment"
+    exit 0
+fi
+
+
 # logging.sh hash: {{ includeTemplate "shell/logging.sh" | sha256sum }}
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
