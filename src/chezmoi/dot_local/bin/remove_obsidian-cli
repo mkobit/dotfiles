@@ -1,0 +1,2 @@
+# Tombstone: removes the old obsidian-cli symlink in favor of obsidian.
+# Renamed to match the shortname used in official docs. Delete after 2026-04-14.
