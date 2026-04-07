@@ -45,7 +45,7 @@ async def test_client_get_session() -> None:
         async def text(self) -> str:
             return ""
 
-        async def __aenter__(self) -> "MockResponse":
+        async def __aenter__(self) -> MockResponse:
             return self
 
         async def __aexit__(
@@ -90,7 +90,7 @@ async def test_client_list_sessions() -> None:
         async def text(self) -> str:
             return ""
 
-        async def __aenter__(self) -> "MockResponse":
+        async def __aenter__(self) -> MockResponse:
             return self
 
         async def __aexit__(self, *args: object) -> None:

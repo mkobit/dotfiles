@@ -1,6 +1,8 @@
-from typing import List, Any, Optional
 import os
-from jinja2 import Template, Environment, FileSystemLoader
+from typing import Any
+
+from jinja2 import Environment, FileSystemLoader, Template
+
 from transcribe.utils import format_timestamp
 
 
@@ -9,10 +11,10 @@ class Formatter:
 
     @staticmethod
     def format_segments(
-        segments: List[Any],
+        segments: list[Any],
         info: Any,
-        template_file: Optional[str] = None,
-        template_string: Optional[str] = None,
+        template_file: str | None = None,
+        template_string: str | None = None,
     ) -> str:
         """Format transcription segments using Jinja2 templates."""
         context = {

@@ -1,4 +1,6 @@
-from typing import Iterable, Tuple, Optional, Any
+from collections.abc import Iterable
+from typing import Any
+
 from faster_whisper import WhisperModel
 
 
@@ -13,7 +15,7 @@ class Transcriber:
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
     def transcribe(
-        self, audio_path: str, language: Optional[str] = None
-    ) -> Tuple[Iterable[Any], Any]:
+        self, audio_path: str, language: str | None = None
+    ) -> tuple[Iterable[Any], Any]:
         """Transcribe an audio file."""
         return self.model.transcribe(audio_path, language=language, beam_size=5)  # type: ignore

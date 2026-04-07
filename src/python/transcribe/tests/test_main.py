@@ -1,13 +1,16 @@
+from collections.abc import Generator
+from typing import Any
+from unittest.mock import MagicMock, patch
+
 import pytest
 from click.testing import CliRunner
-from unittest.mock import patch, MagicMock
-from src.python.transcribe.main import main
-from typing import Generator, Any
+
+from transcribe.main import main
 
 
 @pytest.fixture
 def mock_transcriber() -> Generator[MagicMock, None, None]:
-    with patch("src.python.transcribe.main.Transcriber") as mock:
+    with patch("transcribe.main.Transcriber") as mock:
         yield mock
 
 
@@ -21,20 +24,20 @@ def test_main_help() -> None:
 def test_main_default(mock_transcriber: MagicMock) -> None:
     instance = mock_transcriber.return_value
 
-    Segment = MagicMock()
-    Segment.start = 0.0
-    Segment.end = 1.0
-    Segment.text = "Hello"
+    segment = MagicMock()
+    segment.start = 0.0
+    segment.end = 1.0
+    segment.text = "Hello"
 
-    Info = MagicMock()
-    Info.language = "en"
-    Info.language_probability = 1.0
-    Info.duration = 1.0
+    info = MagicMock()
+    info.language = "en"
+    info.language_probability = 1.0
+    info.duration = 1.0
 
     def segment_gen() -> Generator[Any, None, None]:
-        yield Segment
+        yield segment
 
-    instance.transcribe.return_value = (segment_gen(), Info)
+    instance.transcribe.return_value = (segment_gen(), info)
 
     runner = CliRunner()
     with runner.isolated_filesystem():
@@ -50,20 +53,20 @@ def test_main_default(mock_transcriber: MagicMock) -> None:
 def test_main_template_string(mock_transcriber: MagicMock) -> None:
     instance = mock_transcriber.return_value
 
-    Segment = MagicMock()
-    Segment.start = 0.0
-    Segment.end = 1.0
-    Segment.text = "Hello"
+    segment = MagicMock()
+    segment.start = 0.0
+    segment.end = 1.0
+    segment.text = "Hello"
 
-    Info = MagicMock()
-    Info.language = "en"
-    Info.language_probability = 1.0
-    Info.duration = 1.0
+    info = MagicMock()
+    info.language = "en"
+    info.language_probability = 1.0
+    info.duration = 1.0
 
     def segment_gen() -> Generator[Any, None, None]:
-        yield Segment
+        yield segment
 
-    instance.transcribe.return_value = (segment_gen(), Info)
+    instance.transcribe.return_value = (segment_gen(), info)
 
     runner = CliRunner()
     with runner.isolated_filesystem():

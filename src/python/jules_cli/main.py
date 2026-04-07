@@ -1,10 +1,10 @@
 import asyncio
+import json
 import logging
 import os
 import shutil
 import subprocess
 import sys
-import json
 from pathlib import Path
 
 import click
@@ -47,7 +47,8 @@ def cli(ctx: click.Context, debug: bool, api_key: str | None) -> None:
 def get_api_key(api_key_override: str | None = None) -> str:
     """
     Retrieves the Jules API key.
-    Checks override first, then config, then legacy XDG config location (~/.config/jules/api_key).
+    Checks override first, then config, then legacy XDG config location
+    (~/.config/jules/api_key).
     """
     if api_key_override:
         return api_key_override
@@ -57,7 +58,7 @@ def get_api_key(api_key_override: str | None = None) -> str:
         if config.api_key:
             return config.api_key
     except Exception as e:
-        # If loading fails (e.g., config file malformed), log warning but proceed to legacy check
+        # If loading fails (e.g., config file malformed), log warning and proceed
         logging.warning("Failed to load config: %s", e)
 
     # Legacy check XDG config
@@ -91,7 +92,9 @@ def run_fzf(items: list[str]) -> str | None:
     return None
 
 
-async def interactive_session_loop(client: JulesClient, session_id: str) -> None:
+async def interactive_session_loop(  # noqa: C901
+    client: JulesClient, session_id: str
+) -> None:
     """Interactive loop for a specific session."""
     while True:
         click.clear()
@@ -444,7 +447,8 @@ def create(
 
     \b
     # Create a session on a specific branch with a title
-    $ jules session create --prompt "Refactor auth" --source github/owner/repo --branch dev --title "Auth Refactor"
+    $ jules session create --prompt "Refactor auth" --source github/owner/repo \
+        --branch dev --title "Auth Refactor"
 
     \b
     # Create an interactive session

@@ -1,10 +1,11 @@
-import click
-import os
-import sys
 import logging
-from transcribe.transcriber import Transcriber
-from transcribe.formatter import Formatter
+import sys
+
+import click
 from tqdm import tqdm
+
+from transcribe.formatter import Formatter
+from transcribe.transcriber import Transcriber
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -84,7 +85,8 @@ def main(
         segments_gen, info = transcriber.transcribe(input_path, language=language)
 
         logger.info(
-            f"Detected language '{info.language}' with probability {info.language_probability:.2f}"
+            f"Detected language '{info.language}' with probability "
+            f"{info.language_probability:.2f}"
         )
 
         segments = []

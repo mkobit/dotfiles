@@ -1,7 +1,9 @@
-import pytest
-from src.python.transcribe.formatter import Formatter
 from collections import namedtuple
 from typing import Any
+
+import pytest
+
+from src.python.transcribe.formatter import Formatter
 
 # Mock segment and info
 Segment = namedtuple("Segment", ["start", "end", "text"])
@@ -36,7 +38,11 @@ def test_formatter_jinja_string(sample_segments: list[Any], sample_info: Any) ->
 def test_formatter_jinja_with_timestamp(
     sample_segments: list[Any], sample_info: Any
 ) -> None:
-    template = "{% for seg in segments %}{{ format_timestamp(seg.start) }} -> {{ seg.text }}\n{% endfor %}"
+    template = (
+        "{% for seg in segments %}"
+        "{{ format_timestamp(seg.start) }} -> {{ seg.text }}\n"
+        "{% endfor %}"
+    )
     result = Formatter.format_segments(
         sample_segments, sample_info, template_string=template
     )
