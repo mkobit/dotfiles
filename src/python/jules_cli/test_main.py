@@ -33,9 +33,7 @@ def test_get_api_key_from_config() -> None:
 
 def test_get_api_key_override() -> None:
     # Even if config fails, override should win
-    with patch(
-        "jules_cli.main.load_config", side_effect=Exception("No config")
-    ):
+    with patch("jules_cli.main.load_config", side_effect=Exception("No config")):
         assert get_api_key("override_key") == "override_key"
 
 

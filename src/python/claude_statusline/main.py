@@ -73,7 +73,7 @@ def get_git_info(cwd: Path) -> GitInfo | None:
                     data = json.load(f)
                     if isinstance(data, dict):
                         return GitInfo(**data)
-        except (OSError, json.JSONDecodeError, TypeError):
+        except OSError, json.JSONDecodeError, TypeError:
             pass
 
     try:
