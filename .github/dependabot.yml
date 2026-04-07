@@ -3,8 +3,7 @@ updates:
 - package-ecosystem: github-actions
   directory: /
   schedule:
-    interval: monthly
-    time: "06:00"
+    interval: weekly
   cooldown:
     default-days: 14
   open-pull-requests-limit: 10
@@ -23,8 +22,7 @@ updates:
 - package-ecosystem: "uv"
   directory: /
   schedule:
-    interval: monthly
-    time: "06:00"
+    interval: weekly
   cooldown:
     default-days: 14
   open-pull-requests-limit: 10
