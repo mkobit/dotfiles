@@ -4,13 +4,9 @@ on:
   push:
     branches:
       - main
-    paths-ignore:
-      - 'conductor/**'
   pull_request:
     branches:
       - main
-    paths-ignore:
-      - 'conductor/**'
 
 permissions:
   contents: read
@@ -24,109 +20,42 @@ concurrency:
 
 env:
   DEBIAN_FRONTEND: noninteractive
-  APT_LISTCHANGES_FRONTEND: none
 
 defaults:
   run:
     shell: bash
 
 jobs:
-  check:
+  lint:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: ./.github/actions/setup-bazel-common
-        with:
-          cache-key: ${{ github.workflow }}-check
-          cache-save: ${{ github.event_name != 'pull_request' }}
-
-      - name: Install required tools
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -qq -y git vim-nox zsh
-
-      - name: Check Bazel file formatting
-        run: |
-          echo "🔍 Checking if Bazel files are properly formatted..."
-
-          if ! bazel test //:format_test --test_output=errors; then
-            echo ""
-            echo "❌ FORMATTING ISSUES DETECTED!"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo ""
-            echo "📋 DETAILED FORMATTING ERRORS:"
-            echo ""
-
-            LOG_PATH=$(bazel info bazel-testlogs 2>/dev/null)/format_test/test.log
-            if [[ -f "$LOG_PATH" ]]; then
-              echo "Files with formatting issues:"
-              echo ""
-              cat "$LOG_PATH" | sed '/^exec /d' | sed '/^Executing tests/d' | sed '/^-\+$/d'
-            else
-              echo "⚠️  Could not find detailed test log at: $LOG_PATH"
-              echo "Run locally for full details: bazel test //:format_test"
-            fi
-
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "🛠️  TO FIX THESE ISSUES:"
-            echo ""
-            echo "   1. Run the auto-formatter locally:"
-            echo "      bazel run //:format"
-            echo ""
-            echo "   2. Review what was changed:"
-            echo "      git diff"
-            echo ""
-            echo "   3. Commit the formatted files:"
-            echo "      git add -A && git commit -m 'Fix Bazel file formatting'"
-            echo ""
-            echo "   4. Push your changes:"
-            echo "      git push"
-            echo ""
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            exit 1
-          fi
-
-          echo "✅ All Bazel files are properly formatted"
-
-      - name: Generate LSP config
-        run: |
-          echo "🔧 Generating LSP configuration..."
-          bazel build //:lsp_setup_vscode_settings //:lsp_setup_compile_commands
-          echo "✅ Generated settings.json and compile_commands.json"
+      - uses: jdx/mise-action@v2
+      - name: Install dependencies
+        run: uv sync --frozen
+      - name: Lint (ruff)
+        run: uv run ruff check .
+      - name: Format check (ruff)
+        run: uv run ruff format --check .
+      - name: Type check (ty)
+        run: uv run ty check src/python
 
   test:
-    needs: [check]
+    needs: [lint]
     strategy:
       matrix:
         os: [ubuntu-24.04, macos-15]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: ./.github/actions/setup-bazel-common
-        with:
-          cache-key: ${{ github.workflow }}-test
-          cache-save: ${{ github.event_name != 'pull_request' }}
-
-      - name: Install basic tools for testing
-        run: |
-          if [[ "${{ matrix.os }}" == "ubuntu-24.04" ]]; then
-            sudo apt-get update -qq
-            sudo apt-get install -qq -y git vim-nox zsh
-          elif [[ "${{ matrix.os }}" == "macos-15" ]]; then
-            if ! command -v vim >/dev/null 2>&1; then
-              brew install vim
-            fi
-          fi
-
-      - name: Build
-        run: bazel build //...
-
+      - uses: jdx/mise-action@v2
+      - name: Install dependencies
+        run: uv sync --frozen
       - name: Test
-        run: bazel test //...
+        run: uv run pytest src/python
 
   integration:
     needs: [test]
@@ -137,10 +66,6 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-      - uses: ./.github/actions/setup-bazel-common
-        with:
-          cache-key: ${{ github.workflow }}-test
-          cache-save: ${{ github.event_name != 'pull_request' }}
 
       - name: Cache chezmoi downloads
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
@@ -152,30 +77,12 @@ jobs:
             chezmoi-cache-v4-${{ runner.os }}-main-
             chezmoi-cache-v4-${{ runner.os }}-
 
-      - name: Cache mise tools
-        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7 # v5.0.4
-        with:
-          path: |
-            ~/.local/share/mise
-          key: mise-tools-v1-${{ runner.os }}-${{ hashFiles('src/chezmoi/.chezmoidata/mise.toml') }}
-          restore-keys: |
-            mise-tools-v1-${{ runner.os }}-
-
       - name: Install chezmoi
         run: |
           sh -c "$(curl -fsLS get.chezmoi.io)" -- -b ~/.local/bin -t v2.70.0
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-      - name: Verify chezmoi installation
-        run: |
-          echo "PATH=$PATH"
-          which chezmoi
-          chezmoi --version
-
-      - name: Build all targets
-        run: bazel build //...
-
-      - name: Initialize chezmoi with repository
+      - name: Initialize chezmoi
         run: |
           mkdir -p /tmp/chezmoi-test
           chezmoi init --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
@@ -191,20 +98,21 @@ jobs:
 
   summary:
     if: always()
-    needs: [check, test, integration]
+    needs: [lint, test, integration]
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
       - name: Report results
         run: |
           echo "=== CI Summary ==="
-          echo "Check: ${{ needs.check.result }}"
-          echo "Test: ${{ needs.test.result }}"
+          echo "Lint:        ${{ needs.lint.result }}"
+          echo "Test:        ${{ needs.test.result }}"
           echo "Integration: ${{ needs.integration.result }}"
 
-          if [[ "${{ needs.check.result }}" == "failure" || "${{ needs.test.result }}" == "failure" || "${{ needs.integration.result }}" == "failure" ]]; then
-            echo "❌ Critical jobs failed"
+          if [[ "${{ needs.lint.result }}" == "failure" ||
+                "${{ needs.test.result }}" == "failure" ||
+                "${{ needs.integration.result }}" == "failure" ]]; then
+            echo "❌ CI failed"
             exit 1
-          else
-            echo "✅ All pipeline steps completed successfully"
           fi
+          echo "✅ All checks passed"
