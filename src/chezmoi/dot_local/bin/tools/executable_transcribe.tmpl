@@ -1,3 +1,4 @@
-{{- if eq .local_bin_tools.transcribe.installation "bazel" -}}
-{{- template "bazel_run_wrapper.sh" (dict "chezmoi" .chezmoi "target" "//src/python/transcribe:transcribe") -}}
+{{- if eq .local_bin_tools.transcribe.installation "uv" -}}
+#!/bin/bash
+exec uv run --project {{ .chezmoi.sourceDir }}/src/python/transcribe -m transcribe.main "$@"
 {{- end -}}

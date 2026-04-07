@@ -1,3 +1,4 @@
-{{- if eq .local_bin_tools.claude_statusline.installation "bazel" -}}
-{{- template "bazel_run_wrapper.sh" (dict "chezmoi" .chezmoi "target" "//src/python/claude_statusline:claude_statusline") -}}
+{{- if eq .local_bin_tools.claude_statusline.installation "uv" -}}
+#!/bin/bash
+exec uv run --project {{ .chezmoi.sourceDir }}/src/python/claude_statusline -m claude_statusline.main "$@"
 {{- end -}}
