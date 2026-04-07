@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-import json
-import sys
-import subprocess
-import time
 import hashlib
+import json
+import subprocess
+import sys
 import tempfile
+import time
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from dataclasses import dataclass, asdict
-from typing import Any
 
 RESET = "\033[0m"
 BOLD = "\033[1m"

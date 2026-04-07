@@ -1,13 +1,11 @@
-import unittest  # type: ignore
-from unittest.mock import patch, MagicMock  # type: ignore
-import sys  # type: ignore
-import json  # type: ignore
 import io  # type: ignore
+import json  # type: ignore
+import unittest  # type: ignore
 from pathlib import Path  # type: ignore
-from typing import Any, Dict  # type: ignore
+from typing import Any  # type: ignore
+from unittest.mock import MagicMock, patch  # type: ignore
 
-# Import the module under test
-import src.python.claude_statusline.main as statusline  # type: ignore
+import claude_statusline.main as statusline  # type: ignore
 
 
 class TestStatusLine(unittest.TestCase):
@@ -20,7 +18,7 @@ class TestStatusLine(unittest.TestCase):
         self.assertIn(statusline.GREEN, output_none)
 
     def test_format_git_full(self) -> None:
-        base_kwargs: Dict[str, Any] = {
+        base_kwargs: dict[str, Any] = {
             "branch": "main",
             "remote": "https://github.com/example/repo",
             "dirty": False,
