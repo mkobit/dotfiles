@@ -3,7 +3,7 @@ from typing import Any
 
 import pytest
 
-from src.python.transcribe.formatter import Formatter
+from transcribe.formatter import Formatter
 
 # Mock segment and info
 Segment = namedtuple("Segment", ["start", "end", "text"])

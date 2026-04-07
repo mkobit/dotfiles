@@ -1,11 +1,11 @@
-import io  # type: ignore
-import json  # type: ignore
-import unittest  # type: ignore
-from pathlib import Path  # type: ignore
-from typing import Any  # type: ignore
-from unittest.mock import MagicMock, patch  # type: ignore
+import io
+import json
+import unittest
+from pathlib import Path
+from typing import Any
+from unittest.mock import MagicMock, patch
 
-import claude_statusline.main as statusline  # type: ignore
+import claude_statusline.main as statusline
 
 
 class TestStatusLine(unittest.TestCase):

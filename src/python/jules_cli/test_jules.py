@@ -16,7 +16,7 @@ MOCK_LIST_SESSIONS_DATA = {"sessions": [MOCK_SESSION_DATA], "nextPageToken": Non
 
 
 def test_session_model() -> None:
-    session = Session(**MOCK_SESSION_DATA)
+    session = Session.model_validate(MOCK_SESSION_DATA)
     assert session.id == "123"
     assert session.title == "Test Session"
     assert session.source_context.source == "sources/github/test/repo"

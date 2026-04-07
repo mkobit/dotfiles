@@ -18,4 +18,4 @@ class Transcriber:
         self, audio_path: str, language: str | None = None
     ) -> tuple[Iterable[Any], Any]:
         """Transcribe an audio file."""
-        return self.model.transcribe(audio_path, language=language, beam_size=5)  # type: ignore
+        return self.model.transcribe(audio_path, language=language, beam_size=5)

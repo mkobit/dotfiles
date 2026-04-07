@@ -43,6 +43,9 @@ max-complexity = 15
 [tool.ruff.lint.isort]
 known-first-party = ["jules_cli", "claude_statusline", "transcribe"]
 
+[tool.ty.environment]
+python = ".venv"
+
 [tool.ty.rules]
 all = "error"
 

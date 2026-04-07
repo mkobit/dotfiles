@@ -9,7 +9,7 @@ from jules_cli.config import load_config
 
 def test_load_config_defaults() -> None:
     # Ensure no config files exist in search path
-    with patch("src.python.jules_cli.config.Path.exists", return_value=False):
+    with patch("jules_cli.config.Path.exists", return_value=False):
         cfg = load_config()
         # api_key is now a property computed from api_key_path
         assert cfg.api_key is None
