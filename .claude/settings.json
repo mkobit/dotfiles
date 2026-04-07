@@ -28,11 +28,7 @@
         "~/.config/gh"
       ],
       "denyRead": [
-        "~/.ssh",
-        "~/.gnupg",
-        "~/.aws",
-        "~/.gcp",
-        "~/.azure"
+        "~/.ssh"
       ],
       "allowWrite": [
         ".",
