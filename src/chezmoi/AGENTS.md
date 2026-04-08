@@ -29,6 +29,11 @@ source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 - This allows scripts to use shared utilities without them being deployed to the destination machine.
 - Avoid using relative paths (e.g., `../../.chezmoitemplates`) as the execution context might vary.
 
-### Referencing Destination Directory
+### Referencing repository root
+
+The `{{ .chezmoi.workingTree }}` attribute evaluates to the absolute path of the git repository root.
+This is useful for referencing project files (like Python source code) that live outside of the chezmoi source directory.
+
+### Referencing destination directory
 
 When referring to the destination home directory in scripts (e.g., for `PATH` manipulation), always use `{{ .chezmoi.destDir }}` instead of `{{ .chezmoi.homeDir }}` or hardcoded paths like `$HOME`.
