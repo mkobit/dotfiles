@@ -1,0 +1,23 @@
+{{- if .claude_code.enabled -}}
+#!/usr/bin/env python3
+import json
+import sys
+
+try:
+    existing = json.load(sys.stdin)
+except Exception:
+    existing = {}
+
+managed = json.loads("""{{ .claude_code.settings | toPrettyJson }}""")
+
+merged = {**existing, **managed}
+
+def sort_keys(obj):
+    if isinstance(obj, dict):
+        return {k: sort_keys(v) for k, v in sorted(obj.items())}
+    elif isinstance(obj, list):
+        return [sort_keys(i) for i in obj]
+    return obj
+
+print(json.dumps(sort_keys(merged), indent=2))
+{{- end }}
