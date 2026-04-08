@@ -18,7 +18,18 @@
   },
   "hooks": {
     "PreToolUse": [],
-    "PostToolUse": []
+    "PostToolUse": [],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/worktree-context.sh",
+            "once": true
+          }
+        ]
+      }
+    ]
   },
   "sandbox": {
     "enabled": true,

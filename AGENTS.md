@@ -1,10 +1,18 @@
 # Agent context for dotfiles repository
 
+## Git context
+
+This repository uses git worktrees.
+You may be operating in a worktree on a feature branch, not the main checkout.
+**Always run `git status` and `git worktree list` at the start of a session** to confirm which branch and worktree you are in before making any changes.
+Never assume you are on `main` or in the primary checkout directory.
+
 ## Repository structure
 
 - `src/` - Chezmoi templates and deployment configuration (the source of truth).
 - `config/` - Build configuration and profile management.
 - `.chezmoidata/` - Modular configuration data (TOML).
+- `src/chezmoi/dot_local/share/ai/` - AI tool plugin registry and marketplace.
 
 ## Critical path rules
 
