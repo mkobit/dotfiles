@@ -1,4 +1,4 @@
 {{- if eq .local_bin_tools.transcribe.installation "uv" -}}
-#!/bin/bash
-exec uv run --project {{ .chezmoi.sourceDir }}/src/python/transcribe -m transcribe.main "$@"
+#!/usr/bin/env bash
+exec uv run --project {{ .chezmoi.workingTree }}/src/python/transcribe -m transcribe.main "$@"
 {{- end -}}

@@ -1,4 +1,4 @@
 {{- if eq .local_bin_tools.jules.installation "uv" -}}
-#!/bin/bash
-exec uv run --project {{ .chezmoi.sourceDir }}/src/python/jules_cli -m jules_cli.main "$@"
+#!/usr/bin/env bash
+exec uv run --project {{ .chezmoi.workingTree }}/src/python/jules_cli -m jules_cli.main "$@"
 {{- end -}}
