@@ -1,0 +1,31 @@
+# AI tool plugin registry.
+#
+# Each entry pins a 3P or open-source plugin to a specific upstream commit SHA
+# and file-level SHA-256 checksum. Never use branch names or tags as the
+# commit value — always a full 40-character SHA.
+#
+# After editing, run:
+#   chezmoi-personal diff && chezmoi-personal apply
+#
+# Fields:
+#   name    - Slug used as the plugin directory name and skill filename (no
+#             extension). Must be unique within a tool.
+#   tool    - Target AI tool: "claude" (others to follow)
+#   repo    - Upstream GitHub repo in "owner/name" form
+#   path    - Path to the skill file within the repo (relative to repo root)
+#   commit  - Full 40-char commit SHA (never a branch or tag)
+#   sha256  - SHA-256 of the file content at that exact commit
+#   added   - Date first pinned (YYYY-MM-DD)
+
+[ai_plugins]
+
+# Add plugins below. Example:
+#
+# [[ai_plugins.items]]
+# name   = "obsidian-bases"
+# tool   = "claude"
+# repo   = "kepano/obsidian-skills"
+# path   = "skills/obsidian-bases/obsidian-bases.md"
+# commit = ""  # full 40-char SHA
+# sha256 = ""
+# added  = "2026-04-08"
