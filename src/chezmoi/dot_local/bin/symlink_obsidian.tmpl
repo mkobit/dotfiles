@@ -3,4 +3,6 @@
      */ -}}
 {{- if and (eq .chezmoi.os "darwin") (stat "/Applications/Obsidian.app") -}}
 /Applications/Obsidian.app/Contents/MacOS/obsidian-cli
+{{- else if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+{{ .chezmoi.destDir }}/.local/bin/tools/obsidian-wsl-wrapper.sh
 {{- end -}}

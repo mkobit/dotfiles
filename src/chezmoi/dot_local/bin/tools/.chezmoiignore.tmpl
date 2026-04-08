@@ -1,0 +1,3 @@
+{{- if not (and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease))) }}
+obsidian-wsl-wrapper.sh
+{{- end }}
