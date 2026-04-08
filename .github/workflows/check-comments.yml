@@ -1,0 +1,35 @@
+name: Check Comments
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/*.yml'
+      - '.github/workflows/*.yaml'
+  pull_request:
+    paths:
+      - '.github/workflows/*.yml'
+      - '.github/workflows/*.yaml'
+
+jobs:
+  check-trailing-version-comments:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Check for trailing version comments
+        run: |
+          fail=0
+          for file in $(find .github/workflows -type f -name "*.yml" -o -name "*.yaml"); do
+            matches=$(grep -n -E ' +#[ \t]*v[0-9]+' "$file") || true
+            if [ -n "$matches" ]; then
+              echo "::error file=$file::Found trailing version comment"
+              echo "❌ Error: Found trailing version comment in $file:"
+              echo "$matches"
+              fail=1
+            fi
+          done
+          if [ $fail -ne 0 ]; then
+            bash -c "exit 1"
+          fi
+          echo "✅ No trailing version comments found."
