@@ -1,6 +1,6 @@
 # Cross-tool AI configuration
 
-> **Status:** The "UV-powered upstream skill assembly" direction described in § What's next has been superseded.
+> **Status:** The "Bazel-powered upstream skill assembly" direction described in § What's next has been superseded.
 > See `DECISION-2026-04-06-chezmoi-native-ai-skills.md`.
 
 
@@ -14,7 +14,7 @@ Covers repo-scoped rules, portable skills, and upstream skill deployment.
 
 Canonical skill sources live in `src/agents/skills/`.
 Each skill has a `SKILL.md` with YAML frontmatter (name, description) and markdown body.
-`uv run //tools/agents:sync` copies skills to tool-specific chezmoi dirs (`src/chezmoi/dot_claude/skills/`, `dot_cursor/skills/`, `dot_gemini/skills/`).
+`bazel run //tools/agents:sync` copies skills to tool-specific chezmoi dirs (`src/chezmoi/dot_claude/skills/`, `dot_cursor/skills/`, `dot_gemini/skills/`).
 `diff_test` drift tests in CI ensure copies stay in sync with canonical sources.
 
 Skills deployed: `pr-reviewer`, `technical-writing`, `typescript-expert`, `write-agent-context`.
@@ -22,7 +22,7 @@ Skills deployed: `pr-reviewer`, `technical-writing`, `typescript-expert`, `write
 ### Rules generator
 
 Canonical rule sources live in `.rules/` with YAML frontmatter (description, paths, optional `root: true`).
-`uv run //tools/rules:generate` produces tool-specific outputs:
+`bazel run //tools/rules:generate` produces tool-specific outputs:
 
 - Claude Code: `.claude/rules/{name}.md` (YAML frontmatter with `paths`)
 - Cursor: `.cursor/rules/{name}.mdc` (YAML frontmatter with `globs`, `alwaysApply`, `description`)
@@ -49,26 +49,26 @@ Both exist — repo-scoped rules apply per-repo, user-scoped skills and settings
 
 ### 1. Rules drift test
 
-Add a `diff_test` or `sh_test` that runs `uv run //tools/rules:generate` and verifies no files changed.
+Add a `diff_test` or `sh_test` that runs `bazel run //tools/rules:generate` and verifies no files changed.
 Catches stale generated output when canonical `.rules/` sources are edited but the generator isn't re-run.
 
-### 2. UV-powered upstream skill assembly
+### 2. Bazel-powered upstream skill assembly
 
-Replace the static `upstream-skills.toml` with a UV build + chezmoi template pipeline.
+Replace the static `upstream-skills.toml` with a Bazel build + chezmoi template pipeline.
 This enables filtering problematic files (e.g., `run_*.py` that chezmoi executes) and transforming upstream skills before deployment.
 
 #### Target architecture
 
 ```
 ┌─────────────────────────────┐
-│  MODULE.uv               │
+│  MODULE.bazel               │
 │  http_archive per upstream  │
 │  repo (pinned commit)       │
 └──────────┬──────────────────┘
            │
            ▼
 ┌─────────────────────────────┐
-│  UV genrule / pkg_tar    │
+│  Bazel genrule / pkg_tar    │
 │  - select skills from repo  │
 │  - exclude/rename files     │
 │  - produce .tar.gz per      │
@@ -81,7 +81,7 @@ This enables filtering problematic files (e.g., `run_*.py` that chezmoi executes
 │  chezmoi external template  │
 │  .chezmoiexternals/         │
 │    upstream-skills.toml.tmpl│
-│  - calls `output "uv"    │
+│  - calls `output "bazel"    │
 │    "cquery" ...` to resolve │
 │    archive path             │
 │  - type = "archive"         │
@@ -99,12 +99,12 @@ This enables filtering problematic files (e.g., `run_*.py` that chezmoi executes
 
 #### Steps
 
-**a. UV assembly targets.**
-Restore `http_archive` in `MODULE.uv` for each upstream repo.
+**a. Bazel assembly targets.**
+Restore `http_archive` in `MODULE.bazel` for each upstream repo.
 Create `pkg_tar` or `genrule` targets that select specific skills, exclude problematic files, and produce one archive per skill.
 
 ```starlark
-# tools/agents/upstream/BUILD.uv
+# tools/agents/upstream/BUILD.bazel
 genrule(
     name = "skill_creator_archive",
     srcs = ["@anthropic_skills//:skill_creator_files"],
@@ -119,11 +119,11 @@ genrule(
 
 **b. Convert externals to template.**
 Rename `upstream-skills.toml` → `upstream-skills.toml.tmpl`.
-Use chezmoi's `output` function to call `uv cquery` to resolve the archive path.
+Use chezmoi's `output` function to call `bazel cquery` to resolve the archive path.
 Template iterates over tools and skills, generating one external entry per combination.
 
 ```toml
-{{- $archive := output "uv" "cquery" "--output=files" "//tools/agents:skill_creator_archive" | trim -}}
+{{- $archive := output "bazel" "cquery" "--output=files" "//tools/agents:skill_creator_archive" | trim -}}
 [".claude/skills/skill-creator"]
     type = "archive"
     url = "file://{{ $archive }}"
@@ -152,10 +152,10 @@ Validation becomes one consumer of extracted data, not a monolithic framework.
 
 ### CLI tools
 
-Python CLI tools use a `build` → chezmoi deploy pattern:
+Python CLI tools use a `bazel build` → chezmoi deploy pattern:
 
-1. `uv_run_wrapper.sh` template calls `build` then `uv run --script_path`
-2. `executable_*.tmpl` files reference UV targets
+1. `bazel_run_wrapper.sh` template calls `bazel build` then `bazel run --script_path`
+2. `executable_*.tmpl` files reference Bazel targets
 3. `.chezmoidata/local_bin_tools.toml` controls which tools are deployed
 
 ### Binary externals
@@ -163,18 +163,18 @@ Python CLI tools use a `build` → chezmoi deploy pattern:
 Binary tools use `.chezmoiexternals/*.toml.tmpl` with version data from `.chezmoidata/`:
 
 ```toml
-["uvisk"]
+["bazelisk"]
 type = "file"
-url = {{ gitHubReleaseAssetURL "uvbuild/uvisk" ... | quote }}
+url = {{ gitHubReleaseAssetURL "bazelbuild/bazelisk" ... | quote }}
 executable = true
 ```
 
 ## Open questions
 
-- Should `build` happen during `chezmoi apply` (lazy) or require an explicit `build` first (eager)?
+- Should `bazel build` happen during `chezmoi apply` (lazy) or require an explicit `bazel build` first (eager)?
   Lazy is more convenient but adds build latency to `chezmoi apply`.
-  Eager matches the CLI tools pattern (`uv_run_wrapper.sh` builds on first run).
-- How to handle machines without UV?
-  Could gate upstream skills on a `.chezmoidata` flag like `local_bin_tools` does with `installation = "uv"`.
+  Eager matches the CLI tools pattern (`bazel_run_wrapper.sh` builds on first run).
+- How to handle machines without Bazel?
+  Could gate upstream skills on a `.chezmoidata` flag like `local_bin_tools` does with `installation = "bazel"`.
 - Should we generate per-tool archives or one archive with all tools?
-  Per-tool is simpler for chezmoi externals; one archive with subdirs is simpler for UV.
+  Per-tool is simpler for chezmoi externals; one archive with subdirs is simpler for Bazel.

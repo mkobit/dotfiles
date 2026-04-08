@@ -14,13 +14,13 @@
 - [ ] Task: Conductor - User Manual Verification 'Configuration management' (Protocol in workflow.md)
 
 ## Phase 3: Installation strategy implementation
-- [ ] Task: Implement uv module dependency (Option 1)
-    - [ ] Explore `MODULE.uv` for integrating `promptfoo`.
-    - [ ] Define the uv target for `promptfoo` if possible.
+- [ ] Task: Implement Bazel module dependency (Option 1)
+    - [ ] Explore `MODULE.bazel` for integrating `promptfoo`.
+    - [ ] Define the Bazel target for `promptfoo` if possible.
 - [ ] Task: Implement `chezmoi` external (Option 2)
-    - [ ] Update `.chezmoiexternals/` to include `promptfoo` download if uv integration is not feasible.
+    - [ ] Update `.chezmoiexternals/` to include `promptfoo` download if Bazel integration is not feasible.
 - [ ] Task: Implement `mise` fallback (Option 3)
-    - [ ] Update `.chezmoidata/mise.toml` to include `promptfoo` if both uv and `chezmoi` external are not suitable.
+    - [ ] Update `.chezmoidata/mise.toml` to include `promptfoo` if both Bazel and `chezmoi` external are not suitable.
 - [ ] Task: Conductor - User Manual Verification 'Installation strategy implementation' (Protocol in workflow.md)
 
 ## Phase 4: Final validation and documentation

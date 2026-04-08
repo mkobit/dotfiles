@@ -28,5 +28,5 @@
 - [ ] Task: Finalize documentation and validation
     - [ ] Add docstrings and typing to all new modules and functions.
     - [ ] Verify complete reproducibility in supported environments.
-    - [ ] Run final uv validation checks.
+    - [ ] Run final bazel validation checks.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Cli interface and integration' (Protocol in workflow.md)

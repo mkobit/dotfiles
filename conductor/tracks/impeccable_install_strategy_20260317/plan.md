@@ -14,13 +14,13 @@
 - [ ] Task: Conductor - User Manual Verification 'Configuration management' (Protocol in workflow.md)
 
 ## Phase 3: Installation strategy implementation
-- [ ] Task: Implement uv module dependency (Option 1)
-    - [ ] Explore `MODULE.uv` for integrating `impeccable`.
-    - [ ] Define the uv target for `impeccable` if possible.
+- [ ] Task: Implement Bazel module dependency (Option 1)
+    - [ ] Explore `MODULE.bazel` for integrating `impeccable`.
+    - [ ] Define the Bazel target for `impeccable` if possible.
 - [ ] Task: Implement `chezmoi` external (Option 2)
-    - [ ] Update `.chezmoiexternals/` to include `impeccable` download if uv integration is not feasible.
+    - [ ] Update `.chezmoiexternals/` to include `impeccable` download if Bazel integration is not feasible.
 - [ ] Task: Implement `mise` fallback (Option 3)
-    - [ ] Update `.chezmoidata/mise.toml` to include `impeccable` if both uv and `chezmoi` external are not suitable.
+    - [ ] Update `.chezmoidata/mise.toml` to include `impeccable` if both Bazel and `chezmoi` external are not suitable.
 - [ ] Task: Conductor - User Manual Verification 'Installation strategy implementation' (Protocol in workflow.md)
 
 ## Phase 4: Final validation and documentation

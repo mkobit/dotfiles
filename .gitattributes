@@ -11,8 +11,6 @@
 *.7z binary
 
 # Explicit text files
-*.bzl text
-*.build text
 *.md text
 *.sh text
 *.yaml text
@@ -25,7 +23,6 @@
 
 # Scripts should use LF
 *.sh text eol=lf
-*.bzl text eol=lf
 
 # Windows scripts should use CRLF
 *.bat text eol=crlf

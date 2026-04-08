@@ -14,9 +14,9 @@
 - [ ] Task: Conductor - User Manual Verification 'Configuration management' (Protocol in workflow.md)
 
 ## Phase 3: Installation strategy implementation
-- [ ] Task: Implement uv module dependency (Option 1)
-    - [ ] Explore `MODULE.uv` for pre-built binary or source archive integration
-    - [ ] Define the uv target for `openviking`
+- [ ] Task: Implement Bazel module dependency (Option 1)
+    - [ ] Explore `MODULE.bazel` for pre-built binary or source archive integration
+    - [ ] Define the Bazel target for `openviking`
 - [ ] Task: Implement `chezmoi` external (Option 2)
     - [ ] Update `.chezmoiexternals/` to include `openviking` download
     - [ ] Ensure the external download is only active for personal environments
