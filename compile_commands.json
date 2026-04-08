@@ -1,7 +1,0 @@
-[
-  {
-    "directory": "_main",
-    "file": "BUILD.bazel",
-    "command": "bazel build //..."
-  }
-]

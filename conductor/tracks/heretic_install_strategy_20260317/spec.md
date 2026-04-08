@@ -1,11 +1,11 @@
 # Track specification: heretic_install_strategy_20260317
 
 ## Overview
-This track aims to determine and implement a safe, deterministic installation strategy for `heretic` (https://github.com/p-e-w/heretic) within the project's existing dotfiles/chezmoi/bazel ecosystem.
+This track aims to determine and implement a safe, deterministic installation strategy for `heretic` (https://github.com/p-e-w/heretic) within the project's existing dotfiles/chezmoi/uv ecosystem.
 
 ## Functional requirements
 - **Deterministic installation**: Implement a preferred installation order:
-    1. Bazel module dependencies (pre-built binary).
+    1. uv module dependencies (pre-built binary).
     2. `chezmoi` external (pre-built binary).
     3. `mise` install (pre-built binary).
 - **Environment gating**: The feature should be initially scoped to "Personal Only" environments, with clear mechanisms for enabling/disabling it.

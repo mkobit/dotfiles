@@ -1,10 +1,10 @@
 #!/bin/bash
-# Jules environment setup for Bazel dotfiles repository
+# Jules environment setup for dotfiles repository
 # Docs: https://jules.google/docs/environment/
 
 set -euo pipefail
 
-echo "Setting up Bazel dotfiles environment..."
+echo "Setting up dotfiles environment..."
 
 # Check and install tools first
 TOOLS="zsh tmux vim jq curl git"
@@ -30,14 +30,5 @@ fi
 echo "User: $(whoami)"
 echo "Git Commit: $(git rev-parse --short HEAD) ($(git log -1 --format=%cI))"
 
-# Install Bazelisk if missing
-if ! command -v bazel &> /dev/null; then
-    echo "Installing bazelisk..."
-    sudo curl -fsSL https://github.com/bazelbuild/bazelisk/releases/latest/download/bazelisk-linux-amd64 -o /usr/local/bin/bazel
-    sudo chmod +x /usr/local/bin/bazel
-fi
-
-# Verify Environment
-bazel --version
 
 echo "Environment ready"

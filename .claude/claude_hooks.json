@@ -1,8 +1,0 @@
-{
-  "hooks": {
-    "PreToolUse": {
-      "Edit": "bazel run //:format",
-      "MultiEdit": "bazel run //:format"
-    }
-  }
-}

@@ -15,14 +15,14 @@
 - [ ] Task: Conductor - User Manual Verification 'Configuration management' (Protocol in workflow.md)
 
 ## Phase 3: Installation strategy implementation
-- [ ] Task: Implement Bazel module dependency (Option 1)
-    - [ ] Explore `MODULE.bazel` for integrating `agency agents` with strict version and SHA.
-    - [ ] Define the Bazel target for `agency agents` if possible.
+- [ ] Task: Implement uv module dependency (Option 1)
+    - [ ] Explore `MODULE.uv` for integrating `agency agents` with strict version and SHA.
+    - [ ] Define the uv target for `agency agents` if possible.
 - [ ] Task: Implement `chezmoi` external (Option 2)
-    - [ ] Update `.chezmoiexternals/` to include `agency agents` download if Bazel integration is not feasible.
+    - [ ] Update `.chezmoiexternals/` to include `agency agents` download if uv integration is not feasible.
     - [ ] Ensure version and SHA verification are correctly specified in `.chezmoiexternals/`.
 - [ ] Task: Implement `mise` fallback (Option 3)
-    - [ ] Update `.chezmoidata/mise.toml` to include `agency agents` if both Bazel and `chezmoi` external are not suitable, ensuring version pinning.
+    - [ ] Update `.chezmoidata/mise.toml` to include `agency agents` if both uv and `chezmoi` external are not suitable, ensuring version pinning.
 - [ ] Task: Conductor - User Manual Verification 'Installation strategy implementation' (Protocol in workflow.md)
 
 ## Phase 4: Final validation and documentation

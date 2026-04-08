@@ -5,15 +5,15 @@
 - [ ] Task: Establish baseline CI runtime for full and incremental builds
 - [ ] Task: Conductor - User manual verification 'Phase 1: Research and baseline' (Protocol in workflow.md)
 
-## Phase 2: Bazel caching optimization
-- [ ] Task: Research and select optimal Bazel-GHA caching strategy (e.g., `actions/cache` for `~/.cache/bazel`)
-- [ ] Task: Implement caching for Bazel repository rules and external modules in `setup-bazel-common`
-- [ ] Task: Configure Bazel flags for optimal disk cache usage in CI (`--disk_cache`)
-- [ ] Task: Verify Bazel cache hits in CI logs
-- [ ] Task: Conductor - User manual verification 'Phase 2: Bazel caching optimization' (Protocol in workflow.md)
+## Phase 2: uv caching optimization
+- [ ] Task: Research and select optimal uv-GHA caching strategy (e.g., `actions/cache` for `~/.cache/uv`)
+- [ ] Task: Implement caching for uv repository rules and external modules in `setup-uv-common`
+- [ ] Task: Configure uv flags for optimal disk cache usage in CI (`--disk_cache`)
+- [ ] Task: Verify uv cache hits in CI logs
+- [ ] Task: Conductor - User manual verification 'Phase 2: uv caching optimization' (Protocol in workflow.md)
 
 ## Phase 3: Python dependency caching
-- [ ] Task: Identify storage locations for Bazel-managed Python dependencies
+- [ ] Task: Identify storage locations for uv-managed Python dependencies
 - [ ] Task: Implement caching for Python toolchains and libraries in CI
 - [ ] Task: Verify Python cache hits and reduced download times
 - [ ] Task: Conductor - User manual verification 'Phase 3: Python dependency caching' (Protocol in workflow.md)

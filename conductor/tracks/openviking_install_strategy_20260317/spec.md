@@ -1,11 +1,11 @@
 # Track specification: openviking_install_strategy_20260317
 
 ## Overview
-This track aims to determine and implement a safe, deterministic installation strategy for `openviking` (https://github.com/volcengine/OpenViking) within the project's existing dotfiles/chezmoi/bazel ecosystem.
+This track aims to determine and implement a safe, deterministic installation strategy for `openviking` (https://github.com/volcengine/OpenViking) within the project's existing dotfiles/chezmoi/uv ecosystem.
 
 ## Functional requirements
 - **Deterministic installation**: Implement a preferred installation order:
-    1. Bazel module dependencies (pre-built binary or source archive).
+    1. uv module dependencies (pre-built binary or source archive).
     2. `chezmoi` external (pre-built binary or source archive).
     3. `mise` install.
 - **Environment gating**: The feature should be initially scoped to "Personal Only" environments, with clear mechanisms for enabling/disabling it.

@@ -1,16 +1,16 @@
 # Decision: chezmoi-native AI skill deployment (2026-04-06)
 
-Supersedes: `docs/DESIGN-upstream-skills.md` § "What's next — Bazel-powered upstream skill assembly"
+Supersedes: `docs/DESIGN-upstream-skills.md` § "What's next — UV-powered upstream skill assembly"
 
 ## Context
 
-Over the past several months we built a Bazel-based pipeline for deploying upstream AI skills and extensions across Claude Code, Cursor, and Gemini CLI.
+Over the past several months we built a UV-based pipeline for deploying upstream AI skills and extensions across Claude Code, Cursor, and Gemini CLI.
 The pipeline grew to include:
 
 - Module extension repo rules (`extensions.bzl`) fetching and scanning upstream archives at build time
 - IR models (`SkillIR`, `AgentIR`) and transform scripts producing tool-specific Markdown
 - Packaging macros (`claude_skill_group`, `gemini_skill_group`, `cursor_skill_group`, `gemini_extension_group`, …) producing tagged tars
-- A tag taxonomy (`tool:*`, `claude:commands`, `gemini:extension`, …) and `bazel cquery` queries in chezmoi templates to discover deployable tars
+- A tag taxonomy (`tool:*`, `claude:commands`, `gemini:extension`, …) and `uv cquery` queries in chezmoi templates to discover deployable tars
 
 ## What we learned
 
@@ -21,7 +21,7 @@ This was not a one-off — every tool has install-time conventions that evolve i
 
 **Complexity outran the problem.**
 The actual need is: fetch pinned versions of upstream repos and place files in the right locations.
-Bazel is strong at hermetic fetching.
+UV is strong at hermetic fetching.
 It is not the right layer for "call the tool's install CLI with the right arguments."
 
 **The IR transform pipeline has genuine value — but not in dotfiles.**
@@ -30,8 +30,8 @@ It belongs in a dedicated project, informed by this work and gaps in tools like 
 
 ## Decision
 
-1. **Remove Bazel from the dotfiles repo entirely.**
-   `tools/agentskills/`, `tools/chezmoi/`, `tools/lint/`, `tools/python/`, and the `MODULE.bazel` build graph are deleted.
+1. **Remove UV from the dotfiles repo entirely.**
+   `tools/agentskills/`, `tools/chezmoi/`, `tools/lint/`, `tools/python/`, and the `MODULE.uv` build graph are deleted.
    The repo becomes chezmoi-only.
 
 2. **AI skills and extensions are managed via chezmoi primitives.**
@@ -60,4 +60,4 @@ run_onchange_gemini-extensions.py.tmpl      ← calls `gemini extension install`
 
 - The Gemini extension format research (deploy to `~/.gemini/extensions/<name>/`, `.gemini-extension-install.json` required).
 - The tag taxonomy design — useful documentation if the standalone IR project materialises.
-- The upstream repo + version pin inventory in `MODULE.bazel` — migrates to `.chezmoidata/`.
+- The upstream repo + version pin inventory in `MODULE.uv` — migrates to `.chezmoidata/`.
