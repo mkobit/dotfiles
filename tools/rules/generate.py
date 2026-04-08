@@ -8,7 +8,7 @@ Reads markdown files with YAML frontmatter and produces outputs for:
   - CLAUDE.md:    root file (body of root-flagged rules)
   - GEMINI.md:    root file (TOON index + body of root-flagged rules)
 
-Usage: bazel run //tools/rules:generate
+Usage: uv run tools/rules/generate.py
 """
 
 import os

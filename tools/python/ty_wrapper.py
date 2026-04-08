@@ -8,8 +8,8 @@ if __name__ == "__main__":
     try:
         bin_path = ty._find_ty.find_ty_bin()
     except ty._find_ty.TyNotFound:
-        # Avoid recursive glob which hangs in Bazel sandbox.
-        # Based on Bazel runfiles structure observed for rules_python:
+        # Avoid recursive glob which hangs in sandbox.
+        # Based on runfiles structure observed for rules_python:
         # ty file=.../ty.runfiles/.../site-packages/ty/__init__.py
         # Binary is at: .../ty.runfiles/rules_python++pip+pypi_314_ty/bin/ty
         base_dir = os.path.dirname(os.path.abspath(ty._find_ty.__file__))
@@ -39,7 +39,7 @@ if __name__ == "__main__":
     sys.stderr.flush()
 
     env = os.environ.copy()
-    # Restrict Ty to single thread to prevent CPU lockups/hanging under Bazel sandbox
+    # Restrict Ty to single thread to prevent CPU lockups/hanging under sandbox
     env["RAYON_NUM_THREADS"] = "1"
 
     try:
