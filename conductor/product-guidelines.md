@@ -16,5 +16,5 @@
 # Maintenance and quality standards
 - Maintain complete reproducibility across all supported environments (personal, work, remote).
 - Reduce code proliferation by agents by focusing on small, composable, and useful tools.
-- Focus on correctness in bazel and chezmoi by leveraging internal paradigms and validation rules.
-- Ensure all changes are validated by the bazel build and test pipeline before deployment.
+- Focus on correctness in chezmoi by leveraging internal paradigms and validation rules.
+- Ensure all changes are validated by the test pipeline before deployment.

@@ -18,11 +18,8 @@
 #
 # See the fzf wiki for more: https://github.com/junegunn/fzf/wiki
 
-# Check if we have our Bazel-managed fzf first, then fall back to system fzf
-if [ -x "$BUILD_WORKSPACE_DIRECTORY/bazel-bin/src/tools/fzf_install" ]; then
-    export PATH="$BUILD_WORKSPACE_DIRECTORY/bazel-bin/src/tools:$PATH"
-    FZF_BINARY="$BUILD_WORKSPACE_DIRECTORY/bazel-bin/src/tools/fzf_install"
-elif command -v fzf &> /dev/null; then
+# Check if we have fzf installed
+if command -v fzf &> /dev/null; then
     FZF_BINARY="fzf"
 else
     FZF_BINARY=""
@@ -43,7 +40,7 @@ if [ -n "$FZF_BINARY" ]; then
 
     # Configure Ctrl+T (file/directory finder)
     if [ -z "$FZF_CTRL_T_OPTS" ]; then
-        FZF_CTRL_T_OPTS="--walker-skip .git,node_modules,target,bazel-bin,bazel-out,bazel-testlogs"
+        FZF_CTRL_T_OPTS="--walker-skip .git,node_modules,target"
         FZF_CTRL_T_OPTS="$FZF_CTRL_T_OPTS --bind 'ctrl-/:change-preview-window(down|hidden|)'"
 
         # Add preview with bat if available, fallback to cat
@@ -58,7 +55,7 @@ if [ -n "$FZF_BINARY" ]; then
 
     # Configure Alt+C (directory navigation)
     if [ -z "$FZF_ALT_C_OPTS" ]; then
-        FZF_ALT_C_OPTS="--walker-skip .git,node_modules,target,bazel-bin,bazel-out,bazel-testlogs"
+        FZF_ALT_C_OPTS="--walker-skip .git,node_modules,target"
 
         # Add preview with tree if available, fallback to ls
         if command -v tree &> /dev/null; then

@@ -3,7 +3,7 @@
 - Shell (zsh, bash): Used for system-level configuration and script automation.
 
 # Build and deployment tools
-- Bazel: The build and test orchestration tool for all components.
+- UV: The build and test orchestration tool for all components.
 - Chezmoi: The primary tool for managing dotfiles and application configuration templates.
 
 # Python framework and libraries

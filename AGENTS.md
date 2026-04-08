@@ -3,7 +3,6 @@
 ## Repository structure
 
 - `src/` - Chezmoi templates and deployment configuration (the source of truth).
-- `tools/` - Bazel rules for validation, testing, and automation.
 - `config/` - Build configuration and profile management.
 - `.chezmoidata/` - Modular configuration data (TOML).
 

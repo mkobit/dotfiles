@@ -8,12 +8,12 @@ A highly modular, reproducible, and portable configuration management system tha
 - **Unified configuration**: Centralized management of dotfiles and application settings using chezmoi.
 - **Developer productivity**: Custom cli tools (jules) and ai-powered utilities (transcription, plugins) to streamline workflows.
 - **Environment flexibility**: Robust mechanisms to activate/deactivate components based on work-specific security and environment constraints.
-- **Complete reproducibility**: Bazel-managed builds and validation to ensure consistent state across all machines (personal, work laptop, remote dev instances).
+- **Complete reproducibility**: Automated validation to ensure consistent state across all machines (personal, work laptop, remote dev instances).
 
 # Core features
 - **Data-driven templates**: Extensive use of chezmoi templates and toml data for flexible configuration.
 - **Modular architecture**: Easy integration of new tools, ai skills, and machine-specific plugins.
-- **Automated validation**: Integrated linting (ruff, ty) and testing (pytest) via bazel.
+- **Automated validation**: Integrated linting (ruff, ty) and testing (pytest).
 - **Ai integration**: Built-in support for ai-powered tasks like audio transcription and agentic workflows.
 
 # Success criteria
