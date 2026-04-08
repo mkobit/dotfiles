@@ -1,3 +1,5 @@
+{{- $items := index .ai_plugins "items" -}}
+{{- if $items -}}
 #!/usr/bin/env bash
 {{/*
   Re-runs whenever plugins.toml changes (hash embedded below).
@@ -70,3 +72,4 @@ while IFS= read -r installed; do
 done <<< "$INSTALLED"
 
 log_success "Personal Claude plugin sync complete."
+{{- end -}}
