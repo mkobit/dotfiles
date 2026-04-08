@@ -1,0 +1,72 @@
+#!/usr/bin/env bash
+{{/*
+  Re-runs whenever plugins.toml changes (hash embedded below).
+  Reconciles installed @personal-plugins against the registry:
+    - Registers the local marketplace if not already known
+    - Installs plugins present in registry but not installed
+    - Uninstalls plugins installed from @personal-plugins but removed from registry
+  Never touches plugins from other marketplaces (e.g. @stripe-internal-marketplace).
+*/ -}}
+# registry hash: {{ include (joinPath .chezmoi.sourceDir "dot_local/share/ai/.chezmoidata/plugins.toml") | sha256sum }}
+
+set -euo pipefail
+
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
+
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+
+MARKETPLACE_DIR="{{ .chezmoi.destDir }}/.local/share/ai/marketplace"
+MARKETPLACE_NAME="personal-plugins"
+
+if ! command -v claude &> /dev/null; then
+    log_warn "claude not found in PATH — skipping personal plugin sync."
+    exit 0
+fi
+
+log_info "Syncing personal Claude plugins..."
+
+# --- 1. Register marketplace if not already known ---
+KNOWN=$(claude plugin marketplace list --json 2>/dev/null | jq -r '.[].name' 2>/dev/null || echo "")
+if echo "$KNOWN" | grep -qx "$MARKETPLACE_NAME"; then
+    log_info "Marketplace '${MARKETPLACE_NAME}' already registered."
+else
+    log_info "Registering marketplace '${MARKETPLACE_NAME}' from ${MARKETPLACE_DIR}..."
+    claude plugin marketplace add "$MARKETPLACE_DIR"
+fi
+
+# --- 2. Desired set (rendered from registry at chezmoi apply time) ---
+DESIRED=$(cat <<'DESIRED_PLUGINS'
+{{ range (index .ai_plugins "items") -}}
+{{ if eq .tool "claude" -}}
+{{ .name }}
+{{ end -}}
+{{ end -}}
+DESIRED_PLUGINS
+)
+
+# --- 3. Currently installed from @personal-plugins (user scope only) ---
+INSTALLED=$(claude plugin list --json 2>/dev/null \
+    | jq -r --arg mp "@${MARKETPLACE_NAME}" \
+        '.[] | select(.scope == "user") | select(.id | endswith($mp)) | .id | split("@")[0]' \
+    2>/dev/null || echo "")
+
+# --- 4. Install: in desired but not installed ---
+while IFS= read -r name; do
+    [[ -z "$name" ]] && continue
+    if ! echo "$INSTALLED" | grep -qx "$name"; then
+        log_info "Installing plugin: ${name}@${MARKETPLACE_NAME}"
+        claude plugin install "${name}@${MARKETPLACE_NAME}"
+    fi
+done <<< "$DESIRED"
+
+# --- 5. Uninstall: installed from @personal-plugins but no longer in desired ---
+while IFS= read -r installed; do
+    [[ -z "$installed" ]] && continue
+    if ! echo "$DESIRED" | grep -qx "$installed"; then
+        log_info "Uninstalling plugin: ${installed}@${MARKETPLACE_NAME}"
+        claude plugin uninstall "${installed}@${MARKETPLACE_NAME}"
+    fi
+done <<< "$INSTALLED"
+
+log_success "Personal Claude plugin sync complete."

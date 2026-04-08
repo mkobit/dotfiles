@@ -1,0 +1,9 @@
+{
+  "name": "personal-plugins",
+  "version": "0.1.0",
+  "description": "Personal curated 3P plugins, pinned to specific upstream commits",
+  "private": true,
+  "skills": {
+    "paths": ["plugins/*/skills/*"]
+  }
+}

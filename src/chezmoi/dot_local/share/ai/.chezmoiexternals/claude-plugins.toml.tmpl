@@ -1,0 +1,25 @@
+{{- /*
+  Generates chezmoi file externals for each Claude entry in plugins.toml.
+
+  Each plugin skill file is fetched from raw.githubusercontent.com at the
+  exact pinned commit and verified against the stored SHA-256. Adding,
+  updating, or removing entries from plugins.toml and running
+  chezmoi-personal diff / apply will fetch, update, or remove the
+  corresponding files.
+
+  Target layout in ~/.local/share/ai/marketplace/:
+    plugins/<name>/
+      skills/
+        <name>.md
+*/ -}}
+{{ range (index .ai_plugins "items") -}}
+{{ if eq .tool "claude" -}}
+{{ $target := printf ".local/share/ai/marketplace/plugins/%s/skills/%s.md" .name .name -}}
+["{{ $target }}"]
+  type = "file"
+  url  = "https://raw.githubusercontent.com/{{ .repo }}/{{ .commit }}/{{ .path }}"
+  ["{{ $target }}".checksum]
+    sha256 = "{{ .sha256 }}"
+
+{{ end -}}
+{{ end -}}
