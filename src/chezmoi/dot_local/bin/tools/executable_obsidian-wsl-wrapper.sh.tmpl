@@ -1,0 +1,23 @@
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Prefer direct WSL interop; fall back to locating via PowerShell when the
+# Windows PATH has not been refreshed in this session after Obsidian install.
+if command -v Obsidian.com &>/dev/null; then
+    obsidian_cmd="Obsidian.com"
+else
+    ps_exec=$(command -v pwsh.exe || command -v powershell.exe || echo "/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe")
+    win_path=$("$ps_exec" -NoProfile -Command "(Get-Command Obsidian.com -ErrorAction SilentlyContinue).Source" 2>/dev/null | tr -d '\r')
+    if [[ -z "$win_path" ]]; then
+        printf '\033[31m⚠️  Obsidian.com not found.\033[0m\n'                                                           >&2
+        printf '\033[31m   • Install Obsidian 1.12.7+: https://obsidian.md/help/cli#Windows\033[0m\n'                  >&2
+        printf '\033[31m   • Register the CLI in the Obsidian app: Settings → General → Register CLI\033[0m\n'         >&2
+        printf '\033[31m   • Restart your terminal after installation\033[0m\n'                                         >&2
+        exit 1
+    fi
+    obsidian_cmd=$(wslpath "$win_path")
+fi
+
+"$obsidian_cmd" "$@" | tr -d '\r'
+{{- end -}}
