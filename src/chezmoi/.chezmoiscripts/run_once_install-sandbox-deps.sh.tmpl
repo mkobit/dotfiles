@@ -1,6 +1,4 @@
-{{- if and (eq .chezmoi.os "linux") -}}
-{{- $sandboxDeps := get . "sandbox_deps" | default dict -}}
-{{- if ne (get $sandboxDeps "installation" | default "apt") "disabled" -}}
+{{- if and (eq .chezmoi.os "linux") (ne (.sandbox_deps.installation | default "apt") "disabled") -}}
 #!/usr/bin/env bash
 
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
@@ -18,5 +16,4 @@ else
     log_error "Failed to install bubblewrap and socat via apt"
     exit 1
 fi
-{{- end -}}
 {{- end -}}
