@@ -9,10 +9,8 @@ import tempfile
 import time
 from datetime import timedelta
 from pathlib import Path
-from typing import Optional, List, Dict, Any
 
 from pydantic import BaseModel, Field
-
 
 # --- Terminal Escape Sequences ---
 RESET = "\033[0m"
@@ -32,7 +30,7 @@ BG_DIM = "\033[100m"
 def has_nerd_fonts() -> bool:
     """Checks if we likely have nerd fonts available based on environment."""
     term = os.environ.get("TERM", "")
-    term_emu = os.environ.get("TERMINAL_EMULATOR", "")
+
     # Kitty, Wezterm, Ghostty usually have good font support
     if "kitty" in term or "wezterm" in term or "ghostty" in term:
         return True
@@ -76,27 +74,27 @@ class WorkspaceInfo(BaseModel):
 
 
 class ContextWindowInfo(BaseModel):
-    used_percentage: Optional[float] = 0.0
-    total_tokens: Optional[int] = 0
-    used_tokens: Optional[int] = 0
-    cache_creation_input_tokens: Optional[int] = 0
-    cache_read_input_tokens: Optional[int] = 0
+    used_percentage: float | None = 0.0
+    total_tokens: int | None = 0
+    used_tokens: int | None = 0
+    cache_creation_input_tokens: int | None = 0
+    cache_read_input_tokens: int | None = 0
 
 
 class CostInfo(BaseModel):
-    total_cost_usd: Optional[float] = 0.0
+    total_cost_usd: float | None = 0.0
 
 
 class AgentInfo(BaseModel):
-    name: Optional[str] = None
+    name: str | None = None
 
 
 class ClaudePayload(BaseModel):
     model: ModelInfo = Field(default_factory=ModelInfo)
     workspace: WorkspaceInfo = Field(default_factory=WorkspaceInfo)
     context_window: ContextWindowInfo = Field(default_factory=ContextWindowInfo)
-    session_name: Optional[str] = None
-    session_id: Optional[str] = None
+    session_name: str | None = None
+    session_id: str | None = None
     cost: CostInfo = Field(default_factory=CostInfo)
     agent: AgentInfo = Field(default_factory=AgentInfo)
 
@@ -104,7 +102,7 @@ class ClaudePayload(BaseModel):
 # --- Internal Data Models ---
 class GitInfo(BaseModel):
     branch: str
-    remote: Optional[str]
+    remote: str | None
     dirty: bool
     staged: bool
     untracked: bool
@@ -114,7 +112,7 @@ class GitInfo(BaseModel):
     is_worktree: bool = False
 
 
-def get_git_info(cwd: Path) -> Optional[GitInfo]:
+def get_git_info(cwd: Path) -> GitInfo | None:
     """Retrieves git information for the given directory with caching."""
     cwd_str = str(cwd.resolve())
     cache_key = hashlib.md5(cwd_str.encode()).hexdigest()
@@ -235,7 +233,7 @@ def get_git_info(cwd: Path) -> Optional[GitInfo]:
     return info
 
 
-def get_session_timer(session_id: Optional[str]) -> str:
+def get_session_timer(session_id: str | None) -> str:
     """Calculates and formats session duration based on session_id."""
     if not session_id:
         return ""
@@ -348,7 +346,7 @@ def format_directory(cwd: Path) -> str:
     return f"{BLUE}{ICON_DIR} {cwd_link}{RESET}"
 
 
-def format_git_full(info: Optional[GitInfo]) -> str:
+def format_git_full(info: GitInfo | None) -> str:
     if not info:
         return ""
 
@@ -399,7 +397,7 @@ def get_plugin_output() -> str:
 
 
 def justify_lines(left: str, right: str = "") -> str:
-    """Justifies text to fill the terminal width, removing ansi codes for length calculations."""
+    """Justifies text to fill terminal width, ignoring ansi length."""
     if not right:
         return left
 
