@@ -126,7 +126,7 @@ def get_git_info(cwd: Path) -> GitInfo | None:
                     data = json.load(f)
                     if isinstance(data, dict):
                         return GitInfo(**data)
-        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        except OSError, json.JSONDecodeError, TypeError, ValueError:
             pass
 
     try:
@@ -249,7 +249,7 @@ def get_session_timer(session_id: str | None) -> str:
         else:
             with timer_file.open("r") as f:
                 start_time = float(f.read().strip())
-    except (OSError, ValueError):
+    except OSError, ValueError:
         start_time = now
 
     elapsed_seconds = int(now - start_time)
@@ -391,7 +391,7 @@ def get_plugin_output() -> str:
                 cmd, shell=True, text=True, stderr=subprocess.DEVNULL, timeout=1.0
             )
             return output.strip()
-        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+        except subprocess.CalledProcessError, subprocess.TimeoutExpired:
             pass
     return ""
 
