@@ -1,4 +1,4 @@
-{{- if and (eq .chezmoi.os "linux") (ne (.sandbox_deps.installation | default "apt") "disabled") -}}
+{{- if and (eq .chezmoi.os "linux") (ne (dig "sandbox_deps" "installation" "apt" .) "disabled") -}}
 #!/usr/bin/env bash
 
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
