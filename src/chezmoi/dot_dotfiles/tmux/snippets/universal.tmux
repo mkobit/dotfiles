@@ -30,3 +30,8 @@ bind-key M-r source-file ${HOME}/.tmux.conf \; display-message "Reloaded ~/.tmux
 # Interactive session/window/pane switcher (alternative to C-j popup)
 # Docs: https://man.openbsd.org/tmux#choose-tree
 bind-key S choose-tree -Zs
+
+# Fix for Claude Code on WSL where Shift+Space outputs the literal word "space"
+# This binds Shift+Space to send a regular space character when extended keys are on
+# Docs: https://github.com/anthropics/claude-code/issues
+bind-key -n S-Space send-keys " "
