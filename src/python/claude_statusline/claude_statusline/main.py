@@ -1,13 +1,20 @@
 #!/usr/bin/env python3
 import hashlib
 import json
+import os
+import shutil
 import subprocess
 import sys
 import tempfile
 import time
-from dataclasses import asdict, dataclass
+from datetime import timedelta
 from pathlib import Path
+from typing import Optional, List, Dict, Any
 
+from pydantic import BaseModel, Field
+
+
+# --- Terminal Escape Sequences ---
 RESET = "\033[0m"
 BOLD = "\033[1m"
 DIM = "\033[2m"
@@ -18,49 +25,97 @@ BLUE = "\033[34m"
 MAGENTA = "\033[35m"
 CYAN = "\033[36m"
 WHITE = "\033[37m"
+BG_DIM = "\033[100m"
 
-ICON_BRANCH = "\uf418"  # 
-ICON_DIRTY = "\uf00d"  # 
-ICON_STAGED = "\uf067"  # 
-ICON_UNTRACKED = "\uf128"  # 
-ICON_CLEAN = "\uf00c"  # 
-ICON_REMOTE = "\uf0c2"  # 
-ICON_DIR = "\uf07c"  # 
+
+# --- Icons & Fallbacks ---
+def has_nerd_fonts() -> bool:
+    """Checks if we likely have nerd fonts available based on environment."""
+    term = os.environ.get("TERM", "")
+    term_emu = os.environ.get("TERMINAL_EMULATOR", "")
+    # Kitty, Wezterm, Ghostty usually have good font support
+    if "kitty" in term or "wezterm" in term or "ghostty" in term:
+        return True
+
+    # Otherwise fallback to basic unicode unless NERD_FONT is explicitly set
+    return os.environ.get("NERD_FONT", "0") == "1"
+
+
+USE_ICONS = has_nerd_fonts()
+
+ICON_BRANCH = "\uf418" if USE_ICONS else "⎇"
+ICON_DIRTY = "\uf00d" if USE_ICONS else "✗"
+ICON_STAGED = "\uf067" if USE_ICONS else "+"
+ICON_UNTRACKED = "\uf128" if USE_ICONS else "?"
+ICON_CLEAN = "\uf00c" if USE_ICONS else "✓"
+ICON_REMOTE = "\uf0c2" if USE_ICONS else "☁"
+ICON_DIR = "\uf07c" if USE_ICONS else "📂"
+ICON_TIMER = "\u23f2" if USE_ICONS else "⏱"
+ICON_COST = "\uf155" if USE_ICONS else "$"
+ICON_TOKENS = "\uf4a5" if USE_ICONS else "⚡"
+ICON_ROBOT = "\uf544" if USE_ICONS else "🤖"
+ICON_WORKTREE = "\uf1bb" if USE_ICONS else "🌳"
 
 BLOCK_FILLED = "\u2588"  # █
 BLOCK_EMPTY = "\u2591"  # ░
+DIVIDER_DOT = " • "
+DIVIDER_BAR = " │ "
 
 CACHE_DURATION = 30  # seconds
 
-# https://code.claude.com/docs/en/statusline
+# --- Pydantic Models for Claude Code JSON Payload ---
+# See: https://code.claude.com/docs/en/statusline
 
 
-@dataclass(frozen=True)
-class GitInfo:
+class ModelInfo(BaseModel):
+    display_name: str = "Unknown Model"
+
+
+class WorkspaceInfo(BaseModel):
+    current_dir: str = Field(default_factory=lambda: str(Path.cwd()))
+
+
+class ContextWindowInfo(BaseModel):
+    used_percentage: Optional[float] = 0.0
+    total_tokens: Optional[int] = 0
+    used_tokens: Optional[int] = 0
+    cache_creation_input_tokens: Optional[int] = 0
+    cache_read_input_tokens: Optional[int] = 0
+
+
+class CostInfo(BaseModel):
+    total_cost_usd: Optional[float] = 0.0
+
+
+class AgentInfo(BaseModel):
+    name: Optional[str] = None
+
+
+class ClaudePayload(BaseModel):
+    model: ModelInfo = Field(default_factory=ModelInfo)
+    workspace: WorkspaceInfo = Field(default_factory=WorkspaceInfo)
+    context_window: ContextWindowInfo = Field(default_factory=ContextWindowInfo)
+    session_name: Optional[str] = None
+    session_id: Optional[str] = None
+    cost: CostInfo = Field(default_factory=CostInfo)
+    agent: AgentInfo = Field(default_factory=AgentInfo)
+
+
+# --- Internal Data Models ---
+class GitInfo(BaseModel):
     branch: str
-    remote: str | None
+    remote: Optional[str]
     dirty: bool
     staged: bool
     untracked: bool
     ahead: int
     behind: int
     is_repo: bool
+    is_worktree: bool = False
 
 
-@dataclass(frozen=True)
-class StatusData:
-    model_name: str
-    agent_name: str | None
-    cwd: Path
-    context_used_pct: int | float | None
-    git: GitInfo | None
-    session_name: str | None
-    session_id: str | None
-    cost_usd: float | None
-
-
-def get_git_info(cwd: Path) -> GitInfo | None:
-    """Retrieves git information for the given directory."""
+def get_git_info(cwd: Path) -> Optional[GitInfo]:
+    """Retrieves git information for the given directory with caching."""
     cwd_str = str(cwd.resolve())
     cache_key = hashlib.md5(cwd_str.encode()).hexdigest()
     cache_file = Path(tempfile.gettempdir()) / f"claude_statusline_git_{cache_key}.json"
@@ -73,7 +128,7 @@ def get_git_info(cwd: Path) -> GitInfo | None:
                     data = json.load(f)
                     if isinstance(data, dict):
                         return GitInfo(**data)
-        except OSError, json.JSONDecodeError, TypeError:
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
             pass
 
     try:
@@ -93,6 +148,7 @@ def get_git_info(cwd: Path) -> GitInfo | None:
     ahead = 0
     behind = 0
     is_repo = True
+    is_worktree = False
 
     try:
         branch = subprocess.check_output(
@@ -101,6 +157,19 @@ def get_git_info(cwd: Path) -> GitInfo | None:
             text=True,
             stderr=subprocess.DEVNULL,
         ).strip()
+
+        # Check if we are in a git worktree
+        try:
+            git_dir = subprocess.check_output(
+                ["git", "rev-parse", "--absolute-git-dir"],
+                cwd=cwd,
+                text=True,
+                stderr=subprocess.DEVNULL,
+            ).strip()
+            if "/worktrees/" in git_dir:
+                is_worktree = True
+        except subprocess.CalledProcessError:
+            pass
 
         try:
             remote_url = subprocess.check_output(
@@ -154,21 +223,55 @@ def get_git_info(cwd: Path) -> GitInfo | None:
         ahead=ahead,
         behind=behind,
         is_repo=is_repo,
+        is_worktree=is_worktree,
     )
 
     try:
         with cache_file.open("w") as f:
-            json.dump(asdict(info), f)
+            json.dump(info.model_dump(), f)
     except OSError:
         pass
 
     return info
 
 
-def format_context_usage(used_pct: int | float | None) -> str:
-    """Formats the context usage with a block-based progress bar."""
-    if used_pct is None:
-        used_pct = 0.0
+def get_session_timer(session_id: Optional[str]) -> str:
+    """Calculates and formats session duration based on session_id."""
+    if not session_id:
+        return ""
+
+    timer_file = Path(tempfile.gettempdir()) / f"claude_session_timer_{session_id}.txt"
+    now = time.time()
+
+    try:
+        if not timer_file.exists():
+            with timer_file.open("w") as f:
+                f.write(str(now))
+            start_time = now
+        else:
+            with timer_file.open("r") as f:
+                start_time = float(f.read().strip())
+    except (OSError, ValueError):
+        start_time = now
+
+    elapsed_seconds = int(now - start_time)
+    td = timedelta(seconds=elapsed_seconds)
+
+    # Format: HH:MM:SS
+    hours, remainder = divmod(td.seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    if hours > 0:
+        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+    return f"{minutes:02d}:{seconds:02d}"
+
+
+# --- Formatting Helpers ---
+
+
+def format_context_usage(cw: ContextWindowInfo) -> str:
+    """Formats the context usage with a block-based progress bar and token stats."""
+    used_pct = cw.used_percentage or 0.0
 
     color = GREEN
     if used_pct >= 90:
@@ -180,29 +283,46 @@ def format_context_usage(used_pct: int | float | None) -> str:
     filled = min(int(width * (used_pct / 100)), width)
     visual_bar = (BLOCK_FILLED * filled) + (BLOCK_EMPTY * (width - filled))
 
-    return f"{DIM}ctx:{RESET} {color}{visual_bar}{RESET} {int(used_pct)}%"
+    # Add caching info if available
+    cache_info = ""
+    cached_tokens = (cw.cache_creation_input_tokens or 0) + (
+        cw.cache_read_input_tokens or 0
+    )
+    if cached_tokens > 0:
+        if cached_tokens > 1000000:
+            cache_info = f" {CYAN}({cached_tokens / 1000000:.1f}M cache){RESET}"
+        elif cached_tokens > 1000:
+            cache_info = f" {CYAN}({cached_tokens / 1000:.1f}k cache){RESET}"
+
+    return f"{DIM}ctx:{RESET} {color}{visual_bar}{RESET} {int(used_pct)}%{cache_info}"
 
 
-def format_model_info(data: StatusData) -> str:
+def format_model_info(payload: ClaudePayload) -> str:
     parts = [
-        f"{BLUE}{BOLD}{data.model_name}{RESET}",
-        f"{MAGENTA}@{data.agent_name}{RESET}" if data.agent_name else None,
+        f"{ICON_ROBOT} {BLUE}{BOLD}{payload.model.display_name}{RESET}",
+        f"{MAGENTA}@{payload.agent.name}{RESET}" if payload.agent.name else None,
     ]
     return " ".join(filter(None, parts))
 
 
-def format_session_info(data: StatusData) -> str:
-    if data.session_name:
-        return f"{CYAN}#{data.session_name}{RESET}"
-    if data.session_id:
-        return f"{DIM}#{data.session_id[:8]}{RESET}"
-    return ""
+def format_session_info(payload: ClaudePayload) -> str:
+    parts = []
+    if payload.session_name:
+        parts.append(f"{CYAN}#{payload.session_name}{RESET}")
+    elif payload.session_id:
+        parts.append(f"{DIM}#{payload.session_id[:8]}{RESET}")
+
+    timer = get_session_timer(payload.session_id)
+    if timer:
+        parts.append(f"{YELLOW}{ICON_TIMER} {timer}{RESET}")
+
+    return DIVIDER_BAR.join(parts)
 
 
-def format_cost(data: StatusData) -> str:
-    if data.cost_usd is None:
+def format_cost(payload: ClaudePayload) -> str:
+    if not payload.cost.total_cost_usd:
         return ""
-    return f"{GREEN}${data.cost_usd:.2f}{RESET}"
+    return f"{GREEN}{ICON_COST}{payload.cost.total_cost_usd:.2f}{RESET}"
 
 
 def shorten_path(path: Path) -> str:
@@ -222,17 +342,18 @@ def shorten_path(path: Path) -> str:
         return str(path)
 
 
-def format_directory(data: StatusData) -> str:
-    display_path = shorten_path(data.cwd)
-    cwd_link = f"\033]8;;file://{data.cwd}\033\\{display_path}\033]8;;\033\\"
+def format_directory(cwd: Path) -> str:
+    display_path = shorten_path(cwd)
+    cwd_link = f"\033]8;;file://{cwd}\033\\{display_path}\033]8;;\033\\"
     return f"{BLUE}{ICON_DIR} {cwd_link}{RESET}"
 
 
-def format_git_full(info: GitInfo | None) -> str:
+def format_git_full(info: Optional[GitInfo]) -> str:
     if not info:
         return ""
 
-    parts = [f"{MAGENTA}{ICON_BRANCH} {info.branch}{RESET}"]
+    branch_icon = ICON_WORKTREE if info.is_worktree else ICON_BRANCH
+    parts = [f"{MAGENTA}{branch_icon} {info.branch}{RESET}"]
 
     status_parts = []
     if info.dirty:
@@ -258,6 +379,48 @@ def format_git_full(info: GitInfo | None) -> str:
     return " ".join(parts)
 
 
+def get_plugin_output() -> str:
+    """Executes an optional user-defined custom command or script."""
+    cmd = os.environ.get("CLAUDE_STATUS_PLUGIN_CMD")
+    if not cmd:
+        plugin_file = Path.cwd() / ".claude_status_plugin"
+        if plugin_file.exists() and os.access(plugin_file, os.X_OK):
+            cmd = str(plugin_file.resolve())
+
+    if cmd:
+        try:
+            output = subprocess.check_output(
+                cmd, shell=True, text=True, stderr=subprocess.DEVNULL, timeout=1.0
+            )
+            return output.strip()
+        except (subprocess.CalledProcessError, subprocess.TimeoutExpired):
+            pass
+    return ""
+
+
+def justify_lines(left: str, right: str = "") -> str:
+    """Justifies text to fill the terminal width, removing ansi codes for length calculations."""
+    if not right:
+        return left
+
+    term_width = shutil.get_terminal_size().columns
+
+    # Simple ansi code remover for length calculation
+    import re
+
+    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
+    left_len = len(ansi_escape.sub("", left))
+    right_len = len(ansi_escape.sub("", right))
+
+    padding_len = term_width - left_len - right_len
+    if padding_len > 0:
+        return f"{left}{' ' * padding_len}{right}"
+
+    # If it overflows, just return them separated by a space
+    return f"{left} {right}"
+
+
 def main() -> None:
     try:
         if not sys.stdin.isatty():
@@ -267,39 +430,35 @@ def main() -> None:
     except json.JSONDecodeError:
         raw_data = {}
 
-    cwd_str = raw_data.get("workspace", {}).get("current_dir") or str(Path.cwd())
-    cwd = Path(cwd_str).resolve()
+    try:
+        payload = ClaudePayload(**raw_data)
+    except Exception:
+        # Fallback if parsing completely fails, though defaults should catch most
+        payload = ClaudePayload()
 
-    context = raw_data.get("context_window", {})
-    used_pct = context.get("used_percentage")
+    cwd = Path(payload.workspace.current_dir).resolve()
+    git_info = get_git_info(cwd)
 
-    cost = raw_data.get("cost", {})
-    cost_usd = cost.get("total_cost_usd")
-
-    status_data = StatusData(
-        model_name=raw_data.get("model", {}).get("display_name", "Unknown Model"),
-        agent_name=raw_data.get("agent", {}).get("name"),
-        cwd=cwd,
-        context_used_pct=used_pct,
-        git=get_git_info(cwd),
-        session_name=raw_data.get("session_name"),
-        session_id=raw_data.get("session_id"),
-        cost_usd=cost_usd,
+    # --- Line 1: AI Session & Cost ---
+    line1_left = (
+        f"{format_model_info(payload)} {DIVIDER_BAR} {format_session_info(payload)}"
     )
-
-    line1_parts = [
-        format_model_info(status_data),
-        format_context_usage(status_data.context_used_pct),
-        format_session_info(status_data),
-        format_cost(status_data),
+    line1_right_parts = [
+        format_context_usage(payload.context_window),
+        format_cost(payload),
     ]
-    print(" ".join(filter(None, line1_parts)))
+    line1_right = f" {DIVIDER_BAR} ".join(filter(None, line1_right_parts))
+    print(justify_lines(line1_left, line1_right))
 
-    line2_parts = [
-        format_directory(status_data),
-        format_git_full(status_data.git),
-    ]
-    print(" ".join(filter(None, line2_parts)))
+    # --- Line 2: Environment & Git ---
+    line2_left_parts = [format_directory(cwd), format_git_full(git_info)]
+    line2_left = f" {DIVIDER_DOT} ".join(filter(None, line2_left_parts))
+    print(justify_lines(line2_left))
+
+    # --- Line 3: Plugin / Custom ---
+    plugin_output = get_plugin_output()
+    if plugin_output:
+        print(justify_lines(f"{DIM}{plugin_output}{RESET}"))
 
 
 if __name__ == "__main__":
