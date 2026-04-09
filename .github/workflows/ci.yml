@@ -21,6 +21,7 @@ concurrency:
 env:
   DEBIAN_FRONTEND: noninteractive
   UV_CACHE_DIR: /tmp/.uv-cache
+  MISE_CACHE_DIR: /tmp/.mise-cache
 
 defaults:
   run:
@@ -100,6 +101,16 @@ jobs:
             chezmoi-cache-v4-${{ runner.os }}-main-
             chezmoi-cache-v4-${{ runner.os }}-
 
+      - name: Cache mise downloads
+        uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
+        with:
+          path: ${{ env.MISE_CACHE_DIR }}
+          key: mise-cache-v1-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/mise.toml') }}
+          restore-keys: |
+            mise-cache-v1-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
+            mise-cache-v1-${{ runner.os }}-main-
+            mise-cache-v1-${{ runner.os }}-
+
       - name: Install chezmoi
         run: |
           sh -c "$(curl -fsLS get.chezmoi.io)" -- -b ~/.local/bin -t v2.70.0
@@ -118,6 +129,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
         run: chezmoi apply --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
+
+      - name: Prune mise cache
+        run: |
+          MISE_BIN=$(chezmoi --source=${{ github.workspace }} --destination=/tmp/chezmoi-test target-path ${{ github.workspace }}/src/chezmoi/dot_local/bin)/mise
+          "$MISE_BIN" cache prune --yes
 
   summary:
     if: always()
