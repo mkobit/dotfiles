@@ -10,19 +10,17 @@ set -euo pipefail
 CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
 source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 
-# Ensure mise is in PATH (assuming standard install location)
-export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+MISE="{{ .chezmoi.destDir }}/.local/bin/mise"
 
 log_info "Ensuring mise global tools are installed..."
 
-if ! command -v mise &> /dev/null; then
-    log_warn "mise command not found in PATH. Skipping global tool installation."
+if [[ ! -x "$MISE" ]]; then
+    log_warn "mise not found at $MISE. Skipping global tool installation."
     exit 0
 fi
 
-# Run mise install to ensure all tools defined in global config are installed
 log_info "Running 'mise install' for global tools..."
-if mise install; then
+if "$MISE" install; then
     log_success "Mise global tools installation complete."
 else
     log_error "Failed to install mise global tools."
