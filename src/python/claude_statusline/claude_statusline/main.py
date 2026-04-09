@@ -6,7 +6,6 @@ import subprocess
 import sys
 import tempfile
 import time
-from datetime import timedelta
 from pathlib import Path
 
 from pydantic import BaseModel, Field
@@ -46,9 +45,9 @@ ICON_STAGED = "\uf067" if USE_ICONS else "+"
 ICON_UNTRACKED = "\uf128" if USE_ICONS else "?"
 ICON_CLEAN = "\uf00c" if USE_ICONS else "✓"
 ICON_REMOTE = "\uf0c2" if USE_ICONS else "☁"
-ICON_DIR = "\uf07c" if USE_ICONS else "📂"
+ICON_DIR = "🪣" if USE_ICONS else "🪣"
 ICON_TIMER = "\u23f2" if USE_ICONS else "⏱"
-ICON_COST = "\uf155" if USE_ICONS else "$"
+ICON_COST = "💳" if USE_ICONS else "💳"
 ICON_TOKENS = "\uf4a5" if USE_ICONS else "⚡"
 ICON_ROBOT = "\uf544" if USE_ICONS else "🤖"
 ICON_WORKTREE = "\uf1bb" if USE_ICONS else "🌳"
@@ -70,6 +69,7 @@ class ModelInfo(BaseModel):
 
 class WorkspaceInfo(BaseModel):
     current_dir: str = Field(default_factory=lambda: str(Path.cwd()))
+    git_worktree: str | None = None
 
 
 class ContextWindowInfo(BaseModel):
@@ -82,6 +82,7 @@ class ContextWindowInfo(BaseModel):
 
 class CostInfo(BaseModel):
     total_cost_usd: float | None = 0.0
+    total_duration_ms: int | None = 0
 
 
 class AgentInfo(BaseModel):
@@ -111,10 +112,10 @@ class GitInfo(BaseModel):
     is_worktree: bool = False
 
 
-def get_git_info(cwd: Path) -> GitInfo | None:
+def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
     """Retrieves git information for the given directory with caching."""
     cwd_str = str(cwd.resolve())
-    cache_key = hashlib.md5(cwd_str.encode()).hexdigest()
+    cache_key = session_id if session_id else hashlib.md5(cwd_str.encode()).hexdigest()
     cache_file = Path(tempfile.gettempdir()) / f"claude_statusline_git_{cache_key}.json"
 
     if cache_file.exists():
@@ -128,14 +129,17 @@ def get_git_info(cwd: Path) -> GitInfo | None:
         except OSError, json.JSONDecodeError, TypeError, ValueError:
             pass
 
+
     try:
-        subprocess.check_output(
+        is_inside = subprocess.check_output(
             ["git", "rev-parse", "--is-inside-work-tree"],
             cwd=cwd,
             stderr=subprocess.DEVNULL,
-        )
+        ).strip()
+        is_repo = is_inside == b"true"
     except subprocess.CalledProcessError:
         return None
+
 
     branch = "HEAD"
     remote = None
@@ -144,7 +148,6 @@ def get_git_info(cwd: Path) -> GitInfo | None:
     untracked = False
     ahead = 0
     behind = 0
-    is_repo = True
     is_worktree = False
 
     try:
@@ -155,18 +158,6 @@ def get_git_info(cwd: Path) -> GitInfo | None:
             stderr=subprocess.DEVNULL,
         ).strip()
 
-        # Check if we are in a git worktree
-        try:
-            git_dir = subprocess.check_output(
-                ["git", "rev-parse", "--absolute-git-dir"],
-                cwd=cwd,
-                text=True,
-                stderr=subprocess.DEVNULL,
-            ).strip()
-            if "/worktrees/" in git_dir:
-                is_worktree = True
-        except subprocess.CalledProcessError:
-            pass
 
         try:
             remote_url = subprocess.check_output(
@@ -225,45 +216,14 @@ def get_git_info(cwd: Path) -> GitInfo | None:
 
     try:
         with cache_file.open("w") as f:
-            json.dump(info.model_dump(), f)
+            json.dump(info.model_dump(), f, indent=2)
     except OSError:
         pass
 
     return info
 
 
-def get_session_timer(session_id: str | None) -> str:
-    """Calculates and formats session duration based on session_id."""
-    if not session_id:
-        return ""
 
-    timer_file = Path(tempfile.gettempdir()) / f"claude_session_timer_{session_id}.txt"
-    now = time.time()
-
-    try:
-        if not timer_file.exists():
-            with timer_file.open("w") as f:
-                f.write(str(now))
-            start_time = now
-        else:
-            with timer_file.open("r") as f:
-                start_time = float(f.read().strip())
-    except OSError, ValueError:
-        start_time = now
-
-    elapsed_seconds = int(now - start_time)
-    td = timedelta(seconds=elapsed_seconds)
-
-    # Format: HH:MM:SS
-    hours, remainder = divmod(td.seconds, 3600)
-    minutes, seconds = divmod(remainder, 60)
-
-    if hours > 0:
-        return f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-    return f"{minutes:02d}:{seconds:02d}"
-
-
-# --- Formatting Helpers ---
 
 
 def format_context_usage(cw: ContextWindowInfo) -> str:
@@ -309,8 +269,16 @@ def format_session_info(payload: ClaudePayload) -> str:
     elif payload.session_id:
         parts.append(f"{DIM}#{payload.session_id[:8]}{RESET}")
 
-    timer = get_session_timer(payload.session_id)
-    if timer:
+    if payload.cost.total_duration_ms:
+        elapsed_seconds = payload.cost.total_duration_ms // 1000
+        hours, remainder = divmod(elapsed_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+
+        if hours > 0:
+            timer = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+        else:
+            timer = f"{minutes:02d}:{seconds:02d}"
+
         parts.append(f"{YELLOW}{ICON_TIMER} {timer}{RESET}")
 
     return DIVIDER_BAR.join(parts)
@@ -392,7 +360,9 @@ def main() -> None:
         payload = ClaudePayload()
 
     cwd = Path(payload.workspace.current_dir).resolve()
-    git_info = get_git_info(cwd)
+    git_info = get_git_info(cwd, payload.session_id)
+    if git_info and payload.workspace.git_worktree:
+        git_info.is_worktree = True
 
     # --- Line 1: AI Session & Cost ---
     line1_left = (
