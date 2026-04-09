@@ -131,7 +131,9 @@ jobs:
         run: chezmoi apply --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
 
       - name: Prune mise cache
-        run: /tmp/chezmoi-test/.local/bin/mise cache prune --yes
+        run: |
+          MISE_BIN=$(chezmoi --source=${{ github.workspace }} --destination=/tmp/chezmoi-test target-path ${{ github.workspace }}/src/chezmoi/dot_local/bin)/mise
+          "$MISE_BIN" cache prune --yes
 
   summary:
     if: always()
