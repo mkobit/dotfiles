@@ -206,6 +206,11 @@ wheels = [
 name = "dotfiles"
 version = "0.0.0"
 source = { virtual = "." }
+dependencies = [
+    { name = "claude-statusline" },
+    { name = "jules-cli" },
+    { name = "transcribe" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -216,6 +221,11 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [
+    { name = "claude-statusline", editable = "src/python/claude_statusline" },
+    { name = "jules-cli", editable = "src/python/jules_cli" },
+    { name = "transcribe", editable = "src/python/transcribe" },
+]
 
 [package.metadata.requires-dev]
 dev = [

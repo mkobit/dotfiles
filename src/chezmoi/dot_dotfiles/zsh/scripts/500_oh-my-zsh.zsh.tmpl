@@ -1,5 +1,5 @@
 {{ with (index .zsh "oh-my-zsh") }}
-{{ if eq .installation "external-sources" }}
+{{ if and .enabled (eq .installation "external-sources") }}
 #!/usr/bin/env zsh
 
 {{ if .powerlevel10k.enabled }}
@@ -38,18 +38,5 @@ else
     echo -e "\033[1;33m⚠️  oh-my-zsh.sh not found at $ZSH/oh-my-zsh.sh\033[0m"
 fi
 
-# =============================================================================
-# POST-LOAD OPTIMIZATIONS
-# =============================================================================
-# Override oh-my-zsh defaults that don't work well with tmux
-unsetopt CORRECT_ALL               # Only correct commands, not arguments
-setopt CORRECT                     # Enable command correction
-
-# CRITICAL: Set vi mode AFTER oh-my-zsh loads (oh-my-zsh resets to emacs mode)
-bindkey -v                         # Enable vi mode (must be after oh-my-zsh)
-export KEYTIMEOUT=1                # Fast ESC timeout for vi mode
-
-# Enable bash completion compatibility
-autoload -U +X bashcompinit && bashcompinit
 {{- end }}
 {{- end }}

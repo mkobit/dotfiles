@@ -1,0 +1,10 @@
+[starship]
+installation = "external-sources"
+version = "1.24.2"
+
+[starship.checksums]
+type = "sha256"
+linux_amd64 = "3f12f61883ff324c1dbe7b885fa125d5490960e5cad6a12eeaa34695ec1b5744"
+linux_arm64 = "56b9ff412bbf374d29b99e5ac09a849124cb37a0a13121e8470df32de53c1ea6"
+darwin_arm64 = "d3a0da21374962625a2ee992110979bc1fa33424d7b6aea58a70405e26544fd9"
+darwin_amd64 = "237beb10cc970c4361536e9f9f434dfed755f8282c5cd951b6a7e3fcbda8e779"
