@@ -2,7 +2,6 @@
 import hashlib
 import json
 import os
-import shutil
 import subprocess
 import sys
 import tempfile
@@ -377,48 +376,6 @@ def format_git_full(info: GitInfo | None) -> str:
     return " ".join(parts)
 
 
-def get_plugin_output() -> str:
-    """Executes an optional user-defined custom command or script."""
-    cmd = os.environ.get("CLAUDE_STATUS_PLUGIN_CMD")
-    if not cmd:
-        plugin_file = Path.cwd() / ".claude_status_plugin"
-        if plugin_file.exists() and os.access(plugin_file, os.X_OK):
-            cmd = str(plugin_file.resolve())
-
-    if cmd:
-        try:
-            output = subprocess.check_output(
-                cmd, shell=True, text=True, stderr=subprocess.DEVNULL, timeout=1.0
-            )
-            return output.strip()
-        except subprocess.CalledProcessError, subprocess.TimeoutExpired:
-            pass
-    return ""
-
-
-def justify_lines(left: str, right: str = "") -> str:
-    """Justifies text to fill terminal width, ignoring ansi length."""
-    if not right:
-        return left
-
-    term_width = shutil.get_terminal_size().columns
-
-    # Simple ansi code remover for length calculation
-    import re
-
-    ansi_escape = re.compile(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
-
-    left_len = len(ansi_escape.sub("", left))
-    right_len = len(ansi_escape.sub("", right))
-
-    padding_len = term_width - left_len - right_len
-    if padding_len > 0:
-        return f"{left}{' ' * padding_len}{right}"
-
-    # If it overflows, just return them separated by a space
-    return f"{left} {right}"
-
-
 def main() -> None:
     try:
         if not sys.stdin.isatty():
@@ -446,17 +403,12 @@ def main() -> None:
         format_cost(payload),
     ]
     line1_right = f" {DIVIDER_BAR} ".join(filter(None, line1_right_parts))
-    print(justify_lines(line1_left, line1_right))
+    print(f"{line1_left} {line1_right}")
 
     # --- Line 2: Environment & Git ---
     line2_left_parts = [format_directory(cwd), format_git_full(git_info)]
     line2_left = f" {DIVIDER_DOT} ".join(filter(None, line2_left_parts))
-    print(justify_lines(line2_left))
-
-    # --- Line 3: Plugin / Custom ---
-    plugin_output = get_plugin_output()
-    if plugin_output:
-        print(justify_lines(f"{DIM}{plugin_output}{RESET}"))
+    print(line2_left)
 
 
 if __name__ == "__main__":
