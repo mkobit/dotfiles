@@ -1,5 +1,10 @@
 {{ if eq .ghostty.installation "package-manager" }}#!/bin/bash
 
+if [[ -n "${CI:-}" ]]; then
+    echo "Running in CI environment, skipping ghostty installation."
+    exit 0
+fi
+
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
 # Check if ghostty is already installed
