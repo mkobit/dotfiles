@@ -25,20 +25,20 @@ def format_context_usage(cw: ContextWindowInfo) -> Segment | None:
         color = YELLOW
 
     width = 10
-    blocks = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"]
+    blocks = [" ", " ", "▂", "▃", "▄", "▅", "▆", "▇", "█"]
 
     total_eighths = int((used_pct / 100.0) * width * 8)
     full_blocks = total_eighths // 8
     remainder = total_eighths % 8
 
-    visual_bar = ""
-    for i in range(width):
-        if i < full_blocks:
-            visual_bar += blocks[8]
-        elif i == full_blocks:
-            visual_bar += blocks[remainder]
-        else:
-            visual_bar += blocks[0]
+    visual_bar = "".join(
+        blocks[8]
+        if i < full_blocks
+        else blocks[remainder]
+        if i == full_blocks
+        else blocks[0]
+        for i in range(width)
+    )
 
     return Segment(f"{DIM}ctx:{RESET} {color}{visual_bar}{RESET} {int(used_pct)}%")
 
