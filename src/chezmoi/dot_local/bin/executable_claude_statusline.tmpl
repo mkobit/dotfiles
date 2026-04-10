@@ -1,4 +1,4 @@
 {{- if eq .local_bin_tools.claude_statusline.installation "uv" -}}
 #!/usr/bin/env bash
-exec mise exec -- uv run --project {{ .chezmoi.workingTree }}/src/python/claude_statusline -m claude_statusline.main "$@"
+exec mise exec -- uv run --locked --project {{ .chezmoi.workingTree }}/src/python/claude_statusline -m claude_statusline.main "$@"
 {{- end -}}
