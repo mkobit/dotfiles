@@ -1,6 +1,10 @@
 {{- if eq .claude_code.installation "external-script" }}#!/bin/bash
 set -euo pipefail
 
+if [[ -n "${CI:-}" ]]; then
+    exit 0
+fi
+
 # Install Claude Code using official installer
 # See: https://docs.claude.com/en/docs/claude-code/setup#native-binary-installation-beta
 
