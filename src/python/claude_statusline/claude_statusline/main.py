@@ -111,7 +111,7 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
                     data = json.load(f)
                     if isinstance(data, dict):
                         return GitInfo(**data)
-        except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        except OSError, json.JSONDecodeError, TypeError, ValueError:
             pass
 
     if not _check_is_repo(cwd):
