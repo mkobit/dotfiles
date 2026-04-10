@@ -17,6 +17,12 @@
   path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/column.gitconfig
   path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/aliases.gitconfig
 
+# Conditionally apply pruning only for GitHub remotes
+[includeIf "hasconfig:remote.*.url:https://github.com/**"]
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/prune.gitconfig
+[includeIf "hasconfig:remote.*.url:git@github.com:*/**"]
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/prune.gitconfig
+
 # Personal configuration
 {{- if .git.personal.enabled }}
   path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/personal.gitconfig

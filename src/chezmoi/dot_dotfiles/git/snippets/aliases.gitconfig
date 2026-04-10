@@ -3,7 +3,6 @@
 	aliases = ! git var -l | grep --color=never -e '^alias' | sed -E 's/^alias.//g'
 	amend = commit --amend
 	delete-merged-branches = "!git checkout master && git branch --merged master | sed -E 's/^\\\\*//;s/\\\\s*//' | grep -v 'master' | xargs --no-run-if-empty --max-args 1 git branch -d"
-	prune-gone = "!git fetch -p && git for-each-ref --format '%(refname:short) %(upstream:track)' refs/heads | awk '$2 == \"[gone]\" {print $1}' | xargs --no-run-if-empty git branch -d"
 	diff-staged = diff --cached
 	graph-all = log --color --date-order --graph --oneline --decorate --simplify-by-decoration --all
 	please = push --force-with-lease
