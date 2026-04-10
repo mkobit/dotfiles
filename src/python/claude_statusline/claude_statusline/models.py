@@ -26,13 +26,20 @@ class CostInfo(BaseModel):
     total_lines_removed: int | None = 0
 
 
+class CurrentUsageInfo(BaseModel):
+    input_tokens: int | None = 0
+    output_tokens: int | None = 0
+    cache_creation_input_tokens: int | None = 0
+    cache_read_input_tokens: int | None = 0
+
+
 class ContextWindowInfo(BaseModel):
     total_input_tokens: int | None = 0
     total_output_tokens: int | None = 0
     context_window_size: int | None = 0
     used_percentage: float | None = 0.0
     remaining_percentage: float | None = 0.0
-    current_usage: int | None = 0
+    current_usage: CurrentUsageInfo | None = Field(default_factory=CurrentUsageInfo)
 
 
 class Exceeds200kTokens(BaseModel):

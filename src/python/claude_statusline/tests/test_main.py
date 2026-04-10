@@ -177,6 +177,96 @@ class TestStatusLine(unittest.TestCase):
             self.assertIn("0.42", line3)
             self.assertIn("50%", line3)
 
+    @patch("builtins.print")
+    @patch("sys.stdin", new_callable=io.StringIO)
+    def test_main_full_payload(
+        self, mock_stdin: MagicMock, mock_print: MagicMock
+    ) -> None:
+        input_data = {
+            "cwd": "/current/working/directory",
+            "session_id": "abc12345",
+            "session_name": "my-session",
+            "transcript_path": "/path/to/transcript.jsonl",
+            "model": {"id": "claude-opus-4-6", "display_name": "Opus"},
+            "workspace": {
+                "current_dir": "/current/working/directory",
+                "project_dir": "/original/project/directory",
+                "added_dirs": [],
+                "git_worktree": "feature-xyz",
+            },
+            "version": "2.1.90",
+            "output_style": {"name": "default"},
+            "cost": {
+                "total_cost_usd": 0.01234,
+                "total_duration_ms": 45000,
+                "total_api_duration_ms": 2300,
+                "total_lines_added": 156,
+                "total_lines_removed": 23,
+            },
+            "context_window": {
+                "total_input_tokens": 15234,
+                "total_output_tokens": 4521,
+                "context_window_size": 200000,
+                "used_percentage": 8,
+                "remaining_percentage": 92,
+                "current_usage": {
+                    "input_tokens": 8500,
+                    "output_tokens": 1200,
+                    "cache_creation_input_tokens": 5000,
+                    "cache_read_input_tokens": 2000,
+                },
+            },
+            "exceeds_200k_tokens": False,
+            "rate_limits": {
+                "five_hour": {"used_percentage": 23.5, "resets_at": 1738425600},
+                "seven_day": {"used_percentage": 41.2, "resets_at": 1738857600},
+            },
+            "vim": {"mode": "NORMAL"},
+            "agent": {"name": "security-reviewer"},
+            "worktree": {
+                "name": "my-feature",
+                "path": "/path/to/.claude/worktrees/my-feature",
+                "branch": "worktree-my-feature",
+                "original_cwd": "/path/to/project",
+                "original_branch": "main",
+            },
+        }
+        mock_stdin.write(json.dumps(input_data))
+        mock_stdin.seek(0)
+
+        with patch.object(main_module, "get_git_info") as mock_get_git_info:
+            mock_get_git_info.return_value = GitInfo(
+                branch="feature-branch",
+                dirty=True,
+                staged=False,
+                untracked=False,
+                ahead=0,
+                behind=0,
+                remote=None,
+                is_repo=True,
+                is_worktree=True,
+            )
+
+            with patch("shutil.get_terminal_size") as mock_term:
+                import os
+
+                mock_term.return_value = os.terminal_size((80, 24))
+                main_module.main()
+
+            self.assertEqual(mock_print.call_count, 3)
+
+            line1 = mock_print.call_args_list[0][0][0]
+            self.assertIn("Opus", line1)
+            self.assertIn("security-reviewer", line1)
+
+            line2 = mock_print.call_args_list[1][0][0]
+            self.assertIn("my-session", line2)
+
+            line3 = mock_print.call_args_list[2][0][0]
+            self.assertIn("feature-branch", line3)
+            self.assertIn("0.01", line3)
+            self.assertIn("8%", line3)
+
     def test_shorten_path(self) -> None:
         home = Path("/home/user")
 
