@@ -15,21 +15,25 @@ class TestStatusLine(unittest.TestCase):
         cw_low = ContextWindowInfo(used_percentage=10.0)
         res_low = segments_module.format_context_usage(cw_low)
         self.assertIsNotNone(res_low)
+        assert res_low is not None
         self.assertIn(segments_module.GREEN, res_low.text)
 
         cw_med = ContextWindowInfo(used_percentage=55.0)
         res_med = segments_module.format_context_usage(cw_med)
         self.assertIsNotNone(res_med)
+        assert res_med is not None
         self.assertIn(segments_module.YELLOW, res_med.text)
 
         cw_high = ContextWindowInfo(used_percentage=95.0)
         res_high = segments_module.format_context_usage(cw_high)
         self.assertIsNotNone(res_high)
+        assert res_high is not None
         self.assertIn(segments_module.RED, res_high.text)
 
         cw_none = ContextWindowInfo(used_percentage=None)
         res_none = segments_module.format_context_usage(cw_none)
         self.assertIsNotNone(res_none)
+        assert res_none is not None
         self.assertIn("0%", res_none.text)
         self.assertIn(segments_module.GREEN, res_none.text)
 
@@ -49,6 +53,7 @@ class TestStatusLine(unittest.TestCase):
         info = GitInfo(**base_kwargs)
         res = segments_module.format_git_full(info)
         self.assertIsNotNone(res)
+        assert res is not None
         self.assertIn("main", res.text)
         self.assertIn(segments_module.ICON_CLEAN, res.text)
         self.assertIn(segments_module.ICON_REMOTE, res.text)
@@ -57,6 +62,7 @@ class TestStatusLine(unittest.TestCase):
         info = GitInfo(**base_kwargs)
         res = segments_module.format_git_full(info)
         self.assertIsNotNone(res)
+        assert res is not None
         self.assertIn(segments_module.ICON_DIRTY, res.text)
 
         base_kwargs["dirty"] = False
@@ -64,6 +70,7 @@ class TestStatusLine(unittest.TestCase):
         info = GitInfo(**base_kwargs)
         res = segments_module.format_git_full(info)
         self.assertIsNotNone(res)
+        assert res is not None
         self.assertIn(segments_module.ICON_STAGED, res.text)
 
         base_kwargs["staged"] = False
@@ -71,6 +78,7 @@ class TestStatusLine(unittest.TestCase):
         info = GitInfo(**base_kwargs)
         res = segments_module.format_git_full(info)
         self.assertIsNotNone(res)
+        assert res is not None
         self.assertIn(segments_module.ICON_UNTRACKED, res.text)
 
         base_kwargs["untracked"] = False
@@ -79,6 +87,7 @@ class TestStatusLine(unittest.TestCase):
         info = GitInfo(**base_kwargs)
         res = segments_module.format_git_full(info)
         self.assertIsNotNone(res)
+        assert res is not None
         self.assertIn("↑2", res.text)
         self.assertIn("↓1", res.text)
 
@@ -101,7 +110,6 @@ class TestStatusLine(unittest.TestCase):
         mock_check_output.side_effect = side_effect
 
         with patch.object(Path, "exists", return_value=False):
-            # mock _check_is_repo to return True to avoid check_output issues.
             with patch("claude_statusline.main._check_is_repo", return_value=True):
                 info = main_module.get_git_info(Path("/tmp/repo"), None)
 
