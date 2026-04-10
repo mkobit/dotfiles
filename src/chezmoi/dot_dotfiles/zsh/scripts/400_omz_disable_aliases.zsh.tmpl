@@ -1,4 +1,4 @@
-{{- if (index .zsh "oh-my-zsh").enabled -}}
+{{- if eq .zsh.prompt "oh-my-zsh" -}}
 {{- with .eza -}}
 {{- $installation := index .installation $.chezmoi.os -}}
 {{- if and $installation (ne $installation "disabled") -}}
