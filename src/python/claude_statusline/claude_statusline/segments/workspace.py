@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from claude_statusline.segments.constants import BLUE, ICON_DIR, RESET, Segment
+from claude_statusline.segments.constants import BLUE, RESET, Segment, get_icon
 
 
 def shorten_path(path: Path) -> str:
@@ -23,4 +23,4 @@ def shorten_path(path: Path) -> str:
 def format_directory(cwd: Path) -> Segment | None:
     display_path = shorten_path(cwd)
     cwd_link = f"\033]8;;file://{cwd}\033\\{display_path}\033]8;;\033\\"
-    return Segment(f"{BLUE}{ICON_DIR} {cwd_link}{RESET}")
+    return Segment(f"{BLUE}{get_icon('dir')} {cwd_link}{RESET}")

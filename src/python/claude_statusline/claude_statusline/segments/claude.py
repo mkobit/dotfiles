@@ -7,14 +7,12 @@ from claude_statusline.segments.constants import (
     CYAN,
     DIM,
     GREEN,
-    ICON_COST,
-    ICON_ROBOT,
-    ICON_TIMER,
     MAGENTA,
     RED,
     RESET,
     YELLOW,
     Segment,
+    get_icon,
 )
 
 
@@ -37,7 +35,7 @@ def format_context_usage(cw: ContextWindowInfo) -> Segment | None:
 
 def format_model_info(payload: StatusLineStdIn) -> Segment | None:
     parts = [
-        f"{ICON_ROBOT} {BLUE}{BOLD}{payload.model.display_name}{RESET}",
+        f"{get_icon('robot')} {BLUE}{BOLD}{payload.model.display_name}{RESET}",
         f"{MAGENTA}@{payload.agent.name}{RESET}" if payload.agent.name else None,
     ]
     return Segment(" ".join(filter(None, parts)))
@@ -60,7 +58,7 @@ def format_session_info(payload: StatusLineStdIn) -> Segment | None:
         else:
             timer = f"{minutes:02d}:{seconds:02d}"
 
-        parts.append(f"{YELLOW}{ICON_TIMER} {timer}{RESET}")
+        parts.append(f"{YELLOW}{get_icon('timer')} {timer}{RESET}")
 
     if not parts:
         return None
@@ -70,4 +68,4 @@ def format_session_info(payload: StatusLineStdIn) -> Segment | None:
 def format_cost(payload: StatusLineStdIn) -> Segment | None:
     if not payload.cost.total_cost_usd:
         return None
-    return Segment(f"{GREEN}{ICON_COST}{payload.cost.total_cost_usd:.2f}{RESET}")
+    return Segment(f"{GREEN}{get_icon('cost')}{payload.cost.total_cost_usd:.2f}{RESET}")

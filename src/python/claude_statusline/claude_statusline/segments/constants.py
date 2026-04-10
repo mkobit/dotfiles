@@ -1,4 +1,7 @@
+import functools
+import os
 from dataclasses import dataclass
+from typing import Literal
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
@@ -15,19 +18,52 @@ MAGENTA = "\033[35m"
 CYAN = "\033[36m"
 WHITE = "\033[37m"
 
-USE_ICONS = True
-ICON_DIR = "\uf115" if USE_ICONS else "📁"
-ICON_BRANCH = "\ue0a0" if USE_ICONS else ""
-ICON_REMOTE = "\uf0c1" if USE_ICONS else "🔗"
-ICON_DIRTY = "\uf06a" if USE_ICONS else "!"
-ICON_CLEAN = "\uf00c" if USE_ICONS else "✓"
-ICON_STAGED = "\uf067" if USE_ICONS else "+"
-ICON_UNTRACKED = "\uf128" if USE_ICONS else "?"
-ICON_TIMER = "\uf017" if USE_ICONS else "⏱"
-ICON_COST = "💳" if USE_ICONS else "💳"
-ICON_TOKENS = "\uf4a5" if USE_ICONS else "⚡"
-ICON_ROBOT = "\uf544" if USE_ICONS else "🤖"
-ICON_WORKTREE = "\uf1bb" if USE_ICONS else "🌳"
+
+@functools.cache
+def use_icons() -> bool:
+    """Returns True if the terminal supports icons, checking environment."""
+    if os.environ.get("CLAUDE_STATUSLINE_NO_ICONS", "0") == "1":
+        return False
+    return True
+
+
+IconKey = Literal[
+    "dir",
+    "branch",
+    "remote",
+    "dirty",
+    "clean",
+    "staged",
+    "untracked",
+    "timer",
+    "cost",
+    "tokens",
+    "robot",
+    "worktree",
+]
+
+ICONS: dict[IconKey, tuple[str, str]] = {
+    # key: (nerdfont, emoji)
+    "dir": ("\uf115", "📁"),
+    "branch": ("\ue0a0", "🪾"),
+    "remote": ("\uf0c1", "🔗"),
+    "dirty": ("\uf06a", "!"),
+    "clean": ("\uf00c", "✓"),
+    "staged": ("\uf067", "+"),
+    "untracked": ("\uf128", "?"),
+    "timer": ("\uf017", "⏱"),
+    "cost": ("💳", "💳"),
+    "tokens": ("\uf4a5", "⚡"),
+    "robot": ("\uf544", "🤖"),
+    "worktree": ("\uf1bb", "🌳"),
+}
+
+
+def get_icon(key: IconKey) -> str:
+    """Returns the nerd font icon or emoji fallback based on environment."""
+    nerd_font, fallback = ICONS[key]
+    return nerd_font if use_icons() else fallback
+
 
 BLOCK_FILLED = "\u2588"  # █
 BLOCK_EMPTY = "\u2591"  # ░

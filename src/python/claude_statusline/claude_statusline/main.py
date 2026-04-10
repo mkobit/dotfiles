@@ -5,11 +5,28 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import NamedTuple
 
 from claude_statusline.models import GitInfo, StatusLineStdIn
 from claude_statusline.render import render_lines
 
 CACHE_DURATION = 30  # seconds
+
+
+class BranchRemoteInfo(NamedTuple):
+    branch: str
+    remote: str | None
+
+
+class GitStatusInfo(NamedTuple):
+    dirty: bool
+    staged: bool
+    untracked: bool
+
+
+class AheadBehindInfo(NamedTuple):
+    ahead: int
+    behind: int
 
 
 def _check_is_repo(cwd: Path) -> bool:
@@ -24,7 +41,7 @@ def _check_is_repo(cwd: Path) -> bool:
     return False
 
 
-def _get_branch_and_remote(cwd: Path) -> tuple[str, str | None]:
+def _get_branch_and_remote(cwd: Path) -> BranchRemoteInfo:
     branch = "HEAD"
     remote = None
 
@@ -51,10 +68,10 @@ def _get_branch_and_remote(cwd: Path) -> tuple[str, str | None]:
             remote_url = remote_url[:-4]
         remote = remote_url
 
-    return branch, remote
+    return BranchRemoteInfo(branch=branch, remote=remote)
 
 
-def _get_status(cwd: Path) -> tuple[bool, bool, bool]:
+def _get_status(cwd: Path) -> GitStatusInfo:
     dirty = False
     staged = False
     untracked = False
@@ -72,10 +89,10 @@ def _get_status(cwd: Path) -> tuple[bool, bool, bool]:
         dirty = any(line[1] != " " and not line.startswith("??") for line in lines)
         untracked = any(line.startswith("??") for line in lines)
 
-    return dirty, staged, untracked
+    return GitStatusInfo(dirty=dirty, staged=staged, untracked=untracked)
 
 
-def _get_ahead_behind(cwd: Path) -> tuple[int, int]:
+def _get_ahead_behind(cwd: Path) -> AheadBehindInfo:
     ahead = 0
     behind = 0
 
@@ -94,7 +111,7 @@ def _get_ahead_behind(cwd: Path) -> tuple[int, int]:
         except ValueError:
             pass
 
-    return ahead, behind
+    return AheadBehindInfo(ahead=ahead, behind=behind)
 
 
 def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
@@ -117,18 +134,18 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
     if not _check_is_repo(cwd):
         return None
 
-    branch, remote = _get_branch_and_remote(cwd)
-    dirty, staged, untracked = _get_status(cwd)
-    ahead, behind = _get_ahead_behind(cwd)
+    branch_info = _get_branch_and_remote(cwd)
+    status_info = _get_status(cwd)
+    ahead_behind_info = _get_ahead_behind(cwd)
 
     info = GitInfo(
-        branch=branch,
-        remote=remote,
-        dirty=dirty,
-        staged=staged,
-        untracked=untracked,
-        ahead=ahead,
-        behind=behind,
+        branch=branch_info.branch,
+        remote=branch_info.remote,
+        dirty=status_info.dirty,
+        staged=status_info.staged,
+        untracked=status_info.untracked,
+        ahead=ahead_behind_info.ahead,
+        behind=ahead_behind_info.behind,
         is_repo=True,
         is_worktree=False,
     )

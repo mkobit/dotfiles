@@ -10,13 +10,9 @@ from claude_statusline.models import ContextWindowInfo, GitInfo
 from claude_statusline.segments.claude import format_context_usage
 from claude_statusline.segments.constants import (
     GREEN,
-    ICON_CLEAN,
-    ICON_DIRTY,
-    ICON_REMOTE,
-    ICON_STAGED,
-    ICON_UNTRACKED,
     RED,
     YELLOW,
+    get_icon,
 )
 from claude_statusline.segments.git import format_git_full
 from claude_statusline.segments.workspace import shorten_path
@@ -67,15 +63,15 @@ class TestStatusLine(unittest.TestCase):
         self.assertIsNotNone(res)
         assert res is not None
         self.assertIn("main", res.text)
-        self.assertIn(ICON_CLEAN, res.text)
-        self.assertIn(ICON_REMOTE, res.text)
+        self.assertIn(get_icon("clean"), res.text)
+        self.assertIn(get_icon("remote"), res.text)
 
         base_kwargs["dirty"] = True
         info = GitInfo(**base_kwargs)
         res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(ICON_DIRTY, res.text)
+        self.assertIn(get_icon("dirty"), res.text)
 
         base_kwargs["dirty"] = False
         base_kwargs["staged"] = True
@@ -83,7 +79,7 @@ class TestStatusLine(unittest.TestCase):
         res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(ICON_STAGED, res.text)
+        self.assertIn(get_icon("staged"), res.text)
 
         base_kwargs["staged"] = False
         base_kwargs["untracked"] = True
@@ -91,7 +87,7 @@ class TestStatusLine(unittest.TestCase):
         res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(ICON_UNTRACKED, res.text)
+        self.assertIn(get_icon("untracked"), res.text)
 
         base_kwargs["untracked"] = False
         base_kwargs["ahead"] = 2
