@@ -1,4 +1,4 @@
 {{- if eq .local_bin_tools.jules.installation "uv" -}}
 #!/usr/bin/env bash
-exec mise exec -- uv run --project {{ .chezmoi.workingTree }}/src/python/jules_cli -m jules_cli.main "$@"
+exec mise exec -- uv run --locked --project {{ .chezmoi.workingTree }}/src/python/jules_cli -m jules_cli.main "$@"
 {{- end -}}

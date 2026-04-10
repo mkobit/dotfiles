@@ -10,12 +10,25 @@ import claude_statusline.main as statusline
 
 class TestStatusLine(unittest.TestCase):
     def test_format_context_usage(self) -> None:
-        self.assertIn(statusline.GREEN, statusline.format_context_usage(10))
-        self.assertIn(statusline.YELLOW, statusline.format_context_usage(55))
-        self.assertIn(statusline.RED, statusline.format_context_usage(95))
-        output_none = statusline.format_context_usage(None)
+        cw_low = statusline.ContextWindowInfo(used_percentage=10.0)
+        self.assertIn(statusline.GREEN, statusline.format_context_usage(cw_low))
+
+        cw_med = statusline.ContextWindowInfo(used_percentage=55.0)
+        self.assertIn(statusline.YELLOW, statusline.format_context_usage(cw_med))
+
+        cw_high = statusline.ContextWindowInfo(used_percentage=95.0)
+        self.assertIn(statusline.RED, statusline.format_context_usage(cw_high))
+
+        cw_none = statusline.ContextWindowInfo(used_percentage=None)
+        output_none = statusline.format_context_usage(cw_none)
         self.assertIn("0%", output_none)
         self.assertIn(statusline.GREEN, output_none)
+
+        cw_cache = statusline.ContextWindowInfo(
+            used_percentage=10.0, cache_read_input_tokens=25000
+        )
+        output_cache = statusline.format_context_usage(cw_cache)
+        self.assertIn("25.0k cache", output_cache)
 
     def test_format_git_full(self) -> None:
         base_kwargs: dict[str, Any] = {
@@ -27,72 +40,36 @@ class TestStatusLine(unittest.TestCase):
             "ahead": 0,
             "behind": 0,
             "is_repo": True,
+            "is_worktree": False,
         }
 
-        info = statusline.GitInfo(
-            branch=str(base_kwargs["branch"]),
-            remote=str(base_kwargs["remote"]),
-            dirty=bool(base_kwargs["dirty"]),
-            staged=bool(base_kwargs["staged"]),
-            untracked=bool(base_kwargs["untracked"]),
-            ahead=int(base_kwargs["ahead"]),
-            behind=int(base_kwargs["behind"]),
-            is_repo=bool(base_kwargs["is_repo"]),
-        )
+        info = statusline.GitInfo(**base_kwargs)
         output = statusline.format_git_full(info)
         self.assertIn("main", output)
         self.assertIn(statusline.ICON_CLEAN, output)
         self.assertIn(statusline.ICON_REMOTE, output)
 
-        info = statusline.GitInfo(
-            branch=str(base_kwargs["branch"]),
-            remote=str(base_kwargs["remote"]),
-            dirty=True,
-            staged=bool(base_kwargs["staged"]),
-            untracked=bool(base_kwargs["untracked"]),
-            ahead=int(base_kwargs["ahead"]),
-            behind=int(base_kwargs["behind"]),
-            is_repo=bool(base_kwargs["is_repo"]),
-        )
+        base_kwargs["dirty"] = True
+        info = statusline.GitInfo(**base_kwargs)
         output = statusline.format_git_full(info)
         self.assertIn(statusline.ICON_DIRTY, output)
 
-        info = statusline.GitInfo(
-            branch=str(base_kwargs["branch"]),
-            remote=str(base_kwargs["remote"]),
-            dirty=bool(base_kwargs["dirty"]),
-            staged=True,
-            untracked=bool(base_kwargs["untracked"]),
-            ahead=int(base_kwargs["ahead"]),
-            behind=int(base_kwargs["behind"]),
-            is_repo=bool(base_kwargs["is_repo"]),
-        )
+        base_kwargs["dirty"] = False
+        base_kwargs["staged"] = True
+        info = statusline.GitInfo(**base_kwargs)
         output = statusline.format_git_full(info)
         self.assertIn(statusline.ICON_STAGED, output)
 
-        info = statusline.GitInfo(
-            branch=str(base_kwargs["branch"]),
-            remote=str(base_kwargs["remote"]),
-            dirty=bool(base_kwargs["dirty"]),
-            staged=bool(base_kwargs["staged"]),
-            untracked=True,
-            ahead=int(base_kwargs["ahead"]),
-            behind=int(base_kwargs["behind"]),
-            is_repo=bool(base_kwargs["is_repo"]),
-        )
+        base_kwargs["staged"] = False
+        base_kwargs["untracked"] = True
+        info = statusline.GitInfo(**base_kwargs)
         output = statusline.format_git_full(info)
         self.assertIn(statusline.ICON_UNTRACKED, output)
 
-        info = statusline.GitInfo(
-            branch=str(base_kwargs["branch"]),
-            remote=str(base_kwargs["remote"]),
-            dirty=bool(base_kwargs["dirty"]),
-            staged=bool(base_kwargs["staged"]),
-            untracked=bool(base_kwargs["untracked"]),
-            ahead=2,
-            behind=1,
-            is_repo=bool(base_kwargs["is_repo"]),
-        )
+        base_kwargs["untracked"] = False
+        base_kwargs["ahead"] = 2
+        base_kwargs["behind"] = 1
+        info = statusline.GitInfo(**base_kwargs)
         output = statusline.format_git_full(info)
         self.assertIn("↑2", output)
         self.assertIn("↓1", output)
@@ -105,6 +82,8 @@ class TestStatusLine(unittest.TestCase):
                 return b"true"
             if "rev-parse" in cmd_list and "HEAD" in cmd_list:
                 return "feature-branch\n"
+            if "absolute-git-dir" in cmd_list:
+                return "/path/to/.git\n"
             if "ls-remote" in cmd_list:
                 return "git@github.com:user/repo.git\n"
             if "status" in cmd_list:
@@ -116,7 +95,7 @@ class TestStatusLine(unittest.TestCase):
         mock_check_output.side_effect = side_effect
 
         with patch.object(Path, "exists", return_value=False):
-            info = statusline.get_git_info(Path("/tmp/repo"))
+            info = statusline.get_git_info(Path("/tmp/repo"), None)
 
         self.assertIsNotNone(info)
         assert info is not None
@@ -125,6 +104,7 @@ class TestStatusLine(unittest.TestCase):
         self.assertTrue(info.dirty)
         self.assertEqual(info.ahead, 1)
         self.assertEqual(info.behind, 0)
+        self.assertFalse(info.is_worktree)
 
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
@@ -132,7 +112,7 @@ class TestStatusLine(unittest.TestCase):
         input_data = {
             "model": {"display_name": "Claude 3"},
             "workspace": {"current_dir": "/tmp/test"},
-            "context_window": {"used_percentage": 50},
+            "context_window": {"used_percentage": 50.0},
             "session_name": "MySession",
             "cost": {"total_cost_usd": 0.42},
         }
@@ -149,9 +129,14 @@ class TestStatusLine(unittest.TestCase):
                 behind=0,
                 remote=None,
                 is_repo=True,
+                is_worktree=False,
             )
 
-            statusline.main()
+            with patch("shutil.get_terminal_size") as mock_term:
+                import os
+
+                mock_term.return_value = os.terminal_size((80, 24))
+                statusline.main()
 
             self.assertEqual(mock_print.call_count, 2)
 
@@ -159,7 +144,7 @@ class TestStatusLine(unittest.TestCase):
             self.assertIn("Claude 3", line1)
             self.assertIn("50%", line1)
             self.assertIn("#MySession", line1)
-            self.assertIn("$0.42", line1)
+            self.assertIn("0.42", line1)
 
             line2 = mock_print.call_args_list[1][0][0]
             self.assertIn("main", line2)
