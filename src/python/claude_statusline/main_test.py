@@ -95,7 +95,7 @@ class TestStatusLine(unittest.TestCase):
         mock_check_output.side_effect = side_effect
 
         with patch.object(Path, "exists", return_value=False):
-            info = statusline.get_git_info(Path("/tmp/repo"))
+            info = statusline.get_git_info(Path("/tmp/repo"), None)
 
         self.assertIsNotNone(info)
         assert info is not None

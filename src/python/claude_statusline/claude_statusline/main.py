@@ -129,7 +129,6 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
         except OSError, json.JSONDecodeError, TypeError, ValueError:
             pass
 
-
     try:
         is_inside = subprocess.check_output(
             ["git", "rev-parse", "--is-inside-work-tree"],
@@ -139,7 +138,6 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
         is_repo = is_inside == b"true"
     except subprocess.CalledProcessError:
         return None
-
 
     branch = "HEAD"
     remote = None
@@ -157,7 +155,6 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
             text=True,
             stderr=subprocess.DEVNULL,
         ).strip()
-
 
         try:
             remote_url = subprocess.check_output(
@@ -221,9 +218,6 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
         pass
 
     return info
-
-
-
 
 
 def format_context_usage(cw: ContextWindowInfo) -> str:
