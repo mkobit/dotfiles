@@ -135,6 +135,15 @@ jobs:
           MISE_BIN=$(chezmoi --source=${{ github.workspace }} --destination=/tmp/chezmoi-test target-path ${{ github.workspace }}/src/chezmoi/dot_local/bin)/mise
           "$MISE_BIN" cache prune --yes
 
+      - name: Install python dependencies for integration tests
+        run: uv sync --all-packages --frozen
+
+      - name: Run system integration tests
+        env:
+          HOME: /tmp/chezmoi-test
+        run: uv run pytest tests/integration
+
+
   summary:
     if: always()
     needs: [lint, test, integration]
