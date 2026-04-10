@@ -7,7 +7,8 @@ from unittest.mock import MagicMock, patch
 
 import claude_statusline.main as main_module
 import claude_statusline.segments as segments_module
-from claude_statusline.models import ContextWindowInfo, GitInfo, StatusLineStdIn
+from claude_statusline.models import ContextWindowInfo, GitInfo
+
 
 class TestStatusLine(unittest.TestCase):
     def test_format_context_usage(self) -> None:
@@ -86,21 +87,21 @@ class TestStatusLine(unittest.TestCase):
         def side_effect(cmd: Any, **kwargs: Any) -> Any:
             cmd_list = cmd if isinstance(cmd, list) else cmd.split()
             if "is-inside-work-tree" in cmd_list:
-                return b"true\n" # must be bytes
+                return b"true\n"
             if "rev-parse" in cmd_list and "HEAD" in cmd_list:
-                return "feature-branch\n" # must be string
+                return "feature-branch\n"
             if "ls-remote" in cmd_list:
-                return "git@github.com:user/repo.git\n" # must be string
+                return "git@github.com:user/repo.git\n"
             if "status" in cmd_list:
-                return " M modified_file.py\n?? untracked.py\n" # must be string
+                return " M modified_file.py\n?? untracked.py\n"
             if "rev-list" in cmd_list:
-                return "1\t0\n" # must be string
-            return b""  # fallback
+                return "1\t0\n"
+            return b""
 
         mock_check_output.side_effect = side_effect
 
         with patch.object(Path, "exists", return_value=False):
-            # mock _check_is_repo to return True to avoid check_output bytes vs string issues.
+            # mock _check_is_repo to return True to avoid check_output issues.
             with patch("claude_statusline.main._check_is_repo", return_value=True):
                 info = main_module.get_git_info(Path("/tmp/repo"), None)
 
