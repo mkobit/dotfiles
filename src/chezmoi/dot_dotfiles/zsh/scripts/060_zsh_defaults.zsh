@@ -1,16 +1,9 @@
 #!/usr/bin/env zsh
 
-# =============================================================================
-# GENERAL ZSH OPTIMIZATIONS AND SETTINGS
-# =============================================================================
+unsetopt CORRECT_ALL
+setopt CORRECT
 
-# Command correction
-unsetopt CORRECT_ALL               # Only correct commands, not arguments
-setopt CORRECT                     # Enable command correction
+bindkey -v
+export KEYTIMEOUT=1
 
-# Vi mode bindings
-bindkey -v                         # Enable vi mode
-export KEYTIMEOUT=1                # Fast ESC timeout for vi mode
-
-# Enable bash completion compatibility
 autoload -U +X bashcompinit && bashcompinit

@@ -25,3 +25,8 @@ install-asdf.sh
 # Superseded by upstream skill-creator (deployed via chezmoi externals)
 .claude/skills/claude-extension-builder
 .claude/commands/claude/new/skill.md
+
+# Remove Oh-My-Zsh installation and custom configuration files when it is disabled
+{{ if not (index .zsh "oh-my-zsh").enabled }}
+.dotfiles/external/oh-my-zsh
+{{ end }}
