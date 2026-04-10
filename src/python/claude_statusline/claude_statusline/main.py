@@ -13,15 +13,15 @@ CACHE_DURATION = 30  # seconds
 
 
 def _check_is_repo(cwd: Path) -> bool:
-    try:
-        is_inside = subprocess.check_output(
-            ["git", "rev-parse", "--is-inside-work-tree"],
-            cwd=cwd,
-            stderr=subprocess.DEVNULL,
-        ).strip()
-        return is_inside == b"true"
-    except subprocess.CalledProcessError:
-        return False
+    res = subprocess.run(
+        ["git", "rev-parse", "--is-inside-work-tree"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+    if res.returncode == 0:
+        return res.stdout.strip() == "true"
+    return False
 
 
 def _get_branch_and_remote(cwd: Path) -> tuple[str, str | None]:
@@ -111,7 +111,7 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
                     data = json.load(f)
                     if isinstance(data, dict):
                         return GitInfo(**data)
-        except OSError, json.JSONDecodeError, TypeError, ValueError:
+        except (OSError, json.JSONDecodeError, TypeError, ValueError):
             pass
 
     if not _check_is_repo(cwd):
