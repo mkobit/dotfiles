@@ -1,5 +1,2 @@
 [fetch]
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-fetchprune
-	prune = true
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-fetchpruneTags
-	pruneTags = true
+	# Intentionally left empty as prune settings are now conditionally included
