@@ -1,57 +1,15 @@
 #!/usr/bin/env python3
-import sys
-import json
-import re
-
+import sys, json, re
 def main():
-    content = sys.stdin.read()
-
-    # Use actual escape character \u001b (ESC) and \r (CR)
-    # json.dumps will format this properly into "\\u001b\\r" for JSON
-    payload = {
-        "key": "shift+enter",
-        "command": "workbench.action.terminal.sendSequence",
-        "args": {
-            "text": "\u001b\r"
-        },
-        "when": "terminalFocus"
-    }
-
-    if not content.strip():
-        print(json.dumps([payload], indent=4))
-        return
-
+    s = sys.stdin.read().strip()
+    p = {"key":"shift+enter","command":"workbench.action.terminal.sendSequence","args":{"text":"\u001b\r"},"when":"terminalFocus"}
+    if not s: print(json.dumps([p], indent=4)); return
     try:
-        # Strip block comments
-        clean_content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
-        # Strip inline comments (this is rudimentary but usually works for basic VS Code jsonc)
-        clean_content = re.sub(r'(?<![:"\'\\])//.*', '', clean_content)
-        # Strip trailing commas
-        clean_content = re.sub(r',\s*([\]}])', r'\1', clean_content)
-
-        data = json.loads(clean_content)
-
-        if isinstance(data, list):
-            # Check if keybinding exists
-            if not any(item.get("key") == "shift+enter" for item in data):
-                data.append(payload)
-                print(json.dumps(data, indent=4))
-                return
-            else:
-                # Print parsed data to format it nicely
-                print(json.dumps(data, indent=4))
-                return
-        else:
-            # If valid JSON but not a list, return original string to prevent data loss
-            print(content, end="")
-            return
-
-    except Exception as e:
-        # Fallback to appending if parsing fails to avoid losing existing data
-        # We print to stderr for debugging but return original content to chezmoi
-        print(f"// Parse Error: {e}", file=sys.stderr)
-        print(content, end="")
-        return
-
-if __name__ == "__main__":
-    main()
+        c = re.sub(r'/\*.*?\*/', '', s, flags=re.DOTALL)
+        c = re.sub(r'(?<![:"\'\\])//.*', '', c)
+        c = re.sub(r',\s*([\]}])', r'\1', c)
+        d = json.loads(c)
+        if isinstance(d, list) and not any(i.get("key") == "shift+enter" for i in d): d.append(p)
+        print(json.dumps(d, indent=4))
+    except Exception: print(s)
+if __name__ == "__main__": main()
