@@ -16,13 +16,11 @@ from claude_statusline.segments import (
 def render_lines(payload: StatusLineStdIn, git_info: GitInfo | None) -> list[str]:
     """Renders the statusline as a list of strings, up to 3 lines."""
 
-    # Decide the actual working directory
     cwd_str = payload.workspace.current_dir
     if not cwd_str and payload.cwd:
         cwd_str = payload.cwd
     cwd = Path(cwd_str).resolve() if cwd_str else Path.cwd()
 
-    # Create segments
     model_seg = format_model_info(payload)
     session_seg = format_session_info(payload)
     dir_seg = format_directory(cwd)
@@ -30,21 +28,12 @@ def render_lines(payload: StatusLineStdIn, git_info: GitInfo | None) -> list[str
     context_seg = format_context_usage(payload.context_window)
     cost_seg = format_cost(payload)
 
-    lines = []
+    line1 = DIVIDER_BAR.join(s.text for s in filter(None, [model_seg])) or None
 
-    # Line 1: Claude Info
-    line1_segs = [s for s in [model_seg] if s]
-    if line1_segs:
-        lines.append(DIVIDER_BAR.join(s.text for s in line1_segs))
+    line2_segs = filter(None, [dir_seg, session_seg])
+    line2 = DIVIDER_DOT.join(s.text for s in line2_segs) or None
 
-    # Line 2: Working Dir & Session Info
-    line2_segs = [s for s in [dir_seg, session_seg] if s]
-    if line2_segs:
-        lines.append(DIVIDER_DOT.join(s.text for s in line2_segs))
+    line3_segs = filter(None, [git_seg, context_seg, cost_seg])
+    line3 = DIVIDER_BAR.join(s.text for s in line3_segs) or None
 
-    # Line 3: Git & Costs
-    line3_segs = [s for s in [git_seg, context_seg, cost_seg] if s]
-    if line3_segs:
-        lines.append(DIVIDER_BAR.join(s.text for s in line3_segs))
-
-    return lines
+    return [line for line in [line1, line2, line3] if line]

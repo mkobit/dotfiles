@@ -6,36 +6,48 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import claude_statusline.main as main_module
-import claude_statusline.segments as segments_module
 from claude_statusline.models import ContextWindowInfo, GitInfo
+from claude_statusline.segments.claude import format_context_usage
+from claude_statusline.segments.constants import (
+    GREEN,
+    ICON_CLEAN,
+    ICON_DIRTY,
+    ICON_REMOTE,
+    ICON_STAGED,
+    ICON_UNTRACKED,
+    RED,
+    YELLOW,
+)
+from claude_statusline.segments.git import format_git_full
+from claude_statusline.segments.workspace import shorten_path
 
 
 class TestStatusLine(unittest.TestCase):
     def test_format_context_usage(self) -> None:
         cw_low = ContextWindowInfo(used_percentage=10.0)
-        res_low = segments_module.format_context_usage(cw_low)
+        res_low = format_context_usage(cw_low)
         self.assertIsNotNone(res_low)
         assert res_low is not None
-        self.assertIn(segments_module.GREEN, res_low.text)
+        self.assertIn(GREEN, res_low.text)
 
         cw_med = ContextWindowInfo(used_percentage=55.0)
-        res_med = segments_module.format_context_usage(cw_med)
+        res_med = format_context_usage(cw_med)
         self.assertIsNotNone(res_med)
         assert res_med is not None
-        self.assertIn(segments_module.YELLOW, res_med.text)
+        self.assertIn(YELLOW, res_med.text)
 
         cw_high = ContextWindowInfo(used_percentage=95.0)
-        res_high = segments_module.format_context_usage(cw_high)
+        res_high = format_context_usage(cw_high)
         self.assertIsNotNone(res_high)
         assert res_high is not None
-        self.assertIn(segments_module.RED, res_high.text)
+        self.assertIn(RED, res_high.text)
 
         cw_none = ContextWindowInfo(used_percentage=None)
-        res_none = segments_module.format_context_usage(cw_none)
+        res_none = format_context_usage(cw_none)
         self.assertIsNotNone(res_none)
         assert res_none is not None
         self.assertIn("0%", res_none.text)
-        self.assertIn(segments_module.GREEN, res_none.text)
+        self.assertIn(GREEN, res_none.text)
 
     def test_format_git_full(self) -> None:
         base_kwargs: dict[str, Any] = {
@@ -51,63 +63,65 @@ class TestStatusLine(unittest.TestCase):
         }
 
         info = GitInfo(**base_kwargs)
-        res = segments_module.format_git_full(info)
+        res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
         self.assertIn("main", res.text)
-        self.assertIn(segments_module.ICON_CLEAN, res.text)
-        self.assertIn(segments_module.ICON_REMOTE, res.text)
+        self.assertIn(ICON_CLEAN, res.text)
+        self.assertIn(ICON_REMOTE, res.text)
 
         base_kwargs["dirty"] = True
         info = GitInfo(**base_kwargs)
-        res = segments_module.format_git_full(info)
+        res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(segments_module.ICON_DIRTY, res.text)
+        self.assertIn(ICON_DIRTY, res.text)
 
         base_kwargs["dirty"] = False
         base_kwargs["staged"] = True
         info = GitInfo(**base_kwargs)
-        res = segments_module.format_git_full(info)
+        res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(segments_module.ICON_STAGED, res.text)
+        self.assertIn(ICON_STAGED, res.text)
 
         base_kwargs["staged"] = False
         base_kwargs["untracked"] = True
         info = GitInfo(**base_kwargs)
-        res = segments_module.format_git_full(info)
+        res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(segments_module.ICON_UNTRACKED, res.text)
+        self.assertIn(ICON_UNTRACKED, res.text)
 
         base_kwargs["untracked"] = False
         base_kwargs["ahead"] = 2
         base_kwargs["behind"] = 1
         info = GitInfo(**base_kwargs)
-        res = segments_module.format_git_full(info)
+        res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
         self.assertIn("↑2", res.text)
         self.assertIn("↓1", res.text)
 
-    @patch("subprocess.check_output")
-    def test_get_git_info_fresh(self, mock_check_output: MagicMock) -> None:
+    @patch("subprocess.run")
+    def test_get_git_info_fresh(self, mock_run: MagicMock) -> None:
         def side_effect(cmd: Any, **kwargs: Any) -> Any:
             cmd_list = cmd if isinstance(cmd, list) else cmd.split()
-            if "is-inside-work-tree" in cmd_list:
-                return b"true\n"
+            mock_res = MagicMock()
+            mock_res.returncode = 0
             if "rev-parse" in cmd_list and "HEAD" in cmd_list:
-                return "feature-branch\n"
-            if "ls-remote" in cmd_list:
-                return "git@github.com:user/repo.git\n"
-            if "status" in cmd_list:
-                return " M modified_file.py\n?? untracked.py\n"
-            if "rev-list" in cmd_list:
-                return "1\t0\n"
-            return b""
+                mock_res.stdout = "feature-branch\n"
+            elif "ls-remote" in cmd_list:
+                mock_res.stdout = "git@github.com:user/repo.git\n"
+            elif "status" in cmd_list:
+                mock_res.stdout = " M modified_file.py\n?? untracked.py\n"
+            elif "rev-list" in cmd_list:
+                mock_res.stdout = "1\t0\n"
+            else:
+                mock_res.stdout = ""
+            return mock_res
 
-        mock_check_output.side_effect = side_effect
+        mock_run.side_effect = side_effect
 
         with patch.object(Path, "exists", return_value=False):
             with patch("claude_statusline.main._check_is_repo", return_value=True):
@@ -172,16 +186,16 @@ class TestStatusLine(unittest.TestCase):
 
         with patch.object(Path, "home", return_value=home):
             p1 = Path("/home/user/projects/repo")
-            self.assertEqual(segments_module.shorten_path(p1), "~/projects/repo")
+            self.assertEqual(shorten_path(p1), "~/projects/repo")
 
             p2 = Path("/home/user/src/github.com/org/repo/subdir")
-            self.assertEqual(segments_module.shorten_path(p2), ".../repo/subdir")
+            self.assertEqual(shorten_path(p2), ".../repo/subdir")
 
             p3 = Path("/opt/tool/src/main")
-            self.assertEqual(segments_module.shorten_path(p3), ".../src/main")
+            self.assertEqual(shorten_path(p3), ".../src/main")
 
             p4 = Path("/home/user")
-            self.assertEqual(segments_module.shorten_path(p4), "~")
+            self.assertEqual(shorten_path(p4), "~")
 
 
 if __name__ == "__main__":

@@ -27,30 +27,30 @@ def _check_is_repo(cwd: Path) -> bool:
 def _get_branch_and_remote(cwd: Path) -> tuple[str, str | None]:
     branch = "HEAD"
     remote = None
-    try:
-        branch = subprocess.check_output(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=cwd,
-            text=True,
-            stderr=subprocess.DEVNULL,
-        ).strip()
 
-        try:
-            remote_url = subprocess.check_output(
-                ["git", "ls-remote", "--get-url", "origin"],
-                cwd=cwd,
-                text=True,
-                stderr=subprocess.DEVNULL,
-            ).strip()
-            if remote_url.startswith("git@"):
-                remote_url = remote_url.replace(":", "/").replace("git@", "https://")
-            if remote_url.endswith(".git"):
-                remote_url = remote_url[:-4]
-            remote = remote_url
-        except subprocess.CalledProcessError:
-            pass
-    except subprocess.CalledProcessError:
-        pass
+    branch_res = subprocess.run(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+    if branch_res.returncode == 0:
+        branch = branch_res.stdout.strip()
+
+    remote_res = subprocess.run(
+        ["git", "ls-remote", "--get-url", "origin"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+    if remote_res.returncode == 0:
+        remote_url = remote_res.stdout.strip()
+        if remote_url.startswith("git@"):
+            remote_url = remote_url.replace(":", "/").replace("git@", "https://")
+        if remote_url.endswith(".git"):
+            remote_url = remote_url[:-4]
+        remote = remote_url
+
     return branch, remote
 
 
@@ -58,38 +58,42 @@ def _get_status(cwd: Path) -> tuple[bool, bool, bool]:
     dirty = False
     staged = False
     untracked = False
-    try:
-        status_output = subprocess.check_output(
-            ["git", "status", "--porcelain"],
-            cwd=cwd,
-            text=True,
-            stderr=subprocess.DEVNULL,
-        )
-        if status_output:
-            lines = status_output.splitlines()
-            staged = any(line[0] not in (" ", "?") for line in lines)
-            dirty = any(line[1] != " " and not line.startswith("??") for line in lines)
-            untracked = any(line.startswith("??") for line in lines)
-    except subprocess.CalledProcessError:
-        pass
+
+    res = subprocess.run(
+        ["git", "status", "--porcelain"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+
+    if res.returncode == 0 and res.stdout:
+        lines = res.stdout.splitlines()
+        staged = any(line[0] not in (" ", "?") for line in lines)
+        dirty = any(line[1] != " " and not line.startswith("??") for line in lines)
+        untracked = any(line.startswith("??") for line in lines)
+
     return dirty, staged, untracked
 
 
 def _get_ahead_behind(cwd: Path) -> tuple[int, int]:
     ahead = 0
     behind = 0
-    try:
-        rev_list = subprocess.check_output(
-            ["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"],
-            cwd=cwd,
-            text=True,
-            stderr=subprocess.DEVNULL,
-        ).strip()
-        a, b = map(int, rev_list.split())
-        ahead = a
-        behind = b
-    except subprocess.CalledProcessError:
-        pass
+
+    res = subprocess.run(
+        ["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"],
+        cwd=cwd,
+        capture_output=True,
+        text=True,
+    )
+
+    if res.returncode == 0 and res.stdout:
+        try:
+            a, b = map(int, res.stdout.strip().split())
+            ahead = a
+            behind = b
+        except ValueError:
+            pass
+
     return ahead, behind
 
 
@@ -107,13 +111,7 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
                     data = json.load(f)
                     if isinstance(data, dict):
                         return GitInfo(**data)
-        except OSError:
-            pass
-        except json.JSONDecodeError:
-            pass
-        except TypeError:
-            pass
-        except ValueError:
+        except OSError, json.JSONDecodeError, TypeError, ValueError:
             pass
 
     if not _check_is_repo(cwd):
