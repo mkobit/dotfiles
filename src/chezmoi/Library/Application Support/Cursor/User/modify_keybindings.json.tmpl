@@ -1,40 +1,57 @@
 #!/usr/bin/env python3
-
 import sys
+import json
 import re
 
 def main():
     content = sys.stdin.read()
 
-    payload_str = """    {
+    # Use actual escape character \u001b (ESC) and \r (CR)
+    # json.dumps will format this properly into "\\u001b\\r" for JSON
+    payload = {
         "key": "shift+enter",
         "command": "workbench.action.terminal.sendSequence",
         "args": {
-            "text": "\\u001b\\r"
+            "text": "\u001b\r"
         },
         "when": "terminalFocus"
-    }"""
+    }
 
     if not content.strip():
-        print("[\n" + payload_str + "\n]")
+        print(json.dumps([payload], indent=4))
         return
 
-    # Check for presence using regex to allow spaces/newlines
-    if re.search(r'"key"\s*:\s*"shift\+enter"', content) and re.search(r'"text"\s*:\s*"(?:\\\\|\\)u001b(?:\\\\|\\)r"', content):
-        print(content, end="")
-        return
+    try:
+        # Strip block comments
+        clean_content = re.sub(r'/\*.*?\*/', '', content, flags=re.DOTALL)
+        # Strip inline comments (this is rudimentary but usually works for basic VS Code jsonc)
+        clean_content = re.sub(r'(?<![:"\'\\])//.*', '', clean_content)
+        # Strip trailing commas
+        clean_content = re.sub(r',\s*([\]}])', r'\1', clean_content)
 
-    last_bracket_idx = content.rfind(']')
-    if last_bracket_idx != -1:
-        before_bracket = content[:last_bracket_idx].strip()
-        if before_bracket.endswith('['):
-            new_content = content[:last_bracket_idx] + "\n" + payload_str + "\n" + content[last_bracket_idx:]
+        data = json.loads(clean_content)
+
+        if isinstance(data, list):
+            # Check if keybinding exists
+            if not any(item.get("key") == "shift+enter" for item in data):
+                data.append(payload)
+                print(json.dumps(data, indent=4))
+                return
+            else:
+                # Print parsed data to format it nicely
+                print(json.dumps(data, indent=4))
+                return
         else:
-            new_content = content[:last_bracket_idx] + ",\n" + payload_str + "\n" + content[last_bracket_idx:]
-        print(new_content, end="")
-    else:
-        # If it's malformed or not an array, just return the original
+            # If valid JSON but not a list, return original string to prevent data loss
+            print(content, end="")
+            return
+
+    except Exception as e:
+        # Fallback to appending if parsing fails to avoid losing existing data
+        # We print to stderr for debugging but return original content to chezmoi
+        print(f"// Parse Error: {e}", file=sys.stderr)
         print(content, end="")
+        return
 
 if __name__ == "__main__":
     main()
