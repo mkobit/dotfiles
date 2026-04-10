@@ -169,8 +169,7 @@ class TestStatusLine(unittest.TestCase):
             line1 = mock_print.call_args_list[0][0][0]
             self.assertIn("Claude 3", line1)
 
-            line2 = mock_print.call_args_list[1][0][0]
-            self.assertIn("MySession", line2)
+            self.assertIn("MySession", line1)
 
             line3 = mock_print.call_args_list[2][0][0]
             self.assertIn("main", line3)
@@ -259,8 +258,7 @@ class TestStatusLine(unittest.TestCase):
             self.assertIn("Opus", line1)
             self.assertIn("security-reviewer", line1)
 
-            line2 = mock_print.call_args_list[1][0][0]
-            self.assertIn("my-session", line2)
+            self.assertIn("my-session", line1)
 
             line3 = mock_print.call_args_list[2][0][0]
             self.assertIn("feature-branch", line3)

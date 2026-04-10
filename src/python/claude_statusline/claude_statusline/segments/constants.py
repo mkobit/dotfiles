@@ -1,7 +1,13 @@
 import functools
 import os
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, NamedTuple
+
+
+class IconPair(NamedTuple):
+    nerd_font: str
+    fallback: str
+
 
 RESET = "\033[0m"
 BOLD = "\033[1m"
@@ -40,29 +46,31 @@ IconKey = Literal[
     "tokens",
     "robot",
     "worktree",
+    "obsidian",
 ]
 
-ICONS: dict[IconKey, tuple[str, str]] = {
+ICONS: dict[IconKey, IconPair] = {
     # key: (nerdfont, emoji)
-    "dir": ("\uf115", "📁"),
-    "branch": ("\ue0a0", "🪾"),
-    "remote": ("\uf0c1", "🔗"),
-    "dirty": ("\uf06a", "!"),
-    "clean": ("\uf00c", "✓"),
-    "staged": ("\uf067", "+"),
-    "untracked": ("\uf128", "?"),
-    "timer": ("\uf017", "⏱"),
-    "cost": ("💳", "💳"),
-    "tokens": ("\uf4a5", "⚡"),
-    "robot": ("\uf544", "🤖"),
-    "worktree": ("\uf1bb", "🌳"),
+    "dir": IconPair("\uf115", "📁"),
+    "branch": IconPair("\ue0a0", "🪾"),
+    "remote": IconPair("\uf0c1", "🔗"),
+    "dirty": IconPair("\uf06a", "!"),
+    "clean": IconPair("\uf00c", "✓"),
+    "staged": IconPair("\uf067", "+"),
+    "untracked": IconPair("\uf128", "?"),
+    "timer": IconPair("\uf017", "⏱"),
+    "cost": IconPair("💳", "💳"),
+    "tokens": IconPair("\uf4a5", "⚡"),
+    "robot": IconPair("\uf544", "🤖"),
+    "worktree": IconPair("\uf1bb", "🌳"),
+    "obsidian": IconPair("\ue65d", "🟣"),
 }
 
 
 def get_icon(key: IconKey) -> str:
     """Returns the nerd font icon or emoji fallback based on environment."""
-    nerd_font, fallback = ICONS[key]
-    return nerd_font if use_icons() else fallback
+    icon_pair = ICONS[key]
+    return icon_pair.nerd_font if use_icons() else icon_pair.fallback
 
 
 BLOCK_FILLED = "\u2588"  # █

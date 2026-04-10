@@ -10,7 +10,11 @@ from claude_statusline.segments.constants import (
     Segment,
 )
 from claude_statusline.segments.git import format_git_full
-from claude_statusline.segments.workspace import format_directory, shorten_path
+from claude_statusline.segments.workspace import (
+    format_directory,
+    format_obsidian_vault,
+    shorten_path,
+)
 
 __all__ = [
     "format_context_usage",
@@ -19,6 +23,7 @@ __all__ = [
     "format_session_info",
     "format_git_full",
     "format_directory",
+    "format_obsidian_vault",
     "shorten_path",
     "DIVIDER_BAR",
     "DIVIDER_DOT",
