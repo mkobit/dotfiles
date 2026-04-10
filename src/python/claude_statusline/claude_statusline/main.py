@@ -1,5 +1,7 @@
+import concurrent.futures
 import hashlib
 import json
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -7,7 +9,9 @@ import time
 from pathlib import Path
 from typing import NamedTuple
 
-from claude_statusline.models import GitInfo, StatusLineStdIn
+import click
+
+from claude_statusline.models import GitInfo, Segment, StatusLineStdIn
 from claude_statusline.render import render_lines
 
 CACHE_DURATION = 30  # seconds
@@ -159,19 +163,48 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
     return info
 
 
-def main() -> None:
+def run_external_generator(
+    cmd: str, payload_json: str, timeout: float = 2.0
+) -> list[Segment]:
+    try:
+        res = subprocess.run(
+            shlex.split(cmd),
+            input=payload_json,
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+        )
+        if res.returncode == 0 and res.stdout.strip():
+            data = json.loads(res.stdout)
+            if isinstance(data, list):
+                return [Segment(**item) for item in data if isinstance(item, dict)]
+            elif isinstance(data, dict):
+                return [Segment(**data)]
+    except Exception:
+        pass
+    return []
+
+
+@click.command()
+@click.option(
+    "--generator",
+    multiple=True,
+    help="External command to generate segments (receives JSON payload on stdin).",
+)
+def main(generator: tuple[str, ...]) -> None:
+    raw_json_str = "{}"
     try:
         if not sys.stdin.isatty():
-            raw_data = json.load(sys.stdin)
+            raw_json_str = sys.stdin.read()
+            raw_data = json.loads(raw_json_str) if raw_json_str.strip() else {}
         else:
             raw_data = {}
-    except json.JSONDecodeError:
+    except Exception:
         raw_data = {}
 
     try:
         payload = StatusLineStdIn(**raw_data)
     except Exception:
-        # Fallback if parsing completely fails, though defaults should catch most
         payload = StatusLineStdIn()
 
     cwd_str = payload.workspace.current_dir
@@ -183,7 +216,24 @@ def main() -> None:
     if git_info and payload.workspace.git_worktree:
         git_info.is_worktree = True
 
-    lines = render_lines(payload, git_info)
+    extra_segments: list[Segment] = []
+    if generator:
+        with concurrent.futures.ThreadPoolExecutor(
+            max_workers=min(len(generator), 10)
+        ) as executor:
+            futures = [
+                executor.submit(run_external_generator, cmd, raw_json_str)
+                for cmd in generator
+            ]
+            for future in concurrent.futures.as_completed(futures):
+                try:
+                    segs = future.result()
+                    if segs:
+                        extra_segments.extend(segs)
+                except Exception:
+                    pass
+
+    lines = render_lines(payload, git_info, extra_segments)
     for line in lines:
         print(line)
 

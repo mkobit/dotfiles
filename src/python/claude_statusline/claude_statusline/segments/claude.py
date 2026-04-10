@@ -1,4 +1,4 @@
-from claude_statusline.models import ContextWindowInfo, StatusLineStdIn
+from claude_statusline.models import ContextWindowInfo, Segment, StatusLineStdIn
 from claude_statusline.segments.constants import (
     BLUE,
     BOLD,
@@ -9,7 +9,6 @@ from claude_statusline.segments.constants import (
     RED,
     RESET,
     YELLOW,
-    Segment,
     get_icon,
 )
 
@@ -40,7 +39,11 @@ def format_context_usage(cw: ContextWindowInfo) -> Segment | None:
         for i in range(width)
     )
 
-    return Segment(f"{DIM}ctx:{RESET} {color}{visual_bar}{RESET} {int(used_pct)}%")
+    return Segment(
+        line=3,
+        index=10,
+        text=f"{DIM}ctx:{RESET} {color}{visual_bar}{RESET} {int(used_pct)}%",
+    )
 
 
 def format_model_info(payload: StatusLineStdIn) -> Segment | None:
@@ -48,7 +51,7 @@ def format_model_info(payload: StatusLineStdIn) -> Segment | None:
         f"{get_icon('robot')} {BLUE}{BOLD}{payload.model.display_name}{RESET}",
         f"{MAGENTA}@{payload.agent.name}{RESET}" if payload.agent.name else None,
     ]
-    return Segment(" ".join(filter(None, parts)))
+    return Segment(line=1, index=0, text=" ".join(filter(None, parts)))
 
 
 def format_session_info(payload: StatusLineStdIn) -> Segment | None:
@@ -72,12 +75,14 @@ def format_session_info(payload: StatusLineStdIn) -> Segment | None:
 
     if not parts:
         return None
-    return Segment(" ".join(parts))
+    return Segment(line=1, index=10, text=" ".join(parts))
 
 
 def format_cost(payload: StatusLineStdIn) -> Segment | None:
     if not payload.cost.total_cost_usd:
         return None
     return Segment(
-        f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"
+        line=3,
+        index=20,
+        text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}",
     )

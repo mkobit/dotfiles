@@ -1,6 +1,7 @@
+from collections import defaultdict
 from pathlib import Path
 
-from claude_statusline.models import GitInfo, StatusLineStdIn
+from claude_statusline.models import GitInfo, Segment, StatusLineStdIn
 from claude_statusline.segments import (
     DIVIDER_BAR,
     format_context_usage,
@@ -13,29 +14,47 @@ from claude_statusline.segments import (
 )
 
 
-def render_lines(payload: StatusLineStdIn, git_info: GitInfo | None) -> list[str]:
-    """Renders the statusline as a list of strings, up to 3 lines."""
+def render_lines(
+    payload: StatusLineStdIn,
+    git_info: GitInfo | None,
+    extra_segments: list[Segment] | None = None,
+) -> list[str]:
+    """Renders the statusline as a list of strings."""
+
+    if extra_segments is None:
+        extra_segments = []
 
     cwd_str = payload.workspace.current_dir
     if not cwd_str and payload.cwd:
         cwd_str = payload.cwd
     cwd = Path(cwd_str).resolve() if cwd_str else Path.cwd()
 
-    model_seg = format_model_info(payload)
-    session_seg = format_session_info(payload)
-    dir_seg = format_directory(cwd)
-    obsidian_seg = format_obsidian_vault(cwd)
-    git_seg = format_git_full(git_info)
-    context_seg = format_context_usage(payload.context_window)
-    cost_seg = format_cost(payload)
+    segments = extra_segments.copy()
+    segments.extend(
+        filter(
+            None,
+            [
+                format_model_info(payload),
+                format_session_info(payload),
+                format_directory(cwd),
+                format_obsidian_vault(cwd),
+                format_git_full(git_info),
+                format_context_usage(payload.context_window),
+                format_cost(payload),
+            ],
+        )
+    )
 
-    line1_segs = filter(None, [model_seg, session_seg])
-    line1 = DIVIDER_BAR.join(s.text for s in line1_segs) or None
+    lines_map = defaultdict(list)
+    for seg in segments:
+        lines_map[seg.line].append(seg)
 
-    line2_segs = filter(None, [dir_seg, obsidian_seg])
-    line2 = DIVIDER_BAR.join(s.text for s in line2_segs) or None
+    result_lines = []
+    # Claude supports up to 3 lines. We render available lines sorted.
+    for line_num in sorted(lines_map.keys()):
+        line_segments = sorted(lines_map[line_num], key=lambda s: s.index)
+        text = DIVIDER_BAR.join(s.text for s in line_segments)
+        if text:
+            result_lines.append(text)
 
-    line3_segs = filter(None, [git_seg, context_seg, cost_seg])
-    line3 = DIVIDER_BAR.join(s.text for s in line3_segs) or None
-
-    return [line for line in [line1, line2, line3] if line]
+    return result_lines

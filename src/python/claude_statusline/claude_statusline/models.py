@@ -110,3 +110,9 @@ class GitInfo(BaseModel):
     behind: int
     is_repo: bool
     is_worktree: bool = False
+
+
+class Segment(BaseModel):
+    text: str
+    line: int = 1
+    index: int = 0

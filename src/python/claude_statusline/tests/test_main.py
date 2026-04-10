@@ -162,7 +162,7 @@ class TestStatusLine(unittest.TestCase):
                 import os
 
                 mock_term.return_value = os.terminal_size((80, 24))
-                main_module.main()
+                main_module.main(args=[], standalone_mode=False)
 
             self.assertEqual(mock_print.call_count, 3)
 
@@ -250,7 +250,7 @@ class TestStatusLine(unittest.TestCase):
                 import os
 
                 mock_term.return_value = os.terminal_size((80, 24))
-                main_module.main()
+                main_module.main(args=[], standalone_mode=False)
 
             self.assertEqual(mock_print.call_count, 3)
 
