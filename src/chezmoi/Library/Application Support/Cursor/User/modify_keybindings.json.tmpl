@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+
+import sys
+import re
+
+def main():
+    content = sys.stdin.read()
+
+    payload_str = """    {
+        "key": "shift+enter",
+        "command": "workbench.action.terminal.sendSequence",
+        "args": {
+            "text": "\\u001b\\r"
+        },
+        "when": "terminalFocus"
+    }"""
+
+    if not content.strip():
+        print("[\n" + payload_str + "\n]")
+        return
+
+    # Check for presence using regex to allow spaces/newlines
+    if re.search(r'"key"\s*:\s*"shift\+enter"', content) and re.search(r'"text"\s*:\s*"(?:\\\\|\\)u001b(?:\\\\|\\)r"', content):
+        print(content, end="")
+        return
+
+    last_bracket_idx = content.rfind(']')
+    if last_bracket_idx != -1:
+        before_bracket = content[:last_bracket_idx].strip()
+        if before_bracket.endswith('['):
+            new_content = content[:last_bracket_idx] + "\n" + payload_str + "\n" + content[last_bracket_idx:]
+        else:
+            new_content = content[:last_bracket_idx] + ",\n" + payload_str + "\n" + content[last_bracket_idx:]
+        print(new_content, end="")
+    else:
+        # If it's malformed or not an array, just return the original
+        print(content, end="")
+
+if __name__ == "__main__":
+    main()
