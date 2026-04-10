@@ -1,0 +1,21 @@
+{{- if ne (dig "mise" "installation" "disabled" .) "disabled" -}}
+#!/usr/bin/env bash
+# mise version: {{ .mise.version }}
+# .mise.toml hash: {{ joinPath .chezmoi.workingTree ".mise.toml" | include | sha256sum }}
+
+set -euo pipefail
+
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
+
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+
+if ! command -v mise &>/dev/null; then
+    log_warn "mise not found in PATH. Skipping trust."
+    exit 0
+fi
+
+log_info "Trusting mise config in working tree..."
+mise trust "{{ .chezmoi.workingTree }}/.mise.toml"
+log_success "mise config trusted."
+{{- end -}}
