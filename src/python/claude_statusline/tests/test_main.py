@@ -142,6 +142,7 @@ class TestStatusLine(unittest.TestCase):
 
             with patch("shutil.get_terminal_size") as mock_term:
                 import os
+
                 mock_term.return_value = os.terminal_size((80, 24))
                 main_module.main()
 
@@ -173,6 +174,7 @@ class TestStatusLine(unittest.TestCase):
 
             p4 = Path("/home/user")
             self.assertEqual(segments_module.shorten_path(p4), "~")
+
 
 if __name__ == "__main__":
     unittest.main()

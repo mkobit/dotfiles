@@ -38,9 +38,11 @@ BLOCK_EMPTY = "\u2591"  # ░
 DIVIDER_DOT = " • "
 DIVIDER_BAR = " │ "
 
+
 @dataclass
 class Segment:
     text: str
+
 
 def format_context_usage(cw: ContextWindowInfo) -> Segment | None:
     """Formats the context usage with a block-based progress bar and token stats."""

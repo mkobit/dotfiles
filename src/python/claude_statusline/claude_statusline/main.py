@@ -11,6 +11,7 @@ from claude_statusline.render import render_lines
 
 CACHE_DURATION = 30  # seconds
 
+
 def _check_is_repo(cwd: Path) -> bool:
     try:
         is_inside = subprocess.check_output(
@@ -21,6 +22,7 @@ def _check_is_repo(cwd: Path) -> bool:
         return is_inside == b"true"
     except subprocess.CalledProcessError:
         return False
+
 
 def _get_branch_and_remote(cwd: Path) -> tuple[str, str | None]:
     branch = "HEAD"
@@ -51,6 +53,7 @@ def _get_branch_and_remote(cwd: Path) -> tuple[str, str | None]:
         pass
     return branch, remote
 
+
 def _get_status(cwd: Path) -> tuple[bool, bool, bool]:
     dirty = False
     staged = False
@@ -71,6 +74,7 @@ def _get_status(cwd: Path) -> tuple[bool, bool, bool]:
         pass
     return dirty, staged, untracked
 
+
 def _get_ahead_behind(cwd: Path) -> tuple[int, int]:
     ahead = 0
     behind = 0
@@ -87,6 +91,7 @@ def _get_ahead_behind(cwd: Path) -> tuple[int, int]:
     except subprocess.CalledProcessError:
         pass
     return ahead, behind
+
 
 def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
     """Retrieves git information for the given directory with caching."""
@@ -138,6 +143,7 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
 
     return info
 
+
 def main() -> None:
     try:
         if not sys.stdin.isatty():
@@ -165,6 +171,7 @@ def main() -> None:
     lines = render_lines(payload, git_info)
     for line in lines:
         print(line)
+
 
 if __name__ == "__main__":
     main()
