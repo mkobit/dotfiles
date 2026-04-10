@@ -1,25 +1,15 @@
-import os
-import subprocess
-
 import pytest
 
 
 @pytest.mark.integration
-def test_jules_cli_available():
+def test_jules_cli_available(host):
     """Verify that jules CLI is available and executable in the shell environment."""
-
-    env = os.environ.copy()
 
     # We want to ensure that if we load the zsh environment, we can resolve 'jules'.
     # This simulates what a user does when opening a terminal.
-    result = subprocess.run(
-        ["zsh", "-i", "-c", "command -v jules"],
-        env=env,
-        capture_output=True,
-        text=True,
-    )
+    result = host.run("zsh -i -c 'command -v jules'")
 
-    assert result.returncode == 0, (
+    assert result.rc == 0, (
         f"jules command not found in zsh environment.\nstderr: {result.stderr}"
     )
     assert "jules" in result.stdout, (
@@ -28,18 +18,12 @@ def test_jules_cli_available():
 
 
 @pytest.mark.integration
-def test_jules_cli_help():
+def test_jules_cli_help(host):
     """Verify that the jules CLI actually runs correctly (prints help)."""
-    env = os.environ.copy()
 
-    result = subprocess.run(
-        ["zsh", "-i", "-c", "jules --help"],
-        env=env,
-        capture_output=True,
-        text=True,
-    )
+    result = host.run("zsh -i -c 'jules --help'")
 
-    assert result.returncode == 0, f"jules --help failed.\nstderr: {result.stderr}"
+    assert result.rc == 0, f"jules --help failed.\nstderr: {result.stderr}"
     assert "Usage: jules" in result.stdout or "Usage:" in result.stdout, (
         "Did not find expected help output."
     )

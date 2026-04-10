@@ -1,29 +1,17 @@
-import os
-import subprocess
-
 import pytest
 
 
 @pytest.mark.integration
-def test_zsh_initialization():
+def test_zsh_initialization(host):
     """Verify that zsh initializes without errors."""
 
     # Run zsh as an interactive login shell, then exit immediately.
     # This ensures .zprofile and .zshrc are sourced.
-    env = os.environ.copy()
+    result = host.run("zsh -i -c 'exit'")
 
-    result = subprocess.run(
-        ["zsh", "-i", "-c", "exit"],
-        env=env,
-        capture_output=True,
-        text=True,
-    )
-
-    # Some terminal sequences or zsh versions might print minor things to stderr
     # Check that return code is 0, which means no fatal errors.
-    assert result.returncode == 0, (
-        f"zsh exited with {result.returncode}\nstderr: "
-        f"{result.stderr}\nstdout: {result.stdout}"
+    assert result.rc == 0, (
+        f"zsh exited with {result.rc}\nstderr: {result.stderr}\nstdout: {result.stdout}"
     )
 
     # Ideally, stderr should not contain syntax errors or missing command errors
