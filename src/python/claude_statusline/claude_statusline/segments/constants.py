@@ -40,6 +40,7 @@ IconKey = Literal[
     "tokens",
     "robot",
     "worktree",
+    "obsidian",
 ]
 
 ICONS: dict[IconKey, tuple[str, str]] = {
@@ -56,6 +57,7 @@ ICONS: dict[IconKey, tuple[str, str]] = {
     "tokens": ("\uf4a5", "⚡"),
     "robot": ("\uf544", "🤖"),
     "worktree": ("\uf1bb", "🌳"),
+    "obsidian": ("\ue65d", "🟣"),
 }
 
 

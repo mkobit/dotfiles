@@ -3,12 +3,12 @@ from pathlib import Path
 from claude_statusline.models import GitInfo, StatusLineStdIn
 from claude_statusline.segments import (
     DIVIDER_BAR,
-    DIVIDER_DOT,
     format_context_usage,
     format_cost,
     format_directory,
     format_git_full,
     format_model_info,
+    format_obsidian_vault,
     format_session_info,
 )
 
@@ -24,14 +24,16 @@ def render_lines(payload: StatusLineStdIn, git_info: GitInfo | None) -> list[str
     model_seg = format_model_info(payload)
     session_seg = format_session_info(payload)
     dir_seg = format_directory(cwd)
+    obsidian_seg = format_obsidian_vault(cwd)
     git_seg = format_git_full(git_info)
     context_seg = format_context_usage(payload.context_window)
     cost_seg = format_cost(payload)
 
-    line1 = DIVIDER_BAR.join(s.text for s in filter(None, [model_seg])) or None
+    line1_segs = filter(None, [model_seg, session_seg])
+    line1 = DIVIDER_BAR.join(s.text for s in line1_segs) or None
 
-    line2_segs = filter(None, [dir_seg, session_seg])
-    line2 = DIVIDER_DOT.join(s.text for s in line2_segs) or None
+    line2_segs = filter(None, [dir_seg, obsidian_seg])
+    line2 = DIVIDER_BAR.join(s.text for s in line2_segs) or None
 
     line3_segs = filter(None, [git_seg, context_seg, cost_seg])
     line3 = DIVIDER_BAR.join(s.text for s in line3_segs) or None

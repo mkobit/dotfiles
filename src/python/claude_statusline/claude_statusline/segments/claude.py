@@ -1,7 +1,5 @@
 from claude_statusline.models import ContextWindowInfo, StatusLineStdIn
 from claude_statusline.segments.constants import (
-    BLOCK_EMPTY,
-    BLOCK_FILLED,
     BLUE,
     BOLD,
     CYAN,
@@ -27,8 +25,20 @@ def format_context_usage(cw: ContextWindowInfo) -> Segment | None:
         color = YELLOW
 
     width = 10
-    filled = min(int(width * (used_pct / 100)), width)
-    visual_bar = (BLOCK_FILLED * filled) + (BLOCK_EMPTY * (width - filled))
+    blocks = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"]
+
+    total_eighths = int((used_pct / 100.0) * width * 8)
+    full_blocks = total_eighths // 8
+    remainder = total_eighths % 8
+
+    visual_bar = ""
+    for i in range(width):
+        if i < full_blocks:
+            visual_bar += blocks[8]
+        elif i == full_blocks:
+            visual_bar += blocks[remainder]
+        else:
+            visual_bar += blocks[0]
 
     return Segment(f"{DIM}ctx:{RESET} {color}{visual_bar}{RESET} {int(used_pct)}%")
 
@@ -68,4 +78,6 @@ def format_session_info(payload: StatusLineStdIn) -> Segment | None:
 def format_cost(payload: StatusLineStdIn) -> Segment | None:
     if not payload.cost.total_cost_usd:
         return None
-    return Segment(f"{GREEN}{get_icon('cost')}{payload.cost.total_cost_usd:.2f}{RESET}")
+    return Segment(
+        f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"
+    )
