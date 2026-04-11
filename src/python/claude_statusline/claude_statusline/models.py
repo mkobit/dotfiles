@@ -114,5 +114,8 @@ class GitInfo(BaseModel):
 
 class Segment(BaseModel):
     text: str
+
+
+class SegmentGenerationResult(Segment):
     line: int = 1
     index: int = 0

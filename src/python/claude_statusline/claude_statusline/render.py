@@ -1,7 +1,7 @@
 from collections import defaultdict
 from pathlib import Path
 
-from claude_statusline.models import GitInfo, Segment, StatusLineStdIn
+from claude_statusline.models import GitInfo, SegmentGenerationResult, StatusLineStdIn
 from claude_statusline.segments import (
     DIVIDER_BAR,
     format_context_usage,
@@ -17,7 +17,7 @@ from claude_statusline.segments import (
 def render_lines(
     payload: StatusLineStdIn,
     git_info: GitInfo | None,
-    extra_segments: list[Segment] | None = None,
+    extra_segments: list[SegmentGenerationResult] | None = None,
 ) -> list[str]:
     """Renders the statusline as a list of strings."""
 
@@ -29,19 +29,21 @@ def render_lines(
         cwd_str = payload.cwd
     cwd = Path(cwd_str).resolve() if cwd_str else Path.cwd()
 
-    segments = extra_segments.copy()
-    segments.extend(
-        filter(
-            None,
-            [
-                format_model_info(payload),
-                format_session_info(payload),
-                format_directory(cwd),
-                format_obsidian_vault(cwd),
-                format_git_full(git_info),
-                format_context_usage(payload.context_window),
-                format_cost(payload),
-            ],
+    segments = tuple(
+        extra_segments
+        + list(
+            filter(
+                None,
+                [
+                    format_model_info(payload),
+                    format_session_info(payload),
+                    format_directory(cwd),
+                    format_obsidian_vault(cwd),
+                    format_git_full(git_info),
+                    format_context_usage(payload.context_window),
+                    format_cost(payload),
+                ],
+            )
         )
     )
 

@@ -6,12 +6,14 @@ import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Sequence
 from pathlib import Path
 from typing import NamedTuple
 
 import click
+from pydantic import TypeAdapter, ValidationError
 
-from claude_statusline.models import GitInfo, Segment, StatusLineStdIn
+from claude_statusline.models import GitInfo, SegmentGenerationResult, StatusLineStdIn
 from claude_statusline.render import render_lines
 
 CACHE_DURATION = 30  # seconds
@@ -165,7 +167,7 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
 
 def run_external_generator(
     cmd: str, payload_json: str, timeout: float = 2.0
-) -> list[Segment]:
+) -> Sequence[SegmentGenerationResult]:
     try:
         res = subprocess.run(
             shlex.split(cmd),
@@ -175,13 +177,20 @@ def run_external_generator(
             timeout=timeout,
         )
         if res.returncode == 0 and res.stdout.strip():
-            data = json.loads(res.stdout)
-            if isinstance(data, list):
-                return [Segment(**item) for item in data if isinstance(item, dict)]
-            elif isinstance(data, dict):
-                return [Segment(**data)]
-    except Exception:
-        pass
+            try:
+                data = json.loads(res.stdout)
+                if isinstance(data, dict):
+                    data = [data]
+                adapter = TypeAdapter(list[SegmentGenerationResult])
+                return adapter.validate_python(data)
+            except ValidationError as e:
+                # debug log instead of failing
+                print(
+                    f"Validation error in external generator {cmd}: {e}",
+                    file=sys.stderr,
+                )
+    except Exception as e:
+        print(f"Error running external generator {cmd}: {e}", file=sys.stderr)
     return []
 
 
@@ -216,7 +225,7 @@ def main(generator: tuple[str, ...]) -> None:
     if git_info and payload.workspace.git_worktree:
         git_info.is_worktree = True
 
-    extra_segments: list[Segment] = []
+    extra_segments: list[SegmentGenerationResult] = []
     if generator:
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=min(len(generator), 10)

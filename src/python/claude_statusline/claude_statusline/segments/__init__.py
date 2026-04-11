@@ -1,4 +1,4 @@
-from claude_statusline.models import Segment
+from claude_statusline.models import SegmentGenerationResult
 from claude_statusline.segments.claude import (
     format_context_usage,
     format_cost,
@@ -27,5 +27,5 @@ __all__ = [
     "shorten_path",
     "DIVIDER_BAR",
     "DIVIDER_DOT",
-    "Segment",
+    "SegmentGenerationResult",
 ]
