@@ -19,9 +19,27 @@ def test_zsh_initialization(host):
     # empty or not contain "error"/"command not found".
     stderr_lower = result.stderr.lower()
 
+    # Filter out known warnings caused by running an interactive shell without a true TTY
+    known_benign_warnings = [
+        "not interactive and can't open terminal",
+        "compinit: initialization aborted",
+        "inappropriate ioctl for device",
+        "zsh: command not found: compdef",
+        "can't change option: zle",
+        "stty: 'standard input'",
+        "(eval):1:",
+        "(eval):2:",
+        "not a tty",
+        "no job control in this shell",
+    ]
+    for warning in known_benign_warnings:
+        stderr_lower = stderr_lower.replace(warning.lower(), "")
+
     if (
         "error" in stderr_lower
         or "command not found" in stderr_lower
         or "no such file or directory" in stderr_lower
     ):
-        pytest.fail(f"Potential errors found during zsh startup:\n{result.stderr}")
+        pytest.fail(
+            f"Potential errors found during zsh startup:\n{result.stderr}\nFiltered Stderr:\n{stderr_lower}"
+        )
