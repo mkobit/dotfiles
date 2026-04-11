@@ -1,6 +1,7 @@
-import concurrent.futures
+import asyncio
 import hashlib
 import json
+import logging
 import shlex
 import subprocess
 import sys
@@ -17,6 +18,11 @@ from claude_statusline.models import GitInfo, SegmentGenerationResult, StatusLin
 from claude_statusline.render import render_lines
 
 CACHE_DURATION = 30  # seconds
+
+logging.basicConfig(
+    level=logging.WARNING, stream=sys.stderr, format="%(levelname)s: %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 class BranchRemoteInfo(NamedTuple):
@@ -165,32 +171,43 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
     return info
 
 
-def run_external_generator(
+async def run_external_generator(
     cmd: str, payload_json: str, timeout: float = 2.0
 ) -> Sequence[SegmentGenerationResult]:
     try:
-        res = subprocess.run(
-            shlex.split(cmd),
-            input=payload_json,
-            text=True,
-            capture_output=True,
-            timeout=timeout,
+        proc = await asyncio.create_subprocess_exec(
+            *shlex.split(cmd),
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
         )
-        if res.returncode == 0 and res.stdout.strip():
+
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=payload_json.encode()), timeout=timeout
+            )
+        except TimeoutError:
+            proc.kill()
+            await proc.communicate()
+            logger.warning(f"Timeout error in external generator {cmd}")
+            return []
+
+        if proc.returncode == 0 and stdout.strip():
             try:
-                data = json.loads(res.stdout)
-                if isinstance(data, dict):
-                    data = [data]
-                adapter = TypeAdapter(list[SegmentGenerationResult])
-                return adapter.validate_python(data)
-            except ValidationError as e:
-                # debug log instead of failing
-                print(
-                    f"Validation error in external generator {cmd}: {e}",
-                    file=sys.stderr,
+                # We can use TypeAdapter directly on the json string or parsed json
+                adapter = TypeAdapter(
+                    list[SegmentGenerationResult] | SegmentGenerationResult
                 )
+                data = adapter.validate_json(stdout)
+                if isinstance(data, list):
+                    return data
+                return [data]
+            except ValidationError as e:
+                logger.warning(f"Validation error in external generator {cmd}: {e}")
+            except Exception as e:
+                logger.warning(f"JSON parsing error in external generator {cmd}: {e}")
     except Exception as e:
-        print(f"Error running external generator {cmd}: {e}", file=sys.stderr)
+        logger.warning(f"Error running external generator {cmd}: {e}")
     return []
 
 
@@ -227,22 +244,20 @@ def main(generator: tuple[str, ...]) -> None:
 
     extra_segments: list[SegmentGenerationResult] = []
     if generator:
-        with concurrent.futures.ThreadPoolExecutor(
-            max_workers=min(len(generator), 10)
-        ) as executor:
-            futures = [
-                executor.submit(run_external_generator, cmd, raw_json_str)
-                for cmd in generator
-            ]
-            for future in concurrent.futures.as_completed(futures):
-                try:
-                    segs = future.result()
-                    if segs:
-                        extra_segments.extend(segs)
-                except Exception:
-                    pass
+
+        async def fetch_all():
+            tasks = [run_external_generator(cmd, raw_json_str) for cmd in generator]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for res in results:
+                if isinstance(res, Exception):
+                    continue
+                if res:
+                    extra_segments.extend(res)  # type: ignore
+
+        asyncio.run(fetch_all())
 
     lines = render_lines(payload, git_info, extra_segments)
+
     for line in lines:
         print(line)
 

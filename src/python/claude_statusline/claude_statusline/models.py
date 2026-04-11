@@ -121,3 +121,5 @@ class SegmentGenerationResult(BaseModel):
     generator: str = "internal"
     line: int = 1
     index: int = 0
+    cache_duration_seconds: int | None = None
+    next_call_timestamp: float | None = None
