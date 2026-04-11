@@ -116,6 +116,8 @@ class Segment(BaseModel):
     text: str
 
 
-class SegmentGenerationResult(Segment):
+class SegmentGenerationResult(BaseModel):
+    segment: Segment
+    generator: str = "internal"
     line: int = 1
     index: int = 0
