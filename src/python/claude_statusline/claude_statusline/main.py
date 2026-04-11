@@ -198,7 +198,7 @@ def run_external_generator(
 @click.option(
     "--generator",
     multiple=True,
-    help="External command or script to generate segments (receives JSON payload on stdin).",
+    help="External command or script to generate segments (takes JSON on stdin).",
 )
 def main(generator: tuple[str, ...]) -> None:
     raw_json_str = "{}"
