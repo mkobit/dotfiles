@@ -19,7 +19,8 @@ def test_zsh_initialization(host):
     # empty or not contain "error"/"command not found".
     stderr_lower = result.stderr.lower()
 
-    # Filter out known warnings caused by running an interactive shell without a true TTY
+    # Filter out known warnings caused by running an interactive shell
+    # without a true TTY
     known_benign_warnings = [
         "not interactive and can't open terminal",
         "compinit: initialization aborted",
@@ -41,5 +42,6 @@ def test_zsh_initialization(host):
         or "no such file or directory" in stderr_lower
     ):
         pytest.fail(
-            f"Potential errors found during zsh startup:\n{result.stderr}\nFiltered Stderr:\n{stderr_lower}"
+            f"Potential errors found during zsh startup:\n{result.stderr}\n"
+            f"Filtered Stderr:\n{stderr_lower}"
         )
