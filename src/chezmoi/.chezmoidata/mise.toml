@@ -13,9 +13,6 @@ disable_hints = ["self_update"]
 
 [mise.global_tools]
 
-  [mise.global_tools.node]
-  version = "lts"
-
   [mise.global_tools.python]
   version = "3.14"
 
@@ -23,7 +20,7 @@ disable_hints = ["self_update"]
   version = "10.33.0"
 
   [mise.global_tools.java]
-  version = "temurin-21.0.10+7"
+  version = "temurin-21"
 
   [mise.global_tools.rust]
   version = "1.94.0"
