@@ -194,14 +194,18 @@ async def run_external_generator(
 
         if proc.returncode == 0 and stdout.strip():
             try:
-                # We can use TypeAdapter directly on the json string or parsed json
                 adapter = TypeAdapter(
                     list[SegmentGenerationResult] | SegmentGenerationResult
                 )
                 data = adapter.validate_json(stdout)
-                if isinstance(data, list):
-                    return data
-                return [data]
+
+                results = data if isinstance(data, list) else [data]
+
+                # set generator name from cmd
+                for item in results:
+                    item.generator = cmd
+                return results
+
             except ValidationError as e:
                 logger.warning(f"Validation error in external generator {cmd}: {e}")
             except Exception as e:
