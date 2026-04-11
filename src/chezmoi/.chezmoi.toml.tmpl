@@ -1,0 +1,8 @@
+{{- $winHome := (output "powershell.exe" "-NoProfile" "-Command" "echo $env:USERPROFILE" | trim) -}}
+{{- $termSettings := (output "powershell.exe" "-NoProfile" "-Command" "(Get-ChildItem -Path $env:LOCALAPPDATA\\Packages\\Microsoft.WindowsTerminal*\\LocalState\\settings.json -ErrorAction SilentlyContinue | Select-Object -First 1).FullName" | trim) -}}
+
+[data]
+    is_wsl = {{ contains "microsoft" (output "uname" "-r") }}
+    windows_home = {{ $winHome | quote }}
+    terminal_settings_path = {{ $termSettings | quote }}
+    nerd_font_name = "CaskaydiaCove Nerd Font"
