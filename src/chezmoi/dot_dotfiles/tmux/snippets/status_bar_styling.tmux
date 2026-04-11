@@ -29,7 +29,7 @@ set-window-option -g allow-rename off
 # Docs: https://man.openbsd.org/tmux#automatic-rename
 set-window-option -g automatic-rename on
 # Docs: https://man.openbsd.org/tmux#automatic-rename-format
-set-window-option -g automatic-rename-format "#{?#{==:#{pane_current_command},zsh},#{b:pane_current_path},#{pane_current_command}}"
+set-window-option -g automatic-rename-format "#{?#{==:#{pane_current_command},zsh},#{b:pane_current_path},#{?#{||:#{m:*claude*,#{pane_current_command}},#{m:*gemini*,#{pane_current_command}}},🤖 #{b:pane_current_path},#{pane_current_command}}}"
 
 # === BEHAVIOR SETTINGS ===
 # Use vi-style status line navigation
