@@ -1,15 +1,20 @@
 #!/usr/bin/env python3
-import sys, json, re
+import sys, json
+
 def main():
     s = sys.stdin.read().strip()
     p = {"key":"shift+enter","command":"workbench.action.terminal.sendSequence","args":{"text":"\u001b\r"},"when":"terminalFocus"}
-    if not s: print(json.dumps([p], indent=4)); return
+    if not s:
+        print(json.dumps([p], indent=4))
+        return
+
     try:
-        c = re.sub(r'/\*.*?\*/', '', s, flags=re.DOTALL)
-        c = re.sub(r'(?<![:"\'\\])//.*', '', c)
-        c = re.sub(r',\s*([\]}])', r'\1', c)
-        d = json.loads(c)
-        if isinstance(d, list) and not any(i.get("key") == "shift+enter" for i in d): d.append(p)
+        d = json.loads(s)
+        if isinstance(d, list) and not any(i.get("key") == "shift+enter" for i in d):
+            d.append(p)
         print(json.dumps(d, indent=4))
-    except Exception: print(s)
-if __name__ == "__main__": main()
+    except Exception:
+        print(s)
+
+if __name__ == "__main__":
+    main()
