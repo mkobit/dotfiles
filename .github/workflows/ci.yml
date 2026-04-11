@@ -1,9 +1,6 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
   pull_request:
     branches:
       - main
@@ -151,23 +148,3 @@ jobs:
           "$MISE_BIN" exec -- uv run pytest tests/integration
 
 
-  summary:
-    if: always()
-    needs: [lint, test, integration]
-    runs-on: ubuntu-24.04
-    timeout-minutes: 5
-    steps:
-      - name: Report results
-        run: |
-          echo "=== CI Summary ==="
-          echo "Lint:        ${{ needs.lint.result }}"
-          echo "Test:        ${{ needs.test.result }}"
-          echo "Integration: ${{ needs.integration.result }}"
-
-          if [[ "${{ needs.lint.result }}" == "failure" ||
-                "${{ needs.test.result }}" == "failure" ||
-                "${{ needs.integration.result }}" == "failure" ]]; then
-            echo "❌ CI failed"
-            exit 1
-          fi
-          echo "✅ All checks passed"
