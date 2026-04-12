@@ -4,6 +4,7 @@ min_release_age_days = 14
 
 [uv]
 min_release_age_days = 14
+tool_bin_dir = ".local/bin/uv-tools"
 
 [pnpm]
 min_release_age_days = 14

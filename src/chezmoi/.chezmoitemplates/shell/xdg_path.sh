@@ -7,3 +7,8 @@ fi
 if [[ -d "{{ .chezmoi.destDir }}/.local/bin/tools" && ":$PATH:" != *":{{ .chezmoi.destDir }}/.local/bin/tools:"* ]]; then
     export PATH="{{ .chezmoi.destDir }}/.local/bin/tools:$PATH"
 fi
+
+# Add uv-tools bin dir to PATH if it exists and isn't already in PATH
+if [[ -d "{{ .chezmoi.destDir }}/{{ .uv.tool_bin_dir }}" && ":$PATH:" != *":{{ .chezmoi.destDir }}/{{ .uv.tool_bin_dir }}:"* ]]; then
+    export PATH="{{ .chezmoi.destDir }}/{{ .uv.tool_bin_dir }}:$PATH"
+fi

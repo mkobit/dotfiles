@@ -1,0 +1,39 @@
+{{- if ne (dig "local_bin_tools" "tmux_url_open" "installation" "uv" .) "disabled" -}}
+#!/usr/bin/env bash
+# Installed editable from: {{ .chezmoi.workingTree }}/src/python/tmux-url-open
+# Bump this version comment to force reinstall when pyproject.toml deps change:
+# install version: 1
+
+set -euo pipefail
+
+source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+
+MODULE_PATH="{{ .chezmoi.workingTree }}/src/python/tmux-url-open"
+export UV_TOOL_BIN_DIR="{{ .chezmoi.destDir }}/{{ .uv.tool_bin_dir }}"
+
+if ! command -v uv >/dev/null 2>&1; then
+    log_warn "uv not found — skipping tmux-url-open installation"
+    exit 0
+fi
+
+log_info "Installing tmux-url-open (editable) to ${UV_TOOL_BIN_DIR}..."
+
+uv tool install \
+    --editable \
+    --force \
+    "${MODULE_PATH}"
+
+log_success "tmux-url-open installed to ${UV_TOOL_BIN_DIR}/tmux-url-open"
+{{- else -}}
+#!/usr/bin/env bash
+# tmux-url-open disabled — uninstall if present
+
+set -euo pipefail
+
+export UV_TOOL_BIN_DIR="{{ .chezmoi.destDir }}/{{ .uv.tool_bin_dir }}"
+
+if command -v uv >/dev/null 2>&1; then
+    uv tool uninstall tmux-url-open 2>/dev/null || true
+fi
+rm -f "${UV_TOOL_BIN_DIR}/tmux-url-open"
+{{- end -}}
