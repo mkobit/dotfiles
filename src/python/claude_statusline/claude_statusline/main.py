@@ -47,7 +47,7 @@ async def run_external_generator(
             proc.kill()
             await proc.communicate()
             logger.warning(f"Timeout error in external generator {cmd}")
-            raise Exception(f"Timeout running {cmd}") from None
+            return []
 
         if proc.returncode == 0 and stdout.strip():
             try:
@@ -64,10 +64,10 @@ async def run_external_generator(
 
             except ValidationError as e:
                 logger.warning(f"Validation error in external generator {cmd}: {e}")
-                raise
+                return []
             except Exception as e:
                 logger.warning(f"JSON parsing error in external generator {cmd}: {e}")
-                raise
+                return []
         else:
             if proc.returncode != 0:
                 logger.warning(
@@ -113,7 +113,16 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
     cwd = Path(cwd_str).resolve() if cwd_str else Path.cwd()
     is_worktree = bool(payload.workspace.git_worktree)
 
-    cache = SegmentCache()
+    import os
+
+    xdg_cache_home = os.environ.get("XDG_CACHE_HOME")
+    if xdg_cache_home:
+        cache_path = Path(xdg_cache_home) / "claude_statusline" / "cache.json"
+    else:
+        cache_path = Path.home() / ".cache" / "claude_statusline" / "cache.json"
+    cache = SegmentCache(cache_path)
+    cache.load()
+    cache.load()
     all_segments: list[SegmentGenerationResult] = []
     tasks = []
 
@@ -121,7 +130,7 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
         if show_errors:
             return [
                 SegmentGenerationResult(
-                    line=4,
+                    line=3,
                     index=999,
                     generator=name,
                     segment=Segment(text=f"[Error: {name}]"),

@@ -14,7 +14,7 @@ def render_lines(
 
     lines_map = defaultdict(list)
     for seg in segments:
-        if seg.line <= 4:
+        if seg.line <= 3:
             lines_map[seg.line].append(seg)
 
     result_lines = []

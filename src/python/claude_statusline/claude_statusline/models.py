@@ -119,7 +119,7 @@ class Segment(BaseModel):
 
 class SegmentGenerationResult(BaseModel):
     segment: Segment
-    line: int = 1
+    line: int = 0
     index: int = 0
     generator: str = "internal"
     cache_duration: TimeDelta | None = None

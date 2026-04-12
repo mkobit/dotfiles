@@ -171,7 +171,7 @@ def format_git_full(info: GitInfo | None) -> SegmentGenerationResult | None:
         parts.append(f"\033]8;;{info.remote}\033\\{get_icon('remote')}\033]8;;\033\\")
 
     return SegmentGenerationResult(
-        line=3,
+        line=2,
         index=0,
         segment=Segment(text=" ".join(parts)),
         generator="internal.git",

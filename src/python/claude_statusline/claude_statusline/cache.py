@@ -10,19 +10,11 @@ logger = logging.getLogger(__name__)
 
 
 class SegmentCache:
-    def __init__(self, cache_file: Path | None = None) -> None:
-        if cache_file is None:
-            self.cache_file = (
-                Path.home() / ".cache" / "claude_statusline" / "cache.json"
-            )
-        else:
-            self.cache_file = cache_file
-
-        self.cache_file.parent.mkdir(parents=True, exist_ok=True)
+    def __init__(self, cache_file: Path) -> None:
+        self.cache_file = cache_file
         self._cache: dict[str, CachedSegment] = {}
-        self._load()
 
-    def _load(self) -> None:
+    def load(self) -> None:
         if not self.cache_file.exists():
             return
 
@@ -39,6 +31,7 @@ class SegmentCache:
 
     def _save(self) -> None:
         try:
+            self.cache_file.parent.mkdir(parents=True, exist_ok=True)
             adapter = TypeAdapter(dict[str, CachedSegment])
             self.cache_file.write_text(adapter.dump_json(self._cache).decode("utf-8"))
         except (OSError, ValidationError) as e:

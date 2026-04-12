@@ -144,6 +144,7 @@ class TestStatusLine(unittest.TestCase):
 
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
+    @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/claude_statusline_test_cache"})
     def test_main(self, mock_stdin: MagicMock, mock_print: MagicMock) -> None:
         input_data = {
             "model": {"display_name": "Claude 3"},
@@ -160,7 +161,7 @@ class TestStatusLine(unittest.TestCase):
 
             mock_get_git_info.return_value = [
                 SegmentGenerationResult(
-                    segment=Segment(text="main"), generator="internal.git", line=3
+                    segment=Segment(text="main"), generator="internal.git", line=2
                 )
             ]
 
@@ -184,6 +185,7 @@ class TestStatusLine(unittest.TestCase):
 
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
+    @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/claude_statusline_test_cache"})
     def test_main_full_payload(
         self, mock_stdin: MagicMock, mock_print: MagicMock
     ) -> None:
@@ -246,7 +248,7 @@ class TestStatusLine(unittest.TestCase):
                 SegmentGenerationResult(
                     segment=Segment(text="feature-branch"),
                     generator="internal.git",
-                    line=3,
+                    line=2,
                 )
             ]
 
