@@ -129,16 +129,16 @@ jobs:
 
       - name: Prune mise cache
         run: |
-          MISE_BIN=$(chezmoi --source=${{ github.workspace }} --destination=/tmp/chezmoi-test target-path ${{ github.workspace }}/src/chezmoi/dot_local/bin)/mise
-          "$MISE_BIN" cache prune --yes
-          echo "MISE_BIN=$MISE_BIN" >> $GITHUB_ENV
+          MISE_BIN_DIR=$(chezmoi --source=${{ github.workspace }} --destination=/tmp/chezmoi-test target-path ${{ github.workspace }}/src/chezmoi/dot_local/bin)
+          echo "$MISE_BIN_DIR" >> $GITHUB_PATH
+          "$MISE_BIN_DIR/mise" cache prune --yes
 
       - name: Install python dependencies for integration tests
         env:
           HOME: /tmp/chezmoi-test
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          "$MISE_BIN" exec -- uv sync --all-packages --frozen
+          mise exec -- uv sync --all-packages --frozen
 
       - name: Run system integration tests
         env:
@@ -146,6 +146,6 @@ jobs:
           HOME: /tmp/chezmoi-test
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          "$MISE_BIN" exec -- uv run pytest tests/integration
+          mise exec -- uv run pytest tests/integration
 
 
