@@ -20,6 +20,8 @@ if [[ ! -x "$MISE" ]]; then
     exit 0
 fi
 
+eval "$("$MISE" activate bash)"
+
 log_info "Running 'mise install' for global tools..."
 if "$MISE" install; then
     log_success "Mise global tools installation complete."
