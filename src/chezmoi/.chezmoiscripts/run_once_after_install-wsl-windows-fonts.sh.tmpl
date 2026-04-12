@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+{{ if eq .os.environment "wsl" -}}
+
+LINUX_SRC_FOLDER="{{ .chezmoi.homeDir }}/.local/share/fonts/NerdFonts"
+WINDOWS_SRC_FOLDER=$(wslpath -w "$LINUX_SRC_FOLDER")
+
+powershell.exe -NoProfile -Command "
+\$srcFolder = '${WINDOWS_SRC_FOLDER}'
+\$destFolder = \"\$env:LOCALAPPDATA\Microsoft\Windows\Fonts\"
+
+if (!(Test-Path \$destFolder)) { New-Item -Path \$destFolder -ItemType Directory }
+
+Get-ChildItem -Path \$srcFolder -Include '*.ttf', '*.otf' -Recurse | ForEach-Object {
+    \$destFile = Join-Path \$destFolder \$_.Name
+    if (!(Test-Path \$destFile)) {
+        Copy-Item \$_.FullName \$destFolder
+
+        # Register the font in the Registry so Windows sees it immediately
+        \$fontName = \$_.BaseName
+        Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows NT\CurrentVersion\Fonts' \
+            -Name \"\$fontName (TrueType)\" -Value \$_.Name
+    }
+}
+"
+{{- end }}

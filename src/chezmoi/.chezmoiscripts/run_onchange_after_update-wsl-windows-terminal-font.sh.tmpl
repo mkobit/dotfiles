@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+{{ if eq .os.environment "wsl" -}}
+
+# Target Terminal settings path hash: {{ .windows_terminal.settings_path | sha256sum }}
+# Nerd Font face hash: {{ .windows_terminal.nerd_font_name | sha256sum }}
+
+WINDOWS_SETTINGS_PATH="{{ .windows_terminal.settings_path }}"
+FONT_NAME="{{ .windows_terminal.nerd_font_name }}"
+
+if [ -n "$WINDOWS_SETTINGS_PATH" ]; then
+    LINUX_SETTINGS_PATH=$(wslpath -u "$WINDOWS_SETTINGS_PATH")
+    if [ -f "$LINUX_SETTINGS_PATH" ]; then
+        TEMP_FILE=$(mktemp)
+        jq ".profiles.defaults.font.face = \"$FONT_NAME\"" "$LINUX_SETTINGS_PATH" > "$TEMP_FILE" && mv "$TEMP_FILE" "$LINUX_SETTINGS_PATH"
+    fi
+fi
+
+{{- end }}
