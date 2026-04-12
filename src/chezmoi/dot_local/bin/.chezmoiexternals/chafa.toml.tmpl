@@ -1,6 +1,7 @@
 {{- $version := dig "chafa" "version" "1.18.1" . -}}
 {{- $installation := dig "chafa" "installation" "external-sources" . -}}
 {{- if eq $installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
 {{- $target := "" -}}
 {{- if and (eq $.chezmoi.os "linux") (eq $.chezmoi.arch "amd64") -}}
   {{- $target = "x86_64-linux-gnu" -}}
@@ -13,5 +14,9 @@ type = "archive-file"
 url = "https://hpjansson.org/chafa/releases/static/chafa-{{ $version }}-1-{{ $target }}.tar.gz"
 path = "chafa-{{ $version }}-1-{{ $target }}/chafa"
 executable = true
+{{- $checksums := dig "chafa" "checksums" dict . -}}
+{{- if and (hasKey $checksums $platform) (ne (trim (index $checksums $platform)) "") }}
+checksum.sha256 = "{{ index $checksums $platform }}"
+{{- end -}}
 {{- end -}}
 {{- end -}}
