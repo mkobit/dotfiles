@@ -17,7 +17,7 @@ if ! check_command brew; then
     exit 1
 fi
 
-if brew install --cask ghostty; then
+if brew install --cask ghostty >/dev/null; then
     log_success "ghostty installed successfully via homebrew cask"
 else
     log_error "Failed to install ghostty via homebrew cask"
@@ -34,7 +34,7 @@ if command -v apt-get >/dev/null 2>&1; then
         exit 1
     fi
 
-    if sudo snap install ghostty --classic; then
+    if sudo snap install ghostty --classic >/dev/null; then
         log_success "ghostty installed successfully via snap"
     else
         log_error "Failed to install ghostty via snap"
@@ -46,7 +46,7 @@ elif command -v pacman >/dev/null 2>&1; then
     # Arch Linux - official repos only
     log_info "Installing ghostty via pacman (Arch Linux)"
     
-    if sudo pacman -S --noconfirm ghostty; then
+    if sudo pacman -S --noconfirm ghostty >/dev/null; then
         log_success "ghostty installed successfully via pacman"
     else
         log_error "Failed to install ghostty via pacman"
@@ -59,7 +59,7 @@ elif command -v dnf >/dev/null 2>&1; then
     # Fedora
     log_info "Installing ghostty via dnf (Fedora)"
     
-    if sudo dnf install -y ghostty; then
+    if sudo dnf install -y ghostty >/dev/null; then
         log_success "ghostty installed successfully via dnf"
     else
         log_error "Failed to install ghostty via dnf"

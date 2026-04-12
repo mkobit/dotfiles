@@ -14,7 +14,7 @@ else
         exit 1
     fi
 
-    if brew install --cask hammerspoon; then
+    if brew install --cask hammerspoon >/dev/null; then
         log_success "hammerspoon installed successfully via homebrew cask"
     else
         log_error "Failed to install hammerspoon via homebrew cask"
