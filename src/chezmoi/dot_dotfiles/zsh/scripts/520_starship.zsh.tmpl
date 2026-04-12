@@ -1,4 +1,5 @@
-{{- if eq .zsh.prompt "starship" }}
+{{- $prompt := default "starship" .zsh.prompt -}}
+{{- if eq $prompt "starship" }}
 #!/usr/bin/env zsh
 
 # Initialize Starship

@@ -1,5 +1,7 @@
 {{ with (index .zsh "oh-my-zsh") }}
-{{ if and (eq (default "starship" $.zsh.prompt) "oh-my-zsh") (eq (default "external-sources" .installation) "external-sources") }}
+{{- $prompt := default "starship" $.zsh.prompt -}}
+{{- $installation := default "external-sources" (get . "installation") -}}
+{{ if and (eq $prompt "oh-my-zsh") (eq $installation "external-sources") }}
 #!/usr/bin/env zsh
 
 {{ if .powerlevel10k.enabled }}
