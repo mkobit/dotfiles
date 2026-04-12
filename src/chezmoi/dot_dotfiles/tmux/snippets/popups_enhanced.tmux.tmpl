@@ -95,7 +95,7 @@ if-shell -b '[ "$(echo "$(tmux -V | cut -d" " -f2) >= 3.2" | bc)" = 1 ]' {
     "
 
     # Extract and open URLs in current pane (using u)
-    bind-key u run-shell "~/.local/bin/tmux-open-url '#{pane_id}'"
+    bind-key u run-shell "{{ .chezmoi.destDir }}/.local/bin/tmux-open-url '#{pane_id}'"
 
 } {
     # Fallback for older tmux versions
