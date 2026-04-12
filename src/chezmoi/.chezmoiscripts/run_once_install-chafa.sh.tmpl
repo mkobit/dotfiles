@@ -1,4 +1,5 @@
-{{ if eq .chafa.installation "package-manager" }}#!/bin/bash
+{{-  := dig "chafa" "installation" "external-sources" . -}}
+{{- if eq  "package-manager" -}}#!/bin/bash
 CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
 source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 if check_command chafa; then
@@ -28,4 +29,4 @@ fi
 log_error "Unsupported OS: {{ .chezmoi.os }}"
 exit 1
 {{ end }}
-{{ end }}
+{{- end -}}
