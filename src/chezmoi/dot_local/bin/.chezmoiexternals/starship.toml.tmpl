@@ -1,0 +1,23 @@
+{{- with .starship -}}
+{{- $installation := default "external-sources" (get . "installation") -}}
+{{- if eq $installation "external-sources" -}}
+{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
+{{- $target := "" -}}
+{{- if eq $.chezmoi.os "darwin" -}}
+  {{- $target = printf "%s-apple-darwin" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
+{{- else -}}
+  {{- $target = printf "%s-unknown-linux-%s" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") (eq $.chezmoi.arch "arm64" | ternary "musl" "gnu") -}}
+{{- end }}
+["starship"]
+type = "archive-file"
+url = {{ gitHubReleaseAssetURL "starship/starship" (printf "v%s" .version) (printf "starship-%s.tar.gz" $target) | quote }}
+path = "starship"
+executable = true
+{{- if ne .checksums.type "disabled" }}
+  {{- if not (hasKey .checksums $platform) }}
+    {{- fail (printf "Checksum validation enabled but no checksum found for platform: %s" $platform) }}
+  {{- end }}
+checksum.sha256 = "{{ index .checksums $platform }}"
+{{- end }}
+{{- end -}}
+{{- end }}

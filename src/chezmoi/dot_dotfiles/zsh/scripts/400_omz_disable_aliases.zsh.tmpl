@@ -1,3 +1,5 @@
+{{- $prompt := default "starship" .zsh.prompt -}}
+{{- if eq $prompt "oh-my-zsh" -}}
 {{- with .eza -}}
 {{- $installation := index .installation $.chezmoi.os -}}
 {{- if and $installation (ne $installation "disabled") -}}
@@ -8,3 +10,4 @@
 zstyle ':omz:lib:directories' aliases no
 {{- end -}}
 {{- end }}
+{{- end -}}

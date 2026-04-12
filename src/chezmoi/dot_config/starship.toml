@@ -1,0 +1,18 @@
+"$schema" = 'https://starship.rs/config-schema.json'
+
+# For more information, visit: https://starship.rs/config/
+
+# Inserts a blank line between shell prompts
+add_newline = true
+
+# Replace the '❯' symbol in the prompt with '➜'
+[character]
+success_symbol = "[➜](bold green)"
+error_symbol = "[➜](bold red)"
+vimcmd_symbol = "[V](bold green)"
+
+# Starship automatically displays the current directory,
+# git status, and branch information by default.
+
+[package]
+disabled = true # Disables the package version module (e.g. Node.js/Rust versions based on package.json/Cargo.toml) to speed up prompt rendering.
