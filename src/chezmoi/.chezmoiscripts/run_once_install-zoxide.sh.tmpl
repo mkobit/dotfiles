@@ -25,7 +25,7 @@ else
 fi
 {{ else if eq .chezmoi.os "linux" }}
 # Linux - zoxide may not be in older Ubuntu repos
-if sudo apt-get update && sudo apt-get install -y zoxide; then
+if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y zoxide >/dev/null 2>&1; then
     log_success "zoxide installed successfully via apt"
 else
     log_warn "zoxide not available in apt repos"
