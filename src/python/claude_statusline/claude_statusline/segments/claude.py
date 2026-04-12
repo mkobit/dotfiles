@@ -47,6 +47,7 @@ def format_context_usage(cw: ContextWindowInfo) -> SegmentGenerationResult | Non
     return SegmentGenerationResult(
         line=3,
         index=10,
+        generator="internal.claude",
         segment=Segment(
             text=f"{DIM}ctx:{RESET} {color}{visual_bar}{RESET} {int(used_pct)}%"
         ),
@@ -59,7 +60,10 @@ def format_model_info(payload: StatusLineStdIn) -> SegmentGenerationResult | Non
         f"{MAGENTA}@{payload.agent.name}{RESET}" if payload.agent.name else None,
     ]
     return SegmentGenerationResult(
-        line=1, index=0, segment=Segment(text=" ".join(filter(None, parts)))
+        line=1,
+        index=0,
+        generator="internal.claude",
+        segment=Segment(text=" ".join(filter(None, parts))),
     )
 
 
@@ -85,7 +89,10 @@ def format_session_info(payload: StatusLineStdIn) -> SegmentGenerationResult | N
     if not parts:
         return None
     return SegmentGenerationResult(
-        line=1, index=10, segment=Segment(text=" ".join(parts))
+        line=1,
+        index=10,
+        generator="internal.claude",
+        segment=Segment(text=" ".join(parts)),
     )
 
 
@@ -95,6 +102,7 @@ def format_cost(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
     return SegmentGenerationResult(
         line=3,
         index=20,
+        generator="internal.claude",
         segment=Segment(
             text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"
         ),

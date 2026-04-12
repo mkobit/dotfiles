@@ -27,6 +27,7 @@ def format_directory(cwd: Path) -> SegmentGenerationResult | None:
     return SegmentGenerationResult(
         line=2,
         index=0,
+        generator="internal.workspace",
         segment=Segment(text=f"{BLUE}{get_icon('dir')} {cwd_link}{RESET}"),
     )
 
@@ -39,6 +40,7 @@ def format_obsidian_vault(cwd: Path) -> SegmentGenerationResult | None:
             return SegmentGenerationResult(
                 line=2,
                 index=10,
+                generator="internal.workspace",
                 segment=Segment(
                     text=f"{BLUE}{get_icon('obsidian')} {vault_name}{RESET}"
                 ),

@@ -1,178 +1,31 @@
 import asyncio
-import hashlib
 import json
 import logging
 import shlex
-import subprocess
 import sys
-import tempfile
-import time
 from collections.abc import Sequence
 from pathlib import Path
-from typing import NamedTuple
 
 import click
 from pydantic import TypeAdapter, ValidationError
+from whenever import Instant
 
-from claude_statusline.models import (
-    GitInfo,
-    SegmentGenerationResult,
-    StatusLineStdIn,
-)
+from claude_statusline.cache import SegmentCache
+from claude_statusline.models import Segment, SegmentGenerationResult, StatusLineStdIn
 from claude_statusline.render import render_lines
-
-CACHE_DURATION = 30  # seconds
+from claude_statusline.segments.claude import (
+    format_context_usage,
+    format_cost,
+    format_model_info,
+    format_session_info,
+)
+from claude_statusline.segments.git import generate_git_segment
+from claude_statusline.segments.workspace import format_directory, format_obsidian_vault
 
 logging.basicConfig(
     level=logging.WARNING, stream=sys.stderr, format="%(levelname)s: %(message)s"
 )
 logger = logging.getLogger(__name__)
-
-
-class BranchRemoteInfo(NamedTuple):
-    branch: str
-    remote: str | None
-
-
-class GitStatusInfo(NamedTuple):
-    dirty: bool
-    staged: bool
-    untracked: bool
-
-
-class AheadBehindInfo(NamedTuple):
-    ahead: int
-    behind: int
-
-
-def _check_is_repo(cwd: Path) -> bool:
-    res = subprocess.run(
-        ["git", "rev-parse", "--is-inside-work-tree"],
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-    )
-    if res.returncode == 0:
-        return res.stdout.strip() == "true"
-    return False
-
-
-def _get_branch_and_remote(cwd: Path) -> BranchRemoteInfo:
-    branch = "HEAD"
-    remote = None
-
-    branch_res = subprocess.run(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-    )
-    if branch_res.returncode == 0:
-        branch = branch_res.stdout.strip()
-
-    remote_res = subprocess.run(
-        ["git", "ls-remote", "--get-url", "origin"],
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-    )
-    if remote_res.returncode == 0:
-        remote_url = remote_res.stdout.strip()
-        if remote_url.startswith("git@"):
-            remote_url = remote_url.replace(":", "/").replace("git@", "https://")
-        if remote_url.endswith(".git"):
-            remote_url = remote_url[:-4]
-        remote = remote_url
-
-    return BranchRemoteInfo(branch=branch, remote=remote)
-
-
-def _get_status(cwd: Path) -> GitStatusInfo:
-    dirty = False
-    staged = False
-    untracked = False
-
-    res = subprocess.run(
-        ["git", "status", "--porcelain"],
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-    )
-
-    if res.returncode == 0 and res.stdout:
-        lines = res.stdout.splitlines()
-        staged = any(line[0] not in (" ", "?") for line in lines)
-        dirty = any(line[1] != " " and not line.startswith("??") for line in lines)
-        untracked = any(line.startswith("??") for line in lines)
-
-    return GitStatusInfo(dirty=dirty, staged=staged, untracked=untracked)
-
-
-def _get_ahead_behind(cwd: Path) -> AheadBehindInfo:
-    ahead = 0
-    behind = 0
-
-    res = subprocess.run(
-        ["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"],
-        cwd=cwd,
-        capture_output=True,
-        text=True,
-    )
-
-    if res.returncode == 0 and res.stdout:
-        try:
-            a, b = map(int, res.stdout.strip().split())
-            ahead = a
-            behind = b
-        except ValueError:
-            pass
-
-    return AheadBehindInfo(ahead=ahead, behind=behind)
-
-
-def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
-    """Retrieves git information for the given directory with caching."""
-    cwd_str = str(cwd.resolve())
-    cache_key = session_id if session_id else hashlib.md5(cwd_str.encode()).hexdigest()
-    cache_file = Path(tempfile.gettempdir()) / f"claude_statusline_git_{cache_key}.json"
-
-    if cache_file.exists():
-        try:
-            mtime = cache_file.stat().st_mtime
-            if time.time() - mtime < CACHE_DURATION:
-                with cache_file.open("r") as f:
-                    data = json.load(f)
-                    if isinstance(data, dict):
-                        return GitInfo(**data)
-        except OSError, json.JSONDecodeError, TypeError, ValueError:
-            pass
-
-    if not _check_is_repo(cwd):
-        return None
-
-    branch_info = _get_branch_and_remote(cwd)
-    status_info = _get_status(cwd)
-    ahead_behind_info = _get_ahead_behind(cwd)
-
-    info = GitInfo(
-        branch=branch_info.branch,
-        remote=branch_info.remote,
-        dirty=status_info.dirty,
-        staged=status_info.staged,
-        untracked=status_info.untracked,
-        ahead=ahead_behind_info.ahead,
-        behind=ahead_behind_info.behind,
-        is_repo=True,
-        is_worktree=False,
-    )
-
-    try:
-        with cache_file.open("w") as f:
-            json.dump(info.model_dump(), f, indent=2)
-    except OSError:
-        pass
-
-    return info
 
 
 async def run_external_generator(
@@ -194,7 +47,7 @@ async def run_external_generator(
             proc.kill()
             await proc.communicate()
             logger.warning(f"Timeout error in external generator {cmd}")
-            return []
+            raise Exception(f"Timeout running {cmd}")
 
         if proc.returncode == 0 and stdout.strip():
             try:
@@ -205,17 +58,25 @@ async def run_external_generator(
 
                 results = data if isinstance(data, list) else [data]
 
-                # set generator name from cmd
                 for item in results:
                     item.generator = cmd
                 return results
 
             except ValidationError as e:
                 logger.warning(f"Validation error in external generator {cmd}: {e}")
+                raise
             except Exception as e:
                 logger.warning(f"JSON parsing error in external generator {cmd}: {e}")
+                raise
+        else:
+            if proc.returncode != 0:
+                logger.warning(
+                    f"External generator {cmd} exited with code {proc.returncode}"
+                )
+                raise Exception(f"Exit code {proc.returncode}")
     except Exception as e:
         logger.warning(f"Error running external generator {cmd}: {e}")
+        raise
     return []
 
 
@@ -225,7 +86,12 @@ async def run_external_generator(
     multiple=True,
     help="External command or script to generate segments (takes JSON on stdin).",
 )
-def main(generator: tuple[str, ...]) -> None:
+@click.option(
+    "--show-errors",
+    is_flag=True,
+    help="Display error segments for failed generators.",
+)
+def main(generator: tuple[str, ...], show_errors: bool) -> None:
     raw_json_str = "{}"
     try:
         if not sys.stdin.isatty():
@@ -245,26 +111,100 @@ def main(generator: tuple[str, ...]) -> None:
     if not cwd_str and payload.cwd:
         cwd_str = payload.cwd
     cwd = Path(cwd_str).resolve() if cwd_str else Path.cwd()
+    is_worktree = bool(payload.workspace.git_worktree)
 
-    git_info = get_git_info(cwd, payload.session_id)
-    if git_info and payload.workspace.git_worktree:
-        git_info.is_worktree = True
+    cache = SegmentCache()
+    all_segments: list[SegmentGenerationResult] = []
+    tasks = []
 
-    extra_segments: list[SegmentGenerationResult] = []
-    if generator:
+    def handle_error(err: Exception, name: str) -> list[SegmentGenerationResult]:
+        if show_errors:
+            return [
+                SegmentGenerationResult(
+                    line=4,
+                    index=999,
+                    generator=name,
+                    segment=Segment(text=f"[Error: {name}]"),
+                )
+            ]
+        return []
 
-        async def fetch_all():
-            tasks = [run_external_generator(cmd, raw_json_str) for cmd in generator]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
-            for res in results:
-                if isinstance(res, Exception):
-                    continue
+    async def fetch_all():
+        git_key = f"internal.git:{cwd.resolve()}"
+        cached_git = cache.get(git_key)
+        if cached_git is not None:
+            all_segments.extend(cached_git)
+        else:
+
+            async def wrap_git():
+                try:
+                    res = await generate_git_segment(cwd, is_worktree)
+                    return ("git", git_key, res)
+                except Exception as e:
+                    return ("git", git_key, e)
+
+            tasks.append(wrap_git())
+
+        for cmd in generator:
+            cmd_key = f"external:{cmd}"
+            cached_cmd = cache.get(cmd_key)
+            if cached_cmd is not None:
+                all_segments.extend(cached_cmd)
+            else:
+
+                async def wrap_cmd(c=cmd, ck=cmd_key):
+                    try:
+                        res = await run_external_generator(c, raw_json_str)
+                        return ("external", ck, res)
+                    except Exception as e:
+                        return ("external", ck, e)
+
+                tasks.append(wrap_cmd())
+
+        results = await asyncio.gather(*tasks)
+
+        for type_name, key, res in results:
+            if isinstance(res, Exception):
+                all_segments.extend(handle_error(res, key))
+            else:
+                all_segments.extend(res)
                 if res:
-                    extra_segments.extend(res)  # type: ignore
+                    try:
+                        if any(
+                            hasattr(r, "cache_duration") and r.cache_duration
+                            for r in res
+                        ):
+                            duration = next(
+                                (
+                                    r.cache_duration
+                                    for r in res
+                                    if hasattr(r, "cache_duration") and r.cache_duration
+                                ),
+                                None,
+                            )
+                            if duration:
+                                cache.set(key, list(res), Instant.now() + duration)
+                    except Exception:
+                        pass
 
-        asyncio.run(fetch_all())
+    asyncio.run(fetch_all())
 
-    lines = render_lines(payload, git_info, extra_segments)
+    try:
+        internal_results = [
+            format_model_info(payload),
+            format_session_info(payload),
+            format_directory(cwd),
+            format_obsidian_vault(cwd),
+            format_context_usage(payload.context_window),
+            format_cost(payload),
+        ]
+        for r in internal_results:
+            if r:
+                all_segments.append(r)
+    except Exception as e:
+        all_segments.extend(handle_error(e, "internal.claude_or_workspace"))
+
+    lines = render_lines(payload, None, all_segments)
 
     for line in lines:
         print(line)

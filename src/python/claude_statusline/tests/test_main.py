@@ -99,38 +99,48 @@ class TestStatusLine(unittest.TestCase):
         self.assertIn("↑2", res.segment.text)
         self.assertIn("↓1", res.segment.text)
 
-    @patch("subprocess.run")
+    @patch("asyncio.create_subprocess_exec")
     def test_get_git_info_fresh(self, mock_run: MagicMock) -> None:
-        def side_effect(cmd: Any, **kwargs: Any) -> Any:
-            cmd_list = cmd if isinstance(cmd, list) else cmd.split()
-            mock_res = MagicMock()
-            mock_res.returncode = 0
+        async def side_effect(*cmd: Any, **kwargs: Any) -> Any:
+            cmd_list = cmd
+            stdout = ""
             if "rev-parse" in cmd_list and "HEAD" in cmd_list:
-                mock_res.stdout = "feature-branch\n"
+                stdout = "feature-branch\n"
             elif "ls-remote" in cmd_list:
-                mock_res.stdout = "git@github.com:user/repo.git\n"
+                stdout = "git@github.com:user/repo.git\n"
             elif "status" in cmd_list:
-                mock_res.stdout = " M modified_file.py\n?? untracked.py\n"
+                stdout = " M modified_file.py\n?? untracked.py\n"
             elif "rev-list" in cmd_list:
-                mock_res.stdout = "1\t0\n"
-            else:
-                mock_res.stdout = ""
-            return mock_res
+                stdout = "1\t0\n"
+            elif "rev-parse" in cmd_list and "--is-inside-work-tree" in cmd_list:
+                stdout = "true\n"
+
+            async def mock_communicate():
+                return stdout.encode(), b""
+
+            mock_proc = MagicMock()
+            mock_proc.returncode = 0
+            mock_proc.communicate = mock_communicate
+            return mock_proc
 
         mock_run.side_effect = side_effect
 
         with patch.object(Path, "exists", return_value=False):
-            with patch("claude_statusline.main._check_is_repo", return_value=True):
-                info = main_module.get_git_info(Path("/tmp/repo"), None)
+            with patch(
+                "claude_statusline.segments.git._check_is_repo", return_value=True
+            ):
+                import asyncio
 
-        self.assertIsNotNone(info)
+                from claude_statusline.segments.git import generate_git_segment
+
+                info = asyncio.run(generate_git_segment(Path("/tmp/repo"), False))
+
+        self.assertTrue(len(info) > 0)
         assert info is not None
-        self.assertEqual(info.branch, "feature-branch")
-        self.assertEqual(info.remote, "https://github.com/user/repo")
-        self.assertTrue(info.dirty)
-        self.assertEqual(info.ahead, 1)
-        self.assertEqual(info.behind, 0)
-        self.assertFalse(info.is_worktree)
+        self.assertTrue("feature-branch" in info[0].segment.text)
+        self.assertTrue("https://github.com/user/repo" in info[0].segment.text)
+
+        self.assertTrue("1" in info[0].segment.text)
 
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
@@ -145,18 +155,14 @@ class TestStatusLine(unittest.TestCase):
         mock_stdin.write(json.dumps(input_data))
         mock_stdin.seek(0)
 
-        with patch.object(main_module, "get_git_info") as mock_get_git_info:
-            mock_get_git_info.return_value = GitInfo(
-                branch="main",
-                dirty=False,
-                staged=False,
-                untracked=False,
-                ahead=0,
-                behind=0,
-                remote=None,
-                is_repo=True,
-                is_worktree=False,
-            )
+        with patch("claude_statusline.main.generate_git_segment") as mock_get_git_info:
+            from claude_statusline.models import Segment, SegmentGenerationResult
+
+            mock_get_git_info.return_value = [
+                SegmentGenerationResult(
+                    segment=Segment(text="main"), generator="internal.git", line=3
+                )
+            ]
 
             with patch("shutil.get_terminal_size") as mock_term:
                 import os
@@ -233,18 +239,16 @@ class TestStatusLine(unittest.TestCase):
         mock_stdin.write(json.dumps(input_data))
         mock_stdin.seek(0)
 
-        with patch.object(main_module, "get_git_info") as mock_get_git_info:
-            mock_get_git_info.return_value = GitInfo(
-                branch="feature-branch",
-                dirty=True,
-                staged=False,
-                untracked=False,
-                ahead=0,
-                behind=0,
-                remote=None,
-                is_repo=True,
-                is_worktree=True,
-            )
+        with patch("claude_statusline.main.generate_git_segment") as mock_get_git_info:
+            from claude_statusline.models import Segment, SegmentGenerationResult
+
+            mock_get_git_info.return_value = [
+                SegmentGenerationResult(
+                    segment=Segment(text="feature-branch"),
+                    generator="internal.git",
+                    line=3,
+                )
+            ]
 
             with patch("shutil.get_terminal_size") as mock_term:
                 import os

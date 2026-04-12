@@ -1,0 +1,61 @@
+import logging
+from pathlib import Path
+
+from pydantic import TypeAdapter, ValidationError
+from whenever import Instant
+
+from claude_statusline.models import CachedSegment, SegmentGenerationResult
+
+logger = logging.getLogger(__name__)
+
+
+class SegmentCache:
+    def __init__(self, cache_file: Path | None = None) -> None:
+        if cache_file is None:
+            self.cache_file = (
+                Path.home() / ".cache" / "claude_statusline" / "cache.json"
+            )
+        else:
+            self.cache_file = cache_file
+
+        self.cache_file.parent.mkdir(parents=True, exist_ok=True)
+        self._cache: dict[str, CachedSegment] = {}
+        self._load()
+
+    def _load(self) -> None:
+        if not self.cache_file.exists():
+            return
+
+        try:
+            content = self.cache_file.read_text()
+            if not content.strip():
+                return
+
+            adapter = TypeAdapter(dict[str, CachedSegment])
+            self._cache = adapter.validate_json(content)
+        except (OSError, ValidationError) as e:
+            logger.warning(f"Failed to load cache from {self.cache_file}: {e}")
+            self._cache = {}
+
+    def _save(self) -> None:
+        try:
+            adapter = TypeAdapter(dict[str, CachedSegment])
+            self.cache_file.write_text(adapter.dump_json(self._cache).decode("utf-8"))
+        except (OSError, ValidationError) as e:
+            logger.warning(f"Failed to save cache to {self.cache_file}: {e}")
+
+    def get(self, key: str) -> list[SegmentGenerationResult] | None:
+        if key in self._cache:
+            cached = self._cache[key]
+            if cached.expires_at > Instant.now():
+                return cached.results
+            else:
+                del self._cache[key]
+                self._save()
+        return None
+
+    def set(
+        self, key: str, results: list[SegmentGenerationResult], expires_at: Instant
+    ) -> None:
+        self._cache[key] = CachedSegment(results=results, expires_at=expires_at)
+        self._save()
