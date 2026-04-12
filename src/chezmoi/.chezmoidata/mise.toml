@@ -32,7 +32,7 @@ disable_hints = ["self_update"]
   version = "1.3.11"
 
   [mise.global_tools.node]
-  version = "lts"
+  version = "22"
 
   [mise.global_tools."npm:@google/gemini-cli"]
   version = "0.37.1"
