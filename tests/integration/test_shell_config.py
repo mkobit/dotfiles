@@ -8,7 +8,8 @@ import pytest
 async def test_zsh_config_syntax():
     """Ensure compiled config.zsh evaluates correctly without syntax errors."""
     try:
-        config_path = os.path.expanduser("~/.dotfiles/zsh/config.zsh")
+        dest_dir = os.environ.get("CHEZMOI_DEST", os.path.expanduser("~"))
+        config_path = os.path.join(dest_dir, ".dotfiles/zsh/config.zsh")
         if not os.path.exists(config_path):
             pytest.skip("zsh config not found")
 
@@ -22,7 +23,8 @@ async def test_zsh_config_syntax():
 async def test_bash_config_syntax():
     """Ensure compiled config.bash evaluates correctly without syntax errors."""
     try:
-        config_path = os.path.expanduser("~/.dotfiles/bash/config.bash")
+        dest_dir = os.environ.get("CHEZMOI_DEST", os.path.expanduser("~"))
+        config_path = os.path.join(dest_dir, ".dotfiles/bash/config.bash")
         if not os.path.exists(config_path):
             pytest.skip("bash config not found")
 
