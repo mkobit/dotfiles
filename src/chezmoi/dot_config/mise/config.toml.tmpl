@@ -22,7 +22,7 @@
 {{- range $key, $value := .mise.settings }}
 {{- if kindIs "map" $value }}
 {{- range $subkey, $subval := $value }}
-"{{ $key }}.{{ $subkey }}" = {{ $subval | toJson }}
+{{ $key }}.{{ $subkey }} = {{ $subval | toJson }}
 {{- end }}
 {{- else }}
 {{ $key }} = {{ $value | toJson }}
