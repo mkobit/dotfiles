@@ -1,4 +1,4 @@
-from claude_statusline.models import GitInfo
+from claude_statusline.models import GitInfo, Segment, SegmentGenerationResult
 from claude_statusline.segments.constants import (
     CYAN,
     GREEN,
@@ -6,12 +6,11 @@ from claude_statusline.segments.constants import (
     RED,
     RESET,
     YELLOW,
-    Segment,
     get_icon,
 )
 
 
-def format_git_full(info: GitInfo | None) -> Segment | None:
+def format_git_full(info: GitInfo | None) -> SegmentGenerationResult | None:
     if not info:
         return None
 
@@ -39,4 +38,6 @@ def format_git_full(info: GitInfo | None) -> Segment | None:
     if info.remote:
         parts.append(f"\033]8;;{info.remote}\033\\{get_icon('remote')}\033]8;;\033\\")
 
-    return Segment(" ".join(parts))
+    return SegmentGenerationResult(
+        line=3, index=0, segment=Segment(text=" ".join(parts))
+    )

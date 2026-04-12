@@ -1,4 +1,9 @@
-from claude_statusline.models import ContextWindowInfo, StatusLineStdIn
+from claude_statusline.models import (
+    ContextWindowInfo,
+    Segment,
+    SegmentGenerationResult,
+    StatusLineStdIn,
+)
 from claude_statusline.segments.constants import (
     BLUE,
     BOLD,
@@ -9,12 +14,11 @@ from claude_statusline.segments.constants import (
     RED,
     RESET,
     YELLOW,
-    Segment,
     get_icon,
 )
 
 
-def format_context_usage(cw: ContextWindowInfo) -> Segment | None:
+def format_context_usage(cw: ContextWindowInfo) -> SegmentGenerationResult | None:
     """Formats the context usage with a block-based progress bar and token stats."""
     used_pct = cw.used_percentage or 0.0
 
@@ -40,18 +44,26 @@ def format_context_usage(cw: ContextWindowInfo) -> Segment | None:
         for i in range(width)
     )
 
-    return Segment(f"{DIM}ctx:{RESET} {color}{visual_bar}{RESET} {int(used_pct)}%")
+    return SegmentGenerationResult(
+        line=3,
+        index=10,
+        segment=Segment(
+            text=f"{DIM}ctx:{RESET} {color}{visual_bar}{RESET} {int(used_pct)}%"
+        ),
+    )
 
 
-def format_model_info(payload: StatusLineStdIn) -> Segment | None:
+def format_model_info(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
     parts = [
         f"{get_icon('robot')} {BLUE}{BOLD}{payload.model.display_name}{RESET}",
         f"{MAGENTA}@{payload.agent.name}{RESET}" if payload.agent.name else None,
     ]
-    return Segment(" ".join(filter(None, parts)))
+    return SegmentGenerationResult(
+        line=1, index=0, segment=Segment(text=" ".join(filter(None, parts)))
+    )
 
 
-def format_session_info(payload: StatusLineStdIn) -> Segment | None:
+def format_session_info(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
     parts = []
     if payload.session_name:
         parts.append(f"{CYAN}#{payload.session_name}{RESET}")
@@ -72,12 +84,18 @@ def format_session_info(payload: StatusLineStdIn) -> Segment | None:
 
     if not parts:
         return None
-    return Segment(" ".join(parts))
+    return SegmentGenerationResult(
+        line=1, index=10, segment=Segment(text=" ".join(parts))
+    )
 
 
-def format_cost(payload: StatusLineStdIn) -> Segment | None:
+def format_cost(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
     if not payload.cost.total_cost_usd:
         return None
-    return Segment(
-        f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"
+    return SegmentGenerationResult(
+        line=3,
+        index=20,
+        segment=Segment(
+            text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"
+        ),
     )

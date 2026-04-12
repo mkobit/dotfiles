@@ -1,16 +1,32 @@
+import asyncio
 import hashlib
 import json
+import logging
+import shlex
 import subprocess
 import sys
 import tempfile
 import time
+from collections.abc import Sequence
 from pathlib import Path
 from typing import NamedTuple
 
-from claude_statusline.models import GitInfo, StatusLineStdIn
+import click
+from pydantic import TypeAdapter, ValidationError
+
+from claude_statusline.models import (
+    GitInfo,
+    SegmentGenerationResult,
+    StatusLineStdIn,
+)
 from claude_statusline.render import render_lines
 
 CACHE_DURATION = 30  # seconds
+
+logging.basicConfig(
+    level=logging.WARNING, stream=sys.stderr, format="%(levelname)s: %(message)s"
+)
+logger = logging.getLogger(__name__)
 
 
 class BranchRemoteInfo(NamedTuple):
@@ -159,19 +175,70 @@ def get_git_info(cwd: Path, session_id: str | None) -> GitInfo | None:
     return info
 
 
-def main() -> None:
+async def run_external_generator(
+    cmd: str, payload_json: str, timeout: float = 2.0
+) -> Sequence[SegmentGenerationResult]:
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *shlex.split(cmd),
+            stdin=asyncio.subprocess.PIPE,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+
+        try:
+            stdout, stderr = await asyncio.wait_for(
+                proc.communicate(input=payload_json.encode()), timeout=timeout
+            )
+        except TimeoutError:
+            proc.kill()
+            await proc.communicate()
+            logger.warning(f"Timeout error in external generator {cmd}")
+            return []
+
+        if proc.returncode == 0 and stdout.strip():
+            try:
+                adapter = TypeAdapter(
+                    list[SegmentGenerationResult] | SegmentGenerationResult
+                )
+                data = adapter.validate_json(stdout)
+
+                results = data if isinstance(data, list) else [data]
+
+                # set generator name from cmd
+                for item in results:
+                    item.generator = cmd
+                return results
+
+            except ValidationError as e:
+                logger.warning(f"Validation error in external generator {cmd}: {e}")
+            except Exception as e:
+                logger.warning(f"JSON parsing error in external generator {cmd}: {e}")
+    except Exception as e:
+        logger.warning(f"Error running external generator {cmd}: {e}")
+    return []
+
+
+@click.command()
+@click.option(
+    "--generator",
+    multiple=True,
+    help="External command or script to generate segments (takes JSON on stdin).",
+)
+def main(generator: tuple[str, ...]) -> None:
+    raw_json_str = "{}"
     try:
         if not sys.stdin.isatty():
-            raw_data = json.load(sys.stdin)
+            raw_json_str = sys.stdin.read()
+            raw_data = json.loads(raw_json_str) if raw_json_str.strip() else {}
         else:
             raw_data = {}
-    except json.JSONDecodeError:
+    except Exception:
         raw_data = {}
 
     try:
         payload = StatusLineStdIn(**raw_data)
     except Exception:
-        # Fallback if parsing completely fails, though defaults should catch most
         payload = StatusLineStdIn()
 
     cwd_str = payload.workspace.current_dir
@@ -183,7 +250,22 @@ def main() -> None:
     if git_info and payload.workspace.git_worktree:
         git_info.is_worktree = True
 
-    lines = render_lines(payload, git_info)
+    extra_segments: list[SegmentGenerationResult] = []
+    if generator:
+
+        async def fetch_all():
+            tasks = [run_external_generator(cmd, raw_json_str) for cmd in generator]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            for res in results:
+                if isinstance(res, Exception):
+                    continue
+                if res:
+                    extra_segments.extend(res)  # type: ignore
+
+        asyncio.run(fetch_all())
+
+    lines = render_lines(payload, git_info, extra_segments)
+
     for line in lines:
         print(line)
 

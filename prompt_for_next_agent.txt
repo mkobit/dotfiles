@@ -1,0 +1,44 @@
+# Refactor claude-statusline Segment Generation and Caching Architecture
+
+We need to complete the refactoring of `claude-statusline` to support a robust caching and external generation architecture based on `asyncio` and `pydantic`. The CLI interface and `chezmoi` template integration were merged, but the internal pipeline needs to be fully updated.
+
+Here is what you need to do:
+
+### 1. Data Models (`models.py`)
+- Separate the concept of a `Segment` (which contains just the `text`) from `SegmentGenerationResult` (which contains layout information).
+- Define `SegmentGenerationResult` as a Pydantic model containing:
+  - `segment: Segment`
+  - `line: int` (default 1)
+  - `index: int` (default 0)
+  - `generator: str` (the name of the generator, default `"internal"`)
+  - `cache_duration: TimeDelta | None` (imported from the `whenever` library)
+- Create a `CachedSegment` wrapper model to store the results and their expiration time (using `whenever.Instant`).
+
+### 2. Segment Caching (`cache.py`)
+- Implement a `SegmentCache` class that reads and writes `SegmentGenerationResult` items to a local JSON file (e.g., in a temp directory or `~/.cache/claude_statusline/cache.json`).
+- Use Pydantic's `TypeAdapter` and `.validate_python()` / `.dump_python()` for safe serialization.
+- It should map a unique generator key (e.g. `"internal.git"`, or the command string for external scripts) to the cached results and check their `expires_at` against the current time (`whenever.Instant.now()`).
+
+### 3. Internal Segment Generators
+- Refactor all internal generator functions (in `segments/claude.py`, `segments/workspace.py`, etc.) to return either a single `SegmentGenerationResult` or a `Sequence[SegmentGenerationResult]`.
+- **Important:** `get_git_info` logic should be refactored into its own async generator function in `git.py` (e.g., `generate_git_segment(cwd)`). It shells out to `git`, so it's a prime candidate for caching. It should return a valid `cache_duration` (e.g. 5 seconds).
+- For other internal generators that rely purely on the Claude standard JSON payload (and thus calculate instantly), they can return a `cache_duration` of `0` or `None`. This means they won't be stored in the cache file but calculated instantly on every run.
+- Group and split these generator functions logically (e.g., by domain or namespace).
+
+### 4. Main Execution Loop (`main.py`)
+- Refactor `run_external_generator` to be an asynchronous function (`async def`) that uses `asyncio.create_subprocess_exec` to run external scripts.
+  - Use Pydantic's `TypeAdapter(list[SegmentGenerationResult] | SegmentGenerationResult).validate_json(stdout)` to safely parse the output.
+  - On `ValidationError`, log a warning to `sys.stderr` using the `logging` module and return an empty list.
+- In `main()`:
+  - Instantiate the cache.
+  - Determine which generators need to run. Evaluate all internal and external generators. If a valid cache entry exists, use it. If not, add the generator to a `tasks` list.
+  - Use `asyncio.gather(*tasks, return_exceptions=True)` to execute all missing generators concurrently.
+  - For generators that return a `cache_duration > 0`, store the result in the cache.
+- **Error Handling:** Add a `--show-errors` feature flag to the CLI. If a generator (internal or external) throws an exception, either omit the segment entirely (default) or, if `--show-errors` is enabled, generate a specific error segment (e.g., `[Error: generator_name]`) to display.
+
+### 5. Rendering (`render.py`)
+- Simplify `render_lines` to accept a flat `Iterable[SegmentGenerationResult]`.
+- Group the segments by their `line` number.
+- Sort the segments on each line by `(s.index, s.generator)` to ensure deterministic ordering (using `generator` name as a tie-breaker).
+- We support a maximum of **4 lines**. Do not render lines beyond the 4th line.
+- If a line is empty, omit it completely. Join the sorted segments with the divider bar.
