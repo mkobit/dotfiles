@@ -20,7 +20,7 @@ echo "------------------------------"
 # Install mise
 if ! command -v mise &>/dev/null; then
     echo "Installing mise..."
-    curl -s https://mise.run | /usr/bin/env bash
+    curl -s https://mise.run | MISE_VERSION="v2026.4.9" /usr/bin/env bash
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
