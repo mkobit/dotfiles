@@ -1,12 +1,18 @@
-import subprocess
-import re
-import sys
 import os
+import re
+import subprocess
+import sys
+
 import click
+
 
 @click.command()
 @click.option('--pane-id', required=True, help='The tmux pane ID to capture')
-@click.option('--open-cmd', default=None, help='Command to use to open the URL. If not provided, it will try to guess based on OS.')
+@click.option(
+    '--open-cmd',
+    default=None,
+    help='Command to use to open the URL. Defaults to guessing based on OS.'
+)
 def main(pane_id: str, open_cmd: str | None) -> None:
     # Capture pane contents
     try:
@@ -24,7 +30,7 @@ def main(pane_id: str, open_cmd: str | None) -> None:
     urls = url_pattern.findall(scrollback)
 
     if not urls:
-        subprocess.run(['tmux', 'display-message', 'No URLs found in the current pane.'])
+        subprocess.run(['tmux', 'display-message', 'No URLs found.'])
         sys.exit(0)
 
     # Deduplicate and preserve order (most recent first)

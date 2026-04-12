@@ -3,9 +3,17 @@
 # {{ includeTemplate "shell/utils.sh" . }}
 # Hash of tool config to trigger updates: {{ include "dot_dotfiles/tmux/snippets/popups_enhanced.tmux.tmpl" | sha256sum }}
 
+{{- if index . "python" "uv" }}
 if command -v uv >/dev/null 2>&1; then
     echo "Installing tmux-url-open via uv tool..."
     uv tool install --force "{{ .chezmoi.sourceDir }}/../python/tmux-url-open"
 else
-    echo "uv is not available. Skipping tmux-url-open installation."
+    echo "uv is not available but enabled. Skipping tmux-url-open installation."
 fi
+{{- else }}
+echo "uv is disabled. Uninstalling tmux-url-open if present..."
+if command -v uv >/dev/null 2>&1; then
+    uv tool uninstall tmux-url-open >/dev/null 2>&1 || true
+fi
+rm -f "${HOME}/.local/bin/tmux-url-open"
+{{- end }}
