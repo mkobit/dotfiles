@@ -1,4 +1,4 @@
-{{- if eq .zsh.prompt "oh-my-zsh" -}}
+{{- if eq (default "starship" .zsh.prompt) "oh-my-zsh" -}}
 {{- with .eza -}}
 {{- $installation := index .installation $.chezmoi.os -}}
 {{- if and $installation (ne $installation "disabled") -}}

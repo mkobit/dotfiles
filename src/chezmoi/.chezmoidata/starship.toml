@@ -1,5 +1,4 @@
 [starship]
-installation = "external-sources"
 version = "1.24.2"
 
 [starship.checksums]

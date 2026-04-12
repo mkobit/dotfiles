@@ -1,5 +1,5 @@
 {{- with .starship -}}
-{{- if eq .installation "external-sources" -}}
+{{- if eq (default "external-sources" .installation) "external-sources" -}}
 {{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
 {{- $target := "" -}}
 {{- if eq $.chezmoi.os "darwin" -}}
