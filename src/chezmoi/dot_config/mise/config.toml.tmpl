@@ -20,6 +20,12 @@
 {{- if hasKey .mise "settings" }}
 [settings]
 {{- range $key, $value := .mise.settings }}
+{{- if kindIs "map" $value }}
+{{- range $subkey, $subval := $value }}
+"{{ $key }}.{{ $subkey }}" = {{ $subval | toJson }}
+{{- end }}
+{{- else }}
 {{ $key }} = {{ $value | toJson }}
+{{- end }}
 {{- end }}
 {{- end -}}
