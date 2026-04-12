@@ -1,0 +1,26 @@
+#!/bin/sh
+# {{ template "managed_by_chezmoi.tmpl" . }}
+
+PANE_ID="$1"
+if [ -z "$PANE_ID" ]; then
+    echo "Usage: $0 <pane_id>"
+else
+    urls=$(tmux capture-pane -J -S - -t "$PANE_ID" -p | grep -oE "[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+" | awk '{ if (!seen[$0]++) a[i++]=$0 } END { for (j=i-1; j>=0; j--) print a[j] }')
+
+    if [ -z "$urls" ]; then
+        tmux display-message "No URLs found in the current pane."
+    else
+        # Use fzf-tmux as requested
+        selected=$(echo "$urls" | fzf-tmux -p 80%,80% --prompt='Open URL: ')
+
+        if [ -n "$selected" ]; then
+            if [ "$(uname -s)" = "Darwin" ]; then
+                open "$selected" > /dev/null 2>&1
+            elif command -v xdg-open > /dev/null 2>&1; then
+                xdg-open "$selected" > /dev/null 2>&1
+            else
+                tmux display-message "No open command found. Cannot open URL."
+            fi
+        fi
+    fi
+fi
