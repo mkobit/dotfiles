@@ -1,17 +1,13 @@
-#!/usr/bin/env python3
-
-import os
-import sys
 import subprocess
 import re
+import sys
+import os
+import click
 
-def main():
-    if len(sys.argv) < 2:
-        print("Usage: tmux-open-url <pane_id>")
-        sys.exit(1)
-
-    pane_id = sys.argv[1]
-
+@click.command()
+@click.option('--pane-id', required=True, help='The tmux pane ID to capture')
+@click.option('--open-cmd', default=None, help='Command to use to open the URL. If not provided, it will try to guess based on OS.')
+def main(pane_id: str, open_cmd: str | None) -> None:
     # Capture pane contents
     try:
         result = subprocess.run(
@@ -32,8 +28,8 @@ def main():
         sys.exit(0)
 
     # Deduplicate and preserve order (most recent first)
-    seen = set()
-    ordered_urls = []
+    seen: set[str] = set()
+    ordered_urls: list[str] = []
     for url in reversed(urls):
         if url not in seen:
             seen.add(url)
@@ -54,12 +50,13 @@ def main():
     if not selected_url:
         sys.exit(0)
 
-    # Open URL based on OS template
-    open_cmd = """{{ if eq .chezmoi.os "darwin" }}open{{ else if eq .chezmoi.os "linux" }}{{ if contains "microsoft" (lower .chezmoi.kernel.osrelease) }}wslview{{ else }}xdg-open{{ end }}{{ else }}echo{{ end }}"""
-
-    if open_cmd == "echo":
-        subprocess.run(['tmux', 'display-message', 'No open command configured for this OS.'])
-        sys.exit(1)
+    if not open_cmd:
+        if sys.platform == 'darwin':
+            open_cmd = 'open'
+        elif 'microsoft' in os.uname().release.lower():
+            open_cmd = 'wslview'
+        else:
+            open_cmd = 'xdg-open'
 
     # Process replacement
     try:
@@ -67,6 +64,3 @@ def main():
     except OSError:
         subprocess.run(['tmux', 'display-message', f'Failed to execute {open_cmd}'])
         sys.exit(1)
-
-if __name__ == '__main__':
-    main()

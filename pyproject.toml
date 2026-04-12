@@ -6,6 +6,7 @@ dependencies = [
     "jules-cli",
     "transcribe",
     "claude-statusline",
+    "tmux-url-open",
 ]
 
 [dependency-groups]
@@ -22,12 +23,14 @@ members = [
     "src/python/jules_cli",
     "src/python/claude_statusline",
     "src/python/transcribe",
+    "src/python/tmux-url-open",
 ]
 
 [tool.uv.sources]
 jules-cli = { workspace = true }
 transcribe = { workspace = true }
 claude-statusline = { workspace = true }
+tmux-url-open = { workspace = true }
 
 [tool.ruff]
 line-length = 88
