@@ -26,7 +26,7 @@ else
 fi
 {{ else if eq .chezmoi.os "linux" -}}
 # Linux - use apt (Ubuntu/Debian)
-if sudo apt-get update && sudo apt-get install -y zsh; then
+if sudo apt-get update >/dev/null 2>&1 && sudo apt-get install -y zsh >/dev/null 2>&1; then
     log_success "zsh installed successfully"
 else
     log_error "Failed to install zsh"

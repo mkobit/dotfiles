@@ -11,6 +11,9 @@ linux_arm64 = "bbbd6e856d9fd53ffaa0773d0625f5a8c2f393610034712a389c68bbc5ad0f84"
 [mise.settings]
 disable_hints = ["self_update"]
 
+[mise.settings.npm]
+package_manager = "pnpm"
+
 [mise.global_tools]
 
   [mise.global_tools.python]
@@ -30,3 +33,6 @@ disable_hints = ["self_update"]
 
   [mise.global_tools.bun]
   version = "1.3.11"
+
+  [mise.global_tools."npm:@google/gemini-cli"]
+  version = "0.36.0"
