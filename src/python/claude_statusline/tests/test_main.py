@@ -24,26 +24,26 @@ class TestStatusLine(unittest.TestCase):
         res_low = format_context_usage(cw_low)
         self.assertIsNotNone(res_low)
         assert res_low is not None
-        self.assertIn(GREEN, res_low.text)
+        self.assertIn(GREEN, res_low.segment.text)
 
         cw_med = ContextWindowInfo(used_percentage=55.0)
         res_med = format_context_usage(cw_med)
         self.assertIsNotNone(res_med)
         assert res_med is not None
-        self.assertIn(YELLOW, res_med.text)
+        self.assertIn(YELLOW, res_med.segment.text)
 
         cw_high = ContextWindowInfo(used_percentage=95.0)
         res_high = format_context_usage(cw_high)
         self.assertIsNotNone(res_high)
         assert res_high is not None
-        self.assertIn(RED, res_high.text)
+        self.assertIn(RED, res_high.segment.text)
 
         cw_none = ContextWindowInfo(used_percentage=None)
         res_none = format_context_usage(cw_none)
         self.assertIsNotNone(res_none)
         assert res_none is not None
-        self.assertIn("0%", res_none.text)
-        self.assertIn(GREEN, res_none.text)
+        self.assertIn("0%", res_none.segment.text)
+        self.assertIn(GREEN, res_none.segment.text)
 
     def test_format_git_full(self) -> None:
         base_kwargs: dict[str, Any] = {
@@ -62,16 +62,16 @@ class TestStatusLine(unittest.TestCase):
         res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn("main", res.text)
-        self.assertIn(get_icon("clean"), res.text)
-        self.assertIn(get_icon("remote"), res.text)
+        self.assertIn("main", res.segment.text)
+        self.assertIn(get_icon("clean"), res.segment.text)
+        self.assertIn(get_icon("remote"), res.segment.text)
 
         base_kwargs["dirty"] = True
         info = GitInfo(**base_kwargs)
         res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(get_icon("dirty"), res.text)
+        self.assertIn(get_icon("dirty"), res.segment.text)
 
         base_kwargs["dirty"] = False
         base_kwargs["staged"] = True
@@ -79,7 +79,7 @@ class TestStatusLine(unittest.TestCase):
         res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(get_icon("staged"), res.text)
+        self.assertIn(get_icon("staged"), res.segment.text)
 
         base_kwargs["staged"] = False
         base_kwargs["untracked"] = True
@@ -87,7 +87,7 @@ class TestStatusLine(unittest.TestCase):
         res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(get_icon("untracked"), res.text)
+        self.assertIn(get_icon("untracked"), res.segment.text)
 
         base_kwargs["untracked"] = False
         base_kwargs["ahead"] = 2
@@ -96,8 +96,8 @@ class TestStatusLine(unittest.TestCase):
         res = format_git_full(info)
         self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn("↑2", res.text)
-        self.assertIn("↓1", res.text)
+        self.assertIn("↑2", res.segment.text)
+        self.assertIn("↓1", res.segment.text)
 
     @patch("subprocess.run")
     def test_get_git_info_fresh(self, mock_run: MagicMock) -> None:
@@ -162,7 +162,7 @@ class TestStatusLine(unittest.TestCase):
                 import os
 
                 mock_term.return_value = os.terminal_size((80, 24))
-                main_module.main()
+                main_module.main(args=[], standalone_mode=False)
 
             self.assertEqual(mock_print.call_count, 3)
 
@@ -250,7 +250,7 @@ class TestStatusLine(unittest.TestCase):
                 import os
 
                 mock_term.return_value = os.terminal_size((80, 24))
-                main_module.main()
+                main_module.main(args=[], standalone_mode=False)
 
             self.assertEqual(mock_print.call_count, 3)
 

@@ -1,6 +1,5 @@
 import functools
 import os
-from dataclasses import dataclass
 from typing import Literal, NamedTuple
 
 
@@ -77,8 +76,3 @@ BLOCK_FILLED = "\u2588"  # █
 BLOCK_EMPTY = "\u2591"  # ░
 DIVIDER_DOT = " • "
 DIVIDER_BAR = " │ "
-
-
-@dataclass
-class Segment:
-    text: str
