@@ -34,4 +34,4 @@ npm_package_manager = "bun"
 
 
   [mise.global_tools."npm:@google/gemini-cli"]
-  version = "latest"
+  version = "0.37.1"
