@@ -1,5 +1,5 @@
 [fd]
-version = "10.4.2"
+version = "10.4.2" # verified latest
 installation = "external-sources"
 
 [fd.checksums]
