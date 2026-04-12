@@ -30,3 +30,5 @@ install-asdf.sh
 {{ if ne .zsh.prompt "oh-my-zsh" }}
 .dotfiles/external/oh-my-zsh
 {{ end }}
+.dotfiles/zsh/scripts
+.dotfiles/bash/snippets
