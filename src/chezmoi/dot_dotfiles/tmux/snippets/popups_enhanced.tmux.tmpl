@@ -94,6 +94,9 @@ if-shell -b '[ "$(echo "$(tmux -V | cut -d" " -f2) >= 3.2" | bc)" = 1 ]' {
         fi
     "
 
+    # Extract and open URLs in current pane (using u)
+    bind-key u run-shell "{{ .chezmoi.destDir }}/.local/bin/tmux-open-url '#{pane_id}'"
+
 } {
     # Fallback for older tmux versions
     bind-key C-f display-message "Enhanced popups require tmux 3.2+. Current version: $(tmux -V)"
