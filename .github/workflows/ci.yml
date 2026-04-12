@@ -132,6 +132,7 @@ jobs:
           MISE_BIN=$(chezmoi --source=${{ github.workspace }} --destination=/tmp/chezmoi-test target-path ${{ github.workspace }}/src/chezmoi/dot_local/bin)/mise
           "$MISE_BIN" cache prune --yes
           echo "MISE_BIN=$MISE_BIN" >> $GITHUB_ENV
+          echo "/tmp/chezmoi-test/.local/bin" >> $GITHUB_PATH
 
       - name: Install python dependencies for integration tests
         env:
