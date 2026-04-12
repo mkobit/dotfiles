@@ -1,5 +1,5 @@
 [ripgrep]
-version = "15.1.0"
+version = "15.1.0" # verified latest
 installation = "external-sources"
 
 [ripgrep.checksums] # publishes shas as seperate files

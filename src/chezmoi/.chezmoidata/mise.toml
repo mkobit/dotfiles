@@ -1,12 +1,12 @@
 [mise]
-version = "v2026.3.10"
+version = "v2026.4.10"
 installation = "external-sources"
 
 [mise.checksums]
-darwin_arm64 = "c7a0eb1035de974b42d36b69c4b55b836c06b455b990dd6ac530aaf05d4a8a17"
-darwin_amd64 = "a945255eb432b900d9db1eaccba14e5ef99c719a5d0ad1a983abc00b2f17388f"
-linux_amd64 = "5fbb922019f56cfd33fc8bccedb80e0b1a2dd5d8f8567b076c1bbec7ff30548c"
-linux_arm64 = "bbbd6e856d9fd53ffaa0773d0625f5a8c2f393610034712a389c68bbc5ad0f84"
+darwin_arm64 = "e09f5ae83369d3c6d44572e9f2de0bf9454718e23ccb41a4138f8f88d28cbb31"
+darwin_amd64 = "cd2c39806ba3dba475ab9c145376c467012200cf4eea098cbeb7e4febb4b0717"
+linux_amd64 = "84636e19a0e5001d7499f58ae5a868cec8f6ba4f52f9028680bb7cd802564229"
+linux_arm64 = "b0cee25b0405113ed6fe2a54cf21d49720ee571d3d5b4a9c695721cd123d24f8"
 
 [mise.settings]
 disable_hints = ["self_update"]
@@ -30,3 +30,6 @@ disable_hints = ["self_update"]
 
   [mise.global_tools.bun]
   version = "1.3.11"
+
+  [mise.global_tools."npm:@google/gemini-cli"]
+  version = "0.37.1"
