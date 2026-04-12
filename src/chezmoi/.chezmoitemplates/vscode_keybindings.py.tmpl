@@ -27,7 +27,7 @@ def main():
             keybindings.append(payload)
 
             # Sort by the 'key' alphabetically to get consistent and stable output
-            keybindings.sort(key=lambda item: item.get("key", ""))
+            keybindings.sort(key=lambda item: (item.get("command", ""), item.get("key", "")))
 
             print(json.dumps(keybindings, indent=4))
         else:

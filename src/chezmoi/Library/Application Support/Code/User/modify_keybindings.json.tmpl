@@ -1,1 +1,3 @@
+{{- if eq .chezmoi.os "darwin" -}}
 {{ template "vscode_keybindings.py.tmpl" . }}
+{{- end -}}
