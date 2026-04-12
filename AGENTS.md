@@ -21,6 +21,10 @@ Never assume you are on `main` or in the primary checkout directory.
    - ❌ `export PATH="$HOME/.local/bin:${PATH}"`
 
 2. **NEVER use `$HOME` or `{{ .chezmoi.homeDir }}`** in templates.
+   - You must never use `$HOME`.
+   - You must nearly never use `{{ .chezmoi.homeDir }}`. The only exceptions will be explicitly human provided.
+   - You must always inject and template using `{{ .chezmoi.destDir }}`, `{{ .chezmoi.sourceDir }}`, and other chezmoi variables.
+   - Using `$HOME` or `{{ .chezmoi.homeDir }}` should be an absolute last resort, and only through exhausting all other options and the user confirms that you can use them.
    - We install to a target directory, which may not be the user's home during testing/CI.
 
 ## Managed environment constraints
