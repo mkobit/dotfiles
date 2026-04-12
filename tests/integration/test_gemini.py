@@ -7,8 +7,10 @@ def test_gemini_cli_available(host):
     result = host.run("zsh -i -c 'command -v gemini'")
 
     assert result.rc == 0, (
-        f"gemini command not found in zsh environment.\nstderr: {result.stderr}\nstdout: {result.stdout}"
+        f"gemini command not found in zsh environment.\n"
+        f"stderr: {result.stderr}\nstdout: {result.stdout}"
     )
     assert "gemini" in result.stdout, (
-        f"command -v gemini did not print a path containing 'gemini'.\nstdout: {result.stdout}"
+        f"command -v gemini did not print a path containing 'gemini'.\n"
+        f"stdout: {result.stdout}"
     )
