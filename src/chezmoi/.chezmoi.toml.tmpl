@@ -1,9 +1,4 @@
-{{- $isWsl := false -}}
-{{- if eq .chezmoi.os "linux" -}}
-{{-   if contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
-{{-     $isWsl = true -}}
-{{-   end -}}
-{{- end -}}
+{{- $isWsl := and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
 
 {{- $winHome := "" -}}
 {{- $termSettings := "" -}}
@@ -13,8 +8,18 @@
 {{-   $termSettings = (output "powershell.exe" "-NoProfile" "-Command" "(Get-ChildItem -Path $env:LOCALAPPDATA\\Packages\\Microsoft.WindowsTerminal*\\LocalState\\settings.json -ErrorAction SilentlyContinue | Select-Object -First 1).FullName" | trim) -}}
 {{- end -}}
 
-[data]
-    is_wsl = {{ $isWsl }}
+[data.os]
+{{- if $isWsl }}
+    environment = "wsl"
+{{- else if eq .chezmoi.os "linux" }}
+    environment = "linux"
+{{- else if eq .chezmoi.os "darwin" }}
+    environment = "macos"
+{{- else }}
+    environment = "unknown"
+{{- end }}
+
+[data.windows_terminal]
     windows_home = {{ $winHome | quote }}
-    terminal_settings_path = {{ $termSettings | quote }}
-    nerd_font_name = "CaskaydiaCove Nerd Font"
+    settings_path = {{ $termSettings | quote }}
+    nerd_font_name = "MesloLGS Nerd Font"

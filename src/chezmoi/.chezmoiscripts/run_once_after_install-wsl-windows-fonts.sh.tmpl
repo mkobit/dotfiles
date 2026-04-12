@@ -1,7 +1,7 @@
-{{ if .is_wsl -}}
 #!/bin/bash
+{{ if eq .os.environment "wsl" -}}
 
-LINUX_SRC_FOLDER="{{ .chezmoi.homeDir }}/Documents/Fonts/CascadiaCode"
+LINUX_SRC_FOLDER="{{ .chezmoi.homeDir }}/.local/share/fonts/NerdFonts"
 WINDOWS_SRC_FOLDER=$(wslpath -w "$LINUX_SRC_FOLDER")
 
 powershell.exe -NoProfile -Command "
