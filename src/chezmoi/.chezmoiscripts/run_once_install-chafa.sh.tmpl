@@ -12,14 +12,14 @@ if ! check_command brew; then
     log_error "Homebrew not found."
     exit 1
 fi
-if brew install chafa; then
+if brew install chafa >/dev/null; then
     log_success "chafa installed via homebrew"
 else
     log_error "Failed to install chafa via homebrew"
     exit 1
 fi
 {{ else if eq .chezmoi.os "linux" }}
-if sudo apt-get update && sudo apt-get install -y chafa; then
+if sudo apt-get update >/dev/null && sudo apt-get install -y chafa >/dev/null; then
     log_success "chafa installed via apt"
 else
     log_error "Failed to install chafa via apt"

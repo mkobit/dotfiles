@@ -15,7 +15,7 @@ log_info "Uninstalling ghostty..."
 # macOS - use Homebrew Cask
 if check_command brew; then
     if brew list --cask ghostty >/dev/null 2>&1; then
-        if brew uninstall --cask ghostty; then
+        if brew uninstall --cask ghostty >/dev/null; then
             log_success "ghostty uninstalled successfully via homebrew cask"
         else
             log_error "Failed to uninstall ghostty via homebrew cask"
@@ -41,7 +41,7 @@ if command -v apt-get >/dev/null 2>&1; then
     log_info "Uninstalling ghostty via apt (Ubuntu/Debian)"
     
     if dpkg -l | grep -q ghostty; then
-        if sudo apt-get remove -y ghostty; then
+        if sudo apt-get remove -y ghostty >/dev/null; then
             log_success "ghostty uninstalled successfully via apt"
         else
             log_error "Failed to uninstall ghostty via apt"
@@ -71,7 +71,7 @@ elif command -v dnf >/dev/null 2>&1; then
     log_info "Uninstalling ghostty via dnf (Fedora)"
     
     if dnf list installed ghostty >/dev/null 2>&1; then
-        if sudo dnf remove -y ghostty; then
+        if sudo dnf remove -y ghostty >/dev/null; then
             log_success "ghostty uninstalled successfully via dnf"
         else
             log_error "Failed to uninstall ghostty via dnf"

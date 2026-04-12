@@ -17,7 +17,7 @@ if ! check_command brew; then
     exit 1
 fi
 
-if brew install jq; then
+if brew install jq >/dev/null; then
     log_success "jq installed successfully via homebrew"
 else
     log_error "Failed to install jq via homebrew"
@@ -25,7 +25,7 @@ else
 fi
 {{ else if eq .chezmoi.os "linux" }}
 # Linux - use apt (Ubuntu/Debian)
-if sudo apt-get update && sudo apt-get install -y jq; then
+if sudo apt-get update >/dev/null && sudo apt-get install -y jq >/dev/null; then
     log_success "jq installed successfully via apt"
 else
     log_error "Failed to install jq via apt"

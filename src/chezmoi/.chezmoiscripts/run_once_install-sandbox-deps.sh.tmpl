@@ -10,7 +10,7 @@ fi
 
 log_info "Installing bubblewrap and socat via package manager..."
 
-if sudo apt-get update && sudo apt-get install -y bubblewrap socat; then
+if sudo apt-get update >/dev/null && sudo apt-get install -y bubblewrap socat >/dev/null; then
     log_success "bubblewrap and socat installed successfully via apt"
 else
     log_error "Failed to install bubblewrap and socat via apt"
