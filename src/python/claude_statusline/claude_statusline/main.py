@@ -47,7 +47,7 @@ async def run_external_generator(
             proc.kill()
             await proc.communicate()
             logger.warning(f"Timeout error in external generator {cmd}")
-            raise Exception(f"Timeout running {cmd}")
+            raise Exception(f"Timeout running {cmd}") from None
 
         if proc.returncode == 0 and stdout.strip():
             try:
@@ -73,7 +73,7 @@ async def run_external_generator(
                 logger.warning(
                     f"External generator {cmd} exited with code {proc.returncode}"
                 )
-                raise Exception(f"Exit code {proc.returncode}")
+                raise Exception(f"Exit code {proc.returncode}") from None
     except Exception as e:
         logger.warning(f"Error running external generator {cmd}: {e}")
         raise
@@ -91,7 +91,7 @@ async def run_external_generator(
     is_flag=True,
     help="Display error segments for failed generators.",
 )
-def main(generator: tuple[str, ...], show_errors: bool) -> None:
+def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
     raw_json_str = "{}"
     try:
         if not sys.stdin.isatty():
@@ -163,7 +163,7 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:
 
         results = await asyncio.gather(*tasks)
 
-        for type_name, key, res in results:
+        for _, key, res in results:
             if isinstance(res, Exception):
                 all_segments.extend(handle_error(res, key))
             else:
