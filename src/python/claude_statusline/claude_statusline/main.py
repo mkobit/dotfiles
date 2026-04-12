@@ -14,7 +14,11 @@ from typing import NamedTuple
 import click
 from pydantic import TypeAdapter, ValidationError
 
-from claude_statusline.models import GitInfo, SegmentGenerationResult, StatusLineStdIn
+from claude_statusline.models import (
+    GitInfo,
+    SegmentGenerationResult,
+    StatusLineStdIn,
+)
 from claude_statusline.render import render_lines
 
 CACHE_DURATION = 30  # seconds

@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from pydantic import BaseModel, Field
+from whenever import TimeDelta
 
 # --- Pydantic Models for Claude Code JSON Payload ---
 # See: https://code.claude.com/docs/en/statusline
@@ -121,5 +122,4 @@ class SegmentGenerationResult(BaseModel):
     generator: str = "internal"
     line: int = 1
     index: int = 0
-    cache_duration_seconds: int | None = None
-    next_call_timestamp: float | None = None
+    cache_duration: TimeDelta | None = None
