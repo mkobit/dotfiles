@@ -1,5 +1,5 @@
 [gh]
-version = "2.89.0" # verified latest
+version = "2.89.0"
 installation = "external-sources"
 
 [gh.checksums]
