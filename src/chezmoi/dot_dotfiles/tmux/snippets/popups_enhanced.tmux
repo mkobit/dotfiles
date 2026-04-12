@@ -94,6 +94,27 @@ if-shell -b '[ "$(echo "$(tmux -V | cut -d" " -f2) >= 3.2" | bc)" = 1 ]' {
         fi
     "
 
+    # Extract and open URLs in current pane (using u)
+    bind-key u display-popup -E -w 80% -h 80% "
+        urls=\$(tmux capture-pane -J -S - -t '#{pane_id}' -p | grep -oE \"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+\\\$,/?%#-]+\" | awk '{ if (!seen[\$0]++) a[i++]=\$0 } END { for (j=i-1; j>=0; j--) print a[j] }')
+        if [ -z \"\$urls\" ]; then
+            echo 'No URLs found in the current pane.'
+            read dummy
+        else
+            selected=\$(echo \"\$urls\" | fzf --prompt='Open URL: ' --height=100%)
+            if [ -n \"\$selected\" ]; then
+                if [ \"\$(uname -s)\" = \"Darwin\" ]; then
+                    open \"\$selected\" > /dev/null 2>&1
+                elif command -v xdg-open > /dev/null 2>&1; then
+                    xdg-open \"\$selected\" > /dev/null 2>&1
+                else
+                    echo 'No open command found. Cannot open URL.'
+                    read dummy
+                fi
+            fi
+        fi
+    "
+
 } {
     # Fallback for older tmux versions
     bind-key C-f display-message "Enhanced popups require tmux 3.2+. Current version: $(tmux -V)"
