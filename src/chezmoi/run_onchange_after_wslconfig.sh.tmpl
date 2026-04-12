@@ -1,0 +1,20 @@
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# .wslconfig hash: {{ includeTemplate "wsl/wslconfig" . | sha256sum }}
+
+# wslconfig must reside in the Windows user profile, which is outside the
+# standard Linux home directory managed by chezmoi. Therefore, chezmoiexternal
+# cannot be used since it only supports relative paths within the destination dir.
+# Instead, we use this script to template and copy the configuration over.
+
+WIN_PROFILE=$(cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')
+WSLCONFIG_PATH="$(wslpath -u "$WIN_PROFILE")/.wslconfig"
+
+cat << 'CONFIG_EOF' > "$WSLCONFIG_PATH"
+{{ template "wsl/wslconfig" . }}
+CONFIG_EOF
+
+echo "✅ Updated .wslconfig in Windows User Profile"
+{{- end -}}

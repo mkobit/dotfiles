@@ -1,0 +1,15 @@
+# Official Microsoft Documentation for .wslconfig settings:
+# https://learn.microsoft.com/en-us/windows/wsl/wsl-config
+
+[wsl2]
+memory=6GB
+# Sets a small safety net for Linux without hogging Windows "Commit" space
+swap=2GB
+# Limits WSL to 4 logical processors to prevent UI stuttering
+processors=4
+
+[experimental]
+# Automatically releases cached RAM back to Windows when idle
+autoMemoryReclaim=gradual
+# Allows the virtual disk to shrink on your SSD when files are deleted
+sparseVhd=true
