@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 {{/* Calculate hash from sorted JSON of extensions map for change detection in the script content itself */ -}}
 {{- $extensionsJson := .gemini.extensions | default dict | toJson -}}
 # gemini.extensions hash: {{ $extensionsJson | sha256sum }}

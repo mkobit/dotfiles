@@ -1,5 +1,5 @@
 {{- if and (ne (dig "mise" "installation" "disabled" .) "disabled") (dig "mise" "global_tools" dict .) -}}
-#!/bin/bash
+#!/usr/bin/env bash
 {{/* Calculate hash from sorted JSON of global tools map for change detection in the script content itself */ -}}
 {{- $toolsJson := .mise.global_tools | default dict | toJson -}}
 # mise.global_tools hash: {{ $toolsJson | sha256sum }}
