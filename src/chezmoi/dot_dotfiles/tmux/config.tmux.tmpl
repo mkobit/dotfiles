@@ -1,8 +1,19 @@
 {{/* Tmux configuration managed by chezmoi */}}
-{{/* Auto-sources all .tmux files in snippets directory, then plugins */}}
+{{/* Configuration segments from .chezmoitemplates/tmux */}}
 
-# Source all snippet files first (base configuration)
-source-file -F "#{d:current_file}/snippets/*.tmux"
+{{ template "tmux/server_options.tmux" . }}
+{{ template "tmux/terminal_settings.tmux" . }}
+{{ template "tmux/universal.tmux" . }}
+{{ template "tmux/mouse_support.tmux" . }}
+{{ template "tmux/history.tmux" . }}
+{{ template "tmux/notifications.tmux" . }}
+{{ template "tmux/window_panes.tmux" . }}
+{{ template "tmux/windows.tmux" . }}
+{{ template "tmux/copy_mode.tmux" . }}
+{{ template "tmux/status_bar_styling.tmux" . }}
+{{ template "tmux/popups.tmux" . }}
+{{ template "tmux/popups_enhanced.tmux" . }}
+{{ template "tmux/local_extensions.tmux" . }}
 
 # Execute all plugin *.tmux files last (mimics TPM - runs them as bash scripts)
 run-shell 'for plugin_file in #{d:current_file}/plugins/*/*.tmux; do [ -f "$plugin_file" ] && "$plugin_file"; done'
