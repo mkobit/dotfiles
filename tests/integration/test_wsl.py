@@ -10,7 +10,7 @@ _is_wsl = "microsoft" in platform.release().lower()
 @pytest.mark.integration
 @pytest.mark.skipif(not _is_wsl, reason="WSL-only: verifies .wslconfig was deployed")
 def test_wslconfig_deployed_to_windows_profile(host):
-    """On WSL, chezmoi apply should have written .wslconfig to the Windows user profile."""
+    """Verify .wslconfig was deployed to the Windows user profile."""
     result = subprocess.run(
         ["/mnt/c/Windows/System32/cmd.exe", "/c", "echo %USERPROFILE%"],
         capture_output=True,
