@@ -1,4 +1,5 @@
-{{- if ne (dig "mise" "global_tools" "npm:@google/gemini-cli" "installation" "mise" .) "disabled" -}}
+{{- $geminiCli := index .mise.global_tools "npm:@google/gemini-cli" -}}
+{{- if ne $geminiCli.installation "disabled" -}}
 #!/usr/bin/env bash
 {{/* Calculate hash from sorted JSON of extensions map for change detection in the script content itself */ -}}
 {{- $extensionsJson := .gemini.extensions | default dict | toJson -}}

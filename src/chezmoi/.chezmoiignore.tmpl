@@ -32,6 +32,6 @@
 .npmrc
 {{- end }}
 
-{{- if eq (dig "mise" "global_tools" "bun" "installation" "mise" .) "disabled" }}
+{{- if eq .mise.global_tools.bun.installation "disabled" }}
 .bunfig.toml
 {{- end }}
