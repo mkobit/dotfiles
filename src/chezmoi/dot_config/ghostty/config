@@ -7,3 +7,4 @@ config-file = conf.d/claude-ide-shift-enter.conf
 config-file = conf.d/font.conf
 config-file = conf.d/macos.conf
 config-file = conf.d/interaction.conf
+config-file = conf.d/keybinds.conf
