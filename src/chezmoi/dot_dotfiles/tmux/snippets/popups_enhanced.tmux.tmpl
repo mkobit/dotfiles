@@ -95,7 +95,7 @@ if-shell -b '[ "$(echo "$(tmux -V | cut -d" " -f2) >= 3.2" | bc)" = 1 ]' {
     "
 
     # Extract and open URLs in current pane (using u)
-    bind-key u run-shell "tmux-url-open --pane-id '#{pane_id}'
+    bind-key u run-shell "tmux-runtime-tools open-url --pane-id '#{pane_id}'
     {{- if eq .chezmoi.os "darwin" }} --open-cmd open
     {{- else if eq .chezmoi.os "linux" }}
     {{- if contains "microsoft" (lower .chezmoi.kernel.osrelease) }} --open-cmd wslview

@@ -1,10 +1,10 @@
 [project]
-name = "tmux-url-open"
+name = "tmux-runtime-tools"
 version = "0.1.0"
-description = "Extract and open URLs from a tmux pane"
+description = "Runtime tools for tmux environment"
 authors = [{ name = "Jules", email = "jules@example.com" }]
 requires-python = ">=3.14"
 dependencies = ["click>=8.1.8"]
 
 [project.scripts]
-tmux-url-open = "tmux_url_open:main"
+tmux-runtime-tools = "tmux_runtime_tools:main"

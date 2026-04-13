@@ -6,14 +6,19 @@ import sys
 import click
 
 
-@click.command()
+@click.group()
+def main() -> None:
+    pass
+
+
+@main.command("open-url")
 @click.option("--pane-id", required=True, help="The tmux pane ID to capture")
 @click.option(
     "--open-cmd",
     default=None,
     help="Command to use to open the URL. Defaults to guessing based on OS.",
 )
-def main(pane_id: str, open_cmd: str | None) -> None:
+def open_url(pane_id: str, open_cmd: str | None) -> None:
     # Capture pane contents
     try:
         result = subprocess.run(
