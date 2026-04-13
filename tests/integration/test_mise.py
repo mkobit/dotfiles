@@ -1,19 +1,20 @@
-import shutil
-
 import pytest
 
 
 @pytest.mark.integration
-def test_mise_bun_and_gemini_installed():
-    """Verify that gemini is on the path."""
-    gemini_path = shutil.which("gemini")
+def test_gemini_cli_installed(host):
+    """Verify that gemini is on the path and executable."""
+    bash_result = host.run("bash -l -c 'command -v gemini'")
+    assert bash_result.rc == 0, "gemini command not found in bash login shell"
 
-    # If the command is not installed yet (e.g. running in CI where it's mocked),
-    # we fallback to checking the configuration file.
-    if gemini_path is None:
-        with open("src/chezmoi/.chezmoidata/mise.toml") as f:
-            content = f.read()
-        assert "npm:@google/gemini-cli" in content, "gemini-cli not added to config"
-    else:
-        # Just verifying it exists here is equivalent to checking host.run
-        pass
+    zsh_result = host.run("zsh -i -c 'command -v gemini'")
+    assert zsh_result.rc == 0, "gemini command not found in zsh interactive shell"
+
+@pytest.mark.integration
+def test_mise_executable(host):
+    """Verify that mise is on the path and executable."""
+    bash_result = host.run("bash -l -c 'command -v mise'")
+    assert bash_result.rc == 0, "mise command not found in bash login shell"
+
+    zsh_result = host.run("zsh -i -c 'command -v mise'")
+    assert zsh_result.rc == 0, "mise command not found in zsh interactive shell"
