@@ -4,7 +4,6 @@ min_release_age_days = 14
 
 [uv]
 min_release_age_days = 14
-tool_bin_dir = ".local/bin/dotfiles-bin"
 
 [pnpm]
 min_release_age_days = 14
