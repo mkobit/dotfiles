@@ -32,7 +32,7 @@
     ]
   },
   "sandbox": {
-    "enabled": true,
+    "enabled": false,
     "filesystem": {
       "allowRead": [
         ".",
