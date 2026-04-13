@@ -22,9 +22,9 @@ DISABLE_UPDATE_PROMPT="true"       # No update prompts, managed by chezmoi
 COMPLETION_WAITING_DOTS="false"    # No dots while waiting
 DISABLE_MAGIC_FUNCTIONS="true"     # Disable magic functions for speed
 
-# Tmux-specific optimizations (must be set before oh-my-zsh loads)
-if [[ -n "$TMUX" ]]; then
-    DISABLE_AUTO_TITLE="true"       # Disable auto-title in tmux for performance
+# Multiplexer-specific optimizations (must be set before oh-my-zsh loads)
+if [[ -n "$TMUX" || -n "$ZELLIJ" ]]; then
+    DISABLE_AUTO_TITLE="true"       # Disable auto-title in multiplexers for performance
 fi
 
 # Set the ZSH environment variable to the chezmoi-managed location

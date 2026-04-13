@@ -1,0 +1,37 @@
+{{- $zellij := index . "zellij" | default (dict "enabled" false) -}}
+{{- if $zellij.enabled -}}
+{{- $os := .chezmoi.os -}}
+{{- $arch := .chezmoi.arch -}}
+
+{{- /* Map OS to Zellij release names */ -}}
+{{- $zellij_os := "" -}}
+{{- if eq $os "darwin" -}}
+    {{- $zellij_os = "apple-darwin" -}}
+{{- else if eq $os "linux" -}}
+    {{- $zellij_os = "unknown-linux-musl" -}}
+{{- end -}}
+
+{{- /* Map Arch to Zellij release names */ -}}
+{{- $zellij_arch := "" -}}
+{{- if eq $arch "arm64" -}}
+    {{- $zellij_arch = "aarch64" -}}
+{{- else if eq $arch "amd64" -}}
+    {{- $zellij_arch = "x86_64" -}}
+{{- end -}}
+
+{{- $checksum_key := printf "%s_%s" $os $arch -}}
+{{- $checksum := index $zellij.checksums $checksum_key -}}
+
+{{- $url := printf "https://github.com/zellij-org/zellij/releases/download/%s/zellij-%s-%s.tar.gz" $zellij.version $zellij_arch $zellij_os -}}
+
+["zellij"]
+type = "archive-file"
+url = "{{ $url }}"
+executable = true
+path = "zellij"
+stripComponents = 0
+refreshPeriod = "168h"
+    [zellij.checksum]
+    name = "sha256"
+    value = "{{ $checksum }}"
+{{- end -}}

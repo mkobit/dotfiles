@@ -9,6 +9,7 @@
 {{ template "zsh/060_zsh_defaults.zsh" . }}
 {{ template "shell/mise.sh" (merge (dict "shell" "zsh") .) }}
 {{ template "zsh/110_chezmoi.zsh" . }}
+{{ template "zsh/115_zellij.zsh" . }}
 {{ template "shell/fzf.sh" (merge (dict "shell" "zsh") .) }}
 {{ template "shell/fzf_tab.sh" (merge (dict "shell" "zsh") .) }}
 {{ template "shell/zoxide.sh" (merge (dict "shell" "zsh") .) }}
