@@ -22,7 +22,11 @@
 {{- range $key, $value := .mise.settings }}
 {{- if typeIs "map[string]interface {}" $value }}
   {{- range $subKey, $subValue := $value }}
+  {{- /* Skip npm.package_manager=bun when bun is disabled */ -}}
+  {{- if and (eq $key "npm") (eq $subKey "package_manager") (eq $subValue "bun") (eq (dig "mise" "global_tools" "bun" "installation" "mise" $) "disabled") }}
+  {{- else }}
   {{ $key }}.{{ $subKey }} = {{ $subValue | toJson }}
+  {{- end }}
   {{- end }}
 {{- else }}
 {{ $key }} = {{ $value | toJson }}
