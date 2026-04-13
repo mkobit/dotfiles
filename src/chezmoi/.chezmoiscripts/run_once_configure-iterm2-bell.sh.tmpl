@@ -6,7 +6,7 @@ source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 log_info "Configuring iTerm2 to disable bell sounds..."
 
 # iTerm2 configuration is stored in com.googlecode.iterm2.plist
-PLIST_PATH="$HOME/Library/Preferences/com.googlecode.iterm2.plist"
+PLIST_PATH="{{ .chezmoi.destDir }}/Library/Preferences/com.googlecode.iterm2.plist"
 
 # Check if iTerm2 has been run at least once (plist exists)
 if [[ ! -f "$PLIST_PATH" ]]; then
