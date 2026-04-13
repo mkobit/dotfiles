@@ -28,8 +28,8 @@
 	export TMUX_POWERLINE_WINDOW_STATUS_LINE=1
 	# The status bar refresh interval in seconds.
 	# Note that events that force-refresh the status bar (such as window renaming) will ignore this.
-	# Set to 10s to reduce process spawning and SentinelOne scanning overhead
-	export TMUX_POWERLINE_STATUS_INTERVAL="10"
+	# Set to 20s to reduce process spawning and SentinelOne scanning overhead
+	export TMUX_POWERLINE_STATUS_INTERVAL="20"
 	# The location of the window list. Can be {"absolute-centre, centre, left, right"}.
 	# Note that "absolute-centre" is only supported on `tmux -V` >= 3.2.
 	export TMUX_POWERLINE_STATUS_JUSTIFICATION="centre"
@@ -344,8 +344,8 @@
 # }
 
 # time.sh {
-	# date(1) format for the time. Americans might want to have "%I:%M:%S %p".
-	export TMUX_POWERLINE_SEG_TIME_FORMAT="%H:%M:%S %Z"
+	# date(1) format for the time. Americans might want to have "%I:%M %p".
+	export TMUX_POWERLINE_SEG_TIME_FORMAT="%H:%M %Z"
 	# Change this to display a different timezone than the system default.
 	# Use TZ Identifier like "America/Los_Angeles"
 	# export TMUX_POWERLINE_SEG_TIME_TZ=""
