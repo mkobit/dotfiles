@@ -10,6 +10,7 @@ def test_gemini_cli_installed(host):
     zsh_result = host.run("zsh -i -c 'command -v gemini'")
     assert zsh_result.rc == 0, "gemini command not found in zsh interactive shell"
 
+
 @pytest.mark.integration
 def test_mise_executable(host):
     """Verify that mise is on the path and executable."""
