@@ -1,3 +1,3 @@
-{{- if eq (dig "mise" "global_tools" "pnpm" "installation" "mise" .) "disabled" }}
+{{- if eq .mise.global_tools.pnpm.installation "disabled" }}
 rc
 {{- end }}

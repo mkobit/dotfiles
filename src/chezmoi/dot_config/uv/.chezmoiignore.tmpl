@@ -1,3 +1,3 @@
-{{- if eq (dig "mise" "global_tools" "uv" "installation" "mise" .) "disabled" }}
+{{- if eq .mise.global_tools.uv.installation "disabled" }}
 uv.toml
 {{- end }}

@@ -54,5 +54,11 @@ Never assume you are on `main` or in the primary checkout directory.
 - **Templates**: Use `{{ .chezmoi.sourceDir }}` to reference source files if needed, but prefer `{{ .chezmoi.destDir }}` for target paths.
 - **Hyphens**: Access keys with hyphens using `index`: `{{- with (index .zsh "oh-my-zsh") }}`.
 
+## Data merge hierarchy
+
+`--config [data.*]` beats `.chezmoidata/` unconditionally; `.chezmoidata/` files deep-merge (sibling keys coexist, last alpha file wins on conflicts).
+All tool entries in `.chezmoidata/` must declare an explicit `installation` key so templates can use direct access (`.mise.global_tools.foo.installation`) without `dig` fallbacks.
+Work-imposed locks in the generated config always win — personal cannot override them.
+
 ## Troubleshooting Package Installations
 When resolving package installation failures (e.g. `npm`, `pnpm`, `bun`, `uv`), check if the failure is due to the minimum release age configuration (e.g. `min-release-age`, `minimumReleaseAge`, `exclude-newer`). If so, the package might be too new and you should use an older version.
