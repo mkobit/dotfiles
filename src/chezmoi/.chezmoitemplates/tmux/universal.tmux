@@ -21,6 +21,14 @@ set-option -g xterm-keys on
 if-shell "tmux -V | awk '{split($2,a,\".\")} a[1] > 3 || (a[1] == 3 && a[2] >= 2)'" {
     set-option -s extended-keys on
     set-option -a -s terminal-features 'xterm*:extkeys'
+    set-option -a -s terminal-features 'xterm-ghostty:extkeys'
+}
+
+# Hyperlinks feature (tmux 3.4+)
+# Docs: https://github.com/tmux/tmux/wiki/FAQ#what-are-terminal-features
+if-shell "tmux -V | awk '{split($2,a,\".\")} a[1] > 3 || (a[1] == 3 && a[2] >= 4)'" {
+    set-option -a -s terminal-features 'xterm*:hyperlinks'
+    set-option -a -s terminal-features 'xterm-ghostty:hyperlinks'
 }
 
 # Reload configuration (changed to a more exotic key combination since it's used less frequently)
