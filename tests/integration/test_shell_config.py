@@ -13,6 +13,7 @@ def get_chezmoi_dest():
     return os.path.expanduser("~")
 
 
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_zsh_config_syntax():
     """Ensure compiled config.zsh evaluates correctly without syntax errors."""
@@ -25,6 +26,7 @@ async def test_zsh_config_syntax():
     subprocess.run(["zsh", "-n", config_path], check=True)
 
 
+@pytest.mark.integration
 @pytest.mark.asyncio
 async def test_bash_config_syntax():
     """Ensure compiled config.bash evaluates correctly without syntax errors."""
