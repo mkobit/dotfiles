@@ -87,9 +87,9 @@ else
 fi
 
 # Clean up manual installations
-if [[ -f "$HOME/.local/bin/ghostty" ]]; then
+if [[ -f "{{ .chezmoi.destDir }}/.local/bin/ghostty" ]]; then
     log_info "Removing ghostty from ~/.local/bin..."
-    rm -f "$HOME/.local/bin/ghostty" && log_success "Removed ~/.local/bin/ghostty"
+    rm -f "{{ .chezmoi.destDir }}/.local/bin/ghostty" && log_success "Removed ~/.local/bin/ghostty"
 fi
 
 if [[ -f "/usr/local/bin/ghostty" ]]; then
@@ -103,15 +103,15 @@ exit 1
 {{ end }}
 
 # Clean up configuration directory on all platforms
-if [[ -d "$HOME/.config/ghostty" ]]; then
+if [[ -d "{{ .chezmoi.destDir }}/.config/ghostty" ]]; then
     log_info "Removing ghostty configuration directory..."
-    rm -rf "$HOME/.config/ghostty" && log_success "Removed ~/.config/ghostty"
+    rm -rf "{{ .chezmoi.destDir }}/.config/ghostty" && log_success "Removed ~/.config/ghostty"
 fi
 
 # Clean up cache directory if it exists
-if [[ -d "$HOME/.cache/ghostty" ]]; then
+if [[ -d "{{ .chezmoi.destDir }}/.cache/ghostty" ]]; then
     log_info "Removing ghostty cache directory..."
-    rm -rf "$HOME/.cache/ghostty" && log_success "Removed ~/.cache/ghostty"
+    rm -rf "{{ .chezmoi.destDir }}/.cache/ghostty" && log_success "Removed ~/.cache/ghostty"
 fi
 
 log_success "ghostty uninstallation completed"
