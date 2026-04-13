@@ -16,20 +16,20 @@ set-option -g display-panes-time 2000
 
 # Split panes using | and - (and remove unintuitive bindings of % and ")
 # Docs: https://man.openbsd.org/tmux#split-window
-unbind '"'
-unbind %
-bind | split-window -h -c "#{pane_current_path}"
-bind - split-window -v -c "#{pane_current_path}"
+unbind-key '"'
+unbind-key %
+bind-key | split-window -h -c "#{pane_current_path}"
+bind-key - split-window -v -c "#{pane_current_path}"
 
 # Smart editor/tmux pane switching (Seamless Navigation)
 # Docs: https://man.openbsd.org/tmux#bind-key
 # Docs: https://man.openbsd.org/tmux#if-shell
 # This allows using Ctrl+h/j/k/l to switch panes seamlessly, passing keys to editor if active.
-is_editor="ps -o state= -o comm= -t '#{pane_tty}' | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?n?(view|vi|vim|nvim)(diff)?$'"
-bind-key -n 'C-h' if-shell "$is_editor" 'send-keys C-h'  'select-pane -L'
-bind-key -n 'C-j' if-shell "$is_editor" 'send-keys C-j'  'select-pane -D'
-bind-key -n 'C-k' if-shell "$is_editor" 'send-keys C-k'  'select-pane -U'
-bind-key -n 'C-l' if-shell "$is_editor" 'send-keys C-l'  'select-pane -R'
+is_editor="#{||:#{m:*vim*,#{pane_current_command}},#{m:*nvim*,#{pane_current_command}}}"
+bind-key -n 'C-h' if-shell -F "$is_editor" 'send-keys C-h'  'select-pane -L'
+bind-key -n 'C-j' if-shell -F "$is_editor" 'send-keys C-j'  'select-pane -D'
+bind-key -n 'C-k' if-shell -F "$is_editor" 'send-keys C-k'  'select-pane -U'
+bind-key -n 'C-l' if-shell -F "$is_editor" 'send-keys C-l'  'select-pane -R'
 
 bind-key -T copy-mode-vi 'C-h' select-pane -L
 bind-key -T copy-mode-vi 'C-j' select-pane -D
