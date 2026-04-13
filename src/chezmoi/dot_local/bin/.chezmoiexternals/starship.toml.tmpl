@@ -7,17 +7,16 @@
   {{- $target = printf "%s-apple-darwin" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
 {{- else -}}
   {{- $target = printf "%s-unknown-linux-%s" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") (eq $.chezmoi.arch "arm64" | ternary "musl" "gnu") -}}
-{{- end }}
-["starship"]
-type = "archive-file"
-url = {{ gitHubReleaseAssetURL "starship/starship" (printf "v%s" .version) (printf "starship-%s.tar.gz" $target) | quote }}
-path = "starship"
-executable = true
-{{- if ne .checksums.type "disabled" }}
-  {{- if not (hasKey .checksums $platform) }}
-    {{- fail (printf "Checksum validation enabled but no checksum found for platform: %s" $platform) }}
-  {{- end }}
-checksum.sha256 = "{{ index .checksums $platform }}"
-{{- end }}
 {{- end -}}
-{{- end }}
+{{- $config := dict -}}
+{{- $starship := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "starship/starship" (printf "v%s" .version) (printf "starship-%s.tar.gz" $target)) "path" "starship" "executable" true -}}
+{{- if ne .checksums.type "disabled" -}}
+  {{- if not (hasKey .checksums $platform) -}}
+    {{- fail (printf "Checksum validation enabled but no checksum found for platform: %s" $platform) -}}
+  {{- end -}}
+  {{- $_ := set $starship "checksum" (dict "sha256" (index .checksums $platform)) -}}
+{{- end -}}
+{{- $_ := set $config "starship" $starship -}}
+{{- toToml $config -}}
+{{- end -}}
+{{- end -}}

@@ -9,14 +9,13 @@
   {{- $target = "armv7l-linux-gnu" -}}
 {{- end -}}
 {{- if ne $target "" -}}
-["chafa"]
-type = "archive-file"
-url = "https://hpjansson.org/chafa/releases/static/chafa-{{ $version }}-1-{{ $target }}.tar.gz"
-path = "chafa-{{ $version }}-1-{{ $target }}/chafa"
-executable = true
+{{- $config := dict -}}
+{{- $chafa := dict "type" "archive-file" "url" (printf "https://hpjansson.org/chafa/releases/static/chafa-%s-1-%s.tar.gz" $version $target) "path" (printf "chafa-%s-1-%s/chafa" $version $target) "executable" true -}}
 {{- $checksums := dig "chafa" "checksums" dict . -}}
-{{- if and (hasKey $checksums $platform) (ne (trim (index $checksums $platform)) "") }}
-checksum.sha256 = "{{ index $checksums $platform }}"
+{{- if and (hasKey $checksums $platform) (ne (trim (index $checksums $platform)) "") -}}
+  {{- $_ := set $chafa "checksum" (dict "sha256" (index $checksums $platform)) -}}
 {{- end -}}
+{{- $_ := set $config "chafa" $chafa -}}
+{{- toToml $config -}}
 {{- end -}}
 {{- end -}}

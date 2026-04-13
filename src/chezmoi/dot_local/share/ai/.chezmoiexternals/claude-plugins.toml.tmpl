@@ -12,14 +12,14 @@
       skills/
         <name>.md
 */ -}}
-{{ range (index .ai_plugins "items") -}}
-{{ if eq .tool "claude" -}}
-{{ $target := printf ".local/share/ai/marketplace/plugins/%s/skills/%s.md" .name .name -}}
-["{{ $target }}"]
-  type = "file"
-  url  = "https://raw.githubusercontent.com/{{ .repo }}/{{ .commit }}/{{ .path }}"
-  ["{{ $target }}".checksum]
-    sha256 = "{{ .sha256 }}"
-
-{{ end -}}
-{{ end -}}
+{{- $config := dict -}}
+{{- range (index .ai_plugins "items") -}}
+  {{- if eq .tool "claude" -}}
+    {{- $target := printf ".local/share/ai/marketplace/plugins/%s/skills/%s.md" .name .name -}}
+    {{- $plugin := dict "type" "file" "url" (printf "https://raw.githubusercontent.com/%s/%s/%s" .repo .commit .path) "checksum" (dict "sha256" .sha256) -}}
+    {{- $_ := set $config $target $plugin -}}
+  {{- end -}}
+{{- end -}}
+{{- if not (empty $config) -}}
+{{- toToml $config -}}
+{{- end -}}

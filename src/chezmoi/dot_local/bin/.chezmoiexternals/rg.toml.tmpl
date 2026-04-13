@@ -10,14 +10,13 @@
   {{- else -}}
     {{- $target = "x86_64-unknown-linux-musl" -}}
   {{- end -}}
-{{- end }}
-["rg"]
-type = "archive-file"
-url = {{ gitHubReleaseAssetURL "BurntSushi/ripgrep" .version (printf "ripgrep-%s-%s.tar.gz" .version $target) | quote }}
-path = "ripgrep-{{ .version }}-{{ $target }}/rg"
-executable = true
-{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") }}
-checksum.sha256 = "{{ index .checksums $platform }}"
-{{- end }}
 {{- end -}}
-{{- end }}
+{{- $config := dict -}}
+{{- $rg := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "BurntSushi/ripgrep" .version (printf "ripgrep-%s-%s.tar.gz" .version $target)) "path" (printf "ripgrep-%s-%s/rg" .version $target) "executable" true -}}
+{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
+  {{- $_ := set $rg "checksum" (dict "sha256" (index .checksums $platform)) -}}
+{{- end -}}
+{{- $_ := set $config "rg" $rg -}}
+{{- toToml $config -}}
+{{- end -}}
+{{- end -}}

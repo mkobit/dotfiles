@@ -6,17 +6,16 @@
   {{- $target = printf "%s-apple-darwin" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
 {{- else -}}
   {{- $target = printf "%s-unknown-linux-gnu" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
-{{- end }}
-["bat"]
-type = "archive-file"
-url = {{ gitHubReleaseAssetURL "sharkdp/bat" (printf "v%s" .version) (printf "bat-v%s-%s.tar.gz" .version $target) | quote }}
-path = "bat-v{{ .version }}-{{ $target }}/bat"
-executable = true
-{{- if ne .checksums.type "disabled" }}
-  {{- if not (hasKey .checksums $platform) }}
-    {{- fail (printf "Checksum validation enabled but no checksum found for platform: %s" $platform) }}
-  {{- end }}
-checksum.sha256 = "{{ index .checksums $platform }}"
-{{- end }}
 {{- end -}}
-{{- end }}
+{{- $config := dict -}}
+{{- $bat := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "sharkdp/bat" (printf "v%s" .version) (printf "bat-v%s-%s.tar.gz" .version $target)) "path" (printf "bat-v%s-%s/bat" .version $target) "executable" true -}}
+{{- if ne .checksums.type "disabled" -}}
+  {{- if not (hasKey .checksums $platform) -}}
+    {{- fail (printf "Checksum validation enabled but no checksum found for platform: %s" $platform) -}}
+  {{- end -}}
+  {{- $_ := set $bat "checksum" (dict "sha256" (index .checksums $platform)) -}}
+{{- end -}}
+{{- $_ := set $config "bat" $bat -}}
+{{- toToml $config -}}
+{{- end -}}
+{{- end -}}
