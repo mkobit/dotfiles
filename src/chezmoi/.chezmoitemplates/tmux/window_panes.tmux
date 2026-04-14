@@ -16,21 +16,25 @@ set-option -g display-panes-time 2000
 
 # Split panes using | and - (and remove unintuitive bindings of % and ")
 # Docs: https://man.openbsd.org/tmux#split-window
-unbind '"'
-unbind %
-bind | split-window -h -c "#{pane_current_path}"
-bind - split-window -v -c "#{pane_current_path}"
+unbind-key '"'
+unbind-key %
+bind-key | split-window -h -c "#{pane_current_path}"
+bind-key - split-window -v -c "#{pane_current_path}"
 
-# Vim-like pane navigation
-# Docs: https://man.openbsd.org/tmux#select-pane
-unbind-key j
-bind-key j select-pane -D
-unbind-key k
-bind-key k select-pane -U
-unbind-key h
-bind-key h select-pane -L
-unbind-key l
-bind-key l select-pane -R
+# Smart editor/tmux pane switching (Seamless Navigation)
+# Docs: https://man.openbsd.org/tmux#bind-key
+# Docs: https://man.openbsd.org/tmux#if-shell
+# This allows using Ctrl+h/j/k/l to switch panes seamlessly, passing keys to editor if active.
+is_editor="#{||:#{m:*vim*,#{pane_current_command}},#{m:*nvim*,#{pane_current_command}}}"
+bind-key -n 'C-h' if-shell -F "$is_editor" 'send-keys C-h'  'select-pane -L'
+bind-key -n 'C-j' if-shell -F "$is_editor" 'send-keys C-j'  'select-pane -D'
+bind-key -n 'C-k' if-shell -F "$is_editor" 'send-keys C-k'  'select-pane -U'
+bind-key -n 'C-l' if-shell -F "$is_editor" 'send-keys C-l'  'select-pane -R'
+
+bind-key -T copy-mode-vi 'C-h' select-pane -L
+bind-key -T copy-mode-vi 'C-j' select-pane -D
+bind-key -T copy-mode-vi 'C-k' select-pane -U
+bind-key -T copy-mode-vi 'C-l' select-pane -R
 
 # Note: Do NOT enable Option/Alt+Arrow keys (M-Left/Right/Up/Down) for pane navigation.
 # These bindings conflict with standard shell word-wise navigation (Option+Left/Right).
@@ -41,9 +45,6 @@ bind-key -r H resize-pane -L 5
 bind-key -r J resize-pane -D 5
 bind-key -r K resize-pane -U 5
 bind-key -r L resize-pane -R 5
-
-# Smart vim/nvim-aware navigation - handles both vim and neovim
-is_vim="ps -o state= -o comm= -t '#{pane_tty}' | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?n?(view|vim|nvim)(diff)?$'"
 
 # Enhanced pane display with longer timeout and better colors
 set-option -g display-panes-time 4000
