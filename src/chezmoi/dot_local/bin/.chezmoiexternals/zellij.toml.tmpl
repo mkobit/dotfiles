@@ -24,14 +24,16 @@
 
 {{- $url := printf "https://github.com/zellij-org/zellij/releases/download/%s/zellij-%s-%s.tar.gz" $zellij.version $zellij_arch $zellij_os -}}
 
-["zellij"]
-type = "archive-file"
-url = "{{ $url }}"
-executable = true
-path = "zellij"
-stripComponents = 0
-refreshPeriod = "168h"
-    [zellij.checksum]
-    name = "sha256"
-    value = "{{ $checksum }}"
+{{- $config := dict -}}
+{{- $zellij_dict := dict
+    "type" "archive-file"
+    "url" $url
+    "executable" true
+    "path" "zellij"
+    "stripComponents" 0
+    "refreshPeriod" "168h"
+    "checksum" (dict "sha256" $checksum)
+-}}
+{{- $_ := set $config "zellij" $zellij_dict -}}
+{{- toToml $config -}}
 {{- end -}}

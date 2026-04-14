@@ -8,7 +8,12 @@
   {{- $target = printf "%s-unknown-linux-musl" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
 {{- end -}}
 {{- $config := dict -}}
-{{- $fd := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "sharkdp/fd" (printf "v%s" .version) (printf "fd-v%s-%s.tar.gz" .version $target)) "path" (printf "fd-v%s-%s/fd" .version $target) "executable" true -}}
+{{- $fd := dict
+    "type" "archive-file"
+    "url" (gitHubReleaseAssetURL "sharkdp/fd" (printf "v%s" .version) (printf "fd-v%s-%s.tar.gz" .version $target))
+    "path" (printf "fd-v%s-%s/fd" .version $target)
+    "executable" true
+-}}
 {{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
   {{- $_ := set $fd "checksum" (dict "sha256" (index .checksums $platform)) -}}
 {{- end -}}

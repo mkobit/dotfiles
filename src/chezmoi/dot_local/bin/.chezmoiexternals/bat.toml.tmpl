@@ -8,7 +8,12 @@
   {{- $target = printf "%s-unknown-linux-gnu" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
 {{- end -}}
 {{- $config := dict -}}
-{{- $bat := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "sharkdp/bat" (printf "v%s" .version) (printf "bat-v%s-%s.tar.gz" .version $target)) "path" (printf "bat-v%s-%s/bat" .version $target) "executable" true -}}
+{{- $bat := dict
+    "type" "archive-file"
+    "url" (gitHubReleaseAssetURL "sharkdp/bat" (printf "v%s" .version) (printf "bat-v%s-%s.tar.gz" .version $target))
+    "path" (printf "bat-v%s-%s/bat" .version $target)
+    "executable" true
+-}}
 {{- if ne .checksums.type "disabled" -}}
   {{- if not (hasKey .checksums $platform) -}}
     {{- fail (printf "Checksum validation enabled but no checksum found for platform: %s" $platform) -}}

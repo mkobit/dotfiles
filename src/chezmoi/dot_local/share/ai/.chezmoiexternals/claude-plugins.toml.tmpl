@@ -16,7 +16,11 @@
 {{- range (index .ai_plugins "items") -}}
   {{- if eq .tool "claude" -}}
     {{- $target := printf ".local/share/ai/marketplace/plugins/%s/skills/%s.md" .name .name -}}
-    {{- $plugin := dict "type" "file" "url" (printf "https://raw.githubusercontent.com/%s/%s/%s" .repo .commit .path) "checksum" (dict "sha256" .sha256) -}}
+    {{- $plugin := dict
+        "type" "file"
+        "url" (printf "https://raw.githubusercontent.com/%s/%s/%s" .repo .commit .path)
+        "checksum" (dict "sha256" .sha256)
+    -}}
     {{- $_ := set $config $target $plugin -}}
   {{- end -}}
 {{- end -}}

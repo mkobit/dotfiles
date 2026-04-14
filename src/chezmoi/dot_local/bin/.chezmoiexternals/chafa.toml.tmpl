@@ -10,7 +10,12 @@
 {{- end -}}
 {{- if ne $target "" -}}
 {{- $config := dict -}}
-{{- $chafa := dict "type" "archive-file" "url" (printf "https://hpjansson.org/chafa/releases/static/chafa-%s-1-%s.tar.gz" $version $target) "path" (printf "chafa-%s-1-%s/chafa" $version $target) "executable" true -}}
+{{- $chafa := dict
+    "type" "archive-file"
+    "url" (printf "https://hpjansson.org/chafa/releases/static/chafa-%s-1-%s.tar.gz" $version $target)
+    "path" (printf "chafa-%s-1-%s/chafa" $version $target)
+    "executable" true
+-}}
 {{- $checksums := dig "chafa" "checksums" dict . -}}
 {{- if and (hasKey $checksums $platform) (ne (trim (index $checksums $platform)) "") -}}
   {{- $_ := set $chafa "checksum" (dict "sha256" (index $checksums $platform)) -}}
