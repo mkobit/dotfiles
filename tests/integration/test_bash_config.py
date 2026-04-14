@@ -1,27 +1,22 @@
-import os
-
 import pytest
 
 
-def get_chezmoi_dest():
-    """Get the target destination for chezmoi."""
-    dest = os.environ.get("CHEZMOI_DEST")
-    if dest:
-        return dest
-    return os.path.expanduser("~")
-
-
 @pytest.mark.integration
-def test_bash_config_loads_effectively(host):
-    """Verify that bash actually loads the intended configuration without errors."""
-    dest_dir = get_chezmoi_dest()
-    config_path = os.path.join(dest_dir, ".dotfiles/bash/config.bash")
-
-    if not os.path.exists(config_path):
-        pytest.skip(f"Bash config not found at: {config_path}")
-
-    # Use bash to source the config and verify it loads cleanly
-    result = host.run(f"bash -c 'source {config_path}'")
+def test_bash_login_loads_cleanly(host):
+    """Verify that a bash login shell sources config without errors."""
+    result = host.run("bash -l -c 'exit'")
     assert result.rc == 0, (
-        f"Bash failed to load config correctly. stderr: {result.stderr}"
+        f"bash login shell exited with {result.rc}\nstderr: {result.stderr}"
+    )
+    stderr_lower = result.stderr.lower()
+    known_benign = [
+        "not interactive and can't open terminal",
+        "inappropriate ioctl for device",
+        "not a tty",
+        "no job control in this shell",
+    ]
+    for warning in known_benign:
+        stderr_lower = stderr_lower.replace(warning, "")
+    assert "error" not in stderr_lower and "command not found" not in stderr_lower, (
+        f"Errors found during bash login startup:\n{result.stderr}"
     )

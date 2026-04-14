@@ -1,25 +1,23 @@
-import shutil
-import subprocess
-
 import pytest
 
 
 @pytest.mark.integration
-def test_jules_cli_available():
-    """Verify that jules CLI is available and executable in the shell environment."""
-    jules_path = shutil.which("jules")
-    assert jules_path is not None, "jules command not found on PATH"
+def test_jules_cli_available(host):
+    """Verify that jules CLI is available in the shell environment."""
+    result = host.run("zsh -i -c 'command -v jules'")
+    assert result.rc == 0, (
+        f"jules command not found in zsh environment.\nstderr: {result.stderr}"
+    )
+    assert "jules" in result.stdout, (
+        "command -v jules did not print a path containing 'jules'."
+    )
 
 
 @pytest.mark.integration
-def test_jules_cli_help():
-    """Verify that the jules CLI actually runs correctly (prints help)."""
-    jules_path = shutil.which("jules")
-    assert jules_path is not None, "jules command not found on PATH"
-
-    result = subprocess.run([jules_path, "--help"], capture_output=True, text=True)
-
-    assert result.returncode == 0, f"jules --help failed.\nstderr: {result.stderr}"
+def test_jules_cli_help(host):
+    """Verify that the jules CLI runs correctly."""
+    result = host.run("zsh -i -c 'jules --help'")
+    assert result.rc == 0, f"jules --help failed.\nstderr: {result.stderr}"
     assert "Usage: jules" in result.stdout or "Usage:" in result.stdout, (
         "Did not find expected help output."
     )

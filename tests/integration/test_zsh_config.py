@@ -1,27 +1,28 @@
-import os
-
 import pytest
 
 
-def get_chezmoi_dest():
-    """Get the target destination for chezmoi."""
-    dest = os.environ.get("CHEZMOI_DEST")
-    if dest:
-        return dest
-    return os.path.expanduser("~")
-
-
 @pytest.mark.integration
-def test_zsh_config_loads_effectively(host):
-    """Verify that zsh actually loads the intended configuration without errors."""
-    dest_dir = get_chezmoi_dest()
-    config_path = os.path.join(dest_dir, ".dotfiles/zsh/config.zsh")
-
-    if not os.path.exists(config_path):
-        pytest.skip(f"Zsh config not found at: {config_path}")
-
-    # Use zsh to source the config and verify it loads cleanly
-    result = host.run(f"ZDOTDIR={dest_dir} zsh -c 'source {config_path}'")
+def test_zsh_interactive_login_loads_cleanly(host):
+    """Verify that a zsh interactive login shell sources config without errors."""
+    result = host.run("zsh -i -l -c 'exit'")
     assert result.rc == 0, (
-        f"Zsh failed to load config correctly. stderr: {result.stderr}"
+        f"zsh interactive login shell exited with {result.rc}\nstderr: {result.stderr}"
+    )
+    stderr_lower = result.stderr.lower()
+    known_benign = [
+        "not interactive and can't open terminal",
+        "compinit: initialization aborted",
+        "inappropriate ioctl for device",
+        "zsh: command not found: compdef",
+        "can't change option: zle",
+        "stty: 'standard input'",
+        "(eval):1:",
+        "(eval):2:",
+        "not a tty",
+        "no job control in this shell",
+    ]
+    for warning in known_benign:
+        stderr_lower = stderr_lower.replace(warning, "")
+    assert "error" not in stderr_lower and "command not found" not in stderr_lower, (
+        f"Errors found during zsh startup:\n{result.stderr}"
     )
