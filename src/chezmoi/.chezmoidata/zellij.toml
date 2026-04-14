@@ -1,7 +1,8 @@
+[zellij]
 version = "v0.44.1"
 enabled = true
 
-[checksums]
+[zellij.checksums]
 darwin_arm64 = "59226b6f25973b6f43f52047d94c7cf4ce014a4f16ccd5420fb3a34e19ed3bc1"
 darwin_amd64 = "801bc9d911b8846e24302ed5a8828474eff00c7f163b5a1675ea56e7ab27731e"
 linux_arm64 = "d3e87f35a4426d837346a69882e36f4bf21f117612c28c1dede915e5c599d8f4"
