@@ -1,8 +1,8 @@
 #!/usr/bin/env zsh
 # =============================================================================
-# TMUX-OPTIMIZED ZSH PERFORMANCE SETTINGS
+# MULTIPLEXER-AWARE ZSH PERFORMANCE SETTINGS
 # =============================================================================
-# Settings that oh-my-zsh doesn't handle or that need tmux-specific optimization
+# Settings that oh-my-zsh doesn't handle or that need multiplexer-specific optimization
 
 # =============================================================================
 # TMUX-CRITICAL HISTORY SETTINGS
@@ -152,25 +152,23 @@ setopt AUTO_LIST               # List choices on ambiguous completion
 # =============================================================================
 # TERMINAL OPTIMIZATIONS FOR NESTED ENVIRONMENTS
 # =============================================================================
-# Detect if we're in a multiplexer (tmux/zellij) and optimize accordingly
-if [[ -n "$TMUX" || -n "$ZELLIJ" ]]; then
-    # In multiplexer - optimize for performance over features
-    export TERM="screen-256color"
-
-    # Disable some oh-my-zsh features that slow down multiplexers
+# Detect which multiplexer (if any) we are inside and set TERM appropriately.
+# tmux needs tmux-256color for full feature support (italics, true color, etc.).
+# zellij manages its own TERM (xterm-256color); do not override it.
+if [[ -n "$TMUX" ]]; then
+    export TERM="tmux-256color"
     DISABLE_AUTO_TITLE="true"
-
-    # Faster prompt updates in multiplexers
+    setopt PROMPT_SUBST
+elif [[ -n "$ZELLIJ" ]]; then
+    # zellij sets xterm-256color; leave TERM alone and just suppress auto-title
+    DISABLE_AUTO_TITLE="true"
     setopt PROMPT_SUBST
 else
-    # Not in multiplexer - can afford slightly more features
     case "$TERM_PROGRAM" in
         "iTerm.app")
-            # iTerm2 optimizations
             export ITERM_ENABLE_SHELL_INTEGRATION_WITH_TMUX=YES
             ;;
         "vscode")
-            # VS Code terminal optimizations
             export TERM="xterm-256color"
             ;;
     esac
