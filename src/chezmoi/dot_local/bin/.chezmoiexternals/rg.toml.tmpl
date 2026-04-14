@@ -12,7 +12,12 @@
   {{- end -}}
 {{- end -}}
 {{- $config := dict -}}
-{{- $rg := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "BurntSushi/ripgrep" .version (printf "ripgrep-%s-%s.tar.gz" .version $target)) "path" (printf "ripgrep-%s-%s/rg" .version $target) "executable" true -}}
+{{- $rg := dict
+    "type" "archive-file"
+    "url" (gitHubReleaseAssetURL "BurntSushi/ripgrep" .version (printf "ripgrep-%s-%s.tar.gz" .version $target))
+    "path" (printf "ripgrep-%s-%s/rg" .version $target)
+    "executable" true
+-}}
 {{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
   {{- $_ := set $rg "checksum" (dict "sha256" (index .checksums $platform)) -}}
 {{- end -}}

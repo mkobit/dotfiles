@@ -2,7 +2,13 @@
 {{- if eq .installation "external-sources" -}}
 {{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
 {{- $config := dict -}}
-{{- $fzf := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "junegunn/fzf" (printf "v%s" .version) (printf "fzf-%s-%s_%s.tar.gz" .version $.chezmoi.os $.chezmoi.arch)) "path" "fzf" "executable" true "checksum" (dict "sha256" (index .checksums $platform)) -}}
+{{- $fzf := dict
+    "type" "archive-file"
+    "url" (gitHubReleaseAssetURL "junegunn/fzf" (printf "v%s" .version) (printf "fzf-%s-%s_%s.tar.gz" .version $.chezmoi.os $.chezmoi.arch))
+    "path" "fzf"
+    "executable" true
+    "checksum" (dict "sha256" (index .checksums $platform))
+-}}
 {{- $_ := set $config "fzf" $fzf -}}
 {{- toToml $config -}}
 {{- end -}}

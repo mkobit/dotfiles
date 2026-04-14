@@ -16,7 +16,12 @@
 {{- $archive_name := printf "gh_%s_%s_%s.%s" .version $os_name $.chezmoi.arch $file_ext -}}
 {{- $archive_path := printf "gh_%s_%s_%s/bin/gh" .version $os_name $.chezmoi.arch -}}
 {{- $config := dict -}}
-{{- $gh := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "cli/cli" (printf "v%s" .version) $archive_name) "path" $archive_path "executable" true -}}
+{{- $gh := dict
+    "type" "archive-file"
+    "url" (gitHubReleaseAssetURL "cli/cli" (printf "v%s" .version) $archive_name)
+    "path" $archive_path
+    "executable" true
+-}}
 {{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
   {{- $_ := set $gh "checksum" (dict "sha256" (index .checksums $platform)) -}}
 {{- end -}}

@@ -17,7 +17,13 @@
 {{- end -}}
 {{- if ne $target "" -}}
 {{- $config := dict -}}
-{{- $eza := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "eza-community/eza" (printf "v%s" .version) (printf "eza_%s.tar.gz" $target)) "path" "eza" "stripComponents" 1 "executable" true -}}
+{{- $eza := dict
+    "type" "archive-file"
+    "url" (gitHubReleaseAssetURL "eza-community/eza" (printf "v%s" .version) (printf "eza_%s.tar.gz" $target))
+    "path" "eza"
+    "stripComponents" 1
+    "executable" true
+-}}
 {{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
   {{- $_ := set $eza "checksum" (dict "sha256" (index .checksums $platform)) -}}
 {{- end -}}
