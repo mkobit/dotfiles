@@ -21,13 +21,20 @@ if ! command -v gemini &> /dev/null; then
     exit 0
 fi
 
+GEMINI_BIN=$(mise which gemini || command -v gemini)
+BUN_BIN=$(mise which bun || echo "")
+RUN_CMD=("$GEMINI_BIN")
+if [ -n "$BUN_BIN" ]; then
+    RUN_CMD=("$BUN_BIN" "--bun" "$GEMINI_BIN")
+fi
+
 {{- range $name, $ext := .gemini.extensions }}
 {{-   if eq $ext.installation "gemini-cli" }}
 log_info "Installing/Updating extension: {{ $name }} ({{ $ext.ref }})"
 # Uninstall first to prevent "already installed" errors during updates
-gemini extensions uninstall "{{ $name }}" > /dev/null 2>&1 || true
+"${RUN_CMD[@]}" extensions uninstall "{{ $name }}" > /dev/null 2>&1 || true
 # We use --consent to bypass prompts.
-if ! gemini extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent; then
+if ! "${RUN_CMD[@]}" extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent; then
     log_warn "Failed to install {{ $name }}. There may have been a network error."
 fi
 {{-   end }}

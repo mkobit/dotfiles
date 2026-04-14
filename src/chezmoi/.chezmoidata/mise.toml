@@ -11,7 +11,6 @@ linux_arm64 = "b0cee25b0405113ed6fe2a54cf21d49720ee571d3d5b4a9c695721cd123d24f8"
 [mise.settings]
 disable_hints = ["self_update"]
 [mise.settings.npm]
-bun = true
 package_manager = "bun"
 
 [mise.global_tools]
