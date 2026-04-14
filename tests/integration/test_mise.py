@@ -2,16 +2,18 @@ import pytest
 
 
 @pytest.mark.integration
-def test_mise_bun_and_gemini_installed(host):
-    """Verify that gemini is on the path."""
-    # We will verify if we can resolve the gemini command.
-    result = host.run("zsh -i -c 'command -v gemini'")
+@pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
+def test_mise_on_path(host, shell_cmd):
+    """Verify that mise is on PATH in bash and zsh login shells."""
+    result = host.run(f"{shell_cmd} 'command -v mise'")
+    assert result.rc == 0, f"mise not found via {shell_cmd!r}.\nstderr: {result.stderr}"
 
-    # If the command is not installed yet (e.g. running in CI where it's mocked),
-    # we fallback to checking the configuration file.
-    if result.rc != 0:
-        with open("src/chezmoi/.chezmoidata/mise.toml") as f:
-            content = f.read()
-        assert "npm:@google/gemini-cli" in content, "gemini-cli not added to config"
-    else:
-        assert result.rc == 0
+
+@pytest.mark.integration
+@pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
+def test_gemini_on_path(host, shell_cmd):
+    """Verify that gemini is on PATH in bash and zsh login shells."""
+    result = host.run(f"{shell_cmd} 'command -v gemini'")
+    assert result.rc == 0, (
+        f"gemini not found via {shell_cmd!r}.\nstderr: {result.stderr}"
+    )

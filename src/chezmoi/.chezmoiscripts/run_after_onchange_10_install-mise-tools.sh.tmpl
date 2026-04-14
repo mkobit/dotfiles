@@ -27,4 +27,12 @@ else
     log_error "Failed to install mise global tools."
     exit 1
 fi
+
+log_info "Reshimming mise tools..."
+if "$MISE" reshim; then
+    log_success "Mise reshim complete."
+else
+    log_error "Failed to reshim mise tools."
+    exit 1
+fi
 {{- end -}}

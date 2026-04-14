@@ -123,6 +123,7 @@ jobs:
 
       - name: Run chezmoi apply
         env:
+          HOME: /tmp/chezmoi-test
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
         run: chezmoi apply --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
