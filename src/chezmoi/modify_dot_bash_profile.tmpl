@@ -15,8 +15,8 @@ fi
 # Add our managed section
 cat >> "${tempfile}" << 'EOF'
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:bash:{{ include "modify_dot_bash_profile.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
-if [[ -f {{ .chezmoi.destDir }}/.bashrc ]]; then
-  source {{ .chezmoi.destDir }}/.bashrc
+if [[ -f "{{ .chezmoi.destDir }}/.bashrc" ]]; then
+  source "{{ .chezmoi.destDir }}/.bashrc"
 fi
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:bash:{{ include "modify_dot_bash_profile.tmpl" | sha256sum | substr 0 8 }}
 EOF
