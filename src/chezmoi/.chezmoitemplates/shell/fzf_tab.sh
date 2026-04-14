@@ -11,7 +11,7 @@ fi
 
 FZF_TAB_COMPLETION_DIR="{{ .chezmoi.destDir }}/.dotfiles/external/fzf-tab-completion"
 
-if [[ -f "$FZF_TAB_COMPLETION_DIR/bash/fzf-bash-completion.sh" ]]; then
+if [[ -f "$FZF_TAB_COMPLETION_DIR/bash/fzf-bash-completion.sh" ]] && bash -n "$FZF_TAB_COMPLETION_DIR/bash/fzf-bash-completion.sh" 2>/dev/null; then
     source "$FZF_TAB_COMPLETION_DIR/bash/fzf-bash-completion.sh"
 
     # Bind Tab to fzf completion

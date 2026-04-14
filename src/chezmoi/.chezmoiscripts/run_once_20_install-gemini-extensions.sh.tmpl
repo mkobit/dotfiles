@@ -1,4 +1,6 @@
-#!/bin/bash
+{{- $geminiCli := index .mise.global_tools "npm:@google/gemini-cli" -}}
+{{- if ne $geminiCli.installation "disabled" -}}
+#!/usr/bin/env bash
 {{/* Calculate hash from sorted JSON of extensions map for change detection in the script content itself */ -}}
 {{- $extensionsJson := .gemini.extensions | default dict | toJson -}}
 # gemini.extensions hash: {{ $extensionsJson | sha256sum }}
@@ -32,3 +34,4 @@ fi
 {{- end }}
 
 log_success "Gemini extensions installation complete."
+{{- end -}}

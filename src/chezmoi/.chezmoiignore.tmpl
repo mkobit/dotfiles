@@ -31,3 +31,7 @@
 {{- if ne .npmrc.installation "enabled" }}
 .npmrc
 {{- end }}
+
+{{- if eq .mise.global_tools.bun.installation "disabled" }}
+.bunfig.toml
+{{- end }}

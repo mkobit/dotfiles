@@ -1,0 +1,23 @@
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# .wslconfig hash: {{ includeTemplate "wsl/wslconfig" . | sha256sum }}
+
+# .wslconfig must reside in the Windows user profile, which is outside the
+# standard Linux home directory managed by chezmoi. This script templates
+# and copies the configuration to the Windows user profile.
+
+WIN_PROFILE=$(/mnt/c/Windows/System32/cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')
+if [[ -z "${WIN_PROFILE}" ]]; then
+  echo "ERROR: Could not determine Windows user profile path via cmd.exe" >&2
+  exit 1
+fi
+WSLCONFIG_PATH="$(wslpath -u "${WIN_PROFILE}")/.wslconfig"
+
+cat > "${WSLCONFIG_PATH}" << 'CONFIG_EOF'
+{{ template "wsl/wslconfig" . }}
+CONFIG_EOF
+
+echo "Updated .wslconfig: ${WSLCONFIG_PATH}"
+{{- end -}}

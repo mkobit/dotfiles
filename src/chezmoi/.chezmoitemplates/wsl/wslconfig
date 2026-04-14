@@ -1,0 +1,11 @@
+# Official Microsoft Documentation for .wslconfig settings:
+# https://learn.microsoft.com/en-us/windows/wsl/wsl-config
+
+[wsl2]
+memory={{ .wsl.wsl2.memory }}
+swap={{ .wsl.wsl2.swap }}
+processors={{ .wsl.wsl2.processors }}
+
+[experimental]
+autoMemoryReclaim={{ .wsl.experimental.autoMemoryReclaim }}
+sparseVhd={{ .wsl.experimental.sparseVhd }}

@@ -1,0 +1,10 @@
+[wsl]
+
+[wsl.wsl2]
+memory = "6GB"
+swap = "2GB"
+processors = 4
+
+[wsl.experimental]
+autoMemoryReclaim = "gradual"
+sparseVhd = true

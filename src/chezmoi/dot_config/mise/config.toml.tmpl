@@ -1,35 +1,29 @@
+{{- /* Build enabled tools map - only include tools with installation = "mise" */ -}}
 {{- $tools := dict -}}
-{{- if hasKey . "mise" -}}
-  {{- if hasKey .mise "global_tools" -}}
-    {{- range $tool, $config := .mise.global_tools -}}
-      {{- if eq (dig "installation" "mise" $config) "mise" -}}
-        {{- if hasKey $config "postinstall" -}}
-          {{- $_ := set $tools $tool (dict "version" $config.version "postinstall" $config.postinstall) -}}
-        {{- else -}}
-          {{- $_ := set $tools $tool $config.version -}}
-        {{- end -}}
-      {{- end -}}
+{{- range $tool, $config := .mise.global_tools -}}
+  {{- if eq $config.installation "mise" -}}
+    {{- if hasKey $config "postinstall" -}}
+      {{- $_ := set $tools $tool (dict "version" $config.version "postinstall" $config.postinstall) -}}
+    {{- else -}}
+      {{- $_ := set $tools $tool $config.version -}}
     {{- end -}}
   {{- end -}}
 {{- end -}}
 
+{{- /* Build filtered settings map - omit sub-keys tied to disabled tools */ -}}
 {{- $settings := dict -}}
-{{- if hasKey . "mise" -}}
-  {{- if hasKey .mise "settings" -}}
-    {{- range $key, $value := .mise.settings -}}
-      {{- $_ := set $settings $key $value -}}
-    {{- end -}}
+{{- range $k, $v := .mise.settings -}}
+  {{- if and (eq $k "npm") (eq $.mise.global_tools.bun.installation "disabled") -}}
+    {{- $filtered := omit $v "package_manager" -}}
+    {{- if $filtered -}}{{- $_ := set $settings $k $filtered -}}{{- end -}}
+  {{- else -}}
+    {{- $_ := set $settings $k $v -}}
   {{- end -}}
 {{- end -}}
 
-{{- $config := dict -}}
-{{- if not (empty $tools) -}}
-  {{- $_ := set $config "tools" $tools -}}
+{{- if $tools -}}
+{{ dict "tools" $tools | toToml }}
 {{- end -}}
-{{- if not (empty $settings) -}}
-  {{- $_ := set $config "settings" $settings -}}
-{{- end -}}
-
-{{- if not (empty $config) -}}
-{{- toToml $config -}}
+{{- if $settings -}}
+{{ dict "settings" $settings | toToml }}
 {{- end -}}
