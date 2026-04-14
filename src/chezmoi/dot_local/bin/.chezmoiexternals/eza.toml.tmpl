@@ -16,15 +16,13 @@
   {{- end -}}
 {{- end -}}
 {{- if ne $target "" -}}
-["eza"]
-type = "archive-file"
-url = {{ gitHubReleaseAssetURL "eza-community/eza" (printf "v%s" .version) (printf "eza_%s.tar.gz" $target) | quote }}
-path = "eza"
-stripComponents = 1
-executable = true
-{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") }}
-checksum.sha256 = "{{ index .checksums $platform }}"
+{{- $config := dict -}}
+{{- $eza := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "eza-community/eza" (printf "v%s" .version) (printf "eza_%s.tar.gz" $target)) "path" "eza" "stripComponents" 1 "executable" true -}}
+{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
+  {{- $_ := set $eza "checksum" (dict "sha256" (index .checksums $platform)) -}}
+{{- end -}}
+{{- $_ := set $config "eza" $eza -}}
+{{- toToml $config -}}
 {{- end -}}
 {{- end -}}
 {{- end -}}
-{{- end }}

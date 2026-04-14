@@ -1,3 +1,4 @@
-{{ if hasKey .uv "min_release_age_days" -}}
-exclude-newer = "P{{ .uv.min_release_age_days }}D"
-{{ end -}}
+{{- if hasKey .uv "min_release_age_days" -}}
+{{- $config := dict "exclude-newer" (printf "P%dD" .uv.min_release_age_days) -}}
+{{- toToml $config -}}
+{{- end -}}
