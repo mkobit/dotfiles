@@ -15,6 +15,7 @@
 {{- range $k, $v := .mise.settings -}}
   {{- if and (eq $k "npm") (eq $.mise.global_tools.bun.installation "disabled") -}}
     {{- $filtered := omit $v "package_manager" -}}
+    {{- $filtered := omit $filtered "bun" -}}
     {{- if $filtered -}}{{- $_ := set $settings $k $filtered -}}{{- end -}}
   {{- else -}}
     {{- $_ := set $settings $k $v -}}
