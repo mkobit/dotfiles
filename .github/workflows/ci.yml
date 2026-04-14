@@ -44,6 +44,8 @@ jobs:
         run: uv sync --all-packages --frozen
       - name: Lint (ruff)
         run: uv run ruff check .
+      - name: Template lint (djlint)
+        run: uv run djlint src/chezmoi/ --check
       - name: Format check (ruff)
         run: uv run ruff format --check .
       - name: Type check (ty)

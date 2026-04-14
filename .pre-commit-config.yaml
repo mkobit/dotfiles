@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: djlint
+        name: djlint
+        entry: uv run djlint
+        language: system
+        types_or: [file]
+        files: \.tmpl$
+        args: ["--reformat"]

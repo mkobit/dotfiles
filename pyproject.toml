@@ -15,6 +15,8 @@ dev = [
     "ruff>=0.11",
     "ty>=0.0.1a10",
     "pytest-testinfra>=10",
+    "djlint>=1.36.4",
+    "pre-commit>=4.5.1",
 ]
 
 [tool.uv.workspace]
@@ -62,3 +64,11 @@ all = "error"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+
+[tool.djlint]
+profile = "golang"
+extension = "tmpl"
+preserve_blank_lines = true
+ignore = "H031,H017,H006,T008"
+ignore_blocks = "shell,bash,zsh,python,toml,ini,conf"
+custom_blocks = "if,range,with"

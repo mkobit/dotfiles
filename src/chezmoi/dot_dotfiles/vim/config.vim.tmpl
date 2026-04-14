@@ -6,7 +6,7 @@
 
 " Source all vim snippet files
 for file in split(glob('{{ $targetDir }}/snippets/*.vim'), '\n')
-    if filereadable(file)
-        execute 'source' file
-    endif
+if filereadable(file)
+execute 'source' file
+endif
 endfor

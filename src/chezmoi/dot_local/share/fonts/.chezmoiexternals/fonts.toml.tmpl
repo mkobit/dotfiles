@@ -1,15 +1,15 @@
 {{- $config := dict -}}
 {{- range $key, $font := .fonts -}}
-  {{- if eq $font.installation "external-sources" -}}
-    {{- $target := printf "NerdFonts/%s" $font.name -}}
-    {{- $fontConfig := dict
-        "type" "archive"
-        "url" (printf "https://github.com/ryanoasis/nerd-fonts/releases/download/%s/%s.tar.xz" $font.version $font.name)
-        "exact" true
-        "checksum" (dict "sha256" $font.sha256)
-    -}}
-    {{- $_ := set $config $target $fontConfig -}}
-  {{- end -}}
+{{- if eq $font.installation "external-sources" -}}
+{{- $target := printf "NerdFonts/%s" $font.name -}}
+{{- $fontConfig := dict
+"type" "archive"
+"url" (printf "https://github.com/ryanoasis/nerd-fonts/releases/download/%s/%s.tar.xz" $font.version $font.name)
+"exact" true
+"checksum" (dict "sha256" $font.sha256)
+-}}
+{{- $_ := set $config $target $fontConfig -}}
+{{- end -}}
 {{- end -}}
 {{- if not (empty $config) -}}
 {{- toToml $config -}}

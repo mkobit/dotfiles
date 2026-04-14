@@ -5,20 +5,20 @@
 {{- end }}
 
 [user]
-  name = {{ .name | quote }}
-  email = {{ .email | quote }}
+name = {{ .name | quote }}
+email = {{ .email | quote }}
 {{- if .signing_key }}
-  signingkey = {{ .signing_key }}
+signingkey = {{ .signing_key }}
 {{- end }}
 
 [commit]
 {{- if .signing_key }}
-  gpgsign = true
+gpgsign = true
 {{- else }}
-  gpgsign = false
+gpgsign = false
 {{- end }}
 
 [gpg]
-  program = gpg
+program = gpg
 {{- end }}
 {{- end }}

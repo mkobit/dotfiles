@@ -3,38 +3,38 @@ import sys
 import json
 
 def main():
-    content = sys.stdin.read().strip()
+content = sys.stdin.read().strip()
 
-    payload = {
-        "key": "shift+enter",
-        "command": "workbench.action.terminal.sendSequence",
-        "args": {
-            "text": "\u001b\r"
-        },
-        "when": "terminalFocus"
-    }
+payload = {
+"key": "shift+enter",
+"command": "workbench.action.terminal.sendSequence",
+"args": {
+"text": "\u001b\r"
+},
+"when": "terminalFocus"
+}
 
-    if not content:
-        print(json.dumps([payload], indent=4))
-        return
+if not content:
+print(json.dumps([payload], indent=4))
+return
 
-    try:
-        keybindings = json.loads(content)
+try:
+keybindings = json.loads(content)
 
-        if isinstance(keybindings, list):
-            # Filter out the existing keybinding to simulate an override/merge
-            keybindings = [item for item in keybindings if item.get("key") != payload["key"]]
-            keybindings.append(payload)
+if isinstance(keybindings, list):
+# Filter out the existing keybinding to simulate an override/merge
+keybindings = [item for item in keybindings if item.get("key") != payload["key"]]
+keybindings.append(payload)
 
-            # Sort by the 'key' alphabetically to get consistent and stable output
-            keybindings.sort(key=lambda item: (item.get("command", ""), item.get("key", "")))
+# Sort by the 'key' alphabetically to get consistent and stable output
+keybindings.sort(key=lambda item: (item.get("command", ""), item.get("key", "")))
 
-            print(json.dumps(keybindings, indent=4))
-        else:
-            print(content)
+print(json.dumps(keybindings, indent=4))
+else:
+print(content)
 
-    except Exception:
-        print(content)
+except Exception:
+print(content)
 
 if __name__ == "__main__":
-    main()
+main()

@@ -6,11 +6,11 @@ set -euo pipefail
 
 # Check if claude is already installed and at the right version
 if command -v claude &> /dev/null; then
-    current_version=$(claude --version 2>/dev/null | head -n1 | awk '{print $NF}' || echo "unknown")
-    if [[ "$current_version" == "{{ .claude_code.version }}" ]]; then
-        echo "Claude Code {{ .claude_code.version }} already installed"
-        exit 0
-    fi
+current_version=$(claude --version 2>/dev/null | head -n1 | awk '{print $NF}' || echo "unknown")
+if [[ "$current_version" == "{{ .claude_code.version }}" ]]; then
+echo "Claude Code {{ .claude_code.version }} already installed"
+exit 0
+fi
 fi
 
 echo "Installing Claude Code {{ .claude_code.version }}..."

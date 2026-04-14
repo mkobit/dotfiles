@@ -16,23 +16,23 @@ export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
 log_info "Ensuring mise global tools are installed..."
 
 if [[ ! -x "$MISE" ]]; then
-    log_warn "mise not found at $MISE. Skipping global tool installation."
-    exit 0
+log_warn "mise not found at $MISE. Skipping global tool installation."
+exit 0
 fi
 
 log_info "Running 'mise install' for global tools..."
 if "$MISE" install; then
-    log_success "Mise global tools installation complete."
+log_success "Mise global tools installation complete."
 else
-    log_error "Failed to install mise global tools."
-    exit 1
+log_error "Failed to install mise global tools."
+exit 1
 fi
 
 log_info "Reshimming mise tools..."
 if "$MISE" reshim; then
-    log_success "Mise reshim complete."
+log_success "Mise reshim complete."
 else
-    log_error "Failed to reshim mise tools."
-    exit 1
+log_error "Failed to reshim mise tools."
+exit 1
 fi
 {{- end -}}

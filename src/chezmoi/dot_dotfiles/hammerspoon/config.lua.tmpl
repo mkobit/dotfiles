@@ -3,10 +3,10 @@
 
 -- Global Configuration Table
 _G.DotfilesConfig = {
-    cache_dir = "{{ .chezmoi.destDir }}/.cache",
-    window_manager = {
-        enabled = {{ .hammerspoon.window_manager.enabled | default "false" }}
-    }
+cache_dir = "{{ .chezmoi.destDir }}/.cache",
+window_manager = {
+enabled = {{ .hammerspoon.window_manager.enabled | default "false" }}
+}
 }
 
 -- Load base configuration

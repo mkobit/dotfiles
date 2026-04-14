@@ -9,7 +9,7 @@ sed -i.bak '/.*modify_dot_bashrc\.tmpl:BEGIN:chezmoi:bash/,/.*modify_dot_bashrc\
 
 # Check if file ends with newline, if not add one
 if [ -s "${tempfile}" ] && [ "$(tail -c1 "${tempfile}")" != "" ]; then
-  echo >> "${tempfile}"
+echo >> "${tempfile}"
 fi
 
 # Add our managed section

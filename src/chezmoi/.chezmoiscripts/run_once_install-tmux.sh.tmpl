@@ -3,30 +3,30 @@
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
 if check_command tmux; then
-    log_success "tmux already installed at $(command -v tmux)"
-    exit 0
+log_success "tmux already installed at $(command -v tmux)"
+exit 0
 fi
 
 log_info "Installing tmux..."
 
 {{ if eq .chezmoi.os "darwin" -}}
 if ! check_command brew; then
-    log_error "Homebrew not found. Please install Homebrew first."
-    exit 1
+log_error "Homebrew not found. Please install Homebrew first."
+exit 1
 fi
 
 if brew install tmux >/dev/null; then
-    log_success "tmux installed successfully"
+log_success "tmux installed successfully"
 else
-    log_error "Failed to install tmux"
-    exit 1
+log_error "Failed to install tmux"
+exit 1
 fi
 {{ else if eq .chezmoi.os "linux" -}}
 if sudo apt-get update >/dev/null && sudo apt-get install -y tmux >/dev/null; then
-    log_success "tmux installed successfully"
+log_success "tmux installed successfully"
 else
-    log_error "Failed to install tmux"
-    exit 1
+log_error "Failed to install tmux"
+exit 1
 fi
 {{ else -}}
 log_error "Unsupported OS: {{ .chezmoi.os }}"

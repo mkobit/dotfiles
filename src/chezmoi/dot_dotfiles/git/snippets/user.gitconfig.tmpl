@@ -1,8 +1,7 @@
 [user]
-  # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-username
-  name = {{ .git.personal.name | quote }}
-  # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-useremail
-  email = {{ .git.personal.email | quote }}
-  # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-usersigningKey
-  signingkey = {{ .git.personal.signing_key }}
-
+# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-username
+name = {{ .git.personal.name | quote }}
+# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-useremail
+email = {{ .git.personal.email | quote }}
+# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-usersigningKey
+signingkey = {{ .git.personal.signing_key }}

@@ -1,13 +1,13 @@
 [core]
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreeditor
+# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreeditor
 {{- if lookPath "nvim" }}
-	editor = nvim
+editor = nvim
 {{- else if lookPath "vim" }}
-	editor = vim
+editor = vim
 {{- end }}
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreautocrlf
-	autocrlf = input
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreexcludesFile
-	excludesFile = ~/.gitignore_global
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor
-	fsmonitor = true
+# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreautocrlf
+autocrlf = input
+# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreexcludesFile
+excludesFile = ~/.gitignore_global
+# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor
+fsmonitor = true

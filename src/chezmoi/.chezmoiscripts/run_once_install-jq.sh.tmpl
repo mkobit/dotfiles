@@ -4,8 +4,8 @@ source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
 # Check if jq is already installed
 if check_command jq; then
-    log_success "jq already installed at $(command -v jq)"
-    exit 0
+log_success "jq already installed at $(command -v jq)"
+exit 0
 fi
 
 log_info "Installing jq via package manager..."
@@ -13,23 +13,23 @@ log_info "Installing jq via package manager..."
 {{ if eq .chezmoi.os "darwin" }}
 # macOS - use Homebrew
 if ! check_command brew; then
-    log_error "Homebrew not found. Please install Homebrew first."
-    exit 1
+log_error "Homebrew not found. Please install Homebrew first."
+exit 1
 fi
 
 if brew install jq >/dev/null; then
-    log_success "jq installed successfully via homebrew"
+log_success "jq installed successfully via homebrew"
 else
-    log_error "Failed to install jq via homebrew"
-    exit 1
+log_error "Failed to install jq via homebrew"
+exit 1
 fi
 {{ else if eq .chezmoi.os "linux" }}
 # Linux - use apt (Ubuntu/Debian)
 if sudo apt-get update >/dev/null && sudo apt-get install -y jq >/dev/null; then
-    log_success "jq installed successfully via apt"
+log_success "jq installed successfully via apt"
 else
-    log_error "Failed to install jq via apt"
-    exit 1
+log_error "Failed to install jq via apt"
+exit 1
 fi
 {{ else }}
 log_error "Unsupported OS: {{ .chezmoi.os }}"

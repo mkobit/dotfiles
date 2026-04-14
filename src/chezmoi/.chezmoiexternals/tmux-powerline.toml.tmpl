@@ -2,10 +2,10 @@
 {{- if $plugin.enabled -}}
 {{- $config := dict -}}
 {{- $powerline := dict
-    "type" "archive"
-    "url" (printf "https://github.com/erikw/tmux-powerline/archive/%s.tar.gz" $plugin.commit)
-    "exact" true
-    "stripComponents" 1
+"type" "archive"
+"url" (printf "https://github.com/erikw/tmux-powerline/archive/%s.tar.gz" $plugin.commit)
+"exact" true
+"stripComponents" 1
 -}}
 {{- $_ := set $config ".dotfiles/tmux/plugins/tmux-powerline" $powerline -}}
 {{- toToml $config -}}

@@ -3,29 +3,29 @@
 
 # Core configuration (all profiles)
 [include]
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/core.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/color.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/diff.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/fetch.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/merge.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/pull.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/push.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/rebase.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/rerere.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/stash.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/branch.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/column.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/aliases.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/core.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/color.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/diff.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/fetch.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/merge.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/pull.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/push.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/rebase.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/rerere.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/stash.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/branch.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/column.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/aliases.gitconfig
 
 # Conditionally apply pruning only for GitHub remotes
 [includeIf "hasconfig:remote.*.url:https://github.com/**"]
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/prune.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/prune.gitconfig
 [includeIf "hasconfig:remote.*.url:git@github.com:*/**"]
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/prune.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/prune.gitconfig
 
 # Personal configuration
 {{- if .git.personal.enabled }}
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/personal.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/github.gitconfig
-  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/init.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/personal.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/github.gitconfig
+path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/init.gitconfig
 {{- end }}

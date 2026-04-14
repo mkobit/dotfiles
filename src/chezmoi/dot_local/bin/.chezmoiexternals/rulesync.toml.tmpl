@@ -10,12 +10,12 @@
 {{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
 {{- $config := dict -}}
 {{- $rulesync := dict
-    "type" "file"
-    "url" (gitHubReleaseAssetURL "dyoshikawa/rulesync" (printf "v%s" .version) $asset)
-    "executable" true
+"type" "file"
+"url" (gitHubReleaseAssetURL "dyoshikawa/rulesync" (printf "v%s" .version) $asset)
+"executable" true
 -}}
 {{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
-  {{- $_ := set $rulesync "checksum" (dict "sha256" (index .checksums $platform)) -}}
+{{- $_ := set $rulesync "checksum" (dict "sha256" (index .checksums $platform)) -}}
 {{- end -}}
 {{- $_ := set $config "rulesync" $rulesync -}}
 {{- toToml $config -}}

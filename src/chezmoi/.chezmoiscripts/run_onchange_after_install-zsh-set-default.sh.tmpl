@@ -6,18 +6,18 @@ source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 zsh_path="$(which zsh)"
 
 if [[ -z "$zsh_path" ]]; then
-    log_error "zsh not found in PATH"
-    exit 1
+log_error "zsh not found in PATH"
+exit 1
 fi
 
 if [[ "$SHELL" != "$zsh_path" ]]; then
-    log_info "Changing default shell from $SHELL to $zsh_path"
-    # Use sudo to avoid password prompt (works in both CI and interactive environments)
-    if sudo chsh -s "$zsh_path" "$(whoami)"; then
-        log_success "Default shell changed to zsh"
-    else
-        log_error "Failed to change shell to $zsh_path"
-        exit 1
-    fi
+log_info "Changing default shell from $SHELL to $zsh_path"
+# Use sudo to avoid password prompt (works in both CI and interactive environments)
+if sudo chsh -s "$zsh_path" "$(whoami)"; then
+log_success "Default shell changed to zsh"
+else
+log_error "Failed to change shell to $zsh_path"
+exit 1
+fi
 fi
 {{- end }}

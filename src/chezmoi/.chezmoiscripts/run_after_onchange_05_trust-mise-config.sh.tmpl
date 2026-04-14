@@ -11,8 +11,8 @@ source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
 
 if ! command -v mise &>/dev/null; then
-    log_warn "mise not found in PATH. Skipping trust."
-    exit 0
+log_warn "mise not found in PATH. Skipping trust."
+exit 0
 fi
 
 log_info "Trusting mise config in working tree..."

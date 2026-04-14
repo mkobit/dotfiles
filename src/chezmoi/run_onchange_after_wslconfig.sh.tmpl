@@ -10,8 +10,8 @@ set -euo pipefail
 
 WIN_PROFILE=$(/mnt/c/Windows/System32/cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')
 if [[ -z "${WIN_PROFILE}" ]]; then
-  echo "ERROR: Could not determine Windows user profile path via cmd.exe" >&2
-  exit 1
+echo "ERROR: Could not determine Windows user profile path via cmd.exe" >&2
+exit 1
 fi
 WSLCONFIG_PATH="$(wslpath -u "${WIN_PROFILE}")/.wslconfig"
 

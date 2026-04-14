@@ -3,10 +3,10 @@
 {{- if and $installation (ne $installation "disabled") -}}
 {{- $config := dict -}}
 {{- $ezaCompletions := dict
-    "type" "archive"
-    "url" (gitHubReleaseAssetURL "eza-community/eza" (printf "v%s" .version) (printf "completions-%s.tar.gz" .version))
-    "include" (list "zsh/_eza")
-    "readonly" true
+"type" "archive"
+"url" (gitHubReleaseAssetURL "eza-community/eza" (printf "v%s" .version) (printf "completions-%s.tar.gz" .version))
+"include" (list "zsh/_eza")
+"readonly" true
 -}}
 {{- $_ := set $config "eza-completions" $ezaCompletions -}}
 {{- toToml $config -}}

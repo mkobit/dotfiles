@@ -4,16 +4,16 @@
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
 if check_command bwrap && check_command socat; then
-    log_success "bubblewrap and socat already installed"
-    exit 0
+log_success "bubblewrap and socat already installed"
+exit 0
 fi
 
 log_info "Installing bubblewrap and socat via package manager..."
 
 if sudo apt-get update >/dev/null && sudo apt-get install -y bubblewrap socat >/dev/null; then
-    log_success "bubblewrap and socat installed successfully via apt"
+log_success "bubblewrap and socat installed successfully via apt"
 else
-    log_error "Failed to install bubblewrap and socat via apt"
-    exit 1
+log_error "Failed to install bubblewrap and socat via apt"
+exit 1
 fi
 {{- end -}}

@@ -17,8 +17,8 @@ export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
 log_info "Ensuring Gemini CLI extensions are installed..."
 
 if ! command -v gemini &> /dev/null; then
-    log_warn "gemini command not found in PATH. Skipping extension installation."
-    exit 0
+log_warn "gemini command not found in PATH. Skipping extension installation."
+exit 0
 fi
 
 {{- range $name, $ext := .gemini.extensions }}
@@ -28,7 +28,7 @@ log_info "Installing/Updating extension: {{ $name }} ({{ $ext.ref }})"
 gemini extensions uninstall "{{ $name }}" > /dev/null 2>&1 || true
 # We use --consent to bypass prompts.
 if ! gemini extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent; then
-    log_warn "Failed to install {{ $name }}. There may have been a network error."
+log_warn "Failed to install {{ $name }}. There may have been a network error."
 fi
 {{-   end }}
 {{- end }}

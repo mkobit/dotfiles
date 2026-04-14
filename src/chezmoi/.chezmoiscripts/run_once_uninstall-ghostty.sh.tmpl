@@ -4,9 +4,9 @@
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
 # Check if ghostty is installed
-if ! check_command ghostty; then 
-    log_success "ghostty is not installed - nothing to uninstall"
-    exit 0
+if ! check_command ghostty; then
+log_success "ghostty is not installed - nothing to uninstall"
+exit 0
 fi
 
 log_info "Uninstalling ghostty..."
@@ -14,87 +14,87 @@ log_info "Uninstalling ghostty..."
 {{ if eq .chezmoi.os "darwin" }}
 # macOS - use Homebrew Cask
 if check_command brew; then
-    if brew list --cask ghostty >/dev/null 2>&1; then
-        if brew uninstall --cask ghostty >/dev/null; then
-            log_success "ghostty uninstalled successfully via homebrew cask"
-        else
-            log_error "Failed to uninstall ghostty via homebrew cask"
-            exit 1
-        fi
-    else
-        log_info "ghostty not installed via homebrew cask"
-    fi
+if brew list --cask ghostty >/dev/null 2>&1; then
+if brew uninstall --cask ghostty >/dev/null; then
+log_success "ghostty uninstalled successfully via homebrew cask"
 else
-    log_warning "Homebrew not found - cannot uninstall via brew"
+log_error "Failed to uninstall ghostty via homebrew cask"
+exit 1
+fi
+else
+log_info "ghostty not installed via homebrew cask"
+fi
+else
+log_warning "Homebrew not found - cannot uninstall via brew"
 fi
 
 # Clean up Applications folder (manual install)
 if [[ -d "/Applications/Ghostty.app" ]]; then
-    log_info "Removing Ghostty.app from Applications folder..."
-    rm -rf "/Applications/Ghostty.app" && log_success "Removed /Applications/Ghostty.app"
+log_info "Removing Ghostty.app from Applications folder..."
+rm -rf "/Applications/Ghostty.app" && log_success "Removed /Applications/Ghostty.app"
 fi
 
 {{ else if eq .chezmoi.os "linux" }}
 # Linux - explicit platform support
 if command -v apt-get >/dev/null 2>&1; then
-    # Ubuntu/Debian
-    log_info "Uninstalling ghostty via apt (Ubuntu/Debian)"
-    
-    if dpkg -l | grep -q ghostty; then
-        if sudo apt-get remove -y ghostty >/dev/null; then
-            log_success "ghostty uninstalled successfully via apt"
-        else
-            log_error "Failed to uninstall ghostty via apt"
-            exit 1
-        fi
-    else
-        log_info "ghostty not installed via apt"
-    fi
-    
-elif command -v pacman >/dev/null 2>&1; then
-    # Arch Linux
-    log_info "Uninstalling ghostty via pacman (Arch Linux)"
-    
-    if pacman -Q ghostty >/dev/null 2>&1; then
-        if sudo pacman -R --noconfirm ghostty; then
-            log_success "ghostty uninstalled successfully via pacman"
-        else
-            log_error "Failed to uninstall ghostty via pacman"
-            exit 1
-        fi
-    else
-        log_info "ghostty not installed via pacman"
-    fi
-    
-elif command -v dnf >/dev/null 2>&1; then
-    # Fedora
-    log_info "Uninstalling ghostty via dnf (Fedora)"
-    
-    if dnf list installed ghostty >/dev/null 2>&1; then
-        if sudo dnf remove -y ghostty >/dev/null; then
-            log_success "ghostty uninstalled successfully via dnf"
-        else
-            log_error "Failed to uninstall ghostty via dnf"
-            exit 1
-        fi
-    else
-        log_info "ghostty not installed via dnf"
-    fi
-    
+# Ubuntu/Debian
+log_info "Uninstalling ghostty via apt (Ubuntu/Debian)"
+
+if dpkg -l | grep -q ghostty; then
+if sudo apt-get remove -y ghostty >/dev/null; then
+log_success "ghostty uninstalled successfully via apt"
 else
-    log_warning "Unsupported package manager - cannot uninstall via package manager"
-    log_info "Supported: apt (Ubuntu/Debian), pacman (Arch), dnf (Fedora)"
+log_error "Failed to uninstall ghostty via apt"
+exit 1
+fi
+else
+log_info "ghostty not installed via apt"
+fi
+
+elif command -v pacman >/dev/null 2>&1; then
+# Arch Linux
+log_info "Uninstalling ghostty via pacman (Arch Linux)"
+
+if pacman -Q ghostty >/dev/null 2>&1; then
+if sudo pacman -R --noconfirm ghostty; then
+log_success "ghostty uninstalled successfully via pacman"
+else
+log_error "Failed to uninstall ghostty via pacman"
+exit 1
+fi
+else
+log_info "ghostty not installed via pacman"
+fi
+
+elif command -v dnf >/dev/null 2>&1; then
+# Fedora
+log_info "Uninstalling ghostty via dnf (Fedora)"
+
+if dnf list installed ghostty >/dev/null 2>&1; then
+if sudo dnf remove -y ghostty >/dev/null; then
+log_success "ghostty uninstalled successfully via dnf"
+else
+log_error "Failed to uninstall ghostty via dnf"
+exit 1
+fi
+else
+log_info "ghostty not installed via dnf"
+fi
+
+else
+log_warning "Unsupported package manager - cannot uninstall via package manager"
+log_info "Supported: apt (Ubuntu/Debian), pacman (Arch), dnf (Fedora)"
 fi
 
 # Clean up manual installations
 if [[ -f "{{ .chezmoi.destDir }}/.local/bin/ghostty" ]]; then
-    log_info "Removing ghostty from ~/.local/bin..."
-    rm -f "{{ .chezmoi.destDir }}/.local/bin/ghostty" && log_success "Removed ~/.local/bin/ghostty"
+log_info "Removing ghostty from ~/.local/bin..."
+rm -f "{{ .chezmoi.destDir }}/.local/bin/ghostty" && log_success "Removed ~/.local/bin/ghostty"
 fi
 
 if [[ -f "/usr/local/bin/ghostty" ]]; then
-    log_info "Removing ghostty from /usr/local/bin..."
-    sudo rm -f "/usr/local/bin/ghostty" && log_success "Removed /usr/local/bin/ghostty"
+log_info "Removing ghostty from /usr/local/bin..."
+sudo rm -f "/usr/local/bin/ghostty" && log_success "Removed /usr/local/bin/ghostty"
 fi
 
 {{ else }}
@@ -104,14 +104,14 @@ exit 1
 
 # Clean up configuration directory on all platforms
 if [[ -d "{{ .chezmoi.destDir }}/.config/ghostty" ]]; then
-    log_info "Removing ghostty configuration directory..."
-    rm -rf "{{ .chezmoi.destDir }}/.config/ghostty" && log_success "Removed ~/.config/ghostty"
+log_info "Removing ghostty configuration directory..."
+rm -rf "{{ .chezmoi.destDir }}/.config/ghostty" && log_success "Removed ~/.config/ghostty"
 fi
 
 # Clean up cache directory if it exists
 if [[ -d "{{ .chezmoi.destDir }}/.cache/ghostty" ]]; then
-    log_info "Removing ghostty cache directory..."
-    rm -rf "{{ .chezmoi.destDir }}/.cache/ghostty" && log_success "Removed ~/.cache/ghostty"
+log_info "Removing ghostty cache directory..."
+rm -rf "{{ .chezmoi.destDir }}/.cache/ghostty" && log_success "Removed ~/.cache/ghostty"
 fi
 
 log_success "ghostty uninstallation completed"

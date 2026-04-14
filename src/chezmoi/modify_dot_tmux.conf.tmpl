@@ -9,7 +9,7 @@ sed -i.bak '/.*modify_dot_tmux\.conf\.tmpl:BEGIN:chezmoi:tmux/,/.*modify_dot_tmu
 
 # Check if file ends with newline, if not add one
 if [ -s "${tempfile}" ] && [ "$(tail -c1 "${tempfile}")" != "" ]; then
-  echo >> "${tempfile}"
+echo >> "${tempfile}"
 fi
 
 # Add our managed section

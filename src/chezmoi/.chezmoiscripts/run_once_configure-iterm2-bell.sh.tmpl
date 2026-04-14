@@ -10,16 +10,16 @@ PLIST_PATH="{{ .chezmoi.destDir }}/Library/Preferences/com.googlecode.iterm2.pli
 
 # Check if iTerm2 has been run at least once (plist exists)
 if [[ ! -f "$PLIST_PATH" ]]; then
-    log_error "iTerm2 preferences not found. Please run iTerm2 at least once, then rerun 'chezmoi apply'"
-    exit 1
+log_error "iTerm2 preferences not found. Please run iTerm2 at least once, then rerun 'chezmoi apply'"
+exit 1
 fi
 
 # Use defaults command to set silence bell option
 if defaults write com.googlecode.iterm2 "SilenceBell" -bool true; then
-    log_success "iTerm2 bell sounds disabled successfully"
-    log_info "Restart iTerm2 for changes to take effect"
+log_success "iTerm2 bell sounds disabled successfully"
+log_info "Restart iTerm2 for changes to take effect"
 else
-    log_error "Failed to configure iTerm2 bell settings"
-    exit 1
+log_error "Failed to configure iTerm2 bell settings"
+exit 1
 fi
 {{ end }}
