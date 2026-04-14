@@ -59,3 +59,15 @@ set-window-option -g mode-style "fg=#2e3440,bg=#88c0d0"
 set-window-option -g clock-mode-colour "#88c0d0"
 # Docs: https://man.openbsd.org/tmux#clock-mode-style
 set-window-option -g clock-mode-style 24
+
+
+# === ROOT USER STYLING ===
+# Differentiate root sessions with a distinct red status bar background
+# Docs: https://man.openbsd.org/tmux#status-style
+# Docs: https://man.openbsd.org/tmux#if-shell
+if-shell 'test "$(id -u)" -eq 0' {
+    set -g status-style "fg=#eceff4,bg=#bf616a,bold"
+} {
+    # Default non-root status style (typically handled by powerline, but providing fallback)
+    set -g status-style "fg=#eceff4,bg=#3b4252"
+}

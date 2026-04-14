@@ -41,3 +41,17 @@ set-window-option -g allow-rename on
 # Disable automatic renaming when a window is manually renamed
 # This ensures custom names are preserved
 bind-key , command-prompt -p "(rename-window '#W')" "rename-window '%%'; set-window-option automatic-rename off"
+
+
+# Quick window switching with Meta (Alt) + Number (without prefix)
+# This allows instantly jumping to a specific window
+# Docs: https://man.openbsd.org/tmux#select-window
+bind-key -n M-1 select-window -t 1
+bind-key -n M-2 select-window -t 2
+bind-key -n M-3 select-window -t 3
+bind-key -n M-4 select-window -t 4
+bind-key -n M-5 select-window -t 5
+bind-key -n M-6 select-window -t 6
+bind-key -n M-7 select-window -t 7
+bind-key -n M-8 select-window -t 8
+bind-key -n M-9 select-window -t 9
