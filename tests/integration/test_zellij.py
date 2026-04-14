@@ -22,3 +22,12 @@ def test_zellij_version(host, shell_cmd):
     assert "zellij" in result.stdout.lower(), (
         f"Unexpected output from zellij --version: {result.stdout!r}"
     )
+
+
+@pytest.mark.integration
+def test_zellij_config_valid(host):
+    """Verify that zellij configuration is valid."""
+    result = host.run("zellij setup --check")
+    assert result.rc == 0, (
+        f"zellij config is invalid.\nstderr: {result.stderr}\nstdout: {result.stdout}"
+    )
