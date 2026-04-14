@@ -8,7 +8,7 @@
   {{- $target = printf "%s-unknown-linux-musl" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
 {{- end -}}
 {{- $config := dict -}}
-{{- $entry := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "zellij-org/zellij" .version (printf "zellij-%s.tar.gz" $target)) "path" "zellij" "executable" true "refreshPeriod" "168h" -}}
+{{- $entry := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "zellij-org/zellij" .version (printf "zellij-%s.tar.gz" $target)) "path" "zellij" "executable" true -}}
 {{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
   {{- $_ := set $entry "checksum" (dict "sha256" (index .checksums $platform)) -}}
 {{- end -}}
