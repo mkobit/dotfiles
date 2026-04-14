@@ -14,5 +14,5 @@ if command -v claude &> /dev/null; then
 fi
 
 echo "Installing Claude Code {{ .claude_code.version }}..."
-curl -fsSL https://claude.ai/install.sh | bash -s -- {{ .claude_code.version }}
+curl -fsS -L --retry 3 --retry-delay 5 https://claude.ai/install.sh | bash -s -- {{ .claude_code.version }}
 {{- end }}
