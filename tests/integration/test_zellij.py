@@ -29,10 +29,7 @@ def test_zellij_version(host, shell_cmd):
 @pytest.mark.integration
 def test_zellij_config_valid(host):
     """Verify that zellij configuration is valid."""
-    config_path = os.path.expandvars(
-        "${CHEZMOI_SOURCE_DIR:-src/chezmoi}/dot_config/zellij/config.kdl"
-    )
-    result = host.run(f"zellij --config {config_path} setup --check")
+    result = host.run("zellij setup --check")
     assert result.rc == 0, (
         f"zellij config is invalid.\nstderr: {result.stderr}\nstdout: {result.stdout}"
     )
