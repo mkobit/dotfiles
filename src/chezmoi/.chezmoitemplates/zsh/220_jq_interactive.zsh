@@ -39,18 +39,18 @@ if ! command -v fzf &> /dev/null || ! command -v jq &> /dev/null; then
 fi
 
 # =============================================================================
-# TMUX DETECTION AND CONFIGURATION
+# MULTIPLEXER (TMUX/ZELLIJ) DETECTION AND CONFIGURATION
 # =============================================================================
-_ijq_detect_tmux() {
-    [[ -n "$TMUX" ]]
+_ijq_detect_multiplexer() {
+    [[ -n "$TMUX" || -n "$ZELLIJ" ]]
 }
 
 _ijq_get_fzf_opts() {
-    local is_tmux=$(_ijq_detect_tmux && echo true || echo false)
+    local is_multiplexer=$(_ijq_detect_multiplexer && echo true || echo false)
     local base_opts=""
 
-    if [[ "$is_tmux" == "true" ]]; then
-        # Tmux-optimized settings - smaller preview to preserve space
+    if [[ "$is_multiplexer" == "true" ]]; then
+        # Multiplexer-optimized settings - smaller preview to preserve space
         base_opts="--height=80% --layout=reverse --border=rounded"
         echo "$base_opts --preview-window=right:50%"
     else

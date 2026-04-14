@@ -152,18 +152,18 @@ setopt AUTO_LIST               # List choices on ambiguous completion
 # =============================================================================
 # TERMINAL OPTIMIZATIONS FOR NESTED ENVIRONMENTS
 # =============================================================================
-# Detect if we're in tmux and optimize accordingly
-if [[ -n "$TMUX" ]]; then
-    # In tmux - optimize for performance over features
+# Detect if we're in a multiplexer (tmux/zellij) and optimize accordingly
+if [[ -n "$TMUX" || -n "$ZELLIJ" ]]; then
+    # In multiplexer - optimize for performance over features
     export TERM="screen-256color"
 
-    # Disable some oh-my-zsh features that slow down tmux
+    # Disable some oh-my-zsh features that slow down multiplexers
     DISABLE_AUTO_TITLE="true"
 
-    # Faster prompt updates in tmux
+    # Faster prompt updates in multiplexers
     setopt PROMPT_SUBST
 else
-    # Not in tmux - can afford slightly more features
+    # Not in multiplexer - can afford slightly more features
     case "$TERM_PROGRAM" in
         "iTerm.app")
             # iTerm2 optimizations
@@ -181,17 +181,21 @@ fi
 # =============================================================================
 case "$(uname -s)" in
     Darwin)
-        # macOS + tmux optimizations
-        # Fix clipboard integration in tmux
+        # macOS + multiplexer optimizations
+        # Fix clipboard integration in multiplexers
         if [[ -n "$TMUX" ]] && command -v pbcopy >/dev/null 2>&1; then
             alias pbcopy='tmux save-buffer -'
             alias pbpaste='tmux show-buffer'
+        elif [[ -n "$ZELLIJ" ]] && command -v pbcopy >/dev/null 2>&1; then
+            # Zellij handles clipboard natively via OSC52 when configured,
+            # or we just use normal pbcopy/pbpaste
+            :
         fi
         ;;
     Linux)
-        # Linux + tmux optimizations (WSL, SteamOS)
-        if [[ -n "$WSL_DISTRO_NAME" && -n "$TMUX" ]]; then
-            # WSL + tmux: disable problematic features
+        # Linux + multiplexer optimizations (WSL, SteamOS)
+        if [[ -n "$WSL_DISTRO_NAME" && ( -n "$TMUX" || -n "$ZELLIJ" ) ]]; then
+            # WSL + multiplexer: disable problematic features
             unsetopt BG_NICE
             export LIBGL_ALWAYS_INDIRECT=1
         fi
