@@ -10,10 +10,7 @@ def test_mise_on_path(host, shell_cmd):
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -i -c"])
-def test_gemini_on_path(host, shell_cmd):
-    """Verify that gemini is on PATH in bash and zsh."""
-    result = host.run(f"{shell_cmd} 'command -v gemini'")
-    assert result.rc == 0, (
-        f"gemini not found via {shell_cmd!r}.\nstderr: {result.stderr}"
-    )
+def test_gemini_on_path(host):
+    """Verify gemini is on PATH in zsh (mise-managed, requires shell activation)."""
+    result = host.run("zsh -i -c 'command -v gemini'")
+    assert result.rc == 0, f"gemini not found via zsh.\nstderr: {result.stderr}"
