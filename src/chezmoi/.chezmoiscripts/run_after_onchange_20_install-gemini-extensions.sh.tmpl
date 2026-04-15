@@ -22,8 +22,8 @@ if ! command -v gemini &> /dev/null; then
     exit 0
 fi
 
-GEMINI_BIN=$(mise which gemini || command -v gemini)
-BUN_BIN=$(mise which bun || echo "")
+GEMINI_BIN=$(mise which gemini 2>/dev/null || command -v gemini 2>/dev/null)
+BUN_BIN=$(mise which bun 2>/dev/null || echo "")
 RUN_CMD=("$GEMINI_BIN")
 if [ -n "$BUN_BIN" ]; then
     RUN_CMD=("$BUN_BIN" "--bun" "$GEMINI_BIN")
@@ -36,10 +36,12 @@ if GEMINI_API_KEY=dummy "${RUN_CMD[@]}" extensions list 2>/dev/null | grep -A 10
 else
     log_info "Installing/Updating extension: {{ $name }} ({{ $ext.ref }})"
     # Uninstall first to prevent "already installed" errors during updates
-    "${RUN_CMD[@]}" extensions uninstall "{{ $name }}" > /dev/null 2>&1 || true
-    # We use --consent to bypass prompts.
-    if ! "${RUN_CMD[@]}" extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent; then
-        log_warn "Failed to install {{ $name }}. There may have been a network error."
+    yes | "${RUN_CMD[@]}" extensions uninstall "{{ $name }}" > /dev/null 2>&1 || true
+
+    # We use --consent and pipe 'yes' to bypass prompts and hide the scary but non-fatal OAuth stack trace on non-interactive shells.
+    if ! out=$(yes | GEMINI_API_KEY=dummy "${RUN_CMD[@]}" extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent 2>&1); then
+        log_warn "Failed to install {{ $name }}. Output:
+$out"
     fi
 fi
 {{-   end }}
