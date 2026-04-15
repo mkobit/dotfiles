@@ -42,7 +42,7 @@ class SegmentCache:
             cached = self._cache[key]
             if cached.expires_at > Instant.now():
                 return cached.results
-            self._cache.pop(key, None)
+            self._cache = {k: v for k, v in self._cache.items() if k != key}
             self._save()
         return None
 
