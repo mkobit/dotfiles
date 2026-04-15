@@ -41,7 +41,7 @@ async def run_external_generator(
         )
 
         try:
-            stdout, stderr = await asyncio.wait_for(
+            stdout, _stderr = await asyncio.wait_for(
                 proc.communicate(input=payload_json.encode()), timeout=timeout
             )
         except TimeoutError:
@@ -208,9 +208,7 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
             format_cost(payload),
             format_lines_impact(payload),
         ]
-        for r in internal_results:
-            if r:
-                all_segments.append(r)
+        all_segments.extend([r for r in internal_results if r])
     except Exception as e:
         all_segments.extend(handle_error(e, "internal.claude_or_workspace"))
 

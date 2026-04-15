@@ -85,6 +85,7 @@ def run_fzf(items: list[str]) -> str | None:
         text=True,
         stdout=subprocess.PIPE,
         stderr=None,
+        check=False,
     )
 
     if result.returncode == 0 and result.stdout:
