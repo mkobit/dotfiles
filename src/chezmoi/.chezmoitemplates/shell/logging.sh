@@ -1,4 +1,3 @@
-#!/bin/bash
 # Shared logging utilities for chezmoi scripts
 
 # Colors
