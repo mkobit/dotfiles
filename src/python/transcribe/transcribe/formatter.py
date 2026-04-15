@@ -29,9 +29,8 @@ class Formatter:
             )
             template = env.get_template(os.path.basename(template_file))
             return str(template.render(context))
-        elif template_string:
+        if template_string:
             template = Template(template_string)
             return str(template.render(context))
-        else:
-            template = Template(Formatter.DEFAULT_TEMPLATE)
-            return str(template.render(context))
+        template = Template(Formatter.DEFAULT_TEMPLATE)
+        return str(template.render(context))

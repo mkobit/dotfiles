@@ -15,13 +15,12 @@ from jules_cli.models import JulesContext, Session, SourceContext
 
 
 def test_get_api_key_ignores_env_var() -> None:
-    with patch.dict(os.environ, {"JULES_API_KEY": "env_key"}):
-        # Mock load_config to return empty config
-        with patch("jules_cli.main.load_config", return_value=JulesConfig()):
-            # Mock legacy file check to return False
-            with patch("pathlib.Path.exists", return_value=False):
-                with pytest.raises(SystemExit):
-                    get_api_key()
+    with (
+        patch.dict(os.environ, {"JULES_API_KEY": "env_key"}),
+        patch("jules_cli.main.load_config", return_value=JulesConfig()),
+        patch("pathlib.Path.exists", return_value=False),pytest.raises(SystemExit)
+    ):
+        get_api_key()
 
 
 def test_get_api_key_from_config() -> None:
@@ -201,14 +200,15 @@ def test_integration_env_var_ignored(tmp_path: Path) -> None:
     cwd = os.getcwd()
     os.chdir(tmp_path)
     try:
-        with patch.dict(os.environ, env):
+        with (
+            patch.dict(os.environ, env),
+            pytest.raises(SystemExit),
+        ):
             # Also need to make sure legacy check fails.
             # legacy check: $XDG_CONFIG_HOME/jules/api_key
             # tmp_path is empty, so it should fail.
 
             # We must NOT mock load_config here.
-
-            with pytest.raises(SystemExit):
                 get_api_key()
     finally:
         os.chdir(cwd)

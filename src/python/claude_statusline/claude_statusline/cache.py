@@ -42,9 +42,8 @@ class SegmentCache:
             cached = self._cache[key]
             if cached.expires_at > Instant.now():
                 return cached.results
-            else:
-                del self._cache[key]
-                self._save()
+            del self._cache[key]
+            self._save()
         return None
 
     def set(

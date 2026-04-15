@@ -43,6 +43,14 @@ select = [
     "UP",  # pyupgrade
     "N",   # pep8-naming
     "C90", # mccabe
+    "C4",  # flake8-comprehensions
+    "SIM", # flake8-simplify
+    "RET", # flake8-return
+    "PIE", # flake8-pie
+    "ISC", # flake8-implicit-str-concat
+    "RUF", # Ruff-specific rules
+    "PL",  # Pylint
+    "PERF",# Perflint
 ]
 ignore = [
     "UP043", # Unnecessary default type arguments

@@ -146,9 +146,9 @@ async def interactive_session_loop(  # noqa: C901
         char = click.getchar()
         if char == "b":
             break
-        elif char == "R":
+        if char == "R":
             continue
-        elif char == "r":
+        if char == "r":
             msg = click.prompt("Message")
             await client.send_message(session_id, msg)
         elif char == "a":
@@ -199,7 +199,6 @@ async def main_menu(api_key_override: str | None = None) -> None:
 @cli.group()
 def session() -> None:
     """Manage sessions."""
-    pass
 
 
 @session.command()
@@ -339,19 +338,18 @@ def message(
         content = None
         if message and message != "-":
             content = message
+        # Read from stdin if `-m -` was used or no message was provided
+        elif not sys.stdin.isatty():
+            content = sys.stdin.read()
+        elif message == "-":
+            # Fallback if user explicitly passed `-` but it's a TTY (wait for EOF)
+            content = sys.stdin.read()
         else:
-            # Read from stdin if `-m -` was used or no message was provided
-            if not sys.stdin.isatty():
-                content = sys.stdin.read()
-            elif message == "-":
-                # Fallback if user explicitly passed `-` but it's a TTY (wait for EOF)
-                content = sys.stdin.read()
-            else:
-                click.echo(
-                    "Error: No message provided. Use --message or pipe to stdin.",
-                    err=True,
-                )
-                sys.exit(1)
+            click.echo(
+                "Error: No message provided. Use --message or pipe to stdin.",
+                err=True,
+            )
+            sys.exit(1)
 
         content = content.strip()
         if not content:

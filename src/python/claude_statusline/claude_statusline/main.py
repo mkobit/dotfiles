@@ -69,12 +69,11 @@ async def run_external_generator(
             except Exception as e:
                 logger.warning(f"JSON parsing error in external generator {cmd}: {e}")
                 return []
-        else:
-            if proc.returncode != 0:
-                logger.warning(
-                    f"External generator {cmd} exited with code {proc.returncode}"
-                )
-                raise Exception(f"Exit code {proc.returncode}") from None
+        elif proc.returncode != 0:
+            logger.warning(
+                f"External generator {cmd} exited with code {proc.returncode}"
+            )
+            raise Exception(f"Exit code {proc.returncode}") from None
     except Exception as e:
         logger.warning(f"Error running external generator {cmd}: {e}")
         raise

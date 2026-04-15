@@ -125,15 +125,15 @@ class TestStatusLine(unittest.TestCase):
 
         mock_run.side_effect = side_effect
 
-        with patch.object(Path, "exists", return_value=False):
-            with patch(
-                "claude_statusline.segments.git._check_is_repo", return_value=True
-            ):
-                import asyncio
+        with (
+            patch.object(Path, "exists", return_value=False),
+            patch("claude_statusline.segments.git._check_is_repo", return_value=True),
+        ):
+            import asyncio
 
-                from claude_statusline.segments.git import generate_git_segment
+            from claude_statusline.segments.git import generate_git_segment
 
-                info = asyncio.run(generate_git_segment(Path("/tmp/repo"), False))
+            info = asyncio.run(generate_git_segment(Path("/tmp/repo"), False))
 
         self.assertTrue(len(info) > 0)
         assert info is not None
