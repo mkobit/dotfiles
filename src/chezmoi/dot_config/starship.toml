@@ -18,40 +18,9 @@ vimcmd_symbol = "[V](bold green)"
 disabled = true # Disables the package version module (e.g. Node.js/Rust versions based on package.json/Cargo.toml) to speed up prompt rendering.
 
 
+
 [custom.obsidian]
-command = '''
-d="$PWD"
-found=0
-while [ "$d" != "/" ] && [ -n "$d" ]; do
-  if [ -d "$d/.obsidian" ]; then
-    if [ -f "$d/.obsidian/app.json" ] && command -v jq >/dev/null 2>&1; then
-      name=$(jq -r '.id // empty' "$d/.obsidian/app.json")
-      if [ -n "$name" ]; then echo "$name"; else basename "$d"; fi
-    else
-      basename "$d"
-    fi
-    found=1
-    break
-  fi
-  d=$(dirname "$d")
-done
-if [ "$found" -eq 0 ]; then
-  exit 1
-fi
-'''
-when = '''
-d="$PWD"
-found=0
-while [ "$d" != "/" ] && [ -n "$d" ]; do
-  if [ -d "$d/.obsidian" ]; then
-    found=1
-    break
-  fi
-  d=$(dirname "$d")
-done
-if [ "$found" -eq 0 ]; then
-  exit 1
-fi
-'''
+command = "jq -r .id .obsidian/app.json 2>/dev/null || basename \"$PWD\""
+detect_folders = [".obsidian"]
 format = "on [󰎚 $output]($style) "
 style = "bold purple"
