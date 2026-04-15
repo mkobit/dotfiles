@@ -61,14 +61,13 @@ Run from the workspace root:
 
 ## Coding guidelines
 
-### Module separation
-Do not put types or models in central `types.py` or `models.py` files.
-Instead, namespace types and models into their corresponding canonical domain locations.
-
-
 Prefer functional, immutable, and non-imperative code.
 Avoid mutability and reassignment wherever possible.
 Code should be declarative and heavily lean on Python's built-in functional capabilities.
+
+### Module separation
+Do not put types or models in central `types.py` or `models.py` files.
+Instead, namespace types and models into their corresponding canonical domain locations.
 
 
 ### Avoid `list.append()` and mutation
