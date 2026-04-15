@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+d="$PWD"
+while [ -n "$d" ]; do
+  if [ -d "$d/.obsidian" ]; then
+    basename "$d"
+    break
+  fi
+  if [ "$d" = "/" ]; then
+    break
+  fi
+  d=$(dirname "$d")
+done
