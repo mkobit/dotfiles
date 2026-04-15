@@ -31,8 +31,7 @@ fi
 
 {{- range $name, $ext := .gemini.extensions }}
 {{-   if eq $ext.installation "gemini-cli" }}
-INSTALL_JSON="{{ $.chezmoi.destDir }}/.gemini/extensions/{{ $name }}/.gemini-extension-install.json"
-if [[ -f "$INSTALL_JSON" ]] && grep -q '"ref": "{{ $ext.ref }}"' "$INSTALL_JSON"; then
+if GEMINI_API_KEY=dummy "${RUN_CMD[@]}" extensions list 2>/dev/null | grep -A 10 -E "\\b{{ $name }}\\b.*\(" | grep -q "Ref: {{ $ext.ref }}"; then
     log_success "Extension {{ $name }} ({{ $ext.ref }}) already installed."
 else
     log_info "Installing/Updating extension: {{ $name }} ({{ $ext.ref }})"
