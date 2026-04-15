@@ -34,9 +34,7 @@ BG_RESET = "\033[49m"
 @functools.cache
 def use_icons() -> bool:
     """Returns True if the terminal supports icons, checking environment."""
-    if os.environ.get("CLAUDE_STATUSLINE_NO_ICONS", "0") == "1":
-        return False
-    return True
+    return os.environ.get("CLAUDE_STATUSLINE_NO_ICONS", "0") != "1"
 
 
 IconKey = Literal[

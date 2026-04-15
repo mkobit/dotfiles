@@ -106,9 +106,7 @@ async def test_client_list_sessions() -> None:
     client = JulesClient(api_key="test_key")
     client._session = MockSession()  # type: ignore
 
-    sessions = []
-    async for s in client.list_sessions():
-        sessions.append(s)
+    sessions = [s async for s in client.list_sessions()]
 
     assert len(sessions) == 1
     assert sessions[0].id == "123"

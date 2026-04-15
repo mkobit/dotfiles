@@ -58,3 +58,85 @@ Run from the workspace root:
 - `uv run ruff format --check .` — format
 - `uv run ty check src/python` — type check
 - `uv run pytest src/python` — tests
+
+## Coding guidelines
+
+Prefer functional, immutable, and non-imperative code.
+Avoid mutability and reassignment wherever possible.
+Code should be declarative and heavily lean on Python's built-in functional capabilities.
+
+### Module separation
+Do not put types or models in central `types.py` or `models.py` files.
+Instead, namespace types and models into their corresponding canonical domain locations.
+
+
+### Avoid `list.append()` and mutation
+
+Do not initialize empty lists and conditionally append or `extend` to them.
+Instead, use list comprehensions, generators, or build a sequence and filter it.
+
+❌ **Bad:**
+```python
+results = []
+if condition_a:
+    results.append("a")
+if condition_b:
+    results.append("b")
+```
+
+✅ **Good:**
+```python
+items = [
+    "a" if condition_a else None,
+    "b" if condition_b else None,
+]
+results = [item for item in items if item is not None]
+
+def get_results() -> Iterator[str]:
+    if condition_a:
+        yield "a"
+    if condition_b:
+        yield "b"
+```
+
+### Use immutable types for parameters
+
+Prefer `typing.Sequence`, `typing.Iterable`, `typing.Mapping`, and other immutable/read-only types over mutable ones like `list`.
+
+❌ **Bad:**
+```python
+def process_data(items: list[str]) -> list[str]:
+    ...
+```
+
+✅ **Good:**
+```python
+from collections.abc import Sequence, Iterable
+
+def process_data(items: Sequence[str]) -> Sequence[str]:
+    ...
+```
+
+### Avoid variable reassignment and string concatenation
+
+Treat variables as `const`.
+Do not reassign a variable once it is defined.
+For strings, avoid using `+=` or iterative concatenation.
+
+❌ **Bad:**
+```python
+message = "Hello"
+if condition:
+    message += ", User"
+else:
+    message += ", Guest"
+```
+
+✅ **Good:**
+```python
+name = "User" if condition else "Guest"
+message = f"Hello, {name}"
+
+parts = ["Hello", ", User" if condition else ", Guest"]
+message = "".join(parts)
+```

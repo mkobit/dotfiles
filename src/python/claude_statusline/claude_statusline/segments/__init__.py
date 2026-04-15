@@ -17,15 +17,15 @@ from claude_statusline.segments.workspace import (
 )
 
 __all__ = [
-    "format_context_usage",
-    "format_cost",
-    "format_model_info",
-    "format_session_info",
-    "format_git_full",
-    "format_directory",
-    "format_obsidian_vault",
-    "shorten_path",
     "DIVIDER_BAR",
     "DIVIDER_DOT",
     "SegmentGenerationResult",
+    "format_context_usage",
+    "format_cost",
+    "format_directory",
+    "format_git_full",
+    "format_model_info",
+    "format_obsidian_vault",
+    "format_session_info",
+    "shorten_path",
 ]

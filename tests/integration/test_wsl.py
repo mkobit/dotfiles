@@ -15,6 +15,7 @@ def test_wslconfig_deployed_to_windows_profile(host):
         ["/mnt/c/Windows/System32/cmd.exe", "/c", "echo %USERPROFILE%"],
         capture_output=True,
         text=True,
+        check=False,
     )
     assert result.returncode == 0, "Could not get Windows user profile path via cmd.exe"
     win_profile = result.stdout.strip()

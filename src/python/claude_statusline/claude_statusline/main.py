@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 import shlex
 import sys
 from collections.abc import Sequence
@@ -41,7 +42,7 @@ async def run_external_generator(
         )
 
         try:
-            stdout, stderr = await asyncio.wait_for(
+            stdout, _stderr = await asyncio.wait_for(
                 proc.communicate(input=payload_json.encode()), timeout=timeout
             )
         except TimeoutError:
@@ -69,12 +70,11 @@ async def run_external_generator(
             except Exception as e:
                 logger.warning(f"JSON parsing error in external generator {cmd}: {e}")
                 return []
-        else:
-            if proc.returncode != 0:
-                logger.warning(
-                    f"External generator {cmd} exited with code {proc.returncode}"
-                )
-                raise Exception(f"Exit code {proc.returncode}") from None
+        elif proc.returncode != 0:
+            logger.warning(
+                f"External generator {cmd} exited with code {proc.returncode}"
+            )
+            raise Exception(f"Exit code {proc.returncode}") from None
     except Exception as e:
         logger.warning(f"Error running external generator {cmd}: {e}")
         raise
@@ -113,8 +113,6 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
         cwd_str = payload.cwd
     cwd = Path(cwd_str).resolve() if cwd_str else Path.cwd()
     is_worktree = bool(payload.workspace.git_worktree)
-
-    import os
 
     xdg_cache_home = os.environ.get("XDG_CACHE_HOME")
     if xdg_cache_home:
@@ -209,9 +207,7 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
             format_cost(payload),
             format_lines_impact(payload),
         ]
-        for r in internal_results:
-            if r:
-                all_segments.append(r)
+        all_segments.extend([r for r in internal_results if r])
     except Exception as e:
         all_segments.extend(handle_error(e, "internal.claude_or_workspace"))
 

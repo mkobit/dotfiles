@@ -24,19 +24,14 @@ from claude_statusline.segments.constants import (
 
 
 def format_tokens(tokens: int, max_tokens: int = 0) -> str:
-    if max_tokens >= 1_000_000:
-        width = 4
-    elif max_tokens >= 100_000:
+    if max_tokens >= 1_000_000 or max_tokens >= 100_000:
         width = 4
     elif max_tokens >= 10_000:
         width = 3
     else:
         width = 5
 
-    if tokens < 1000:
-        val = str(tokens)
-    else:
-        val = f"{tokens / 1000:.1f}k".replace(".0k", "k")
+    val = str(tokens) if tokens < 1000 else f"{tokens / 1000:.1f}k".replace(".0k", "k")
     return f"{val:>{width}}"
 
 
