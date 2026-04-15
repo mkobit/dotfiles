@@ -18,7 +18,8 @@ def test_get_api_key_ignores_env_var() -> None:
     with (
         patch.dict(os.environ, {"JULES_API_KEY": "env_key"}),
         patch("jules_cli.main.load_config", return_value=JulesConfig()),
-        patch("pathlib.Path.exists", return_value=False),pytest.raises(SystemExit)
+        patch("pathlib.Path.exists", return_value=False),
+        pytest.raises(SystemExit),
     ):
         get_api_key()
 
@@ -209,7 +210,7 @@ def test_integration_env_var_ignored(tmp_path: Path) -> None:
             # tmp_path is empty, so it should fail.
 
             # We must NOT mock load_config here.
-                get_api_key()
+            get_api_key()
     finally:
         os.chdir(cwd)
 
