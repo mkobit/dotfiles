@@ -59,14 +59,20 @@ Run from the workspace root:
 - `uv run ty check src/python` — type check
 - `uv run pytest src/python` — tests
 
-## Coding Guidelines
+## Coding guidelines
 
-We prefer **functional, immutable, and non-imperative code**. Avoid mutability and reassignment wherever possible. Code should be clean, declarative, and heavily lean on Python's built-in functional capabilities.
+Prefer functional, immutable, and non-imperative code.
+Avoid mutability and reassignment wherever possible.
+Code should be declarative and heavily lean on Python's built-in functional capabilities.
+Do not put types or models in central `types.py` or `models.py` files.
+Instead, namespace types and models into their corresponding canonical domain locations.
 
-### 1. Avoid `list.append()` and Mutation
-Do not initialize empty lists and conditionally append to them. Instead, use list comprehensions, generators, or build a sequence and filter it.
+### 1. Avoid `list.append()` and mutation
 
-❌ **Bad (Imperative & Mutating):**
+Do not initialize empty lists and conditionally append to them.
+Instead, use list comprehensions, generators, or build a sequence and filter it.
+
+❌ **Bad (imperative and mutating):**
 ```python
 results = []
 if condition_a:
@@ -75,16 +81,14 @@ if condition_b:
     results.append("b")
 ```
 
-✅ **Good (Functional & Declarative):**
+✅ **Good (functional and declarative):**
 ```python
-# Option 1: List comprehension / filter
 items = [
     "a" if condition_a else None,
     "b" if condition_b else None,
 ]
 results = [item for item in items if item is not None]
 
-# Option 2: Yielding (Generators)
 def get_results() -> Iterator[str]:
     if condition_a:
         yield "a"
@@ -92,7 +96,8 @@ def get_results() -> Iterator[str]:
         yield "b"
 ```
 
-### 2. Use Immutable Types for Parameters
+### 2. Use immutable types for parameters
+
 Instead of passing mutable `list` types around (which could accidentally be modified), prefer passing `typing.Sequence` or `typing.Iterable`.
 
 ❌ **Bad:**
@@ -109,10 +114,13 @@ def process_data(items: Sequence[str]) -> Sequence[str]:
     ...
 ```
 
-### 3. Avoid Variable Reassignment & String Concatenation
-Treat variables as `const` (like in TypeScript). Do not reassign a variable once it is defined. For strings, avoid using `+=` or iterative concatenation.
+### 3. Avoid variable reassignment and string concatenation
 
-❌ **Bad (String Concatenation & Reassignment):**
+Treat variables as `const`.
+Do not reassign a variable once it is defined.
+For strings, avoid using `+=` or iterative concatenation.
+
+❌ **Bad:**
 ```python
 message = "Hello"
 if condition:
@@ -121,11 +129,11 @@ else:
     message += ", Guest"
 ```
 
-✅ **Good (Assignment once via functional style):**
+✅ **Good:**
 ```python
 name = "User" if condition else "Guest"
 message = f"Hello, {name}"
-# OR using join for lists of strings
+
 parts = ["Hello", ", User" if condition else ", Guest"]
 message = "".join(parts)
 ```

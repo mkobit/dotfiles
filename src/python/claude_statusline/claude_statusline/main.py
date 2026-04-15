@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 import shlex
 import sys
 from collections.abc import Sequence
@@ -112,8 +113,6 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
         cwd_str = payload.cwd
     cwd = Path(cwd_str).resolve() if cwd_str else Path.cwd()
     is_worktree = bool(payload.workspace.git_worktree)
-
-    import os
 
     xdg_cache_home = os.environ.get("XDG_CACHE_HOME")
     if xdg_cache_home:

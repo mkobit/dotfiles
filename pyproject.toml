@@ -58,7 +58,6 @@ ignore = [
     "PLR0912", # Too many branches
     "PLR0913", # Too many arguments
     "PLR0915", # Too many statements
-    "PLC0415", # import should be at the top level
 ]
 
 [tool.ruff.lint.mccabe]

@@ -129,9 +129,11 @@ class TestStatusLine(unittest.TestCase):
             patch.object(Path, "exists", return_value=False),
             patch("claude_statusline.segments.git._check_is_repo", return_value=True),
         ):
-            import asyncio
+            import asyncio  # noqa: PLC0415
 
-            from claude_statusline.segments.git import generate_git_segment
+            from claude_statusline.segments.git import (  # noqa: PLC0415
+                generate_git_segment,
+            )
 
             info = asyncio.run(generate_git_segment(Path("/tmp/repo"), False))
 
@@ -157,7 +159,10 @@ class TestStatusLine(unittest.TestCase):
         mock_stdin.seek(0)
 
         with patch("claude_statusline.main.generate_git_segment") as mock_get_git_info:
-            from claude_statusline.models import Segment, SegmentGenerationResult
+            from claude_statusline.models import (  # noqa: PLC0415
+                Segment,
+                SegmentGenerationResult,
+            )
 
             mock_get_git_info.return_value = [
                 SegmentGenerationResult(
@@ -166,7 +171,7 @@ class TestStatusLine(unittest.TestCase):
             ]
 
             with patch("shutil.get_terminal_size") as mock_term:
-                import os
+                import os  # noqa: PLC0415
 
                 mock_term.return_value = os.terminal_size((80, 24))
                 main_module.main(args=[], standalone_mode=False)
@@ -242,7 +247,10 @@ class TestStatusLine(unittest.TestCase):
         mock_stdin.seek(0)
 
         with patch("claude_statusline.main.generate_git_segment") as mock_get_git_info:
-            from claude_statusline.models import Segment, SegmentGenerationResult
+            from claude_statusline.models import (  # noqa: PLC0415
+                Segment,
+                SegmentGenerationResult,
+            )
 
             mock_get_git_info.return_value = [
                 SegmentGenerationResult(
@@ -253,7 +261,7 @@ class TestStatusLine(unittest.TestCase):
             ]
 
             with patch("shutil.get_terminal_size") as mock_term:
-                import os
+                import os  # noqa: PLC0415
 
                 mock_term.return_value = os.terminal_size((80, 24))
                 main_module.main(args=[], standalone_mode=False)
