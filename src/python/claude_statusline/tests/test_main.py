@@ -42,7 +42,7 @@ class TestStatusLine(unittest.TestCase):
         res_none = format_context_usage(cw_none)
         self.assertIsNotNone(res_none)
         assert res_none is not None
-        self.assertIn("0%", res_none.segment.text)
+        self.assertIn("  0%", res_none.segment.text)
         self.assertIn(GREEN, res_none.segment.text)
 
     def test_format_git_full(self) -> None:
@@ -265,11 +265,14 @@ class TestStatusLine(unittest.TestCase):
             self.assertIn("security-reviewer", line1)
 
             self.assertIn("my-session", line1)
+            self.assertIn("[default]", line1)
 
             line3 = mock_print.call_args_list[2][0][0]
             self.assertIn("feature-branch", line3)
             self.assertIn("0.01", line3)
-            self.assertIn("8%", line3)
+            self.assertIn("  8%", line3)
+            self.assertIn("+156", line3)
+            self.assertIn("-23", line3)
 
     def test_shorten_path(self) -> None:
         home = Path("/home/user")
