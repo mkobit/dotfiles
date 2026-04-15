@@ -61,18 +61,22 @@ Run from the workspace root:
 
 ## Coding guidelines
 
-Prefer functional, immutable, and non-imperative code.
-Avoid mutability and reassignment wherever possible.
-Code should be declarative and heavily lean on Python's built-in functional capabilities.
+### Module separation
 Do not put types or models in central `types.py` or `models.py` files.
 Instead, namespace types and models into their corresponding canonical domain locations.
 
-### 1. Avoid `list.append()` and mutation
 
-Do not initialize empty lists and conditionally append to them.
+Prefer functional, immutable, and non-imperative code.
+Avoid mutability and reassignment wherever possible.
+Code should be declarative and heavily lean on Python's built-in functional capabilities.
+
+
+### Avoid `list.append()` and mutation
+
+Do not initialize empty lists and conditionally append or `extend` to them.
 Instead, use list comprehensions, generators, or build a sequence and filter it.
 
-❌ **Bad (imperative and mutating):**
+❌ **Bad:**
 ```python
 results = []
 if condition_a:
@@ -81,7 +85,7 @@ if condition_b:
     results.append("b")
 ```
 
-✅ **Good (functional and declarative):**
+✅ **Good:**
 ```python
 items = [
     "a" if condition_a else None,
@@ -96,9 +100,9 @@ def get_results() -> Iterator[str]:
         yield "b"
 ```
 
-### 2. Use immutable types for parameters
+### Use immutable types for parameters
 
-Instead of passing mutable `list` types around (which could accidentally be modified), prefer passing `typing.Sequence` or `typing.Iterable`.
+Prefer `typing.Sequence`, `typing.Iterable`, `typing.Mapping`, and other immutable/read-only types over mutable ones like `list`.
 
 ❌ **Bad:**
 ```python
@@ -114,7 +118,7 @@ def process_data(items: Sequence[str]) -> Sequence[str]:
     ...
 ```
 
-### 3. Avoid variable reassignment and string concatenation
+### Avoid variable reassignment and string concatenation
 
 Treat variables as `const`.
 Do not reassign a variable once it is defined.
