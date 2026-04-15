@@ -23,6 +23,13 @@ MAGENTA = "\033[35m"
 CYAN = "\033[36m"
 WHITE = "\033[37m"
 
+BRIGHT_RED = "\033[91m"
+BRIGHT_GREEN = "\033[92m"
+ORANGE = "\033[38;5;208m"
+
+BG_DIM = "\033[48;5;236m"
+BG_RESET = "\033[49m"
+
 
 @functools.cache
 def use_icons() -> bool:
