@@ -23,10 +23,21 @@ from claude_statusline.segments.constants import (
 )
 
 
-def format_tokens(tokens: int) -> str:
+def format_tokens(tokens: int, max_tokens: int = 0) -> str:
+    if max_tokens >= 1_000_000:
+        width = 4
+    elif max_tokens >= 100_000:
+        width = 4
+    elif max_tokens >= 10_000:
+        width = 3
+    else:
+        width = 5
+
     if tokens < 1000:
-        return str(tokens)
-    return f"{tokens / 1000:.1f}k".replace(".0k", "k")
+        val = str(tokens)
+    else:
+        val = f"{tokens / 1000:.1f}k".replace(".0k", "k")
+    return f"{val:>{width}}"
 
 
 def format_context_usage(cw: ContextWindowInfo) -> SegmentGenerationResult | None:
@@ -48,38 +59,36 @@ def format_context_usage(cw: ContextWindowInfo) -> SegmentGenerationResult | Non
     full_blocks = total_eighths // 8
     remainder = total_eighths % 8
 
-    bar_parts = []
-    for i in range(width):
-        if i < full_blocks:
-            bar_parts.append(f"{color}{BG_DIM}{blocks[8]}{BG_RESET}{RESET}")
-        elif i == full_blocks and remainder > 0:
-            bar_parts.append(f"{color}{BG_DIM}{blocks[remainder]}{BG_RESET}{RESET}")
-        else:
-            bar_parts.append(f"{color}{BG_DIM}{blocks[0]}{BG_RESET}{RESET}")
-
-    visual_bar = "".join(bar_parts)
+    visual_bar = "".join(
+        f"{color}{BG_DIM}{blocks[8]}{BG_RESET}{RESET}"
+        if i < full_blocks
+        else f"{color}{BG_DIM}{blocks[remainder]}{BG_RESET}{RESET}"
+        if i == full_blocks and remainder > 0
+        else f"{color}{BG_DIM}{blocks[0]}{BG_RESET}{RESET}"
+        for i in range(width)
+    )
 
     total_used = (cw.total_input_tokens or 0) + (cw.total_output_tokens or 0)
     window_size = cw.context_window_size or 0
 
+    token_str = None
     if window_size > 0:
-        used_str = format_tokens(total_used)
-        window_str = format_tokens(window_size)
-        # Justify to a typical max width to prevent jitter (e.g. "  5.5k/200k")
-        token_str = f"{used_str:>5}/{window_str:<4}"
-    else:
-        token_str = ""
+        used_str = format_tokens(total_used, window_size)
+        window_str = format_tokens(window_size, window_size).strip()
+        token_str = f"{DIM}{used_str}/{window_str}{RESET}"
 
-    text = f"{DIM}ctx:{RESET} {visual_bar}"
-    if token_str:
-        text += f" {DIM}{token_str}{RESET}"
-    text += f" {color}{int(used_pct):>3}%{RESET}"
+    parts = [
+        f"{DIM}ctx:{RESET}",
+        visual_bar,
+        token_str,
+        f"{color}{int(used_pct):>3}%{RESET}",
+    ]
 
     return SegmentGenerationResult(
         line=2,
         index=10,
         generator="internal.claude",
-        segment=Segment(text=text),
+        segment=Segment(text=" ".join(filter(None, parts))),
     )
 
 
@@ -149,15 +158,14 @@ def format_lines_impact(payload: StatusLineStdIn) -> SegmentGenerationResult | N
     if added == 0 and removed == 0:
         return None
 
-    parts = []
-    if added > 0:
-        parts.append(f"{BRIGHT_GREEN}+{added}{RESET}")
-    if removed > 0:
-        parts.append(f"{BRIGHT_RED}-{removed}{RESET}")
+    parts = [
+        f"{BRIGHT_GREEN}+{added}{RESET}" if added > 0 else None,
+        f"{BRIGHT_RED}-{removed}{RESET}" if removed > 0 else None,
+    ]
 
     return SegmentGenerationResult(
         line=2,
         index=30,
         generator="internal.claude",
-        segment=Segment(text=" ".join(parts)),
+        segment=Segment(text=" ".join(filter(None, parts))),
     )
