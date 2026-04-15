@@ -1,0 +1,16 @@
+{{- define "uv_tool_install" -}}
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+TOOL_NAME="{{ .name }}"
+TOOL_PATH="{{ .path }}"
+
+if uv tool list | grep -q "$TOOL_NAME"; then
+    echo "Updating $TOOL_NAME..."
+else
+    echo "Installing $TOOL_NAME..."
+fi
+
+uv tool install --force "$TOOL_PATH"
+{{- end -}}

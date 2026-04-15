@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+{{ template "managed_by_chezmoi.tmpl" . }}
+
+set -euo pipefail
+
+{{ if index . "python" "uv" }}
+echo "Cleaning up legacy tmux python tools..."
+uv tool uninstall tmux-helper || true
+uv tool uninstall tmux-runtime-tools || true
+{{ end }}

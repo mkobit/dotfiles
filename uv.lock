@@ -7,6 +7,7 @@ members = [
     "claude-statusline",
     "dotfiles",
     "jules-cli",
+    "termbud",
     "transcribe",
 ]
 
@@ -235,6 +236,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "claude-statusline" },
     { name = "jules-cli" },
+    { name = "termbud" },
     { name = "transcribe" },
 ]
 
@@ -251,6 +253,7 @@ dev = [
 requires-dist = [
     { name = "claude-statusline", editable = "src/python/claude_statusline" },
     { name = "jules-cli", editable = "src/python/jules_cli" },
+    { name = "termbud", editable = "src/python/termbud" },
     { name = "transcribe", editable = "src/python/transcribe" },
 ]
 
@@ -921,6 +924,17 @@ sdist = { url = "https://files.pythonhosted.org/packages/83/d3/803453b36afefb7c2
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a2/09/77d55d46fd61b4a135c444fc97158ef34a095e5681d0a6c10b75bf356191/sympy-1.14.0-py3-none-any.whl", hash = "sha256:e091cc3e99d2141a0ba2847328f5479b05d94a6635cb96148ccb3f34671bd8f5", size = 6299353, upload-time = "2025-04-27T18:04:59.103Z" },
 ]
+
+[[package]]
+name = "termbud"
+version = "0.0.0"
+source = { editable = "src/python/termbud" }
+dependencies = [
+    { name = "typer" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "typer", specifier = ">=0.12.0" }]
 
 [[package]]
 name = "tokenizers"
