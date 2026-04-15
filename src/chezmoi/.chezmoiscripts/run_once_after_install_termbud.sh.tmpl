@@ -2,10 +2,5 @@
 
 set -euo pipefail
 
-{{- if index . "python" "uv" }}
 echo "Installing termbud..."
 uv tool install --force "{{ .chezmoi.sourceDir }}/../python/termbud"
-{{- else }}
-echo "Uninstalling termbud (uv disabled)..."
-uv tool uninstall termbud || true
-{{- end }}
