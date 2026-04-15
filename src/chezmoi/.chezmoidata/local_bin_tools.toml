@@ -9,3 +9,6 @@ installation = "uv"
 
 [local_bin_tools.transcribe]
 installation = "uv"
+
+[local_bin_tools.termbud]
+installation = "uv"
