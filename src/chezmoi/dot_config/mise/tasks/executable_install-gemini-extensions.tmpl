@@ -1,0 +1,34 @@
+{{- $geminiCli := index .mise.global_tools "npm:@google/gemini-cli" -}}
+{{- if ne $geminiCli.installation "disabled" -}}
+#!/usr/bin/env bash
+# mise description="Installs Gemini CLI extensions"
+
+set -euo pipefail
+
+if ! command -v gemini &> /dev/null; then
+    echo "gemini CLI is not found. Please ensure it is installed via mise."
+    exit 1
+fi
+
+GEMINI_BIN=$(mise which gemini 2>/dev/null || command -v gemini 2>/dev/null)
+BUN_BIN=$(mise which bun 2>/dev/null || echo "")
+RUN_CMD=("$GEMINI_BIN")
+if [ -n "$BUN_BIN" ]; then
+    RUN_CMD=("$BUN_BIN" "--bun" "$GEMINI_BIN")
+fi
+
+echo "Installing Gemini CLI extensions..."
+
+{{- range $name, $ext := .gemini.extensions }}
+{{-   if eq $ext.installation "gemini-cli" }}
+echo "Uninstalling {{ $name }} (to ensure clean update)..."
+"${RUN_CMD[@]}" extensions uninstall "{{ $name }}" > /dev/null 2>&1 || true
+
+echo "Installing {{ $name }} from {{ $ext.url }} ({{ $ext.ref }})..."
+# We pipe 'yes' to handle any manual consent prompts during non-interactive sessions
+yes | "${RUN_CMD[@]}" extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent || true
+{{-   end }}
+{{- end }}
+
+echo "Gemini extensions installation complete."
+{{- end -}}
