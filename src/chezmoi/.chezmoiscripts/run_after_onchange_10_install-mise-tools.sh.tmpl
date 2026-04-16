@@ -33,7 +33,7 @@ log_info "Pruning unused mise tools..."
 if "$MISE" prune -y; then
     log_success "Mise prune complete."
 else
-    log_error "Failed to prune mise tools."
+    log_warn "Failed to prune mise tools."
     # We don't exit 1 here, as prune failure shouldn't fail the whole install process
 fi
 
