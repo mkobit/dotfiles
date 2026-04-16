@@ -54,39 +54,40 @@ def open_url(
         print("No URLs found.", file=sys.stderr)
         sys.exit(0)
 
-    seen: set[str] = set()
-    ordered_urls: list[str] = []
-    for url in reversed(urls):
-        if url not in seen:
-            seen.add(url)
-            ordered_urls.append(url)
+    ordered_urls = list(dict.fromkeys(reversed(urls)))
 
-    try:
-        fzf = subprocess.Popen(
-            ["fzf", "--prompt=Open URL: "],
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            text=True,
-        )
-        selected_url_bytes, _ = fzf.communicate(input="\n".join(ordered_urls))
-        selected_url = selected_url_bytes.strip()
-    except FileNotFoundError:
-        print("fzf not found.", file=sys.stderr)
-        sys.exit(1)
-
-    if not selected_url:
-        sys.exit(0)
+    with tempfile.NamedTemporaryFile(
+        mode="w+", delete=False, suffix=".txt"
+    ) as urls_file:
+        urls_file.write("\n".join(ordered_urls))
+        urls_file_name = urls_file.name
 
     if not open_cmd:
         if sys.platform == "darwin":
             open_cmd = "open"
+            copy_cmd = "pbcopy"
         elif "microsoft" in os.uname().release.lower():
             open_cmd = "wslview"
+            copy_cmd = "clip.exe"
         else:
             open_cmd = "xdg-open"
+            copy_cmd = "xclip -selection clipboard"
+
+    fzf_env = os.environ.copy()
+    fzf_env["FZF_DEFAULT_COMMAND"] = f"cat {urls_file_name}"
+
+    fzf_args = [
+        "fzf",
+        "--prompt=Open URL: ",
+        "--bind",
+        f"enter:execute-silent({open_cmd} {{}})+abort",
+        "--bind",
+        f"ctrl-c:execute-silent(echo -n {{}} | {copy_cmd})+abort",
+    ]
 
     try:
-        os.execvp(open_cmd, [open_cmd, selected_url])
+        os.execvpe("fzf", fzf_args, fzf_env)
     except OSError:
-        print(f"Failed to execute {open_cmd}", file=sys.stderr)
+        print("Failed to execute fzf", file=sys.stderr)
+        os.remove(urls_file_name)
         sys.exit(1)
