@@ -28,6 +28,15 @@ else
     exit 1
 fi
 
+
+log_info "Pruning unused mise tools..."
+if "$MISE" prune -y; then
+    log_success "Mise prune complete."
+else
+    log_warn "Failed to prune mise tools."
+    # We don't exit 1 here, as prune failure shouldn't fail the whole install process
+fi
+
 log_info "Reshimming mise tools..."
 if "$MISE" reshim; then
     log_success "Mise reshim complete."
