@@ -3,6 +3,7 @@ name = "dotfiles"
 version = "0.0.0"
 requires-python = ">=3.14"
 dependencies = [
+    "termbud",
     "jules-cli",
     "transcribe",
     "claude-statusline",
@@ -19,12 +20,14 @@ dev = [
 
 [tool.uv.workspace]
 members = [
+    "src/python/termbud",
     "src/python/jules_cli",
     "src/python/claude_statusline",
     "src/python/transcribe",
 ]
 
 [tool.uv.sources]
+termbud = { workspace = true }
 jules-cli = { workspace = true }
 transcribe = { workspace = true }
 claude-statusline = { workspace = true }
@@ -64,7 +67,7 @@ ignore = [
 max-complexity = 15
 
 [tool.ruff.lint.isort]
-known-first-party = ["jules_cli", "claude_statusline", "transcribe"]
+known-first-party = ["termbud", "jules_cli", "claude_statusline", "transcribe"]
 
 [tool.ty.environment]
 python = ".venv"

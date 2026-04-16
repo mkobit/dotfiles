@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+set -euo pipefail
+
+echo "Cleaning up legacy tmux python tools..."
+uv tool uninstall tmux-helper || true
+uv tool uninstall tmux-runtime-tools || true
