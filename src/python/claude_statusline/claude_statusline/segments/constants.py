@@ -69,7 +69,7 @@ ICONS: dict[IconKey, IconPair] = {
     "staged": IconPair("\uf067", "+"),
     "untracked": IconPair("\uf128", "?"),
     "stash": IconPair("\uf01c", "$"),
-    "timer": IconPair("\U000F0954", "⏱"),
+    "timer": IconPair("\U000f0954", "⏱"),
     "dot": IconPair("\uf444", "·"),
     "cost": IconPair("💳", "💳"),
     "tokens": IconPair("\uf4a5", "⚡"),
@@ -91,17 +91,17 @@ DIVIDER_BAR = " │ "
 # nf-md-battery_* icons (remaining context, 10% increments)
 # U+F0079 = nf-md-battery (100%), U+F008E = nf-md-battery_outline (0%)
 _BATTERY_ICONS_NERD = [
-    "\U000F008E",  # 0%  — outline/empty
-    "\U000F007A",  # 10%
-    "\U000F007B",  # 20%
-    "\U000F007C",  # 30%
-    "\U000F007D",  # 40%
-    "\U000F007E",  # 50%
-    "\U000F007F",  # 60%
-    "\U000F0080",  # 70%
-    "\U000F0081",  # 80%
-    "\U000F0082",  # 90%
-    "\U000F0079",  # 100% — full
+    "\U000f008e",  # 0%  — outline/empty
+    "\U000f007a",  # 10%
+    "\U000f007b",  # 20%
+    "\U000f007c",  # 30%
+    "\U000f007d",  # 40%
+    "\U000f007e",  # 50%
+    "\U000f007f",  # 60%
+    "\U000f0080",  # 70%
+    "\U000f0081",  # 80%
+    "\U000f0082",  # 90%
+    "\U000f0079",  # 100% — full
 ]
 _BATTERY_ICONS_FALLBACK = ["_", "1", "2", "3", "4", "5", "6", "7", "8", "9", "#"]
 

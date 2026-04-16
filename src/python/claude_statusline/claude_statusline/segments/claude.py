@@ -40,10 +40,14 @@ def format_context_usage(cw: ContextWindowInfo) -> SegmentGenerationResult | Non
     remaining_pct = 100.0 - used_pct
 
     color = (
-        BRIGHT_GREEN if remaining_pct >= 85
-        else GREEN if remaining_pct >= 70
-        else YELLOW if remaining_pct >= 55
-        else ORANGE if remaining_pct >= 30
+        BRIGHT_GREEN
+        if remaining_pct >= 85
+        else GREEN
+        if remaining_pct >= 70
+        else YELLOW
+        if remaining_pct >= 55
+        else ORANGE
+        if remaining_pct >= 30
         else RED
     )
 

@@ -47,7 +47,7 @@ async def _run_git_cmd(cmd: list[str], cwd: Path) -> str | None:
         stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=2.0)
         if proc.returncode == 0:
             return stdout.decode().strip()
-    except (TimeoutError, Exception):
+    except TimeoutError, Exception:
         pass
     return None
 
@@ -190,8 +190,10 @@ def format_git_full(info: GitInfo | None) -> SegmentGenerationResult | None:
 
     if info.remote:
         platform_icon = (
-            get_icon("github") if "github.com" in info.remote
-            else get_icon("gitlab") if "gitlab.com" in info.remote
+            get_icon("github")
+            if "github.com" in info.remote
+            else get_icon("gitlab")
+            if "gitlab.com" in info.remote
             else get_icon("remote")
         )
         parts.append(f"[ \033]8;;{info.remote}\033\\{platform_icon}\033]8;;\033\\ ]")

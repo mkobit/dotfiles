@@ -87,10 +87,12 @@ class TestFormatGitFull(unittest.TestCase):
         self.assertIn(expected, res.segment.text)
 
     def test_gitlab_remote_link_uses_dash_tree(self) -> None:
-        res = format_git_full(_git_info(
-            remote="https://gitlab.com/org/project",
-            branch="main",
-        ))
+        res = format_git_full(
+            _git_info(
+                remote="https://gitlab.com/org/project",
+                branch="main",
+            )
+        )
         assert res is not None
         self.assertIn("https://gitlab.com/org/project/-/tree/main", res.segment.text)
 

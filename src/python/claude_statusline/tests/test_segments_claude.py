@@ -26,11 +26,11 @@ from claude_statusline.segments.constants import (
 class TestFormatContextUsage(unittest.TestCase):
     def test_color_by_remaining(self) -> None:
         cases = [
-            (10.0, BRIGHT_GREEN),   # 90% remaining — >=85
-            (20.0, GREEN),          # 80% remaining — >=70
-            (40.0, YELLOW),         # 60% remaining — >=55
-            (60.0, ORANGE),         # 40% remaining — >=30
-            (92.0, RED),            # 8% remaining  — <30
+            (10.0, BRIGHT_GREEN),  # 90% remaining — >=85
+            (20.0, GREEN),  # 80% remaining — >=70
+            (40.0, YELLOW),  # 60% remaining — >=55
+            (60.0, ORANGE),  # 40% remaining — >=30
+            (92.0, RED),  # 8% remaining  — <30
         ]
         for used_pct, expected_color in cases:
             with self.subTest(used_pct=used_pct):

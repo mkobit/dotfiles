@@ -18,13 +18,20 @@ class TestMainSmoke(unittest.TestCase):
     def test_runs_with_minimal_payload(
         self, mock_stdin: MagicMock, mock_print: MagicMock
     ) -> None:
-        mock_stdin.write(json.dumps({
-            "model": {"display_name": "Claude 3"},
-            "workspace": {"current_dir": "/tmp/test"},
-            "context_window": {"used_percentage": 50.0, "context_window_size": 100000},
-            "session_name": "MySession",
-            "cost": {"total_cost_usd": 0.42},
-        }))
+        mock_stdin.write(
+            json.dumps(
+                {
+                    "model": {"display_name": "Claude 3"},
+                    "workspace": {"current_dir": "/tmp/test"},
+                    "context_window": {
+                        "used_percentage": 50.0,
+                        "context_window_size": 100000,
+                    },
+                    "session_name": "MySession",
+                    "cost": {"total_cost_usd": 0.42},
+                }
+            )
+        )
         mock_stdin.seek(0)
 
         with patch("claude_statusline.main.generate_git_segment") as mock_git:
