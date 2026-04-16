@@ -20,7 +20,6 @@ disabled = true # Disables the package version module (e.g. Node.js/Rust version
 
 
 [custom.obsidian]
-command = "jq -r .id .obsidian/app.json 2>/dev/null || basename \"$PWD\""
 detect_folders = [".obsidian"]
-format = "on [󰎚 $output]($style) "
-style = "bold purple"
+format = "on [\uf039a Obsidian vault]($style) "
+style = "bold #8B5CF6"
