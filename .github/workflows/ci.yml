@@ -75,6 +75,8 @@ jobs:
         run: uv sync --all-packages --frozen
       - name: Test
         run: uv run pytest src/python
+      - name: Build all packages
+        run: uv build --all-packages
       - name: Minimize uv cache
         run: uv cache prune --ci
 
