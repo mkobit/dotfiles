@@ -158,7 +158,7 @@ class TestStatusLine:
 
             mock_get_git_info.return_value = [
                 SegmentGenerationResult(
-                    segment=Segment(text="main"), generator="internal.git", line=0
+                    segment=Segment(text="main"), generator="internal.git", line=2
                 )
             ]
 
@@ -168,16 +168,17 @@ class TestStatusLine:
                 mock_term.return_value = os.terminal_size((80, 24))
                 main_module.main(args=[], standalone_mode=False)
 
-            assert mock_print.call_count == 2
+            assert mock_print.call_count == 3
 
             line1 = mock_print.call_args_list[0][0][0]
             assert "Claude 3" in line1
-            assert "MySession" in line1
-            assert "main" in line1
 
-            line2 = mock_print.call_args_list[1][0][0]
-            assert "0.42" in line2
-            assert "50%" in line2
+            assert "MySession" in line1
+
+            line3 = mock_print.call_args_list[2][0][0]
+            assert "main" in line3
+            assert "0.42" in line3
+            assert "50%" in line3
 
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
@@ -247,7 +248,7 @@ class TestStatusLine:
                 SegmentGenerationResult(
                     segment=Segment(text="feature-branch"),
                     generator="internal.git",
-                    line=0,
+                    line=2,
                 )
             ]
 
@@ -257,35 +258,36 @@ class TestStatusLine:
                 mock_term.return_value = os.terminal_size((80, 24))
                 main_module.main(args=[], standalone_mode=False)
 
-            assert mock_print.call_count == 2
+            assert mock_print.call_count == 3
 
             line1 = mock_print.call_args_list[0][0][0]
             assert "Opus" in line1
             assert "security-reviewer" in line1
+
             assert "my-session" in line1
             assert "[default]" in line1
-            assert "feature-branch" in line1
 
-            line2 = mock_print.call_args_list[1][0][0]
-            assert "0.01" in line2
-            assert "  8%" in line2
-            assert "+156" in line2
-            assert "-23" in line2
+            line3 = mock_print.call_args_list[2][0][0]
+            assert "feature-branch" in line3
+            assert "0.01" in line3
+            assert "  8%" in line3
+            assert "+156" in line3
+            assert "-23" in line3
 
     def test_shorten_path(self) -> None:
         home = Path("/home/user")
 
         with patch.object(Path, "home", return_value=home):
-            p1 = Path("/home/user/projects/repo")
+            p1 = home / "projects" / "repo"
             assert shorten_path(p1) == "~/projects/repo"
 
-            p2 = Path("/home/user/src/github.com/org/repo/subdir")
+            p2 = home / "src" / "github.com" / "org" / "repo" / "subdir"
             assert shorten_path(p2) == ".../repo/subdir"
 
             p3 = Path("/opt/tool/src/main")
             assert shorten_path(p3) == ".../src/main"
 
-            p4 = Path("/home/user")
+            p4 = home
             assert shorten_path(p4) == "~"
 
 
