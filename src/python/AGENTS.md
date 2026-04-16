@@ -143,3 +143,19 @@ message = f"Hello, {name}"
 parts = ["Hello", ", User" if condition else ", Guest"]
 message = "".join(parts)
 ```
+
+### Anti-Pattern: Imperative List Deduplication
+Avoid using mutable sets and `list.append()` inside loops for deduplication.
+**Anti-Pattern:**
+```python
+seen = set()
+ordered = []
+for item in reversed(items):
+    if item not in seen:
+        seen.add(item)
+        ordered.append(item)
+```
+**Preferred:**
+```python
+ordered = list(dict.fromkeys(reversed(items)))
+```
