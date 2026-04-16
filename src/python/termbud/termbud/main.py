@@ -5,7 +5,7 @@ import sys
 
 import typer
 
-app = typer.Typer(help="Terminal caddy tool")
+app = typer.Typer(help="Terminal caddy tool", add_completion=False)
 tmux_app = typer.Typer(help="Tmux subcommands")
 
 app.add_typer(tmux_app, name="tmux")
