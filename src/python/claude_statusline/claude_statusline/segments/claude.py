@@ -5,8 +5,6 @@ from claude_statusline.models import (
     StatusLineStdIn,
 )
 from claude_statusline.segments.constants import (
-    BG_DIM,
-    BG_RESET,
     BLUE,
     BOLD,
     BRIGHT_GREEN,
@@ -19,6 +17,7 @@ from claude_statusline.segments.constants import (
     RED,
     RESET,
     YELLOW,
+    get_battery_icon,
     get_icon,
 )
 
@@ -36,61 +35,51 @@ def format_tokens(tokens: int, max_tokens: int = 0) -> str:
 
 
 def format_context_usage(cw: ContextWindowInfo) -> SegmentGenerationResult | None:
-    """Formats the context usage with a block-based progress bar and token stats."""
+    """Formats context usage as a battery icon with remaining % and token counts."""
     used_pct = cw.used_percentage or 0.0
+    remaining_pct = 100.0 - used_pct
 
-    color = GREEN
-    if used_pct >= 90:
-        color = RED
-    elif used_pct >= 75:
-        color = ORANGE
-    elif used_pct >= 50:
-        color = YELLOW
-
-    width = 8
-    blocks = [" ", "▏", "▎", "▍", "▌", "▋", "▊", "▉", "█"]
-
-    total_eighths = int((used_pct / 100.0) * width * 8)
-    full_blocks = total_eighths // 8
-    remainder = total_eighths % 8
-
-    visual_bar = "".join(
-        f"{color}{BG_DIM}{blocks[8]}{BG_RESET}{RESET}"
-        if i < full_blocks
-        else f"{color}{BG_DIM}{blocks[remainder]}{BG_RESET}{RESET}"
-        if i == full_blocks and remainder > 0
-        else f"{color}{BG_DIM}{blocks[0]}{BG_RESET}{RESET}"
-        for i in range(width)
+    color = (
+        BRIGHT_GREEN
+        if remaining_pct >= 85
+        else GREEN
+        if remaining_pct >= 70
+        else YELLOW
+        if remaining_pct >= 55
+        else ORANGE
+        if remaining_pct >= 30
+        else RED
     )
+
+    battery = get_battery_icon(remaining_pct)
+    pct_str = f"{color}{battery} {int(remaining_pct)}%{RESET}"
 
     total_used = (cw.total_input_tokens or 0) + (cw.total_output_tokens or 0)
     window_size = cw.context_window_size or 0
+    token_str = (
+        f"{BLUE}{format_tokens(total_used, window_size).strip()}"
+        f"/{format_tokens(window_size, window_size).strip()}{RESET}"
+        if window_size > 0
+        else None
+    )
 
-    token_str = None
-    if window_size > 0:
-        used_str = format_tokens(total_used, window_size)
-        window_str = format_tokens(window_size, window_size).strip()
-        token_str = f"{DIM}{used_str}/{window_str}{RESET}"
-
-    parts = [
-        f"{DIM}ctx:{RESET}",
-        visual_bar,
-        token_str,
-        f"{color}{int(used_pct):>3}%{RESET}",
-    ]
+    dot = get_icon("dot")
+    parts = [pct_str, f"{DIM}{dot}{RESET} {token_str}" if token_str else None]
 
     return SegmentGenerationResult(
         line=2,
-        index=10,
+        index=0,
         generator="internal.claude",
         segment=Segment(text=" ".join(filter(None, parts))),
     )
 
 
 def format_model_info(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
+    style = payload.output_style
     parts = [
         f"{get_icon('robot')} {BLUE}{BOLD}{payload.model.display_name}{RESET}",
         f"{MAGENTA}@{payload.agent.name}{RESET}" if payload.agent.name else None,
+        f"{DIM}[{style.name}]{RESET}" if style and style.name else None,
     ]
     return SegmentGenerationResult(
         line=0,
@@ -101,15 +90,9 @@ def format_model_info(payload: StatusLineStdIn) -> SegmentGenerationResult | Non
 
 
 def format_session_info(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
-    parts = []
-    if payload.session_name:
-        parts.append(f"{CYAN}#{payload.session_name}{RESET}")
-    elif payload.session_id:
-        parts.append(f"{DIM}#{payload.session_id[:8]}{RESET}")
-
-    if payload.output_style and payload.output_style.name:
-        # e.g., default, concise, quiet
-        parts.append(f"{DIM}[{payload.output_style.name}]{RESET}")
+    parts = [
+        f"{CYAN}#{payload.session_name}{RESET}" if payload.session_name else None,
+    ]
 
     if payload.cost.total_duration_ms:
         elapsed_seconds = payload.cost.total_duration_ms // 1000
@@ -123,13 +106,14 @@ def format_session_info(payload: StatusLineStdIn) -> SegmentGenerationResult | N
 
         parts.append(f"{YELLOW}{get_icon('timer')} {timer}{RESET}")
 
-    if not parts:
+    filtered = [p for p in parts if p]
+    if not filtered:
         return None
     return SegmentGenerationResult(
         line=0,
         index=10,
         generator="internal.claude",
-        segment=Segment(text=" ".join(parts)),
+        segment=Segment(text=" ".join(filtered)),
     )
 
 
@@ -159,7 +143,7 @@ def format_lines_impact(payload: StatusLineStdIn) -> SegmentGenerationResult | N
     ]
 
     return SegmentGenerationResult(
-        line=2,
+        line=1,
         index=30,
         generator="internal.claude",
         segment=Segment(text=" ".join(filter(None, parts))),
