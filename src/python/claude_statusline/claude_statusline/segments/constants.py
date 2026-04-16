@@ -41,11 +41,15 @@ IconKey = Literal[
     "dir",
     "branch",
     "remote",
+    "github",
+    "gitlab",
     "dirty",
     "clean",
     "staged",
     "untracked",
+    "stash",
     "timer",
+    "dot",
     "cost",
     "tokens",
     "robot",
@@ -58,11 +62,15 @@ ICONS: dict[IconKey, IconPair] = {
     "dir": IconPair("\uf115", "📁"),
     "branch": IconPair("\ue0a0", "🪾"),
     "remote": IconPair("\uf0c1", "🔗"),
+    "github": IconPair("\ue709", ""),
+    "gitlab": IconPair("\uf296", ""),
     "dirty": IconPair("\uf06a", "!"),
     "clean": IconPair("\uf00c", "✓"),
     "staged": IconPair("\uf067", "+"),
     "untracked": IconPair("\uf128", "?"),
-    "timer": IconPair("\uf017", "⏱"),
+    "stash": IconPair("\uf01c", "$"),
+    "timer": IconPair("\U000F0954", "⏱"),
+    "dot": IconPair("\uf444", "·"),
     "cost": IconPair("💳", "💳"),
     "tokens": IconPair("\uf4a5", "⚡"),
     "robot": IconPair("\uf544", "🤖"),
@@ -77,7 +85,29 @@ def get_icon(key: IconKey) -> str:
     return icon_pair.nerd_font if use_icons() else icon_pair.fallback
 
 
-BLOCK_FILLED = "\u2588"  # █
-BLOCK_EMPTY = "\u2591"  # ░
 DIVIDER_DOT = " • "
 DIVIDER_BAR = " │ "
+
+# nf-md-battery_* icons (remaining context, 10% increments)
+# U+F0079 = nf-md-battery (100%), U+F008E = nf-md-battery_outline (0%)
+_BATTERY_ICONS_NERD = [
+    "\U000F008E",  # 0%  — outline/empty
+    "\U000F007A",  # 10%
+    "\U000F007B",  # 20%
+    "\U000F007C",  # 30%
+    "\U000F007D",  # 40%
+    "\U000F007E",  # 50%
+    "\U000F007F",  # 60%
+    "\U000F0080",  # 70%
+    "\U000F0081",  # 80%
+    "\U000F0082",  # 90%
+    "\U000F0079",  # 100% — full
+]
+_BATTERY_ICONS_FALLBACK = ["_", "1", "2", "3", "4", "5", "6", "7", "8", "9", "#"]
+
+
+def get_battery_icon(remaining_pct: float) -> str:
+    """Returns the battery icon for the given remaining percentage (0-100)."""
+    index = round(max(0.0, min(100.0, remaining_pct)) / 10)
+    icons = _BATTERY_ICONS_NERD if use_icons() else _BATTERY_ICONS_FALLBACK
+    return icons[index]

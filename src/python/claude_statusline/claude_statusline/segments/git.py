@@ -110,6 +110,19 @@ async def _get_ahead_behind(cwd: Path) -> AheadBehindInfo:
     return AheadBehindInfo(ahead=ahead, behind=behind)
 
 
+async def _get_stash_count(cwd: Path) -> int:
+    res = await _run_git_cmd(["git", "stash", "list"], cwd)
+    return len(res.splitlines()) if res else 0
+
+
+def _build_branch_url(remote: str, branch: str) -> str:
+    if branch == "HEAD":
+        return remote
+    if "gitlab.com" in remote:
+        return f"{remote}/-/tree/{branch}"
+    return f"{remote}/tree/{branch}"
+
+
 async def generate_git_segment(
     cwd: Path, is_worktree: bool
 ) -> Sequence[SegmentGenerationResult]:
@@ -119,9 +132,10 @@ async def generate_git_segment(
     branch_task = asyncio.create_task(_get_branch_and_remote(cwd))
     status_task = asyncio.create_task(_get_status(cwd))
     ahead_behind_task = asyncio.create_task(_get_ahead_behind(cwd))
+    stash_task = asyncio.create_task(_get_stash_count(cwd))
 
-    branch_info, status_info, ahead_behind_info = await asyncio.gather(
-        branch_task, status_task, ahead_behind_task
+    branch_info, status_info, ahead_behind_info, stash_count = await asyncio.gather(
+        branch_task, status_task, ahead_behind_task, stash_task
     )
 
     info = GitInfo(
@@ -134,6 +148,7 @@ async def generate_git_segment(
         behind=ahead_behind_info.behind,
         is_repo=True,
         is_worktree=is_worktree,
+        stash_count=stash_count,
     )
 
     result = format_git_full(info)
@@ -147,32 +162,43 @@ def format_git_full(info: GitInfo | None) -> SegmentGenerationResult | None:
         return None
 
     branch_icon = get_icon("worktree") if info.is_worktree else get_icon("branch")
-    parts = [f"{MAGENTA}{branch_icon} {info.branch}{RESET}"]
+    branch_url = _build_branch_url(info.remote, info.branch) if info.remote else None
+    branch_display = (
+        f"\033]8;;{branch_url}\033\\{info.branch}\033]8;;\033\\"
+        if branch_url
+        else info.branch
+    )
+    parts = [f"{MAGENTA}{branch_icon} {branch_display}{RESET}"]
 
-    status_parts = []
-    if info.dirty:
-        status_parts.append(f"{RED}{get_icon('dirty')}{RESET}")
-    if info.staged:
-        status_parts.append(f"{YELLOW}{get_icon('staged')}{RESET}")
-    if info.untracked:
-        status_parts.append(f"{CYAN}{get_icon('untracked')}{RESET}")
+    status_parts = [
+        f"{RED}{get_icon('dirty')}{RESET}" if info.dirty else None,
+        f"{YELLOW}{get_icon('staged')}{RESET}" if info.staged else None,
+        f"{CYAN}{get_icon('untracked')}{RESET}" if info.untracked else None,
+    ]
+    filled = [s for s in status_parts if s]
+    if not filled:
+        filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
 
-    if not status_parts:
-        status_parts.append(f"{GREEN}{get_icon('clean')}{RESET}")
-
-    parts.append("".join(status_parts))
+    parts.append(f"[{''.join(filled)}]")
 
     if info.ahead > 0:
         parts.append(f"{GREEN}↑{info.ahead}{RESET}")
     if info.behind > 0:
         parts.append(f"{RED}↓{info.behind}{RESET}")
+    if info.stash_count > 0:
+        parts.append(f"{YELLOW}{get_icon('stash')}{info.stash_count}{RESET}")
 
     if info.remote:
-        parts.append(f"\033]8;;{info.remote}\033\\{get_icon('remote')}\033]8;;\033\\")
+        platform_icon = (
+            get_icon("github") if "github.com" in info.remote
+            else get_icon("gitlab") if "gitlab.com" in info.remote
+            else get_icon("remote")
+        )
+        parts.append(f"[ \033]8;;{info.remote}\033\\{platform_icon}\033]8;;\033\\ ]")
 
     return SegmentGenerationResult(
-        line=0,
-        index=30,
+        line=1,
+        index=0,
         segment=Segment(text=" ".join(parts)),
         generator="internal.git",
         cache_duration=TimeDelta(seconds=5),

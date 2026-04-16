@@ -111,6 +111,7 @@ class GitInfo(BaseModel):
     behind: int
     is_repo: bool
     is_worktree: bool = False
+    stash_count: int = 0
 
 
 class Segment(BaseModel):

@@ -17,7 +17,6 @@ from claude_statusline.render import render_lines
 from claude_statusline.segments.claude import (
     format_context_usage,
     format_cost,
-    format_lines_impact,
     format_model_info,
     format_session_info,
 )
@@ -205,7 +204,6 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
             format_obsidian_vault(cwd),
             format_context_usage(payload.context_window),
             format_cost(payload),
-            format_lines_impact(payload),
         ]
         all_segments.extend([r for r in internal_results if r])
     except Exception as e:
