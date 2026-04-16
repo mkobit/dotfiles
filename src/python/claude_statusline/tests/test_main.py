@@ -5,6 +5,8 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 import claude_statusline.main as main_module
 from claude_statusline.models import ContextWindowInfo, GitInfo
 from claude_statusline.segments.claude import format_context_usage
@@ -18,32 +20,28 @@ from claude_statusline.segments.git import format_git_full
 from claude_statusline.segments.workspace import shorten_path
 
 
-class TestStatusLine(unittest.TestCase):
+class TestStatusLine:
     def test_format_context_usage(self) -> None:
         cw_low = ContextWindowInfo(used_percentage=10.0)
         res_low = format_context_usage(cw_low)
-        self.assertIsNotNone(res_low)
         assert res_low is not None
-        self.assertIn(GREEN, res_low.segment.text)
+        assert GREEN in res_low.segment.text
 
         cw_med = ContextWindowInfo(used_percentage=55.0)
         res_med = format_context_usage(cw_med)
-        self.assertIsNotNone(res_med)
         assert res_med is not None
-        self.assertIn(YELLOW, res_med.segment.text)
+        assert YELLOW in res_med.segment.text
 
         cw_high = ContextWindowInfo(used_percentage=95.0)
         res_high = format_context_usage(cw_high)
-        self.assertIsNotNone(res_high)
         assert res_high is not None
-        self.assertIn(RED, res_high.segment.text)
+        assert RED in res_high.segment.text
 
         cw_none = ContextWindowInfo(used_percentage=None)
         res_none = format_context_usage(cw_none)
-        self.assertIsNotNone(res_none)
         assert res_none is not None
-        self.assertIn("  0%", res_none.segment.text)
-        self.assertIn(GREEN, res_none.segment.text)
+        assert "  0%" in res_none.segment.text
+        assert GREEN in res_none.segment.text
 
     def test_format_git_full(self) -> None:
         base_kwargs: dict[str, Any] = {
@@ -60,47 +58,43 @@ class TestStatusLine(unittest.TestCase):
 
         info = GitInfo(**base_kwargs)
         res = format_git_full(info)
-        self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn("main", res.segment.text)
-        self.assertIn(get_icon("clean"), res.segment.text)
-        self.assertIn(get_icon("remote"), res.segment.text)
+        assert "main" in res.segment.text
+        assert get_icon("clean") in res.segment.text
+        assert get_icon("remote") in res.segment.text
 
         base_kwargs["dirty"] = True
         info = GitInfo(**base_kwargs)
         res = format_git_full(info)
-        self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(get_icon("dirty"), res.segment.text)
+        assert get_icon("dirty") in res.segment.text
 
         base_kwargs["dirty"] = False
         base_kwargs["staged"] = True
         info = GitInfo(**base_kwargs)
         res = format_git_full(info)
-        self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(get_icon("staged"), res.segment.text)
+        assert get_icon("staged") in res.segment.text
 
         base_kwargs["staged"] = False
         base_kwargs["untracked"] = True
         info = GitInfo(**base_kwargs)
         res = format_git_full(info)
-        self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn(get_icon("untracked"), res.segment.text)
+        assert get_icon("untracked") in res.segment.text
 
         base_kwargs["untracked"] = False
         base_kwargs["ahead"] = 2
         base_kwargs["behind"] = 1
         info = GitInfo(**base_kwargs)
         res = format_git_full(info)
-        self.assertIsNotNone(res)
         assert res is not None
-        self.assertIn("↑2", res.segment.text)
-        self.assertIn("↓1", res.segment.text)
+        assert "↑2" in res.segment.text
+        assert "↓1" in res.segment.text
 
+    @pytest.mark.asyncio
     @patch("asyncio.create_subprocess_exec")
-    def test_get_git_info_fresh(self, mock_run: MagicMock) -> None:
+    async def test_get_git_info_fresh(self, mock_run: MagicMock) -> None:
         async def side_effect(*cmd: Any, **kwargs: Any) -> Any:
             cmd_list = cmd
             stdout = ""
@@ -129,20 +123,18 @@ class TestStatusLine(unittest.TestCase):
             patch.object(Path, "exists", return_value=False),
             patch("claude_statusline.segments.git._check_is_repo", return_value=True),
         ):
-            import asyncio  # noqa: PLC0415
-
             from claude_statusline.segments.git import (  # noqa: PLC0415
                 generate_git_segment,
             )
 
-            info = asyncio.run(generate_git_segment(Path("/tmp/repo"), False))
+            info = await generate_git_segment(Path("/tmp/repo"), False)
 
-        self.assertTrue(len(info) > 0)
+        assert len(info) > 0
         assert info is not None
-        self.assertTrue("feature-branch" in info[0].segment.text)
-        self.assertTrue("https://github.com/user/repo" in info[0].segment.text)
+        assert "feature-branch" in info[0].segment.text
+        assert "https://github.com/user/repo" in info[0].segment.text
 
-        self.assertTrue("1" in info[0].segment.text)
+        assert "1" in info[0].segment.text
 
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
@@ -176,17 +168,17 @@ class TestStatusLine(unittest.TestCase):
                 mock_term.return_value = os.terminal_size((80, 24))
                 main_module.main(args=[], standalone_mode=False)
 
-            self.assertEqual(mock_print.call_count, 3)
+            assert mock_print.call_count == 3
 
             line1 = mock_print.call_args_list[0][0][0]
-            self.assertIn("Claude 3", line1)
+            assert "Claude 3" in line1
 
-            self.assertIn("MySession", line1)
+            assert "MySession" in line1
 
             line3 = mock_print.call_args_list[2][0][0]
-            self.assertIn("main", line3)
-            self.assertIn("0.42", line3)
-            self.assertIn("50%", line3)
+            assert "main" in line3
+            assert "0.42" in line3
+            assert "50%" in line3
 
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
@@ -266,37 +258,37 @@ class TestStatusLine(unittest.TestCase):
                 mock_term.return_value = os.terminal_size((80, 24))
                 main_module.main(args=[], standalone_mode=False)
 
-            self.assertEqual(mock_print.call_count, 3)
+            assert mock_print.call_count == 3
 
             line1 = mock_print.call_args_list[0][0][0]
-            self.assertIn("Opus", line1)
-            self.assertIn("security-reviewer", line1)
+            assert "Opus" in line1
+            assert "security-reviewer" in line1
 
-            self.assertIn("my-session", line1)
-            self.assertIn("[default]", line1)
+            assert "my-session" in line1
+            assert "[default]" in line1
 
             line3 = mock_print.call_args_list[2][0][0]
-            self.assertIn("feature-branch", line3)
-            self.assertIn("0.01", line3)
-            self.assertIn("  8%", line3)
-            self.assertIn("+156", line3)
-            self.assertIn("-23", line3)
+            assert "feature-branch" in line3
+            assert "0.01" in line3
+            assert "  8%" in line3
+            assert "+156" in line3
+            assert "-23" in line3
 
     def test_shorten_path(self) -> None:
         home = Path("/home/user")
 
         with patch.object(Path, "home", return_value=home):
             p1 = Path("/home/user/projects/repo")
-            self.assertEqual(shorten_path(p1), "~/projects/repo")
+            assert shorten_path(p1) == "~/projects/repo"
 
             p2 = Path("/home/user/src/github.com/org/repo/subdir")
-            self.assertEqual(shorten_path(p2), ".../repo/subdir")
+            assert shorten_path(p2) == ".../repo/subdir"
 
             p3 = Path("/opt/tool/src/main")
-            self.assertEqual(shorten_path(p3), ".../src/main")
+            assert shorten_path(p3) == ".../src/main"
 
             p4 = Path("/home/user")
-            self.assertEqual(shorten_path(p4), "~")
+            assert shorten_path(p4) == "~"
 
 
 if __name__ == "__main__":
