@@ -2,7 +2,7 @@ from collections import defaultdict
 from collections.abc import Iterable
 
 from claude_statusline.models import GitInfo, SegmentGenerationResult, StatusLineStdIn
-from claude_statusline.segments.constants import DIVIDER_BAR
+from claude_statusline.segments.constants import get_icon
 
 
 def render_lines(
@@ -11,6 +11,7 @@ def render_lines(
     segments: Iterable[SegmentGenerationResult],
 ) -> list[str]:
     """Renders the statusline as a list of strings."""
+    sep = f" {get_icon('dot')} "
 
     lines_map = defaultdict(list)
     for seg in segments:
@@ -22,7 +23,7 @@ def render_lines(
         line_segments = sorted(
             lines_map[line_num], key=lambda s: (s.index, s.generator)
         )
-        text = DIVIDER_BAR.join(s.segment.text for s in line_segments)
+        text = sep.join(s.segment.text for s in line_segments)
         if text:
             result_lines.append(text)
 
