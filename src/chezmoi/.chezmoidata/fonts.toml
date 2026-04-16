@@ -1,7 +1,14 @@
 # Font configuration
 # Supported fonts:
+# - meslo: Standard Nerd Font (MesloLG)
 # - fira_mono: Fira Mono Nerd Font
 # - jetbrains_mono: JetBrains Mono Nerd Font
+
+[fonts.meslo]
+name = "Meslo"
+version = "v3.3.0"
+sha256 = "6ad716ed719e2c97794abd5856a90c6131c406606b249debdc83b04ae11f4cb7"
+installation = "external-sources"
 
 [fonts.fira_mono]
 name = "FiraMono"

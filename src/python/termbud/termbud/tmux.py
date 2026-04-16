@@ -50,16 +50,17 @@ def open_url(
         urls_file.write("\n".join(ordered_urls))
         urls_file_name = urls_file.name
 
-    if not open_cmd:
-        if sys.platform == "darwin":
-            open_cmd = "open"
-            copy_cmd = "pbcopy"
-        elif "microsoft" in os.uname().release.lower():
-            open_cmd = "wslview"
-            copy_cmd = "clip.exe"
-        else:
-            open_cmd = "xdg-open"
-            copy_cmd = "xclip -selection clipboard"
+    if sys.platform == "darwin":
+        default_open_cmd = "open"
+        copy_cmd = "pbcopy"
+    elif "microsoft" in os.uname().release.lower():
+        default_open_cmd = "wslview"
+        copy_cmd = "clip.exe"
+    else:
+        default_open_cmd = "xdg-open"
+        copy_cmd = "xclip -selection clipboard"
+
+    open_cmd = open_cmd or default_open_cmd
 
     fzf_env = os.environ.copy()
     fzf_env["FZF_DEFAULT_COMMAND"] = f"cat {urls_file_name}"

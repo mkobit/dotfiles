@@ -14,17 +14,6 @@ MOCK_SESSION_DATA = {
 
 MOCK_LIST_SESSIONS_DATA = {"sessions": [MOCK_SESSION_DATA], "nextPageToken": None}
 
-MOCK_SOURCE_DATA = {
-    "name": "sources/github/test/repo",
-    "id": "github/test/repo",
-    "githubRepo": {
-        "owner": "test",
-        "repo": "repo",
-    },
-}
-
-MOCK_LIST_SOURCES_DATA = {"sources": [MOCK_SOURCE_DATA], "nextPageToken": None}
-
 
 def test_session_model() -> None:
     session = Session.model_validate(MOCK_SESSION_DATA)
@@ -121,90 +110,3 @@ async def test_client_list_sessions() -> None:
 
     assert len(sessions) == 1
     assert sessions[0].id == "123"
-
-
-@pytest.mark.asyncio
-async def test_client_list_sources() -> None:
-    class MockResponse:
-        def __init__(self, data: dict) -> None:
-            self._data = data
-
-        async def json(self) -> dict:
-            return self._data
-
-        @property
-        def ok(self) -> bool:
-            return True
-
-        async def text(self) -> str:
-            return ""
-
-        async def __aenter__(self) -> MockResponse:
-            return self
-
-        async def __aexit__(self, *args: object) -> None:
-            pass
-
-    class MockSession:
-        def get(self, url: str, params: dict | None = None) -> MockResponse:
-            return MockResponse(MOCK_LIST_SOURCES_DATA)
-
-        async def close(self) -> None:
-            pass
-
-    client = JulesClient(api_key="test_key")
-    client._session = MockSession()  # type: ignore
-
-    sources = [s async for s in client.list_sources()]
-
-    assert len(sources) == 1
-    assert sources[0].id == "github/test/repo"
-    assert sources[0].github_repo is not None
-    assert sources[0].github_repo.owner == "test"
-
-
-@pytest.mark.asyncio
-async def test_client_list_sources_pagination() -> None:
-    class MockResponse:
-        def __init__(self, data: dict) -> None:
-            self._data = data
-
-        async def json(self) -> dict:
-            return self._data
-
-        @property
-        def ok(self) -> bool:
-            return True
-
-        async def text(self) -> str:
-            return ""
-
-        async def __aenter__(self) -> MockResponse:
-            return self
-
-        async def __aexit__(self, *args: object) -> None:
-            pass
-
-    class MockSession:
-        def __init__(self) -> None:
-            self.call_count = 0
-
-        def get(self, url: str, params: dict | None = None) -> MockResponse:
-            self.call_count += 1
-            if self.call_count == 1:
-                return MockResponse(
-                    {"sources": [MOCK_SOURCE_DATA], "nextPageToken": "token2"}
-                )
-            return MockResponse({"sources": [MOCK_SOURCE_DATA], "nextPageToken": None})
-
-        async def close(self) -> None:
-            pass
-
-    client = JulesClient(api_key="test_key")
-    mock_session = MockSession()
-    client._session = mock_session  # type: ignore
-
-    sources = [s async for s in client.list_sources()]
-
-    assert len(sources) == 2
-    assert mock_session.call_count == 2

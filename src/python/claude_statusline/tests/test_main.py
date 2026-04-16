@@ -15,6 +15,7 @@ from claude_statusline.segments.constants import (
     get_icon,
 )
 from claude_statusline.segments.git import format_git_full
+from claude_statusline.segments.workspace import shorten_path
 
 
 class TestStatusLine(unittest.TestCase):
@@ -165,7 +166,7 @@ class TestStatusLine(unittest.TestCase):
 
             mock_get_git_info.return_value = [
                 SegmentGenerationResult(
-                    segment=Segment(text="main"), generator="internal.git", line=0
+                    segment=Segment(text="main"), generator="internal.git", line=2
                 )
             ]
 
@@ -175,17 +176,17 @@ class TestStatusLine(unittest.TestCase):
                 mock_term.return_value = os.terminal_size((80, 24))
                 main_module.main(args=[], standalone_mode=False)
 
-            self.assertEqual(mock_print.call_count, 2)
+            self.assertEqual(mock_print.call_count, 3)
 
             line1 = mock_print.call_args_list[0][0][0]
             self.assertIn("Claude 3", line1)
 
             self.assertIn("MySession", line1)
-            self.assertIn("main", line1)
 
-            line2 = mock_print.call_args_list[1][0][0]
-            self.assertIn("0.42", line2)
-            self.assertIn("50%", line2)
+            line3 = mock_print.call_args_list[2][0][0]
+            self.assertIn("main", line3)
+            self.assertIn("0.42", line3)
+            self.assertIn("50%", line3)
 
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
@@ -255,7 +256,7 @@ class TestStatusLine(unittest.TestCase):
                 SegmentGenerationResult(
                     segment=Segment(text="feature-branch"),
                     generator="internal.git",
-                    line=0,
+                    line=2,
                 )
             ]
 
@@ -265,7 +266,7 @@ class TestStatusLine(unittest.TestCase):
                 mock_term.return_value = os.terminal_size((80, 24))
                 main_module.main(args=[], standalone_mode=False)
 
-            self.assertEqual(mock_print.call_count, 2)
+            self.assertEqual(mock_print.call_count, 3)
 
             line1 = mock_print.call_args_list[0][0][0]
             self.assertIn("Opus", line1)
@@ -273,13 +274,29 @@ class TestStatusLine(unittest.TestCase):
 
             self.assertIn("my-session", line1)
             self.assertIn("[default]", line1)
-            self.assertIn("feature-branch", line1)
 
-            line2 = mock_print.call_args_list[1][0][0]
-            self.assertIn("0.01", line2)
-            self.assertIn("  8%", line2)
-            self.assertIn("+156", line2)
-            self.assertIn("-23", line2)
+            line3 = mock_print.call_args_list[2][0][0]
+            self.assertIn("feature-branch", line3)
+            self.assertIn("0.01", line3)
+            self.assertIn("  8%", line3)
+            self.assertIn("+156", line3)
+            self.assertIn("-23", line3)
+
+    def test_shorten_path(self) -> None:
+        home = Path("/home/user")
+
+        with patch.object(Path, "home", return_value=home):
+            p1 = Path("/home/user/projects/repo")
+            self.assertEqual(shorten_path(p1), "~/projects/repo")
+
+            p2 = Path("/home/user/src/github.com/org/repo/subdir")
+            self.assertEqual(shorten_path(p2), ".../repo/subdir")
+
+            p3 = Path("/opt/tool/src/main")
+            self.assertEqual(shorten_path(p3), ".../src/main")
+
+            p4 = Path("/home/user")
+            self.assertEqual(shorten_path(p4), "~")
 
 
 if __name__ == "__main__":
