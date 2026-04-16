@@ -1,0 +1,21 @@
+{{- if eq .action "install" -}}
+TOOL_NAME="{{ .name }}"
+TOOL_PATH="{{ .path }}"
+
+if uv tool list | grep -q "$TOOL_NAME"; then
+    echo "Updating $TOOL_NAME..."
+else
+    echo "Installing $TOOL_NAME..."
+fi
+
+uv tool install --force "$TOOL_PATH"
+{{- else if eq .action "uninstall" -}}
+TOOL_NAME="{{ .name }}"
+
+if uv tool list | grep -q "$TOOL_NAME"; then
+    echo "Uninstalling $TOOL_NAME..."
+    uv tool uninstall "$TOOL_NAME"
+fi
+{{- else -}}
+{{- fail (printf "Unknown action '%s' for uv_tool template" .action) -}}
+{{- end -}}

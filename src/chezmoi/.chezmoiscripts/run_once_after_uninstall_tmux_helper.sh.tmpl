@@ -3,5 +3,6 @@
 set -euo pipefail
 
 echo "Cleaning up legacy tmux python tools..."
-uv tool uninstall tmux-helper || true
-uv tool uninstall tmux-runtime-tools || true
+
+{{ template "uv/tool.sh.tmpl" (dict "action" "uninstall" "name" "tmux-helper") }}
+{{ template "uv/tool.sh.tmpl" (dict "action" "uninstall" "name" "tmux-runtime-tools") }}
