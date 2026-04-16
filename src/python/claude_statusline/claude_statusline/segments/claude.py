@@ -80,8 +80,8 @@ def format_context_usage(cw: ContextWindowInfo) -> SegmentGenerationResult | Non
     ]
 
     return SegmentGenerationResult(
-        line=1,
-        index=0,
+        line=2,
+        index=10,
         generator="internal.claude",
         segment=Segment(text=" ".join(filter(None, parts))),
     )
@@ -137,8 +137,8 @@ def format_cost(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
     if not payload.cost.total_cost_usd:
         return None
     return SegmentGenerationResult(
-        line=1,
-        index=10,
+        line=2,
+        index=20,
         generator="internal.claude",
         segment=Segment(
             text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"
@@ -159,8 +159,8 @@ def format_lines_impact(payload: StatusLineStdIn) -> SegmentGenerationResult | N
     ]
 
     return SegmentGenerationResult(
-        line=1,
-        index=20,
+        line=2,
+        index=30,
         generator="internal.claude",
         segment=Segment(text=" ".join(filter(None, parts))),
     )
