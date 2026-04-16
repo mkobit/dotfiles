@@ -9,6 +9,7 @@ linux_amd64 = "84636e19a0e5001d7499f58ae5a868cec8f6ba4f52f9028680bb7cd802564229"
 linux_arm64 = "b0cee25b0405113ed6fe2a54cf21d49720ee571d3d5b4a9c695721cd123d24f8"
 
 [mise.settings]
+# Configuration settings: https://mise.jdx.dev/configuration/settings.html
 cache_prune_age = "30d"
 disable_hints = ["self_update"]
 [mise.settings.npm]
