@@ -47,7 +47,7 @@ async def _run_git_cmd(cmd: list[str], cwd: Path) -> str | None:
         stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=2.0)
         if proc.returncode == 0:
             return stdout.decode().strip()
-    except TimeoutError, Exception:
+    except (TimeoutError, Exception):
         pass
     return None
 

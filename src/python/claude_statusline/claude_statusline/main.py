@@ -128,7 +128,7 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
         if show_errors:
             return [
                 SegmentGenerationResult(
-                    line=2,
+                    line=3,
                     index=999,
                     generator=name,
                     segment=Segment(text=f"[Error: {name}]"),

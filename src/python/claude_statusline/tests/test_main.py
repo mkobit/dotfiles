@@ -1,9 +1,12 @@
 import io
 import json
 import unittest
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import claude_statusline.main as main_module
+from claude_statusline.models import Segment, SegmentGenerationResult
+from claude_statusline.segments.workspace import shorten_path
 
 
 class TestMainSmoke(unittest.TestCase):
@@ -25,11 +28,6 @@ class TestMainSmoke(unittest.TestCase):
         mock_stdin.seek(0)
 
         with patch("claude_statusline.main.generate_git_segment") as mock_git:
-            from claude_statusline.models import (  # noqa: PLC0415
-                Segment,
-                SegmentGenerationResult,
-            )
-
             mock_git.return_value = [
                 SegmentGenerationResult(
                     segment=Segment(text="main"), generator="internal.git", line=1
@@ -58,6 +56,29 @@ class TestMainSmoke(unittest.TestCase):
             main_module.main(args=[], standalone_mode=False)
 
         self.assertGreater(mock_print.call_count, 0)
+
+
+class TestShortenPath(unittest.TestCase):
+    def test_home_relative_short(self) -> None:
+        home = Path("/home/user")
+        with patch.object(Path, "home", return_value=home):
+            assert shorten_path(home / "projects" / "repo") == "~/projects/repo"
+
+    def test_home_relative_long(self) -> None:
+        home = Path("/home/user")
+        with patch.object(Path, "home", return_value=home):
+            p = home / "src" / "github.com" / "org" / "repo" / "subdir"
+            assert shorten_path(p) == ".../repo/subdir"
+
+    def test_absolute_long(self) -> None:
+        home = Path("/home/user")
+        with patch.object(Path, "home", return_value=home):
+            assert shorten_path(Path("/opt/tool/src/main")) == ".../src/main"
+
+    def test_home_itself(self) -> None:
+        home = Path("/home/user")
+        with patch.object(Path, "home", return_value=home):
+            assert shorten_path(home) == "~"
 
 
 if __name__ == "__main__":
