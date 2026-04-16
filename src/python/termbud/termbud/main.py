@@ -30,7 +30,9 @@ def open_url(
         )
         scrollback = result.stdout
     except subprocess.CalledProcessError:
-        subprocess.run(["tmux", "display-message", "Failed to capture pane"])
+        subprocess.run(
+            ["tmux", "display-message", "Failed to capture pane"], check=False
+        )
         sys.exit(1)
 
     url_pattern = re.compile(
@@ -39,7 +41,7 @@ def open_url(
     urls = url_pattern.findall(scrollback)
 
     if not urls:
-        subprocess.run(["tmux", "display-message", "No URLs found."])
+        subprocess.run(["tmux", "display-message", "No URLs found."], check=False)
         sys.exit(0)
 
     seen: set[str] = set()
@@ -59,7 +61,7 @@ def open_url(
         selected_url_bytes, _ = fzf.communicate(input="\n".join(ordered_urls))
         selected_url = selected_url_bytes.strip()
     except FileNotFoundError:
-        subprocess.run(["tmux", "display-message", "fzf-tmux not found."])
+        subprocess.run(["tmux", "display-message", "fzf-tmux not found."], check=False)
         sys.exit(1)
 
     if not selected_url:
@@ -76,7 +78,9 @@ def open_url(
     try:
         os.execvp(open_cmd, [open_cmd, selected_url])
     except OSError:
-        subprocess.run(["tmux", "display-message", f"Failed to execute {open_cmd}"])
+        subprocess.run(
+            ["tmux", "display-message", f"Failed to execute {open_cmd}"], check=False
+        )
         sys.exit(1)
 
 
