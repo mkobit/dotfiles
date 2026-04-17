@@ -36,3 +36,12 @@ def test_formatter_jinja_with_timestamp(sample_segments: list[Any], sample_info:
     result = Formatter.format_segments(sample_segments, sample_info, template_string=template)
     expected = "00:00:00,000 -> Hello world\n00:00:01,500 -> This is a test\n"
     assert result == expected
+
+
+def test_formatter_jinja_file(sample_segments: list[Any], sample_info: Any, tmp_path: Any) -> None:
+    template_content = "{% for seg in segments %}{{ seg.text }}{% if not loop.last %} | {% endif %}{% endfor %}"
+    template_file = tmp_path / "template.j2"
+    template_file.write_text(template_content)
+
+    result = Formatter.format_segments(sample_segments, sample_info, template_file=str(template_file))
+    assert result == "Hello world | This is a test"

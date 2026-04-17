@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, Template
@@ -24,8 +24,9 @@ class Formatter:
         }
 
         if template_file:
-            env = Environment(loader=FileSystemLoader(os.path.dirname(os.path.abspath(template_file))))
-            template = env.get_template(os.path.basename(template_file))
+            path = Path(template_file).resolve()
+            env = Environment(loader=FileSystemLoader(str(path.parent)))
+            template = env.get_template(path.name)
             return str(template.render(context))
         if template_string:
             template = Template(template_string)
