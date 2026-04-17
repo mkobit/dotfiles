@@ -461,10 +461,7 @@ def create(
         # Format source string
         if not source.startswith("sources/"):
             # Assume github/owner/repo or owner/repo
-            if source.startswith("github/"):
-                full_source = f"sources/{source}"
-            else:
-                full_source = f"sources/github/{source}"
+            full_source = f"sources/{source}" if source.startswith("github/") else f"sources/github/{source}"
         else:
             full_source = source
 

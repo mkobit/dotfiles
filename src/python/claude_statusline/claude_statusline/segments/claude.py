@@ -99,10 +99,7 @@ def format_session_info(payload: StatusLineStdIn) -> SegmentGenerationResult | N
         hours, remainder = divmod(elapsed_seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
 
-        if hours > 0:
-            timer = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-        else:
-            timer = f"{minutes:02d}:{seconds:02d}"
+        timer = f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours > 0 else f"{minutes:02d}:{seconds:02d}"
 
         parts.append(f"{YELLOW}{get_icon('timer')} {timer}{RESET}")
 
