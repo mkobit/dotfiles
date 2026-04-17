@@ -53,11 +53,12 @@ Use the package name directly (not the full workspace path):
 
 ## Quality tools
 
-Run from the workspace root:
-- `uv run ruff check .` — lint
-- `uv run ruff format --check .` — format
-- `uv run ty check src/python` — type check
-- `uv run pytest src/python` — tests
+| Command | Purpose |
+|---|---|
+| `uv run ruff check .` | Lint |
+| `uv run ruff format --check .` | Format |
+| `uv run ty check` | Type check |
+| `uv run pytest src/python` | Tests |
 
 ## Coding guidelines
 

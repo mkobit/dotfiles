@@ -23,9 +23,7 @@ from claude_statusline.segments.claude import (
 from claude_statusline.segments.git import generate_git_segment
 from claude_statusline.segments.workspace import format_directory, format_obsidian_vault
 
-logging.basicConfig(
-    level=logging.WARNING, stream=sys.stderr, format="%(levelname)s: %(message)s"
-)
+logging.basicConfig(level=logging.WARNING, stream=sys.stderr, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 
@@ -41,9 +39,7 @@ async def run_external_generator(
         )
 
         try:
-            stdout, _stderr = await asyncio.wait_for(
-                proc.communicate(input=payload_json.encode()), timeout=timeout
-            )
+            stdout, _stderr = await asyncio.wait_for(proc.communicate(input=payload_json.encode()), timeout=timeout)
         except TimeoutError:
             proc.kill()
             await proc.communicate()
@@ -52,9 +48,7 @@ async def run_external_generator(
 
         if proc.returncode == 0 and stdout.strip():
             try:
-                adapter = TypeAdapter(
-                    list[SegmentGenerationResult] | SegmentGenerationResult
-                )
+                adapter = TypeAdapter(list[SegmentGenerationResult] | SegmentGenerationResult)
                 data = adapter.validate_json(stdout)
 
                 results = data if isinstance(data, list) else [data]
@@ -70,9 +64,7 @@ async def run_external_generator(
                 logger.warning(f"JSON parsing error in external generator {cmd}: {e}")
                 return []
         elif proc.returncode != 0:
-            logger.warning(
-                f"External generator {cmd} exited with code {proc.returncode}"
-            )
+            logger.warning(f"External generator {cmd} exited with code {proc.returncode}")
             raise Exception(f"Exit code {proc.returncode}") from None
     except Exception as e:
         logger.warning(f"Error running external generator {cmd}: {e}")
@@ -177,16 +169,9 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
                 all_segments.extend(res)
                 if res:
                     try:
-                        if any(
-                            hasattr(r, "cache_duration") and r.cache_duration
-                            for r in res
-                        ):
+                        if any(hasattr(r, "cache_duration") and r.cache_duration for r in res):
                             duration = next(
-                                (
-                                    r.cache_duration
-                                    for r in res
-                                    if hasattr(r, "cache_duration") and r.cache_duration
-                                ),
+                                (r.cache_duration for r in res if hasattr(r, "cache_duration") and r.cache_duration),
                                 None,
                             )
                             if duration:

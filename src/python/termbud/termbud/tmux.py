@@ -28,14 +28,10 @@ def open_url(
         )
         scrollback = result.stdout
     except subprocess.CalledProcessError:
-        subprocess.run(
-            ["tmux", "display-message", "Failed to capture pane"], check=False
-        )
+        subprocess.run(["tmux", "display-message", "Failed to capture pane"], check=False)
         sys.exit(1)
 
-    url_pattern = re.compile(
-        r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+"
-    )
+    url_pattern = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+")
     urls = url_pattern.findall(scrollback)
 
     if not urls:
@@ -44,9 +40,7 @@ def open_url(
 
     ordered_urls = list(dict.fromkeys(reversed(urls)))
 
-    with tempfile.NamedTemporaryFile(
-        mode="w+", delete=False, suffix=".txt"
-    ) as urls_file:
+    with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".txt") as urls_file:
         urls_file.write("\n".join(ordered_urls))
         urls_file_name = urls_file.name
 
