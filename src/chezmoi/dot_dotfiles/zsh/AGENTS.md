@@ -11,4 +11,4 @@
 
 ## Font automation
 
-- **JetBrainsMono NF**: Automatically downloaded via `.chezmoiexternals/` to `{{ .chezmoi.destDir }}/.dotfiles/external/fonts/`.
+- Fonts specified in `.chezmoidata/fonts.toml` are automatically downloaded via `.chezmoiexternals/` to `{{ .chezmoi.destDir }}/.local/share/fonts/NerdFonts/`.
