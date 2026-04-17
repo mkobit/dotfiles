@@ -33,7 +33,7 @@ transcribe = { workspace = true }
 claude-statusline = { workspace = true }
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 target-version = "py314"
 
 [tool.ruff.lint]
@@ -68,9 +68,6 @@ max-complexity = 15
 
 [tool.ruff.lint.isort]
 known-first-party = ["termbud", "jules_cli", "claude_statusline", "transcribe"]
-
-[tool.ty.environment]
-python = ".venv"
 
 [tool.ty.rules]
 all = "error"

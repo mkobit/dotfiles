@@ -24,26 +24,25 @@ result = subprocess.run(
     ["git", "branch", "--show-current"],
     capture_output=True,
     text=True,
+    check=False,
 )
 branch = result.stdout.strip()
 
 if branch != "main":
     sys.exit(0)
 
-print(json.dumps({
-    "decision": "block",
-    "reason": dedent("""\
-        Blocked: committing directly to main will diverge from origin/main.
-        GitHub branch protection prevents pushing to origin/main.
+reason = dedent("""\
+    Blocked: committing directly to main will diverge from origin/main.
+    GitHub branch protection prevents pushing to origin/main.
 
-        Create a feature branch based off origin/main first:
-          git switch -c feat/your-change origin/main
+    Create a feature branch based off origin/main first:
+      git switch -c feat/your-change origin/main
 
-        Then commit and push:
-          git push -u origin feat/your-change
+    Then commit and push:
+      git push -u origin feat/your-change
 
-        Then open a pull request to merge into main.
-    """),
-}))
+    Then open a pull request to merge into main.
+""")
+print(json.dumps({"decision": "block", "reason": reason}))
 
 sys.exit(0)
