@@ -17,7 +17,9 @@ if not command:
     sys.exit(0)
 
 # Match: git push [flags] origin main (including origin main:main, origin HEAD:main, etc.)
-if re.search(r"^\s*git\s+push\b.*\borigin\b.*\bmain\b", command):
+# Use negative lookahead to avoid matching branch names that contain 'main' as a substring
+# e.g. feat/main-thing or feat/claude-main-branch-guards should not be blocked.
+if re.search(r"^\s*git\s+push\b.*\borigin\b.*\bmain(?![-/\w])", command):
     print(json.dumps({
         "decision": "block",
         "reason": dedent(f"""\
