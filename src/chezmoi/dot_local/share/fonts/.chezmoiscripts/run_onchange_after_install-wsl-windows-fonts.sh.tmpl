@@ -1,0 +1,33 @@
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# fonts data hash: {{ .fonts | toToml | sha256sum }}
+
+LINUX_SRC_FOLDER="{{ .chezmoi.destDir }}/.local/share/fonts/NerdFonts"
+WINDOWS_SRC_FOLDER=$(wslpath -w "$LINUX_SRC_FOLDER")
+
+powershell.exe -NoProfile -Command "
+\$srcFolder = '${WINDOWS_SRC_FOLDER}'
+\$destFolder = \"\$env:LOCALAPPDATA\Microsoft\Windows\Fonts\"
+
+if (!(Test-Path \$destFolder)) { New-Item -Path \$destFolder -ItemType Directory }
+
+\$shell = New-Object -ComObject Shell.Application
+\$fontsFolder = \$shell.Namespace(\$destFolder)
+\$srcFiles = Get-ChildItem -Path \$srcFolder -Include '*.ttf', '*.otf' -Recurse
+\$srcNames = \$srcFiles | ForEach-Object { \$_.Name }
+
+# Remove fonts no longer in source
+Get-ChildItem -Path \$destFolder -Include '*.ttf', '*.otf' |
+    Where-Object { \$srcNames -notcontains \$_.Name } |
+    ForEach-Object { Remove-Item \$_.FullName -Force }
+
+# Install/overwrite all source fonts
+\$srcFiles | ForEach-Object {
+    \$destFile = Join-Path \$destFolder \$_.Name
+    if (Test-Path \$destFile) { Remove-Item \$destFile -Force }
+    \$fontsFolder.CopyHere(\$_.FullName, 0x14)
+}
+"
+{{- end }}
