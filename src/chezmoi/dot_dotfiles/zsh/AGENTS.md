@@ -11,4 +11,4 @@
 
 ## Font automation
 
-- **MesloLGS NF**: Automatically downloaded via `.chezmoiexternals/` to `{{ .chezmoi.destDir }}/.dotfiles/external/fonts/`.
+- **JetBrainsMono NF**: Automatically downloaded via `.chezmoiexternals/` to `{{ .chezmoi.destDir }}/.dotfiles/external/fonts/`.
