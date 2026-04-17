@@ -1,0 +1,32 @@
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Font face: {{ .windows_terminal.font_face }}, size: {{ .windows_terminal.font_size }}
+
+WIN_LOCALAPPDATA=$(/mnt/c/Windows/System32/cmd.exe /c "echo %LOCALAPPDATA%" 2>/dev/null | tr -d '\r')
+if [[ -z "${WIN_LOCALAPPDATA}" ]]; then
+    echo "ERROR: Could not determine Windows LOCALAPPDATA path" >&2
+    exit 1
+fi
+
+WINDOWS_SETTINGS_PATH="${WIN_LOCALAPPDATA}\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\settings.json"
+
+powershell.exe -NoProfile -Command "
+\$settingsPath = '${WINDOWS_SETTINGS_PATH}'
+if (!(Test-Path \$settingsPath)) {
+    \$settingsPath = '${WIN_LOCALAPPDATA}\\Packages\\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\\LocalState\\settings.json'
+}
+if (!(Test-Path \$settingsPath)) {
+    Write-Warning 'Windows Terminal settings.json not found, skipping font configuration'
+    exit 0
+}
+\$settings = Get-Content \$settingsPath -Raw | ConvertFrom-Json
+if (!\$settings.profiles.defaults.font) {
+    \$settings.profiles.defaults | Add-Member -NotePropertyName font -NotePropertyValue ([PSCustomObject]@{}) -Force
+}
+\$settings.profiles.defaults.font | Add-Member -NotePropertyName face -NotePropertyValue '{{ .windows_terminal.font_face }}' -Force
+\$settings.profiles.defaults.font | Add-Member -NotePropertyName size -NotePropertyValue {{ .windows_terminal.font_size }} -Force
+\$settings | ConvertTo-Json -Depth 20 | Set-Content \$settingsPath -Encoding UTF8
+"
+{{- end }}
