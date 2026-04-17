@@ -46,8 +46,6 @@ class SegmentCache:
             self._save()
         return None
 
-    def set(
-        self, key: str, results: list[SegmentGenerationResult], expires_at: Instant
-    ) -> None:
+    def set(self, key: str, results: list[SegmentGenerationResult], expires_at: Instant) -> None:
         self._cache[key] = CachedSegment(results=results, expires_at=expires_at)
         self._save()

@@ -60,9 +60,7 @@ def test_list_sessions_cli_override() -> None:
 
         instance.list_sessions.return_value = mock_list()
 
-        result = runner.invoke(
-            cli, ["--api-key", "cli_override_key", "session", "list"]
-        )
+        result = runner.invoke(cli, ["--api-key", "cli_override_key", "session", "list"])
 
         if result.exit_code != 0:
             print(result.output)
@@ -120,9 +118,7 @@ def test_show_session_json() -> None:
 
         instance.list_activities.return_value = mock_activities()
 
-        result = runner.invoke(
-            cli, ["--api-key", "key", "session", "show", "sessions/1", "--json"]
-        )
+        result = runner.invoke(cli, ["--api-key", "key", "session", "show", "sessions/1", "--json"])
 
         assert result.exit_code == 0
         data = json.loads(result.output)

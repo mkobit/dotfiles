@@ -49,9 +49,7 @@ COMPUTE_TYPES = ["float16", "int8_float16", "int8", "default"]
     help="Compute type. Default: default.",
 )
 @click.option("--language", default=None, help="Language code (optional).")
-@click.option(
-    "--template-file", type=click.Path(exists=True), help="Jinja2 template file path."
-)
+@click.option("--template-file", type=click.Path(exists=True), help="Jinja2 template file path.")
 @click.option("--template", help="Jinja2 template string.")
 @click.option(
     "--output-dest",
@@ -77,17 +75,12 @@ def main(
 
     try:
         logger.info(f"Loading model '{model}' on '{device}'...")
-        transcriber = Transcriber(
-            model_size=model, device=device, compute_type=compute_type
-        )
+        transcriber = Transcriber(model_size=model, device=device, compute_type=compute_type)
 
         logger.info(f"Transcribing '{input_path}'...")
         segments_gen, info = transcriber.transcribe(input_path, language=language)
 
-        logger.info(
-            f"Detected language '{info.language}' with probability "
-            f"{info.language_probability:.2f}"
-        )
+        logger.info(f"Detected language '{info.language}' with probability {info.language_probability:.2f}")
 
         segments = []
         with tqdm(total=info.duration, unit="s", desc="Transcribing") as pbar:

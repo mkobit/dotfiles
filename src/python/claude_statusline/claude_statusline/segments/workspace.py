@@ -41,9 +41,7 @@ def format_obsidian_vault(cwd: Path) -> SegmentGenerationResult | None:
                 line=0,
                 index=40,
                 generator="internal.workspace",
-                segment=Segment(
-                    text=f"{BLUE}{get_icon('obsidian')} {vault_name}{RESET}"
-                ),
+                segment=Segment(text=f"{BLUE}{get_icon('obsidian')} {vault_name}{RESET}"),
             )
         current = current.parent
     return None

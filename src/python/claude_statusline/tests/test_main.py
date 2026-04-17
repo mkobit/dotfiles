@@ -15,9 +15,7 @@ class TestMainSmoke(unittest.TestCase):
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
     @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/claude_statusline_test_cache"})
-    def test_runs_with_minimal_payload(
-        self, mock_stdin: MagicMock, mock_print: MagicMock
-    ) -> None:
+    def test_runs_with_minimal_payload(self, mock_stdin: MagicMock, mock_print: MagicMock) -> None:
         mock_stdin.write(
             json.dumps(
                 {
@@ -36,9 +34,7 @@ class TestMainSmoke(unittest.TestCase):
 
         with patch("claude_statusline.main.generate_git_segment") as mock_git:
             mock_git.return_value = [
-                SegmentGenerationResult(
-                    segment=Segment(text="main"), generator="internal.git", line=1
-                )
+                SegmentGenerationResult(segment=Segment(text="main"), generator="internal.git", line=1)
             ]
             main_module.main(args=[], standalone_mode=False)
 
@@ -52,9 +48,7 @@ class TestMainSmoke(unittest.TestCase):
     @patch("builtins.print")
     @patch("sys.stdin", new_callable=io.StringIO)
     @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/claude_statusline_test_cache"})
-    def test_runs_with_empty_payload(
-        self, mock_stdin: MagicMock, mock_print: MagicMock
-    ) -> None:
+    def test_runs_with_empty_payload(self, mock_stdin: MagicMock, mock_print: MagicMock) -> None:
         mock_stdin.write("{}")
         mock_stdin.seek(0)
 

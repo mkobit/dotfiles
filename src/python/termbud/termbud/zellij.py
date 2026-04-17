@@ -19,9 +19,7 @@ def open_url(
 ) -> None:
     """Open a URL from the current Zellij pane's scrollback."""
     # Dump Zellij screen to a temporary file
-    with tempfile.NamedTemporaryFile(
-        mode="w+", delete=False, suffix=".txt"
-    ) as temp_file:
+    with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".txt") as temp_file:
         temp_file_path = temp_file.name
 
     try:
@@ -36,18 +34,14 @@ def open_url(
         os.remove(temp_file_path)
         sys.exit(1)
     except FileNotFoundError:
-        print(
-            "Zellij command not found. Are you running inside Zellij?", file=sys.stderr
-        )
+        print("Zellij command not found. Are you running inside Zellij?", file=sys.stderr)
         os.remove(temp_file_path)
         sys.exit(1)
     finally:
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
 
-    url_pattern = re.compile(
-        r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+"
-    )
+    url_pattern = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+")
     urls = url_pattern.findall(scrollback)
 
     if not urls:
@@ -56,9 +50,7 @@ def open_url(
 
     ordered_urls = list(dict.fromkeys(reversed(urls)))
 
-    with tempfile.NamedTemporaryFile(
-        mode="w+", delete=False, suffix=".txt"
-    ) as urls_file:
+    with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".txt") as urls_file:
         urls_file.write("\n".join(ordered_urls))
         urls_file_name = urls_file.name
 

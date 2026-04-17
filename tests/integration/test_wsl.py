@@ -19,8 +19,6 @@ def test_wslconfig_deployed_to_windows_profile(host):
     )
     assert result.returncode == 0, "Could not get Windows user profile path via cmd.exe"
     win_profile = result.stdout.strip()
-    unix_profile = subprocess.check_output(
-        ["wslpath", "-u", win_profile], text=True
-    ).strip()
+    unix_profile = subprocess.check_output(["wslpath", "-u", win_profile], text=True).strip()
     wslconfig = host.file(os.path.join(unix_profile, ".wslconfig"))
     assert wslconfig.exists

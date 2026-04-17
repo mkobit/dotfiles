@@ -96,9 +96,7 @@ async def _get_ahead_behind(cwd: Path) -> AheadBehindInfo:
     ahead = 0
     behind = 0
 
-    res = await _run_git_cmd(
-        ["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"], cwd
-    )
+    res = await _run_git_cmd(["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"], cwd)
     if res:
         try:
             a, b = map(int, res.split())
@@ -123,9 +121,7 @@ def _build_branch_url(remote: str, branch: str) -> str:
     return f"{remote}/tree/{branch}"
 
 
-async def generate_git_segment(
-    cwd: Path, is_worktree: bool
-) -> Sequence[SegmentGenerationResult]:
+async def generate_git_segment(cwd: Path, is_worktree: bool) -> Sequence[SegmentGenerationResult]:
     if not await _check_is_repo(cwd):
         return []
 
@@ -163,11 +159,7 @@ def format_git_full(info: GitInfo | None) -> SegmentGenerationResult | None:
 
     branch_icon = get_icon("worktree") if info.is_worktree else get_icon("branch")
     branch_url = _build_branch_url(info.remote, info.branch) if info.remote else None
-    branch_display = (
-        f"\033]8;;{branch_url}\033\\{info.branch}\033]8;;\033\\"
-        if branch_url
-        else info.branch
-    )
+    branch_display = f"\033]8;;{branch_url}\033\\{info.branch}\033]8;;\033\\" if branch_url else info.branch
     parts = [f"{MAGENTA}{branch_icon} {branch_display}{RESET}"]
 
     status_parts = [
