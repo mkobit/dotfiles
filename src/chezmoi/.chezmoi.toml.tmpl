@@ -1,0 +1,12 @@
+{{- $isWsl := and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+
+[data.os]
+{{- if $isWsl }}
+    environment = "wsl"
+{{- else if eq .chezmoi.os "linux" }}
+    environment = "linux"
+{{- else if eq .chezmoi.os "darwin" }}
+    environment = "macos"
+{{- else }}
+    environment = "unknown"
+{{- end }}
