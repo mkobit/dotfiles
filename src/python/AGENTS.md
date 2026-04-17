@@ -144,9 +144,9 @@ parts = ["Hello", ", User" if condition else ", Guest"]
 message = "".join(parts)
 ```
 
-### Anti-Pattern: Imperative List Deduplication
+### Anti-pattern: imperative list deduplication
 Avoid using mutable sets and `list.append()` inside loops for deduplication.
-**Anti-Pattern:**
+**Anti-pattern:**
 ```python
 seen = set()
 ordered = []
