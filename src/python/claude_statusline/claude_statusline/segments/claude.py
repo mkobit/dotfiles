@@ -121,9 +121,7 @@ def format_cost(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
         line=2,
         index=20,
         generator="internal.claude",
-        segment=Segment(
-            text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"
-        ),
+        segment=Segment(text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"),
     )
 
 

@@ -100,9 +100,7 @@ async def interactive_session_loop(  # noqa: C901
     while True:
         click.clear()
         try:
-            activities = [
-                activity async for activity in client.list_activities(session_id)
-            ]
+            activities = [activity async for activity in client.list_activities(session_id)]
         except Exception as e:
             click.echo(f"Error fetching activities: {e}")
             click.pause()
@@ -132,9 +130,7 @@ async def interactive_session_loop(  # noqa: C901
                     for step in activity.plan_generated.plan.steps:
                         click.echo(f"  {step.index}. {step.title}")
                 elif activity.session_failed:
-                    click.secho(
-                        f"Session Failed: {activity.session_failed.reason}", fg="red"
-                    )
+                    click.secho(f"Session Failed: {activity.session_failed.reason}", fg="red")
                 else:
                     click.echo("(Other activity)")
 
@@ -233,10 +229,7 @@ def list_sessions(ctx: click.Context, as_json: bool) -> None:
         api_key = get_api_key(jules_ctx.api_key)
         async with JulesClient(api_key=api_key) as client:
             if as_json:
-                sessions = [
-                    s.model_dump(mode="json", by_alias=True)
-                    async for s in client.list_sessions()
-                ]
+                sessions = [s.model_dump(mode="json", by_alias=True) async for s in client.list_sessions()]
                 click.echo(json.dumps(sessions, indent=2))
             else:
                 async for s in client.list_sessions():
@@ -271,17 +264,14 @@ def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
                 session = await client.get_session(session_id)
                 if as_json:
                     activities = [
-                        a.model_dump(mode="json", by_alias=True)
-                        async for a in client.list_activities(session_id)
+                        a.model_dump(mode="json", by_alias=True) async for a in client.list_activities(session_id)
                     ]
                     session_dict = session.model_dump(mode="json", by_alias=True)
                     session_dict["activities"] = activities
                     click.echo(json.dumps(session_dict, indent=2))
                 else:
                     click.echo(f"Title: {session.title}")
-                    click.echo(
-                        f"State: {session.state.value if session.state else 'Unknown'}"
-                    )
+                    click.echo(f"State: {session.state.value if session.state else 'Unknown'}")
                     if session.url:
                         click.echo(f"URL: {session.url}")
                     click.echo(f"Prompt: {session.prompt}")
@@ -297,9 +287,7 @@ def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
 
 @session.command()
 @click.argument("session_id")
-@click.option(
-    "--message", "-m", help="The message to send to the session (use '-' for stdin)."
-)
+@click.option("--message", "-m", help="The message to send to the session (use '-' for stdin).")
 @click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
 @click.pass_context
 def message(
@@ -412,9 +400,7 @@ def approve(ctx: click.Context, session_id: str, as_json: bool) -> None:
 @click.option("--branch", default="main", help="Starting branch (default: main).")
 @click.option("--title", help="Title for the session.")
 @click.option("--auto-pr/--no-auto-pr", default=True, help="Automatically create a PR.")
-@click.option(
-    "--approve/--no-approve", default=True, help="Require manual plan approval."
-)
+@click.option("--approve/--no-approve", default=True, help="Require manual plan approval.")
 @click.option(
     "--interactive/--no-interactive",
     "-i",
@@ -482,11 +468,7 @@ def create(
             try:
                 session = await client.create_session(req)
                 if as_json:
-                    click.echo(
-                        json.dumps(
-                            session.model_dump(mode="json", by_alias=True), indent=2
-                        )
-                    )
+                    click.echo(json.dumps(session.model_dump(mode="json", by_alias=True), indent=2))
                 else:
                     click.echo(f"Session created: {session.name}")
                     click.echo(f"Title: {session.title}")

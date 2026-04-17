@@ -104,9 +104,7 @@ class JulesClient:
         data = await self._get(f"/sessions/{session_id}")
         return Session(**data)
 
-    async def list_activities(
-        self, session_id: str, page_size: int = 30
-    ) -> AsyncGenerator[Activity, None]:
+    async def list_activities(self, session_id: str, page_size: int = 30) -> AsyncGenerator[Activity, None]:
         next_page_token = None
         while True:
             params: dict[str, Any] = {"pageSize": page_size}

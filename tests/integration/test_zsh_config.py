@@ -5,9 +5,7 @@ import pytest
 def test_zsh_interactive_login_loads_cleanly(host):
     """Verify that a zsh interactive login shell sources config without errors."""
     result = host.run("zsh -i -l -c 'exit'")
-    assert result.rc == 0, (
-        f"zsh interactive login shell exited with {result.rc}\nstderr: {result.stderr}"
-    )
+    assert result.rc == 0, f"zsh interactive login shell exited with {result.rc}\nstderr: {result.stderr}"
     stderr_lower = result.stderr.lower()
     known_benign = [
         "not interactive and can't open terminal",

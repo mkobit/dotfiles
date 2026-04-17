@@ -20,9 +20,7 @@ def render_lines(
 
     result_lines = []
     for line_num in sorted(lines_map.keys()):
-        line_segments = sorted(
-            lines_map[line_num], key=lambda s: (s.index, s.generator)
-        )
+        line_segments = sorted(lines_map[line_num], key=lambda s: (s.index, s.generator))
         text = sep.join(s.segment.text for s in line_segments)
         if text:
             result_lines.append(text)

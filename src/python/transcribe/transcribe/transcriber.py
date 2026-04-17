@@ -14,8 +14,6 @@ class Transcriber:
         """Initialize the Transcriber with a specific model size and device."""
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
 
-    def transcribe(
-        self, audio_path: str, language: str | None = None
-    ) -> tuple[Iterable[Any], Any]:
+    def transcribe(self, audio_path: str, language: str | None = None) -> tuple[Iterable[Any], Any]:
         """Transcribe an audio file."""
         return self.model.transcribe(audio_path, language=language, beam_size=5)

@@ -24,9 +24,7 @@ class Formatter:
         }
 
         if template_file:
-            env = Environment(
-                loader=FileSystemLoader(os.path.dirname(os.path.abspath(template_file)))
-            )
+            env = Environment(loader=FileSystemLoader(os.path.dirname(os.path.abspath(template_file))))
             template = env.get_template(os.path.basename(template_file))
             return str(template.render(context))
         if template_string:
