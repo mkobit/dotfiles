@@ -27,6 +27,7 @@ if (!\$settings.profiles.defaults.font) {
 }
 \$settings.profiles.defaults.font | Add-Member -NotePropertyName face -NotePropertyValue '{{ .windows_terminal.font_face }}' -Force
 \$settings.profiles.defaults.font | Add-Member -NotePropertyName size -NotePropertyValue {{ .windows_terminal.font_size }} -Force
-\$settings | ConvertTo-Json -Depth 20 | Set-Content \$settingsPath -Encoding UTF8
+\$json = \$settings | ConvertTo-Json -Depth 20
+[System.IO.File]::WriteAllText(\$settingsPath, \$json, [System.Text.UTF8Encoding]::new(\$false))
 "
 {{- end }}
