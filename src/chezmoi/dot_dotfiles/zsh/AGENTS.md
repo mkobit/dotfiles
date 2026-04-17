@@ -11,4 +11,4 @@
 
 ## Font automation
 
-- Fonts specified in `.chezmoidata/fonts.toml` are automatically downloaded via `.chezmoiexternals/` to `{{ .chezmoi.destDir }}/.local/share/fonts/NerdFonts/`.
+- Fonts specified in `.chezmoidata/fonts.toml` are automatically downloaded via `.chezmoiexternals/` to `{{ .chezmoi.destDir }}/.local/share/fonts/`.
