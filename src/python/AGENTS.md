@@ -65,6 +65,9 @@ Prefer functional, immutable, and non-imperative code.
 Avoid mutability and reassignment wherever possible.
 Code should be declarative and heavily lean on Python's built-in functional capabilities.
 
+### Test asyncio
+When writing async tests, prefer using `pytest-asyncio` and decorating your test functions with `@pytest.mark.asyncio` rather than using `unittest.IsolatedAsyncioTestCase`.
+
 ### Module separation
 Do not put types or models in central `types.py` or `models.py` files.
 Instead, namespace types and models into their corresponding canonical domain locations.
@@ -139,4 +142,20 @@ message = f"Hello, {name}"
 
 parts = ["Hello", ", User" if condition else ", Guest"]
 message = "".join(parts)
+```
+
+### Anti-Pattern: Imperative List Deduplication
+Avoid using mutable sets and `list.append()` inside loops for deduplication.
+**Anti-Pattern:**
+```python
+seen = set()
+ordered = []
+for item in reversed(items):
+    if item not in seen:
+        seen.add(item)
+        ordered.append(item)
+```
+**Preferred:**
+```python
+ordered = list(dict.fromkeys(reversed(items)))
 ```

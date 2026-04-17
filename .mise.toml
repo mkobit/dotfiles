@@ -1,2 +1,6 @@
 [tools]
 uv = "0.11.3"
+
+[settings]
+locked = true
+http_retries = 5

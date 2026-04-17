@@ -6,6 +6,7 @@ dependencies = [
     "termbud",
     "jules-cli",
     "transcribe",
+    "termtext",
     "claude-statusline",
 ]
 
@@ -24,12 +25,14 @@ members = [
     "src/python/jules_cli",
     "src/python/claude_statusline",
     "src/python/transcribe",
+    "src/python/termtext",
 ]
 
 [tool.uv.sources]
 termbud = { workspace = true }
 jules-cli = { workspace = true }
 transcribe = { workspace = true }
+termtext = { workspace = true }
 claude-statusline = { workspace = true }
 
 [tool.ruff]
@@ -67,7 +70,7 @@ ignore = [
 max-complexity = 15
 
 [tool.ruff.lint.isort]
-known-first-party = ["termbud", "jules_cli", "claude_statusline", "transcribe"]
+known-first-party = ["termbud", "jules_cli", "claude_statusline", "transcribe", "termtext"]
 
 [tool.ty.environment]
 python = ".venv"
