@@ -43,6 +43,10 @@ package_manager = "bun"
   version = "1.3.12"
   installation = "mise"
 
+  [mise.global_tools.node]
+  version = "22"
+  installation = "mise"
+
   [mise.global_tools.gemini-cli]
   version = "0.37.1"
   installation = "mise"
