@@ -42,5 +42,5 @@ package_manager = "bun"
   installation = "mise"
 
   [mise.global_tools."npm:@google/gemini-cli"]
-  version = "0.35.3"
+  version = "0.36.0"
   installation = "mise"
