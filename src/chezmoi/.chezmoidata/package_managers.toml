@@ -1,9 +1,9 @@
 
 [bun]
-min_release_age_days = 14
+min_release_age_days = 7
 
 [uv]
-min_release_age_days = 14
+min_release_age_days = 7
 
 [pnpm]
-min_release_age_days = 14
+min_release_age_days = 7

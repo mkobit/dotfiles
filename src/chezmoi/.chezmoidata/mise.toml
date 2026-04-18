@@ -12,6 +12,7 @@ linux_arm64 = "b0cee25b0405113ed6fe2a54cf21d49720ee571d3d5b4a9c695721cd123d24f8"
 # Configuration settings: https://mise.jdx.dev/configuration/settings.html
 cache_prune_age = "60 days"
 disable_hints = ["self_update"]
+install_before = "7d"
 [mise.settings.npm]
 package_manager = "bun"
 
@@ -41,6 +42,6 @@ package_manager = "bun"
   version = "1.3.12"
   installation = "mise"
 
-  [mise.global_tools."npm:@google/gemini-cli"]
-  version = "0.35.3"
+  [mise.global_tools.gemini-cli]
+  version = "0.38.2"
   installation = "mise"
