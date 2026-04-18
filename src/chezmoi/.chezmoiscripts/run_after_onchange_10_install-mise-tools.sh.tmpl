@@ -21,7 +21,7 @@ if [[ ! -x "$MISE" ]]; then
 fi
 
 log_info "Running 'mise install' for global tools..."
-if "$MISE" install; then
+if "$MISE" install -C "{{ .chezmoi.destDir }}"; then
     log_success "Mise global tools installation complete."
 else
     log_error "Failed to install mise global tools."
@@ -30,7 +30,7 @@ fi
 
 
 log_info "Pruning unused mise tools..."
-if "$MISE" prune -y; then
+if "$MISE" prune -y -C "{{ .chezmoi.destDir }}"; then
     log_success "Mise prune complete."
 else
     log_warn "Failed to prune mise tools."
