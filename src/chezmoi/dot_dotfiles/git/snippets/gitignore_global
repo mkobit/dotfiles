@@ -7,7 +7,7 @@
 /bazel-*
 
 # AI context files
+CLAUDE.local.md
 claude.local.json
-claude.md
+GEMINI.local.md
 gemini.local.json
-gemini.md
