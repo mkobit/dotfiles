@@ -32,7 +32,7 @@ package_manager = "bun"
   installation = "mise"
 
   [mise.global_tools.rust]
-  version = "1.94.0"
+  version = "1.94.1"
   installation = "mise"
 
   [mise.global_tools.uv]
