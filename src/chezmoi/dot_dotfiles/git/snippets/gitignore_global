@@ -5,3 +5,9 @@
 *.swp
 *~
 /bazel-*
+
+# AI context files
+claude.local.json
+claude.md
+gemini.local.json
+gemini.md
