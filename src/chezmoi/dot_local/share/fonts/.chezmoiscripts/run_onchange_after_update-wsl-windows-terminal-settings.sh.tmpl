@@ -27,6 +27,33 @@ if (!\$settings.profiles.defaults.font) {
 }
 \$settings.profiles.defaults.font | Add-Member -NotePropertyName face -NotePropertyValue '{{ .windows_terminal.font_face }}' -Force
 \$settings.profiles.defaults.font | Add-Member -NotePropertyName size -NotePropertyValue {{ .windows_terminal.font_size }} -Force
+
+# Fixes Windows keys annoyances: passes Ctrl+C/V to Neovim and adds Mac-like Alt text navigation.
+if (!\$settings.actions) {
+    \$settings | Add-Member -NotePropertyName actions -NotePropertyValue @() -Force
+}
+
+\$newActions = @(
+    [PSCustomObject]@{ command = 'unbound'; keys = 'ctrl+c' },
+    [PSCustomObject]@{ command = 'unbound'; keys = 'ctrl+v' },
+    [PSCustomObject]@{ command = [PSCustomObject]@{ action = 'sendInput'; input = \"\u0001\" }; keys = 'alt+left' },
+    [PSCustomObject]@{ command = [PSCustomObject]@{ action = 'sendInput'; input = \"\u0005\" }; keys = 'alt+right' },
+    [PSCustomObject]@{ command = [PSCustomObject]@{ action = 'sendInput'; input = \"\u0015\" }; keys = 'alt+backspace' }
+)
+
+foreach (\$newAction in \$newActions) {
+    \$exists = \$false
+    foreach (\$action in \$settings.actions) {
+        if (\$action.keys -eq \$newAction.keys) {
+            \$exists = \$true
+            break
+        }
+    }
+    if (!\$exists) {
+        \$settings.actions += \$newAction
+    }
+}
+
 \$json = \$settings | ConvertTo-Json -Depth 20
 [System.IO.File]::WriteAllText(\$settingsPath, \$json, [System.Text.UTF8Encoding]::new(\$false))
 "
