@@ -363,3 +363,9 @@ scrollback_lines_to_serialize 10000
 // Default: false
 //
 // disable_session_metadata true
+
+// Enable or disable support for the Kitty keyboard protocol.
+// This allows for more detailed key reporting from the terminal.
+// Defaults to true if the terminal supports it.
+// Disabled because it causes issues with Shift+Enter in WSL for Claude Code and Gemini
+support_kitty_keyboard_protocol false
