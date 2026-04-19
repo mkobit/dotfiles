@@ -24,3 +24,6 @@ files = "allow"
 [claude_code.settings.env]
 DISABLE_AUTOUPDATER = "true"
 DISABLE_TELEMETRY = "true"
+
+[claude_code.global_settings]
+editorMode = "vim"
