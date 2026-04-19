@@ -7,7 +7,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-import click
+import typer
 
 from jules_cli.client import JulesClient
 from jules_cli.config import load_config
@@ -19,13 +19,10 @@ from jules_cli.models import (
     SourceContext,
 )
 
-
-@click.group()
-@click.option("--debug/--no-debug", default=False, help="Enable debug logging.")
-@click.option("--api-key", help="Jules API key (overrides config).")
-@click.pass_context
-def cli(ctx: click.Context, debug: bool, api_key: str | None) -> None:
-    """Jules CLI tool for interacting with the Jules API.
+cli = typer.Typer(
+    add_completion=False,
+    name="jules",
+    help="""Jules CLI tool for interacting with the Jules API.
 
     This tool allows you to create and manage coding sessions with the Jules agent.
     For more information about the Jules API, visit:
@@ -39,7 +36,19 @@ def cli(ctx: click.Context, debug: bool, api_key: str | None) -> None:
     \b
         # Path to the file containing the API key
         api_key_path = "~/.config/jules/api_key"
-    """
+    """,
+)
+
+session_app = typer.Typer(add_completion=False, help="Manage sessions.")
+cli.add_typer(session_app, name="session")
+
+
+@cli.callback()
+def main_callback(
+    ctx: typer.Context,
+    debug: bool = typer.Option(False, "--debug", help="Enable debug logging."),
+    api_key: str | None = typer.Option(None, "--api-key", help="Jules API key (overrides config)."),
+) -> None:
     ctx.obj = JulesContext(api_key=api_key)
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
 
@@ -68,14 +77,14 @@ def get_api_key(api_key_override: str | None = None) -> str:
     if legacy_file.exists():
         return legacy_file.read_text().strip()
 
-    click.echo(f"Error: API key not found in config or {legacy_file}.", err=True)
+    typer.echo(f"Error: API key not found in config or {legacy_file}.", err=True)
     sys.exit(1)
 
 
 def run_fzf(items: list[str]) -> str | None:
     """Runs fzf with the given items and returns the selected item."""
     if not shutil.which("fzf"):
-        click.echo("Error: fzf is not installed.", err=True)
+        typer.echo("Error: fzf is not installed.", err=True)
         sys.exit(1)
 
     input_str = "\n".join(items)
@@ -98,58 +107,58 @@ async def interactive_session_loop(  # noqa: C901
 ) -> None:
     """Interactive loop for a specific session."""
     while True:
-        click.clear()
+        typer.clear()
         try:
             activities = [activity async for activity in client.list_activities(session_id)]
         except Exception as e:
-            click.echo(f"Error fetching activities: {e}")
-            click.pause()
+            typer.echo(f"Error fetching activities: {e}")
+            typer.pause()
             break
 
         # Display activities
-        click.echo(f"Session: {session_id}")
-        click.echo("-" * 40)
+        typer.echo(f"Session: {session_id}")
+        typer.echo("-" * 40)
 
         for activity in activities:
             if activity.originator == "user":
-                click.secho("User: ", fg="green", bold=True, nl=False)
+                typer.secho("User: ", fg="green", bold=True, nl=False)
                 if activity.user_messaged:
-                    click.echo(f"{activity.user_messaged.user_message}")
+                    typer.echo(f"{activity.user_messaged.user_message}")
                 else:
-                    click.echo(f"(Action: {activity.name})")
+                    typer.echo(f"(Action: {activity.name})")
             else:
-                click.secho("Agent: ", fg="blue", bold=True, nl=False)
+                typer.secho("Agent: ", fg="blue", bold=True, nl=False)
                 if activity.agent_messaged:
-                    click.echo(f"{activity.agent_messaged.agent_message}")
+                    typer.echo(f"{activity.agent_messaged.agent_message}")
                 elif activity.progress_updated:
-                    click.echo(f"{activity.progress_updated.title}")
+                    typer.echo(f"{activity.progress_updated.title}")
                     if activity.progress_updated.description:
-                        click.echo(f"  {activity.progress_updated.description}")
+                        typer.echo(f"  {activity.progress_updated.description}")
                 elif activity.plan_generated:
-                    click.echo("Generated Plan:")
+                    typer.echo("Generated Plan:")
                     for step in activity.plan_generated.plan.steps:
-                        click.echo(f"  {step.index}. {step.title}")
+                        typer.echo(f"  {step.index}. {step.title}")
                 elif activity.session_failed:
-                    click.secho(f"Session Failed: {activity.session_failed.reason}", fg="red")
+                    typer.secho(f"Session Failed: {activity.session_failed.reason}", fg="red")
                 else:
-                    click.echo("(Other activity)")
+                    typer.echo("(Other activity)")
 
-            click.echo("")
+            typer.echo("")
 
         # Options
-        click.echo("-" * 40)
-        click.echo("[r]eply, [a]pprove plan, [R]efresh, [b]ack")
+        typer.echo("-" * 40)
+        typer.echo("[r]eply, [a]pprove plan, [R]efresh, [b]ack")
 
-        char = click.getchar()
+        char = typer.getchar()
         if char == "b":
             break
         if char == "R":
             continue
         if char == "r":
-            msg = click.prompt("Message")
+            msg = typer.prompt("Message")
             await client.send_message(session_id, msg)
         elif char == "a":
-            confirm = click.confirm("Approve latest plan?")
+            confirm = typer.confirm("Approve latest plan?")
             if confirm:
                 await client.approve_plan(session_id)
 
@@ -159,17 +168,17 @@ async def main_menu(api_key_override: str | None = None) -> None:
     try:
         async with JulesClient(api_key=api_key) as client:
             while True:
-                click.clear()
-                click.echo("Fetching sessions...")
+                typer.clear()
+                typer.echo("Fetching sessions...")
 
                 try:
                     sessions = [session async for session in client.list_sessions()]
                 except Exception as e:
-                    click.echo(f"Error fetching sessions: {e}")
+                    typer.echo(f"Error fetching sessions: {e}")
                     sys.exit(1)
 
                 if not sessions:
-                    click.echo("No sessions found.")
+                    typer.echo("No sessions found.")
                     return
 
                 # Format for fzf
@@ -189,18 +198,12 @@ async def main_menu(api_key_override: str | None = None) -> None:
                     await interactive_session_loop(client, session_id)
 
     except ValueError as e:
-        click.echo(str(e), err=True)
+        typer.echo(str(e), err=True)
         sys.exit(1)
 
 
-@cli.group()
-def session() -> None:
-    """Manage sessions."""
-
-
-@session.command()
-@click.pass_context
-def interact(ctx: click.Context) -> None:
+@session_app.command()
+def interact(ctx: typer.Context) -> None:
     """Interactive mode to view and manage sessions.
 
     Launches an interactive TUI (using fzf) to browse sessions and interact with them.
@@ -212,10 +215,10 @@ def interact(ctx: click.Context) -> None:
     asyncio.run(main_menu(jules_ctx.api_key))
 
 
-@session.command(name="list")
-@click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
-@click.pass_context
-def list_sessions(ctx: click.Context, as_json: bool) -> None:
+@session_app.command(name="list")
+def list_sessions(
+    ctx: typer.Context, as_json: bool = typer.Option(False, "--json", help="Output in JSON format.")
+) -> None:
     """List recent sessions.
 
     Displays a list of recent Jules sessions with their IDs, titles, states, and URLs.
@@ -230,19 +233,20 @@ def list_sessions(ctx: click.Context, as_json: bool) -> None:
         async with JulesClient(api_key=api_key) as client:
             if as_json:
                 sessions = [s.model_dump(mode="json", by_alias=True) async for s in client.list_sessions()]
-                click.echo(json.dumps(sessions, indent=2))
+                typer.echo(json.dumps(sessions, indent=2))
             else:
                 async for s in client.list_sessions():
-                    click.echo(f"{s.id}: {s.title}")
+                    typer.echo(f"{s.id}: {s.title}")
 
     asyncio.run(_list())
 
 
-@session.command()
-@click.argument("session_id")
-@click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
-@click.pass_context
-def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
+@session_app.command()
+def show(
+    ctx: typer.Context,
+    session_id: str = typer.Argument(..., help="The unique identifier of the session (e.g., 'sessions/12345')."),
+    as_json: bool = typer.Option(False, "--json", help="Output in JSON format."),
+) -> None:
     """Show details for a session.
 
     Displays detailed information about a specific session, including its state,
@@ -268,33 +272,31 @@ def show(ctx: click.Context, session_id: str, as_json: bool) -> None:
                     ]
                     session_dict = session.model_dump(mode="json", by_alias=True)
                     session_dict["activities"] = activities
-                    click.echo(json.dumps(session_dict, indent=2))
+                    typer.echo(json.dumps(session_dict, indent=2))
                 else:
-                    click.echo(f"Title: {session.title}")
-                    click.echo(f"State: {session.state.value if session.state else 'Unknown'}")
+                    typer.echo(f"Title: {session.title}")
+                    typer.echo(f"State: {session.state.value if session.state else 'Unknown'}")
                     if session.url:
-                        click.echo(f"URL: {session.url}")
-                    click.echo(f"Prompt: {session.prompt}")
-                    click.echo(f"Source: {session.source_context.source}")
-                    click.echo("-" * 20)
+                        typer.echo(f"URL: {session.url}")
+                    typer.echo(f"Prompt: {session.prompt}")
+                    typer.echo(f"Source: {session.source_context.source}")
+                    typer.echo("-" * 20)
                     async for act in client.list_activities(session_id):
-                        click.echo(f"{act.originator}: {act.name}")
+                        typer.echo(f"{act.originator}: {act.name}")
             except Exception as e:
-                click.echo(f"Error: {e}", err=True)
+                typer.echo(f"Error: {e}", err=True)
 
     asyncio.run(_show())
 
 
-@session.command()
-@click.argument("session_id")
-@click.option("--message", "-m", help="The message to send to the session (use '-' for stdin).")
-@click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
-@click.pass_context
+@session_app.command()
 def message(
-    ctx: click.Context,
-    session_id: str,
-    message: str | None,
-    as_json: bool,
+    ctx: typer.Context,
+    session_id: str = typer.Argument(..., help="The unique identifier of the session (e.g., 'sessions/12345')."),
+    message: str | None = typer.Option(
+        None, "--message", "-m", help="The message to send to the session (use '-' for stdin)."
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Output in JSON format."),
 ) -> None:
     """Send a follow-up message to an existing session.
 
@@ -334,7 +336,7 @@ def message(
             # Fallback if user explicitly passed `-` but it's a TTY (wait for EOF)
             content = sys.stdin.read()
         else:
-            click.echo(
+            typer.echo(
                 "Error: No message provided. Use --message or pipe to stdin.",
                 err=True,
             )
@@ -342,28 +344,29 @@ def message(
 
         content = content.strip()
         if not content:
-            click.echo("Error: Message is empty.", err=True)
+            typer.echo("Error: Message is empty.", err=True)
             sys.exit(1)
 
         async with JulesClient(api_key=api_key) as client:
             try:
                 result = await client.send_message(session_id, content)
                 if as_json:
-                    click.echo(json.dumps(result, indent=2))
+                    typer.echo(json.dumps(result, indent=2))
                 else:
-                    click.echo(f"Message sent to session {session_id}")
+                    typer.echo(f"Message sent to session {session_id}")
             except Exception as e:
-                click.echo(f"Error sending message: {e}", err=True)
+                typer.echo(f"Error sending message: {e}", err=True)
                 sys.exit(1)
 
     asyncio.run(_message())
 
 
-@session.command()
-@click.argument("session_id")
-@click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
-@click.pass_context
-def approve(ctx: click.Context, session_id: str, as_json: bool) -> None:
+@session_app.command()
+def approve(
+    ctx: typer.Context,
+    session_id: str = typer.Argument(..., help="The unique identifier of the session (e.g., 'sessions/12345')."),
+    as_json: bool = typer.Option(False, "--json", help="Output in JSON format."),
+) -> None:
     """Approve a plan for a session.
 
     Approves the plan generated by the agent for the specified session,
@@ -384,41 +387,29 @@ def approve(ctx: click.Context, session_id: str, as_json: bool) -> None:
             try:
                 result = await client.approve_plan(session_id)
                 if as_json:
-                    click.echo(json.dumps(result, indent=2))
+                    typer.echo(json.dumps(result, indent=2))
                 else:
-                    click.echo(f"Plan approved for session {session_id}")
+                    typer.echo(f"Plan approved for session {session_id}")
             except Exception as e:
-                click.echo(f"Error approving plan: {e}", err=True)
+                typer.echo(f"Error approving plan: {e}", err=True)
                 sys.exit(1)
 
     asyncio.run(_approve())
 
 
-@session.command()
-@click.option("--prompt", required=True, help="The initial prompt for the session.")
-@click.option("--source", required=True, help="The source (e.g., owner/repo).")
-@click.option("--branch", default="main", help="Starting branch (default: main).")
-@click.option("--title", help="Title for the session.")
-@click.option("--auto-pr/--no-auto-pr", default=True, help="Automatically create a PR.")
-@click.option("--approve/--no-approve", default=True, help="Require manual plan approval.")
-@click.option(
-    "--interactive/--no-interactive",
-    "-i",
-    default=False,
-    help="Enter interactive mode after creating the session.",
-)
-@click.option("--json", "as_json", is_flag=True, help="Output in JSON format.")
-@click.pass_context
+@session_app.command()
 def create(
-    ctx: click.Context,
-    prompt: str,
-    source: str,
-    branch: str,
-    title: str | None,
-    auto_pr: bool,
-    approve: bool,
-    interactive: bool,
-    as_json: bool,
+    ctx: typer.Context,
+    prompt: str = typer.Option(..., "--prompt", help="The initial prompt for the session."),
+    source: str = typer.Option(..., "--source", help="The source (e.g., owner/repo)."),
+    branch: str = typer.Option("main", "--branch", help="Starting branch (default: main)."),
+    title: str | None = typer.Option(None, "--title", help="Title for the session."),
+    auto_pr: bool = typer.Option(True, "--auto-pr/--no-auto-pr", help="Automatically create a PR."),
+    approve: bool = typer.Option(True, "--approve/--no-approve", help="Require manual plan approval."),
+    interactive: bool = typer.Option(
+        False, "--interactive/--no-interactive", "-i", help="Enter interactive mode after creating the session."
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Output in JSON format."),
 ) -> None:
     """Create a new session.
 
@@ -468,18 +459,18 @@ def create(
             try:
                 session = await client.create_session(req)
                 if as_json:
-                    click.echo(json.dumps(session.model_dump(mode="json", by_alias=True), indent=2))
+                    typer.echo(json.dumps(session.model_dump(mode="json", by_alias=True), indent=2))
                 else:
-                    click.echo(f"Session created: {session.name}")
-                    click.echo(f"Title: {session.title}")
-                    click.echo(f"ID: {session.id}")
-                    click.echo(f"URL: https://jules.google.com/session/{session.id}")
+                    typer.echo(f"Session created: {session.name}")
+                    typer.echo(f"Title: {session.title}")
+                    typer.echo(f"ID: {session.id}")
+                    typer.echo(f"URL: https://jules.google.com/session/{session.id}")
 
                 if interactive:
                     await interactive_session_loop(client, session.id)
 
             except Exception as e:
-                click.echo(f"Error creating session: {e}", err=True)
+                typer.echo(f"Error creating session: {e}", err=True)
                 sys.exit(1)
 
     asyncio.run(_create())

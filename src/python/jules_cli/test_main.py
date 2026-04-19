@@ -5,9 +5,9 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
-import click
 import pytest
-from click.testing import CliRunner
+import typer
+from typer.testing import CliRunner
 
 from jules_cli.config import JulesConfig
 from jules_cli.main import cli, get_api_key
@@ -214,16 +214,14 @@ def test_integration_env_var_ignored(tmp_path: Path) -> None:
 def test_cli_context_type() -> None:
     runner = CliRunner()
 
-    @click.command()
-    @click.pass_context
-    def debug_cmd(ctx: click.Context) -> None:
+    @cli.command(name="debug_ctx")
+    def debug_cmd(ctx: typer.Context) -> None:
         assert isinstance(ctx.obj, JulesContext)
-        click.echo(f"Key: {ctx.obj.api_key}")
+        typer.echo(f"Key: {ctx.obj.api_key}")
 
     # Temporarily attach command to cli for testing
     # We shouldn't modify the global cli object ideally, but for testing it's okay
     # provided we are careful. Click groups are mutable.
-    cli.add_command(debug_cmd, name="debug_ctx")
 
     result = runner.invoke(cli, ["--api-key", "my_key", "debug_ctx"])
     assert result.exit_code == 0
