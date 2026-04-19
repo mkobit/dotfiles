@@ -4,12 +4,8 @@
 {{ if and (eq $prompt "oh-my-zsh") (eq $installation "external-sources") }}
 #!/usr/bin/env zsh
 
-{{ if .powerlevel10k.enabled }}
-ZSH_THEME="powerlevel10k/powerlevel10k"
-{{ else }}
 # Default theme - simple and fast
 ZSH_THEME="robbyrussell"
-{{ end }}
 
 plugins=(
     {{- range .plugins }}
