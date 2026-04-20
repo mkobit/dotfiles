@@ -185,7 +185,7 @@ class PlanApproved(BaseModel):
 class ProgressUpdated(BaseModel):
     """Activity payload for a progress update."""
 
-    title: str | None = None
+    title: str
     description: str | None = None
     model_config = frozen_config
 
@@ -216,8 +216,8 @@ class GitPatch(BaseModel):
     """A patch in Git format."""
 
     unidiff_patch: str
-    base_commit_id: str | None = None
-    suggested_commit_message: str | None = None
+    base_commit_id: str
+    suggested_commit_message: str
     model_config = frozen_config
 
 
