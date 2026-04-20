@@ -62,3 +62,6 @@ Work-imposed locks in the generated config always win — personal cannot overri
 
 ## Troubleshooting Package Installations
 When resolving package installation failures (e.g. `npm`, `pnpm`, `bun`, `uv`), check if the failure is due to the minimum release age configuration (e.g. `min-release-age`, `minimumReleaseAge`, `exclude-newer`). If so, the package might be too new and you should use an older version.
+
+## AI Shell Limitations
+Do not execute `mise lock` in Jules, as it will permanently and irrevocably destroy the shell session.

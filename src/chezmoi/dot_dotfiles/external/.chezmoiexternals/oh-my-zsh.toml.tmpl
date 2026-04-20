@@ -10,15 +10,6 @@
     "stripComponents" 1
 -}}
 {{- $_ := set $config "oh-my-zsh" $ohMyZsh -}}
-{{- if .powerlevel10k.enabled -}}
-  {{- $p10k := dict
-    "type" "archive"
-    "url" (printf "https://github.com/romkatv/powerlevel10k/archive/refs/tags/%s.tar.gz" .powerlevel10k.version)
-    "exact" true
-    "stripComponents" 1
--}}
-  {{- $_ := set $config "oh-my-zsh/custom/themes/powerlevel10k" $p10k -}}
-{{- end -}}
 {{- toToml $config -}}
 {{- end -}}
 {{- end -}}

@@ -1,9 +1,9 @@
 [gh]
-version = "2.89.0"
+version = "2.90.0"
 installation = "external-sources"
 
 [gh.checksums]
-darwin_arm64 = "2423d02ec0a2094898c378703a1b28a5846c08700f87461363857cb8cb3fda94"
-darwin_amd64 = "862e21cac6a71f81e7cd6e5127e3cd344f8537441ad2db94cd208319dd17b6e9"
-linux_amd64 = "d0422caade520530e76c1c558da47daebaa8e1203d6b7ff10ad7d6faba3490d8"
-linux_arm64 = "9e64a623dfc242990aa5d9b3f507111149c4282f66b68eaad1dc79eeb13b9ce5"
+darwin_arm64 = "82a6acdc3f445dc316b70e1bc15b9b7c4b4e26fd30b04de461a7829ad6c6e97f"
+darwin_amd64 = "e44d23dd5f0f8534d7a9989177f2c60ac8ffbcdfc6a0a6e5d1f23c4a3b83a9e0"
+linux_amd64 = "b2aef7b23ec6899bf27f37a32c57a7935d0a178568ac33dc9bb03842f724195a"
+linux_arm64 = "1139e1ad912fcddb5ef4b957530184c2c30d9937ff65ff4e641fbf6ca5f28c7c"

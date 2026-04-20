@@ -507,16 +507,16 @@ version = "0.0.0"
 source = { editable = "src/python/jules_cli" }
 dependencies = [
     { name = "aiohttp" },
-    { name = "click" },
     { name = "pydantic" },
+    { name = "typer" },
     { name = "whenever" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "aiohttp", specifier = ">=3" },
-    { name = "click", specifier = ">=8" },
     { name = "pydantic", specifier = ">=2" },
+    { name = "typer", specifier = ">=0.24.1" },
     { name = "whenever", specifier = ">=0.6" },
 ]
 
