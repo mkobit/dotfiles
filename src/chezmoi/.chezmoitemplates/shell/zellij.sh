@@ -2,11 +2,11 @@
 {{- if $zellij.enabled }}
 # Zellij aliases and fzf completion
 alias zj="zellij"
-alias za="zellij attach"
+alias zja="zellij attach"
 
 # Custom fzf completion for zellij sessions triggered by **<TAB>
 # fzf's bash/zsh completion scripts automatically detect and use these functions
-# when the user types 'zellij attach **<TAB>' or 'za **<TAB>'
+# when the user types 'zellij attach **<TAB>' or 'zja **<TAB>'
 
 _fzf_complete_zellij() {
     local args
@@ -23,7 +23,7 @@ _fzf_complete_zellij() {
     fi
 }
 
-_fzf_complete_za() {
+_fzf_complete_zja() {
     _fzf_complete --reverse --prompt="Zellij Session> " -- "$@" < <(
         command zellij list-sessions -n 2>/dev/null | sed -E 's/\x1B\[[0-9;]*[a-zA-Z]//g' | awk '{print $1}'
     )
