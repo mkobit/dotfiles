@@ -55,7 +55,12 @@ class AutomationMode(StrEnum):
     """Automation modes for a session."""
 
     @staticmethod
-    def _generate_next_value_(name: str, start: int, count: int, last_values: list[str]) -> str:  # type: ignore[override]
+    def _generate_next_value_(
+        name: str,
+        start: int,
+        count: int,
+        last_values: list[str],
+    ) -> str:  # type: ignore[override]
         return name
 
     AUTOMATION_MODE_UNSPECIFIED = auto()
@@ -93,7 +98,12 @@ class SessionState(StrEnum):
     """State of a session."""
 
     @staticmethod
-    def _generate_next_value_(name: str, start: int, count: int, last_values: list[str]) -> str:  # type: ignore[override]
+    def _generate_next_value_(
+        name: str,
+        start: int,
+        count: int,
+        last_values: list[str],
+    ) -> str:  # type: ignore[override]
         return name
 
     STATE_UNSPECIFIED = auto()
