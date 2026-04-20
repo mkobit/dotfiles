@@ -1,5 +1,7 @@
 import logging
 import sys
+from dataclasses import dataclass
+from typing import Any
 
 import click
 from tqdm import tqdm
@@ -26,6 +28,18 @@ MODEL_SIZES = [
 ]
 DEVICES = ["cpu", "cuda", "auto"]
 COMPUTE_TYPES = ["float16", "int8_float16", "int8", "default"]
+
+
+@dataclass(frozen=True)
+class TranscribeConfig:
+    input_path: str
+    model: str
+    device: str
+    compute_type: str
+    output_dest: str
+    language: str | None = None
+    template_file: str | None = None
+    template: str | None = None
 
 
 @click.command()
@@ -56,29 +70,21 @@ COMPUTE_TYPES = ["float16", "int8_float16", "int8", "default"]
     default="-",
     help="Output destination (file path or '-' for stdout). Default: stdout.",
 )
-def main(
-    input_path: str,
-    model: str,
-    device: str,
-    compute_type: str,
-    language: str | None,
-    template_file: str | None,
-    template: str | None,
-    output_dest: str,
-) -> None:
+def main(**kwargs: Any) -> None:
     """
     Transcribe audio files using faster-whisper and Jinja2 templates.
     """
+    config = TranscribeConfig(**kwargs)
 
-    if template_file and template:
+    if config.template_file and config.template:
         raise click.UsageError("Cannot provide both --template-file and --template.")
 
     try:
-        logger.info(f"Loading model '{model}' on '{device}'...")
-        transcriber = Transcriber(model_size=model, device=device, compute_type=compute_type)
+        logger.info(f"Loading model '{config.model}' on '{config.device}'...")
+        transcriber = Transcriber(model_size=config.model, device=config.device, compute_type=config.compute_type)
 
-        logger.info(f"Transcribing '{input_path}'...")
-        segments_gen, info = transcriber.transcribe(input_path, language=language)
+        logger.info(f"Transcribing '{config.input_path}'...")
+        segments_gen, info = transcriber.transcribe(config.input_path, language=config.language)
 
         logger.info(f"Detected language '{info.language}' with probability {info.language_probability:.2f}")
 
@@ -91,14 +97,14 @@ def main(
                     pbar.update(segment.end - current)
 
         logger.info("Formatting output...")
-        result = Formatter.format_segments(segments, info, template_file, template)
+        result = Formatter.format_segments(segments, info, config.template_file, config.template)
 
-        if output_dest == "-":
+        if config.output_dest == "-":
             click.echo(result)
         else:
-            with open(output_dest, "w") as f:
+            with open(config.output_dest, "w") as f:
                 f.write(result)
-            logger.info(f"Output written to {output_dest}")
+            logger.info(f"Output written to {config.output_dest}")
 
     except Exception as e:
         logger.error(f"Error: {e}")
