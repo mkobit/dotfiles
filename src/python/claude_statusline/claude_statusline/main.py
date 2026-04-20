@@ -6,8 +6,9 @@ import shlex
 import sys
 from collections.abc import Sequence
 from pathlib import Path
+from typing import Annotated
 
-import click
+import typer
 from pydantic import TypeAdapter, ValidationError
 from whenever import Instant
 
@@ -25,6 +26,8 @@ from claude_statusline.segments.workspace import format_directory, format_obsidi
 
 logging.basicConfig(level=logging.WARNING, stream=sys.stderr, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
+
+cli = typer.Typer(add_completion=False)
 
 
 async def run_external_generator(
@@ -72,18 +75,17 @@ async def run_external_generator(
     return []
 
 
-@click.command()
-@click.option(
-    "--generator",
-    multiple=True,
-    help="External command or script to generate segments (takes JSON on stdin).",
-)
-@click.option(
-    "--show-errors",
-    is_flag=True,
-    help="Display error segments for failed generators.",
-)
-def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
+@cli.command()
+def main(  # noqa: C901
+    generator: Annotated[
+        list[str] | None, typer.Option(help="External command or script to generate segments (takes JSON on stdin).")
+    ] = None,
+    show_errors: Annotated[
+        bool, typer.Option("--show-errors", help="Display error segments for failed generators.")
+    ] = False,
+) -> None:
+    generator_tuple = tuple(generator) if generator else ()
+
     raw_json_str = "{}"
     try:
         if not sys.stdin.isatty():
@@ -144,7 +146,7 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
 
             tasks.append(wrap_git())
 
-        for cmd in generator:
+        for cmd in generator_tuple:
             cmd_key = f"external:{cmd}"
             cached_cmd = cache.get(cmd_key)
             if cached_cmd is not None:
@@ -201,4 +203,4 @@ def main(generator: tuple[str, ...], show_errors: bool) -> None:  # noqa: C901
 
 
 if __name__ == "__main__":
-    main()
+    cli()

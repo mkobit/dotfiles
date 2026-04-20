@@ -160,8 +160,8 @@ name = "claude-statusline"
 version = "0.0.0"
 source = { editable = "src/python/claude_statusline" }
 dependencies = [
-    { name = "click" },
     { name = "pydantic" },
+    { name = "typer" },
     { name = "whenever" },
 ]
 
@@ -174,8 +174,8 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "click", specifier = ">=8.1.8" },
     { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "typer", specifier = ">=0.15.1" },
     { name = "whenever", specifier = ">=0.9.5" },
 ]
 

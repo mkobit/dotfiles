@@ -2,9 +2,11 @@ import io
 import json
 import unittest
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
-import claude_statusline.main as main_module
+from typer.testing import CliRunner
+
+from claude_statusline.main import cli
 from claude_statusline.models import Segment, SegmentGenerationResult
 from claude_statusline.segments.workspace import shorten_path
 
@@ -12,51 +14,57 @@ from claude_statusline.segments.workspace import shorten_path
 class TestMainSmoke(unittest.TestCase):
     """Smoke tests verifying the CLI entry point runs end-to-end."""
 
-    @patch("builtins.print")
-    @patch("sys.stdin", new_callable=io.StringIO)
     @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/claude_statusline_test_cache"})
-    def test_runs_with_minimal_payload(self, mock_stdin: MagicMock, mock_print: MagicMock) -> None:
-        mock_stdin.write(
-            json.dumps(
-                {
-                    "model": {"display_name": "Claude 3"},
-                    "workspace": {"current_dir": "/tmp/test"},
-                    "context_window": {
-                        "used_percentage": 50.0,
-                        "context_window_size": 100000,
-                    },
-                    "session_name": "MySession",
-                    "cost": {"total_cost_usd": 0.42},
-                }
-            )
+    def test_runs_with_minimal_payload(self) -> None:
+        payload = json.dumps(
+            {
+                "model": {"display_name": "Claude 3"},
+                "workspace": {"current_dir": "/tmp/test"},
+                "context_window": {
+                    "used_percentage": 50.0,
+                    "context_window_size": 100000,
+                },
+                "session_name": "MySession",
+                "cost": {"total_cost_usd": 0.42},
+            }
         )
-        mock_stdin.seek(0)
 
-        with patch("claude_statusline.main.generate_git_segment") as mock_git:
+        class MockStdin(io.StringIO):
+            def isatty(self):
+                return False
+
+        mock_stdin = MockStdin(payload)
+
+        # Typer/Click might replace sys.stdin during invoke.
+        # Let's write the test so we test the main python function itself or mock read().
+        with patch("sys.stdin", mock_stdin), patch("claude_statusline.main.generate_git_segment") as mock_git:
             mock_git.return_value = [
                 SegmentGenerationResult(segment=Segment(text="main"), generator="internal.git", line=1)
             ]
-            main_module.main(args=[], standalone_mode=False)
+            runner = CliRunner()
+            # runner.invoke might replace stdin with a pipe. If we want it to read from sys.stdin,
+            # we should mock sys.stdin.read directly or pass input parameter.
 
-        self.assertGreater(mock_print.call_count, 0)
-        all_output = "\n".join(call[0][0] for call in mock_print.call_args_list)
+            # Since click.testing (and Typer) will hook sys.stdin with what is passed via `input`,
+            # we should pass the payload directly to `invoke`.
+            result = runner.invoke(cli, [], input=payload)
+
+        self.assertEqual(result.exit_code, 0)
+        all_output = result.stdout
         self.assertIn("Claude 3", all_output)
         self.assertIn("MySession", all_output)
         self.assertIn("0.42", all_output)
         self.assertIn("/100k", all_output)
 
-    @patch("builtins.print")
-    @patch("sys.stdin", new_callable=io.StringIO)
     @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/claude_statusline_test_cache"})
-    def test_runs_with_empty_payload(self, mock_stdin: MagicMock, mock_print: MagicMock) -> None:
-        mock_stdin.write("{}")
-        mock_stdin.seek(0)
-
+    def test_runs_with_empty_payload(self) -> None:
         with patch("claude_statusline.main.generate_git_segment") as mock_git:
             mock_git.return_value = []
-            main_module.main(args=[], standalone_mode=False)
+            runner = CliRunner()
+            result = runner.invoke(cli, [], input="{}")
 
-        self.assertGreater(mock_print.call_count, 0)
+        self.assertEqual(result.exit_code, 0)
+        self.assertGreater(len(result.stdout), 0)
 
 
 class TestShortenPath(unittest.TestCase):
