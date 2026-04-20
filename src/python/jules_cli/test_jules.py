@@ -176,3 +176,41 @@ async def test_client_list_activities() -> None:
     assert activities[1].id == "789"
     assert activities[1].user_messaged is not None
     assert activities[1].user_messaged.user_message == "Hello"
+
+
+MOCK_SOURCE_DATA_1 = {
+    "name": "sources/123",
+    "id": "123",
+    "githubRepo": {"owner": "test-owner", "repo": "test-repo"},
+}
+
+MOCK_LIST_SOURCES_PAGE_1 = {"sources": [MOCK_SOURCE_DATA_1], "nextPageToken": "page-2-token"}
+
+MOCK_SOURCE_DATA_2 = {
+    "name": "sources/456",
+    "id": "456",
+}
+
+MOCK_LIST_SOURCES_PAGE_2 = {"sources": [MOCK_SOURCE_DATA_2], "nextPageToken": None}
+
+
+@pytest.mark.asyncio
+async def test_client_list_sources() -> None:
+    client = JulesClient(api_key="test_key")
+
+    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+        if params and params.get("pageToken") == "page-2-token":
+            return MOCK_LIST_SOURCES_PAGE_2
+        return MOCK_LIST_SOURCES_PAGE_1
+
+    client._get = mock_get  # type: ignore
+
+    sources = [s async for s in client.list_sources()]
+
+    assert len(sources) == 2
+    assert sources[0].id == "123"
+    assert sources[0].github_repo is not None
+    assert sources[0].github_repo.owner == "test-owner"
+    assert sources[0].github_repo.repo == "test-repo"
+    assert sources[1].id == "456"
+    assert sources[1].github_repo is None
