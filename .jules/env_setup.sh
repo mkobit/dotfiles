@@ -24,6 +24,7 @@ if ! command -v mise &>/dev/null; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
+export MISE_LOCKED=0
 mise trust
 mise install
 eval "$(mise activate bash)"
