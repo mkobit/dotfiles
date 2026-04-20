@@ -23,12 +23,21 @@ def test_cache_miss_when_empty(cache: SegmentCache) -> None:
     assert cache.get("nonexistent") is None
 
 
-def test_cache_set_and_get(cache: SegmentCache, cache_file: Path) -> None:
+def test_cache_set_and_get(cache: SegmentCache, cache_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Goals: Cache persists and retrieves data in bi-directional flows."""
     results = [SegmentGenerationResult(line=0, index=0, generator="test", segment=Segment(text="hello"))]
-    expires = Instant.now() + hours(1)
+
+    fixed_now = Instant.from_utc(2024, 1, 1, 12, 0, 0)
+    expires = fixed_now + hours(1)
 
     cache.set("key1", results, expires)
+
+    class MockInstant:
+        @classmethod
+        def now(cls):
+            return fixed_now
+
+    monkeypatch.setattr("claude_statusline.cache.Instant", MockInstant)
 
     cached = cache.get("key1")
     assert cached is not None
@@ -36,27 +45,45 @@ def test_cache_set_and_get(cache: SegmentCache, cache_file: Path) -> None:
     assert cached[0].segment.text == "hello"
 
 
-def test_cache_expires(cache: SegmentCache) -> None:
+def test_cache_expires(cache: SegmentCache, monkeypatch: pytest.MonkeyPatch) -> None:
     """Goals: Ensure expired cache state subtracts correctly."""
     results = [SegmentGenerationResult(line=0, index=0, generator="test", segment=Segment(text="hello"))]
-    expires = Instant.now() - hours(1)
+
+    fixed_now = Instant.from_utc(2024, 1, 1, 12, 0, 0)
+    expires = fixed_now - hours(1)
 
     cache.set("key1", results, expires)
+
+    class MockInstant:
+        @classmethod
+        def now(cls):
+            return fixed_now
+
+    monkeypatch.setattr("claude_statusline.cache.Instant", MockInstant)
 
     assert cache.get("key1") is None
     assert "key1" not in cache._cache
 
 
-def test_cache_load_valid(cache_file: Path) -> None:
+def test_cache_load_valid(cache_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Goals: Verify data loads from disk reliably."""
     results = [SegmentGenerationResult(line=0, index=0, generator="test", segment=Segment(text="hello"))]
-    expires = Instant.now() + hours(1)
+
+    fixed_now = Instant.from_utc(2024, 1, 1, 12, 0, 0)
+    expires = fixed_now + hours(1)
 
     initial_cache = SegmentCache(cache_file)
     initial_cache.set("key1", results, expires)
 
     new_cache = SegmentCache(cache_file)
     new_cache.load()
+
+    class MockInstant:
+        @classmethod
+        def now(cls):
+            return fixed_now
+
+    monkeypatch.setattr("claude_statusline.cache.Instant", MockInstant)
 
     cached = new_cache.get("key1")
     assert cached is not None
@@ -91,8 +118,9 @@ def test_cache_save_io_error(tmp_path: Path, caplog: pytest.LogCaptureFixture) -
     bad_cache = SegmentCache(readonly_dir)
     results = [SegmentGenerationResult(line=0, index=0, generator="test", segment=Segment(text="hello"))]
 
+    fixed_now = Instant.from_utc(2024, 1, 1, 12, 0, 0)
     with caplog.at_level(logging.WARNING):
-        bad_cache.set("key1", results, Instant.now() + hours(1))
+        bad_cache.set("key1", results, fixed_now + hours(1))
 
     assert "Failed to save cache to" in caplog.text
 
