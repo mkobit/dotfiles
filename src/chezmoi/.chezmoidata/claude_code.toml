@@ -7,6 +7,7 @@ installation = "external-script"
 # https://code.claude.com/docs/en/settings
 cleanupPeriodDays = 30
 outputStyle = "concise"
+editorMode = "vim"
 
 [claude_code.settings.sandbox]
 # Disabled globally due to current complexity using existing tools like git
