@@ -147,39 +147,16 @@ MOCK_LIST_ACTIVITIES_PAGE_2 = {"activities": [MOCK_ACTIVITY_DATA_2], "nextPageTo
 
 @pytest.mark.asyncio
 async def test_client_list_activities() -> None:
-    class MockResponse:
-        def __init__(self, data: dict) -> None:
-            self._data = data
-
-        async def json(self) -> dict:
-            return self._data
-
-        @property
-        def ok(self) -> bool:
-            return True
-
-        async def text(self) -> str:
-            return ""
-
-        async def __aenter__(self) -> MockResponse:
-            return self
-
-        async def __aexit__(self, *args: object) -> None:
-            pass
-
-    class MockSession:
-        def get(self, url: str, params: dict | None = None) -> MockResponse:
-            assert params is not None
-            assert params.get("pageSize") == 30
-            if params and params.get("pageToken") == "page-2-token":
-                return MockResponse(MOCK_LIST_ACTIVITIES_PAGE_2)
-            return MockResponse(MOCK_LIST_ACTIVITIES_PAGE_1)
-
-        async def close(self) -> None:
-            pass
-
     client = JulesClient(api_key="test_key")
-    client._session = MockSession()  # type: ignore
+
+    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+        assert params is not None
+        assert params.get("pageSize") == 30
+        if params and params.get("pageToken") == "page-2-token":
+            return MOCK_LIST_ACTIVITIES_PAGE_2
+        return MOCK_LIST_ACTIVITIES_PAGE_1
+
+    client._get = mock_get  # type: ignore
 
     activities = [a async for a in client.list_activities("123")]
 
@@ -194,39 +171,54 @@ async def test_client_list_activities() -> None:
 
 @pytest.mark.asyncio
 async def test_client_list_activities_custom_page_size() -> None:
-    class MockResponse:
-        def __init__(self, data: dict) -> None:
-            self._data = data
-
-        async def json(self) -> dict:
-            return self._data
-
-        @property
-        def ok(self) -> bool:
-            return True
-
-        async def text(self) -> str:
-            return ""
-
-        async def __aenter__(self) -> MockResponse:
-            return self
-
-        async def __aexit__(self, *args: object) -> None:
-            pass
-
-    class MockSession:
-        def get(self, url: str, params: dict | None = None) -> MockResponse:
-            assert params is not None
-            assert params.get("pageSize") == 50
-            return MockResponse(MOCK_LIST_ACTIVITIES_PAGE_2)
-
-        async def close(self) -> None:
-            pass
-
     client = JulesClient(api_key="test_key")
-    client._session = MockSession()  # type: ignore
+
+    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+        assert params is not None
+        assert params.get("pageSize") == 50
+        return MOCK_LIST_ACTIVITIES_PAGE_2
+
+    client._get = mock_get  # type: ignore
 
     activities = [a async for a in client.list_activities("123", page_size=50)]
 
     assert len(activities) == 1
     assert activities[0].id == "789"
+
+
+MOCK_SOURCE_DATA_1 = {
+    "name": "sources/123",
+    "id": "123",
+    "githubRepo": {"owner": "test-owner", "repo": "test-repo"},
+}
+
+MOCK_LIST_SOURCES_PAGE_1 = {"sources": [MOCK_SOURCE_DATA_1], "nextPageToken": "page-2-token"}
+
+MOCK_SOURCE_DATA_2 = {
+    "name": "sources/456",
+    "id": "456",
+}
+
+MOCK_LIST_SOURCES_PAGE_2 = {"sources": [MOCK_SOURCE_DATA_2], "nextPageToken": None}
+
+
+@pytest.mark.asyncio
+async def test_client_list_sources() -> None:
+    client = JulesClient(api_key="test_key")
+
+    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+        if params and params.get("pageToken") == "page-2-token":
+            return MOCK_LIST_SOURCES_PAGE_2
+        return MOCK_LIST_SOURCES_PAGE_1
+
+    client._get = mock_get  # type: ignore
+
+    sources = [s async for s in client.list_sources()]
+
+    assert len(sources) == 2
+    assert sources[0].id == "123"
+    assert sources[0].github_repo is not None
+    assert sources[0].github_repo.owner == "test-owner"
+    assert sources[0].github_repo.repo == "test-repo"
+    assert sources[1].id == "456"
+    assert sources[1].github_repo is None
