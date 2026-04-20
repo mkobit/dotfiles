@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+{{- if eq .local_bin_tools.claude_statusline.installation "uv" }}
+uv tool install --force "{{ .chezmoi.sourceDir }}/../python/claude_statusline"
+{{- else }}
+uv tool uninstall claude-statusline || true
+{{- end }}

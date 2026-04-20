@@ -32,3 +32,9 @@ install-asdf.sh
 {{ end }}
 .dotfiles/zsh/scripts
 .dotfiles/bash/snippets
+
+# Old uv shell wrappers (these were moved or changed behavior but paths may have been cached)
+.local/bin/tools/jules
+.local/bin/tools/termbud
+.local/bin/tools/transcribe
+.local/bin/claude_statusline

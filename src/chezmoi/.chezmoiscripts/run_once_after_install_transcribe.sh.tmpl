@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+{{- if eq .local_bin_tools.transcribe.installation "uv" }}
+uv tool install --force "{{ .chezmoi.sourceDir }}/../python/transcribe"
+{{- else }}
+uv tool uninstall transcribe || true
+{{- end }}

@@ -1,4 +1,4 @@
 {{- if eq .local_bin_tools.claude_statusline.installation "uv" -}}
 #!/usr/bin/env bash
-exec mise exec -- uv run --frozen --project {{ .chezmoi.workingTree }}/src/python/claude_statusline -m claude_statusline.main{{ range (dig "claude_code" "settings" "statusLine" "generators" list .) }} --generator {{ . | quote }}{{ end }} "$@"
+exec mise exec -- claude-statusline{{ range (dig "claude_code" "settings" "statusLine" "generators" list .) }} --generator {{ . | quote }}{{ end }} "$@"
 {{- end -}}
