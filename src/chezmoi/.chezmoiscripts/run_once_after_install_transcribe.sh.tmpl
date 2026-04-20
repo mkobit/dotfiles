@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+
 {{- if eq .local_bin_tools.transcribe.installation "uv" }}
 uv tool install --force "{{ .chezmoi.sourceDir }}/../python/transcribe"
 {{- else }}
