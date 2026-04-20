@@ -4,12 +4,12 @@ version = "0.0.0"
 requires-python = ">=3.14"
 dependencies = [
     "pydantic>=2.12.5",
-    "click>=8.1.8",
+    "typer>=0.15.1",
     "whenever>=0.9.5",
 ]
 
 [project.scripts]
-claude-statusline = "claude_statusline.main:main"
+claude-statusline = "claude_statusline.main:cli"
 
 [build-system]
 requires = [

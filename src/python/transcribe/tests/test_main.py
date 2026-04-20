@@ -3,9 +3,9 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
-from transcribe.main import main
+from transcribe.main import cli
 
 
 @pytest.fixture
@@ -16,7 +16,7 @@ def mock_transcriber() -> Generator[MagicMock, None, None]:
 
 def test_main_help() -> None:
     runner = CliRunner()
-    result = runner.invoke(main, ["--help"])
+    result = runner.invoke(cli, ["--help"])
     assert result.exit_code == 0
     assert "Transcribe audio files" in result.output
 
@@ -44,7 +44,7 @@ def test_main_default(mock_transcriber: MagicMock) -> None:
         with open("test.wav", "w") as f:
             f.write("dummy")
 
-        result = runner.invoke(main, ["test.wav"])
+        result = runner.invoke(cli, ["test.wav"])
 
         assert result.exit_code == 0
         assert "Hello" in result.output
@@ -73,7 +73,7 @@ def test_main_template_string(mock_transcriber: MagicMock) -> None:
         with open("test.wav", "w") as f:
             f.write("dummy")
 
-        result = runner.invoke(main, ["test.wav", "--template", "custom: {{ segments[0].text }}"])
+        result = runner.invoke(cli, ["test.wav", "--template", "custom: {{ segments[0].text }}"])
 
         assert result.exit_code == 0
         assert "custom: Hello" in result.output
