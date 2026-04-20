@@ -12,7 +12,16 @@ MOCK_SESSION_DATA = {
     "sourceContext": {"source": "sources/github/test/repo"},
 }
 
-MOCK_LIST_SESSIONS_DATA = {"sessions": [MOCK_SESSION_DATA], "nextPageToken": None}
+MOCK_LIST_SESSIONS_PAGE_1 = {"sessions": [MOCK_SESSION_DATA], "nextPageToken": "page-2-token"}
+
+MOCK_SESSION_DATA_2 = {
+    "name": "sessions/456",
+    "id": "456",
+    "title": "Test Session 2",
+    "prompt": "Test Prompt 2",
+    "sourceContext": {"source": "sources/github/test/repo2"},
+}
+MOCK_LIST_SESSIONS_PAGE_2 = {"sessions": [MOCK_SESSION_DATA_2], "nextPageToken": None}
 
 
 def test_session_model() -> None:
@@ -96,7 +105,9 @@ async def test_client_list_sessions() -> None:
 
     class MockSession:
         def get(self, url: str, params: dict | None = None) -> MockResponse:
-            return MockResponse(MOCK_LIST_SESSIONS_DATA)
+            if params and params.get("pageToken") == "page-2-token":
+                return MockResponse(MOCK_LIST_SESSIONS_PAGE_2)
+            return MockResponse(MOCK_LIST_SESSIONS_PAGE_1)
 
         async def close(self) -> None:
             pass
@@ -106,8 +117,9 @@ async def test_client_list_sessions() -> None:
 
     sessions = [s async for s in client.list_sessions()]
 
-    assert len(sessions) == 1
+    assert len(sessions) == 2
     assert sessions[0].id == "123"
+    assert sessions[1].id == "456"
 
 
 MOCK_ACTIVITY_DATA = {
@@ -157,6 +169,8 @@ async def test_client_list_activities() -> None:
 
     class MockSession:
         def get(self, url: str, params: dict | None = None) -> MockResponse:
+            assert params is not None
+            assert params.get("pageSize") == 30
             if params and params.get("pageToken") == "page-2-token":
                 return MockResponse(MOCK_LIST_ACTIVITIES_PAGE_2)
             return MockResponse(MOCK_LIST_ACTIVITIES_PAGE_1)
@@ -176,3 +190,43 @@ async def test_client_list_activities() -> None:
     assert activities[1].id == "789"
     assert activities[1].user_messaged is not None
     assert activities[1].user_messaged.user_message == "Hello"
+
+
+@pytest.mark.asyncio
+async def test_client_list_activities_custom_page_size() -> None:
+    class MockResponse:
+        def __init__(self, data: dict) -> None:
+            self._data = data
+
+        async def json(self) -> dict:
+            return self._data
+
+        @property
+        def ok(self) -> bool:
+            return True
+
+        async def text(self) -> str:
+            return ""
+
+        async def __aenter__(self) -> MockResponse:
+            return self
+
+        async def __aexit__(self, *args: object) -> None:
+            pass
+
+    class MockSession:
+        def get(self, url: str, params: dict | None = None) -> MockResponse:
+            assert params is not None
+            assert params.get("pageSize") == 50
+            return MockResponse(MOCK_LIST_ACTIVITIES_PAGE_2)
+
+        async def close(self) -> None:
+            pass
+
+    client = JulesClient(api_key="test_key")
+    client._session = MockSession()  # type: ignore
+
+    activities = [a async for a in client.list_activities("123", page_size=50)]
+
+    assert len(activities) == 1
+    assert activities[0].id == "789"
