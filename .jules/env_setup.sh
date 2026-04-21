@@ -24,7 +24,11 @@ if ! command -v mise &>/dev/null; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
+# Disable strict locking during sandbox setup. Since the root repo's .mise.toml
+# enforces `locked = true`, and the lockfile only strictly tracks some tools,
+# the sandbox needs to bootstrap itself unbound from those exact constraints.
 export MISE_LOCKED=0
+export MISE_DEBUG=1
 mise trust
 mise install
 eval "$(mise activate bash)"
