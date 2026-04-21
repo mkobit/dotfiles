@@ -1,7 +1,7 @@
 import pytest
 
 from jules_cli.client import JulesClient
-from jules_cli.models import CreateSessionRequest, Session
+from jules_cli.models import CreateSessionRequest, Session, SourceContext
 
 # Mock data matches Pydantic camelCase conversion
 MOCK_SESSION_DATA = {
@@ -186,7 +186,7 @@ async def test_client_create_session() -> None:
 
     request = CreateSessionRequest(
         prompt="New Session Prompt",
-        source_context={"source": "sources/github/test/repo"},
+        source_context=SourceContext(source="sources/github/test/repo"),
     )
     session = await client.create_session(request)
 
