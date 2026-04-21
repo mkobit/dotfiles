@@ -16,6 +16,7 @@ dev = [
     "ruff>=0.15.8",
     "ty>=0.0.26",
     "pytest-testinfra>=10",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.uv.workspace]
