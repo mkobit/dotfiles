@@ -30,6 +30,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      - name: Check no chezmoi config template exists
+        run: |
+          root=$(cat .chezmoiroot | tr -d '[:space:]')
+          for f in "$root/.chezmoi.toml" "$root/.chezmoi.toml.tmpl"; do
+            if [ -f "$f" ]; then
+              echo "::error file=$f::Config file must not exist in source — config is expected to be injected by the invoking repository. Use .chezmoidata/ for defaults."
+              exit 1
+            fi
+          done
       - uses: jdx/mise-action@v4
       - name: Restore uv cache
         uses: actions/cache@668228422ae6a00e4ad889ee87cd7109ec5666a7
