@@ -2,12 +2,17 @@ version = 1
 revision = 3
 requires-python = ">=3.14"
 
+[options]
+exclude-newer = "2026-04-03T19:07:25.966299Z"
+exclude-newer-span = "P14D"
+
 [manifest]
 members = [
     "claude-statusline",
     "dotfiles",
     "jules-cli",
     "termbud",
+    "termtext",
     "transcribe",
 ]
 
@@ -276,6 +281,7 @@ dependencies = [
     { name = "claude-statusline" },
     { name = "jules-cli" },
     { name = "termbud" },
+    { name = "termtext" },
     { name = "transcribe" },
 ]
 
@@ -294,6 +300,7 @@ requires-dist = [
     { name = "claude-statusline", editable = "src/python/claude_statusline" },
     { name = "jules-cli", editable = "src/python/jules_cli" },
     { name = "termbud", editable = "src/python/termbud" },
+    { name = "termtext", editable = "src/python/termtext" },
     { name = "transcribe", editable = "src/python/transcribe" },
 ]
 
@@ -990,6 +997,17 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "typer", specifier = ">=0.12.0" }]
+
+[[package]]
+name = "termtext"
+version = "0.0.0"
+source = { editable = "src/python/termtext" }
+dependencies = [
+    { name = "rich" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "rich", specifier = ">=14.0.0" }]
 
 [[package]]
 name = "tokenizers"
