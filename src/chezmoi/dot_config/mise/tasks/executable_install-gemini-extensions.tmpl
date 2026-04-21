@@ -1,4 +1,4 @@
-{{- $geminiCli := index .mise.global_tools "npm:@google/gemini-cli" -}}
+{{- $geminiCli := index .mise.global_tools "gemini-cli" -}}
 {{- if ne $geminiCli.installation "disabled" -}}
 #!/usr/bin/env bash
 # mise description="Installs Gemini CLI extensions"

@@ -1,4 +1,4 @@
-{{- $geminiTool := index .mise.global_tools "npm:@google/gemini-cli" -}}
+{{- $geminiTool := index .mise.global_tools "gemini-cli" -}}
 {{- if eq $geminiTool.installation "mise" -}}
 {{-   $settings := dict
         "model" (dict "name" .gemini.model)

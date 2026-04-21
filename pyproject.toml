@@ -17,6 +17,7 @@ dev = [
     "ruff>=0.15.8",
     "ty>=0.0.26",
     "pytest-testinfra>=10",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.uv.workspace]
@@ -36,7 +37,7 @@ termtext = { workspace = true }
 claude-statusline = { workspace = true }
 
 [tool.ruff]
-line-length = 88
+line-length = 120
 target-version = "py314"
 
 [tool.ruff.lint]
@@ -72,8 +73,12 @@ max-complexity = 15
 [tool.ruff.lint.isort]
 known-first-party = ["termbud", "jules_cli", "claude_statusline", "transcribe", "termtext"]
 
-[tool.ty.environment]
-python = ".venv"
+[tool.ty.src]
+include = [
+    "src/python",
+    "src/chezmoi",
+    ".claude/hooks",
+]
 
 [tool.ty.rules]
 all = "error"

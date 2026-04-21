@@ -1,7 +1,9 @@
 import logging
 import sys
+from pathlib import Path
+from typing import Annotated
 
-import click
+import typer
 from tqdm import tqdm
 
 from transcribe.formatter import Formatter
@@ -10,75 +12,35 @@ from transcribe.transcriber import Transcriber
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
 
-MODEL_SIZES = [
-    "tiny",
-    "tiny.en",
-    "base",
-    "base.en",
-    "small",
-    "small.en",
-    "medium",
-    "medium.en",
-    "large-v1",
-    "large-v2",
-    "large-v3",
-    "large",
-]
-DEVICES = ["cpu", "cuda", "auto"]
-COMPUTE_TYPES = ["float16", "int8_float16", "int8", "default"]
+cli = typer.Typer(add_completion=False)
 
 
-@click.command()
-@click.argument("input_path", type=click.Path(exists=True), required=True)
-@click.option(
-    "--model",
-    type=click.Choice(MODEL_SIZES),
-    default="base",
-    help="Model size. Default: base.",
-)
-@click.option(
-    "--device",
-    type=click.Choice(DEVICES),
-    default="auto",
-    help="Device to use. Default: auto.",
-)
-@click.option(
-    "--compute-type",
-    type=click.Choice(COMPUTE_TYPES),
-    default="default",
-    help="Compute type. Default: default.",
-)
-@click.option("--language", default=None, help="Language code (optional).")
-@click.option("--template-file", type=click.Path(exists=True), help="Jinja2 template file path.")
-@click.option("--template", help="Jinja2 template string.")
-@click.option(
-    "--output-dest",
-    default="-",
-    help="Output destination (file path or '-' for stdout). Default: stdout.",
-)
+@cli.command()
 def main(
-    input_path: str,
-    model: str,
-    device: str,
-    compute_type: str,
-    language: str | None,
-    template_file: str | None,
-    template: str | None,
-    output_dest: str,
+    input_path: Annotated[Path, typer.Argument(exists=True, help="Path to input audio file")],
+    model: Annotated[str, typer.Option(help="Model size. Default: base.")] = "base",
+    device: Annotated[str, typer.Option(help="Device to use. Default: auto.")] = "auto",
+    compute_type: Annotated[str, typer.Option(help="Compute type. Default: default.")] = "default",
+    language: Annotated[str | None, typer.Option(help="Language code (optional).")] = None,
+    template_file: Annotated[Path | None, typer.Option(exists=True, help="Jinja2 template file path.")] = None,
+    template: Annotated[str | None, typer.Option(help="Jinja2 template string.")] = None,
+    output_dest: Annotated[
+        str, typer.Option(help="Output destination (file path or '-' for stdout). Default: stdout.")
+    ] = "-",
 ) -> None:
     """
     Transcribe audio files using faster-whisper and Jinja2 templates.
     """
-
     if template_file and template:
-        raise click.UsageError("Cannot provide both --template-file and --template.")
+        typer.echo("Error: Cannot provide both --template-file and --template.", err=True)
+        raise typer.Exit(code=2)
 
     try:
         logger.info(f"Loading model '{model}' on '{device}'...")
         transcriber = Transcriber(model_size=model, device=device, compute_type=compute_type)
 
         logger.info(f"Transcribing '{input_path}'...")
-        segments_gen, info = transcriber.transcribe(input_path, language=language)
+        segments_gen, info = transcriber.transcribe(str(input_path), language=language)
 
         logger.info(f"Detected language '{info.language}' with probability {info.language_probability:.2f}")
 
@@ -91,10 +53,11 @@ def main(
                     pbar.update(segment.end - current)
 
         logger.info("Formatting output...")
-        result = Formatter.format_segments(segments, info, template_file, template)
+        template_file_str = str(template_file) if template_file else None
+        result = Formatter.format_segments(segments, info, template_file_str, template)
 
         if output_dest == "-":
-            click.echo(result)
+            typer.echo(result)
         else:
             with open(output_dest, "w") as f:
                 f.write(result)
@@ -106,4 +69,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    cli()

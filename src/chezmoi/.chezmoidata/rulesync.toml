@@ -6,11 +6,11 @@
 # Features: selective generation, comprehensive import/export capabilities, and supports major AI development tools.
 
 [rulesync]
-version = "7.6.3"
+version = "8.4.0"
 installation = "external-sources"
 
 [rulesync.checksums]
-darwin_arm64 = "55a1dc8a78092114b76b87eb35efc6e384226030c507a75843d0527cb336eada"
-darwin_amd64 = "fe89895913898e87131be5bbf134cce845f39162a83642c3594d1f9442538741"
-linux_arm64 = "4ab31c25aa624de18196a1b66652a942751c22d7be745896d1104e83aeef9195"
-linux_amd64 = "950d3f1bb163d168afcf69c16863736bed3457a4579fb6cde17aeed15795f864"
+darwin_arm64 = "2561ac5237e07f1a60353638ed3db08570ebc41d6fc8b439730a382997ead33c"
+darwin_amd64 = "27aca856abf7c2a8df413cb668ec4e0c706e991077a89b08ba916d1e4160504e"
+linux_arm64 = "088886fd1f21efc06a7796dc4bada680307d708173f9baad8c0de95619dacaa7"
+linux_amd64 = "2b0975d288182570c40587bf1de51b2764fa589d4b33cd0731089b6a7ad2d8e8"

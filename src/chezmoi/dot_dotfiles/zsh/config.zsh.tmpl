@@ -9,7 +9,7 @@
 {{ template "zsh/060_zsh_defaults.zsh" . }}
 {{ template "shell/mise.sh" (merge (dict "shell" "zsh") .) }}
 {{ template "zsh/110_chezmoi.zsh" . }}
-{{ template "zsh/115_zellij.zsh" . }}
+{{ template "shell/zellij.sh" (merge (dict "shell" "zsh") .) }}
 {{ template "shell/fzf.sh" (merge (dict "shell" "zsh") .) }}
 {{ template "shell/fzf_tab.sh" (merge (dict "shell" "zsh") .) }}
 {{ template "shell/zoxide.sh" (merge (dict "shell" "zsh") .) }}
@@ -17,7 +17,6 @@
 {{ template "shell/git_alias.sh" (merge (dict "shell" "zsh") .) }}
 {{ template "zsh/400_omz_disable_aliases.zsh" . }}
 {{ template "zsh/500_oh-my-zsh.zsh" . }}
-{{ template "zsh/510_p10k.zsh" . }}
 {{ template "zsh/520_starship.zsh" . }}
 {{ template "zsh/530_keybindings.zsh" . }}
 {{ template "zsh/910_eza.zsh" . }}

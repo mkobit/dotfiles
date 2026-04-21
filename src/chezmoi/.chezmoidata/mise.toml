@@ -1,17 +1,19 @@
 [mise]
-version = "v2026.4.10"
+version = "v2026.4.17"
 installation = "external-sources"
 
 [mise.checksums]
-darwin_arm64 = "e09f5ae83369d3c6d44572e9f2de0bf9454718e23ccb41a4138f8f88d28cbb31"
-darwin_amd64 = "cd2c39806ba3dba475ab9c145376c467012200cf4eea098cbeb7e4febb4b0717"
-linux_amd64 = "84636e19a0e5001d7499f58ae5a868cec8f6ba4f52f9028680bb7cd802564229"
-linux_arm64 = "b0cee25b0405113ed6fe2a54cf21d49720ee571d3d5b4a9c695721cd123d24f8"
+darwin_arm64 = "91bb0fe6d74d983869797a7357dd4df4f722e455e167f0d51ceba6bc9dfdbb9b"
+darwin_amd64 = "e5ef15fd0e37c7f1ab834b4da258f78277ea87c184ba7538d738c949627c5b9f"
+linux_amd64 = "b5f4aaf9047687ec42326cc7f81a709cf36edb7614ec25036a6c5dc484e627e4"
+linux_arm64 = "879ba4bd2bc18df643cd88414dd2785089a5c53729755b79aa6b92b94fa40205"
 
 [mise.settings]
 # Configuration settings: https://mise.jdx.dev/configuration/settings.html
 cache_prune_age = "60 days"
 disable_hints = ["self_update"]
+http_retries = 5
+install_before = "7d"
 [mise.settings.npm]
 package_manager = "bun"
 
@@ -30,17 +32,21 @@ package_manager = "bun"
   installation = "mise"
 
   [mise.global_tools.rust]
-  version = "1.94.0"
+  version = "1.95.0"
   installation = "mise"
 
   [mise.global_tools.uv]
-  version = "0.11.3"
+  version = "0.11.7"
   installation = "mise"
 
   [mise.global_tools.bun]
   version = "1.3.12"
   installation = "mise"
 
-  [mise.global_tools."npm:@google/gemini-cli"]
-  version = "0.35.3"
+  [mise.global_tools.node]
+  version = "22"
+  installation = "mise"
+
+  [mise.global_tools.gemini-cli]
+  version = "0.37.1"
   installation = "mise"
