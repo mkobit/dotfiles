@@ -64,9 +64,7 @@ def test_interpolation_bg_color() -> None:
 def test_config_override_bold() -> None:
     """bold can be redefined to mean something entirely different."""
     val = "text"
-    config = Config().with_styles(
-        {"bold": Style(frozenset({FG(RGBColor.from_hex("#7aa2f7")), SGR.UNDERLINE}))}
-    )
+    config = Config().with_styles({"bold": Style(frozenset({FG(RGBColor.from_hex("#7aa2f7")), SGR.UNDERLINE}))})
     tt = TermText.render(t"{val:bold}", config=config)
     styled = tt.segments[0]
     assert FG(RGBColor.from_hex("#7aa2f7")) in styled.style.attributes

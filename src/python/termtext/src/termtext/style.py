@@ -16,13 +16,7 @@ class Style:
         FG, BG, and Link are replaced by the incoming value (last wins).
         """
         merged: dict[object, Attribute] = {
-            (SGR, attr) if isinstance(attr, SGR) else type(attr): attr
-            for attr in self.attributes
+            (SGR, attr) if isinstance(attr, SGR) else type(attr): attr for attr in self.attributes
         }
-        merged.update(
-            {
-                (SGR, attr) if isinstance(attr, SGR) else type(attr): attr
-                for attr in other.attributes
-            }
-        )
+        merged.update({(SGR, attr) if isinstance(attr, SGR) else type(attr): attr for attr in other.attributes})
         return Style(frozenset(merged.values()))
