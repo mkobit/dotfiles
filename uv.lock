@@ -2,6 +2,10 @@ version = 1
 revision = 3
 requires-python = ">=3.14"
 
+[options]
+exclude-newer = "2026-04-15T12:43:19.026153645Z"
+exclude-newer-span = "P7D"
+
 [manifest]
 members = [
     "claude-statusline",
