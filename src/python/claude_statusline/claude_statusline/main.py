@@ -93,12 +93,14 @@ def main(  # noqa: C901
             raw_data = json.loads(raw_json_str) if raw_json_str.strip() else {}
         else:
             raw_data = {}
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to read/parse stdin: {e}")
         raw_data = {}
 
     try:
         payload = StatusLineStdIn(**raw_data)
-    except Exception:
+    except Exception as e:
+        logger.debug(f"Failed to validate payload: {e}")
         payload = StatusLineStdIn()
 
     cwd_str = payload.workspace.current_dir
@@ -113,7 +115,6 @@ def main(  # noqa: C901
     else:
         cache_path = Path.home() / ".cache" / "claude_statusline" / "cache.json"
     cache = SegmentCache(cache_path)
-    cache.load()
     cache.load()
     all_segments: list[SegmentGenerationResult] = []
     tasks = []
@@ -178,8 +179,8 @@ def main(  # noqa: C901
                             )
                             if duration:
                                 cache.set(key, list(res), Instant.now() + duration)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Failed to set cache for {key}: {e}")
 
     asyncio.run(fetch_all())
 
