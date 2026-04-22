@@ -1,3 +1,4 @@
+{{- if eq .shell "zsh" }}
 {{- $prompt := default "starship" .zsh.prompt -}}
 {{- if eq $prompt "oh-my-zsh" -}}
 {{- with .eza -}}
@@ -11,3 +12,4 @@ zstyle ':omz:lib:directories' aliases no
 {{- end -}}
 {{- end }}
 {{- end -}}
+{{- end }}

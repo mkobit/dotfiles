@@ -17,6 +17,12 @@ cat >> "${tempfile}" << 'EOF'
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:bash:{{ include "modify_dot_bash_profile.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
 if [[ -f "{{ .chezmoi.destDir }}/.bashrc" ]]; then
   source "{{ .chezmoi.destDir }}/.bashrc"
+elif [[ -f "{{ .chezmoi.destDir }}/.profile" ]]; then
+  source "{{ .chezmoi.destDir }}/.profile"
+fi
+# Ensure our config is always loaded even if standard files are missing or overriden
+if ! type -t g &>/dev/null && [[ -f "{{ .chezmoi.destDir }}/.dotfiles/bash/config.bash" ]]; then
+  source "{{ .chezmoi.destDir }}/.dotfiles/bash/config.bash"
 fi
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:bash:{{ include "modify_dot_bash_profile.tmpl" | sha256sum | substr 0 8 }}
 EOF

@@ -1,3 +1,4 @@
+{{- if eq .shell "zsh" }}
 {{ with (index .zsh "oh-my-zsh") }}
 {{- $prompt := default "starship" $.zsh.prompt -}}
 {{- $installation := default "external-sources" (get . "installation") -}}
@@ -37,4 +38,6 @@ else
 fi
 
 {{- end }}
+{{- end }}
+
 {{- end }}

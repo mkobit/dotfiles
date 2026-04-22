@@ -1,10 +1,9 @@
-#!/usr/bin/env zsh
-
 # =============================================================================
 # Zsh vi mode enhancements
 # Must run after bindkey -v (060_zsh_defaults.zsh).
 # =============================================================================
 
+{{- if eq .shell "zsh" }}
 # Cursor shape: beam in insert mode, block in normal mode.
 # Same visual language as terminal vim — you always know which mode you're in.
 # Uses VT escape sequences supported by Ghostty, iTerm2, and most modern terminals.
@@ -16,3 +15,14 @@ function _zle_vi_mode_cursor() {
 }
 zle -N zle-keymap-select _zle_vi_mode_cursor
 zle -N zle-line-init      _zle_vi_mode_cursor
+{{- end }}
+
+
+{{- if eq .shell "bash" }}
+# Enable vi mode in bash
+set -o vi
+# Bash cursor shape in vi mode
+bind 'set show-mode-in-prompt on'
+bind 'set vi-ins-mode-string \1\e[6 q\2'
+bind 'set vi-cmd-mode-string \1\e[2 q\2'
+{{- end }}
