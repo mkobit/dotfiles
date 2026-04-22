@@ -1,4 +1,4 @@
-from enum import StrEnum, auto
+from enum import StrEnum
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -54,19 +54,8 @@ class SourceContext(BaseModel):
 class AutomationMode(StrEnum):
     """Automation modes for a session."""
 
-    @staticmethod
-    def _generate_next_value_(
-        name: str,
-        start: int,
-        count: int,
-        last_values: list[str],
-    ) -> str:  # type: ignore[override]
-        # Ignore unused arguments while preserving signature for LSP
-        _ = start, count, last_values
-        return name
-
-    AUTOMATION_MODE_UNSPECIFIED = auto()
-    AUTO_CREATE_PR = auto()
+    AUTOMATION_MODE_UNSPECIFIED = "AUTOMATION_MODE_UNSPECIFIED"
+    AUTO_CREATE_PR = "AUTO_CREATE_PR"
 
 
 class CreateSessionRequest(BaseModel):
@@ -99,26 +88,15 @@ class SessionOutput(BaseModel):
 class SessionState(StrEnum):
     """State of a session."""
 
-    @staticmethod
-    def _generate_next_value_(
-        name: str,
-        start: int,
-        count: int,
-        last_values: list[str],
-    ) -> str:  # type: ignore[override]
-        # Ignore unused arguments while preserving signature for LSP
-        _ = start, count, last_values
-        return name
-
-    STATE_UNSPECIFIED = auto()
-    QUEUED = auto()
-    PLANNING = auto()
-    AWAITING_PLAN_APPROVAL = auto()
-    AWAITING_USER_FEEDBACK = auto()
-    IN_PROGRESS = auto()
-    PAUSED = auto()
-    FAILED = auto()
-    COMPLETED = auto()
+    STATE_UNSPECIFIED = "STATE_UNSPECIFIED"
+    QUEUED = "QUEUED"
+    PLANNING = "PLANNING"
+    AWAITING_PLAN_APPROVAL = "AWAITING_PLAN_APPROVAL"
+    AWAITING_USER_FEEDBACK = "AWAITING_USER_FEEDBACK"
+    IN_PROGRESS = "IN_PROGRESS"
+    PAUSED = "PAUSED"
+    FAILED = "FAILED"
+    COMPLETED = "COMPLETED"
 
 
 class Session(BaseModel):
