@@ -56,7 +56,7 @@ else
 fi
 
 echo "Applying chezmoi..."
-chezmoi apply --source="$(pwd)/src/chezmoi" --destination="$HOME"
+chezmoi apply --source="$(pwd)/src/chezmoi" --destination="$HOME" --exclude=scripts
 
 # Step 3: Install python dependencies
 echo "Installing python dependencies..."
