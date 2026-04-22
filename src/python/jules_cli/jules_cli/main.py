@@ -411,7 +411,7 @@ def create(
     ),
     approve: bool = typer.Option(
         False,
-        "--approve/--no-approve",
+        "--require-approval/--no-require-approval",
         help=(
             "Require manual plan approval. Default is false (auto-approve), "
             "ideal for agents submitting pre-planned work."
