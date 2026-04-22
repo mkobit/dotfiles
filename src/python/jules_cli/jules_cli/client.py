@@ -59,6 +59,10 @@ class JulesClient:
                 raise Exception(f"API Error {response.status}: {error_body}")
             return await response.json()
 
+    async def get_source(self, source_name: str) -> Source:
+        data = await self._get(f"/{source_name}")
+        return Source(**data)
+
     async def list_sources(self) -> AsyncGenerator[Source, None]:
         next_page_token = None
         while True:
@@ -120,6 +124,10 @@ class JulesClient:
             next_page_token = response.next_page_token
             if not next_page_token:
                 break
+
+    async def get_activity(self, activity_name: str) -> Activity:
+        data = await self._get(f"/{activity_name}")
+        return Activity(**data)
 
     async def send_message(self, session_id: str, message: str) -> Any:
         payload = {"prompt": message}

@@ -223,3 +223,36 @@ async def test_client_approve_plan() -> None:
 
     response = await client.approve_plan("123")
     assert response.get("status") == "approved"
+
+
+@pytest.mark.asyncio
+async def test_client_get_activity() -> None:
+    client = JulesClient(api_key="test_key")
+
+    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+        if "sessions/123/activities/456" in endpoint:
+            return MOCK_ACTIVITY_DATA
+        return {}
+
+    client._get = mock_get  # type: ignore
+
+    activity = await client.get_activity("sessions/123/activities/456")
+    assert activity.id == "456"
+    assert activity.originator == "agent"
+
+
+@pytest.mark.asyncio
+async def test_client_get_source() -> None:
+    client = JulesClient(api_key="test_key")
+
+    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+        if "sources/123" in endpoint:
+            return MOCK_SOURCE_DATA_1
+        return {}
+
+    client._get = mock_get  # type: ignore
+
+    source = await client.get_source("sources/123")
+    assert source.id == "123"
+    assert source.github_repo is not None
+    assert source.github_repo.owner == "test-owner"
