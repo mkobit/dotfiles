@@ -24,9 +24,11 @@ if ! command -v mise &>/dev/null; then
     export PATH="$HOME/.local/bin:$PATH"
 fi
 
-# Disable strict locking during sandbox setup. Since the root repo's .mise.toml
-# enforces `locked = true`, and the lockfile only strictly tracks some tools,
-# the sandbox needs to bootstrap itself unbound from those exact constraints.
+# Disable strict locking and enable debug output for the entire session.
+# The root .mise.toml enforces `locked = true`, but during bootstrap the global
+# tools lockfile (dot_config/mise/mise.lock) hasn't been applied yet via chezmoi,
+# so mise install would fail on version mismatches. MISE_DEBUG=1 is kept globally
+# to capture verbose output for diagnosing sandbox environment crashes.
 export MISE_LOCKED=0
 export MISE_DEBUG=1
 mise trust
