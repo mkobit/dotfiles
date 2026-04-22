@@ -1,11 +1,17 @@
 import pytest
 
-from termtext import BG, FG, SGR, Config, Link, NamedColor, RGBColor, Style, TermText
+from termtext import BG, FG, SGR, Color256, Config, Link, NamedColor, RGBColor, Style, TermText
 
 
 def test_plain_literal() -> None:
     tt = TermText.render(t"hello world")
     assert tt.to_plain() == "hello world"
+
+
+def test_interpolation_conversions() -> None:
+    val = "hi"
+    tt = TermText.render(t"{val!r} {val!s} {val!a}")
+    assert tt.to_plain() == "'hi' hi 'hi'"
 
 
 def test_interpolation_no_style() -> None:
@@ -50,6 +56,8 @@ def test_interpolation_link() -> None:
     tt = TermText.render(t"{label:link={url}}")
     styled = tt.segments[0]
     assert Link("https://example.com") in styled.style.attributes
+    ansi = tt.to_ansi()
+    assert "\x1b]8;;https://example.com\x1b\\" in ansi
 
 
 def test_interpolation_bg_color() -> None:
@@ -59,6 +67,15 @@ def test_interpolation_bg_color() -> None:
     tt = TermText.render(t"{val:highlight}", config=config)
     styled = tt.segments[0]
     assert BG(NamedColor.CYAN) in styled.style.attributes
+
+
+def test_to_ansi_named_bg_color() -> None:
+    val = "hi"
+    highlight = Style(frozenset({BG(NamedColor.CYAN)}))
+    config = Config().with_styles({"highlight": highlight})
+    tt = TermText.render(t"{val:highlight}", config=config)
+    ansi = tt.to_ansi()
+    assert "\x1b[46m" in ansi
 
 
 def test_config_override_bold() -> None:
@@ -89,6 +106,30 @@ def test_to_ansi_bold() -> None:
     ansi = tt.to_ansi()
     assert "\x1b[" in ansi
     assert "hi" in ansi
+    assert "\x1b[0m" in ansi
+
+
+def test_to_ansi_rgb() -> None:
+    val = "x"
+    highlight = Style(frozenset({FG(RGBColor(255, 128, 0)), BG(RGBColor(0, 128, 255))}))
+    config = Config().with_styles({"custom": highlight})
+    tt = TermText.render(t"{val:custom}", config=config)
+    ansi = tt.to_ansi()
+    # 38;2;255;128;0 for FG, 48;2;0;128;255 for BG
+    assert "38;2;255;128;0" in ansi
+    assert "48;2;0;128;255" in ansi
+    assert "\x1b[0m" in ansi
+
+
+def test_to_ansi_color256() -> None:
+    val = "y"
+    highlight = Style(frozenset({FG(Color256(10)), BG(Color256(20))}))
+    config = Config().with_styles({"custom": highlight})
+    tt = TermText.render(t"{val:custom}", config=config)
+    ansi = tt.to_ansi()
+    # 38;5;10 for FG, 48;5;20 for BG
+    assert "38;5;10" in ansi
+    assert "48;5;20" in ansi
     assert "\x1b[0m" in ansi
 
 
