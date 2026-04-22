@@ -57,9 +57,9 @@ class AutomationMode(StrEnum):
     @staticmethod
     def _generate_next_value_(
         name: str,
-        start: int,
-        count: int,
-        last_values: list[str],
+        _start: int,
+        _count: int,
+        _last_values: list[str],
     ) -> str:  # type: ignore[override]
         return name
 
@@ -100,9 +100,9 @@ class SessionState(StrEnum):
     @staticmethod
     def _generate_next_value_(
         name: str,
-        start: int,
-        count: int,
-        last_values: list[str],
+        _start: int,
+        _count: int,
+        _last_values: list[str],
     ) -> str:  # type: ignore[override]
         return name
 
