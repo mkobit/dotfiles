@@ -1,7 +1,3 @@
 [zsh]
 set_as_default_login_shell = true
-prompt = "starship" # Valid options: "oh-my-zsh", "starship"
-
-[zsh.oh-my-zsh]
-sha = "9e23925b8581d22033f07f1983587412d3761494"
-plugins = ["git", "colored-man-pages"]
+prompt = "starship"
