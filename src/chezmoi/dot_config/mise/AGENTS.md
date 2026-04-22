@@ -15,11 +15,11 @@
 
 `mise.lock` in this directory is the global lockfile managed by chezmoi.
 It pins checksums for all global tools across all platforms.
-`locked = true` in settings enforces it — installs will fail without a valid entry.
+Locking is enforced by the presence of this file — no `locked = true` setting is required.
 
 ### Updating tools and relocking
 
 1. Update the version in `src/chezmoi/.chezmoidata/mise.toml`.
 2. Apply the config: `chezmoi apply ~/.config/mise/config.toml`
-3. Regenerate the lockfile: `MISE_LOCKED=0 mise lock --global`
+3. Regenerate the lockfile: `MISE_LOCKED=0 mise -C ~ lock --global` — the `-C ~` is required; running from the dotfiles repo root causes mise to exclude global-only tools like `uv` because the local `.mise.toml` claims them.
 4. Add the updated lockfile: `chezmoi add ~/.config/mise/mise.lock`

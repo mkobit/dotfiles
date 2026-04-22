@@ -478,3 +478,130 @@ def create(
 
 if __name__ == "__main__":
     cli()
+
+activity_app = typer.Typer(add_completion=False, help="Manage activities.")
+cli.add_typer(activity_app, name="activity")
+
+
+@activity_app.command(name="show")
+def show_activity(
+    ctx: typer.Context,
+    activity_name: str = typer.Argument(
+        ..., help="The unique identifier of the activity (e.g., 'sessions/123/activities/456')."
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Output in JSON format."),
+) -> None:
+    """Show details for a specific activity.
+
+    Example:
+    $ jules activity show sessions/123/activities/456
+    """
+
+    async def _show() -> None:
+        jules_ctx: JulesContext = ctx.obj
+        api_key = get_api_key(jules_ctx.api_key)
+        async with JulesClient(api_key=api_key) as client:
+            try:
+                activity = await client.get_activity(activity_name)
+                if as_json:
+                    typer.echo(json.dumps(activity.model_dump(mode="json", by_alias=True), indent=2))
+                else:
+                    typer.echo(f"Activity: {activity.name}")
+                    typer.echo(f"Originator: {activity.originator}")
+                    typer.echo(f"Created: {activity.create_time}")
+                    if activity.description:
+                        typer.echo(f"Description: {activity.description}")
+            except Exception as e:
+                typer.echo(f"Error: {e}", err=True)
+
+    asyncio.run(_show())
+
+
+@activity_app.command(name="list")
+def list_activities(
+    ctx: typer.Context,
+    session_id: str = typer.Argument(..., help="The session ID to list activities for (e.g., 'sessions/123')."),
+    as_json: bool = typer.Option(False, "--json", help="Output in JSON format."),
+) -> None:
+    """List activities for a specific session.
+
+    Example:
+    $ jules activity list sessions/123
+    """
+
+    async def _list() -> None:
+        jules_ctx: JulesContext = ctx.obj
+        api_key = get_api_key(jules_ctx.api_key)
+        async with JulesClient(api_key=api_key) as client:
+            if as_json:
+                activities = [
+                    a.model_dump(mode="json", by_alias=True) async for a in client.list_activities(session_id)
+                ]
+                typer.echo(json.dumps(activities, indent=2))
+            else:
+                async for act in client.list_activities(session_id):
+                    typer.echo(f"{act.name}: {act.originator} - {act.description or 'No description'}")
+
+    asyncio.run(_list())
+
+
+source_app = typer.Typer(add_completion=False, help="Manage sources.")
+cli.add_typer(source_app, name="source")
+
+
+@source_app.command(name="show")
+def show_source(
+    ctx: typer.Context,
+    source_name: str = typer.Argument(
+        ..., help="The unique identifier of the source (e.g., 'sources/github/owner/repo')."
+    ),
+    as_json: bool = typer.Option(False, "--json", help="Output in JSON format."),
+) -> None:
+    """Show details for a specific source.
+
+    Example:
+    $ jules source show sources/github/owner/repo
+    """
+
+    async def _show() -> None:
+        jules_ctx: JulesContext = ctx.obj
+        api_key = get_api_key(jules_ctx.api_key)
+        async with JulesClient(api_key=api_key) as client:
+            try:
+                source = await client.get_source(source_name)
+                if as_json:
+                    typer.echo(json.dumps(source.model_dump(mode="json", by_alias=True), indent=2))
+                else:
+                    typer.echo(f"Source: {source.name}")
+                    typer.echo(f"ID: {source.id}")
+                    if source.github_repo:
+                        typer.echo(f"GitHub Repo: {source.github_repo.owner}/{source.github_repo.repo}")
+            except Exception as e:
+                typer.echo(f"Error: {e}", err=True)
+
+    asyncio.run(_show())
+
+
+@source_app.command(name="list")
+def list_sources(
+    ctx: typer.Context,
+    as_json: bool = typer.Option(False, "--json", help="Output in JSON format."),
+) -> None:
+    """List available sources.
+
+    Example:
+    $ jules source list
+    """
+
+    async def _list() -> None:
+        jules_ctx: JulesContext = ctx.obj
+        api_key = get_api_key(jules_ctx.api_key)
+        async with JulesClient(api_key=api_key) as client:
+            if as_json:
+                sources = [s.model_dump(mode="json", by_alias=True) async for s in client.list_sources()]
+                typer.echo(json.dumps(sources, indent=2))
+            else:
+                async for s in client.list_sources():
+                    typer.echo(f"{s.name}")
+
+    asyncio.run(_list())

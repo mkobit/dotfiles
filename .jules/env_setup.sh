@@ -17,7 +17,10 @@ echo "Git commit hash: ${GIT_COMMIT_HASH}"
 echo "Git commit date: ${GIT_COMMIT_DATE}"
 echo "------------------------------"
 
-# Install mise
+export MISE_DEBUG=1
+
+# Step 1: Install mise and repo tools.
+# Root .mise.toml + mise.lock are self-consistent (uv only), so locking works here.
 if ! command -v mise &>/dev/null; then
     echo "Installing mise..."
     curl -s https://mise.run | MISE_VERSION="v2026.4.9" /usr/bin/env bash
@@ -29,8 +32,9 @@ mise install
 eval "$(mise activate bash)"
 mise doctor
 
-
-# Install chezmoi matching CI version
+# Step 2: Install chezmoi matching CI version, then apply it.
+# This writes the global mise config (dot_config/mise/) to $HOME, which is required
+# before global tools can be installed with the correct lockfile.
 CHEZMOI_CI_VERSION=$(grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' .github/workflows/ci.yml | head -n 1)
 
 install_chezmoi() {
@@ -42,9 +46,7 @@ install_chezmoi() {
 if ! command -v chezmoi &>/dev/null; then
     install_chezmoi
 else
-    # Check if existing version matches
     current_version=$(chezmoi --version | awk '{print $3}' | tr -d ',')
-    # get.chezmoi.io usually requires the 'v' prefix
     if [ "${current_version}" != "${CHEZMOI_CI_VERSION}" ]; then
         echo "Updating chezmoi from ${current_version} to ${CHEZMOI_CI_VERSION}..."
         install_chezmoi
@@ -53,6 +55,10 @@ else
     fi
 fi
 
+echo "Applying chezmoi..."
+chezmoi apply --source="$(pwd)/src/chezmoi" --destination="$HOME" --exclude=scripts
+
+# Step 3: Install python dependencies
 echo "Installing python dependencies..."
 uv sync --all-packages --frozen
 

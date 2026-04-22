@@ -8,10 +8,11 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 import typer
 from typer.testing import CliRunner
+from whenever import Instant
 
 from jules_cli.config import JulesConfig
 from jules_cli.main import cli, get_api_key
-from jules_cli.models import JulesContext, Session, SourceContext
+from jules_cli.models import Activity, GitHubRepo, JulesContext, Session, Source, SourceContext
 
 
 def test_get_api_key_ignores_env_var() -> None:
@@ -263,3 +264,79 @@ def test_approve_session_cli_json() -> None:
         instance.approve_plan.assert_called_once_with("sessions/1")
         data = json.loads(result.output)
         assert data["status"] == "approved"
+
+
+def test_activity_show_cli() -> None:
+    runner = CliRunner()
+    with patch("jules_cli.main.JulesClient") as mock_client:
+        instance = mock_client.return_value
+        instance.__aenter__ = AsyncMock(return_value=instance)
+        instance.__aexit__ = AsyncMock(return_value=None)
+
+        mock_activity = Activity(
+            name="sessions/1/activities/1", id="1", originator="agent", create_time=Instant.from_utc(2023, 1, 1)
+        )
+        instance.get_activity = AsyncMock(return_value=mock_activity)
+
+        result = runner.invoke(cli, ["--api-key", "key", "activity", "show", "sessions/1/activities/1"])
+
+        assert result.exit_code == 0
+        instance.get_activity.assert_called_once_with("sessions/1/activities/1")
+        assert "Activity: sessions/1/activities/1" in result.output
+        assert "Originator: agent" in result.output
+
+
+def test_activity_list_cli() -> None:
+    runner = CliRunner()
+    with patch("jules_cli.main.JulesClient") as mock_client:
+        instance = mock_client.return_value
+        instance.__aenter__ = AsyncMock(return_value=instance)
+        instance.__aexit__ = AsyncMock(return_value=None)
+
+        async def mock_activities() -> AsyncGenerator[Activity, None]:
+            yield Activity(
+                name="sessions/1/activities/1", id="1", originator="agent", create_time=Instant.from_utc(2023, 1, 1)
+            )
+
+        instance.list_activities.return_value = mock_activities()
+
+        result = runner.invoke(cli, ["--api-key", "key", "activity", "list", "sessions/1"])
+
+        assert result.exit_code == 0
+        assert "sessions/1/activities/1: agent" in result.output
+
+
+def test_source_show_cli() -> None:
+    runner = CliRunner()
+    with patch("jules_cli.main.JulesClient") as mock_client:
+        instance = mock_client.return_value
+        instance.__aenter__ = AsyncMock(return_value=instance)
+        instance.__aexit__ = AsyncMock(return_value=None)
+
+        mock_source = Source(name="sources/1", id="1", github_repo=GitHubRepo(owner="owner", repo="repo"))
+        instance.get_source = AsyncMock(return_value=mock_source)
+
+        result = runner.invoke(cli, ["--api-key", "key", "source", "show", "sources/1"])
+
+        assert result.exit_code == 0
+        instance.get_source.assert_called_once_with("sources/1")
+        assert "Source: sources/1" in result.output
+        assert "GitHub Repo: owner/repo" in result.output
+
+
+def test_source_list_cli() -> None:
+    runner = CliRunner()
+    with patch("jules_cli.main.JulesClient") as mock_client:
+        instance = mock_client.return_value
+        instance.__aenter__ = AsyncMock(return_value=instance)
+        instance.__aexit__ = AsyncMock(return_value=None)
+
+        async def mock_sources() -> AsyncGenerator[Source, None]:
+            yield Source(name="sources/1", id="1")
+
+        instance.list_sources.return_value = mock_sources()
+
+        result = runner.invoke(cli, ["--api-key", "key", "source", "list"])
+
+        assert result.exit_code == 0
+        assert "sources/1" in result.output
