@@ -18,4 +18,5 @@
 {{ template "shell/starship.sh" (merge (dict "shell" "zsh") .) }}
 {{ template "shell/keybindings.sh" (merge (dict "shell" "zsh") .) }}
 {{ template "shell/eza.sh" (merge (dict "shell" "zsh") .) }}
+{{- /* zoxide must be loaded last to ensure alias overrides and path precedence are correct */}}
 {{ template "shell/zoxide.sh" (merge (dict "shell" "zsh") .) }}
