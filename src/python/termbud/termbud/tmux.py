@@ -1,5 +1,6 @@
 import os
 import re
+import shlex
 import subprocess
 import sys
 import tempfile
@@ -57,20 +58,42 @@ def open_url(
     open_cmd = open_cmd or default_open_cmd
 
     fzf_env = os.environ.copy()
-    fzf_env["FZF_DEFAULT_COMMAND"] = f"cat {urls_file_name}"
+    fzf_env["FZF_DEFAULT_COMMAND"] = f"cat {shlex.quote(urls_file_name)}"
 
     fzf_args = [
         "fzf",
         "--prompt=Open URL: ",
-        "--bind",
-        f"enter:execute-silent({open_cmd} {{}})+abort",
-        "--bind",
-        f"ctrl-c:execute-silent(echo -n {{}} | {copy_cmd})+abort",
+        "--expect=enter,ctrl-c",
     ]
 
     try:
-        os.execvpe("fzf", fzf_args, fzf_env)
+        try:
+            result = subprocess.run(
+                fzf_args,
+                env=fzf_env,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+        finally:
+            if os.path.exists(urls_file_name):
+                os.remove(urls_file_name)
+
+        if not result.stdout:
+            sys.exit(0)
+
+        lines = result.stdout.splitlines()
+        if len(lines) < 2:
+            sys.exit(0)
+
+        key_pressed = lines[0]
+        url = lines[1]
+
+        if key_pressed == "enter":
+            subprocess.run([*shlex.split(open_cmd), url], check=False)
+        elif key_pressed == "ctrl-c":
+            subprocess.run(shlex.split(copy_cmd), input=url, text=True, check=False)
+
     except OSError:
         print("Failed to execute fzf", file=sys.stderr)
-        os.remove(urls_file_name)
         sys.exit(1)
