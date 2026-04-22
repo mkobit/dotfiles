@@ -29,6 +29,8 @@ logger = logging.getLogger(__name__)
 
 cli = typer.Typer(add_completion=False)
 
+SEGMENT_GENERATION_ADAPTER = TypeAdapter(list[SegmentGenerationResult] | SegmentGenerationResult)
+
 
 async def run_external_generator(
     cmd: str, payload_json: str, timeout: float = 2.0
@@ -51,8 +53,7 @@ async def run_external_generator(
 
         if proc.returncode == 0 and stdout.strip():
             try:
-                adapter = TypeAdapter(list[SegmentGenerationResult] | SegmentGenerationResult)
-                data = adapter.validate_json(stdout)
+                data = SEGMENT_GENERATION_ADAPTER.validate_json(stdout)
 
                 results = data if isinstance(data, list) else [data]
 
