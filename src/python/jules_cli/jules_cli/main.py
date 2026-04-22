@@ -404,8 +404,19 @@ def create(
     source: str = typer.Option(..., "--source", help="The source (e.g., owner/repo)."),
     branch: str = typer.Option("main", "--branch", help="Starting branch (default: main)."),
     title: str | None = typer.Option(None, "--title", help="Title for the session."),
-    auto_pr: bool = typer.Option(True, "--auto-pr/--no-auto-pr", help="Automatically create a PR."),
-    approve: bool = typer.Option(True, "--approve/--no-approve", help="Require manual plan approval."),
+    auto_pr: bool = typer.Option(
+        True,
+        "--auto-pr/--no-auto-pr",
+        help=("Automatically create a PR. Highly recommended for CLI and agents for pre-planned work."),
+    ),
+    approve: bool = typer.Option(
+        False,
+        "--approve/--no-approve",
+        help=(
+            "Require manual plan approval. Default is false (auto-approve), "
+            "ideal for agents submitting pre-planned work."
+        ),
+    ),
     interactive: bool = typer.Option(
         False, "--interactive/--no-interactive", "-i", help="Enter interactive mode after creating the session."
     ),
