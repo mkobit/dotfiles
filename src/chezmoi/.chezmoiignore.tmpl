@@ -35,3 +35,8 @@
 {{- if eq .mise.global_tools.bun.installation "disabled" }}
 .bunfig.toml
 {{- end }}
+
+{{- if ne .zsh.prompt "oh-my-zsh" }}
+.dotfiles/external/oh-my-zsh
+.dotfiles/external/oh-my-zsh/**
+{{- end }}
