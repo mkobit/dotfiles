@@ -27,9 +27,8 @@ Chezmoi manages it — running `chezmoi-personal apply` on the local machine is 
 
 ### Option+Arrow (macOS) doesn't do word navigation — jumps between Zellij panes instead
 
-Root cause: Zellij binds `"Alt Left"` and `"Alt Right"` in `shared_except "locked"`.
-Fix: edit `src/chezmoi/dot_config/zellij/config.kdl`, remove arrow variants, run `chezmoi-personal apply`.
-Status: **pending** — tracked in open items.
+Root cause: Zellij was binding `"Alt Left"` and `"Alt Right"` in `shared_except "locked"`.
+Fix: arrow variants removed from `config.kdl` — deploy with `chezmoi-personal apply`.
 
 ### Option+Enter / Option+P / Option+T do nothing in Claude Code (macOS)
 
@@ -56,8 +55,8 @@ Workaround: Zellij locked mode (`Ctrl+G`).
 
 ### Ctrl+S doesn't do forward history search in zsh / fzf
 
-Root cause: Zellij claims `Ctrl+S → SwitchToMode "Scroll"` in normal mode.
-Fix: remove from `config.kdl`, deploy via `chezmoi-personal apply`.
+Root cause: Zellij was claiming `Ctrl+S → SwitchToMode "Scroll"` in normal mode.
+Fix: removed from `config.kdl` — deploy with `chezmoi-personal apply`.
 
 ---
 
@@ -338,8 +337,8 @@ Could display the same rotating tip strip outside of Claude Code sessions.
 
 ### Chezmoi changes needed
 
-- [ ] **Immediate:** Remove `Alt+arrow` from Zellij `shared_except "locked"` (`config.kdl`)
-- [ ] **Short-term:** Remove `Ctrl+S` as Zellij normal-mode scroll entry trigger (`config.kdl`)
+- [x] **Immediate:** Remove `Alt+arrow` from Zellij `shared_except "locked"` (`config.kdl`)
+- [x] **Short-term:** Remove `Ctrl+S` as Zellij normal-mode scroll entry trigger (`config.kdl`)
 - [ ] **Medium:** Remap Zellij `Ctrl+B/T/O/G` to `Ctrl+Alt` variants (`config.kdl`)
 - [ ] **Medium:** Create `modify_settings.json.tmpl` for VS Code and Cursor — add `terminal.integrated.macOptionIsMeta: true`
 - [ ] **Medium:** Extend `modify_keybindings.json.tmpl` to scope `Alt+Arrow` away from terminal focus in VS Code/Cursor
