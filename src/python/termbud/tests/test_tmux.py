@@ -15,74 +15,104 @@ def mock_subprocess_run():
         yield mock
 
 
-@pytest.fixture
-def mock_os_execvpe():
-    with patch("os.execvpe") as mock:
-        yield mock
+def test_tmux_open_url_success_linux(mock_subprocess_run):
+    def side_effect_run(cmd, *args, **kwargs):
+        if cmd[0] == "tmux":
+            if cmd[1] == "capture-pane":
+                mock = MagicMock()
+                mock.stdout = "Some text with https://example.com inside"
+                return mock
+            return MagicMock()
+        if cmd[0] == "fzf":
+            mock = MagicMock()
+            mock.stdout = "enter\nhttps://example.com\n"
+            return mock
+        return MagicMock()
 
-
-def test_tmux_open_url_success_linux(mock_subprocess_run, mock_os_execvpe):
-    mock_subprocess_run.return_value = MagicMock(stdout="Some text with https://example.com inside")
+    mock_subprocess_run.side_effect = side_effect_run
     with patch("sys.platform", "linux"), patch("os.uname") as mock_uname:
         mock_uname.return_value = MagicMock(release="5.15.0-generic")
         result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
 
     assert result.exit_code == 0
-    mock_subprocess_run.assert_any_call(
-        ["tmux", "capture-pane", "-J", "-S", "-", "-t", "%1", "-p"],
-        capture_output=True,
-        text=True,
-        check=True,
-    )
-    mock_os_execvpe.assert_called_once()
-    args = mock_os_execvpe.call_args[0][1]
-    assert any("xdg-open" in str(arg) for arg in args)
+    # capture-pane, fzf, xdg-open
+    assert mock_subprocess_run.call_count == 3
+    last_call = mock_subprocess_run.call_args_list[-1]
+    assert last_call[0][0] == ["xdg-open", "https://example.com"]
 
 
-def test_tmux_open_url_success_darwin(mock_subprocess_run, mock_os_execvpe):
-    mock_subprocess_run.return_value = MagicMock(stdout="https://apple.com")
+def test_tmux_open_url_success_darwin(mock_subprocess_run):
+    def side_effect_run(cmd, *args, **kwargs):
+        if cmd[0] == "tmux":
+            mock = MagicMock()
+            mock.stdout = "https://apple.com"
+            return mock
+        if cmd[0] == "fzf":
+            mock = MagicMock()
+            mock.stdout = "enter\nhttps://apple.com\n"
+            return mock
+        return MagicMock()
+
+    mock_subprocess_run.side_effect = side_effect_run
     with patch("sys.platform", "darwin"):
         result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
 
     assert result.exit_code == 0
-    mock_os_execvpe.assert_called_once()
-    args = mock_os_execvpe.call_args[0][1]
-    assert any("open " in str(arg) or arg == "open" for arg in args)
+    assert mock_subprocess_run.call_count == 3
+    last_call = mock_subprocess_run.call_args_list[-1]
+    assert last_call[0][0] == ["open", "https://apple.com"]
 
 
-def test_tmux_open_url_success_wsl(mock_subprocess_run, mock_os_execvpe):
-    mock_subprocess_run.return_value = MagicMock(stdout="https://microsoft.com")
+def test_tmux_open_url_success_wsl(mock_subprocess_run):
+    def side_effect_run(cmd, *args, **kwargs):
+        if cmd[0] == "tmux":
+            mock = MagicMock()
+            mock.stdout = "https://microsoft.com"
+            return mock
+        if cmd[0] == "fzf":
+            mock = MagicMock()
+            mock.stdout = "enter\nhttps://microsoft.com\n"
+            return mock
+        return MagicMock()
+
+    mock_subprocess_run.side_effect = side_effect_run
     with patch("sys.platform", "linux"), patch("os.uname") as mock_uname:
         mock_uname.return_value = MagicMock(release="5.15.90.1-microsoft-standard-WSL2")
         result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
 
     assert result.exit_code == 0
-    mock_os_execvpe.assert_called_once()
-    args = mock_os_execvpe.call_args[0][1]
-    assert any("wslview" in str(arg) for arg in args)
+    assert mock_subprocess_run.call_count == 3
+    last_call = mock_subprocess_run.call_args_list[-1]
+    assert last_call[0][0] == ["wslview", "https://microsoft.com"]
 
 
-def test_tmux_open_url_capture_fail(mock_subprocess_run, mock_os_execvpe):
+def test_tmux_open_url_capture_fail(mock_subprocess_run):
     mock_subprocess_run.side_effect = [subprocess.CalledProcessError(1, "tmux"), MagicMock()]
     result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
 
     assert result.exit_code == 1
     mock_subprocess_run.assert_called_with(["tmux", "display-message", "Failed to capture pane"], check=False)
-    mock_os_execvpe.assert_not_called()
 
 
-def test_tmux_open_url_no_urls(mock_subprocess_run, mock_os_execvpe):
+def test_tmux_open_url_no_urls(mock_subprocess_run):
     mock_subprocess_run.return_value = MagicMock(stdout="No links here")
     result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
 
     assert result.exit_code == 0
     mock_subprocess_run.assert_called_with(["tmux", "display-message", "No URLs found."], check=False)
-    mock_os_execvpe.assert_not_called()
 
 
-def test_tmux_open_url_fzf_fail(mock_subprocess_run, mock_os_execvpe):
-    mock_subprocess_run.return_value = MagicMock(stdout="https://example.com")
-    mock_os_execvpe.side_effect = OSError("fzf failed")
+def test_tmux_open_url_fzf_fail(mock_subprocess_run):
+    def side_effect_run(cmd, *args, **kwargs):
+        if cmd[0] == "tmux":
+            mock = MagicMock()
+            mock.stdout = "https://example.com"
+            return mock
+        if cmd[0] == "fzf":
+            raise OSError("fzf failed")
+        return MagicMock()
+
+    mock_subprocess_run.side_effect = side_effect_run
     result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
 
     assert result.exit_code == 1
