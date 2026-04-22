@@ -21,5 +21,5 @@ Locking is enforced by the presence of this file — no `locked = true` setting 
 
 1. Update the version in `src/chezmoi/.chezmoidata/mise.toml`.
 2. Apply the config: `chezmoi apply ~/.config/mise/config.toml`
-3. Regenerate the lockfile: `MISE_LOCKED=0 mise lock --global`
+3. Regenerate the lockfile: `MISE_LOCKED=0 mise -C ~ lock --global` — the `-C ~` is required; running from the dotfiles repo root causes mise to exclude global-only tools like `uv` because the local `.mise.toml` claims them.
 4. Add the updated lockfile: `chezmoi add ~/.config/mise/mise.lock`
