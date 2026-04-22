@@ -15,7 +15,7 @@
 
 `mise.lock` in this directory is the global lockfile managed by chezmoi.
 It pins checksums for all global tools across all platforms.
-`locked = true` in settings enforces it — installs will fail without a valid entry.
+Locking is enforced by the presence of this file — no `locked = true` setting is required.
 
 ### Updating tools and relocking
 
