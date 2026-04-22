@@ -57,10 +57,12 @@ class AutomationMode(StrEnum):
     @staticmethod
     def _generate_next_value_(
         name: str,
-        _start: int,
-        _count: int,
-        _last_values: list[str],
+        start: int,
+        count: int,
+        last_values: list[str],
     ) -> str:  # type: ignore[override]
+        # Ignore unused arguments while preserving signature for LSP
+        _ = start, count, last_values
         return name
 
     AUTOMATION_MODE_UNSPECIFIED = auto()
@@ -100,10 +102,12 @@ class SessionState(StrEnum):
     @staticmethod
     def _generate_next_value_(
         name: str,
-        _start: int,
-        _count: int,
-        _last_values: list[str],
+        start: int,
+        count: int,
+        last_values: list[str],
     ) -> str:  # type: ignore[override]
+        # Ignore unused arguments while preserving signature for LSP
+        _ = start, count, last_values
         return name
 
     STATE_UNSPECIFIED = auto()
