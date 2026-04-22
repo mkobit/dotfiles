@@ -8,6 +8,8 @@ from claude_statusline.models import CachedSegment, SegmentGenerationResult
 
 logger = logging.getLogger(__name__)
 
+CACHE_ADAPTER = TypeAdapter(dict[str, CachedSegment])
+
 
 class SegmentCache:
     def __init__(self, cache_file: Path) -> None:
@@ -23,8 +25,7 @@ class SegmentCache:
             if not content.strip():
                 return
 
-            adapter = TypeAdapter(dict[str, CachedSegment])
-            self._cache = adapter.validate_json(content)
+            self._cache = CACHE_ADAPTER.validate_json(content)
         except (OSError, ValidationError) as e:
             logger.warning(f"Failed to load cache from {self.cache_file}: {e}")
             self._cache = {}
@@ -32,8 +33,7 @@ class SegmentCache:
     def _save(self) -> None:
         try:
             self.cache_file.parent.mkdir(parents=True, exist_ok=True)
-            adapter = TypeAdapter(dict[str, CachedSegment])
-            self.cache_file.write_text(adapter.dump_json(self._cache).decode("utf-8"))
+            self.cache_file.write_text(CACHE_ADAPTER.dump_json(self._cache).decode("utf-8"))
         except (OSError, ValidationError) as e:
             logger.warning(f"Failed to save cache to {self.cache_file}: {e}")
 
