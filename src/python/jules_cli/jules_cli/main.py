@@ -461,7 +461,7 @@ def create(
         req = CreateSessionRequest(
             prompt=prompt,
             source_context=source_context,
-            automation_mode=AutomationMode.AUTO_CREATE_PR if auto_pr else None,
+            automation_mode=AutomationMode.AUTO_CREATE_PR if auto_pr else AutomationMode.AUTOMATION_MODE_UNSPECIFIED,
             title=title,
             require_plan_approval=approve,
         )
