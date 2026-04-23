@@ -1,5 +1,7 @@
 {{- if .claude_code.enabled -}}
 #!/usr/bin/env python3
+# Manages ~/.claude/settings.json — deployment config only.
+# UI preferences (editorMode, etc.) live in ~/.claude.json; see modify_dot_claude.json.tmpl.
 import json
 import sys
 
