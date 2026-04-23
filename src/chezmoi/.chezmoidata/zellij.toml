@@ -2,6 +2,10 @@
 version = "v0.44.1"
 enabled = true
 
+[zellij.config]
+scrollback_lines_to_serialize = 75000
+show_startup_tips = true
+
 [zellij.checksums]
 darwin_arm64 = "544c19a9353f0ecc52877ef1e80b1c1dcbf8f258b4817077f9520099c12cc30c"
 darwin_amd64 = "590071e02f7733d25201ec9a97c5bd661ac7da3cbdf2ae52a11685b36654b7dc"

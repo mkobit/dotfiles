@@ -1,0 +1,55 @@
+// Keybind overrides only — zellij built-in defaults are preserved.
+// Tmux mode is disabled by unbinding Ctrl b everywhere it would activate.
+keybinds {
+    shared_except "locked" "scroll" "search" "tmux" {
+        unbind "Ctrl b"
+    }
+}
+
+// Plugin aliases - can be used to change the implementation of Zellij
+// changing these requires a restart to take effect
+plugins {
+    about location="zellij:about"
+    compact-bar location="zellij:compact-bar"
+    configuration location="zellij:configuration"
+    filepicker location="zellij:strider" {
+        cwd "/"
+    }
+    plugin-manager location="zellij:plugin-manager"
+    session-manager location="zellij:session-manager"
+    status-bar location="zellij:status-bar"
+    strider location="zellij:strider"
+    tab-bar location="zellij:tab-bar"
+    welcome-screen location="zellij:session-manager" {
+        welcome_screen true
+    }
+}
+
+// Plugins to load in the background when a new session starts
+load_plugins {
+    zellij:link
+}
+web_client {
+    font "monospace"
+}
+
+// https://zellij.dev/documentation/options#simplified_ui
+simplified_ui true
+
+// https://zellij.dev/documentation/options#pane_frames
+pane_frames true
+
+// https://zellij.dev/documentation/options#on_force_close
+on_force_close "detach"
+
+// https://zellij.dev/documentation/options#session_serialization
+session_serialization true
+
+// https://zellij.dev/documentation/options#serialize_pane_viewport
+serialize_pane_viewport true
+
+// https://zellij.dev/documentation/options#scrollback_lines_to_serialize
+scrollback_lines_to_serialize {{ .zellij.config.scrollback_lines_to_serialize }}
+
+// https://zellij.dev/documentation/options#show_startup_tips
+show_startup_tips {{ .zellij.config.show_startup_tips }}
