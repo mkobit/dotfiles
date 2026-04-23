@@ -3,10 +3,18 @@ enabled = true
 version = "2.1.114"
 installation = "external-script"
 
+# Deployment config → managed via modify_settings.json.tmpl → ~/.claude/settings.json
+# These are operator/admin-level settings: permissions, env, tooling behavior.
+# See: https://docs.anthropic.com/en/docs/claude-code/settings
 [claude_code.settings]
-# https://code.claude.com/docs/en/settings
 cleanupPeriodDays = 30
 outputStyle = "concise"
+
+# UI preferences → managed via modify_dot_claude.json.tmpl → ~/.claude.json
+# Claude Code stores user-facing preferences (editorMode, etc.) in ~/.claude.json,
+# which it also uses as a mutable runtime state file (startup counts, feature flags, etc.).
+# We only inject our preferences — the rest of the file is left alone.
+[claude_code.preferences]
 editorMode = "vim"
 
 [claude_code.settings.sandbox]

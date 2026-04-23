@@ -1,0 +1,22 @@
+{{- if .claude_code.enabled -}}
+#!/usr/bin/env python3
+# Manages ~/.claude.json — UI preferences only.
+# Claude Code uses this file as both a preferences store AND mutable runtime state
+# (startup counts, seen-tips history, feature flags, etc.). We only inject our
+# managed preferences and leave everything else untouched.
+# Deployment config (permissions, env, sandbox) lives in ~/.claude/settings.json;
+# see dot_claude/modify_settings.json.tmpl.
+import json
+import sys
+
+try:
+    existing = json.load(sys.stdin)
+except Exception:
+    existing = {}
+
+preferences = json.loads("""{{ .claude_code.preferences | toPrettyJson }}""")
+
+merged = {**existing, **preferences}
+
+print(json.dumps(merged, indent=2))
+{{- end }}
