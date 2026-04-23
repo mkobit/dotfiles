@@ -405,7 +405,7 @@ def create(
     branch: str = typer.Option("main", "--branch", help="Starting branch (default: main)."),
     title: str | None = typer.Option(None, "--title", help="Title for the session."),
     auto_pr: bool = typer.Option(
-        True,
+        False,
         "--auto-pr/--no-auto-pr",
         help=("Enables Jules to automatically create a pull request upon completion of the task"),
     ),
