@@ -1,4 +1,5 @@
 from enum import StrEnum, auto
+from typing import override
 
 from pydantic import BaseModel, ConfigDict, Field
 from pydantic.alias_generators import to_camel
@@ -55,12 +56,14 @@ class AutomationMode(StrEnum):
     """Automation modes for a session."""
 
     @staticmethod
+    @override
     def _generate_next_value_(
         name: str,
         start: int,
         count: int,
         last_values: list[str],
     ) -> str:  # type: ignore[override]
+        _ = start, count, last_values
         return name
 
     AUTOMATION_MODE_UNSPECIFIED = auto()
@@ -98,12 +101,14 @@ class SessionState(StrEnum):
     """State of a session."""
 
     @staticmethod
+    @override
     def _generate_next_value_(
         name: str,
         start: int,
         count: int,
         last_values: list[str],
     ) -> str:  # type: ignore[override]
+        _ = start, count, last_values
         return name
 
     STATE_UNSPECIFIED = auto()
