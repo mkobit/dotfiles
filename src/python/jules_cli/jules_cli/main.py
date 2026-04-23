@@ -404,8 +404,19 @@ def create(
     source: str = typer.Option(..., "--source", help="The source (e.g., owner/repo)."),
     branch: str = typer.Option("main", "--branch", help="Starting branch (default: main)."),
     title: str | None = typer.Option(None, "--title", help="Title for the session."),
-    auto_pr: bool = typer.Option(True, "--auto-pr/--no-auto-pr", help="Automatically create a PR."),
-    approve: bool = typer.Option(True, "--approve/--no-approve", help="Require manual plan approval."),
+    auto_pr: bool = typer.Option(
+        True,
+        "--auto-pr/--no-auto-pr",
+        help=("Enables Jules to automatically create a pull request upon completion of the task"),
+    ),
+    approve: bool = typer.Option(
+        False,
+        "--require-approval/--no-require-approval",
+        help=(
+            "Require manual plan approval. Default is false (auto-approve), but when required "
+            "manual approval and sometimes discussion and clarification will be required before Jules starts the task."
+        ),
+    ),
     interactive: bool = typer.Option(
         False, "--interactive/--no-interactive", "-i", help="Enter interactive mode after creating the session."
     ),
