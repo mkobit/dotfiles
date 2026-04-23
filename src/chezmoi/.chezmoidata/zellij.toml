@@ -4,6 +4,7 @@ enabled = true
 
 [zellij.config]
 scrollback_lines_to_serialize = 75000
+show_startup_tips = true
 
 [zellij.checksums]
 darwin_arm64 = "544c19a9353f0ecc52877ef1e80b1c1dcbf8f258b4817077f9520099c12cc30c"

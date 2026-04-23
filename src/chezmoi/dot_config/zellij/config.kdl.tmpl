@@ -33,17 +33,23 @@ web_client {
     font "monospace"
 }
 
+// https://zellij.dev/documentation/options#simplified_ui
 simplified_ui true
 
+// https://zellij.dev/documentation/options#pane_frames
 pane_frames true
 
+// https://zellij.dev/documentation/options#on_force_close
 on_force_close "detach"
 
+// https://zellij.dev/documentation/options#session_serialization
 session_serialization true
 
+// https://zellij.dev/documentation/options#serialize_pane_viewport
 serialize_pane_viewport true
 
 // https://zellij.dev/documentation/options#scrollback_lines_to_serialize
 scrollback_lines_to_serialize {{ .zellij.config.scrollback_lines_to_serialize }}
 
-show_startup_tips false
+// https://zellij.dev/documentation/options#show_startup_tips
+show_startup_tips {{ .zellij.config.show_startup_tips }}
