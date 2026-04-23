@@ -15,8 +15,9 @@ fi
 # Add our managed section
 cat >> "${tempfile}" << 'EOF'
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:zsh:{{ include "modify_dot_zprofile.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
-{{ template "shell/xdg_path.sh" (merge (dict "shell" "zsh") .) }}
-{{ template "shell/mise.sh" (merge (dict "shell" "zsh") .) }}
+{{- $ctx := merge (dict "shell" "zsh") . }}
+{{ template "shell/xdg_path.sh" $ctx }}
+{{ template "shell/mise.sh" $ctx }}
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:zsh:{{ include "modify_dot_zprofile.tmpl" | sha256sum | substr 0 8 }}
 EOF
 

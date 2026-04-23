@@ -44,7 +44,7 @@ def main_callback(
     logging.basicConfig(level=log_level, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
     # Store common arguments in context
-    ctx.obj = JulesContext(api_key=api_key, debug=debug)
+    ctx.obj = JulesContext(api_key=api_key)
 
 
 if __name__ == "__main__":

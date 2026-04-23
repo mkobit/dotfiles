@@ -1,6 +1,15 @@
 # =============================================================================
 # HISTORY CONFIGURATION - Large, shared, optimized for tmux
 # =============================================================================
+{{- if eq .shell "bash" }}
+export HISTFILE=~/.bash_history
+export HISTSIZE=100000
+export HISTFILESIZE=100000
+export HISTCONTROL=ignoreboth:erasedups
+shopt -s histappend
+# PROMPT_COMMAND ensures history is appended immediately in bash
+export PROMPT_COMMAND="history -a; history -c; history -r; $PROMPT_COMMAND"
+{{- else if eq .shell "zsh" }}
 export HISTFILE=~/.zsh_history
 export HISTSIZE=100000
 export SAVEHIST=100000
@@ -17,3 +26,5 @@ setopt HIST_IGNORE_SPACE       # Don't record entries starting with space
 setopt HIST_SAVE_NO_DUPS       # Don't write duplicate entries to history file
 setopt HIST_REDUCE_BLANKS      # Remove superfluous blanks before recording
 setopt HIST_VERIFY             # Show command with history expansion before running
+
+{{- end }}

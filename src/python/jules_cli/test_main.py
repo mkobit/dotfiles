@@ -11,14 +11,15 @@ from typer.testing import CliRunner
 from whenever import Instant
 
 from jules_cli.config import JulesConfig
-from jules_cli.main import cli, get_api_key
+from jules_cli.main import cli
 from jules_cli.models import Activity, GitHubRepo, JulesContext, Session, Source, SourceContext
+from jules_cli.utils import get_api_key
 
 
 def test_get_api_key_ignores_env_var() -> None:
     with (
         patch.dict(os.environ, {"JULES_API_KEY": "env_key"}),
-        patch("jules_cli.main.load_config", return_value=JulesConfig()),
+        patch("jules_cli.utils.load_config", return_value=JulesConfig()),
         patch("pathlib.Path.exists", return_value=False),
         pytest.raises(SystemExit),
     ):
@@ -28,13 +29,13 @@ def test_get_api_key_ignores_env_var() -> None:
 def test_get_api_key_from_config() -> None:
     mock_config = MagicMock()
     mock_config.api_key = "config_key"
-    with patch("jules_cli.main.load_config", return_value=mock_config):
+    with patch("jules_cli.utils.load_config", return_value=mock_config):
         assert get_api_key() == "config_key"
 
 
 def test_get_api_key_override() -> None:
     # Even if config fails, override should win
-    with patch("jules_cli.main.load_config", side_effect=Exception("No config")):
+    with patch("jules_cli.utils.load_config", side_effect=Exception("No config")):
         assert get_api_key("override_key") == "override_key"
 
 
@@ -48,7 +49,7 @@ def test_cli_help_example_toml() -> None:
 
 def test_list_sessions_cli_override() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.session.JulesClient") as mock_client:
         # Mock context manager
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
@@ -72,7 +73,7 @@ def test_list_sessions_cli_override() -> None:
 
 def test_list_sessions_json() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.session.JulesClient") as mock_client:
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
@@ -99,7 +100,7 @@ def test_list_sessions_json() -> None:
 
 def test_show_session_json() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.session.JulesClient") as mock_client:
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
@@ -130,7 +131,7 @@ def test_show_session_json() -> None:
 
 def test_create_session_json() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.session.JulesClient") as mock_client:
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
@@ -167,7 +168,7 @@ def test_create_session_json() -> None:
 
 def test_message_session_with_message() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.session.JulesClient") as mock_client:
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
@@ -231,7 +232,7 @@ def test_cli_context_type() -> None:
 
 def test_approve_session_cli() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.session.JulesClient") as mock_client:
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
@@ -249,7 +250,7 @@ def test_approve_session_cli() -> None:
 
 def test_approve_session_cli_json() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.session.JulesClient") as mock_client:
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
@@ -268,7 +269,7 @@ def test_approve_session_cli_json() -> None:
 
 def test_activity_show_cli() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.activity.JulesClient") as mock_client:
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
@@ -288,7 +289,7 @@ def test_activity_show_cli() -> None:
 
 def test_activity_list_cli() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.activity.JulesClient") as mock_client:
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
@@ -308,7 +309,7 @@ def test_activity_list_cli() -> None:
 
 def test_source_show_cli() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.source.JulesClient") as mock_client:
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)
@@ -326,7 +327,7 @@ def test_source_show_cli() -> None:
 
 def test_source_list_cli() -> None:
     runner = CliRunner()
-    with patch("jules_cli.main.JulesClient") as mock_client:
+    with patch("jules_cli.commands.source.JulesClient") as mock_client:
         instance = mock_client.return_value
         instance.__aenter__ = AsyncMock(return_value=instance)
         instance.__aexit__ = AsyncMock(return_value=None)

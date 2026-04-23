@@ -1,4 +1,3 @@
-#!/usr/bin/env zsh
 # =============================================================================
 # MULTIPLEXER-AWARE ZSH PERFORMANCE SETTINGS
 # =============================================================================
@@ -12,15 +11,29 @@ export HISTSIZE=100000
 export SAVEHIST=100000
 
 # CRITICAL: These ensure history is shared across all tmux panes/windows immediately
-setopt INC_APPEND_HISTORY      # Write to history immediately, not on shell exit
-setopt SHARE_HISTORY           # Share history between all sessions (tmux essential)
-setopt HIST_VERIFY             # Show command with history expansion before running
+{{- if eq .shell "zsh" }}
+setopt INC_APPEND_HISTORY
+{{- end }}      # Write to history immediately, not on shell exit
+{{- if eq .shell "zsh" }}
+setopt SHARE_HISTORY
+{{- end }}           # Share history between all sessions (tmux essential)
+{{- if eq .shell "zsh" }}
+setopt HIST_VERIFY
+{{- end }}             # Show command with history expansion before running
 
 # Advanced history deduplication (oh-my-zsh doesn't set these)
-setopt HIST_EXPIRE_DUPS_FIRST  # Expire duplicate entries first when trimming
-setopt HIST_IGNORE_ALL_DUPS    # Delete old entry if new entry is duplicate
-setopt HIST_FIND_NO_DUPS       # Don't display duplicates when searching
-setopt HIST_SAVE_NO_DUPS       # Don't write duplicate entries to history file
+{{- if eq .shell "zsh" }}
+setopt HIST_EXPIRE_DUPS_FIRST
+{{- end }}  # Expire duplicate entries first when trimming
+{{- if eq .shell "zsh" }}
+setopt HIST_IGNORE_ALL_DUPS
+{{- end }}    # Delete old entry if new entry is duplicate
+{{- if eq .shell "zsh" }}
+setopt HIST_FIND_NO_DUPS
+{{- end }}       # Don't display duplicates when searching
+{{- if eq .shell "zsh" }}
+setopt HIST_SAVE_NO_DUPS
+{{- end }}       # Don't write duplicate entries to history file
 
 # =============================================================================
 # VI MODE - TMUX OPTIMIZED
@@ -133,21 +146,35 @@ setopt HIST_SAVE_NO_DUPS       # Don't write duplicate entries to history file
 # TMUX PERFORMANCE OPTIMIZATIONS
 # =============================================================================
 # Disable flow control (essential for tmux - Ctrl-S/Ctrl-Q conflicts)
+{{- if eq .shell "zsh" }}
 unsetopt FLOW_CONTROL
+{{- end }}
 stty -ixon
 
 # Speed up job control for tmux environments
-setopt NO_HUP                  # Don't send HUP to background jobs on shell exit
-setopt NO_CHECK_JOBS           # Don't warn about running jobs on shell exit
-setopt NO_BEEP                 # Disable beeping (annoying in tmux)
+{{- if eq .shell "zsh" }}
+setopt NO_HUP
+{{- end }}                  # Don't send HUP to background jobs on shell exit
+{{- if eq .shell "zsh" }}
+setopt NO_CHECK_JOBS
+{{- end }}           # Don't warn about running jobs on shell exit
+{{- if eq .shell "zsh" }}
+setopt NO_BEEP
+{{- end }}                 # Disable beeping (annoying in tmux)
 
 # =============================================================================
 # COMPLETION OPTIMIZATIONS (oh-my-zsh doesn't optimize these)
 # =============================================================================
 # FZF-friendly completion behavior
-unsetopt AUTO_MENU             # Don't auto-select first completion (better for fzf)
-unsetopt MENU_COMPLETE         # Don't auto-insert first completion
-setopt AUTO_LIST               # List choices on ambiguous completion
+{{- if eq .shell "zsh" }}
+unsetopt AUTO_MENU
+{{- end }}             # Don't auto-select first completion (better for fzf)
+{{- if eq .shell "zsh" }}
+unsetopt MENU_COMPLETE
+{{- end }}         # Don't auto-insert first completion
+{{- if eq .shell "zsh" }}
+setopt AUTO_LIST
+{{- end }}               # List choices on ambiguous completion
 
 # =============================================================================
 # TERMINAL OPTIMIZATIONS FOR NESTED ENVIRONMENTS
@@ -158,11 +185,15 @@ setopt AUTO_LIST               # List choices on ambiguous completion
 if [[ -n "$TMUX" ]]; then
     export TERM="tmux-256color"
     DISABLE_AUTO_TITLE="true"
+    {{- if eq .shell "zsh" }}
     setopt PROMPT_SUBST
+    {{- end }}
 elif [[ -n "$ZELLIJ" ]]; then
     # zellij sets xterm-256color; leave TERM alone and just suppress auto-title
     DISABLE_AUTO_TITLE="true"
+    {{- if eq .shell "zsh" }}
     setopt PROMPT_SUBST
+    {{- end }}
 else
     case "$TERM_PROGRAM" in
         "iTerm.app")
@@ -194,7 +225,9 @@ case "$(uname -s)" in
         # Linux + multiplexer optimizations (WSL, SteamOS)
         if [[ -n "$WSL_DISTRO_NAME" && ( -n "$TMUX" || -n "$ZELLIJ" ) ]]; then
             # WSL + multiplexer: disable problematic features
+            {{- if eq .shell "zsh" }}
             unsetopt BG_NICE
+            {{- end }}
             export LIBGL_ALWAYS_INDIRECT=1
         fi
         ;;
@@ -204,6 +237,14 @@ esac
 # ESSENTIAL NAVIGATION (tmux workflow focused)
 # =============================================================================
 # Quick directory navigation (complement to zoxide)
-setopt AUTO_CD                 # Change directory without typing cd
-setopt AUTO_PUSHD              # Push directories to stack automatically
-setopt PUSHD_IGNORE_DUPS       # Don't push duplicate directories
+{{- if eq .shell "zsh" }}
+setopt AUTO_CD
+{{- else if eq .shell "bash" }}
+shopt -s autocd
+{{- end }}                 # Change directory without typing cd
+{{- if eq .shell "zsh" }}
+setopt AUTO_PUSHD
+{{- end }}              # Push directories to stack automatically
+{{- if eq .shell "zsh" }}
+setopt PUSHD_IGNORE_DUPS
+{{- end }}       # Don't push duplicate directories
