@@ -43,6 +43,7 @@ session_serialization true
 
 serialize_pane_viewport true
 
-scrollback_lines_to_serialize 10000
+// https://zellij.dev/documentation/options#scrollback_lines_to_serialize
+scrollback_lines_to_serialize {{ .zellij.config.scrollback_lines_to_serialize }}
 
 show_startup_tips false
