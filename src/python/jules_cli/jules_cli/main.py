@@ -407,14 +407,14 @@ def create(
     auto_pr: bool = typer.Option(
         True,
         "--auto-pr/--no-auto-pr",
-        help=("Automatically create a PR. Highly recommended for CLI and agents for pre-planned work."),
+        help=("Enables Jules to automatically create a pull request upon completion of the task"),
     ),
     approve: bool = typer.Option(
         False,
         "--require-approval/--no-require-approval",
         help=(
-            "Require manual plan approval. Default is false (auto-approve), "
-            "ideal for agents submitting pre-planned work."
+            "Require manual plan approval. Default is false (auto-approve), but when required "
+            "manual approval and sometimes discussion and clarification will be required before Jules starts the task."
         ),
     ),
     interactive: bool = typer.Option(
