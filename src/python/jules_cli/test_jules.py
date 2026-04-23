@@ -1,3 +1,5 @@
+from unittest.mock import AsyncMock, MagicMock, patch
+
 import pytest
 
 from jules_cli.client import JulesClient
@@ -256,3 +258,118 @@ async def test_client_get_source() -> None:
     assert source.id == "123"
     assert source.github_repo is not None
     assert source.github_repo.owner == "test-owner"
+
+
+@pytest.mark.asyncio
+async def test_client_context_manager() -> None:
+    client = JulesClient(api_key="test_key")
+    with patch("aiohttp.ClientSession") as mock_session_class:
+        mock_session = AsyncMock()
+        mock_session_class.return_value = mock_session
+
+        async with client as c:
+            assert c._session == mock_session
+
+        mock_session.close.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_client_uninitialized_session() -> None:
+    client = JulesClient(api_key="test_key")
+    with pytest.raises(RuntimeError, match="Client session not initialized"):
+        await client._get("/test")
+    with pytest.raises(RuntimeError, match="Client session not initialized"):
+        await client._post("/test", data={})
+
+
+class AsyncContextManagerMock:
+    def __init__(self, response):
+        self.response = response
+
+    async def __aenter__(self):
+        return self.response
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb):
+        pass
+
+
+@pytest.mark.asyncio
+async def test_client_get_success() -> None:
+    client = JulesClient(api_key="test_key")
+    with patch("aiohttp.ClientSession") as mock_session_class:
+        mock_session = MagicMock()
+        mock_session.close = AsyncMock()
+        mock_session_class.return_value = mock_session
+
+        mock_response = AsyncMock()
+        mock_response.ok = True
+        mock_response.json.return_value = {"status": "ok"}
+
+        mock_session.get.return_value = AsyncContextManagerMock(mock_response)
+
+        async with client as c:
+            c._session = mock_session
+            result = await c._get("/test")
+            assert result == {"status": "ok"}
+
+
+@pytest.mark.asyncio
+async def test_client_get_error() -> None:
+    client = JulesClient(api_key="test_key")
+    with patch("aiohttp.ClientSession") as mock_session_class:
+        mock_session = MagicMock()
+        mock_session.close = AsyncMock()
+        mock_session_class.return_value = mock_session
+
+        mock_response = AsyncMock()
+        mock_response.ok = False
+        mock_response.status = 500
+        mock_response.text.return_value = "Internal Server Error"
+
+        mock_session.get.return_value = AsyncContextManagerMock(mock_response)
+
+        async with client as c:
+            c._session = mock_session
+            with pytest.raises(Exception, match="API Error 500: Internal Server Error"):
+                await c._get("/test")
+
+
+@pytest.mark.asyncio
+async def test_client_post_success() -> None:
+    client = JulesClient(api_key="test_key")
+    with patch("aiohttp.ClientSession") as mock_session_class:
+        mock_session = MagicMock()
+        mock_session.close = AsyncMock()
+        mock_session_class.return_value = mock_session
+
+        mock_response = AsyncMock()
+        mock_response.ok = True
+        mock_response.json.return_value = {"status": "created"}
+
+        mock_session.post.return_value = AsyncContextManagerMock(mock_response)
+
+        async with client as c:
+            c._session = mock_session
+            result = await c._post("/test", data={"foo": "bar"})
+            assert result == {"status": "created"}
+
+
+@pytest.mark.asyncio
+async def test_client_post_error() -> None:
+    client = JulesClient(api_key="test_key")
+    with patch("aiohttp.ClientSession") as mock_session_class:
+        mock_session = MagicMock()
+        mock_session.close = AsyncMock()
+        mock_session_class.return_value = mock_session
+
+        mock_response = AsyncMock()
+        mock_response.ok = False
+        mock_response.status = 400
+        mock_response.text.return_value = "Bad Request"
+
+        mock_session.post.return_value = AsyncContextManagerMock(mock_response)
+
+        async with client as c:
+            c._session = mock_session
+            with pytest.raises(Exception, match="API Error 400: Bad Request"):
+                await c._post("/test")
