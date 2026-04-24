@@ -4,7 +4,7 @@ installation_method = "chezmoi_external"
 repo                = "sharkdp/bat"
 external_type       = "archive-file"
 executable          = true
-checksum_type       = "none"
+checksum_type       = "sha256"
 tag_format          = "v{version}"
 filename_format     = "bat-v{version}-{target}.tar.gz"
 path_format         = "bat-v{version}-{target}/bat"
@@ -16,7 +16,6 @@ darwin_amd64 = "x86_64-apple-darwin"
 linux_amd64  = "x86_64-unknown-linux-gnu"
 linux_arm64  = "aarch64-unknown-linux-gnu"
 
-# publisher does not release checksums — checksum_type = "none"
 [bat.checksums]
 darwin_arm64 = "e30beff26779c9bf60bb541e1d79046250cb74378f2757f8eb250afddb19e114"
 darwin_amd64 = "830d63b0bba1fa040542ec569e3cf77f60d3356b9de75116a344b061e0894245"
