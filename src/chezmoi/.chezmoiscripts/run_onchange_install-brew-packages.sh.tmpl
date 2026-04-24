@@ -18,7 +18,7 @@ if [[ ! -f "$BREWFILE" ]]; then
 fi
 
 log_info "Running brew bundle from $BREWFILE..."
-if brew bundle --file="$BREWFILE" --no-lock; then
+if brew bundle --file="$BREWFILE"; then
     log_success "Brew packages installed successfully"
 else
     log_error "brew bundle failed"
