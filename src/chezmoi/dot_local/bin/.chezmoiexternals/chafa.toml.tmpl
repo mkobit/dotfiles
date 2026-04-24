@@ -1,26 +1,5 @@
-{{- $version := dig "chafa" "version" "1.18.1" . -}}
-{{- $installation := dig "chafa" "installation" "external-sources" . -}}
-{{- if eq $installation "external-sources" -}}
-{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
-{{- $target := "" -}}
-{{- if and (eq $.chezmoi.os "linux") (eq $.chezmoi.arch "amd64") -}}
-  {{- $target = "x86_64-linux-gnu" -}}
-{{- else if and (eq $.chezmoi.os "linux") (eq $.chezmoi.arch "arm") -}}
-  {{- $target = "armv7l-linux-gnu" -}}
-{{- end -}}
-{{- if ne $target "" -}}
-{{- $config := dict -}}
-{{- $chafa := dict
-    "type" "archive-file"
-    "url" (printf "https://hpjansson.org/chafa/releases/static/chafa-%s-1-%s.tar.gz" $version $target)
-    "path" (printf "chafa-%s-1-%s/chafa" $version $target)
-    "executable" true
--}}
-{{- $checksums := dig "chafa" "checksums" dict . -}}
-{{- if and (hasKey $checksums $platform) (ne (trim (index $checksums $platform)) "") -}}
-  {{- $_ := set $chafa "checksum" (dict "sha256" (index $checksums $platform)) -}}
-{{- end -}}
-{{- $_ := set $config "chafa" $chafa -}}
-{{- toToml $config -}}
+{{- with .chafa -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "chafa" "data" . "root" $) -}}
 {{- end -}}
 {{- end -}}

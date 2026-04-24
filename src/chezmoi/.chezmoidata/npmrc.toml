@@ -1,2 +1,2 @@
 [npmrc]
-installation = "enabled"
+installation_method = "chezmoi"

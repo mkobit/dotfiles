@@ -1,7 +1,6 @@
 [claude_code]
-enabled = true
+installation_method = "dotfiles.script"
 version = "2.1.114"
-installation = "external-script"
 
 # Deployment config → managed via modify_settings.json.tmpl → ~/.claude/settings.json
 # These are operator/admin-level settings: permissions, env, tooling behavior.

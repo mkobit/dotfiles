@@ -1,23 +1,5 @@
-{{/* Source: https://github.com/dyoshikawa/rulesync */}}
 {{- with .rulesync -}}
-{{- if eq .installation "external-sources" -}}
-{{- $os := $.chezmoi.os -}}
-{{- $arch := $.chezmoi.arch -}}
-{{- if eq $arch "amd64" -}}
-{{-   $arch = "x64" -}}
-{{- end -}}
-{{- $asset := printf "rulesync-%s-%s" $os $arch -}}
-{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
-{{- $config := dict -}}
-{{- $rulesync := dict
-    "type" "file"
-    "url" (gitHubReleaseAssetURL "dyoshikawa/rulesync" (printf "v%s" .version) $asset)
-    "executable" true
--}}
-{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
-  {{- $_ := set $rulesync "checksum" (dict "sha256" (index .checksums $platform)) -}}
-{{- end -}}
-{{- $_ := set $config "rulesync" $rulesync -}}
-{{- toToml $config -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "rulesync" "data" . "root" $) -}}
 {{- end -}}
 {{- end -}}

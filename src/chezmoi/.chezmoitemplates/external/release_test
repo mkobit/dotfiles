@@ -1,0 +1,162 @@
+{{- /*
+  Prototype test for external/release.
+  Run: chezmoi-personal execute-template -f src/chezmoi/.chezmoitemplates/external/release_test.tmpl
+  Delete once all data files are migrated.
+*/ -}}
+
+{{- define "external/release" -}}
+{{- $key  := .key -}}
+{{- $d    := .data -}}
+{{- $root := .root -}}
+{{- $base     := dig "github_releases" "base_url" "https://github.com" $root -}}
+{{- $platform := printf "%s_%s" $root.chezmoi.os $root.chezmoi.arch -}}
+{{- $target   := dig "platforms" $platform "" $d -}}
+{{- if $target -}}
+{{- $version  := $d.version -}}
+{{- $tag      := $d.tag_format | replace "{version}" $version -}}
+{{- $filename := $d.filename_format | replace "{version}" $version | replace "{tag}" $tag | replace "{target}" $target | replace "{os}" $root.chezmoi.os | replace "{arch}" $root.chezmoi.arch -}}
+{{- $url := $d.url_format | replace "{base}" $base | replace "{repo}" $d.repo | replace "{version}" $version | replace "{tag}" $tag | replace "{filename}" $filename | replace "{target}" $target | replace "{os}" $root.chezmoi.os | replace "{arch}" $root.chezmoi.arch -}}
+{{- $entry := dict "type" $d.external_type "url" $url -}}
+{{- if dig "executable"       false $d -}}{{- $_ := set $entry "executable"      true -}}{{- end -}}
+{{- if dig "readonly"         false $d -}}{{- $_ := set $entry "readonly"        true -}}{{- end -}}
+{{- if dig "exact"            false $d -}}{{- $_ := set $entry "exact"           true -}}{{- end -}}
+{{- if dig "strip_components" 0    $d -}}{{- $_ := set $entry "stripComponents" (dig "strip_components" 0 $d) -}}{{- end -}}
+{{- if dig "include"          nil  $d -}}{{- $_ := set $entry "include"         (dig "include" list $d) -}}{{- end -}}
+{{- if dig "path_format" "" $d -}}
+  {{- $path := $d.path_format | replace "{version}" $version | replace "{tag}" $tag | replace "{target}" $target | replace "{os}" $root.chezmoi.os | replace "{arch}" $root.chezmoi.arch -}}
+  {{- $_ := set $entry "path" $path -}}
+{{- end -}}
+{{- if dig "fallback_url_format" "" $d -}}
+  {{- $fallback := $d.fallback_url_format | replace "{base}" $base | replace "{repo}" $d.repo | replace "{version}" $version | replace "{tag}" $tag | replace "{filename}" $filename | replace "{target}" $target | replace "{os}" $root.chezmoi.os | replace "{arch}" $root.chezmoi.arch -}}
+  {{- $_ := set $entry "urls" (list $fallback) -}}
+{{- end -}}
+{{- $ctype := $d.checksum_type -}}
+{{- if ne $ctype "none" -}}
+  {{- $sha := dig "checksums" $platform "" $d -}}
+  {{- if $sha -}}
+    {{- $_ := set $entry "checksum" (dict $ctype $sha) -}}
+  {{- else -}}
+    {{- fail (printf "external/release: checksum_type=%q but no %s checksum for %s/%s" $ctype $ctype $key $platform) -}}
+  {{- end -}}
+{{- end -}}
+{{- toToml (dict $key $entry) -}}
+{{- end -}}
+{{- end -}}
+
+{{- /* ------------------------------------------------------------------ */ -}}
+{{- /* bat: archive-file, checksum_type=none                               */ -}}
+{{- $bat := dict
+    "version"             "0.26.1"
+    "installation_method" "chezmoi_external"
+    "repo"                "sharkdp/bat"
+    "external_type"       "archive-file"
+    "executable"          true
+    "checksum_type"       "none"
+    "tag_format"          "v{version}"
+    "filename_format"     "bat-v{version}-{target}.tar.gz"
+    "path_format"         "bat-v{version}-{target}/bat"
+    "url_format"          "{base}/{repo}/releases/download/{tag}/{filename}"
+    "platforms"           (dict
+                            "darwin_arm64" "aarch64-apple-darwin"
+                            "darwin_amd64" "x86_64-apple-darwin"
+                            "linux_amd64"  "x86_64-unknown-linux-gnu"
+                            "linux_arm64"  "aarch64-unknown-linux-gnu") -}}
+=== bat (checksum_type=none) ===
+{{- template "external/release" (dict "key" "bat" "data" $bat "root" $) }}
+
+{{- /* ------------------------------------------------------------------ */ -}}
+{{- /* starship: checksum_type=sha256, required for all platforms          */ -}}
+{{- $starship := dict
+    "version"             "1.25.0"
+    "installation_method" "chezmoi_external"
+    "repo"                "starship/starship"
+    "external_type"       "archive-file"
+    "executable"          true
+    "checksum_type"       "sha256"
+    "tag_format"          "v{version}"
+    "filename_format"     "starship-{target}.tar.gz"
+    "path_format"         "starship"
+    "url_format"          "{base}/{repo}/releases/download/{tag}/{filename}"
+    "platforms"           (dict
+                            "darwin_arm64" "aarch64-apple-darwin"
+                            "darwin_amd64" "x86_64-apple-darwin"
+                            "linux_amd64"  "x86_64-unknown-linux-gnu"
+                            "linux_arm64"  "aarch64-unknown-linux-musl")
+    "checksums"           (dict
+                            "darwin_arm64" "365301b5f4938322a9f378764b4bc640048bca7d6ac28eaabd406cadd6fc703a"
+                            "darwin_amd64" "05421bfc05ed00394ec4a7ea20213bd9920b2858713cbe1ddf257ebcebf5da88"
+                            "linux_amd64"  "025a6540717a20d2545410c0108caf216a6a14ab2cce91a473d91ed42762bc6b"
+                            "linux_arm64"  "68ffcb75582e5ed336b43598bb4d8ecc4ec994ea26eac7955d3d378f1375da34") -}}
+=== starship (checksum_type=sha256) ===
+{{- template "external/release" (dict "key" "starship" "data" $starship "root" $) }}
+
+{{- /* ------------------------------------------------------------------ */ -}}
+{{- /* chafa: linux-only, fallback_url_format → urls                       */ -}}
+{{- $chafa := dict
+    "version"              "1.18.1"
+    "installation_method"  "chezmoi_external"
+    "repo"                 "hpjansson/chafa"
+    "external_type"        "archive-file"
+    "executable"           true
+    "checksum_type"        "sha256"
+    "tag_format"           "v{version}"
+    "filename_format"      "chafa-{version}-1-{target}.tar.gz"
+    "path_format"          "chafa-{version}-1-{target}/chafa"
+    "url_format"           "{base}/{repo}/releases/download/{tag}/{filename}"
+    "fallback_url_format"  "https://hpjansson.org/chafa/releases/static/{filename}"
+    "platforms"            (dict
+                             "linux_amd64" "x86_64-linux-gnu"
+                             "linux_arm"   "armv7l-linux-gnu")
+    "checksums"            (dict
+                             "linux_amd64" "aae17508b9e21f67291f50b849e2ce5d31cf194ab65ac3b439bc45effa64be33"
+                             "linux_arm"   "94f6b33e3a417a3cafcb0fe31059ae015323dc4ae2eb57bbf57360a5962d8d82") -}}
+=== chafa (linux-only, fallback url) — expect empty on darwin ===
+{{- template "external/release" (dict "key" "chafa" "data" $chafa "root" $) }}
+
+{{- /* ------------------------------------------------------------------ */ -}}
+{{- /* jq: type=file, non-standard tag, no path                            */ -}}
+{{- $jq := dict
+    "version"             "1.7.1"
+    "installation_method" "chezmoi_external"
+    "repo"                "jqlang/jq"
+    "external_type"       "file"
+    "executable"          true
+    "checksum_type"       "sha256"
+    "tag_format"          "jq-{version}"
+    "filename_format"     "jq-{target}"
+    "url_format"          "{base}/{repo}/releases/download/{tag}/{filename}"
+    "platforms"           (dict
+                            "darwin_arm64" "macos-arm64"
+                            "darwin_amd64" "macos-amd64"
+                            "linux_amd64"  "linux-amd64"
+                            "linux_arm64"  "linux-arm64")
+    "checksums"           (dict
+                            "darwin_arm64" "aaabbbccc"
+                            "darwin_amd64" "dddeeefff"
+                            "linux_amd64"  "111222333"
+                            "linux_arm64"  "444555666") -}}
+=== jq (file type, jq-{version} tag, no path) ===
+{{- template "external/release" (dict "key" "jq" "data" $jq "root" $) }}
+
+{{- /* ------------------------------------------------------------------ */ -}}
+{{- /* eza: strip_components, linux-only (darwin absent from platforms)    */ -}}
+{{- $eza := dict
+    "version"             "0.23.4"
+    "installation_method" "chezmoi_external"
+    "repo"                "eza-community/eza"
+    "external_type"       "archive-file"
+    "executable"          true
+    "checksum_type"       "sha256"
+    "strip_components"    1
+    "tag_format"          "v{version}"
+    "filename_format"     "eza_{target}.tar.gz"
+    "path_format"         "eza"
+    "url_format"          "{base}/{repo}/releases/download/{tag}/{filename}"
+    "platforms"           (dict
+                            "linux_amd64" "x86_64-unknown-linux-musl"
+                            "linux_arm64" "aarch64-unknown-linux-gnu")
+    "checksums"           (dict
+                            "linux_amd64" "d231bb3ee33b08c76279b5888845dceb7034d055c42bb9be46dbe0dae39394df"
+                            "linux_arm64" "366e8430225f9955c3dc659b452150c169894833ccfef455e01765e265a3edda") -}}
+=== eza (strip_components=1, darwin absent → empty) ===
+{{- template "external/release" (dict "key" "eza" "data" $eza "root" $) }}

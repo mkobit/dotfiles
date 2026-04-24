@@ -1,9 +1,0 @@
-[fzf]
-version = "0.71.0"
-installation = "external-sources"
-
-[fzf.checksums] # publishes shas
-darwin_arm64 = "02dfb11de8773cb79aa4fc5bfc77e75c6604ee14728bc849fc162dd91a9714c4"
-darwin_amd64 = "144e98ee6bcffaf915366162768000561cd2db8fb53b119d73110391a8e5b5f0"
-linux_amd64 = "22639bb38489dbca8acef57850cbb50231ab714d0e8e855ac52fae8b41233df4"
-linux_arm64 = "98b7d322efae9c37e4bfbbab1cbcd8722eb742d9399511f96375feb40cc35d1d"

@@ -1,0 +1,22 @@
+[fd]
+version             = "10.4.2"
+installation_method = "chezmoi_external"
+repo                = "sharkdp/fd"
+external_type       = "archive-file"
+executable          = true
+checksum_type       = "sha256"
+tag_format          = "v{version}"
+filename_format     = "fd-v{version}-{target}.tar.gz"
+path_format         = "fd-v{version}-{target}/fd"
+url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[fd.platforms]
+darwin_arm64 = "aarch64-apple-darwin"
+darwin_amd64 = "x86_64-apple-darwin"
+linux_amd64  = "x86_64-unknown-linux-musl"
+linux_arm64  = "aarch64-unknown-linux-musl"
+
+[fd.checksums]
+darwin_arm64 = "623dc0afc81b92e4d4606b380d7bc91916ba7b97814263e554d50923a39e480a"
+linux_amd64  = "e3257d48e29a6be965187dbd24ce9af564e0fe67b3e73c9bdcd180f4ec11bdde"
+linux_arm64  = "f32d3657473fba74e2600babc8db0b93420d51169223b7e8143b2ed55d8fd9e8"

@@ -1,6 +1,5 @@
 [hammerspoon]
-enabled = true
-installation = "package-manager"
+installation_method = "homebrew"
 
 [hammerspoon.window_manager]
 enabled = true

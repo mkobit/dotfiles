@@ -1,26 +1,5 @@
 {{- with .bat -}}
-{{- if eq .installation "external-sources" -}}
-{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
-{{- $target := "" -}}
-{{- if eq $.chezmoi.os "darwin" -}}
-  {{- $target = printf "%s-apple-darwin" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
-{{- else -}}
-  {{- $target = printf "%s-unknown-linux-gnu" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
-{{- end -}}
-{{- $config := dict -}}
-{{- $bat := dict
-    "type" "archive-file"
-    "url" (gitHubReleaseAssetURL "sharkdp/bat" (printf "v%s" .version) (printf "bat-v%s-%s.tar.gz" .version $target))
-    "path" (printf "bat-v%s-%s/bat" .version $target)
-    "executable" true
--}}
-{{- if ne .checksums.type "disabled" -}}
-  {{- if not (hasKey .checksums $platform) -}}
-    {{- fail (printf "Checksum validation enabled but no checksum found for platform: %s" $platform) -}}
-  {{- end -}}
-  {{- $_ := set $bat "checksum" (dict "sha256" (index .checksums $platform)) -}}
-{{- end -}}
-{{- $_ := set $config "bat" $bat -}}
-{{- toToml $config -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "bat" "data" . "root" $) -}}
 {{- end -}}
 {{- end -}}

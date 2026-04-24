@@ -1,5 +1,5 @@
 {{- $geminiCli := index .mise.global_tools "gemini-cli" -}}
-{{- if ne $geminiCli.installation "disabled" -}}
+{{- if ne $geminiCli.installation_method "none" -}}
 #!/usr/bin/env bash
 # mise description="Installs Gemini CLI extensions"
 
@@ -20,7 +20,7 @@ fi
 echo "Installing Gemini CLI extensions..."
 
 {{- range $name, $ext := .gemini.extensions }}
-{{-   if eq $ext.installation "gemini-cli" }}
+{{-   if eq $ext.installation_method "gemini-cli" }}
 echo "Uninstalling {{ $name }} (to ensure clean update)..."
 "${RUN_CMD[@]}" extensions uninstall "{{ $name }}" > /dev/null 2>&1 || true
 

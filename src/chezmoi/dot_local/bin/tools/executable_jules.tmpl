@@ -1,4 +1,4 @@
-{{- if eq .local_bin_tools.jules.installation "uv" -}}
+{{- if eq .local_bin_tools.jules.installation_method "dotfiles.uv" -}}
 #!/usr/bin/env bash
 exec mise exec -- uv run --frozen --project {{ .chezmoi.workingTree }}/src/python/jules_cli -m jules_cli.main "$@"
 {{- end -}}

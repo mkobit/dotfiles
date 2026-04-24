@@ -1,5 +1,5 @@
-{{- $installation := dig "chafa" "installation" "external-sources" . -}}
-{{- if eq $installation "package-manager" -}}#!/usr/bin/env bash
+{{- $installation := dig "chafa" "installation_method" "chezmoi_external" . -}}
+{{- if eq $installation "homebrew" -}}#!/usr/bin/env bash
 CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
 source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 if check_command chafa; then
@@ -28,5 +28,5 @@ fi
 {{ else }}
 log_error "Unsupported OS: {{ .chezmoi.os }}"
 exit 1
-{{ end }}
+{{- end }}
 {{- end -}}

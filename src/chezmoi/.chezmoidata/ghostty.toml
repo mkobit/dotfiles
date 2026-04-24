@@ -1,2 +1,2 @@
 [ghostty]
-installation = "package-manager"
+installation_method = "homebrew"

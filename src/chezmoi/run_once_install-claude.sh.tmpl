@@ -1,4 +1,4 @@
-{{- if eq .claude_code.installation "external-script" }}#!/bin/bash
+{{- if eq .claude_code.installation_method "dotfiles.script" }}#!/bin/bash
 set -euo pipefail
 
 # Install Claude Code using official installer

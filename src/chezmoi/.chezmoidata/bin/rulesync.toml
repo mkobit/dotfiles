@@ -1,0 +1,30 @@
+# Rulesync: A Utility CLI for AI Coding Agents
+# Repo: https://github.com/dyoshikawa/rulesync
+# Documentation: https://dyoshikawa.github.io/rulesync/
+#
+# Generates configuration files for various AI development tools from unified AI rule files.
+# Features: selective generation, comprehensive import/export capabilities, and supports major AI development tools.
+
+[rulesync]
+version             = "8.4.0"
+installation_method = "chezmoi_external"
+repo                = "dyoshikawa/rulesync"
+external_type       = "file"
+executable          = true
+checksum_type       = "sha256"
+tag_format          = "v{version}"
+filename_format     = "rulesync-{os}-{target}"
+url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+# rulesync uses {os}-{target} naming where target is the arch alias (x64 not amd64)
+[rulesync.platforms]
+darwin_arm64 = "arm64"
+darwin_amd64 = "x64"
+linux_amd64  = "x64"
+linux_arm64  = "arm64"
+
+[rulesync.checksums]
+darwin_arm64 = "2561ac5237e07f1a60353638ed3db08570ebc41d6fc8b439730a382997ead33c"
+darwin_amd64 = "27aca856abf7c2a8df413cb668ec4e0c706e991077a89b08ba916d1e4160504e"
+linux_amd64  = "2b0975d288182570c40587bf1de51b2764fa589d4b33cd0731089b6a7ad2d8e8"
+linux_arm64  = "088886fd1f21efc06a7796dc4bada680307d708173f9baad8c0de95619dacaa7"

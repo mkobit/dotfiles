@@ -1,4 +1,4 @@
-{{ if eq (index .eza.installation .chezmoi.os) "package-manager" }}#!/usr/bin/env bash
+{{- if eq (dig "installation_method" .chezmoi.os "none" .eza) "homebrew" -}}#!/usr/bin/env bash
 
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
@@ -32,5 +32,5 @@ exit 1
 {{ else }}
 log_error "Unsupported OS: {{ .chezmoi.os }}"
 exit 1
-{{ end }}
-{{ end }}
+{{- end }}
+{{- end }}

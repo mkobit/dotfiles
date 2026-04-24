@@ -1,14 +1,14 @@
 # Local Python tools installed via uv from src/python/ workspace.
-# Set installation = "disabled" to skip on machines where you don't want them.
+# Set installation_method = "none" to skip on machines where you don't want them.
 
 [local_bin_tools.claude_statusline]
-installation = "uv"
+installation_method = "dotfiles.uv"
 
 [local_bin_tools.jules]
-installation = "uv"
+installation_method = "dotfiles.uv"
 
 [local_bin_tools.transcribe]
-installation = "uv"
+installation_method = "dotfiles.uv"
 
 [local_bin_tools.termbud]
-installation = "uv"
+installation_method = "dotfiles.uv"
