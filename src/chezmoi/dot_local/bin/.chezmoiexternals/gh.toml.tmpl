@@ -1,5 +1,5 @@
 {{- with .gh -}}
-{{- if eq .installation "external-sources" -}}
+{{- if eq .installation_method "chezmoi_external" -}}
 {{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
 {{- $os_name := "" -}}
 {{- if eq $.chezmoi.os "darwin" -}}

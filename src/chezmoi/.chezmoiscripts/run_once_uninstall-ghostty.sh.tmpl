@@ -1,4 +1,4 @@
-{{ if eq .ghostty.installation "disabled" }}#!/usr/bin/env bash
+{{- if eq .ghostty.installation_method "none" }}#!/usr/bin/env bash
 
 # logging.sh hash: {{ includeTemplate "shell/logging.sh" | sha256sum }}
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
@@ -100,7 +100,7 @@ fi
 {{ else }}
 log_error "Unsupported OS: {{ .chezmoi.os }}"
 exit 1
-{{ end }}
+{{- end }}
 
 # Clean up configuration directory on all platforms
 if [[ -d "{{ .chezmoi.destDir }}/.config/ghostty" ]]; then
@@ -115,4 +115,4 @@ if [[ -d "{{ .chezmoi.destDir }}/.cache/ghostty" ]]; then
 fi
 
 log_success "ghostty uninstallation completed"
-{{ end }}
+{{- end }}

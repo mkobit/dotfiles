@@ -1,0 +1,22 @@
+[eza]
+version             = "0.23.4"
+installation_method = "chezmoi_external"
+repo                = "eza-community/eza"
+external_type       = "archive-file"
+executable          = true
+checksum_type       = "sha256"
+strip_components    = 1
+tag_format          = "v{version}"
+filename_format     = "eza_{target}.tar.gz"
+path_format         = "eza"
+url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+# darwin intentionally absent — eza-community/eza does not publish macOS binaries
+# install via homebrew on macOS
+[eza.platforms]
+linux_amd64 = "x86_64-unknown-linux-musl"
+linux_arm64 = "aarch64-unknown-linux-gnu"
+
+[eza.checksums]
+linux_amd64 = "d231bb3ee33b08c76279b5888845dceb7034d055c42bb9be46dbe0dae39394df"
+linux_arm64 = "366e8430225f9955c3dc659b452150c169894833ccfef455e01765e265a3edda"

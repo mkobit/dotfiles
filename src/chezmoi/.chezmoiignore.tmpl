@@ -28,10 +28,10 @@
 **/expected_*
 **/test_data.toml
 
-{{- if ne .npmrc.installation "enabled" }}
+{{- if ne .npmrc.installation_method "chezmoi" }}
 .npmrc
 {{- end }}
 
-{{- if eq .mise.global_tools.bun.installation "disabled" }}
+{{- if eq (dig "global_tools" "bun" "installation_method" "" .mise) "none" }}
 .bunfig.toml
 {{- end }}

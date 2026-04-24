@@ -1,4 +1,4 @@
-{{- if .claude_code.enabled -}}
+{{- if eq .claude_code.installation_method "dotfiles.script" -}}
 #!/usr/bin/env python3
 # Manages ~/.claude.json — UI preferences only.
 # Claude Code uses this file as both a preferences store AND mutable runtime state

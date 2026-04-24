@@ -1,4 +1,4 @@
-{{- if ne (dig "mise" "installation" "disabled" .) "disabled" -}}
+{{- if ne (dig "mise" "installation_method" "none" .) "none" -}}
 #!/usr/bin/env bash
 # mise version: {{ .mise.version }}
 # .mise.toml hash: {{ joinPath .chezmoi.workingTree ".mise.toml" | include | sha256sum }}

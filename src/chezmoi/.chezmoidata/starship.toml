@@ -1,9 +1,0 @@
-[starship]
-version = "1.25.0"
-
-[starship.checksums]
-type = "sha256"
-linux_amd64 = "025a6540717a20d2545410c0108caf216a6a14ab2cce91a473d91ed42762bc6b"
-linux_arm64 = "68ffcb75582e5ed336b43598bb4d8ecc4ec994ea26eac7955d3d378f1375da34"
-darwin_arm64 = "365301b5f4938322a9f378764b4bc640048bca7d6ac28eaabd406cadd6fc703a"
-darwin_amd64 = "05421bfc05ed00394ec4a7ea20213bd9920b2858713cbe1ddf257ebcebf5da88"

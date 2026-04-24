@@ -1,4 +1,4 @@
-{{ if eq .jq.installation "package-manager" }}#!/usr/bin/env bash
+{{- if eq .jq.installation_method "homebrew" }}#!/usr/bin/env bash
 
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
@@ -34,5 +34,5 @@ fi
 {{ else }}
 log_error "Unsupported OS: {{ .chezmoi.os }}"
 exit 1
-{{ end }}
-{{ end }}
+{{- end }}
+{{- end }}

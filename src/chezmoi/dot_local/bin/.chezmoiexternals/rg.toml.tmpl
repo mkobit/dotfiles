@@ -1,27 +1,5 @@
 {{- with .ripgrep -}}
-{{- if eq .installation "external-sources" -}}
-{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
-{{- $target := "" -}}
-{{- if eq $.chezmoi.os "darwin" -}}
-  {{- $target = printf "%s-apple-darwin" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
-{{- else -}}
-  {{- if eq $.chezmoi.arch "arm64" -}}
-    {{- $target = "aarch64-unknown-linux-gnu" -}}
-  {{- else -}}
-    {{- $target = "x86_64-unknown-linux-musl" -}}
-  {{- end -}}
-{{- end -}}
-{{- $config := dict -}}
-{{- $rg := dict
-    "type" "archive-file"
-    "url" (gitHubReleaseAssetURL "BurntSushi/ripgrep" .version (printf "ripgrep-%s-%s.tar.gz" .version $target))
-    "path" (printf "ripgrep-%s-%s/rg" .version $target)
-    "executable" true
--}}
-{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
-  {{- $_ := set $rg "checksum" (dict "sha256" (index .checksums $platform)) -}}
-{{- end -}}
-{{- $_ := set $config "rg" $rg -}}
-{{- toToml $config -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "rg" "data" . "root" $) -}}
 {{- end -}}
 {{- end -}}

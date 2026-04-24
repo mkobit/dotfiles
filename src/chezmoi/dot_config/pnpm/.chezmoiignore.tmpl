@@ -1,3 +1,3 @@
-{{- if eq .mise.global_tools.pnpm.installation "disabled" }}
+{{- if eq (dig "global_tools" "pnpm" "installation_method" "" .mise) "none" }}
 rc
 {{- end }}

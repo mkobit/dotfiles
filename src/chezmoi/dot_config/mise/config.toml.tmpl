@@ -1,7 +1,7 @@
-{{- /* Build enabled tools map - only include tools with installation = "mise" */ -}}
+{{- /* Build enabled tools map - only include tools with installation_method = "mise" */ -}}
 {{- $tools := dict -}}
 {{- range $tool, $config := .mise.global_tools -}}
-  {{- if eq $config.installation "mise" -}}
+  {{- if eq (dig "installation_method" "" $config) "mise" -}}
     {{- if hasKey $config "postinstall" -}}
       {{- $_ := set $tools $tool (dict "version" $config.version "postinstall" $config.postinstall) -}}
     {{- else -}}
@@ -13,7 +13,7 @@
 {{- /* Build filtered settings map - omit sub-keys tied to disabled tools */ -}}
 {{- $settings := dict -}}
 {{- range $k, $v := .mise.settings -}}
-  {{- if and (eq $k "npm") (eq $.mise.global_tools.bun.installation "disabled") -}}
+  {{- if and (eq $k "npm") (eq (dig "global_tools" "bun" "installation_method" "" $.mise) "none") -}}
     {{- $filtered := omit $v "package_manager" -}}
     {{- if $filtered -}}{{- $_ := set $settings $k $filtered -}}{{- end -}}
   {{- else -}}

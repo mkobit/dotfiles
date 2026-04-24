@@ -1,22 +1,5 @@
 {{- with .jq -}}
-{{- if eq .installation "external-sources" -}}
-{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
-{{- $target := "" -}}
-{{- if eq $.chezmoi.os "darwin" -}}
-  {{- $target = printf "macos-%s" (eq $.chezmoi.arch "arm64" | ternary "arm64" "amd64") -}}
-{{- else -}}
-  {{- $target = printf "linux-%s" (eq $.chezmoi.arch "arm64" | ternary "arm64" "amd64") -}}
-{{- end -}}
-{{- $config := dict -}}
-{{- $jq := dict
-    "type" "file"
-    "url" (gitHubReleaseAssetURL "jqlang/jq" (printf "jq-%s" .version) (printf "jq-%s" $target))
-    "executable" true
--}}
-{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
-  {{- $_ := set $jq "checksum" (dict "sha256" (index .checksums $platform)) -}}
-{{- end -}}
-{{- $_ := set $config "jq" $jq -}}
-{{- toToml $config -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "jq" "data" . "root" $) -}}
 {{- end -}}
 {{- end -}}

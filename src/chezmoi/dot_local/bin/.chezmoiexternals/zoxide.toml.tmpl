@@ -1,23 +1,5 @@
 {{- with .zoxide -}}
-{{- if eq .installation "external-sources" -}}
-{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
-{{- $target := "" -}}
-{{- if eq $.chezmoi.os "darwin" -}}
-  {{- $target = printf "%s-apple-darwin" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
-{{- else -}}
-  {{- $target = printf "%s-unknown-linux-musl" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
-{{- end -}}
-{{- $config := dict -}}
-{{- $zoxide := dict
-    "type" "archive-file"
-    "url" (gitHubReleaseAssetURL "ajeetdsouza/zoxide" (printf "v%s" .version) (printf "zoxide-%s-%s.tar.gz" .version $target))
-    "path" "zoxide"
-    "executable" true
--}}
-{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
-  {{- $_ := set $zoxide "checksum" (dict "sha256" (index .checksums $platform)) -}}
-{{- end -}}
-{{- $_ := set $config "zoxide" $zoxide -}}
-{{- toToml $config -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "zoxide" "data" . "root" $) -}}
 {{- end -}}
 {{- end -}}

@@ -1,18 +1,5 @@
 {{- with (index . "zellij") -}}
-{{- if .enabled -}}
-{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
-{{- $target := "" -}}
-{{- if eq $.chezmoi.os "darwin" -}}
-  {{- $target = printf "%s-apple-darwin" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
-{{- else -}}
-  {{- $target = printf "%s-unknown-linux-musl" (eq $.chezmoi.arch "arm64" | ternary "aarch64" "x86_64") -}}
-{{- end -}}
-{{- $config := dict -}}
-{{- $entry := dict "type" "archive-file" "url" (gitHubReleaseAssetURL "zellij-org/zellij" .version (printf "zellij-%s.tar.gz" $target)) "path" "zellij" "executable" true -}}
-{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
-  {{- $_ := set $entry "checksum" (dict "sha256" (index .checksums $platform)) -}}
-{{- end -}}
-{{- $_ := set $config "zellij" $entry -}}
-{{- toToml $config -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "zellij" "data" . "root" $) -}}
 {{- end -}}
 {{- end -}}

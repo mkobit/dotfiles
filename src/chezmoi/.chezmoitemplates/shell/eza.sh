@@ -1,8 +1,8 @@
 {{- $chezmoiSourceDir := .chezmoi.sourceDir -}}
 {{- $chezmoiTargetDir := .chezmoi.destDir -}}
 {{- with .eza -}}
-{{- $installation := index .installation $.chezmoi.os -}}
-{{- if and $installation (ne $installation "disabled") -}}
+{{- $installation := dig "installation_method" "none" . -}}
+{{- if ne $installation "none" -}}
 # eza completions and aliases
 if command -v eza >/dev/null 2>&1; then
     # Add eza completions to FPATH if they exist

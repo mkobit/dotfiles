@@ -1,0 +1,115 @@
+{{- /*
+  external/release: emit a single chezmoi external entry from a release download.
+
+  Invoke as:
+    {{- template "external/release" (dict "key" "bat" "data" . "root" $) -}}
+
+  Args (dict):
+    key   string — chezmoi external key (e.g. "bat")
+    data  map    — tool data block (from .chezmoidata)
+    root  $      — template root, for .chezmoi.os/.arch and global overrides
+
+  Required data fields:
+    version          string   semver, e.g. "0.26.1"
+    installation_method string  must be "chezmoi_external" — caller guards this
+    repo             string   "owner/repo"
+    external_type    string   file | archive | archive-file
+    checksum_type    string   "sha256" | "sha512" | "none"
+    tag_format       string   format string, tokens: {version}
+    filename_format  string   tokens: {version} {tag} {target} {os} {arch}
+    url_format       string   tokens: {base} {repo} {version} {tag} {filename} {target} {os} {arch}
+    platforms        map      os_arch → target string; absent = unsupported, emit nothing
+
+  Optional data fields:
+    path_format          string   tokens: same as filename_format
+    fallback_url_format  string   tokens: same as url_format; emitted as chezmoi `urls`
+    executable           bool
+    readonly             bool
+    exact                bool
+    strip_components     int
+    include              []string
+
+  Checksum fields (under checksums):
+    When checksum_type = "sha256" or "sha512":
+      checksums.<os_arch> = "<hex>"
+      Missing platform checksum is a hard failure.
+    When checksum_type = "none":
+      Checksum block is omitted entirely.
+
+  URL base ({base} token):
+    Resolved from github_releases.base_url (default "https://github.com").
+    Work configs inject an Artifactory mirror via .chezmoidata override.
+*/ -}}
+
+{{- $key  := .key -}}
+{{- $d    := .data -}}
+{{- $root := .root -}}
+
+{{- $base     := dig "github_releases" "base_url" "https://github.com" $root -}}
+{{- $platform := printf "%s_%s" $root.chezmoi.os $root.chezmoi.arch -}}
+{{- $target   := dig "platforms" $platform "" $d -}}
+
+{{- if $target -}}
+
+{{- $version  := $d.version -}}
+{{- $tag      := $d.tag_format
+      | replace "{version}" $version -}}
+{{- $filename := $d.filename_format
+      | replace "{version}" $version
+      | replace "{tag}"     $tag
+      | replace "{target}"  $target
+      | replace "{os}"      $root.chezmoi.os
+      | replace "{arch}"    $root.chezmoi.arch -}}
+{{- $url := $d.url_format
+      | replace "{base}"     $base
+      | replace "{repo}"     $d.repo
+      | replace "{version}"  $version
+      | replace "{tag}"      $tag
+      | replace "{filename}" $filename
+      | replace "{target}"   $target
+      | replace "{os}"       $root.chezmoi.os
+      | replace "{arch}"     $root.chezmoi.arch -}}
+
+{{- $entry := dict "type" $d.external_type "url" $url -}}
+
+{{- if dig "executable"       false $d -}}{{- $_ := set $entry "executable"      true -}}{{- end -}}
+{{- if dig "readonly"         false $d -}}{{- $_ := set $entry "readonly"        true -}}{{- end -}}
+{{- if dig "exact"            false $d -}}{{- $_ := set $entry "exact"           true -}}{{- end -}}
+{{- if dig "strip_components" 0    $d -}}{{- $_ := set $entry "stripComponents" (dig "strip_components" 0 $d) -}}{{- end -}}
+{{- if dig "include"          nil  $d -}}{{- $_ := set $entry "include"         (dig "include" list $d) -}}{{- end -}}
+
+{{- if dig "path_format" "" $d -}}
+  {{- $path := $d.path_format
+        | replace "{version}" $version
+        | replace "{tag}"     $tag
+        | replace "{target}"  $target
+        | replace "{os}"      $root.chezmoi.os
+        | replace "{arch}"    $root.chezmoi.arch -}}
+  {{- $_ := set $entry "path" $path -}}
+{{- end -}}
+
+{{- if dig "fallback_url_format" "" $d -}}
+  {{- $fallback := $d.fallback_url_format
+        | replace "{base}"     $base
+        | replace "{repo}"     $d.repo
+        | replace "{version}"  $version
+        | replace "{tag}"      $tag
+        | replace "{filename}" $filename
+        | replace "{target}"   $target
+        | replace "{os}"       $root.chezmoi.os
+        | replace "{arch}"     $root.chezmoi.arch -}}
+  {{- $_ := set $entry "urls" (list $fallback) -}}
+{{- end -}}
+
+{{- $ctype := $d.checksum_type -}}
+{{- if ne $ctype "none" -}}
+  {{- $sha := dig "checksums" $platform "" $d -}}
+  {{- if $sha -}}
+    {{- $_ := set $entry "checksum" (dict $ctype $sha) -}}
+  {{- else -}}
+    {{- fail (printf "external/release: checksum_type=%q but no %s checksum for %s/%s" $ctype $ctype $key $platform) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- toToml (dict $key $entry) -}}
+{{- end -}}
