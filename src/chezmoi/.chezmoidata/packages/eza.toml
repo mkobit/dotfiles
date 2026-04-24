@@ -1,6 +1,6 @@
 [packages.eza.installation_method]
 darwin = "homebrew"
-linux  = "none"
+linux  = "chezmoi_external"
 
 [packages.eza.package.homebrew]
 name = "eza"
