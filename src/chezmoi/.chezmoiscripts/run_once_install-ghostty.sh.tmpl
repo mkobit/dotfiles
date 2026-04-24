@@ -1,4 +1,5 @@
-{{- if eq .ghostty.installation_method "homebrew" }}#!/usr/bin/env bash
+{{- $method := dig "installation_method" .chezmoi.os "none" .ghostty -}}
+{{- if ne $method "none" }}#!/usr/bin/env bash
 
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
