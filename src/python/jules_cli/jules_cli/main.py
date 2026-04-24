@@ -407,14 +407,14 @@ def create(
     auto_pr: bool = typer.Option(
         True,
         "--auto-pr/--no-auto-pr",
-        help=("Enables Jules to automatically create a pull request upon completion of the task"),
+        help=("Enables Jules to automatically create a pull request upon completion of the task. Enabled by default."),
     ),
-    approve: bool = typer.Option(
-        False,
-        "--require-approval/--no-require-approval",
+    auto_approve: bool = typer.Option(
+        True,
+        "--auto-approve/--no-auto-approve",
         help=(
-            "Require manual plan approval. Default is false (auto-approve), but when required "
-            "manual approval and sometimes discussion and clarification will be required before Jules starts the task."
+            "Enables Jules to automatically approve generated plans. Enabled by default. "
+            "When disabled (--no-auto-approve), manual approval is required before Jules starts the task."
         ),
     ),
     interactive: bool = typer.Option(
@@ -463,7 +463,7 @@ def create(
             source_context=source_context,
             automation_mode=AutomationMode.AUTO_CREATE_PR if auto_pr else None,
             title=title,
-            require_plan_approval=approve,
+            require_plan_approval=not auto_approve,
         )
 
         async with JulesClient(api_key=api_key) as client:
