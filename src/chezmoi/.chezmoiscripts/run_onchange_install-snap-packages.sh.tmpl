@@ -1,19 +1,16 @@
 {{- if eq .chezmoi.os "linux" -}}
-{{- /* Build snap package list from registry */ -}}
+{{- /* Build snap package list from packages namespace */ -}}
 {{- $snapPkgs := list -}}
-{{- range .packages.managed -}}
-{{-   $tool := dig . (dict) $ -}}
-{{-   if $tool -}}
-{{-     $im := dig "installation_method" "" $tool -}}
-{{-     $method := "" -}}
-{{-     if kindIs "string" $im -}}
-{{-       $method = $im -}}
-{{-     else if kindIs "map" $im -}}
-{{-       $method = dig "linux" "" $im -}}
-{{-     end -}}
-{{-     if eq $method "snap" -}}
-{{-       $snapPkgs = append $snapPkgs . -}}
-{{-     end -}}
+{{- range $name, $tool := .packages -}}
+{{-   $im := dig "installation_method" "" $tool -}}
+{{-   $method := "" -}}
+{{-   if kindIs "string" $im -}}
+{{-     $method = $im -}}
+{{-   else if kindIs "map" $im -}}
+{{-     $method = dig "linux" "" $im -}}
+{{-   end -}}
+{{-   if eq $method "snap" -}}
+{{-     $snapPkgs = append $snapPkgs $name -}}
 {{-   end -}}
 {{- end -}}
 {{- if $snapPkgs -}}
@@ -30,7 +27,7 @@ if ! check_command snap; then
 fi
 
 {{- range $snapPkgs }}
-{{-   $tool := dig . (dict) $ }}
+{{-   $tool := index $.packages . }}
 {{-   $pkg := dig "package" "snap" (dict) $tool }}
 {{-   $name := dig "name" . $pkg }}
 {{-   $confinement := dig "confinement" "strict" $pkg }}

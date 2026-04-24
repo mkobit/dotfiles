@@ -1,4 +1,4 @@
-{{- $method := dig "installation_method" .chezmoi.os "none" .ghostty -}}
+{{- $method := dig "packages" "ghostty" "installation_method" .chezmoi.os "none" . -}}
 {{- if eq $method "none" }}#!/usr/bin/env bash
 
 # logging.sh hash: {{ includeTemplate "shell/logging.sh" | sha256sum }}

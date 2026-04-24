@@ -10,10 +10,6 @@ filename_format     = "fzf-{version}-{os}_{arch}.tar.gz"
 path_format         = "fzf"
 url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
-[fzf.package.homebrew]
-name = "fzf"
-type = "formula"
-
 # fzf uses raw {os}_{arch} in the filename — no target triple
 # platforms map still needed to gate unsupported platforms; value unused in filename
 [fzf.platforms]

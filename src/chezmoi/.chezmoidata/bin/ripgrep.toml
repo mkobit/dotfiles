@@ -10,10 +10,6 @@ filename_format     = "ripgrep-{version}-{target}.tar.gz"
 path_format         = "ripgrep-{version}-{target}/rg"
 url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
-[ripgrep.package.homebrew]
-name = "ripgrep"
-type = "formula"
-
 # ripgrep does not use a v-prefix on its tags
 [ripgrep.platforms]
 darwin_arm64 = "aarch64-apple-darwin"

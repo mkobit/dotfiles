@@ -1,2 +1,0 @@
-[packages]
-managed = ["bat", "chafa", "eza", "fzf", "ghostty", "hammerspoon", "jq", "ripgrep", "zoxide"]

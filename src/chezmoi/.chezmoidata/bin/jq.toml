@@ -9,10 +9,6 @@ tag_format          = "jq-{version}"
 filename_format     = "jq-{target}"
 url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
-[jq.package.homebrew]
-name = "jq"
-type = "formula"
-
 [jq.platforms]
 darwin_arm64 = "macos-arm64"
 darwin_amd64 = "macos-amd64"

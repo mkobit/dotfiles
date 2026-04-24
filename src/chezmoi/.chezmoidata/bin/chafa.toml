@@ -11,10 +11,6 @@ path_format          = "chafa-{version}-1-{target}/chafa"
 url_format           = "{base}/{repo}/releases/download/{tag}/{filename}"
 fallback_url_format  = "https://hpjansson.org/chafa/releases/static/{filename}"
 
-[chafa.package.homebrew]
-name = "chafa"
-type = "formula"
-
 # linux-only — no macOS GitHub releases; darwin intentionally absent
 [chafa.platforms]
 linux_amd64 = "x86_64-linux-gnu"

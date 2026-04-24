@@ -1,25 +1,22 @@
 {{- /* Managed by chezmoi — do not edit */ -}}
 {{- $lines := list -}}
-{{- range .packages.managed -}}
-{{-   $tool := dig . (dict) $ -}}
-{{-   if $tool -}}
-{{-     $method := "" -}}
-{{-     $im := dig "installation_method" "" $tool -}}
-{{-     if kindIs "string" $im -}}
-{{-       $method = $im -}}
-{{-     else if kindIs "map" $im -}}
-{{-       $method = dig $.chezmoi.os "" $im -}}
-{{-     end -}}
-{{-     if eq $method "homebrew" -}}
-{{-       $pkg := dig "package" "homebrew" (dict) $tool -}}
-{{-       if $pkg -}}
-{{-         $name := dig "name" . $pkg -}}
-{{-         $type := dig "type" "formula" $pkg -}}
-{{-         if eq $type "cask" -}}
-{{-           $lines = append $lines (printf "cask \"%s\"" $name) -}}
-{{-         else -}}
-{{-           $lines = append $lines (printf "brew \"%s\"" $name) -}}
-{{-         end -}}
+{{- range $name, $tool := .packages -}}
+{{-   $method := "" -}}
+{{-   $im := dig "installation_method" "" $tool -}}
+{{-   if kindIs "string" $im -}}
+{{-     $method = $im -}}
+{{-   else if kindIs "map" $im -}}
+{{-     $method = dig $.chezmoi.os "" $im -}}
+{{-   end -}}
+{{-   if eq $method "homebrew" -}}
+{{-     $pkg := dig "package" "homebrew" (dict) $tool -}}
+{{-     if $pkg -}}
+{{-       $pname := dig "name" $name $pkg -}}
+{{-       $type := dig "type" "formula" $pkg -}}
+{{-       if eq $type "cask" -}}
+{{-         $lines = append $lines (printf "cask \"%s\"" $pname) -}}
+{{-       else -}}
+{{-         $lines = append $lines (printf "brew \"%s\"" $pname) -}}
 {{-       end -}}
 {{-     end -}}
 {{-   end -}}
