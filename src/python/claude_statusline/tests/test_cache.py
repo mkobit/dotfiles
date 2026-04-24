@@ -18,19 +18,21 @@ def cache(cache_file: Path) -> SegmentCache:
     return SegmentCache(cache_file)
 
 
-def test_cache_miss_when_empty(cache: SegmentCache) -> None:
+@pytest.mark.asyncio
+async def test_cache_miss_when_empty(cache: SegmentCache) -> None:
     """Goals: Missing keys return None without error."""
-    assert cache.get("nonexistent") is None
+    assert await cache.get("nonexistent") is None
 
 
-def test_cache_set_and_get(cache: SegmentCache, cache_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.asyncio
+async def test_cache_set_and_get(cache: SegmentCache, cache_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Goals: Cache persists and retrieves data in bi-directional flows."""
     results = [SegmentGenerationResult(line=0, index=0, generator="test", segment=Segment(text="hello"))]
 
     fixed_now = Instant.from_utc(2024, 1, 1, 12, 0, 0)
     expires = fixed_now + hours(1)
 
-    cache.set("key1", results, expires)
+    await cache.set("key1", results, expires)
 
     class MockInstant:
         @classmethod
@@ -39,20 +41,21 @@ def test_cache_set_and_get(cache: SegmentCache, cache_file: Path, monkeypatch: p
 
     monkeypatch.setattr("claude_statusline.cache.Instant", MockInstant)
 
-    cached = cache.get("key1")
+    cached = await cache.get("key1")
     assert cached is not None
     assert len(cached) == 1
     assert cached[0].segment.text == "hello"
 
 
-def test_cache_expires(cache: SegmentCache, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.asyncio
+async def test_cache_expires(cache: SegmentCache, monkeypatch: pytest.MonkeyPatch) -> None:
     """Goals: Ensure expired cache state subtracts correctly."""
     results = [SegmentGenerationResult(line=0, index=0, generator="test", segment=Segment(text="hello"))]
 
     fixed_now = Instant.from_utc(2024, 1, 1, 12, 0, 0)
     expires = fixed_now - hours(1)
 
-    cache.set("key1", results, expires)
+    await cache.set("key1", results, expires)
 
     class MockInstant:
         @classmethod
@@ -61,11 +64,12 @@ def test_cache_expires(cache: SegmentCache, monkeypatch: pytest.MonkeyPatch) -> 
 
     monkeypatch.setattr("claude_statusline.cache.Instant", MockInstant)
 
-    assert cache.get("key1") is None
+    assert await cache.get("key1") is None
     assert "key1" not in cache._cache
 
 
-def test_cache_load_valid(cache_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+@pytest.mark.asyncio
+async def test_cache_load_valid(cache_file: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Goals: Verify data loads from disk reliably."""
     results = [SegmentGenerationResult(line=0, index=0, generator="test", segment=Segment(text="hello"))]
 
@@ -73,7 +77,7 @@ def test_cache_load_valid(cache_file: Path, monkeypatch: pytest.MonkeyPatch) -> 
     expires = fixed_now + hours(1)
 
     initial_cache = SegmentCache(cache_file)
-    initial_cache.set("key1", results, expires)
+    await initial_cache.set("key1", results, expires)
 
     new_cache = SegmentCache(cache_file)
     new_cache.load()
@@ -85,7 +89,7 @@ def test_cache_load_valid(cache_file: Path, monkeypatch: pytest.MonkeyPatch) -> 
 
     monkeypatch.setattr("claude_statusline.cache.Instant", MockInstant)
 
-    cached = new_cache.get("key1")
+    cached = await new_cache.get("key1")
     assert cached is not None
     assert cached[0].segment.text == "hello"
 
@@ -110,7 +114,8 @@ def test_cache_load_empty(cache_file: Path) -> None:
     assert cache._cache == {}
 
 
-def test_cache_save_io_error(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+@pytest.mark.asyncio
+async def test_cache_save_io_error(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     """Goals: Gracefully degrade if the file system prevents cache saving."""
     readonly_dir = tmp_path / "dir_cannot_be_file"
     readonly_dir.mkdir()
@@ -120,7 +125,7 @@ def test_cache_save_io_error(tmp_path: Path, caplog: pytest.LogCaptureFixture) -
 
     fixed_now = Instant.from_utc(2024, 1, 1, 12, 0, 0)
     with caplog.at_level(logging.WARNING):
-        bad_cache.set("key1", results, fixed_now + hours(1))
+        await bad_cache.set("key1", results, fixed_now + hours(1))
 
     assert "Failed to save cache to" in caplog.text
 

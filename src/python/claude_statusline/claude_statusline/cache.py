@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from pathlib import Path
 
@@ -30,22 +31,25 @@ class SegmentCache:
             logger.warning(f"Failed to load cache from {self.cache_file}: {e}")
             self._cache = {}
 
-    def _save(self) -> None:
-        try:
-            self.cache_file.parent.mkdir(parents=True, exist_ok=True)
-            self.cache_file.write_text(CACHE_ADAPTER.dump_json(self._cache).decode("utf-8"))
-        except (OSError, ValidationError) as e:
-            logger.warning(f"Failed to save cache to {self.cache_file}: {e}")
+    async def _save(self) -> None:
+        def do_save(cache_data: dict[str, CachedSegment]) -> None:
+            try:
+                self.cache_file.parent.mkdir(parents=True, exist_ok=True)
+                self.cache_file.write_text(CACHE_ADAPTER.dump_json(cache_data).decode("utf-8"))
+            except (OSError, ValidationError) as e:
+                logger.warning(f"Failed to save cache to {self.cache_file}: {e}")
 
-    def get(self, key: str) -> list[SegmentGenerationResult] | None:
+        await asyncio.to_thread(do_save, dict(self._cache))
+
+    async def get(self, key: str) -> list[SegmentGenerationResult] | None:
         if key in self._cache:
             cached = self._cache[key]
             if cached.expires_at > Instant.now():
                 return cached.results
             self._cache = {k: v for k, v in self._cache.items() if k != key}
-            self._save()
+            await self._save()
         return None
 
-    def set(self, key: str, results: list[SegmentGenerationResult], expires_at: Instant) -> None:
+    async def set(self, key: str, results: list[SegmentGenerationResult], expires_at: Instant) -> None:
         self._cache[key] = CachedSegment(results=results, expires_at=expires_at)
-        self._save()
+        await self._save()
