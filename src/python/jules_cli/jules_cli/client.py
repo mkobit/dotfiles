@@ -35,7 +35,7 @@ class JulesClient:
         self._session = aiohttp.ClientSession(headers=self._headers)
         return self
 
-    async def __aexit__(self, exc_type: Any, exc_val: Any, exc_tb: Any) -> None:
+    async def __aexit__(self, exc_type: object, exc_val: object, exc_tb: object) -> None:
         if self._session:
             await self._session.close()
 

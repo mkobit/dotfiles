@@ -57,8 +57,9 @@ select = [
     "ISC", # flake8-implicit-str-concat
     "RUF", # Ruff-specific rules
     "PL",  # Pylint
-    "TID252", # flake8-tidy-imports
-    "PYI024", # collections-named-tuple
+    "PERF", # Perflint
+    "TID", # flake8-tidy-imports
+    "PYI", # flake8-pyi
 ]
 
 ignore = [
