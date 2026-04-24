@@ -10,6 +10,10 @@ filename_format     = "bat-v{version}-{target}.tar.gz"
 path_format         = "bat-v{version}-{target}/bat"
 url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
+[bat.package.homebrew]
+name = "bat"
+type = "formula"
+
 [bat.platforms]
 darwin_arm64 = "aarch64-apple-darwin"
 darwin_amd64 = "x86_64-apple-darwin"

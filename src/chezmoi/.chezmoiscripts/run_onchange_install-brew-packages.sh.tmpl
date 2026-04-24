@@ -1,0 +1,27 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+# Brewfile hash: {{ includeTemplate "dot_Brewfile.tmpl" . | sha256sum }}
+
+set -euo pipefail
+
+source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+
+if ! check_command brew; then
+    log_warn "Homebrew not found — skipping brew package installation"
+    exit 0
+fi
+
+BREWFILE="{{ .chezmoi.destDir }}/.Brewfile"
+if [[ ! -f "$BREWFILE" ]]; then
+    log_warn "Brewfile not found at $BREWFILE — skipping"
+    exit 0
+fi
+
+log_info "Running brew bundle from $BREWFILE..."
+if brew bundle --file="$BREWFILE" --no-lock; then
+    log_success "Brew packages installed successfully"
+else
+    log_error "brew bundle failed"
+    exit 1
+fi
+{{- end }}

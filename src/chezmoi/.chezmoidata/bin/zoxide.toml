@@ -10,6 +10,10 @@ filename_format     = "zoxide-{version}-{target}.tar.gz"
 path_format         = "zoxide"
 url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
+[zoxide.package.homebrew]
+name = "zoxide"
+type = "formula"
+
 [zoxide.platforms]
 darwin_arm64 = "aarch64-apple-darwin"
 darwin_amd64 = "x86_64-apple-darwin"

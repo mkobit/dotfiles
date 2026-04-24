@@ -14,6 +14,10 @@ url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 darwin = "homebrew"
 linux  = "chezmoi_external"
 
+[eza.package.homebrew]
+name = "eza"
+type = "formula"
+
 # eza-community/eza does not publish macOS binaries — darwin handled via homebrew above
 [eza.platforms]
 linux_amd64 = "x86_64-unknown-linux-musl"

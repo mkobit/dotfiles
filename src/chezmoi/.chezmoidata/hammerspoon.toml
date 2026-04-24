@@ -1,5 +1,9 @@
 [hammerspoon]
 installation_method = "homebrew"
 
+[hammerspoon.package.homebrew]
+name = "hammerspoon"
+type = "cask"
+
 [hammerspoon.window_manager]
 enabled = true

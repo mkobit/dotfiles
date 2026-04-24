@@ -1,3 +1,11 @@
 [ghostty.installation_method]
 darwin = "homebrew"
 linux  = "snap"
+
+[ghostty.package.homebrew]
+name = "ghostty"
+type = "cask"
+
+[ghostty.package.snap]
+name        = "ghostty"
+confinement = "classic"
