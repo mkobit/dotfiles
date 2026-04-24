@@ -1,7 +1,7 @@
 {{- $chezmoiSourceDir := .chezmoi.sourceDir -}}
 {{- $chezmoiTargetDir := .chezmoi.destDir -}}
 {{- with .eza -}}
-{{- $installation := dig "installation_method" "none" . -}}
+{{- $installation := dig "installation_method" $.chezmoi.os "none" . -}}
 {{- if ne $installation "none" -}}
 # eza completions and aliases
 if command -v eza >/dev/null 2>&1; then

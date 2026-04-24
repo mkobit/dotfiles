@@ -1,4 +1,4 @@
-{{- if eq .eza.installation_method "homebrew" }}#!/usr/bin/env bash
+{{- if eq (dig "installation_method" .chezmoi.os "none" .eza) "homebrew" -}}#!/usr/bin/env bash
 
 source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
 
