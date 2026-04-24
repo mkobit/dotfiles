@@ -43,10 +43,6 @@ class ContextWindowInfo(BaseModel):
     current_usage: CurrentUsageInfo | None = Field(default_factory=CurrentUsageInfo)
 
 
-class Exceeds200kTokens(BaseModel):
-    pass  # this is just a boolean, no need for a class
-
-
 class RateLimitWindow(BaseModel):
     used_percentage: float | None = 0.0
     resets_at: int | None = 0
