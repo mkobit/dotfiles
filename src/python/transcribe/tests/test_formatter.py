@@ -1,13 +1,21 @@
-from collections import namedtuple
-from typing import Any
+from typing import Any, NamedTuple
 
 import pytest
 
 from transcribe.formatter import Formatter
 
+
 # Mock segment and info
-Segment = namedtuple("Segment", ["start", "end", "text"])
-Info = namedtuple("Info", ["language", "language_probability", "duration"])
+class Segment(NamedTuple):
+    start: float
+    end: float
+    text: str
+
+
+class Info(NamedTuple):
+    language: str
+    language_probability: float
+    duration: float
 
 
 @pytest.fixture
