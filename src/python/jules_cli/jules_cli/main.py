@@ -413,7 +413,7 @@ def create(
         True,
         "--auto-approve/--no-auto-approve",
         help=(
-            "Enables Jules to automatically approve generated plans. "
+            "Enables Jules to automatically approve generated plans. Enabled by default. "
             "When disabled (--no-auto-approve), manual approval is required before Jules starts the task."
         ),
     ),
