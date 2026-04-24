@@ -1,3 +1,1 @@
-[ghostty.installation_method]
-darwin = "homebrew"
-linux  = "snap"
+# ghostty installation_method and package data live in .chezmoidata/packages/ghostty.toml

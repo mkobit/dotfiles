@@ -1,5 +1,2 @@
-[hammerspoon]
-installation_method = "homebrew"
-
 [hammerspoon.window_manager]
 enabled = true

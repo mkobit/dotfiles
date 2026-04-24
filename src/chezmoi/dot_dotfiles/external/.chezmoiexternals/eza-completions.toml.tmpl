@@ -1,5 +1,5 @@
 {{- with .eza -}}
-{{- $method := dig "installation_method" $.chezmoi.os "" . -}}
+{{- $method := dig "packages" "eza" "installation_method" $.chezmoi.os "" $ -}}
 {{- if eq $method "chezmoi_external" -}}
 {{- template "external/release" (dict "key" "eza-completions" "data" (dict
     "version"             .version

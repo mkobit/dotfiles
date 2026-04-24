@@ -1,0 +1,47 @@
+{{- if eq .chezmoi.os "linux" -}}
+{{- /* Build snap package list from packages namespace */ -}}
+{{- $snapPkgs := list -}}
+{{- range $name, $tool := .packages -}}
+{{-   $im := dig "installation_method" "" $tool -}}
+{{-   $method := "" -}}
+{{-   if kindIs "string" $im -}}
+{{-     $method = $im -}}
+{{-   else if kindIs "map" $im -}}
+{{-     $method = dig "linux" "" $im -}}
+{{-   end -}}
+{{-   if eq $method "snap" -}}
+{{-     $snapPkgs = append $snapPkgs $name -}}
+{{-   end -}}
+{{- end -}}
+{{- if $snapPkgs -}}
+#!/usr/bin/env bash
+# snap packages hash: {{ $snapPkgs | toJson | sha256sum }}
+
+set -euo pipefail
+
+source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+
+if ! check_command snap; then
+    log_warn "snap not found — skipping snap package installation"
+    exit 0
+fi
+
+{{- range $snapPkgs }}
+{{-   $tool := index $.packages . }}
+{{-   $pkg := dig "package" "snap" (dict) $tool }}
+{{-   $name := dig "name" . $pkg }}
+{{-   $confinement := dig "confinement" "strict" $pkg }}
+
+if snap list {{ $name }} &>/dev/null; then
+    log_success "{{ $name }} already installed via snap"
+else
+    log_info "Installing {{ $name }} via snap..."
+    if sudo snap install {{ $name }}{{ if eq $confinement "classic" }} --classic{{ end }}; then
+        log_success "{{ $name }} installed successfully via snap"
+    else
+        log_error "Failed to install {{ $name }} via snap"
+    fi
+fi
+{{- end }}
+{{- end }}
+{{- end }}
