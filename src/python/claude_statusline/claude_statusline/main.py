@@ -132,7 +132,7 @@ def main(  # noqa: C901
             ]
         return []
 
-    async def fetch_all():
+    async def fetch_all() -> None:
         git_key = f"internal.git:{cwd.resolve()}"
         cached_git = await cache.get(git_key)
         if cached_git is not None:

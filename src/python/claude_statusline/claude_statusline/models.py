@@ -76,7 +76,7 @@ class WorktreeInfo(BaseModel):
 class StatusLineStdIn(BaseModel):
     """
     Pydantic model representing the JSON payload sent via stdin to the statusline.
-    Available data fields: https://code.claude.com/docs/en/statusline#available-data
+    Available data fields: https://code.claude.com/docs/en/statusline#available-data.
     """
 
     model: ModelInfo = Field(default_factory=ModelInfo)
