@@ -9,7 +9,7 @@ import typer
 
 app = typer.Typer(help="Tmux subcommands")
 
-URL_PATTERN = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+")
+_URL_PATTERN = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+")
 
 
 @app.command("open-url")
@@ -34,7 +34,7 @@ def open_url(
         subprocess.run(["tmux", "display-message", "Failed to capture pane"], check=False)
         sys.exit(1)
 
-    urls = URL_PATTERN.findall(scrollback)
+    urls = _URL_PATTERN.findall(scrollback)
 
     if not urls:
         subprocess.run(["tmux", "display-message", "No URLs found."], check=False)
