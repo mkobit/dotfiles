@@ -19,5 +19,3 @@
 {{ template "shell/starship.sh" $ctx }}
 {{ template "shell/keybindings.sh" $ctx }}
 {{ template "shell/eza.sh" $ctx }}
-{{- /* zoxide must be loaded last to ensure alias overrides and path precedence are correct */}}
-{{ template "shell/zoxide.sh" $ctx }}

@@ -16,6 +16,9 @@ fi
 cat >> "${tempfile}" << 'EOF'
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:zsh:{{ include "modify_dot_zshrc.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
 source {{ .chezmoi.destDir }}/.dotfiles/zsh/config.zsh
+{{- $ctx := merge (dict "shell" "zsh") . -}}
+{{- /* zoxide must be loaded last to ensure alias overrides and path precedence are correct */}}
+{{ template "shell/zoxide.sh" $ctx }}
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:zsh:{{ include "modify_dot_zshrc.tmpl" | sha256sum | substr 0 8 }}
 EOF
 
