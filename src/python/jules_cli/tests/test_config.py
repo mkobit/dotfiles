@@ -73,6 +73,7 @@ def test_load_config_api_key_path(tmp_path: Path) -> None:
     assert cfg.api_key == "secret_value"
     assert cfg.api_key_path == str(secret_file)
 
+
 def test_load_config_api_key_path_missing(tmp_path: Path) -> None:
     config_file = tmp_path / "config.toml"
     config_file.write_text('api_key_path = "/path/does/not/exist"')
