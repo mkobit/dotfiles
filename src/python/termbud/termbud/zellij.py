@@ -10,6 +10,9 @@ import typer
 app = typer.Typer(help="Zellij subcommands")
 
 
+URL_PATTERN = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+")
+
+
 @app.command("open-url")
 def open_url(
     open_cmd: str | None = typer.Option(
@@ -42,8 +45,7 @@ def open_url(
         if os.path.exists(temp_file_path):
             os.remove(temp_file_path)
 
-    url_pattern = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+")
-    urls = url_pattern.findall(scrollback)
+    urls = URL_PATTERN.findall(scrollback)
 
     if not urls:
         print("No URLs found.", file=sys.stderr)
