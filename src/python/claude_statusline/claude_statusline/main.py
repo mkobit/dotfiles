@@ -134,7 +134,7 @@ def main(  # noqa: C901
 
     async def fetch_all():
         git_key = f"internal.git:{cwd.resolve()}"
-        cached_git = cache.get(git_key)
+        cached_git = await cache.get(git_key)
         if cached_git is not None:
             all_segments.extend(cached_git)
         else:
@@ -150,7 +150,7 @@ def main(  # noqa: C901
 
         for cmd in generator_tuple:
             cmd_key = f"external:{cmd}"
-            cached_cmd = cache.get(cmd_key)
+            cached_cmd = await cache.get(cmd_key)
             if cached_cmd is not None:
                 all_segments.extend(cached_cmd)
             else:
@@ -179,7 +179,7 @@ def main(  # noqa: C901
                                 None,
                             )
                             if duration:
-                                cache.set(key, list(res), Instant.now() + duration)
+                                await cache.set(key, list(res), Instant.now() + duration)
                     except Exception as e:
                         logger.debug(f"Failed to set cache for {key}: {e}")
 
