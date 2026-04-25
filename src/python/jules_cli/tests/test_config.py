@@ -77,7 +77,6 @@ def test_load_config_api_key_path_missing(tmp_path: Path) -> None:
     config_file = tmp_path / "config.toml"
     config_file.write_text('api_key_path = "/path/does/not/exist"')
 
-    from pydantic import ValidationError
     # Invalid toml due to pydantic validation will result in try_load failing
     # which returns None, falling back to JulesConfig()
     cfg = load_config(str(config_file))
