@@ -3,7 +3,7 @@ import json
 import os
 import unittest
 from pathlib import Path
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from typer.testing import CliRunner
@@ -99,6 +99,7 @@ def test_main_with_external_generator_timeout():
     """Goals: Verify that a timeout in the external generator gracefully terminates and returns empty."""
     with patch("claude_statusline.main.asyncio.create_subprocess_exec") as mock_exec:
         mock_proc = AsyncMock()
+        mock_proc.kill = Mock()
         mock_proc.communicate.side_effect = TimeoutError()
         mock_exec.return_value = mock_proc
 

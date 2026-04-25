@@ -283,7 +283,7 @@ async def test_client_uninitialized_session() -> None:
 
 
 class AsyncContextManagerMock:
-    def __init__(self, response):
+    def __init__(self, response) -> None:
         self.response = response
 
     async def __aenter__(self):

@@ -25,7 +25,7 @@ branch = run(["git", "-C", str(cwd), "rev-parse", "--abbrev-ref", "HEAD"]) or "u
 
 if git_root != main_worktree:
     print(
-        f"Worktree session: branch={branch} path={git_root} (main: {main_worktree}). Run git worktree list + git status before changes."  # noqa: E501
+        f"Worktree session: branch={branch} path={git_root} (main: {main_worktree}). Run git worktree list + git status before changes."
     )
     sys.exit(0)
 
@@ -38,5 +38,5 @@ if branch == "main":
             f"WARNING: Local main is {behind} commit(s) behind origin/main. Run 'git pull' before making any changes."
         )
     print(
-        "WARNING: You are on the main branch. GitHub branch protection prevents pushing to origin/main. Use 'git switch -c feat/your-change origin/main' before making commits."  # noqa: E501
+        "WARNING: You are on the main branch. GitHub branch protection prevents pushing to origin/main. Use 'git switch -c feat/your-change origin/main' before making commits."
     )

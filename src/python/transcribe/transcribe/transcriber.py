@@ -10,7 +10,7 @@ class Transcriber:
         model_size: str = "base",
         device: str = "auto",
         compute_type: str = "default",
-    ):
+    ) -> None:
         """Initialize the Transcriber with a specific model size and device."""
         self.model = WhisperModel(model_size, device=device, compute_type=compute_type)
 

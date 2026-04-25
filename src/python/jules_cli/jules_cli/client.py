@@ -17,7 +17,7 @@ from jules_cli.models import (
 class JulesClient:
     """
     Client for interacting with the Jules API.
-    See: https://developers.google.com/jules/api
+    See: https://developers.google.com/jules/api.
     """
 
     def __init__(self, api_key: str) -> None:

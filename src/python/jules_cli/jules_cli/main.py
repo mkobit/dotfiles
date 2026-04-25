@@ -298,7 +298,7 @@ def message(
     ),
     as_json: bool = typer.Option(False, "--json", help="Output in JSON format."),
 ) -> None:
-    """Send a follow-up message to an existing session.
+    r"""Send a follow-up message to an existing session.
 
     Sends a message to the specified Jules session. You can provide the message
     directly via `--message`. If it's not provided or is set to '-', the message
@@ -422,7 +422,7 @@ def create(
     ),
     as_json: bool = typer.Option(False, "--json", help="Output in JSON format."),
 ) -> None:
-    """Create a new session.
+    r"""Create a new session.
 
     Starts a new coding session with Jules on the given source context.
     The session object will contain the assigned URL and initial state.
