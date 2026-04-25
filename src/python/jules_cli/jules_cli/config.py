@@ -1,6 +1,7 @@
 import logging
 import os
 import tomllib
+from functools import cached_property
 from pathlib import Path
 from typing import Self
 
@@ -22,7 +23,7 @@ class JulesConfig(BaseModel):
                 raise ValueError(f"api_key_path does not exist: {secret_path}")
         return self
 
-    @property
+    @cached_property
     def api_key(self) -> str | None:
         if self.api_key_path:
             secret_path = Path(self.api_key_path).expanduser()
