@@ -1,6 +1,6 @@
 import pytest
 
-from termtext import Color256, RGBColor
+from termtext.color import Color256, RGBColor
 
 
 def test_rgb_color_out_of_bounds() -> None:

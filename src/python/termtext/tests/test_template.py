@@ -1,6 +1,10 @@
 import pytest
 
-from termtext import BG, FG, SGR, Color256, Config, Link, NamedColor, RGBColor, Style, TermText
+from termtext.attribute import BG, FG, SGR, Link
+from termtext.color import Color256, NamedColor, RGBColor
+from termtext.config import Config
+from termtext.style import Style
+from termtext.term_text import TermText
 
 
 def test_plain_literal() -> None:
