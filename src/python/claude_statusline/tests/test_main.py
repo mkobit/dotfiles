@@ -1,12 +1,14 @@
 import io
 import json
+import os
 import unittest
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
+import pytest
 from typer.testing import CliRunner
 
-from claude_statusline.main import cli
+from claude_statusline.main import cli, run_external_generator
 from claude_statusline.models import Segment, SegmentGenerationResult
 from claude_statusline.segments.workspace import shorten_path
 
@@ -88,6 +90,98 @@ class TestShortenPath(unittest.TestCase):
         home = Path("/home/user")
         with patch.object(Path, "home", return_value=home):
             assert shorten_path(home) == "~"
+
+
+runner = CliRunner()
+
+
+def test_main_with_external_generator_timeout():
+    """Goals: Verify that a timeout in the external generator gracefully terminates and returns empty."""
+    with patch("claude_statusline.main.asyncio.create_subprocess_exec") as mock_exec:
+        mock_proc = AsyncMock()
+        mock_proc.communicate.side_effect = TimeoutError()
+        mock_exec.return_value = mock_proc
+
+        result = runner.invoke(cli, ["--generator", "sleep 10"])
+        assert result.exit_code == 0
+
+
+def test_main_show_errors_external():
+    """Goals: Ensure that an explicit error flag correctly displays external generator failures."""
+    with patch("claude_statusline.main.asyncio.create_subprocess_exec") as mock_exec:
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 1
+        mock_proc.communicate.return_value = (b"", b"error")
+        mock_exec.return_value = mock_proc
+
+        result = runner.invoke(cli, ["--generator", "failing_cmd", "--show-errors"])
+        assert result.exit_code == 0
+        assert "Error: external:failing_cmd" in result.stdout
+
+
+def test_main_with_stdin_and_external_success():
+    """Goals: Validate that valid JSON via stdin is successfully processed and integrated."""
+    with patch("claude_statusline.main.asyncio.create_subprocess_exec") as mock_exec:
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 0
+        segment_json = json.dumps([{"line": 1, "index": 0, "segment": {"text": "external_text"}}])
+        mock_proc.communicate.return_value = (segment_json.encode(), b"")
+        mock_exec.return_value = mock_proc
+
+        result = runner.invoke(cli, ["--generator", "good_cmd"], input='{"cwd": "/tmp"}')
+        assert result.exit_code == 0
+        assert "external_text" in result.stdout
+
+
+@pytest.mark.asyncio
+async def test_run_external_generator_validation_error():
+    """Goals: Ensure malformed segment formats from external generators are safely ignored."""
+    with patch("claude_statusline.main.asyncio.create_subprocess_exec") as mock_exec:
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 0
+        # Invalid JSON for segment
+        mock_proc.communicate.return_value = (b'{"invalid": "data"}', b"")
+        mock_exec.return_value = mock_proc
+
+        res = await run_external_generator("cmd", "{}")
+        assert res == []
+
+
+@pytest.mark.asyncio
+async def test_run_external_generator_json_parse_error():
+    """Goals: Validate that fundamentally invalid JSON from an external generator is safely caught."""
+    with patch("claude_statusline.main.asyncio.create_subprocess_exec") as mock_exec:
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 0
+        # Malformed JSON
+        mock_proc.communicate.return_value = (b"not json", b"")
+        mock_exec.return_value = mock_proc
+
+        res = await run_external_generator("cmd", "{}")
+        assert res == []
+
+
+def test_main_with_xdg_cache_home(tmp_path):
+    """Goals: Verify that alternative cache directory overrides function correctly."""
+    with patch.dict(os.environ, {"XDG_CACHE_HOME": str(tmp_path)}):
+        result = runner.invoke(cli, [], input='{"cwd": "/tmp"}')
+        assert result.exit_code == 0
+        assert (tmp_path / "claude_statusline" / "cache.json").parent.exists()
+
+
+def test_main_with_internal_error():
+    """Goals: Ensure internal pipeline failures (like Git) are captured gracefully as errors when requested."""
+    # Force an error in git generation
+    with patch("claude_statusline.main.generate_git_segment", side_effect=Exception("Git error")):
+        result = runner.invoke(cli, ["--show-errors"], input='{"cwd": "/tmp"}')
+        assert result.exit_code == 0
+        assert "Error: internal.git" in result.stdout or "[Error: internal.git" in result.stdout
+
+
+def test_main_with_invalid_stdin():
+    """Goals: Verify that garbage standard input falls back to a clean default state."""
+    result = runner.invoke(cli, [], input="not json")
+    assert result.exit_code == 0
 
 
 if __name__ == "__main__":

@@ -72,3 +72,37 @@ def test_load_config_api_key_path(tmp_path: Path) -> None:
     cfg = load_config(str(config_file))
     assert cfg.api_key == "secret_value"
     assert cfg.api_key_path == str(secret_file)
+
+def test_load_config_api_key_path_missing(tmp_path: Path) -> None:
+    config_file = tmp_path / "config.toml"
+    config_file.write_text('api_key_path = "/path/does/not/exist"')
+
+    from pydantic import ValidationError
+    # Invalid toml due to pydantic validation will result in try_load failing
+    # which returns None, falling back to JulesConfig()
+    cfg = load_config(str(config_file))
+    assert cfg.api_key is None
+    assert cfg.api_key_path is None
+
+
+def test_load_config_api_key_path_unreadable(tmp_path: Path) -> None:
+    secret_file = tmp_path / "secret_key"
+    secret_file.write_text("secret_value")
+    # Make it a directory to trigger an exception on read_text
+    secret_file.unlink()
+    secret_file.mkdir()
+
+    config_file = tmp_path / "config.toml"
+    config_file.write_text(f'api_key_path = "{secret_file}"')
+
+    cfg = load_config(str(config_file))
+    assert cfg.api_key is None
+
+
+def test_load_config_invalid_toml(tmp_path: Path) -> None:
+    config_file = tmp_path / "config.toml"
+    config_file.write_text("invalid_toml = =")
+
+    # Invalid toml results in returning None which becomes JulesConfig() default
+    cfg = load_config(str(config_file))
+    assert cfg.api_key is None
