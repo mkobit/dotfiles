@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+
+{{- if eq .local_bin_tools.jules.installation "uv" }}
+uv tool install --force "{{ .chezmoi.sourceDir }}/../python/jules_cli"
+{{- else }}
+uv tool uninstall jules || true
+{{- end }}

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+
+{{- if eq .local_bin_tools.termbud.installation "uv" }}
+uv tool install --force "{{ .chezmoi.sourceDir }}/../python/termbud"
+{{- else }}
+uv tool uninstall termbud || true
+{{- end }}

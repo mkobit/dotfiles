@@ -1,4 +1,4 @@
 {{- if eq .local_bin_tools.transcribe.installation_method "dotfiles.uv" -}}
 #!/usr/bin/env bash
-exec uv run --frozen --project {{ .chezmoi.workingTree }}/src/python/transcribe -m transcribe.main "$@"
+exec mise exec -- transcribe "$@"
 {{- end -}}

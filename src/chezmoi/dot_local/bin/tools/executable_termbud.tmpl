@@ -1,4 +1,4 @@
 {{- if eq .local_bin_tools.termbud.installation_method "dotfiles.uv" -}}
 #!/usr/bin/env bash
-exec mise exec -- uv run --frozen --project {{ .chezmoi.workingTree }}/src/python/termbud -m termbud.main "$@"
+exec mise exec -- termbud "$@"
 {{- end -}}
