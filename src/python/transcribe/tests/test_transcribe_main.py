@@ -6,6 +6,7 @@ import pytest
 from typer.testing import CliRunner
 
 from transcribe.main import cli
+from transcribe.transcriber import Transcriber
 
 
 @pytest.fixture
@@ -77,3 +78,12 @@ def test_main_template_string(mock_transcriber: MagicMock) -> None:
 
         assert result.exit_code == 0
         assert "custom: Hello" in result.output
+
+
+def test_transcriber_init() -> None:
+
+    with patch("transcribe.transcriber.WhisperModel") as mock_model:
+        t = Transcriber()
+        mock_model.assert_called_once_with("base", device="auto", compute_type="default")
+        t.transcribe("test.wav")
+        mock_model.return_value.transcribe.assert_called_once_with("test.wav", language=None, beam_size=5)
