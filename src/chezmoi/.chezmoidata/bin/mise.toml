@@ -42,7 +42,7 @@ package_manager = "bun"
   installation_method = "mise"
 
   [mise.global_tools.java]
-  version             = "temurin-21"
+  version             = "temurin-21.0.2+13"
   installation_method = "mise"
 
   [mise.global_tools.rust]
