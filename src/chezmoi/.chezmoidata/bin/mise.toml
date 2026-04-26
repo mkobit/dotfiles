@@ -1,5 +1,5 @@
 [mise]
-version             = "v2026.4.17"
+version             = "v2026.4.22"
 installation_method = "chezmoi_external"
 repo                = "jdx/mise"
 external_type       = "file"
@@ -17,10 +17,10 @@ linux_amd64  = "linux-x64"
 linux_arm64  = "linux-arm64"
 
 [mise.checksums]
-darwin_arm64 = "91bb0fe6d74d983869797a7357dd4df4f722e455e167f0d51ceba6bc9dfdbb9b"
-darwin_amd64 = "e5ef15fd0e37c7f1ab834b4da258f78277ea87c184ba7538d738c949627c5b9f"
-linux_amd64  = "b5f4aaf9047687ec42326cc7f81a709cf36edb7614ec25036a6c5dc484e627e4"
-linux_arm64  = "879ba4bd2bc18df643cd88414dd2785089a5c53729755b79aa6b92b94fa40205"
+darwin_arm64 = "b0646b36130f054a9dcaf6e97a17d83e562c56dbf4d8ca0c7c09cef2065a33bf"
+darwin_amd64 = "b634d88e5a9f869fe54926c8fbcfee90d57741d7bc82731b19cb9c0a8741b6a0"
+linux_amd64  = "42539398d0ac4a8a0486ded967dfd0e6d9527b268a2c37bad4edd0c446666509"
+linux_arm64  = "1b85cffe789d131e47aba05e6c208802572e456afba814d7d081278e812095ff"
 
 [mise.settings]
 # Configuration settings: https://mise.jdx.dev/configuration/settings.html
@@ -62,5 +62,5 @@ package_manager = "bun"
   installation_method = "mise"
 
   [mise.global_tools.gemini-cli]
-  version             = "0.37.1"
+  version             = "0.39.1"
   installation_method = "mise"

@@ -1,5 +1,5 @@
 [fzf]
-version             = "0.71.0"
+version             = "0.72.0"
 installation_method = "chezmoi_external"
 repo                = "junegunn/fzf"
 external_type       = "archive-file"
@@ -19,7 +19,7 @@ linux_amd64  = "amd64"
 linux_arm64  = "arm64"
 
 [fzf.checksums]
-darwin_arm64 = "02dfb11de8773cb79aa4fc5bfc77e75c6604ee14728bc849fc162dd91a9714c4"
-darwin_amd64 = "144e98ee6bcffaf915366162768000561cd2db8fb53b119d73110391a8e5b5f0"
-linux_amd64  = "22639bb38489dbca8acef57850cbb50231ab714d0e8e855ac52fae8b41233df4"
-linux_arm64  = "98b7d322efae9c37e4bfbbab1cbcd8722eb742d9399511f96375feb40cc35d1d"
+darwin_arm64 = "4cbf87e8e8a342614c1e3e74670ceb18c2af998c4d4d0c379cfee9b520774e90"
+darwin_amd64 = "561c9db95cc1f75c8ad7e1d4461b2da0c8461189041f610ff1205f6303b84634"
+linux_amd64  = "0e58e4bd0b3c5d68c56b54c460a6863d0de79633ed18d388575a960ab447b006"
+linux_arm64  = "a0a5b50730f568c5f08b8dbba1e6e598db253e1856d371290086786b889b996b"
