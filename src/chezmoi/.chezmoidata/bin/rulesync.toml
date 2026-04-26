@@ -6,7 +6,7 @@
 # Features: selective generation, comprehensive import/export capabilities, and supports major AI development tools.
 
 [rulesync]
-version             = "8.4.0"
+version             = "8.11.0"
 installation_method = "chezmoi_external"
 repo                = "dyoshikawa/rulesync"
 external_type       = "file"
@@ -24,7 +24,7 @@ linux_amd64  = "x64"
 linux_arm64  = "arm64"
 
 [rulesync.checksums]
-darwin_arm64 = "2561ac5237e07f1a60353638ed3db08570ebc41d6fc8b439730a382997ead33c"
-darwin_amd64 = "27aca856abf7c2a8df413cb668ec4e0c706e991077a89b08ba916d1e4160504e"
-linux_amd64  = "2b0975d288182570c40587bf1de51b2764fa589d4b33cd0731089b6a7ad2d8e8"
-linux_arm64  = "088886fd1f21efc06a7796dc4bada680307d708173f9baad8c0de95619dacaa7"
+darwin_arm64 = "2b8a35a1c66407b99d16bcdef21b43f57d1ff162282f9933d8a0923ac6cd3f77"
+darwin_amd64 = "639ebf13b6aa28da976c83aa11f6195cd0792d51b3578dcab59c48b529b5c338"
+linux_amd64  = "e3f9bf49aca522d4fd94f6c038bea9145452e1deff0c10a9267a57278539e522"
+linux_arm64  = "6f35ed9f85f375b73bab0ac042d5d55b7f4ce73a628febad1d19f96ac8eec5dc"
