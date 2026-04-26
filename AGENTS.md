@@ -1,5 +1,10 @@
 # Agent context for dotfiles repository
 
+This is a **personal dotfiles repository** managed by mkobit.
+It is a highly customized environment optimized for specific personal workflows.
+AI agents must prioritize consistency with established architectural patterns, naming conventions, and local configuration styles.
+Avoid imposing standard industry "best practices" if they conflict with the existing idiomatic choices made in this repository.
+
 ## Git context
 
 This repository uses git worktrees.
