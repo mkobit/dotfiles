@@ -1,11 +1,11 @@
 [gh]
-version             = "2.90.0"
+version             = "2.91.0"
 installation_method = "chezmoi_external"
 
 # gh uses a non-standard archive naming scheme (macOS alias, zip vs tar.gz per OS)
 # managed by its own .chezmoiexternals template rather than external/release
 [gh.checksums]
-darwin_arm64 = "82a6acdc3f445dc316b70e1bc15b9b7c4b4e26fd30b04de461a7829ad6c6e97f"
-darwin_amd64 = "e44d23dd5f0f8534d7a9989177f2c60ac8ffbcdfc6a0a6e5d1f23c4a3b83a9e0"
-linux_amd64  = "b2aef7b23ec6899bf27f37a32c57a7935d0a178568ac33dc9bb03842f724195a"
-linux_arm64  = "1139e1ad912fcddb5ef4b957530184c2c30d9937ff65ff4e641fbf6ca5f28c7c"
+darwin_arm64 = "20446cd714d9fa1b69fbd410deade3731f38fe09a2b980c8488aa388dd320ada"
+darwin_amd64 = "8806784f93603fe6d3f95c3583a08df38f175df9ebc123dc8b15f919329980e2"
+linux_amd64  = "304a0d2460f4a8847d2f192bad4e2a32cd9420d28716e7ae32198181b65b5f9c"
+linux_arm64  = "ccbed39c472d3dc1c501d1e164a9cffd934c5f6fce1012811a1a59d24cb7d7c6"
