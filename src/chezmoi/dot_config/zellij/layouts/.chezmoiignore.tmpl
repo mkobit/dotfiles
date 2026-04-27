@@ -1,0 +1,6 @@
+{{- /* Skip layout files for disabled sessions so stale .kdl files are never deployed. */ -}}
+{{- range $name, $session := .zellij.sessions -}}
+{{-   if not (dig "enabled" false $session) }}
+{{ $name }}.kdl
+{{-   end -}}
+{{- end -}}

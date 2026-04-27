@@ -115,3 +115,15 @@ When resolving package installation failures (e.g. `npm`, `pnpm`, `bun`, `uv`), 
 
 ## AI Shell Limitations
 Do not execute `mise lock` in Jules, as it will permanently and irrevocably destroy the shell session.
+
+## Zellij layout system
+
+Layouts in `src/chezmoi/dot_config/zellij/layouts/<session>.kdl.tmpl`; session data in
+`.chezmoidata/zellij.toml` (`enabled = false` by default); work repo overrides via
+`[data.zellij.sessions.*]` arrays-of-tables in `chezmoi-personal.toml.tmpl`.
+
+Composable templates in `src/chezmoi/.chezmoitemplates/zellij/` — read each file for the
+full field reference: `chrome.kdl.tmpl` (tab-bar/status-bar), `tab.kdl.tmpl`, `pane.kdl.tmpl`.
+
+`layout_style`: `work`, `compact`, `personal`, `minimal`; prefix `^` for named style data lookup.
+Docs: https://zellij.dev/documentation/creating-a-layout — https://kdl.dev/spec

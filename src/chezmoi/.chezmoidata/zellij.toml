@@ -1,0 +1,23 @@
+# Zellij session defaults — all sessions disabled by default so the work repo
+# can selectively enable them via [data.zellij.sessions.*] overrides in
+# chezmoi-personal.toml.tmpl without personal machines getting work sessions.
+#
+# Layout files for each session live in dot_config/zellij/layouts/<name>.kdl.tmpl.
+# .chezmoiignore.tmpl skips the rendered .kdl file when enabled = false.
+#
+# layout_style values: work | compact | personal | minimal | ^<named-style>
+# See .chezmoitemplates/zellij/chrome.kdl.tmpl for chrome details.
+# Docs: https://zellij.dev/documentation/creating-a-layout
+
+[zellij.sessions.home]
+enabled      = false
+layout_style = "^work"
+
+[zellij.sessions.obsidian]
+enabled      = false
+layout_style = "^minimal"
+
+
+[zellij.sessions.personal-repos]
+enabled      = false
+layout_style = "^personal"
