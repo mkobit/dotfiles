@@ -1,5 +1,0 @@
-{{- with .rulesync -}}
-{{- if eq .installation_method "chezmoi_external" -}}
-{{- template "external/release" (dict "key" "rulesync" "data" . "root" $) -}}
-{{- end -}}
-{{- end -}}
