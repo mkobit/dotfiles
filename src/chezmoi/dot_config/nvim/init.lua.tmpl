@@ -1,0 +1,8 @@
+-- {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:nvim:{{ include "dot_config/nvim/init.lua.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
+local dotfiles_nvim = '{{ .chezmoi.homeDir }}/.dotfiles/nvim/init.lua'
+if vim.fn.filereadable(dotfiles_nvim) == 1 then
+  dofile(dotfiles_nvim)
+else
+  print("Warning: Dotfiles nvim config not found at " .. dotfiles_nvim)
+end
+-- {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:nvim:{{ include "dot_config/nvim/init.lua.tmpl" | sha256sum | substr 0 8 }}

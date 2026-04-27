@@ -1,0 +1,64 @@
+-- Neovim configuration managed by chezmoi
+-- Source all lua files in snippets directory
+local snippet_dir = '{{ .chezmoi.homeDir }}/.dotfiles/nvim/snippets'
+
+local function source_snippets()
+  local snippets = vim.fn.glob(snippet_dir .. '/*.lua', true, true)
+  for _, file in ipairs(snippets) do
+    if vim.fn.filereadable(file) == 1 then
+      dofile(file)
+    end
+  end
+end
+
+source_snippets()
+
+-- Setup lazy.nvim plugin manager if we want to add plugins later
+-- Using our standard dotfiles structure, we can symlink or download plugins
+-- For now, basic setup for upstream plugins via lazy
+local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
+if not vim.loop.fs_stat(lazypath) then
+  vim.fn.system({
+    "git",
+    "clone",
+    "--filter=blob:none",
+    "https://github.com/folke/lazy.nvim.git",
+    "--branch=stable", -- latest stable release
+    lazypath,
+  })
+end
+vim.opt.rtp:prepend(lazypath)
+
+-- Configure plugins from ~/.dotfiles/nvim/plugins directory
+-- This allows us to inject URLs and data securely via chezmoi
+local ok, lazy = pcall(require, "lazy")
+if ok then
+  -- Load plugin specs from config
+  local plugins = {}
+
+  -- Add dynamic plugins managed by chezmoi data
+  {{- if hasKey . "nvim" }}
+  {{- if hasKey .nvim "plugins" }}
+  {{- range $name, $plugin := .nvim.plugins }}
+  {{- if $plugin.enabled }}
+  table.insert(plugins, {
+    "{{ $plugin.repo }}",
+    {{- if hasKey $plugin "commit" }}
+    commit = "{{ $plugin.commit }}",
+    {{- end }}
+    {{- if hasKey $plugin "config" }}
+    config = function()
+      {{ $plugin.config }}
+    end
+    {{- end }}
+  })
+  {{- end }}
+  {{- end }}
+  {{- end }}
+  {{- end }}
+
+  lazy.setup({
+    spec = plugins,
+    defaults = { lazy = false },
+  })
+end
