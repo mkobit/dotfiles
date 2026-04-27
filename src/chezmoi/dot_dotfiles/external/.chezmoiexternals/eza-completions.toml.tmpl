@@ -10,7 +10,8 @@
     "tag_format"          "v{version}"
     "filename_format"     "completions-{version}.tar.gz"
     "url_format"          "{base}/{repo}/releases/download/{tag}/{filename}"
-    "include"             (list "zsh/_eza")
+    "include"             (list "*/_eza")
+    "stripComponents"     2
     "readonly"            true
     "platforms"           .platforms
 ) "root" $) -}}
