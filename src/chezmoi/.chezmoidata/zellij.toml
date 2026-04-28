@@ -1,6 +1,5 @@
-# Zellij data defaults.
-# Work repo injects config overrides via [data.zellij.config] in chezmoi-personal.toml.tmpl.
-# Layout files live in dot_config/zellij/layouts/ — each repo owns its own.
+# Zellij data defaults. Overlay environments may override via [data.zellij.config].
+# Layout files live in dot_config/zellij/layouts/ — each environment owns its own.
 # Docs: https://zellij.dev/documentation/creating-a-layout
 
 [zellij.config]

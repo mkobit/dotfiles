@@ -118,12 +118,7 @@ Do not execute `mise lock` in Jules, as it will permanently and irrevocably dest
 
 ## Zellij layout system
 
-Layouts in `src/chezmoi/dot_config/zellij/layouts/<session>.kdl.tmpl`; session data in
-`.chezmoidata/zellij.toml` (`enabled = false` by default); work repo overrides via
-`[data.zellij.sessions.*]` arrays-of-tables in `chezmoi-personal.toml.tmpl`.
-
-Composable templates in `src/chezmoi/.chezmoitemplates/zellij/` — read each file for the
-full field reference: `chrome.kdl.tmpl` (tab-bar/status-bar), `tab.kdl.tmpl`, `pane.kdl.tmpl`.
-
-`layout_style`: `work`, `compact`, `personal`, `minimal`; prefix `^` for named style data lookup.
-Docs: https://zellij.dev/documentation/creating-a-layout — https://kdl.dev/spec
+Personal layouts live in `src/chezmoi/dot_config/zellij/layouts/`.
+Each environment (overlay, personal machine, remote) owns its own layout files directly — no cross-repo injection for layouts.
+Config scalar defaults (`scrollback_lines_to_serialize`, `show_startup_tips`) live in `.chezmoidata/zellij.toml`; overlay environments may override via `[data.zellij.config]`.
+Docs: https://zellij.dev/documentation/creating-a-layout
