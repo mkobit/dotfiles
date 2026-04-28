@@ -1,13 +1,39 @@
 // Keybind overrides only — zellij built-in defaults are preserved.
 // Tmux mode is disabled by unbinding Ctrl b everywhere it would activate.
+// https://zellij.dev/documentation/keybindings
 keybinds {
     shared_except "locked" "scroll" "search" "tmux" {
         unbind "Ctrl b"
     }
 }
+{{- /*
+  Emit one keybinds block per mode that has entries.
+  Data path: zellij.modes.<mode>.keybinds
+    Keys:   unique bind identifiers (e.g. alt-a) — used only for map merge uniqueness
+    Values: raw KDL bind line, or empty string to suppress a bind from an inner layer
+  Map keys deep-merge across chezmoidata + overlay [data.zellij.modes.*] injection.
+  clear_defaults=true on a mode emits "keybinds clear-defaults=true" for that block.
+  Custom modes unsupported until: https://github.com/zellij-org/zellij/issues/248
+*/ -}}
+{{- range $mode, $modeData := (dig "zellij" "modes" (dict) .) }}
+{{-   $keybinds := dig "keybinds" (dict) $modeData }}
+{{-   $clear    := dig "clear_defaults" false $modeData }}
+{{-   if $keybinds }}
+keybinds{{ if $clear }} clear-defaults=true{{ end }} {
+    {{ $mode }} {
+{{-     range $_, $line := $keybinds }}
+{{-       if $line }}
+        {{ $line }}
+{{-       end }}
+{{-     end }}
+    }
+}
+{{-   end }}
+{{- end }}
 
-// Plugin aliases - can be used to change the implementation of Zellij
-// changing these requires a restart to take effect
+// Plugin aliases - can be used to change the implementation of Zellij.
+// Changing these requires a restart to take effect.
+// https://zellij.dev/documentation/plugins
 plugins {
     about location="zellij:about"
     compact-bar location="zellij:compact-bar"
@@ -25,10 +51,11 @@ plugins {
     }
 }
 
-// Plugins to load in the background when a new session starts
+// Plugins to load in the background when a new session starts.
 load_plugins {
     zellij:link
 }
+
 web_client {
     font "monospace"
 }
