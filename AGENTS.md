@@ -115,3 +115,10 @@ When resolving package installation failures (e.g. `npm`, `pnpm`, `bun`, `uv`), 
 
 ## AI Shell Limitations
 Do not execute `mise lock` in Jules, as it will permanently and irrevocably destroy the shell session.
+
+## Zellij layout system
+
+Personal layouts live in `src/chezmoi/dot_config/zellij/layouts/`.
+Each environment (overlay, personal machine, remote) owns its own layout files directly — no cross-repo injection for layouts.
+Config scalar defaults (`scrollback_lines_to_serialize`, `show_startup_tips`) live in `.chezmoidata/zellij.toml`; overlay environments may override via `[data.zellij.config]`.
+Docs: https://zellij.dev/documentation/creating-a-layout

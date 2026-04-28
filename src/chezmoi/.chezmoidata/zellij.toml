@@ -1,0 +1,7 @@
+# Zellij data defaults. Overlay environments may override via [data.zellij.config].
+# Layout files live in dot_config/zellij/layouts/ — each environment owns its own.
+# Docs: https://zellij.dev/documentation/creating-a-layout
+
+[zellij.config]
+scrollback_lines_to_serialize = 75000
+show_startup_tips             = true
