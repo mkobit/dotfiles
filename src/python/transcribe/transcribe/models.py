@@ -7,6 +7,7 @@ class TranscriptionSegment:
     end: float
     text: str
 
+
 @dataclass
 class TranscriptionInfo:
     language: str
