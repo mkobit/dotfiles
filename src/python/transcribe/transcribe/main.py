@@ -7,7 +7,7 @@ import typer
 from tqdm import tqdm
 
 from transcribe.formatter import Formatter
-from transcribe.transcriber import Transcriber
+from transcribe.transcriber import FasterWhisperTranscriber
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -35,7 +35,7 @@ def main(
 
     try:
         logger.info(f"Loading model '{model}' on '{device}'...")
-        transcriber = Transcriber(model_size=model, device=device, compute_type=compute_type)
+        transcriber = FasterWhisperTranscriber(model_size=model, device=device, compute_type=compute_type)
 
         logger.info(f"Transcribing '{input_path}'...")
         segments_gen, info = transcriber.transcribe(str(input_path), language=language)
