@@ -1,0 +1,28 @@
+# General build directories
+build/
+dist/
+out/
+target/
+
+# Node
+node_modules/
+.next/
+
+# Python
+.venv/
+venv/
+env/
+.env/
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.tox/
+
+# OS/IDE
+.DS_Store
+.idea/
+.vscode/
+
+# Other caches
+.cache/
