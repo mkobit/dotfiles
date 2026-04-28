@@ -1,23 +1,23 @@
 [starship]
-version = "1.22.1"
+version             = "1.25.0"
 installation_method = "chezmoi_external"
-repo = "starship/starship"
-external_type = "archive-file"
-executable = true
-checksum_type = "sha256"
-tag_format = "v{version}"
-filename_format = "starship-{target}.tar.gz"
-path_format = "starship"
-url_format = "{base}/{repo}/releases/download/{tag}/{filename}"
+repo                = "starship/starship"
+external_type       = "archive-file"
+executable          = true
+checksum_type       = "sha256"
+tag_format          = "v{version}"
+filename_format     = "starship-{target}.tar.gz"
+path_format         = "starship"
+url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
 [starship.platforms]
 darwin_arm64 = "aarch64-apple-darwin"
 darwin_amd64 = "x86_64-apple-darwin"
-linux_amd64 = "x86_64-unknown-linux-gnu"
-linux_arm64 = "aarch64-unknown-linux-musl"
+linux_amd64  = "x86_64-unknown-linux-gnu"
+linux_arm64  = "aarch64-unknown-linux-musl"
 
 [starship.checksums]
-darwin_arm64 = "b73b2ef7995eaf07d18a806c3d3addaba7797d1fab2daceb875944bf038b97a9"
-darwin_amd64 = "38f13f3ec091a900996f47a74e3f31f8067dc3d6fd59d6bc179e4ceb853eba91"
-linux_amd64 = "e57db6f6497ee8a426c5e77b4d6f5c50734d3e9cca7a18a8aef46730505a3ae7"
-linux_arm64 = "b82edd21060f3ed112460442c48a3a9545c8dbf3b564154441f4e6b58eacc387"
+darwin_arm64 = "365301b5f4938322a9f378764b4bc640048bca7d6ac28eaabd406cadd6fc703a"
+darwin_amd64 = "05421bfc05ed00394ec4a7ea20213bd9920b2858713cbe1ddf257ebcebf5da88"
+linux_amd64  = "025a6540717a20d2545410c0108caf216a6a14ab2cce91a473d91ed42762bc6b"
+linux_arm64  = "68ffcb75582e5ed336b43598bb4d8ecc4ec994ea26eac7955d3d378f1375da34"
