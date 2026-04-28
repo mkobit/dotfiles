@@ -1,17 +1,12 @@
 -- Neovim configuration managed by chezmoi
--- Source all lua files in snippets directory
-local snippet_dir = '{{ .chezmoi.homeDir }}/.dotfiles/nvim/snippets'
+-- Combined from chezmoitemplates
 
-local function source_snippets()
-  local snippets = vim.fn.glob(snippet_dir .. '/*.lua', true, true)
-  for _, file in ipairs(snippets) do
-    if vim.fn.filereadable(file) == 1 then
-      dofile(file)
-    end
-  end
-end
-
-source_snippets()
+{{ template "nvim/base.lua" . }}
+{{ template "nvim/editing.lua" . }}
+{{ template "nvim/indentation.lua" . }}
+{{ template "nvim/navigation.lua" . }}
+{{ template "nvim/search.lua" . }}
+{{ template "nvim/ui.lua" . }}
 
 -- Setup lazy.nvim plugin manager if we want to add plugins later
 -- Using our standard dotfiles structure, we can symlink or download plugins
