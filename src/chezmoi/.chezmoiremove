@@ -32,3 +32,5 @@ install-asdf.sh
 {{ end }}
 .dotfiles/zsh/scripts
 .dotfiles/bash/snippets
+.dotfiles/external/eza-completions
+.dotfiles/external/eza-completions/**
