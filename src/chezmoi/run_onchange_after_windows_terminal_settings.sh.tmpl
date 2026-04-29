@@ -3,9 +3,8 @@
 set -euo pipefail
 
 # Font face: {{ .windows_terminal.font_face }}, size: {{ .windows_terminal.font_size }}
-# Version: 2
+# Version: 3
 
-# We wrap execution in a function to allow easy early returns instead of using exit (which breaks the sandbox during testing)
 main() {
     local WIN_LOCALAPPDATA
     WIN_LOCALAPPDATA=$(/mnt/c/Windows/System32/cmd.exe /c "echo %LOCALAPPDATA%" 2>/dev/null | tr -d '\r')
@@ -14,99 +13,89 @@ main() {
         return 1
     fi
 
-    local WIN_APPDATA_UNIX
-    WIN_APPDATA_UNIX=$(wslpath -u "${WIN_LOCALAPPDATA}")
+    local WINDOWS_SETTINGS_PATH="${WIN_LOCALAPPDATA}\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\settings.json"
 
-    local WINDOWS_SETTINGS_PATH="${WIN_APPDATA_UNIX}/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
-    if [[ ! -f "${WINDOWS_SETTINGS_PATH}" ]]; then
-        WINDOWS_SETTINGS_PATH="${WIN_APPDATA_UNIX}/Packages/Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe/LocalState/settings.json"
-    fi
+    powershell.exe -NoProfile -Command "
+\$ErrorActionPreference = 'Stop'
+\$settingsPath = '${WINDOWS_SETTINGS_PATH}'
+if (!(Test-Path \$settingsPath)) {
+    \$settingsPath = '${WIN_LOCALAPPDATA}\\Packages\\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\\LocalState\\settings.json'
+}
+if (!(Test-Path \$settingsPath)) {
+    Write-Warning 'Windows Terminal settings.json not found, skipping configuration'
+    return
+}
 
-    if [[ ! -f "${WINDOWS_SETTINGS_PATH}" ]]; then
-        echo "WARNING: Windows Terminal settings.json not found, skipping configuration" >&2
-        return 0
-    fi
+# Read content and strip comments (//) to allow ConvertFrom-Json to parse safely
+\$content = Get-Content \$settingsPath -Raw
+\$content = \$content -replace '(?m)^\s*//.*$', ''
+\$settings = \$content | ConvertFrom-Json
 
-    # We use python because settings.json often contains comments (//) which jq cannot parse natively
-    python3 -c "
-import json
-import re
-import sys
-import os
+\$modified = \$false
 
-settings_path = '${WINDOWS_SETTINGS_PATH}'
-try:
-    with open(settings_path, 'r', encoding='utf-8') as f:
-        content = f.read()
-except FileNotFoundError:
-    sys.exit(0)
-
-# Strip single line comments to safely parse JSON
-content = re.sub(r'^\s*//.*$', '', content, flags=re.MULTILINE)
-
-try:
-    settings = json.loads(content)
-except json.JSONDecodeError as e:
-    print(f'ERROR: Failed to parse Windows Terminal settings.json: {e}', file=sys.stderr)
-    sys.exit(1)
-
-modified = False
+# Ensure profiles.defaults exists
+if (!\$settings.profiles) {
+    \$settings | Add-Member -NotePropertyName profiles -NotePropertyValue ([PSCustomObject]@{defaults=[PSCustomObject]@{}}) -Force
+} elseif (!\$settings.profiles.defaults) {
+    \$settings.profiles | Add-Member -NotePropertyName defaults -NotePropertyValue ([PSCustomObject]@{}) -Force
+}
 
 # Update Font settings
-if 'profiles' not in settings:
-    settings['profiles'] = {}
+if (!\$settings.profiles.defaults.font) {
+    \$settings.profiles.defaults | Add-Member -NotePropertyName font -NotePropertyValue ([PSCustomObject]@{}) -Force
+}
 
-if isinstance(settings['profiles'], dict):
-    if 'defaults' not in settings['profiles']:
-        settings['profiles']['defaults'] = {}
-    defaults = settings['profiles']['defaults']
-else:
-    # If it's a list (older format), not fully supported here, but try to handle defaults if present
-    print('WARNING: Old profiles format detected in Windows Terminal settings, skipping font update', file=sys.stderr)
-    defaults = None
-
-if defaults is not None:
-    if 'font' not in defaults:
-        defaults['font'] = {}
-
-    font = defaults['font']
-    if font.get('face') != '{{ .windows_terminal.font_face }}' or font.get('size') != {{ .windows_terminal.font_size }}:
-        font['face'] = '{{ .windows_terminal.font_face }}'
-        font['size'] = {{ .windows_terminal.font_size }}
-        modified = True
+if (\$settings.profiles.defaults.font.face -ne '{{ .windows_terminal.font_face }}') {
+    \$settings.profiles.defaults.font | Add-Member -NotePropertyName face -NotePropertyValue '{{ .windows_terminal.font_face }}' -Force
+    \$modified = \$true
+}
+if (\$settings.profiles.defaults.font.size -ne {{ .windows_terminal.font_size }}) {
+    \$settings.profiles.defaults.font | Add-Member -NotePropertyName size -NotePropertyValue {{ .windows_terminal.font_size }} -Force
+    \$modified = \$true
+}
 
 # Update Actions for Claude Code (Shift+Enter mapping)
-# Note: Windows Terminal normalizes 'keys' mapping over to 'keybindings' but it starts in 'actions' array in modern WT
-if 'actions' not in settings:
-    settings['actions'] = []
+if (!\$settings.actions) {
+    \$settings | Add-Member -NotePropertyName actions -NotePropertyValue @() -Force
+}
 
-actions = settings['actions']
-action_exists = False
-target_action_id = 'User.sendInput.shiftEnter'
-
-# Look if action already exists
-for action in actions:
-    if isinstance(action, dict) and action.get('id') == target_action_id:
-        action_exists = True
+\$targetActionId = 'User.sendInput.shiftEnter'
+\$actionExists = \$false
+foreach (\$action in \$settings.actions) {
+    if (\$action.id -eq \$targetActionId) {
+        \$actionExists = \$true
         break
+    }
+}
 
-if not action_exists:
-    actions.append({
-        'command': {
-            'action': 'sendInput',
-            'input': '\u001b[13;2u'
-        },
-        'id': target_action_id,
-        'keys': 'shift+enter'
-    })
-    modified = True
+if (!\$actionExists) {
+    \$newAction = [PSCustomObject]@{
+        command = [PSCustomObject]@{
+            action = 'sendInput'
+            input = '\u001b[13;2u'
+        }
+        id = \$targetActionId
+        keys = 'shift+enter'
+    }
 
-if modified:
-    with open(settings_path, 'w', encoding='utf-8') as f:
-        json.dump(settings, f, indent=4)
-    print(f'Successfully updated Windows Terminal settings at {settings_path}')
-else:
-    print('Windows Terminal settings are already up to date.')
+    if (\$settings.actions -is [array]) {
+        \$settings.actions += \$newAction
+    } else {
+        \$settings.actions = @(\$settings.actions, \$newAction)
+    }
+    \$modified = \$true
+}
+
+if (\$modified) {
+    \$json = \$settings | ConvertTo-Json -Depth 20
+    # ConvertTo-Json will escape our backslash, creating '\\u001b' in the file.
+    # We replace it back to a single backslash so WT parses it as an escape character.
+    \$json = \$json -replace '\\\\u001b', '\u001b'
+    [System.IO.File]::WriteAllText(\$settingsPath, \$json, [System.Text.UTF8Encoding]::new(\$false))
+    Write-Host \"Successfully updated Windows Terminal settings at \$settingsPath\"
+} else {
+    Write-Host 'Windows Terminal settings are already up to date.'
+}
 "
 }
 
