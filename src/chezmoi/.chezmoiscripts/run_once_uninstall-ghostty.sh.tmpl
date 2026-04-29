@@ -1,7 +1,6 @@
 {{- $method := dig "packages" "ghostty" "installation_method" .chezmoi.os "none" . -}}
 {{- if eq $method "none" }}#!/usr/bin/env bash
 
-# logging.sh hash: {{ includeTemplate "shell/logging.sh" | sha256sum }}
 source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 
 # Check if ghostty is installed
