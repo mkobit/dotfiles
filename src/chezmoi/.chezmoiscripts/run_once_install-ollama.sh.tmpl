@@ -1,0 +1,80 @@
+{{- $method := dig "packages" "ollama" "installation_method" .chezmoi.os "none" . -}}
+{{- if eq $method "dotfiles.script" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
+
+{{ if eq .chezmoi.os "darwin" -}}
+# macOS installation
+if check_command ollama; then
+    log_success "Ollama already installed on macOS"
+    exit 0
+fi
+
+log_info "Installing Ollama for macOS..."
+if curl -fsSL https://ollama.com/install.sh | sh; then
+    log_success "Ollama installed successfully on macOS"
+else
+    log_error "Failed to install Ollama on macOS"
+    exit 1
+fi
+
+{{ else if eq .chezmoi.os "linux" -}}
+{{   if contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
+# WSL installation (install on Windows host)
+WIN_PROFILE=$(/mnt/c/Windows/System32/cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')
+if [[ -z "${WIN_PROFILE}" ]]; then
+  log_error "Could not determine Windows user profile path via cmd.exe"
+  exit 1
+fi
+
+WIN_OLLAMA_EXE="$(wslpath -u "${WIN_PROFILE}")/AppData/Local/Programs/Ollama/ollama.exe"
+
+if [[ -f "${WIN_OLLAMA_EXE}" ]] || check_command ollama.exe || check_command ollama; then
+    log_success "Ollama already installed on Windows host"
+    exit 0
+fi
+
+log_info "Installing Ollama on Windows host..."
+TEMP_DIR=$(mktemp -d)
+INSTALLER_PATH="${TEMP_DIR}/OllamaSetup.exe"
+
+log_info "Downloading OllamaSetup.exe..."
+if curl -fsSL -o "${INSTALLER_PATH}" https://ollama.com/download/OllamaSetup.exe; then
+    log_info "Executing OllamaSetup.exe (Note: This may require UAC elevation on Windows)..."
+    # Convert path to Windows format for cmd.exe
+    WIN_INSTALLER_PATH=$(wslpath -w "${INSTALLER_PATH}")
+    if /mnt/c/Windows/System32/cmd.exe /c start /wait "" "${WIN_INSTALLER_PATH}"; then
+        log_success "Ollama installed successfully on Windows host"
+    else
+        log_error "Failed to execute OllamaSetup.exe"
+        rm -rf "${TEMP_DIR}"
+        exit 1
+    fi
+else
+    log_error "Failed to download OllamaSetup.exe"
+    rm -rf "${TEMP_DIR}"
+    exit 1
+fi
+rm -rf "${TEMP_DIR}"
+
+{{   else -}}
+# Standard Linux installation
+if check_command ollama; then
+    log_success "Ollama already installed on Linux"
+    exit 0
+fi
+
+log_info "Installing Ollama for Linux..."
+if curl -fsSL https://ollama.com/install.sh | sh; then
+    log_success "Ollama installed successfully on Linux"
+else
+    log_error "Failed to install Ollama on Linux"
+    exit 1
+fi
+{{   end -}}
+{{ end -}}
+
+{{- end -}}
