@@ -19,7 +19,7 @@
 
 set -euo pipefail
 
-source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 
 if ! check_command snap; then
     log_warn "snap not found — skipping snap package installation"
