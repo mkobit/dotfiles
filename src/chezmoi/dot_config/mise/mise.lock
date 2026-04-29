@@ -53,7 +53,7 @@ version = "0.40.0"
 backend = "npm:@google/gemini-cli"
 
 [[tools.java]]
-version = "temurin-21.0.2+13.0.LTS"
+version = "temurin-21.0.10+7.0.LTS"
 backend = "core:java"
 
 [[tools.node]]
