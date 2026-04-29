@@ -1,0 +1,3 @@
+[packages.ollama.installation_method]
+darwin = "dotfiles.script"
+linux  = "dotfiles.script"
