@@ -1,22 +1,22 @@
-from abc import ABC, abstractmethod
 from collections.abc import Iterable
+from typing import Protocol
 
 from faster_whisper import WhisperModel
 
 from transcribe.models import TranscriptionInfo, TranscriptionSegment
 
 
-class BaseTranscriber(ABC):
-    """Abstract base class for audio transcribers."""
+class Transcriber(Protocol):
+    """Protocol for audio transcribers."""
 
-    @abstractmethod
     def transcribe(
         self, audio_path: str, language: str | None = None
     ) -> tuple[Iterable[TranscriptionSegment], TranscriptionInfo]:
         """Transcribe an audio file and return a generator of segments and info."""
+        ...
 
 
-class FasterWhisperTranscriber(BaseTranscriber):
+class FasterWhisperTranscriber:
     def __init__(
         self,
         model_size: str = "base",
