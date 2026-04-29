@@ -14,7 +14,8 @@ if check_command ollama; then
 fi
 
 log_info "Installing Ollama for macOS..."
-if curl -fsSL https://ollama.com/install.sh | sh; then
+# Prevent installer from attempting to start Ollama App in CI/background environments
+if curl -fsSL https://ollama.com/install.sh | OLLAMA_NO_START=1 sh; then
     log_success "Ollama installed successfully on macOS"
 else
     log_error "Failed to install Ollama on macOS"
