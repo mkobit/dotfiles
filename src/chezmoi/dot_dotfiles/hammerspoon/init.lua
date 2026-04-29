@@ -30,3 +30,7 @@ if _G.DotfilesConfig and _G.DotfilesConfig.window_manager and _G.DotfilesConfig.
     local WindowLayout = require("window-layout")
     WindowLayout.start()
 end
+
+-- Event Logger for power and screen events
+local EventLogger = require("event-logger")
+EventLogger.start()
