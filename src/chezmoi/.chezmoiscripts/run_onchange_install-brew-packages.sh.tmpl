@@ -4,7 +4,7 @@
 
 set -euo pipefail
 
-source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 
 if ! check_command brew; then
     log_warn "Homebrew not found — skipping brew package installation"

@@ -1,7 +1,6 @@
 {{ if and (eq .chezmoi.os "darwin") (stat "/Applications/iTerm.app") }}#!/usr/bin/env bash
 
-# logging.sh hash: {{ includeTemplate "shell/logging.sh" | sha256sum }}
-source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 
 log_info "Configuring iTerm2 to disable bell sounds..."
 

@@ -1,6 +1,6 @@
 {{- if .zsh.set_as_default_login_shell }}#!/usr/bin/env bash
 
-source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 
 # Set zsh as default shell (runs after zsh installation)
 zsh_path="$(which zsh)"
