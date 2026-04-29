@@ -1,7 +1,7 @@
-local EventLogger = {}
-EventLogger.__index = EventLogger
+local WindowManager = {}
+WindowManager.__index = WindowManager
 
-local LOG_TAG = "EventLogger"
+local LOG_TAG = "WindowManager"
 local logger = hs.logger.new(LOG_TAG, "info")
 
 local caffeinateWatcher = nil
@@ -47,7 +47,7 @@ local function update_status_bar(msg)
     }, 3.0)
 end
 
-function EventLogger.start()
+function WindowManager.start()
     -- Initialize menu with default title
     menu = hs.menubar.new()
     if menu then
@@ -95,7 +95,7 @@ function EventLogger.start()
     end)
     screenWatcher:start()
 
-    logger:i("EventLogger started")
+    logger:i("WindowManager started")
 end
 
-return EventLogger
+return WindowManager
