@@ -6,9 +6,55 @@
 scrollback_lines_to_serialize = 75000
 show_startup_tips             = true
 
+# Plugin aliases. Keys are alias names used in layouts and keybinds.
+# location: plugin URL — zellij:<name>, file:/path, https://, or bare alias
+# config:   optional plugin-specific key/value configuration
+# Overlay environments extend by adding keys; overwrite by redefining a key.
+# https://zellij.dev/documentation/plugin-aliases
+[zellij.plugins.about]
+location = "zellij:about"
+
+[zellij.plugins.compact-bar]
+location = "zellij:compact-bar"
+
+[zellij.plugins.configuration]
+location = "zellij:configuration"
+
+[zellij.plugins.filepicker]
+location = "zellij:strider"
+[zellij.plugins.filepicker.config]
+cwd = "/"
+
+[zellij.plugins.plugin-manager]
+location = "zellij:plugin-manager"
+
+[zellij.plugins.session-manager]
+location = "zellij:session-manager"
+
+[zellij.plugins.status-bar]
+location = "zellij:status-bar"
+
+[zellij.plugins.strider]
+location = "zellij:strider"
+
+[zellij.plugins.tab-bar]
+location = "zellij:tab-bar"
+
+[zellij.plugins.welcome-screen]
+location = "zellij:session-manager"
+[zellij.plugins.welcome-screen.config]
+welcome_screen = true
+
+# Plugins loaded in the background on session start.
+# Keys are alias names or URLs; value true = load, false = suppress.
+# https://zellij.dev/documentation/plugin-loading
+[zellij.load_plugins]
+"zellij:link" = true
+
 # Keybinds per mode. Keys are unique bind identifiers (e.g. alt-a); values are
-# raw KDL bind lines. Overlay environments add/override via [data.zellij.modes.*].
-# Map keys merge across chezmoidata + overlay; empty string suppresses a bind.
+# raw KDL bind lines. Map keys merge across chezmoidata + overlay [data.*].
+# Empty string suppresses a bind from an inner layer.
+# clear_defaults = true on a mode emits "keybinds clear-defaults=true" for that block.
 # Available modes: normal locked resize pane move tab scroll search session tmux
 # Custom modes not yet supported: https://github.com/zellij-org/zellij/issues/248
 # https://zellij.dev/documentation/keybindings-modes

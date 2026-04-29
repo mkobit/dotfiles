@@ -132,7 +132,7 @@ def main(  # noqa: C901
             ]
         return []
 
-    async def fetch_all() -> None:
+    async def fetch_all() -> None:  # noqa: C901
         git_key = f"internal.git:{cwd.resolve()}"
         cached_git = await cache.get(git_key)
         if cached_git is not None:
@@ -166,6 +166,7 @@ def main(  # noqa: C901
 
         results = await asyncio.gather(*tasks)
 
+        cache_updates = []
         for _, key, res in results:
             if isinstance(res, Exception):
                 all_segments.extend(handle_error(res, key))
@@ -179,9 +180,15 @@ def main(  # noqa: C901
                                 None,
                             )
                             if duration:
-                                await cache.set(key, list(res), Instant.now() + duration)
+                                cache_updates.append((key, list(res), Instant.now() + duration))
                     except Exception as e:
                         logger.debug(f"Failed to set cache for {key}: {e}")
+
+        if cache_updates:
+            try:
+                await cache.set_many(cache_updates)
+            except Exception as e:
+                logger.debug(f"Failed to set batch cache: {e}")
 
     asyncio.run(fetch_all())
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 
-source "${CHEZMOI_SOURCE_DIR:?}/.chezmoitemplates/shell/logging.sh"
+source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 
 # Check if zsh is already installed
 if check_command zsh; then 

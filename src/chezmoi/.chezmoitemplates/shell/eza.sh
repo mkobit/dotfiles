@@ -5,10 +5,11 @@
 {{- if ne $installation "none" -}}
 # eza completions and aliases
 if command -v eza >/dev/null 2>&1; then
-    # Add eza completions to FPATH if they exist
     {{- if eq $.shell "zsh" }}
-    if [[ -f "{{ $chezmoiTargetDir }}/.dotfiles/external/eza-completions/zsh/_eza" ]]; then
-        export FPATH="{{ $chezmoiTargetDir }}/.dotfiles/external/eza-completions/zsh:$FPATH"
+    if type brew &>/dev/null; then
+        export FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
+        autoload -Uz compinit
+        compinit
     fi
     {{- end }}
 
