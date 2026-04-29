@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from collections.abc import Sequence
 from pathlib import Path
 
 from pydantic import TypeAdapter, ValidationError
@@ -50,6 +51,10 @@ class SegmentCache:
             await self._save()
         return None
 
-    async def set(self, key: str, results: list[SegmentGenerationResult], expires_at: Instant) -> None:
-        self._cache[key] = CachedSegment(results=results, expires_at=expires_at)
+    async def set_many(self, updates: Sequence[tuple[str, list[SegmentGenerationResult], Instant]]) -> None:
+        for key, results, expires_at in updates:
+            self._cache[key] = CachedSegment(results=results, expires_at=expires_at)
         await self._save()
+
+    async def set(self, key: str, results: list[SegmentGenerationResult], expires_at: Instant) -> None:
+        await self.set_many([(key, results, expires_at)])
