@@ -13,6 +13,7 @@ from claude_statusline.segments.claude import (
     format_cost,
     format_model_info,
     format_session_info,
+    format_tokens,
 )
 from claude_statusline.segments.constants import (
     BRIGHT_GREEN,
@@ -21,6 +22,37 @@ from claude_statusline.segments.constants import (
     RED,
     YELLOW,
 )
+
+
+class TestFormatTokens(unittest.TestCase):
+    def test_standard_values(self) -> None:
+        self.assertEqual(format_tokens(0, 0), "    0")
+        self.assertEqual(format_tokens(999, 0), "  999")
+
+    def test_k_suffix_logic(self) -> None:
+        self.assertEqual(format_tokens(1000, 0), "   1k")
+        self.assertEqual(format_tokens(1100, 0), " 1.1k")
+        self.assertEqual(format_tokens(10000, 0), "  10k")
+
+    def test_width_alignment_by_max_tokens(self) -> None:
+        # max_tokens < 10000 -> width 5
+        self.assertEqual(format_tokens(100, 0), "  100")
+        self.assertEqual(format_tokens(100, 9999), "  100")
+
+        # max_tokens >= 10000 -> width 3
+        self.assertEqual(format_tokens(100, 10000), "100")
+        self.assertEqual(format_tokens(1000, 10000), " 1k")
+
+        # max_tokens >= 100000 -> width 4
+        self.assertEqual(format_tokens(100, 100000), " 100")
+        self.assertEqual(format_tokens(1000, 100000), "  1k")
+
+        # max_tokens >= 1000000 -> width 4
+        self.assertEqual(format_tokens(100, 1000000), " 100")
+        self.assertEqual(format_tokens(1000, 1000000), "  1k")
+
+    def test_large_values(self) -> None:
+        self.assertEqual(format_tokens(1000000, 1000000), "1000k")
 
 
 class TestFormatContextUsage(unittest.TestCase):
