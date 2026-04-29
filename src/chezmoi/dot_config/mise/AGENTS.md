@@ -36,4 +36,3 @@ Do not substitute alternative commands — especially in Jules, where `mise lock
    ```
    chezmoi add ~/.config/mise/mise.lock
    ```
-5. If installation fails due to the bun `min-release-age` restriction (tool is too new to install), add the npm package name to `ignored_release_age` in `src/chezmoi/.chezmoidata/package_managers.toml` under `[bun]`.
