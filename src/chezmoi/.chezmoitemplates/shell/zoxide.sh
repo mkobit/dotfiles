@@ -1,9 +1,9 @@
 # Zoxide - smart directory jumping
 if command -v zoxide &> /dev/null; then
     {{- if eq .shell "zsh" }}
-    eval "$(zoxide init zsh --cmd cd)"
+    eval "$(zoxide init zsh --cmd cd)" || true
     {{- else if eq .shell "bash" }}
-    eval "$(zoxide init bash --cmd cd)"
+    eval "$(zoxide init bash --cmd cd)" || true
     {{- else }}
     {{- fail (printf "unsupported shell: %s" .shell) }}
     {{- end }}
