@@ -1,7 +1,0 @@
-[packages.chafa.installation_method]
-darwin = "homebrew"
-linux  = "homebrew"
-
-[packages.chafa.package.homebrew]
-name = "chafa"
-type = "formula"

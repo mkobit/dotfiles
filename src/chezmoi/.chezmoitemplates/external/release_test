@@ -91,6 +91,29 @@
 {{- template "external/release" (dict "key" "starship" "data" $starship "root" $) }}
 
 {{- /* ------------------------------------------------------------------ */ -}}
+{{- /* chafa: linux-only, fallback_url_format → urls                       */ -}}
+{{- $chafa := dict
+    "version"              "1.18.1"
+    "installation_method"  "chezmoi_external"
+    "repo"                 "hpjansson/chafa"
+    "external_type"        "archive-file"
+    "executable"           true
+    "checksum_type"        "sha256"
+    "tag_format"           "v{version}"
+    "filename_format"      "chafa-{version}-1-{target}.tar.gz"
+    "path_format"          "chafa-{version}-1-{target}/chafa"
+    "url_format"           "{base}/{repo}/releases/download/{tag}/{filename}"
+    "fallback_url_format"  "https://hpjansson.org/chafa/releases/static/{filename}"
+    "platforms"            (dict
+                             "linux_amd64" "x86_64-linux-gnu"
+                             "linux_arm"   "armv7l-linux-gnu")
+    "checksums"            (dict
+                             "linux_amd64" "aae17508b9e21f67291f50b849e2ce5d31cf194ab65ac3b439bc45effa64be33"
+                             "linux_arm"   "94f6b33e3a417a3cafcb0fe31059ae015323dc4ae2eb57bbf57360a5962d8d82") -}}
+=== chafa (linux-only, fallback url) — expect empty on darwin ===
+{{- template "external/release" (dict "key" "chafa" "data" $chafa "root" $) }}
+
+{{- /* ------------------------------------------------------------------ */ -}}
 {{- /* jq: type=file, non-standard tag, no path                            */ -}}
 {{- $jq := dict
     "version"             "1.7.1"
