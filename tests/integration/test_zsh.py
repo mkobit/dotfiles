@@ -2,6 +2,25 @@ import pytest
 
 
 @pytest.mark.integration
+def test_zsh_non_interactive_no_zoxide_doctor(host):
+    """Verify that a non-interactive zsh shell does not trigger the zoxide doctor warning.
+
+    The zoxide chpwd hook only fires in interactive shells, so initializing
+    zoxide in non-interactive contexts is pointless and causes a spurious
+    doctor warning every time `cd` is called (e.g. in AI agent sessions).
+    """
+    # Source .zshrc explicitly so the zsh config is loaded but the shell is
+    # still non-interactive. Before the fix, this would trigger the zoxide
+    # doctor warning because the chpwd hook was registered in non-interactive
+    # contexts where it can never fire.
+    result = host.run("zsh -c 'source ~/.zshrc; cd /tmp; cd -'")
+
+    assert "zoxide: detected a possible configuration issue" not in result.stderr, (
+        f"zoxide doctor warning fired in non-interactive shell:\n{result.stderr}"
+    )
+
+
+@pytest.mark.integration
 def test_zsh_initialization(host):
     """Verify that zsh initializes without errors."""
 
