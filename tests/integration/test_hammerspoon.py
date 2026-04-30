@@ -39,7 +39,9 @@ def test_hammerspoon_config_valid(host):
     # Clean up
     host.run("killall Hammerspoon || true")
 
-    if result.rc != 0 or "SUCCESS" not in result.stdout:
+    if result.rc == 69:
+        pytest.skip(f"Hammerspoon IPC not reachable in headless CI: {result.stderr}")
+    elif result.rc != 0 or "SUCCESS" not in result.stdout:
         pytest.fail(
             f"Hammerspoon config failed to load.\nRC: {result.rc}\nStdout: {result.stdout}\nStderr: {result.stderr}"
         )
