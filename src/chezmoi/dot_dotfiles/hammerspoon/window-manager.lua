@@ -11,19 +11,16 @@ local STATE_FILE_NAME = "window_state.json"
 
 -- Helpers for XDG paths
 local function get_cache_dir()
-    -- Priority 1: Configuration override
-    if _G.DotfilesConfig and _G.DotfilesConfig.cache_dir then
+        if _G.DotfilesConfig and _G.DotfilesConfig.cache_dir then
         return _G.DotfilesConfig.cache_dir .. "/" .. CACHE_DIR_SUBPATH
     end
 
-    -- Priority 2: Environment variable
-    local xdg_cache = os.getenv("XDG_CACHE_HOME")
+        local xdg_cache = os.getenv("XDG_CACHE_HOME")
     if xdg_cache and xdg_cache ~= "" then
         return xdg_cache .. "/" .. CACHE_DIR_SUBPATH
     end
 
-    -- Priority 3: No fallback allowed, as requested
-    logger:e("Could not determine cache directory. _G.DotfilesConfig.cache_dir and XDG_CACHE_HOME are both unset.")
+        logger:e("Could not determine cache directory. _G.DotfilesConfig.cache_dir and XDG_CACHE_HOME are both unset.")
     return nil
 end
 
@@ -47,7 +44,6 @@ local function ensure_cache_dir()
     return path
 end
 
-
 local caffeinateWatcher = nil
 local screenWatcher = nil
 local menu = nil
@@ -61,24 +57,20 @@ local function update_status_bar(msg)
     end
 
     if menu then
-        -- Set the title to the message
-        menu:setTitle("⚡ " .. msg)
+                menu:setTitle("⚡ " .. msg)
 
-        -- Cancel existing timer if any
-        if clearMenuTimer then
+                if clearMenuTimer then
             clearMenuTimer:stop()
         end
 
-        -- Clear the message after 10 seconds, reverting to just an icon
-        clearMenuTimer = hs.timer.doAfter(10, function()
+                clearMenuTimer = hs.timer.doAfter(10, function()
             if menu then
                 menu:setTitle("◱")
             end
         end)
     end
 
-    -- Also show a non-blocking alert
-    hs.alert.show(msg, {
+        hs.alert.show(msg, {
         strokeColor = {white = 1, alpha = 0.5},
         fillColor = {white = 0.1, alpha = 0.8},
         textColor = {white = 1, alpha = 1},
@@ -92,7 +84,6 @@ local function update_status_bar(msg)
 end
 -- --- State Management ---
 
--- Generate a unique ID for the current monitor setup (sorted UUIDs)
 function WindowManager.get_monitor_setup_id()
     local screens = hs.screen.allScreens()
     local uuids = {}
@@ -111,8 +102,7 @@ function WindowManager.load_full_state_from_disk()
     if not state then
         return { configurations = {} }
     end
-    -- Migration or fallback if format is old
-    if not state.configurations then
+        if not state.configurations then
         return { configurations = {} }
     end
     return state
@@ -140,20 +130,17 @@ function WindowManager.capture_window_state()
     local windows = hs.window.filter.default:getWindows()
     local window_data = {}
 
-    -- Capture Window Data
-    for _, win in ipairs(windows) do
+        for _, win in ipairs(windows) do
         if win:isVisible() and win:isStandard() then
             local app = win:application()
             local screen = win:screen()
-            local spaces = hs.window.spaces(win) -- Returns a list of space IDs (usually one)
-            local spaceID = nil
+            local spaces = hs.window.spaces(win)             local spaceID = nil
             if spaces and #spaces > 0 then
                 spaceID = spaces[1]
             end
 
             local frame = win:frame()
-            -- Log detailed window info for debugging
-            logger:d(string.format("Captured Window: ID=%d, App=%s, Title=%s, Frame={x=%.1f,y=%.1f,w=%.1f,h=%.1f}, Space=%s",
+                        logger:d(string.format("Captured Window: ID=%d, App=%s, Title=%s, Frame={x=%.1f,y=%.1f,w=%.1f,h=%.1f}, Space=%s",
                 win:id(), app and app:name() or "Unknown", win:title(), frame.x, frame.y, frame.w, frame.h, tostring(spaceID)))
 
             table.insert(window_data, {
@@ -283,10 +270,8 @@ function WindowManager.restore_window_state()
     end
 
     local current_windows = hs.window.filter.default:getWindows()
-    local used_windows = {} -- Track which current windows have been moved
-
-    -- Disambiguation Map: AppName -> List of Current Windows
-    local windows_by_app = {}
+    local used_windows = {}
+        local windows_by_app = {}
     for _, win in ipairs(current_windows) do
         local appName = win:application() and win:application():name() or "Unknown"
         if not windows_by_app[appName] then windows_by_app[appName] = {} end
@@ -295,18 +280,15 @@ function WindowManager.restore_window_state()
 
     local windows_to_move = {}
 
-    -- Restoration Matching Logic
-    for _, saved_win in ipairs(saved_config.windows) do
+        for _, saved_win in ipairs(saved_config.windows) do
         local matched_win = nil
 
-        -- Strategy 1: Match by ID (Best case: Same session, window object persisted)
-        local win_by_id = hs.window.get(saved_win.id)
+                local win_by_id = hs.window.get(saved_win.id)
         if win_by_id and win_by_id:id() == saved_win.id then
             matched_win = win_by_id
         end
 
-        -- Strategy 2: Match by App Name + Title (App Restarted)
-        if not matched_win and windows_by_app[saved_win.app_name] then
+                if not matched_win and windows_by_app[saved_win.app_name] then
             for _, candidate in ipairs(windows_by_app[saved_win.app_name]) do
                 if not used_windows[candidate:id()] and candidate:title() == saved_win.title then
                     matched_win = candidate
@@ -315,10 +297,7 @@ function WindowManager.restore_window_state()
             end
         end
 
-        -- Strategy 3: Slot Filling (Identical Windows, e.g., 2 generic Chrome windows)
-        -- This assigns available windows of the correct app to the saved positions arbitrarily.
-        -- Without OS-level unique persistent IDs for windows across restarts, this is the best effort.
-        if not matched_win and windows_by_app[saved_win.app_name] then
+                if not matched_win and windows_by_app[saved_win.app_name] then
             for _, candidate in ipairs(windows_by_app[saved_win.app_name]) do
                 if not used_windows[candidate:id()] then
                     matched_win = candidate
@@ -333,9 +312,7 @@ function WindowManager.restore_window_state()
         end
     end
 
-    -- Async Restoration Loop to avoid blocking
-    -- We define a recursive function to process the list
-    local function process_queue(queue, index)
+        local function process_queue(queue, index)
         if index > #queue then
             hs.alert.show("Window Layout Restored")
             return
@@ -345,53 +322,39 @@ function WindowManager.restore_window_state()
         local win = item.win
         local saved = item.saved
 
-        -- Step 1: Move to Space (if needed and supported)
-        if saved.space_id then
+                if saved.space_id then
              local current_space = hs.window.spaces(win)
              if current_space and current_space[1] ~= saved.space_id then
                  if hs.spaces and hs.spaces.moveWindowToSpace then
                      hs.spaces.moveWindowToSpace(win:id(), saved.space_id)
-                     -- Spaces move is an animation, we need to wait a bit before moving frame
-                     -- or the frame move might get clobbered by the space transition.
-                     -- FIXME: Hammerspoon currently lacks a reliable 'windowMovedToSpace' event callback.
-                     -- We use a timer as a heuristic to allow the macOS animation to complete.
-                     -- If/when HS adds an event for this, we should replace the timer.
-                     hs.timer.doAfter(0.3, function()
-                        -- Step 2: Move to Screen and Frame (After Space Move)
-                        local dest_screen = hs.screen.find(saved.screen_uuid)
+                                          hs.timer.doAfter(0.3, function()
+                                                local dest_screen = hs.screen.find(saved.screen_uuid)
                         if dest_screen then
                             win:move(saved.frame, dest_screen, true, 0)
                         end
-                        -- Process next window
-                        process_queue(queue, index + 1)
+                                                process_queue(queue, index + 1)
                      end)
-                     return -- Return here, the next step happens in the callback
-                 end
+                     return                  end
              end
         end
 
-        -- Step 2: Move to Screen and Frame (Immediate if no space move)
-        local dest_screen = hs.screen.find(saved.screen_uuid)
+                local dest_screen = hs.screen.find(saved.screen_uuid)
         if dest_screen then
             win:move(saved.frame, dest_screen, true, 0)
         end
 
-        -- Process next window immediately (or with tiny delay to be safe)
-        hs.timer.doAfter(0.02, function()
+                hs.timer.doAfter(0.02, function()
              process_queue(queue, index + 1)
         end)
     end
 
-    -- Start the queue
-    process_queue(windows_to_move, 1)
+        process_queue(windows_to_move, 1)
 end
-
 
 -- Configuration flags
 WindowManager.config = {
     auto_save_on_lock = true,
-    auto_restore_on_wake = false, -- Default off, user can enable
-    auto_restore_on_monitor_change = true
+    auto_restore_on_wake = false,     auto_restore_on_monitor_change = true
 }
 
 function WindowManager.updateMenu()
@@ -468,16 +431,13 @@ local function handle_screen_event()
 end
 
 function WindowManager.start()
-    -- Initialize menu
-    menu = hs.menubar.new()
+        menu = hs.menubar.new()
     WindowManager.updateMenu()
 
-    -- Caffeinate Watcher (Sleep/Wake/Lock/Screens)
-    caffeinateWatcher = hs.caffeinate.watcher.new(handle_power_event)
+        caffeinateWatcher = hs.caffeinate.watcher.new(handle_power_event)
     caffeinateWatcher:start()
 
-    -- Screen Watcher (Monitor Plug/Unplug/Move)
-    screenWatcher = hs.screen.watcher.new(handle_screen_event)
+        screenWatcher = hs.screen.watcher.new(handle_screen_event)
     screenWatcher:start()
 
     logger:i("WindowManager started")
