@@ -47,6 +47,43 @@ local function update_status_bar(msg)
     }, 3.0)
 end
 
+local function handle_power_event(eventType)
+    local eventName = nil
+    if eventType == hs.caffeinate.watcher.screensDidLock then
+        eventName = "Screens Locked"
+    elseif eventType == hs.caffeinate.watcher.screensDidUnlock then
+        eventName = "Screens Unlocked"
+    elseif eventType == hs.caffeinate.watcher.screensDidSleep then
+        eventName = "Screens Sleeping"
+    elseif eventType == hs.caffeinate.watcher.screensDidWake then
+        eventName = "Screens Woke Up"
+    elseif eventType == hs.caffeinate.watcher.systemDidWake then
+        eventName = "System Woke Up"
+    elseif eventType == hs.caffeinate.watcher.systemWillSleep then
+        eventName = "System Sleeping"
+    elseif eventType == hs.caffeinate.watcher.sessionDidBecomeActive then
+        eventName = "Session Became Active"
+    elseif eventType == hs.caffeinate.watcher.sessionDidResignActive then
+        eventName = "Session Resigned Active"
+    end
+
+    if eventName then
+        update_status_bar("Power: " .. eventName)
+    end
+end
+
+local function handle_screen_event()
+    local screens = hs.screen.allScreens()
+    local screenCount = #screens
+
+    local msg = string.format("Display: %d screen(s) detected", screenCount)
+    update_status_bar(msg)
+
+    for i, screen in ipairs(screens) do
+        logger:i(string.format("  Screen %d: %s (%s)", i, screen:name(), screen:id()))
+    end
+end
+
 function WindowManager.start()
     -- Initialize menu with default title
     menu = hs.menubar.new()
@@ -55,44 +92,11 @@ function WindowManager.start()
     end
 
     -- Caffeinate Watcher (Sleep/Wake/Lock/Screens)
-    caffeinateWatcher = hs.caffeinate.watcher.new(function(eventType)
-        local eventName = nil
-        if eventType == hs.caffeinate.watcher.screensDidLock then
-            eventName = "Screens Locked"
-        elseif eventType == hs.caffeinate.watcher.screensDidUnlock then
-            eventName = "Screens Unlocked"
-        elseif eventType == hs.caffeinate.watcher.screensDidSleep then
-            eventName = "Screens Sleeping"
-        elseif eventType == hs.caffeinate.watcher.screensDidWake then
-            eventName = "Screens Woke Up"
-        elseif eventType == hs.caffeinate.watcher.systemDidWake then
-            eventName = "System Woke Up"
-        elseif eventType == hs.caffeinate.watcher.systemWillSleep then
-            eventName = "System Sleeping"
-        elseif eventType == hs.caffeinate.watcher.sessionDidBecomeActive then
-            eventName = "Session Became Active"
-        elseif eventType == hs.caffeinate.watcher.sessionDidResignActive then
-            eventName = "Session Resigned Active"
-        end
-
-        if eventName then
-            update_status_bar("Power: " .. eventName)
-        end
-    end)
+    caffeinateWatcher = hs.caffeinate.watcher.new(handle_power_event)
     caffeinateWatcher:start()
 
     -- Screen Watcher (Monitor Plug/Unplug/Move)
-    screenWatcher = hs.screen.watcher.new(function()
-        local screens = hs.screen.allScreens()
-        local screenCount = #screens
-
-        local msg = string.format("Display: %d screen(s) detected", screenCount)
-        update_status_bar(msg)
-
-        for i, screen in ipairs(screens) do
-            logger:i(string.format("  Screen %d: %s (%s)", i, screen:name(), screen:id()))
-        end
-    end)
+    screenWatcher = hs.screen.watcher.new(handle_screen_event)
     screenWatcher:start()
 
     logger:i("WindowManager started")
