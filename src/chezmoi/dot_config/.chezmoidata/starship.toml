@@ -1,0 +1,11 @@
+[starship]
+ignore_branches = ["main", "master"]
+
+[starship.modules.nodejs]
+enabled = true
+
+[starship.modules.ruby]
+enabled = true
+
+[starship.modules.git_status]
+enabled = true

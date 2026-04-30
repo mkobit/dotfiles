@@ -24,5 +24,14 @@ detect_folders = [".obsidian"]
 format = "on [\uf039 Obsidian]($style) "
 style = "bold #8B5CF6"
 
+[nodejs]
+disabled = {{ not (dig "starship" "modules" "nodejs" "enabled" true .) }}
+
+[ruby]
+disabled = {{ not (dig "starship" "modules" "ruby" "enabled" true .) }}
+
+[git_status]
+disabled = {{ not (dig "starship" "modules" "git_status" "enabled" true .) }}
+
 [git_branch]
 ignore_branches = {{ dig "starship" "ignore_branches" list . | toToml }}
