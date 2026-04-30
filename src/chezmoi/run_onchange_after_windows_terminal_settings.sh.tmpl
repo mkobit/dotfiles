@@ -1,0 +1,104 @@
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Font face: {{ .windows_terminal.font_face }}, size: {{ .windows_terminal.font_size }}
+# Version: 3
+
+main() {
+    local WIN_LOCALAPPDATA
+    WIN_LOCALAPPDATA=$(/mnt/c/Windows/System32/cmd.exe /c "echo %LOCALAPPDATA%" 2>/dev/null | tr -d '\r')
+    if [[ -z "${WIN_LOCALAPPDATA}" ]]; then
+        echo "ERROR: Could not determine Windows LOCALAPPDATA path" >&2
+        return 1
+    fi
+
+    local WINDOWS_SETTINGS_PATH="${WIN_LOCALAPPDATA}\\Packages\\Microsoft.WindowsTerminal_8wekyb3d8bbwe\\LocalState\\settings.json"
+
+    powershell.exe -NoProfile -Command "
+\$ErrorActionPreference = 'Stop'
+\$settingsPath = '${WINDOWS_SETTINGS_PATH}'
+if (!(Test-Path \$settingsPath)) {
+    \$settingsPath = '${WIN_LOCALAPPDATA}\\Packages\\Microsoft.WindowsTerminalPreview_8wekyb3d8bbwe\\LocalState\\settings.json'
+}
+if (!(Test-Path \$settingsPath)) {
+    Write-Warning 'Windows Terminal settings.json not found, skipping configuration'
+    return
+}
+
+# Read content and strip comments (//) to allow ConvertFrom-Json to parse safely
+\$content = Get-Content \$settingsPath -Raw
+\$content = \$content -replace '(?m)^\s*//.*$', ''
+\$settings = \$content | ConvertFrom-Json
+
+\$modified = \$false
+
+# Ensure profiles.defaults exists
+if (!\$settings.profiles) {
+    \$settings | Add-Member -NotePropertyName profiles -NotePropertyValue ([PSCustomObject]@{defaults=[PSCustomObject]@{}}) -Force
+} elseif (!\$settings.profiles.defaults) {
+    \$settings.profiles | Add-Member -NotePropertyName defaults -NotePropertyValue ([PSCustomObject]@{}) -Force
+}
+
+# Update Font settings
+if (!\$settings.profiles.defaults.font) {
+    \$settings.profiles.defaults | Add-Member -NotePropertyName font -NotePropertyValue ([PSCustomObject]@{}) -Force
+}
+
+if (\$settings.profiles.defaults.font.face -ne '{{ .windows_terminal.font_face }}') {
+    \$settings.profiles.defaults.font | Add-Member -NotePropertyName face -NotePropertyValue '{{ .windows_terminal.font_face }}' -Force
+    \$modified = \$true
+}
+if (\$settings.profiles.defaults.font.size -ne {{ .windows_terminal.font_size }}) {
+    \$settings.profiles.defaults.font | Add-Member -NotePropertyName size -NotePropertyValue {{ .windows_terminal.font_size }} -Force
+    \$modified = \$true
+}
+
+# Update Actions for Claude Code (Shift+Enter mapping)
+if (!\$settings.actions) {
+    \$settings | Add-Member -NotePropertyName actions -NotePropertyValue @() -Force
+}
+
+\$targetActionId = 'User.sendInput.shiftEnter'
+\$actionExists = \$false
+foreach (\$action in \$settings.actions) {
+    if (\$action.id -eq \$targetActionId) {
+        \$actionExists = \$true
+        break
+    }
+}
+
+if (!\$actionExists) {
+    \$newAction = [PSCustomObject]@{
+        command = [PSCustomObject]@{
+            action = 'sendInput'
+            input = '\u001b[13;2u'
+        }
+        id = \$targetActionId
+        keys = 'shift+enter'
+    }
+
+    if (\$settings.actions -is [array]) {
+        \$settings.actions += \$newAction
+    } else {
+        \$settings.actions = @(\$settings.actions, \$newAction)
+    }
+    \$modified = \$true
+}
+
+if (\$modified) {
+    \$json = \$settings | ConvertTo-Json -Depth 20
+    # ConvertTo-Json will escape our backslash, creating '\\u001b' in the file.
+    # We replace it back to a single backslash so WT parses it as an escape character.
+    \$json = \$json -replace '\\\\u001b', '\u001b'
+    [System.IO.File]::WriteAllText(\$settingsPath, \$json, [System.Text.UTF8Encoding]::new(\$false))
+    Write-Host \"Successfully updated Windows Terminal settings at \$settingsPath\"
+} else {
+    Write-Host 'Windows Terminal settings are already up to date.'
+}
+"
+}
+
+main "$@"
+
+{{- end }}
