@@ -23,3 +23,6 @@ disabled = true # Disables the package version module (e.g. Node.js/Rust version
 detect_folders = [".obsidian"]
 format = "on [\uf039 Obsidian]($style) "
 style = "bold #8B5CF6"
+
+[git_branch]
+ignore_branches = {{ dig "starship" "ignore_branches" list . | toToml }}

@@ -1,0 +1,2 @@
+[starship]
+ignore_branches = ["main", "master"]
