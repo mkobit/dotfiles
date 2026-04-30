@@ -6,7 +6,8 @@ from pathlib import Path
 from pydantic import TypeAdapter, ValidationError
 from whenever import Instant
 
-from claude_statusline.models import CachedSegment, SegmentGenerationResult
+from claude_statusline.types.cache import CachedSegment
+from claude_statusline.types.layout import SegmentGenerationResult
 
 logger = logging.getLogger(__name__)
 

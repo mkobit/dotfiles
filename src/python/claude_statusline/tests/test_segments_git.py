@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from claude_statusline.models import GitInfo
 from claude_statusline.segments.constants import (
     CYAN,
     GREEN,
@@ -13,6 +12,7 @@ from claude_statusline.segments.constants import (
     get_icon,
 )
 from claude_statusline.segments.git import format_git_full, generate_git_segment
+from claude_statusline.types.git import GitInfo
 
 
 def _git_info(**overrides: Any) -> GitInfo:

@@ -6,7 +6,6 @@ from typing import NamedTuple
 
 from whenever import TimeDelta
 
-from claude_statusline.models import GitInfo, Segment, SegmentGenerationResult
 from claude_statusline.segments.constants import (
     CYAN,
     GREEN,
@@ -16,6 +15,8 @@ from claude_statusline.segments.constants import (
     YELLOW,
     get_icon,
 )
+from claude_statusline.types.git import GitInfo
+from claude_statusline.types.layout import Segment, SegmentGenerationResult
 
 logger = logging.getLogger(__name__)
 

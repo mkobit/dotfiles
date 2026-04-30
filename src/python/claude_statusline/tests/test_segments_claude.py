@@ -1,13 +1,5 @@
 import unittest
 
-from claude_statusline.models import (
-    AgentInfo,
-    ContextWindowInfo,
-    CostInfo,
-    ModelInfo,
-    OutputStyle,
-    StatusLineStdIn,
-)
 from claude_statusline.segments.claude import (
     format_context_usage,
     format_cost,
@@ -21,6 +13,14 @@ from claude_statusline.segments.constants import (
     ORANGE,
     RED,
     YELLOW,
+)
+from claude_statusline.types.payload import (
+    AgentInfo,
+    ContextWindowInfo,
+    CostInfo,
+    ModelInfo,
+    OutputStyle,
+    StatusLineStdIn,
 )
 
 

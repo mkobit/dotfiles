@@ -1,7 +1,8 @@
 import unittest
 
-from claude_statusline.models import Segment, SegmentGenerationResult, StatusLineStdIn
 from claude_statusline.render import render_lines
+from claude_statusline.types.layout import Segment, SegmentGenerationResult
+from claude_statusline.types.payload import StatusLineStdIn
 
 
 class TestRenderLines(unittest.TestCase):
