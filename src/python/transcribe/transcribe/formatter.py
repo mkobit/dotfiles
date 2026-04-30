@@ -1,8 +1,8 @@
 from pathlib import Path
-from typing import Any
 
 from jinja2 import Environment, FileSystemLoader, Template
 
+from transcribe.models import TranscriptionInfo, TranscriptionSegment
 from transcribe.utils import format_timestamp
 
 
@@ -11,8 +11,8 @@ class Formatter:
 
     @staticmethod
     def format_segments(
-        segments: list[Any],
-        info: Any,
+        segments: list[TranscriptionSegment],
+        info: TranscriptionInfo,
         template_file: str | None = None,
         template_string: str | None = None,
     ) -> str:
