@@ -1,6 +1,9 @@
 {{- if hasKey .bun "min_release_age_days" -}}
 {{- $config := dict -}}
 {{- $install := dict "minimumReleaseAge" (mul .bun.min_release_age_days 86400) -}}
+{{- if hasKey .bun "ignored_release_age" -}}
+{{-   $_ := set $install "ignoreMinimumReleaseAge" .bun.ignored_release_age -}}
+{{- end -}}
 {{- $_ := set $config "install" $install -}}
 {{- toToml $config -}}
 {{- end -}}

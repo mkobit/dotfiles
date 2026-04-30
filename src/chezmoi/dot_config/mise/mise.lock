@@ -49,11 +49,11 @@ checksum = "sha256:2d3d5f88a95943563f56f3643c8f4e2422261018f6d915329bb2fb33f7256
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.12/bun-windows-x64-baseline.zip"
 
 [[tools.gemini-cli]]
-version = "0.37.1"
+version = "0.40.0"
 backend = "npm:@google/gemini-cli"
 
 [[tools.java]]
-version = "temurin-21.0.10+7.0.LTS"
+version = "temurin-21.0.2+13.0.LTS"
 backend = "core:java"
 
 [[tools.node]]

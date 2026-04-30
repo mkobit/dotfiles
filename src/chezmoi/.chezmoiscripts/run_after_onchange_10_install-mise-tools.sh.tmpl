@@ -19,7 +19,7 @@ if [[ ! -x "$MISE" ]]; then
 fi
 
 log_info "Running 'mise install' for global tools..."
-if "$MISE" install -C "{{ .chezmoi.destDir }}"; then
+if MISE_INSTALL_BEFORE=0d MISE_LOCKED=0 "$MISE" install -C "{{ .chezmoi.destDir }}"; then
     log_success "Mise global tools installation complete."
 else
     log_error "Failed to install mise global tools."

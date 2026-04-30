@@ -1,6 +1,7 @@
 
 [bun]
 min_release_age_days = 7
+ignored_release_age = ["@google/gemini-cli"]
 
 [uv]
 min_release_age_days = 7

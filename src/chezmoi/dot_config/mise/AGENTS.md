@@ -19,7 +19,20 @@ Locking is enforced by the presence of this file — no `locked = true` setting 
 
 ### Updating tools and relocking
 
-1. Update the version in `src/chezmoi/.chezmoidata/mise.toml`.
-2. Apply the config: `chezmoi apply ~/.config/mise/config.toml`
-3. Regenerate the lockfile: `MISE_LOCKED=0 mise -C ~ lock --global` — the `-C ~` is required; running from the dotfiles repo root causes mise to exclude global-only tools like `uv` because the local `.mise.toml` claims them.
-4. Add the updated lockfile: `chezmoi add ~/.config/mise/mise.lock`
+Follow these steps exactly when updating any mise-managed tool version.
+Do not substitute alternative commands — especially in Jules, where `mise lock` destroys the shell session permanently and irrevocably.
+
+1. Update the version in `src/chezmoi/.chezmoidata/bin/mise.toml` under `[mise.global_tools.<tool>]`.
+2. Apply the config to the home directory:
+   ```
+   chezmoi apply ~/.config/mise/config.toml
+   ```
+3. Regenerate the lockfile:
+   ```
+   MISE_LOCKED=0 mise -C ~ lock --global
+   ```
+   The `-C ~` flag is required — running from the dotfiles repo root causes global-only tools (e.g. `uv`) to be excluded because the local `.mise.toml` claims them.
+4. Copy the lockfile back to the chezmoi source:
+   ```
+   chezmoi add ~/.config/mise/mise.lock
+   ```
