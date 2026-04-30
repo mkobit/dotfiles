@@ -23,16 +23,16 @@ Follow these steps exactly when updating any mise-managed tool version.
 Do not substitute alternative commands — especially in Jules, where `mise lock` destroys the shell session permanently and irrevocably.
 
 1. Update the version in `src/chezmoi/.chezmoidata/bin/mise.toml` under `[mise.global_tools.<tool>]`.
-2. Render the template to the home directory (bypassing chezmoi state issues):
+2. Apply the config to the home directory:
    ```
-   chezmoi execute-template < src/chezmoi/dot_config/mise/config.toml.tmpl > ~/.config/mise/config.toml
+   chezmoi apply ~/.config/mise/config.toml
    ```
 3. Regenerate the lockfile:
    ```
    MISE_LOCKED=0 mise -C ~ lock --global
    ```
    The `-C ~` flag is required — running from the dotfiles repo root causes global-only tools (e.g. `uv`) to be excluded because the local `.mise.toml` claims them.
-4. Copy the freshly pruned lockfile back into the source repository:
+4. Copy the lockfile back to the chezmoi source:
    ```
-   cp ~/.config/mise/mise.lock src/chezmoi/dot_config/mise/mise.lock
+   chezmoi add ~/.config/mise/mise.lock
    ```
