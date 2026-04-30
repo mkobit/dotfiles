@@ -1,10 +1,6 @@
 from pathlib import Path
 
 from pydantic import BaseModel, Field
-from whenever import Instant, TimeDelta
-
-# --- Pydantic Models for Claude Code JSON Payload ---
-# See: https://code.claude.com/docs/en/statusline
 
 
 class ModelInfo(BaseModel):
@@ -74,13 +70,8 @@ class WorktreeInfo(BaseModel):
 
 
 class StatusLineStdIn(BaseModel):
-    """
-    Pydantic model representing the JSON payload sent via stdin to the statusline.
-    Available data fields: https://code.claude.com/docs/en/statusline#available-data.
-    """
-
     model: ModelInfo = Field(default_factory=ModelInfo)
-    cwd: str | None = None  # Preferred to use workspace.current_dir
+    cwd: str | None = None
     workspace: WorkspaceInfo = Field(default_factory=WorkspaceInfo)
     cost: CostInfo = Field(default_factory=CostInfo)
     context_window: ContextWindowInfo = Field(default_factory=ContextWindowInfo)
@@ -94,34 +85,3 @@ class StatusLineStdIn(BaseModel):
     vim: VimInfo | None = Field(default_factory=VimInfo)
     agent: AgentInfo = Field(default_factory=AgentInfo)
     worktree: WorktreeInfo | None = Field(default_factory=WorktreeInfo)
-
-
-# --- Internal Data Models ---
-class GitInfo(BaseModel):
-    branch: str
-    remote: str | None
-    dirty: bool
-    staged: bool
-    untracked: bool
-    ahead: int
-    behind: int
-    is_repo: bool
-    is_worktree: bool = False
-    stash_count: int = 0
-
-
-class Segment(BaseModel):
-    text: str
-
-
-class SegmentGenerationResult(BaseModel):
-    segment: Segment
-    line: int = 0
-    index: int = 0
-    generator: str = "internal"
-    cache_duration: TimeDelta | None = None
-
-
-class CachedSegment(BaseModel):
-    results: list[SegmentGenerationResult]
-    expires_at: Instant

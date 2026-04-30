@@ -1,7 +1,6 @@
-from claude_statusline.models import (
+from claude_statusline.layout import Segment, SegmentGenerationResult
+from claude_statusline.payload import (
     ContextWindowInfo,
-    Segment,
-    SegmentGenerationResult,
     StatusLineStdIn,
 )
 from claude_statusline.segments.constants import (

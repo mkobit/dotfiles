@@ -13,7 +13,8 @@ from pydantic import TypeAdapter, ValidationError
 from whenever import Instant
 
 from claude_statusline.cache import SegmentCache
-from claude_statusline.models import Segment, SegmentGenerationResult, StatusLineStdIn
+from claude_statusline.layout import Segment, SegmentGenerationResult
+from claude_statusline.payload import StatusLineStdIn
 from claude_statusline.render import render_lines
 from claude_statusline.segments.claude import (
     format_context_usage,

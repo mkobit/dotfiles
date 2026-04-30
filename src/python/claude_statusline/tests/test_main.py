@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from typer.testing import CliRunner
 
+from claude_statusline.layout import Segment, SegmentGenerationResult
 from claude_statusline.main import cli, run_external_generator
-from claude_statusline.models import Segment, SegmentGenerationResult
 from claude_statusline.segments.workspace import shorten_path
 
 

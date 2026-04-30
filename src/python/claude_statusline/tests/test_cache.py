@@ -5,7 +5,7 @@ import pytest
 from whenever import Instant, hours
 
 from claude_statusline.cache import SegmentCache
-from claude_statusline.models import Segment, SegmentGenerationResult
+from claude_statusline.layout import Segment, SegmentGenerationResult
 
 
 @pytest.fixture

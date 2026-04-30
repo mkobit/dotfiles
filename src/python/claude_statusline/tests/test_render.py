@@ -1,6 +1,7 @@
 import unittest
 
-from claude_statusline.models import Segment, SegmentGenerationResult, StatusLineStdIn
+from claude_statusline.layout import Segment, SegmentGenerationResult
+from claude_statusline.payload import StatusLineStdIn
 from claude_statusline.render import render_lines
 
 

@@ -1,6 +1,6 @@
 import unittest
 
-from claude_statusline.models import (
+from claude_statusline.payload import (
     AgentInfo,
     ContextWindowInfo,
     CostInfo,
