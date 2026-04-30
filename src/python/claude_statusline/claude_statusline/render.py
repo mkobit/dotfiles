@@ -5,10 +5,10 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
+from claude_statusline.layout import SegmentGenerationResult
+from claude_statusline.payload import StatusLineStdIn
 from claude_statusline.segments.constants import get_icon
-from claude_statusline.types.git import GitInfo
-from claude_statusline.types.layout import SegmentGenerationResult
-from claude_statusline.types.payload import StatusLineStdIn
+from claude_statusline.segments.git import GitInfo
 
 
 def render_lines(

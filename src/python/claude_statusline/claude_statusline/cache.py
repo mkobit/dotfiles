@@ -3,13 +3,20 @@ import logging
 from collections.abc import Sequence
 from pathlib import Path
 
-from pydantic import TypeAdapter, ValidationError
+from pydantic import BaseModel, TypeAdapter, ValidationError
 from whenever import Instant
 
-from claude_statusline.types.cache import CachedSegment
-from claude_statusline.types.layout import SegmentGenerationResult
+from claude_statusline.layout import SegmentGenerationResult
+
+
+class CachedSegment(BaseModel):
+    results: list[SegmentGenerationResult]
+    expires_at: Instant
+
 
 logger = logging.getLogger(__name__)
+
+
 
 CACHE_ADAPTER = TypeAdapter(dict[str, CachedSegment])
 

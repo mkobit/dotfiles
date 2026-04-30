@@ -4,8 +4,10 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import NamedTuple
 
+from pydantic import BaseModel
 from whenever import TimeDelta
 
+from claude_statusline.layout import Segment, SegmentGenerationResult
 from claude_statusline.segments.constants import (
     CYAN,
     GREEN,
@@ -15,10 +17,30 @@ from claude_statusline.segments.constants import (
     YELLOW,
     get_icon,
 )
-from claude_statusline.types.git import GitInfo
-from claude_statusline.types.layout import Segment, SegmentGenerationResult
+
+
+class GitInfo(BaseModel):
+    branch: str
+    remote: str | None
+    dirty: bool
+    staged: bool
+    untracked: bool
+    ahead: int
+    behind: int
+    is_repo: bool
+    is_worktree: bool = False
+    stash_count: int = 0
+
 
 logger = logging.getLogger(__name__)
+
+
+class Status(NamedTuple):
+    staged: bool
+    untracked: bool
+    dirty: bool
+
+
 
 
 class BranchRemoteInfo(NamedTuple):

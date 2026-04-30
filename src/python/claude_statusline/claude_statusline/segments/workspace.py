@@ -1,7 +1,7 @@
 from pathlib import Path
 
+from claude_statusline.layout import Segment, SegmentGenerationResult
 from claude_statusline.segments.constants import BLUE, RESET, get_icon
-from claude_statusline.types.layout import Segment, SegmentGenerationResult
 
 
 def shorten_path(path: Path) -> str:

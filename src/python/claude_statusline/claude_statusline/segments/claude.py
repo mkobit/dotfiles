@@ -1,3 +1,8 @@
+from claude_statusline.layout import Segment, SegmentGenerationResult
+from claude_statusline.payload import (
+    ContextWindowInfo,
+    StatusLineStdIn,
+)
 from claude_statusline.segments.constants import (
     BLUE,
     BOLD,
@@ -13,11 +18,6 @@ from claude_statusline.segments.constants import (
     YELLOW,
     get_battery_icon,
     get_icon,
-)
-from claude_statusline.types.layout import Segment, SegmentGenerationResult
-from claude_statusline.types.payload import (
-    ContextWindowInfo,
-    StatusLineStdIn,
 )
 
 

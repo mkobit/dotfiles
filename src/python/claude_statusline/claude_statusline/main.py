@@ -13,6 +13,8 @@ from pydantic import TypeAdapter, ValidationError
 from whenever import Instant
 
 from claude_statusline.cache import SegmentCache
+from claude_statusline.layout import Segment, SegmentGenerationResult
+from claude_statusline.payload import StatusLineStdIn
 from claude_statusline.render import render_lines
 from claude_statusline.segments.claude import (
     format_context_usage,
@@ -22,8 +24,6 @@ from claude_statusline.segments.claude import (
 )
 from claude_statusline.segments.git import generate_git_segment
 from claude_statusline.segments.workspace import format_directory, format_obsidian_vault
-from claude_statusline.types.layout import Segment, SegmentGenerationResult
-from claude_statusline.types.payload import StatusLineStdIn
 
 logging.basicConfig(level=logging.WARNING, stream=sys.stderr, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
