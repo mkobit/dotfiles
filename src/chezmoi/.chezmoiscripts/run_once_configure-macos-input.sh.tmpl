@@ -1,0 +1,111 @@
+{{- if eq .chezmoi.os "darwin" -}}
+#!/usr/bin/env bash
+# Configure macOS dictation and keyboard shortcuts to stop obnoxious system behavior:
+#
+# Problem 1: macOS has TWO voice control systems (Dictation and Voice Control) that
+# constantly pop up "Enable Dictation?" dialogs. Setting these prefs tells macOS that
+# dictation has been acknowledged/configured, suppressing the nag prompts.
+#
+# Problem 2: F14/F15 are mapped to brightness control via hidden symbolic hotkeys
+# (IDs 53-56) even though they aren't physical keys on Mac keyboards. This causes
+# conflicts when you want to use F14/F15 as custom hotkeys (e.g., dictation trigger).
+#
+# Problem 3: The Globe key is locked to Apple's input source switcher with no way to
+# remap it through standard macOS preferences — only Apple's own keyboard drivers can
+# use it. We can't fix that here, but we CAN remap dictation to F15 so at least one
+# input workflow is sane.
+#
+# Note: Changes to symbolic hotkeys require a logout/login to take full effect.
+# The defaults-based changes (dictation prefs) take effect immediately.
+
+set -euo pipefail
+
+source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
+
+SYMBOLIC_HOTKEYS_PLIST="{{ .chezmoi.destDir }}/Library/Preferences/com.apple.symbolichotkeys.plist"
+
+# Suppress dictation "Enable?" pop-ups
+# These prefs tell macOS that dictation has been accepted and configured,
+# preventing the system from repeatedly prompting to enable it.
+# We intentionally do NOT set DictationIMUseOnlyOfflineDictation — that's a user
+# preference for cloud vs. offline dictation that macOS will reset anyway.
+log_info "Configuring dictation preferences to suppress enable prompts..."
+
+defaults write com.apple.speech.recognition.AppleSpeechRecognition.prefs DictationIMMasterDictationEnabled -bool true
+defaults write com.apple.speech.recognition.AppleSpeechRecognition.prefs DictationIMPresentedOfflineUpgradeSuggestion -bool true
+defaults write com.apple.speech.recognition.AppleSpeechRecognition.prefs DictationAccepted -bool true
+
+log_success "Dictation preferences configured"
+
+# Ensure Voice Control stays disabled
+# macOS has two separate voice systems: Dictation (text input) and Voice Control
+# (full system control via Accessibility). Voice Control blocks Dictation when active
+# and can trigger unwanted actions (app switching, shutdown, menu activation) from
+# ambient speech. We explicitly disable it to avoid conflicts.
+log_info "Ensuring Voice Control (Accessibility) is disabled..."
+
+defaults write com.apple.Accessibility CommandAndControlEnabled -bool false
+
+log_success "Voice Control disabled"
+
+# Disable brightness hijack on F14/F15
+# System Preferences → Keyboard → Shortcuts → Display shows:
+#   "Decrease display brightness" = F14
+#   "Increase display brightness" = F15
+#
+# These are symbolic hotkey IDs 53-56:
+#   53 = Decrease Display Brightness (F14)
+#   54 = Increase Display Brightness (F15)
+#   55 = Decrease Display Brightness (secondary/external variant)
+#   56 = Increase Display Brightness (secondary/external variant)
+#
+# When these IDs are MISSING from the plist, macOS uses built-in defaults (enabled).
+# We must ADD complete dict entries with enabled=false, not try to SET a nested key
+# on a nonexistent parent. The `defaults write -dict-add` approach writes the full
+# structure that macOS expects.
+
+if [[ ! -f "$SYMBOLIC_HOTKEYS_PLIST" ]]; then
+    log_warn "Symbolic hotkeys plist not found at $SYMBOLIC_HOTKEYS_PLIST — skipping brightness and dictation hotkey configuration"
+    exit 0
+fi
+
+log_info "Disabling brightness symbolic hotkeys (IDs 53-56)..."
+
+for hotkey_id in 53 54 55 56; do
+    defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add "$hotkey_id" "
+<dict>
+    <key>enabled</key>
+    <false/>
+</dict>"
+    log_info "  Disabled symbolic hotkey ID ${hotkey_id}"
+done
+
+log_success "Brightness hotkeys disabled"
+
+# Remap dictation trigger to F15
+# Symbolic hotkey ID 164 = "Turn Dictation On/Off"
+# Keycode 113 = F15
+# Parameters: (65535, keycode, modifiers) — 65535 means "no character", 0 means no modifiers
+log_info "Mapping dictation trigger to F15 (hotkey ID 164, keycode 113)..."
+
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 164 "
+<dict>
+    <key>enabled</key>
+    <true/>
+    <key>value</key>
+    <dict>
+        <key>parameters</key>
+        <array>
+            <integer>65535</integer>
+            <integer>113</integer>
+            <integer>0</integer>
+        </array>
+        <key>type</key>
+        <string>standard</string>
+    </dict>
+</dict>"
+
+log_success "Dictation trigger mapped to F15"
+
+log_info "NOTE: Symbolic hotkey changes require logout/login to take effect"
+{{- end }}
