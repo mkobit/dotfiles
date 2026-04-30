@@ -41,8 +41,6 @@ class Status(NamedTuple):
     dirty: bool
 
 
-
-
 class BranchRemoteInfo(NamedTuple):
     branch: str
     remote: str | None

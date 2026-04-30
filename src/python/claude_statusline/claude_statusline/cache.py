@@ -17,7 +17,6 @@ class CachedSegment(BaseModel):
 logger = logging.getLogger(__name__)
 
 
-
 CACHE_ADAPTER = TypeAdapter(dict[str, CachedSegment])
 
 
