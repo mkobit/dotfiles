@@ -4,6 +4,18 @@
 alias zj="zellij"
 alias zja="zellij attach"
 
+# Initialize zellij completions
+if command -v zellij >/dev/null 2>&1; then
+    # Zellij outputs a literal call to `_zellij "$@"` at the bottom of its generated zsh completion script.
+    # Evaluating this directly in `.zshrc` throws errors (like 'command not found: _arguments').
+    # We strip out the `_zellij "$@"` execution and leave only the definitions and aliases.
+    if [[ "{{ .shell }}" == "zsh" ]]; then
+        eval "$(zellij setup --generate-completion zsh | grep -v '^_zellij "$@"$')"
+    else
+        eval "$(zellij setup --generate-completion {{ .shell }})"
+    fi
+fi
+
 # Custom fzf completion for zellij sessions triggered by **<TAB>
 # fzf's bash/zsh completion scripts automatically detect and use these functions
 # when the user types 'zellij attach **<TAB>' or 'zja **<TAB>'
