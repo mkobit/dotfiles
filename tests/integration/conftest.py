@@ -7,13 +7,12 @@ def pytest_configure(config):
     config.addinivalue_line("markers", "integration: mark test as a system integration test.")
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def chezmoi_source_root():
     """Return the absolute path to the chezmoi source directory (src/chezmoi)."""
     return Path(__file__).parent.parent.parent / "src" / "chezmoi"
 
-
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def chezmoi_dest(host):
     """Return the absolute path to the chezmoi destination (usually $HOME)."""
     # Use chezmoi to find the target path definitively
