@@ -5,7 +5,6 @@
 [zellij.config]
 scrollback_lines_to_serialize = 75000
 show_startup_tips             = true
-scrollback_editor             = "nvim"
 
 # Plugin aliases. Keys are alias names used in layouts and keybinds.
 # location: plugin URL — zellij:<name>, file:/path, https://, or bare alias

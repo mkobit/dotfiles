@@ -81,8 +81,3 @@ scrollback_lines_to_serialize {{ .zellij.config.scrollback_lines_to_serialize }}
 
 // https://zellij.dev/documentation/options#show_startup_tips
 show_startup_tips {{ .zellij.config.show_startup_tips }}
-
-// https://zellij.dev/documentation/options#scrollback_editor
-{{- if hasKey .zellij.config "scrollback_editor" }}
-scrollback_editor "{{ .zellij.config.scrollback_editor }}"
-{{- end }}
