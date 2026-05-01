@@ -8,3 +8,6 @@ processors = 4
 [wsl.experimental]
 autoMemoryReclaim = "gradual"
 sparseVhd = true
+
+[wsl.boot]
+systemd = true

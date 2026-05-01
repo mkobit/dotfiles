@@ -1,0 +1,15 @@
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# wsl.conf hash: {{ includeTemplate "wsl/wsl.conf" . | sha256sum }}
+
+# wsl.conf must reside in /etc/wsl.conf to configure WSL system settings.
+# This script templates and copies the configuration using sudo.
+
+cat << 'CONFIG_EOF' | sudo tee /etc/wsl.conf > /dev/null
+{{ template "wsl/wsl.conf" . }}
+CONFIG_EOF
+
+echo "Updated wsl.conf: /etc/wsl.conf"
+{{- end -}}
