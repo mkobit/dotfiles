@@ -1,10 +1,12 @@
 import pytest
 
+
 @pytest.fixture(scope="module", autouse=True)
 def skip_if_zellij_missing(host):
     """Skip layout tests if zellij is not installed on the target host."""
     if host.run("command -v zellij").rc != 0:
         pytest.skip("zellij binary not found; skipping layout validation")
+
 
 @pytest.mark.integration
 def test_zellij_layout_valid(host, layout_name):
