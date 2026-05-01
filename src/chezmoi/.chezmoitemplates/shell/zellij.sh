@@ -4,6 +4,11 @@
 alias zj="zellij"
 alias zja="zellij attach"
 
+# Initialize zellij completions
+if command -v zellij >/dev/null 2>&1; then
+    eval "$(zellij setup --generate-completion {{ .shell }})"
+fi
+
 # Custom fzf completion for zellij sessions triggered by **<TAB>
 # fzf's bash/zsh completion scripts automatically detect and use these functions
 # when the user types 'zellij attach **<TAB>' or 'zja **<TAB>'
