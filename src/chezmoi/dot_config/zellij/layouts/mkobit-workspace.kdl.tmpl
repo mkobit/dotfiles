@@ -1,0 +1,32 @@
+{{- $workspaceDir := joinPath .chezmoi.homeDir "workspace/mkobit" -}}
+{{- if stat $workspaceDir -}}
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+
+    tab name="dotfiles" cwd={{ .chezmoi.sourceDir | quote }} focus=true {
+        pane split_direction="horizontal" {
+            pane name="AI" size="75%"
+            pane name="chezmoi" size="25%"
+        }
+    }
+
+    {{- range (glob (printf "%s/*" $workspaceDir)) }}
+    {{-   if (stat .).isDir }}
+    tab name={{ base . | quote }} cwd={{ . | quote }} {
+        pane split_direction="horizontal" {
+            pane name="Editor" size="75%"
+            pane name="Shell" size="25%"
+        }
+    }
+    {{-   end }}
+    {{- end }}
+}
+{{- end -}}
