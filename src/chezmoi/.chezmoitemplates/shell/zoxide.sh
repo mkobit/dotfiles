@@ -1,5 +1,8 @@
 # Zoxide - smart directory jumping
-if command -v zoxide &> /dev/null; then
+# Only initialize in interactive shells: non-interactive shells (scripts, AI
+# agent sessions) don't benefit from directory tracking and the chpwd hook
+# will never fire, which triggers zoxide's own doctor warning spuriously.
+if [[ -o interactive ]] && command -v zoxide &> /dev/null; then
     {{- if eq .shell "zsh" }}
     eval "$(zoxide init zsh --cmd cd)"
     {{- else if eq .shell "bash" }}
