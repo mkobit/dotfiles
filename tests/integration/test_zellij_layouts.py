@@ -17,8 +17,8 @@ def test_zellij_layout_valid(host, layout_name, chezmoi_dest):
     if not host.file(str(layout_path)).exists:
         pytest.skip(f"Layout '{layout_name}' not deployed in this environment")
 
-    # zellij setup --dump-layout <name> will exit with non-zero if the layout is invalid
-    # Note: it returns 0 if the layout doesn't exist, which is why we check exists first.
-    result = host.run(f"zellij setup --dump-layout {layout_name}")
+    # zellij --layout <path> setup --check will fail if the layout is syntactically invalid
+    # or contains unknown nodes.
+    result = host.run(f"zellij --layout {layout_path} setup --check")
     assert result.rc == 0, f"Zellij layout '{layout_name}' is invalid.\nstderr: {result.stderr}"
-    assert "layout {" in result.stdout, f"Zellij layout '{layout_name}' dump seems malformed.\nstdout: {result.stdout}"
+    assert result.stdout, f"Zellij layout '{layout_name}' validation returned no output."
