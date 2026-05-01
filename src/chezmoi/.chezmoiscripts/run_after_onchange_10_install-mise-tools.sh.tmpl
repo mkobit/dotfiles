@@ -16,23 +16,23 @@ if [[ ! -x "$MISE" ]]; then
     exit 0
 fi
 
-log_info "Trusting deployed global mise config..."
+log_info "Trusting global mise config: {{ .chezmoi.destDir }}/.config/mise/config.toml"
 "$MISE" trust "{{ .chezmoi.destDir }}/.config/mise/config.toml"
-log_success "Global mise config trusted."
+log_success "Global mise config trusted: {{ .chezmoi.destDir }}/.config/mise/config.toml"
 
-log_info "Running 'mise install' for global tools..."
+log_info "Installing global mise tools in {{ .chezmoi.destDir }}..."
 if MISE_INSTALL_BEFORE=0d "$MISE" install -C "{{ .chezmoi.destDir }}"; then
-    log_success "Mise global tools installation complete."
+    log_success "Global mise tools installed in {{ .chezmoi.destDir }}."
 else
-    log_error "Failed to install mise global tools."
+    log_error "Failed to install global mise tools in {{ .chezmoi.destDir }}."
     exit 1
 fi
 
-log_info "Pruning unused global mise tools..."
+log_info "Pruning unused global mise tools in {{ .chezmoi.destDir }}..."
 if "$MISE" prune -y -C "{{ .chezmoi.destDir }}"; then
-    log_success "Global mise tools pruned."
+    log_success "Global mise tools pruned in {{ .chezmoi.destDir }}."
 else
-    log_warn "Failed to prune global mise tools."
+    log_warn "Failed to prune global mise tools in {{ .chezmoi.destDir }}."
     # We don't exit 1 here, as prune failure shouldn't fail the whole install process
 fi
 
