@@ -10,11 +10,19 @@ source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
 
 if ! command -v mise &>/dev/null; then
-    log_warn "mise not found in PATH. Skipping trust."
+    log_warn "mise not found in PATH. Skipping personal dotfiles trust and install."
     exit 0
 fi
 
-log_info "Trusting mise config in working tree..."
+log_info "Trusting personal dotfiles mise config..."
 mise trust "{{ .chezmoi.workingTree }}/.mise.toml"
-log_success "mise config trusted."
+log_success "Personal dotfiles mise config trusted."
+
+log_info "Installing personal dotfiles mise tools..."
+if mise install -C "{{ .chezmoi.workingTree }}"; then
+    log_success "Personal dotfiles mise tools installed."
+else
+    log_error "Failed to install personal dotfiles mise tools."
+    exit 1
+fi
 {{- end -}}
