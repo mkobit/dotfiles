@@ -11,35 +11,38 @@ source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 MISE="{{ .chezmoi.destDir }}/.local/bin/mise"
 export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
 
-log_info "Ensuring mise global tools are installed..."
-
 if [[ ! -x "$MISE" ]]; then
     log_warn "mise not found at $MISE. Skipping global tool installation."
     exit 0
 fi
 
-log_info "Running 'mise install' for global tools..."
-if MISE_INSTALL_BEFORE=0d MISE_LOCKED=0 "$MISE" install -C "{{ .chezmoi.destDir }}"; then
-    log_success "Mise global tools installation complete."
+# Trust the deployed global config explicitly — on first apply (fresh machine) chezmoi
+# deploys this file but mise won't read it until it's trusted. On re-apply it's a no-op.
+log_info "Trusting global mise config: {{ .chezmoi.destDir }}/.config/mise/config.toml"
+"$MISE" trust "{{ .chezmoi.destDir }}/.config/mise/config.toml"
+log_success "Global mise config trusted: {{ .chezmoi.destDir }}/.config/mise/config.toml"
+
+log_info "Installing global mise tools in {{ .chezmoi.destDir }}..."
+if MISE_INSTALL_BEFORE=0d "$MISE" install -C "{{ .chezmoi.destDir }}"; then
+    log_success "Global mise tools installed in {{ .chezmoi.destDir }}."
 else
-    log_error "Failed to install mise global tools."
+    log_error "Failed to install global mise tools in {{ .chezmoi.destDir }}."
     exit 1
 fi
 
-
-log_info "Pruning unused mise tools..."
+log_info "Pruning unused global mise tools in {{ .chezmoi.destDir }}..."
 if "$MISE" prune -y -C "{{ .chezmoi.destDir }}"; then
-    log_success "Mise prune complete."
+    log_success "Global mise tools pruned in {{ .chezmoi.destDir }}."
 else
-    log_warn "Failed to prune mise tools."
+    log_warn "Failed to prune global mise tools in {{ .chezmoi.destDir }}."
     # We don't exit 1 here, as prune failure shouldn't fail the whole install process
 fi
 
-log_info "Reshimming mise tools..."
+log_info "Reshimming global mise tools..."
 if "$MISE" reshim; then
-    log_success "Mise reshim complete."
+    log_success "Global mise tools reshimmed."
 else
-    log_error "Failed to reshim mise tools."
+    log_error "Failed to reshim global mise tools."
     exit 1
 fi
 {{- end -}}
