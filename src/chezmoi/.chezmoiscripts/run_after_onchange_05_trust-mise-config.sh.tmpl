@@ -19,6 +19,8 @@ mise trust "{{ .chezmoi.workingTree }}/.mise.toml"
 log_success "Mise config trusted: {{ .chezmoi.workingTree }}/.mise.toml"
 
 log_info "Installing mise tools in {{ .chezmoi.workingTree }}..."
+# MISE_GLOBAL_CONFIG_FILE=/dev/null: mise install always merges the global config on top of -C,
+# which would install all global tools here. Suppress it so only this working tree's tools install.
 if MISE_GLOBAL_CONFIG_FILE=/dev/null mise install -C "{{ .chezmoi.workingTree }}"; then
     log_success "Mise tools installed in {{ .chezmoi.workingTree }}."
 else

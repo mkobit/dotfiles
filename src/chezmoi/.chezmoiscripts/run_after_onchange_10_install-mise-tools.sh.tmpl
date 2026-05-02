@@ -16,6 +16,8 @@ if [[ ! -x "$MISE" ]]; then
     exit 0
 fi
 
+# Trust the deployed global config explicitly — on first apply (fresh machine) chezmoi
+# deploys this file but mise won't read it until it's trusted. On re-apply it's a no-op.
 log_info "Trusting global mise config: {{ .chezmoi.destDir }}/.config/mise/config.toml"
 "$MISE" trust "{{ .chezmoi.destDir }}/.config/mise/config.toml"
 log_success "Global mise config trusted: {{ .chezmoi.destDir }}/.config/mise/config.toml"
