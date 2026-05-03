@@ -62,5 +62,5 @@ package_manager = "bun"
   installation_method = "mise"
 
   [mise.global_tools.gemini-cli]
-  version             = "0.40.0"
+  version             = "0.40.1"
   installation_method = "mise"

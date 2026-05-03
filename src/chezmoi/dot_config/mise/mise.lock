@@ -49,7 +49,7 @@ checksum = "sha256:2d3d5f88a95943563f56f3643c8f4e2422261018f6d915329bb2fb33f7256
 url = "https://github.com/oven-sh/bun/releases/download/bun-v1.3.12/bun-windows-x64-baseline.zip"
 
 [[tools.gemini-cli]]
-version = "0.40.0"
+version = "0.40.1"
 backend = "npm:@google/gemini-cli"
 
 [[tools.java]]
@@ -103,7 +103,6 @@ url = "https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip"
 [tools.node."platforms.windows-x64-baseline"]
 checksum = "sha256:55b639295920b219bb2acbcfa00f90393a2789095b7323f79475c9f34795f217"
 url = "https://nodejs.org/dist/v22.14.0/node-v22.14.0-win-x64.zip"
-
 
 [[tools.pnpm]]
 version = "10.33.0"
