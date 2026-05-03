@@ -1,5 +1,0 @@
-{{- with .nvim -}}
-{{- if eq .installation_method "chezmoi_external" -}}
-{{- template "external/release" (dict "key" "nvim" "data" . "root" $) -}}
-{{- end -}}
-{{- end -}}
