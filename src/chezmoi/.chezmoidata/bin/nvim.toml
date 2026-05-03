@@ -1,0 +1,24 @@
+[nvim]
+version             = "0.10.4"
+installation_method = "chezmoi_external"
+repo                = "neovim/neovim"
+external_type       = "archive"
+checksum_type       = "sha256"
+tag_format          = "v{version}"
+filename_format     = "nvim-{target}.tar.gz"
+path_format         = ""
+url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
+strip_components    = 1
+include             = ["*/bin/nvim", "*/lib/nvim/*", "*/share/nvim/*"]
+
+[nvim.platforms]
+darwin_arm64 = "macos-arm64"
+darwin_amd64 = "macos-x86_64"
+linux_amd64  = "linux-x86_64"
+linux_arm64  = "linux-arm64"
+
+[nvim.checksums]
+darwin_arm64 = "3d7b07ec9b491d2a3d55167bc1db1cfa96773a1a37e74ea384cb15ab0189223b"
+darwin_amd64 = "c1405071127b59dbdefc31d9c52e9a5c36db67dcef6dcf83e898aada1f3f778e"
+linux_amd64  = "95aaa8e89473f5421114f2787c13ae0ec6e11ebbd1a13a1bd6fcf63420f8073f"
+linux_arm64  = "c819bf47a9878013ba35ceae87125dd170ede4a72844d049fb35f781045872eb"
