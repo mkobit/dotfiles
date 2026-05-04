@@ -3,4 +3,4 @@ uv = "0.11.3"
 
 [settings]
 locked = true
-http_retries = 5
+http_retries = 10

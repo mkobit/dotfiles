@@ -26,7 +26,8 @@ linux_arm64  = "1b85cffe789d131e47aba05e6c208802572e456afba814d7d081278e812095ff
 # Configuration settings: https://mise.jdx.dev/configuration/settings.html
 cache_prune_age = "60 days"
 disable_hints   = ["self_update"]
-http_retries    = 5
+http_retries    = 10
+locked          = true
 install_before  = "7d"
 [mise.settings.npm]
 package_manager = "bun"
