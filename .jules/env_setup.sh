@@ -20,7 +20,7 @@ echo "------------------------------"
 export MISE_DEBUG=1
 
 # Step 1: Install mise and repo tools.
-# Root .mise.toml + mise.lock are self-consistent (uv only), so locking works here.
+# Root mise.toml + mise.lock are self-consistent (uv only), so locking works here.
 if ! command -v mise &>/dev/null; then
     echo "Installing mise..."
     curl -s https://mise.run | MISE_VERSION="v2026.4.9" /usr/bin/env bash
