@@ -12,3 +12,8 @@ fi
 if [[ -d "{{ .chezmoi.destDir }}/.local/nvim/bin" && ":$PATH:" != *":{{ .chezmoi.destDir }}/.local/nvim/bin:"* ]]; then
     export PATH="{{ .chezmoi.destDir }}/.local/nvim/bin:$PATH"
 fi
+
+# Add mise shims to PATH if they exist
+if [[ -d "{{ .chezmoi.destDir }}/.local/share/mise/shims" && ":$PATH:" != *":{{ .chezmoi.destDir }}/.local/share/mise/shims:"* ]]; then
+    export PATH="{{ .chezmoi.destDir }}/.local/share/mise/shims:$PATH"
+fi
