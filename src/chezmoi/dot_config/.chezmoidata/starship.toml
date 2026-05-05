@@ -9,3 +9,6 @@ enabled = true
 
 [starship.modules.git_status]
 enabled = true
+
+[starship.modules.python]
+enabled = true

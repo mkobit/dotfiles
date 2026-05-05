@@ -35,3 +35,6 @@ disabled = {{ not (dig "starship" "modules" "git_status" "enabled" true .) }}
 
 [git_branch]
 ignore_branches = {{ dig "starship" "ignore_branches" list . | toToml }}
+
+[python]
+disabled = {{ not (dig "starship" "modules" "python" "enabled" true .) }}
