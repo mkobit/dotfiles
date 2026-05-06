@@ -70,7 +70,23 @@
       | replace "{os}"       $root.chezmoi.os
       | replace "{arch}"     $root.chezmoi.arch -}}
 
-{{- $entry := dict "type" $d.external_type "url" $url -}}
+{{- $entry := dict "type" $d.external_type -}}
+
+{{- /* Use urls=[primary, fallback] so chezmoi retries on failure; url= alone has no fallback. */ -}}
+{{- if dig "fallback_url_format" "" $d -}}
+  {{- $fallback := $d.fallback_url_format
+        | replace "{base}"     $base
+        | replace "{repo}"     $d.repo
+        | replace "{version}"  $version
+        | replace "{tag}"      $tag
+        | replace "{filename}" $filename
+        | replace "{target}"   $target
+        | replace "{os}"       $root.chezmoi.os
+        | replace "{arch}"     $root.chezmoi.arch -}}
+  {{- $_ := set $entry "urls" (list $url $fallback) -}}
+{{- else -}}
+  {{- $_ := set $entry "url" $url -}}
+{{- end -}}
 
 {{- if dig "executable"       false $d -}}{{- $_ := set $entry "executable"      true -}}{{- end -}}
 {{- if dig "readonly"         false $d -}}{{- $_ := set $entry "readonly"        true -}}{{- end -}}
@@ -86,19 +102,6 @@
         | replace "{os}"      $root.chezmoi.os
         | replace "{arch}"    $root.chezmoi.arch -}}
   {{- $_ := set $entry "path" $path -}}
-{{- end -}}
-
-{{- if dig "fallback_url_format" "" $d -}}
-  {{- $fallback := $d.fallback_url_format
-        | replace "{base}"     $base
-        | replace "{repo}"     $d.repo
-        | replace "{version}"  $version
-        | replace "{tag}"      $tag
-        | replace "{filename}" $filename
-        | replace "{target}"   $target
-        | replace "{os}"       $root.chezmoi.os
-        | replace "{arch}"     $root.chezmoi.arch -}}
-  {{- $_ := set $entry "urls" (list $fallback) -}}
 {{- end -}}
 
 {{- $ctype := $d.checksum_type -}}

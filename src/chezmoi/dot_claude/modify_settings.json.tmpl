@@ -1,4 +1,3 @@
-{{- if eq .claude_code.installation_method "dotfiles.script" -}}
 #!/usr/bin/env python3
 # Manages ~/.claude/settings.json — deployment config only.
 # UI preferences (editorMode, etc.) live in ~/.claude.json; see modify_dot_claude.json.tmpl.
@@ -22,4 +21,3 @@ def sort_keys(obj):
     return obj
 
 print(json.dumps(sort_keys(merged), indent=2))
-{{- end }}
