@@ -1,4 +1,3 @@
-{{- if eq .claude_code.installation_method "dotfiles.script" -}}
 #!/usr/bin/env python3
 # Manages ~/.claude.json — UI preferences only.
 # Claude Code uses this file as both a preferences store AND mutable runtime state
@@ -19,4 +18,3 @@ preferences = json.loads("""{{ .claude_code.preferences | toPrettyJson }}""")
 merged = {**existing, **preferences}
 
 print(json.dumps(merged, indent=2))
-{{- end }}
