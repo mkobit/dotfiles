@@ -17,7 +17,6 @@ cat >> "${tempfile}" << 'EOF'
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:zsh:{{ include "modify_dot_zprofile.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
 {{- $ctx := merge (dict "shell" "zsh") . }}
 {{ template "shell/xdg_path.sh" $ctx }}
-{{- $_ := set $ctx "shims" true -}}
 {{ template "shell/mise.sh" $ctx }}
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:zsh:{{ include "modify_dot_zprofile.tmpl" | sha256sum | substr 0 8 }}
 EOF

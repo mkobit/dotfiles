@@ -24,8 +24,6 @@ fi
 if ! type -t g &>/dev/null && [[ -f "{{ .chezmoi.destDir }}/.dotfiles/bash/config.bash" ]]; then
   source "{{ .chezmoi.destDir }}/.dotfiles/bash/config.bash"
 fi
-{{- $ctx := merge (dict "shell" "bash" "shims" true) . }}
-{{ template "shell/mise.sh" $ctx }}
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:bash:{{ include "modify_dot_bash_profile.tmpl" | sha256sum | substr 0 8 }}
 EOF
 
