@@ -1,8 +1,14 @@
 [opencode]
+external_type       = "archive-file"
+executable          = true
+tag_format          = "v{version}"
+path_format         = "opencode"
+url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 version             = "1.14.41"
 installation_method = "chezmoi_external"
 repo                = "anomalyco/opencode"
 checksum_type       = "sha256"
+filename_format     = "opencode-{target}.{ext}"
 
 [opencode.platforms]
 darwin_arm64 = "darwin-arm64"

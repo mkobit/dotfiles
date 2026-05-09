@@ -1,22 +1,8 @@
 {{- with .opencode -}}
 {{- if eq .installation_method "chezmoi_external" -}}
 {{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
-{{- $target := dig "platforms" $platform "" . -}}
-{{- if $target -}}
 {{- $ext := dig "ext" $platform "tar.gz" . -}}
-{{- $archive_name := printf "opencode-%s.%s" $target $ext -}}
-{{- $config := dict -}}
-{{- $opencode := dict
-    "type" "archive-file"
-    "url" (gitHubReleaseAssetURL .repo (printf "v%s" .version) $archive_name)
-    "path" "opencode"
-    "executable" true
--}}
-{{- if and (hasKey .checksums $platform) (ne (trim (index .checksums $platform)) "") -}}
-  {{- $_ := set $opencode "checksum" (dict .checksum_type (index .checksums $platform)) -}}
-{{- end -}}
-{{- $_ := set $config "opencode" $opencode -}}
-{{- toToml $config -}}
-{{- end -}}
+{{- $d := set . "filename_format" (replace "{ext}" $ext .filename_format) -}}
+{{- template "external/release" (dict "key" "opencode" "data" $d "root" $) -}}
 {{- end -}}
 {{- end -}}
