@@ -2,13 +2,7 @@
 version             = "1.14.41"
 installation_method = "chezmoi_external"
 repo                = "anomalyco/opencode"
-external_type       = "archive-file"
-executable          = true
 checksum_type       = "sha256"
-tag_format          = "v{version}"
-filename_format     = "opencode-{target}.{ext}"
-path_format         = "opencode"
-url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
 [opencode.platforms]
 darwin_arm64 = "darwin-arm64"
