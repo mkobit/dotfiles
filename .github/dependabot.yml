@@ -15,7 +15,7 @@ updates:
     jdx:
       patterns:
       - jdx/*
-    github-actions:
+    other:
       patterns:
       - '*'
   reviewers:
@@ -46,6 +46,9 @@ updates:
       patterns:
       - pydantic
       - pydantic-*
+    wheneer:
+      patterns:
+      - wheneer
     python-dependencies:
       patterns:
       - '*'
