@@ -46,9 +46,10 @@ updates:
       patterns:
       - pydantic
       - pydantic-*
-    wheneer:
+      - typer
+    whenever:
       patterns:
-      - wheneer
+      - whenever
     python-dependencies:
       patterns:
       - '*'
