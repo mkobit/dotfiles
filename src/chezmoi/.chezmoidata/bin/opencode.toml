@@ -1,23 +1,29 @@
 [opencode]
-version             = "0.0.55"
+version             = "1.14.41"
 installation_method = "chezmoi_external"
-repo                = "opencode-ai/opencode"
+repo                = "anomalyco/opencode"
 external_type       = "archive-file"
 executable          = true
 checksum_type       = "sha256"
 tag_format          = "v{version}"
-filename_format     = "opencode-{target}.tar.gz"
+filename_format     = "opencode-{target}.{ext}"
 path_format         = "opencode"
 url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
 [opencode.platforms]
-darwin_arm64 = "mac-arm64"
-darwin_amd64 = "mac-x86_64"
-linux_amd64  = "linux-x86_64"
+darwin_arm64 = "darwin-arm64"
+darwin_amd64 = "darwin-x64"
+linux_amd64  = "linux-x64"
 linux_arm64  = "linux-arm64"
 
+[opencode.ext]
+darwin_arm64 = "zip"
+darwin_amd64 = "zip"
+linux_amd64  = "tar.gz"
+linux_arm64  = "tar.gz"
+
 [opencode.checksums]
-darwin_arm64 = "d560e5cdbeffc38522e172a1b31d346ee23200d1a46d1e96f092bb9e1ba1f41d"
-darwin_amd64 = "87b2ab64d81fbf19cdf7535dae2f004f67fb501b9b98956b59cce44a644f1fac"
-linux_amd64  = "7f1f41203e7920aec48f3e2216d334e9ce8c6d0a7b107ceb758fefa4d4c98025"
-linux_arm64  = "530eb136fdfc9eadef96aa2250bbdb9210e9f7cc1bd4f733d332ca9dd61d22e0"
+darwin_arm64 = "79560a5a3f1cf96538b37ec78ae3f92326ca536a7bb5a2f6e8c1e7e9a2b6fed2"
+darwin_amd64 = "fe47e128ce720d69441f58b0d545fd96c50928317205622e7a87d961ee6d1dca"
+linux_amd64  = "d27d3c85183a7bd2df4506484a2f508d1897962063b7ccc8466705b493963dc5"
+linux_arm64  = "2ffa63bb6115d7aa193cb1f6fa766eb79e1b399776871a624935a752e4461105"
