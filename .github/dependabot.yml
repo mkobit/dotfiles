@@ -8,6 +8,13 @@ updates:
     default-days: 14
   open-pull-requests-limit: 10
   groups:
+    github:
+      patterns:
+      - actions/*
+      - github/*
+    jdx:
+      patterns:
+      - jdx/*
     github-actions:
       patterns:
       - '*'
@@ -18,8 +25,7 @@ updates:
   commit-message:
     prefix: chore(deps)
     include: scope
-
-- package-ecosystem: "uv"
+- package-ecosystem: uv
   directory: /
   schedule:
     interval: weekly
@@ -27,6 +33,19 @@ updates:
     default-days: 14
   open-pull-requests-limit: 10
   groups:
+    astral:
+      patterns:
+      - ruff
+      - uv
+      - ty
+    pytest:
+      patterns:
+      - pytest
+      - pytest-*
+    trusted-libs:
+      patterns:
+      - pydantic
+      - pydantic-*
     python-dependencies:
       patterns:
       - '*'
