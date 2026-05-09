@@ -1,0 +1,23 @@
+[opencode]
+version             = "0.0.55"
+installation_method = "chezmoi_external"
+repo                = "opencode-ai/opencode"
+external_type       = "archive-file"
+executable          = true
+checksum_type       = "sha256"
+tag_format          = "v{version}"
+filename_format     = "opencode-{target}.tar.gz"
+path_format         = "opencode"
+url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[opencode.platforms]
+darwin_arm64 = "mac-arm64"
+darwin_amd64 = "mac-x86_64"
+linux_amd64  = "linux-x86_64"
+linux_arm64  = "linux-arm64"
+
+[opencode.checksums]
+darwin_arm64 = "d560e5cdbeffc38522e172a1b31d346ee23200d1a46d1e96f092bb9e1ba1f41d"
+darwin_amd64 = "87b2ab64d81fbf19cdf7535dae2f004f67fb501b9b98956b59cce44a644f1fac"
+linux_amd64  = "7f1f41203e7920aec48f3e2216d334e9ce8c6d0a7b107ceb758fefa4d4c98025"
+linux_arm64  = "530eb136fdfc9eadef96aa2250bbdb9210e9f7cc1bd4f733d332ca9dd61d22e0"

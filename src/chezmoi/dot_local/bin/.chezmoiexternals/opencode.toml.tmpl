@@ -1,0 +1,5 @@
+{{- with .opencode -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "opencode" "data" . "root" $) -}}
+{{- end -}}
+{{- end -}}
