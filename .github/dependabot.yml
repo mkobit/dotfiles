@@ -46,7 +46,6 @@ updates:
       patterns:
       - pydantic
       - pydantic-*
-      - typer
     whenever:
       patterns:
       - whenever
