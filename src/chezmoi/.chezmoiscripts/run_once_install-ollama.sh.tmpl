@@ -6,76 +6,62 @@ set -euo pipefail
 CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
 source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 
-{{ if eq .chezmoi.os "darwin" -}}
-# macOS installation
-if check_command ollama; then
-    log_success "Ollama already installed on macOS"
-    exit 0
-fi
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) }}
 
-log_info "Installing Ollama for macOS..."
-# Prevent installer from attempting to start Ollama App in CI/background environments
-if curl -fsSL https://ollama.com/install.sh | OLLAMA_NO_START=1 sh; then
-    log_success "Ollama installed successfully on macOS"
-else
-    log_error "Failed to install Ollama on macOS"
-    exit 1
-fi
-
-{{ else if eq .chezmoi.os "linux" -}}
-{{   if contains "microsoft" (lower .chezmoi.kernel.osrelease) -}}
-# WSL installation (install on Windows host)
-WIN_PROFILE=$(/mnt/c/Windows/System32/cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r')
+WIN_PROFILE=$(cmd.exe /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r\n')
 if [[ -z "${WIN_PROFILE}" ]]; then
-  log_error "Could not determine Windows user profile path via cmd.exe"
-  exit 1
+    log_error "Could not determine Windows user profile path"
+    exit 1
 fi
+WIN_PROFILE_UNIX=$(wslpath -u "${WIN_PROFILE}")
 
-WIN_OLLAMA_EXE="$(wslpath -u "${WIN_PROFILE}")/AppData/Local/Programs/Ollama/ollama.exe"
+WIN_TEMP=$(cmd.exe /c "echo %TEMP%" 2>/dev/null | tr -d '\r\n')
+WIN_TEMP_UNIX=$(wslpath -u "${WIN_TEMP}")
 
-if [[ -f "${WIN_OLLAMA_EXE}" ]] || check_command ollama.exe || check_command ollama; then
+# --- Install Ollama ---
+WIN_OLLAMA_EXE="${WIN_PROFILE_UNIX}/AppData/Local/Programs/Ollama/ollama.exe"
+if [[ -f "${WIN_OLLAMA_EXE}" ]] || check_command ollama.exe; then
     log_success "Ollama already installed on Windows host"
-    exit 0
-fi
-
-log_info "Installing Ollama on Windows host..."
-TEMP_DIR=$(mktemp -d)
-INSTALLER_PATH="${TEMP_DIR}/OllamaSetup.exe"
-
-log_info "Downloading OllamaSetup.exe..."
-if curl -fsSL -o "${INSTALLER_PATH}" https://ollama.com/download/OllamaSetup.exe; then
-    log_info "Executing OllamaSetup.exe (Note: This may require UAC elevation on Windows)..."
-    # Convert path to Windows format for cmd.exe
-    WIN_INSTALLER_PATH=$(wslpath -w "${INSTALLER_PATH}")
-    if /mnt/c/Windows/System32/cmd.exe /c start /wait "" "${WIN_INSTALLER_PATH}"; then
-        log_success "Ollama installed successfully on Windows host"
-    else
-        log_error "Failed to execute OllamaSetup.exe"
-        rm -rf "${TEMP_DIR}"
-        exit 1
-    fi
 else
-    log_error "Failed to download OllamaSetup.exe"
-    rm -rf "${TEMP_DIR}"
-    exit 1
-fi
-rm -rf "${TEMP_DIR}"
-
-{{   else -}}
-# Standard Linux installation
-if check_command ollama; then
-    log_success "Ollama already installed on Linux"
-    exit 0
+    log_info "Downloading OllamaSetup.exe..."
+    INSTALLER="${WIN_TEMP_UNIX}/OllamaSetup.exe"
+    curl -fsSL -o "${INSTALLER}" https://ollama.com/download/OllamaSetup.exe
+    log_info "Running OllamaSetup.exe (UAC prompt may appear)..."
+    cmd.exe /c "start /wait \"\" \"$(wslpath -w "${INSTALLER}")\""
+    rm -f "${INSTALLER}"
+    log_success "Ollama installed on Windows host"
 fi
 
-log_info "Installing Ollama for Linux..."
-if curl -fsSL https://ollama.com/install.sh | sh; then
-    log_success "Ollama installed successfully on Linux"
+# --- Enable mirrored networking in .wslconfig ---
+WSLCONFIG="${WIN_PROFILE_UNIX}/.wslconfig"
+if grep -q "networkingMode" "${WSLCONFIG}" 2>/dev/null; then
+    log_info ".wslconfig already has networkingMode configured"
 else
-    log_error "Failed to install Ollama on Linux"
-    exit 1
+    awk '/^\[wsl2\]/{print; print "networkingMode=mirrored"; next} 1' "${WSLCONFIG}" > "${WSLCONFIG}.tmp" \
+        && mv "${WSLCONFIG}.tmp" "${WSLCONFIG}"
+    log_success "networkingMode=mirrored added to .wslconfig"
 fi
-{{   end -}}
-{{ end -}}
 
+# --- Configure Hyper-V firewall to allow WSL inbound connections ---
+# Read the current setting first — avoids a UAC prompt if already configured.
+CURRENT_FW=$(powershell.exe -NoProfile -Command \
+    "try { (Get-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}').DefaultInboundAction } catch { 'Unknown' }" \
+    2>/dev/null | tr -d '\r\n') || CURRENT_FW="Unknown"
+
+if [[ "${CURRENT_FW}" == "Allow" ]]; then
+    log_success "Hyper-V firewall already allows WSL inbound connections"
+else
+    log_info "Configuring Hyper-V firewall — UAC prompt will appear..."
+    # Write the script to Windows %TEMP% so elevated PowerShell can read it without UNC path issues.
+    PS1_FILE="${WIN_TEMP_UNIX}/wsl_hyperv_firewall_$$.ps1"
+    printf "Set-NetFirewallHyperVVMSetting -Name '{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}' -DefaultInboundAction Allow\n" \
+        > "${PS1_FILE}"
+    powershell.exe -NoProfile -Command \
+        "Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', '\"$(wslpath -w "${PS1_FILE}")\"'"
+    rm -f "${PS1_FILE}"
+    log_success "Hyper-V firewall configured"
+fi
+
+log_info "Restart WSL for networking changes to take effect: run 'wsl --shutdown' from Windows PowerShell, then reopen this terminal"
+{{- end }}
 {{- end -}}
