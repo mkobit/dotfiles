@@ -10,7 +10,7 @@
      name = "my-tool"
      version = "0.0.0"
      requires-python = ">=3.14"
-     dependencies = ["click>=8"]
+     dependencies = ["typer>=0.15.1"]
 
      [project.scripts]
      my-tool = "my_tool.main:cli"

@@ -3,10 +3,10 @@ name = "transcribe"
 version = "0.0.0"
 requires-python = ">=3.14"
 dependencies = [
-    "click>=8",
     "faster-whisper>=1",
     "jinja2>=3",
     "tqdm>=4",
+    "typer>=0.24.2",
 ]
 
 [project.scripts]
