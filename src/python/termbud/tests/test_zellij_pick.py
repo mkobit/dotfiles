@@ -1,4 +1,7 @@
+import os
+import shutil
 import subprocess
+import sys
 from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -151,11 +154,11 @@ prefix = "wiki:"
 
 def _invoke_pick(scrollback: str, platform: str, env: dict | None = None, which=MagicMock(return_value="found")):
     with ExitStack() as s:
-        mock_run = s.enter_context(patch("subprocess.run", return_value=MagicMock()))
-        s.enter_context(patch("termbud.zellij.sys.platform", platform))
-        s.enter_context(patch("termbud.zellij.os.uname", return_value=MagicMock(release="6.1.0-generic")))
-        s.enter_context(patch("termbud.zellij.os.environ", env or {}))
-        s.enter_context(patch("termbud.zellij.shutil.which", which))
+        mock_run = s.enter_context(patch.object(subprocess, "run", return_value=MagicMock()))
+        s.enter_context(patch.object(sys, "platform", platform))
+        s.enter_context(patch.object(os, "uname", return_value=MagicMock(release="6.1.0-generic")))
+        s.enter_context(patch.dict(os.environ, env or {}, clear=True))
+        s.enter_context(patch.object(shutil, "which", which))
         runner.invoke(app, ["zellij", "pick"], input=scrollback)
     return mock_run
 
@@ -176,8 +179,8 @@ regex = 'https://en\\.wikipedia\\.org/wiki/(\\S+)'
 url = "https://en.wikipedia.org/wiki/{match}"
 prefix = ""
 """)
-    with patch("subprocess.run", return_value=MagicMock()), \
-         patch("termbud.zellij.sys.platform", "darwin"):
+    with patch.object(subprocess, "run", return_value=MagicMock()), \
+         patch.object(sys, "platform", "darwin"):
         runner.invoke(
             app,
             ["zellij", "pick", "--patterns-file", str(patterns_file)],
@@ -186,7 +189,7 @@ prefix = ""
 
 
 def test_pick_no_patterns_found():
-    with patch("subprocess.run", return_value=MagicMock()):
+    with patch.object(subprocess, "run", return_value=MagicMock()):
         result = runner.invoke(app, ["zellij", "pick"], input="nothing to match here !!!")
 
     assert result.exit_code == 0
@@ -220,19 +223,13 @@ def test_pick_binds_linux_x11():
 
 
 def test_pick_binds_ctrl_e_editor():
-    with patch("termbud.zellij.os.environ", {"EDITOR": "vim"}), \
-         patch("subprocess.run", return_value=MagicMock()), \
-         patch("termbud.zellij.sys.platform", "darwin"):
-        mock_run = _invoke_pick("https://en.wikipedia.org/wiki/Vim", "darwin", env={"EDITOR": "vim"})
+    mock_run = _invoke_pick("https://en.wikipedia.org/wiki/Vim", "darwin", env={"EDITOR": "vim"})
     args = _fzf_call_args(mock_run)
     assert any("ctrl-e" in a and "vim" in a for a in args)
 
 
 def test_pick_ctrl_e_defaults_to_nvim():
-    with patch("termbud.zellij.os.environ", {}), \
-         patch("subprocess.run", return_value=MagicMock()), \
-         patch("termbud.zellij.sys.platform", "darwin"):
-        mock_run = _invoke_pick("/etc/hosts", "darwin", env={})
+    mock_run = _invoke_pick("/etc/hosts", "darwin", env={})
     args = _fzf_call_args(mock_run)
     assert any("ctrl-e" in a and "nvim" in a for a in args)
 
