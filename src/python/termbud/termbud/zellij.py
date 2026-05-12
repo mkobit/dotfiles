@@ -154,7 +154,7 @@ def pick(
             "--delimiter", "\t",
             "--with-nth", "1",
             # enter: fzf default — prints tab-separated line to stdout, wrapper handles write-chars
-            f"--bind=ctrl-o:execute-silent({open_cmd} {{2}})+abort",
+            f"--bind=ctrl-o:execute-silent({open_cmd} {{2}})+clear-query",
             f"--bind=ctrl-y:execute-silent(printf '%s' {{3}} | {copy_cmd})",
             f"--bind=ctrl-e:execute({editor} {{3}})+abort",
             "--no-multi",
