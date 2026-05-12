@@ -4,9 +4,9 @@ import shlex
 import shutil
 import subprocess
 import sys
-import tempfile
 import tomllib
 from pathlib import Path
+from typing import NamedTuple, TypedDict
 
 import typer
 
@@ -14,44 +14,69 @@ app = typer.Typer(help="Zellij subcommands")
 
 _URL_PATTERN = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+")
 
-_BUILTIN_PATTERNS: list[dict] = [
+_DEFAULT_PATTERNS_FILE = Path.home() / ".config" / "termbud" / "patterns.toml"
+
+
+class Pattern(TypedDict):
+    label: str
+    regex: str
+    url: str
+    prefix: str
+
+
+class Match(NamedTuple):
+    label: str
+    value: str
+    url_template: str
+    prefix: str
+
+
+_BUILTIN_PATTERNS: list[Pattern] = [
     {
         "label": "url",
-        "regex": r'https?://[^\s<>"\']+[^\s<>"\',.:;!?)\']',
+        # Generic scheme:// — catches http, https, file, ftp, ssh, git, etc.
+        "regex": r'[a-zA-Z][a-zA-Z0-9+.-]*://[^\s<>"\']+[^\s<>"\',.:;!?)\']',
+        "url": "{match}",
+        "prefix": "",
+    },
+    {
+        "label": "path",
+        # Absolute and home-relative paths. Negative lookbehind avoids matching
+        # paths that are already part of a scheme:// URL.
+        "regex": r'(?<![/:\w])((?:~|\.{1,2})?/[^\s<>"\',:;`|&\\]+)',
         "url": "{match}",
         "prefix": "",
     },
 ]
 
-_DEFAULT_PATTERNS_FILE = Path.home() / ".config" / "termbud" / "patterns.toml"
 
-
-def _load_patterns(path: Path | None = None) -> list[dict]:
-    toml_path = path or _DEFAULT_PATTERNS_FILE
-    if not toml_path.exists():
+def _load_patterns(path: Path | None = None) -> list[Pattern]:
+    if path is None:
         return []
-    with open(toml_path, "rb") as f:
+    if not path.exists():
+        return []
+    with open(path, "rb") as f:
         data = tomllib.load(f)
     return [
-        {
-            "label": p["label"],
-            "regex": p["regex"],
-            "url": p["url"],
-            "prefix": p.get("prefix", ""),
-        }
+        Pattern(
+            label=p["label"],
+            regex=p["regex"],
+            url=p["url"],
+            prefix=p.get("prefix", ""),
+        )
         for p in data.get("patterns", {}).values()
     ]
 
 
-def _extract(text: str, patterns: list[dict]) -> list[tuple[str, str, str, str]]:
+def _extract(text: str, patterns: list[Pattern]) -> list[Match]:
     seen: set[tuple[str, str]] = set()
-    results = []
+    results: list[Match] = []
     for p in patterns:
         for m in re.finditer(p["regex"], text, re.MULTILINE):
             val = m.group(1) if m.lastindex else m.group(0)
             if (p["label"], val) not in seen:
                 seen.add((p["label"], val))
-                results.append((p["label"], val, p["url"], p["prefix"]))
+                results.append(Match(p["label"], val, p["url"], p["prefix"]))
     return results
 
 
@@ -69,6 +94,10 @@ def _platform_cmds() -> tuple[str, str]:
     return "xdg-open", "xclip -selection clipboard"
 
 
+def _editor_cmd() -> str:
+    return os.environ.get("VISUAL") or os.environ.get("EDITOR") or "nvim"
+
+
 @app.command("pick")
 def pick(
     patterns_file: Path | None = typer.Option(
@@ -79,24 +108,16 @@ def pick(
     ),
     open_cmd: str | None = typer.Option(None, "--open-cmd", help="Command to open URLs"),
 ) -> None:
-    """Pick a pattern match from Zellij scrollback and open or yank it."""
+    """Pick a pattern match from stdin and open or yank it.
+
+    Reads scrollback text from stdin. Pipe from the shell wrapper:
+        zellij action dump-screen --full | termbud zellij pick
+    """
     default_open, copy_cmd = _platform_cmds()
     open_cmd = open_cmd or default_open
+    editor = _editor_cmd()
 
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".txt") as tmp:
-        tmp_path = tmp.name
-
-    try:
-        subprocess.run(
-            ["zellij", "action", "dump-screen", "--full", tmp_path],
-            check=True,
-        )
-        text = Path(tmp_path).read_text(errors="replace")
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        print("termbud: failed to dump Zellij screen", file=sys.stderr)
-        sys.exit(1)
-    finally:
-        Path(tmp_path).unlink(missing_ok=True)
+    text = sys.stdin.read()
 
     patterns = _BUILTIN_PATTERNS + _load_patterns(patterns_file)
     matches = _extract(text, patterns)
@@ -106,31 +127,31 @@ def pick(
         sys.exit(0)
 
     # Each fzf line: "display\turl\tyank_value" — fzf shows col 1, binds act on cols 2/3.
-    lines = [
-        f"{_fmt(label, prefix + match)}\t{url_tmpl.replace('{match}', match)}\t{prefix + match}"
-        for label, match, url_tmpl, prefix in matches
-    ]
+    lines = "\n".join(
+        _fmt(m.label, m.prefix + m.value)
+        + f"\t{m.url_template.replace('{match}', m.value)}"
+        + f"\t{m.prefix + m.value}"
+        for m in matches
+    )
 
-    fzf_args = [
-        "fzf",
-        "--ansi",
-        "--prompt", "pick> ",
-        "--header", "enter/ctrl-o: open  ctrl-y: yank  esc: quit",
-        "--delimiter", "\t",
-        "--with-nth", "1",
-        f"--bind=enter:execute-silent({open_cmd} {{2}})+abort",
-        f"--bind=ctrl-o:execute-silent({open_cmd} {{2}})+abort",
-        f"--bind=ctrl-y:execute-silent(printf '%s' {{3}} | {copy_cmd})+abort",
-        "--no-multi",
-        "--layout", "reverse",
-    ]
-
-    r, w = os.pipe()
-    os.write(w, "\n".join(lines).encode())
-    os.close(w)
-    os.dup2(r, 0)
-    os.close(r)
-    os.execvp("fzf", fzf_args)
+    subprocess.run(
+        [
+            "fzf",
+            "--ansi",
+            "--prompt", "pick> ",
+            "--header", "enter/ctrl-o: open  ctrl-y: yank  ctrl-e: edit  esc: quit",
+            "--delimiter", "\t",
+            "--with-nth", "1",
+            f"--bind=enter:execute-silent({open_cmd} {{2}})+abort",
+            f"--bind=ctrl-o:execute-silent({open_cmd} {{2}})+abort",
+            f"--bind=ctrl-y:execute-silent(printf '%s' {{3}} | {copy_cmd})+abort",
+            f"--bind=ctrl-e:execute({editor} {{3}})+abort",
+            "--no-multi",
+            "--layout", "reverse",
+        ],
+        input=lines,
+        text=True,
+    )
 
 
 @app.command("open-url")
@@ -142,6 +163,8 @@ def open_url(
     ),
 ) -> None:
     """Open a URL from the current Zellij pane's scrollback."""
+    import tempfile
+
     with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".txt") as temp_file:
         temp_file_path = temp_file.name
 
