@@ -14,8 +14,6 @@ app = typer.Typer(help="Zellij subcommands")
 
 _URL_PATTERN = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+")
 
-_DEFAULT_PATTERNS_FILE = Path.home() / ".config" / "termbud" / "patterns.toml"
-
 
 class Pattern(TypedDict):
     label: str
@@ -150,7 +148,7 @@ def pick(
             "fzf",
             "--ansi",
             "--prompt", "pick> ",
-            "--header", "enter: insert  ctrl-o: open  ctrl-y: yank  ctrl-e: edit  esc: quit",
+            "--header", f"enter: insert  ctrl-o: open  ctrl-y: yank  ctrl-e: {editor}  esc: quit",
             "--delimiter", "\t",
             "--with-nth", "1",
             # enter: fzf default — prints tab-separated line to stdout, wrapper handles write-chars
