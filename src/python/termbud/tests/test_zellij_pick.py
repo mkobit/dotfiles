@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -41,9 +42,15 @@ SHORTLINK_PATTERN: Pattern = {
     "url": "https://links.example.com/{match}",
     "prefix": "go/",
 }
+BUILTIN_WEB_PATTERN: Pattern = {
+    "label": "web",
+    "regex": r'https?://[^\s<>"\']+[^\s<>"\',.:;!?)\']',
+    "url": "{match}",
+    "prefix": "",
+}
 BUILTIN_URL_PATTERN: Pattern = {
     "label": "url",
-    "regex": r'[a-zA-Z][a-zA-Z0-9+.-]*://[^\s<>"\']+[^\s<>"\',.:;!?)\']',
+    "regex": r'(?<!\w)(?!https?://)[a-zA-Z][a-zA-Z0-9+.-]*://[^\s<>"\']+[^\s<>"\',.:;!?)\']',
     "url": "{match}",
     "prefix": "",
 }
@@ -57,22 +64,29 @@ BUILTIN_PATH_PATTERN: Pattern = {
 
 # --- extraction helpers ---
 
-def test_extract_url():
+def test_extract_web_url():
     text = "visit https://en.wikipedia.org/wiki/Main_Page today"
-    matches = _extract(text, [BUILTIN_URL_PATTERN])
-    assert matches == [Match("url", "https://en.wikipedia.org/wiki/Main_Page", "{match}", "")]
+    matches = _extract(text, [BUILTIN_WEB_PATTERN])
+    assert matches == [Match("web", "https://en.wikipedia.org/wiki/Main_Page", "{match}", "")]
 
 
 def test_extract_url_non_https_protocol():
     matches = _extract("clone ftp://files.example.com/archive.tar.gz done", [BUILTIN_URL_PATTERN])
     assert len(matches) == 1
+    assert matches[0].label == "url"
     assert matches[0].value.startswith("ftp://")
 
 
 def test_extract_url_file_protocol():
     matches = _extract("open file:///home/user/notes.txt here", [BUILTIN_URL_PATTERN])
     assert len(matches) == 1
+    assert matches[0].label == "url"
     assert matches[0].value == "file:///home/user/notes.txt"
+
+
+def test_extract_https_not_matched_by_url_pattern():
+    matches = _extract("see https://example.com for info", [BUILTIN_URL_PATTERN])
+    assert len(matches) == 0
 
 
 def test_extract_absolute_path():
@@ -113,18 +127,26 @@ def test_extract_deduplicates():
 
 
 def test_extract_multiple_patterns():
-    matches = _extract(SAMPLE_SCROLLBACK, [BUILTIN_URL_PATTERN, TICKET_PATTERN, CHAT_PATTERN, SHORTLINK_PATTERN])
+    matches = _extract(SAMPLE_SCROLLBACK, [BUILTIN_WEB_PATTERN, TICKET_PATTERN, CHAT_PATTERN, SHORTLINK_PATTERN])
     labels = [m.label for m in matches]
-    assert "url" in labels
+    assert "web" in labels
     assert "ticket" in labels
     assert "chat channel" in labels
     assert "shortlink" in labels
 
 
-def test_fmt_fixed_width_label():
+def test_fmt_label_and_display_present():
     line = _fmt("ticket", "DOC-00001A2B3C4D5E6F7")
+    assert "ticket" in line
     assert "DOC-00001A2B3C4D5E6F7" in line
-    assert len(line.split("]")[0]) == 17  # "[" + 16 chars padded
+
+
+def test_fmt_label_padded_to_width():
+    label_width = 12
+    line = _fmt("web", "https://example.com", label_width=label_width)
+    plain = re.sub(r"\033\[[0-9;]*m", "", line)
+    assert plain[:label_width] == f"{'web':>{label_width}}"
+    assert "https://example.com" in plain
 
 
 def test_load_patterns_missing_file():
@@ -238,6 +260,6 @@ def test_pick_fzf_input_tab_separated():
     mock_run = _invoke_pick("https://en.wikipedia.org/wiki/Fzf", "darwin")
     fzf_call = next(c for c in mock_run.call_args_list if c[0][0][0] == "fzf")
     fzf_input = fzf_call[1]["input"]
-    assert "[url" in fzf_input
+    assert "web" in fzf_input
     assert "wikipedia.org" in fzf_input
     assert fzf_input.count("\t") >= 2  # display \t url \t yank_value

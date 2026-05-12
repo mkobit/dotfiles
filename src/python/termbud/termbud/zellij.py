@@ -33,9 +33,15 @@ class Match(NamedTuple):
 
 _BUILTIN_PATTERNS: list[Pattern] = [
     {
+        "label": "web",
+        "regex": r'https?://[^\s<>"\']+[^\s<>"\',.:;!?)\']',
+        "url": "{match}",
+        "prefix": "",
+    },
+    {
         "label": "url",
-        # Generic scheme:// — catches http, https, file, ftp, ssh, git, etc.
-        "regex": r'[a-zA-Z][a-zA-Z0-9+.-]*://[^\s<>"\']+[^\s<>"\',.:;!?)\']',
+        # Non-http(s) schemes: file, ftp, ssh, git, etc.
+        "regex": r'(?<!\w)(?!https?://)[a-zA-Z][a-zA-Z0-9+.-]*://[^\s<>"\']+[^\s<>"\',.:;!?)\']',
         "url": "{match}",
         "prefix": "",
     },
@@ -80,8 +86,12 @@ def _extract(text: str, patterns: list[Pattern]) -> list[Match]:
     return results
 
 
-def _fmt(label: str, display: str) -> str:
-    return f"[{label:<16}] {display}"
+_DIM_CYAN = "\033[2;36m"
+_RESET    = "\033[0m"
+
+
+def _fmt(label: str, display: str, label_width: int = 4) -> str:
+    return f"{_DIM_CYAN}{label:>{label_width}}{_RESET}  {display}"
 
 
 def _platform_cmds() -> tuple[str, str]:
@@ -126,9 +136,10 @@ def pick(
         print("termbud: no patterns found", file=sys.stderr)
         sys.exit(0)
 
+    label_width = max(len(m.label) for m in matches)
     # Each fzf line: "display\turl\tyank_value" — fzf shows col 1, binds act on cols 2/3.
     lines = "\n".join(
-        _fmt(m.label, m.prefix + m.value)
+        _fmt(m.label, m.prefix + m.value, label_width)
         + f"\t{m.url_template.replace('{match}', m.value)}"
         + f"\t{m.prefix + m.value}"
         for m in matches
