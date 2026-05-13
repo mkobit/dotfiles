@@ -6,6 +6,8 @@ import pytest
 @pytest.mark.parametrize("binary", ["fzf", "rg", "eza", "bat", "zoxide", "btop"])
 def test_cli_tool_available(host, binary, shell_cmd):
     """Verify each CLI binary is on PATH in bash and zsh."""
+    if binary == "btop" and host.system_info.type == "darwin":
+        pytest.skip("btop is not managed via chezmoi on macOS (no static binary available from upstream)")
     result = host.run(f"{shell_cmd} 'command -v {binary}'")
     assert result.rc == 0, f"'{binary}' not found via {shell_cmd!r}.\nstderr: {result.stderr}"
 
