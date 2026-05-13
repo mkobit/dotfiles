@@ -3,7 +3,7 @@ import pytest
 
 @pytest.mark.integration
 @pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
-@pytest.mark.parametrize("binary", ["fzf", "rg", "eza", "bat", "zoxide"])
+@pytest.mark.parametrize("binary", ["fzf", "rg", "eza", "bat", "zoxide", "btop"])
 def test_cli_tool_available(host, binary, shell_cmd):
     """Verify each CLI binary is on PATH in bash and zsh."""
     result = host.run(f"{shell_cmd} 'command -v {binary}'")
