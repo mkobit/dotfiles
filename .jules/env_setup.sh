@@ -43,10 +43,12 @@ else
 fi
 
 echo "Applying chezmoi..."
-chezmoi apply -v --source="$(pwd)/src/chezmoi" --destination="$HOME"
+chezmoi apply -v
 
 # Step 2: Install python dependencies
 echo "Installing python dependencies..."
-~/.local/bin/mise exec -- uv sync --all-packages --frozen
+export PATH="$HOME/.local/bin:$PATH"
+eval "$(mise activate bash)"
+uv sync --all-packages --frozen
 
 echo "Environment ready"
