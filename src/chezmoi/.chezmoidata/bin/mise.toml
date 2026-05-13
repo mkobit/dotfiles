@@ -1,5 +1,5 @@
 [mise]
-version             = "v2026.4.22"
+version             = "v2026.5.6"
 installation_method = "chezmoi_external"
 repo                = "jdx/mise"
 external_type       = "file"
@@ -17,10 +17,10 @@ linux_amd64  = "linux-x64"
 linux_arm64  = "linux-arm64"
 
 [mise.checksums]
-darwin_arm64 = "b0646b36130f054a9dcaf6e97a17d83e562c56dbf4d8ca0c7c09cef2065a33bf"
-darwin_amd64 = "b634d88e5a9f869fe54926c8fbcfee90d57741d7bc82731b19cb9c0a8741b6a0"
-linux_amd64  = "42539398d0ac4a8a0486ded967dfd0e6d9527b268a2c37bad4edd0c446666509"
-linux_arm64  = "1b85cffe789d131e47aba05e6c208802572e456afba814d7d081278e812095ff"
+darwin_arm64 = "35d100e053df088d8845899e44db5707226f289b66ac1b3b6e8375396e1958d6"
+darwin_amd64 = "f9079283dca3ad136ae4f15de4eecbb927ab6883e2512da6e028cf587e0fa547"
+linux_amd64  = "7fb48f37ae029b515b7d81efd86a5bbfbad2567964eb43660d84ab8424927729"
+linux_arm64  = "219486ed1b3b9e5d02ad979e471fa72272fc03fff4417cc48ed92fb1ba914f9d"
 
 [mise.settings]
 # Configuration settings: https://mise.jdx.dev/configuration/settings.html
