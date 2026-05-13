@@ -19,20 +19,7 @@ echo "------------------------------"
 
 export MISE_DEBUG=1
 
-# Step 1: Install mise and repo tools.
-# Root mise.toml + mise.lock are self-consistent (uv only), so locking works here.
-if ! command -v mise &>/dev/null; then
-    echo "Installing mise..."
-    curl -s https://mise.run | MISE_VERSION="v2026.4.9" /usr/bin/env bash
-    export PATH="$HOME/.local/bin:$PATH"
-fi
-
-mise trust
-mise install
-eval "$(mise activate bash)"
-mise doctor
-
-# Step 2: Install chezmoi matching CI version, then apply it.
+# Step 1: Install chezmoi matching CI version, then apply it.
 # This writes the global mise config (dot_config/mise/) to $HOME, which is required
 # before global tools can be installed with the correct lockfile.
 CHEZMOI_CI_VERSION=$(grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' .github/workflows/ci.yml | head -n 1)
@@ -56,10 +43,13 @@ else
 fi
 
 echo "Applying chezmoi..."
-chezmoi apply --source="$(pwd)/src/chezmoi" --destination="$HOME" --exclude=scripts
+chezmoi apply -v
 
-# Step 3: Install python dependencies
+# Step 2: Install python dependencies
 echo "Installing python dependencies..."
+export PATH="$HOME/.local/bin:$PATH"
+eval "$(mise activate bash --shims)"
+eval "$(mise activate bash)"
 uv sync --all-packages --frozen
 
 echo "Environment ready"
