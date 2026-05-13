@@ -1,5 +1,5 @@
 [zellij]
-version             = "v0.44.1"
+version             = "v0.44.3"
 installation_method = "chezmoi_external"
 repo                = "zellij-org/zellij"
 external_type       = "archive-file"
@@ -18,10 +18,10 @@ linux_amd64  = "x86_64-unknown-linux-musl"
 linux_arm64  = "aarch64-unknown-linux-musl"
 
 [zellij.checksums]
-darwin_arm64 = "544c19a9353f0ecc52877ef1e80b1c1dcbf8f258b4817077f9520099c12cc30c"
-darwin_amd64 = "590071e02f7733d25201ec9a97c5bd661ac7da3cbdf2ae52a11685b36654b7dc"
-linux_amd64  = "669825021d529fca5d939888263c9d2a90762145191fa07581a15250e8af2b49"
-linux_arm64  = "6f028bb569d29be968c961249c5f80d5336ad4ad4b3cd79af8e32afab57b0948"
+darwin_arm64 = "99700a8c0afcf58f05651ccf543f9a84101dd2ea222c8e1cb06b57689425d693"
+darwin_amd64 = "42dca16e7c852dd9c45485bb73457e090463b41ba8fade272b779ac33d54e642"
+linux_amd64  = "397481870c4fc3bae646cd7613cde3a1cebdc204558a6cb9a7c603d4c852fc90"
+linux_arm64  = "439ed44da5df3cd70e578dc4aef5a67dc7b81eabdddec27969d84a6be380b2f0"
 
 [zellij.config]
 scrollback_lines_to_serialize = 75000
