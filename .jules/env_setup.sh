@@ -48,7 +48,8 @@ chezmoi apply -v
 # Step 2: Install python dependencies
 echo "Installing python dependencies..."
 export PATH="$HOME/.local/bin:$PATH"
-export PATH="$HOME/.local/share/mise/shims:$PATH"
+eval "$(mise activate bash --shims)"
+eval "$(mise activate bash)"
 uv sync --all-packages --frozen
 
 echo "Environment ready"
