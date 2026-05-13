@@ -7,7 +7,7 @@ executable          = true
 checksum_type       = "sha256"
 tag_format          = "v{version}"
 filename_format     = "btop-{target}.tar.gz"
-path_format         = "btop/bin/btop"
+path_format         = "./btop/bin/btop"
 url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
 [btop.platforms]
