@@ -1,0 +1,93 @@
+{{- $method := dig "packages" "ollama" "installation_method" .chezmoi.os "none" . -}}
+{{- if eq $method "dotfiles.script" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
+
+{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) }}
+
+CMD_EXE="/mnt/c/Windows/System32/cmd.exe"
+POWERSHELL_EXE="/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"
+
+WIN_PROFILE=$("${CMD_EXE}" /c "echo %USERPROFILE%" 2>/dev/null | tr -d '\r\n')
+if [[ -z "${WIN_PROFILE}" ]]; then
+    log_error "Could not determine Windows user profile path"
+    exit 1
+fi
+WIN_PROFILE_UNIX=$(wslpath -u "${WIN_PROFILE}")
+
+WIN_TEMP=$("${CMD_EXE}" /c "echo %TEMP%" 2>/dev/null | tr -d '\r\n')
+WIN_TEMP_UNIX=$(wslpath -u "${WIN_TEMP}")
+
+# --- Install Ollama ---
+WIN_OLLAMA_EXE="${WIN_PROFILE_UNIX}/AppData/Local/Programs/Ollama/ollama.exe"
+if [[ -f "${WIN_OLLAMA_EXE}" ]] || check_command ollama.exe; then
+    log_success "Ollama already installed on Windows host"
+else
+    log_info "Downloading OllamaSetup.exe..."
+    INSTALLER="${WIN_TEMP_UNIX}/OllamaSetup.exe"
+    curl -fsSL -o "${INSTALLER}" https://ollama.com/download/OllamaSetup.exe
+    WIN_INSTALLER=$(wslpath -w "${INSTALLER}")
+
+    # Verify Authenticode signature before handing to UAC — a tampered binary won't have a valid chain
+    log_info "Verifying Authenticode signature..."
+    SIG_STATUS=$("${POWERSHELL_EXE}" -NoProfile -Command \
+        "(Get-AuthenticodeSignature '${WIN_INSTALLER}').Status" \
+        2>/dev/null | tr -d '\r\n')
+    if [[ "${SIG_STATUS}" != "Valid" ]]; then
+        rm -f "${INSTALLER}"
+        log_error "OllamaSetup.exe signature check failed (status: ${SIG_STATUS})"
+        exit 1
+    fi
+    log_success "Signature valid"
+
+    log_info "Running OllamaSetup.exe (UAC prompt may appear)..."
+    "${CMD_EXE}" /c "start /wait \"\" \"${WIN_INSTALLER}\""
+    rm -f "${INSTALLER}"
+    log_success "Ollama installed on Windows host"
+fi
+
+# --- Enable mirrored networking in .wslconfig ---
+# PowerShell edits the file directly — handles CRLF natively, no temp file needed.
+WSLCONFIG="${WIN_PROFILE_UNIX}/.wslconfig"
+if grep -q "networkingMode" "${WSLCONFIG}" 2>/dev/null; then
+    log_info ".wslconfig already has networkingMode configured"
+else
+    "${POWERSHELL_EXE}" -NoProfile -Command '
+        $path = "$env:USERPROFILE\.wslconfig"
+        $content = if (Test-Path $path) { Get-Content $path -Raw } else { "" }
+        if ($content -match "(?m)^\[wsl2\]") {
+            $content = $content -replace "(?m)^\[wsl2\]", "[wsl2]`r`nnetworkingMode=mirrored"
+        } else {
+            $content += "[wsl2]`r`nnetworkingMode=mirrored"
+        }
+        Set-Content $path $content -NoNewline
+    ' || { log_error "Failed to update .wslconfig"; exit 1; }
+    log_success "networkingMode=mirrored added to .wslconfig"
+fi
+
+# --- Add scoped Hyper-V firewall rule for Ollama (port 11434 only) ---
+# Check without elevation first — avoids a UAC prompt on repeat runs.
+RULE_EXISTS=$("${POWERSHELL_EXE}" -NoProfile -Command \
+    'if (Get-NetFirewallHyperVRule -Name "Ollama (WSL)" -ErrorAction SilentlyContinue) { "true" } else { "false" }' \
+    2>/dev/null | tr -d '\r\n' | tr '[:upper:]' '[:lower:]') || RULE_EXISTS="false"
+
+if [[ "${RULE_EXISTS}" == "true" ]]; then
+    log_success "Hyper-V firewall rule for Ollama already exists"
+else
+    log_info "Adding Hyper-V firewall rule for port 11434 — UAC prompt will appear..."
+    # Encode as UTF-16LE base64 so the command passes cleanly through two PowerShell layers
+    # without quoting issues or a temp file.
+    FW_ENCODED=$(printf '%s' \
+        'New-NetFirewallHyperVRule -Name "Ollama (WSL)" -DisplayName "Ollama (WSL)" -Direction Inbound -VMCreatorId "{40E0AC32-46A5-438A-A0B2-2B479E8F2E90}" -Protocol TCP -LocalPorts 11434' \
+        | iconv -t utf-16le | base64 -w 0)
+    "${POWERSHELL_EXE}" -NoProfile -Command \
+        "Start-Process powershell.exe -Verb RunAs -Wait -ArgumentList '-NoProfile', '-EncodedCommand', '${FW_ENCODED}'"
+    log_success "Hyper-V firewall rule added for port 11434"
+fi
+
+log_info "Restart WSL for networking changes to take effect: run 'wsl --shutdown' from Windows PowerShell, then reopen this terminal"
+{{- end }}
+{{- end -}}
