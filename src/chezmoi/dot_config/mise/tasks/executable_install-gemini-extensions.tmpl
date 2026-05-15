@@ -19,6 +19,7 @@ fi
 
 echo "Installing Gemini CLI extensions..."
 
+{{- if hasKey .gemini "extensions" }}
 {{- range $name, $ext := .gemini.extensions }}
 {{-   if eq $ext.installation_method "gemini-cli" }}
 echo "Uninstalling {{ $name }} (to ensure clean update)..."
@@ -28,6 +29,8 @@ echo "Installing {{ $name }} from {{ $ext.url }} ({{ $ext.ref }})..."
 # We pipe 'yes' to handle any manual consent prompts during non-interactive sessions
 yes | "${RUN_CMD[@]}" extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}" --consent || true
 {{-   end }}
+{{- end }}
+
 {{- end }}
 
 echo "Gemini extensions installation complete."

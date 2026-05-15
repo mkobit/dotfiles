@@ -34,10 +34,6 @@ sandbox_allowed_paths = ["~/"]
 
 [gemini.extensions]
 
-  [gemini.extensions.conductor]
-  url = "https://github.com/gemini-cli-extensions/conductor"
-  ref = "conductor-v0.4.1"
-  installation_method = "gemini-cli"
 
 [gemini.context]
 include_directories = ["~/.config/gh"]
