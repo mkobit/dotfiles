@@ -43,7 +43,7 @@ else
 fi
 
 echo "Applying chezmoi..."
-chezmoi apply -v
+chezmoi apply --source="$(pwd)" -v
 
 # Step 2: Install python dependencies
 echo "Installing python dependencies..."
