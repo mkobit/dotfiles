@@ -28,6 +28,7 @@ cache_prune_age = "60 days"
 disable_hints   = ["self_update"]
 http_retries    = 5
 install_before  = "7d"
+log_level     = "warn"
 [mise.settings.npm]
 package_manager = "bun"
 
