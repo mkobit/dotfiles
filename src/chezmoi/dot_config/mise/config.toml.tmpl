@@ -22,10 +22,10 @@ min_version = "2026.5.6"
   {{- end -}}
 {{- end -}}
 
-{{- if $tools -}}
+{{- if $tools }}
 {{ dict "tools" $tools | toToml }}
 {{- end -}}
 
-{{- if $settings -}}
+{{- if $settings }}
 {{ dict "settings" $settings | toToml }}
 {{- end -}}
