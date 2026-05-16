@@ -1,4 +1,4 @@
-min_version = "2026.5.6"
+min_version = {{ .mise.min_version | quote }}
 
 {{ /* Build enabled tools map - only include tools with installation_method = "mise" */ -}}
 {{- $tools := dict -}}
