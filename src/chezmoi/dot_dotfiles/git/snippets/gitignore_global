@@ -6,3 +6,4 @@
 *~
 /bazel-*
 .scratch/
+mise.local.toml
