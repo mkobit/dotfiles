@@ -1,3 +1,4 @@
+import atexit
 import os
 import re
 import shlex
@@ -13,6 +14,7 @@ import typer
 app = typer.Typer(help="Zellij subcommands")
 
 _URL_PATTERN = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+")
+_ANSI_ESCAPE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
 class Pattern(TypedDict):
@@ -46,8 +48,9 @@ _BUILTIN_PATTERNS: list[Pattern] = [
     {
         "label": "path",
         # Absolute and home-relative paths. Negative lookbehind avoids matching
-        # paths that are already part of a scheme:// URL.
-        "regex": r'(?<![/:\w])((?:~|\.{1,2})?/[^\s<>"\',:;`|&\\]+)',
+        # paths that are already part of a scheme:// URL. Trailing bracket/punct
+        # chars are excluded via the final character class.
+        "regex": r'(?<![/:\w])((?:~|\.{1,2})?/[^\s<>"\',:;`|&\\]*[^\s<>"\',:;`|&\\()[\]{}.!?,])',
         "url": "{match}",
         "prefix": "",
     },
@@ -72,12 +75,20 @@ def _load_patterns(path: Path | None = None) -> list[Pattern]:
     ]
 
 
+def _default_patterns_file() -> Path:
+    xdg = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+    return Path(xdg) / "termbud" / "patterns.toml"
+
+
 def _extract(text: str, patterns: list[Pattern]) -> list[Match]:
+    text = _ANSI_ESCAPE.sub("", text)
     seen: set[tuple[str, str]] = set()
     results: list[Match] = []
     for p in patterns:
         for m in re.finditer(p["regex"], text, re.MULTILINE):
-            val = m.group(1) if m.lastindex else m.group(0)
+            val = (m.group(1) if m.lastindex else m.group(0)).strip()
+            if not val:
+                continue
             if (p["label"], val) not in seen:
                 seen.add((p["label"], val))
                 results.append(Match(p["label"], val, p["url"], p["prefix"]))
@@ -106,13 +117,43 @@ def _editor_cmd() -> str:
     return os.environ.get("VISUAL") or os.environ.get("EDITOR") or "nvim"
 
 
+def _fzf_args(open_cmd: str, copy_cmd: str, editor: str) -> list[str]:
+    return [
+        "fzf",
+        "--ansi",
+        "--prompt", "pick> ",
+        "--header", f"enter: insert  ctrl-o: open  ctrl-y: yank  ctrl-e: open in {editor}  esc: quit",
+        "--delimiter", "\t",
+        "--with-nth", "1",
+        f"--bind=ctrl-o:execute-silent({open_cmd} {{2}})+clear-query",
+        f"--bind=ctrl-y:execute-silent(printf '%s' {{3}} | {copy_cmd})",
+        f"--bind=ctrl-e:execute({editor} {{3}})+abort",
+        "--no-multi",
+        "--layout", "reverse",
+    ]
+
+
+def _format_lines(matches: list[Match]) -> str:
+    label_width = max(len(m.label) for m in matches)
+    return "\n".join(
+        _fmt(m.label, m.prefix + m.value, label_width)
+        + f"\t{m.url_template.replace('{match}', m.value)}"
+        + f"\t{m.prefix + m.value}"
+        for m in matches
+    )
+
+
+def _zellij(*args: str) -> None:
+    subprocess.run(["zellij", "action", *args], capture_output=True)
+
+
 @app.command("pick")
 def pick(
     patterns_file: Path | None = typer.Option(
         None,
         "--patterns-file",
         "-p",
-        help="Patterns TOML file (default: ~/.config/termbud/patterns.toml)",
+        help="Patterns TOML file (default: $XDG_CONFIG_HOME/termbud/patterns.toml)",
     ),
     open_cmd: str | None = typer.Option(None, "--open-cmd", help="Command to open URLs"),
 ) -> None:
@@ -127,121 +168,75 @@ def pick(
 
     text = sys.stdin.read()
 
-    patterns = _BUILTIN_PATTERNS + _load_patterns(patterns_file)
+    patterns = _BUILTIN_PATTERNS + _load_patterns(patterns_file or _default_patterns_file())
     matches = _extract(text, patterns)
 
     if not matches:
         print("termbud: no patterns found", file=sys.stderr)
         sys.exit(0)
 
-    label_width = max(len(m.label) for m in matches)
-    # Each fzf line: "display\turl\tyank_value" — fzf shows col 1, binds act on cols 2/3.
-    lines = "\n".join(
-        _fmt(m.label, m.prefix + m.value, label_width)
-        + f"\t{m.url_template.replace('{match}', m.value)}"
-        + f"\t{m.prefix + m.value}"
-        for m in matches
-    )
-
     subprocess.run(
-        [
-            "fzf",
-            "--ansi",
-            "--prompt", "pick> ",
-            "--header", f"enter: insert  ctrl-o: open  ctrl-y: yank  ctrl-e: {editor}  esc: quit",
-            "--delimiter", "\t",
-            "--with-nth", "1",
-            # enter: fzf default — prints tab-separated line to stdout, wrapper handles write-chars
-            f"--bind=ctrl-o:execute-silent({open_cmd} {{2}})+clear-query",
-            f"--bind=ctrl-y:execute-silent(printf '%s' {{3}} | {copy_cmd})",
-            f"--bind=ctrl-e:execute({editor} {{3}})+abort",
-            "--no-multi",
-            "--layout", "reverse",
-        ],
-        input=lines,
+        _fzf_args(open_cmd, copy_cmd, editor),
+        input=_format_lines(matches),
         text=True,
     )
 
 
-@app.command("open-url")
-def open_url(
-    open_cmd: str | None = typer.Option(
+@app.command("open")
+def open_picker(
+    patterns_file: Path | None = typer.Option(
         None,
-        "--open-cmd",
-        help="Command to use to open the URL. Defaults to guessing based on OS.",
+        "--patterns-file",
+        "-p",
+        help="Patterns TOML file (default: $XDG_CONFIG_HOME/termbud/patterns.toml)",
     ),
+    open_cmd: str | None = typer.Option(None, "--open-cmd", help="Command to open URLs"),
 ) -> None:
-    """Open a URL from the current Zellij pane's scrollback."""
-    import tempfile
+    """Open the scrollback picker from a Zellij floating pane."""
+    if "ZELLIJ" not in os.environ:
+        print("termbud: must be run inside a Zellij session", file=sys.stderr)
+        raise typer.Exit(1)
 
-    with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".txt") as temp_file:
-        temp_file_path = temp_file.name
-
-    try:
-        subprocess.run(
-            ["zellij", "action", "dump-screen", temp_file_path],
-            check=True,
-        )
-        with open(temp_file_path, encoding="utf-8") as f:
-            scrollback = f.read()
-    except subprocess.CalledProcessError:
-        print("Failed to capture Zellij pane", file=sys.stderr)
-        os.remove(temp_file_path)
-        sys.exit(1)
-    except FileNotFoundError:
-        print("Zellij command not found. Are you running inside Zellij?", file=sys.stderr)
-        os.remove(temp_file_path)
-        sys.exit(1)
-    finally:
-        if os.path.exists(temp_file_path):
-            os.remove(temp_file_path)
-
-    urls = _URL_PATTERN.findall(scrollback)
-
-    if not urls:
-        print("No URLs found.", file=sys.stderr)
-        sys.exit(0)
-
-    ordered_urls = list(dict.fromkeys(reversed(urls)))
-
-    with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".txt") as urls_file:
-        urls_file.write("\n".join(ordered_urls))
-        urls_file_name = urls_file.name
+    floating_pane_id = os.environ["ZELLIJ_PANE_ID"]
 
     default_open, copy_cmd = _platform_cmds()
     open_cmd = open_cmd or default_open
+    editor = _editor_cmd()
 
-    fzf_env = os.environ.copy()
-    fzf_env["FZF_DEFAULT_COMMAND"] = f"cat {shlex.quote(urls_file_name)}"
+    atexit.register(lambda: _zellij("switch-mode", "normal"))
+    _zellij("switch-mode", "locked")
 
-    try:
-        try:
-            result = subprocess.run(
-                ["fzf", "--prompt=Open URL: ", "--expect=enter,ctrl-c"],
-                env=fzf_env,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
-        finally:
-            if os.path.exists(urls_file_name):
-                os.remove(urls_file_name)
+    source_pane_id: str | None = None
+    scrollback = ""
+    for pane_id in range(int(floating_pane_id) - 1, 0, -1):
+        out = subprocess.run(
+            ["zellij", "action", "dump-screen", "--full", "-p", str(pane_id)],
+            capture_output=True,
+            text=True,
+        ).stdout
+        if out.strip():
+            source_pane_id = str(pane_id)
+            scrollback = out
+            break
 
-        if not result.stdout:
-            sys.exit(0)
+    if not source_pane_id:
+        raise typer.Exit(0)
 
-        lines = result.stdout.splitlines()
-        if len(lines) < 2:
-            sys.exit(0)
+    patterns = _BUILTIN_PATTERNS + _load_patterns(patterns_file or _default_patterns_file())
+    matches = _extract(scrollback, patterns)
 
-        key_pressed = lines[0]
-        url = lines[1]
+    if not matches:
+        raise typer.Exit(0)
 
-        if key_pressed == "enter":
-            subprocess.run([*shlex.split(open_cmd), url], check=False)
-        elif key_pressed == "ctrl-c":
-            subprocess.run(shlex.split(copy_cmd), input=url, text=True, check=False)
+    result = subprocess.run(
+        _fzf_args(open_cmd, copy_cmd, editor),
+        input=_format_lines(matches),
+        text=True,
+        stdout=subprocess.PIPE,
+    )
 
-    except OSError:
-        print("Failed to execute fzf", file=sys.stderr)
-        sys.exit(1)
+    if result.stdout:
+        parts = result.stdout.strip().split("\t")
+        yank = parts[2] if len(parts) >= 3 else ""
+        if yank:
+            _zellij("write-chars", "--pane-id", source_pane_id, yank)

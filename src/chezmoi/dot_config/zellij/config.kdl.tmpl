@@ -1,24 +1,42 @@
-// Keybind overrides only — zellij built-in defaults are preserved.
-// Tmux mode is disabled by unbinding Ctrl b everywhere it would activate.
+{{- /*
+  All keybinds live in a single top-level keybinds block.
+  Zellij does not merge multiple top-level keybinds blocks — only the first is used.
+  The shared_except block (tmux unbind) is always emitted; overlay modes are appended
+  inside the same block via data injection.
+
+  Data path: zellij.modes.<mode>.keybinds
+    Keys:   unique bind identifiers (merge key only, not emitted)
+    Values: raw KDL bind statement, or empty string to suppress a bind from an inner layer
+  clear_defaults = true on a mode emits a separate "keybinds clear-defaults=true" block
+  (must be separate since clear-defaults applies to the whole block).
+  Custom modes unsupported until: https://github.com/zellij-org/zellij/issues/248
+*/ -}}
+{{- $normalModes := dict -}}
+{{- range $mode, $modeData := (dig "zellij" "modes" (dict) .) -}}
+{{-   if and (dig "keybinds" (dict) $modeData) (not (dig "clear_defaults" false $modeData)) -}}
+{{-     $_ := set $normalModes $mode $modeData -}}
+{{-   end -}}
+{{- end -}}
+// Keybind overrides — zellij built-in defaults are preserved.
 // https://zellij.dev/documentation/keybindings
 keybinds {
     shared_except "locked" "scroll" "search" "tmux" {
         unbind "Ctrl b"
     }
+{{- range $mode, $modeData := $normalModes }}
+    {{ $mode }} {
+{{-     range $_, $line := dig "keybinds" (dict) $modeData }}
+{{-       if $line }}
+        {{ $line }}
+{{-       end }}
+{{-     end }}
+    }
+{{- end }}
 }
-{{- /*
-  Emit one keybinds block per mode that has entries.
-  Data path: zellij.modes.<mode>.keybinds
-    Keys:   unique bind identifiers (e.g. alt-a) — only for map merge uniqueness
-    Values: raw KDL bind line, or empty string to suppress a bind from an inner layer
-  clear_defaults = true on a mode emits "keybinds clear-defaults=true" for that block.
-  Custom modes unsupported until: https://github.com/zellij-org/zellij/issues/248
-*/ -}}
 {{- range $mode, $modeData := (dig "zellij" "modes" (dict) .) }}
 {{-   $keybinds := dig "keybinds" (dict) $modeData }}
-{{-   $clear    := dig "clear_defaults" false $modeData }}
-{{-   if $keybinds }}
-keybinds{{ if $clear }} clear-defaults=true{{ end }} {
+{{-   if and $keybinds (dig "clear_defaults" false $modeData) }}
+keybinds clear-defaults=true {
     {{ $mode }} {
 {{-     range $_, $line := $keybinds }}
 {{-       if $line }}
