@@ -35,7 +35,7 @@ package_manager = "bun"
 [mise.global_tools]
 
   [mise.global_tools.python]
-  version             = "3.14"
+  version             = "3.14.4"
   installation_method = "mise"
 
   [mise.global_tools.pnpm]
@@ -43,7 +43,7 @@ package_manager = "bun"
   installation_method = "mise"
 
   [mise.global_tools.java]
-  version             = "temurin-21.0.2+13"
+  version             = "temurin-21.0.2+13.0.LTS"
   installation_method = "mise"
 
   [mise.global_tools.rust]
@@ -59,7 +59,7 @@ package_manager = "bun"
   installation_method = "mise"
 
   [mise.global_tools.node]
-  version             = "22"
+  version             = "22.14.0"
   installation_method = "mise"
 
   [mise.global_tools.gemini-cli]
