@@ -19,6 +19,7 @@ env:
   DEBIAN_FRONTEND: noninteractive
   UV_CACHE_DIR: /tmp/.uv-cache
   MISE_CACHE_DIR: /tmp/.mise-cache
+  CHEZMOI_VERSION: v2.70.3
 
 defaults:
   run:
@@ -121,7 +122,7 @@ jobs:
 
       - name: Install chezmoi
         run: |
-          sh -c "$(curl --retry 5 -fsLS get.chezmoi.io)" -- -b ~/.local/bin -t v2.70.3
+          sh -c "$(curl --retry 5 -fsLS get.chezmoi.io)" -- -b ~/.local/bin -t ${{ env.CHEZMOI_VERSION }}
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Initialize chezmoi
