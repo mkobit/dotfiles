@@ -23,7 +23,7 @@ log_info "Trusting global mise config: {{ .chezmoi.destDir }}/.config/mise/confi
 log_success "Global mise config trusted: {{ .chezmoi.destDir }}/.config/mise/config.toml"
 
 log_info "Installing global mise tools in {{ .chezmoi.destDir }}..."
-if MISE_INSTALL_BEFORE=0d "$MISE" install -C "{{ .chezmoi.destDir }}"; then
+if MISE_INSTALL_BEFORE=0d MISE_LOCKED=1 "$MISE" install -C "{{ .chezmoi.destDir }}"; then
     log_success "Global mise tools installed in {{ .chezmoi.destDir }}."
 else
     log_error "Failed to install global mise tools in {{ .chezmoi.destDir }}."
