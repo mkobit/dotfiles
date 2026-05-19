@@ -22,7 +22,7 @@ export MISE_DEBUG=1
 # Step 1: Install chezmoi matching CI version, then apply it.
 # This writes the global mise config (dot_config/mise/) to $HOME, which is required
 # before global tools can be installed with the correct lockfile.
-CHEZMOI_CI_VERSION=$(grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' .github/workflows/ci.yml | head -n 1)
+CHEZMOI_CI_VERSION=$(grep 'CHEZMOI_VERSION:' .github/workflows/ci.yml | awk '{print $2}' | tr -d '"' | tr -d "'")
 
 install_chezmoi() {
     echo "Installing chezmoi ${CHEZMOI_CI_VERSION}..."
