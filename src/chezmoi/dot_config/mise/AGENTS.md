@@ -15,7 +15,8 @@
 
 `mise.lock` in this directory is the global lockfile managed by chezmoi.
 It pins checksums for all global tools across all platforms.
-Locking is enforced by the presence of this file — no `locked = true` setting is required.
+Locking is **enforced during deployment** via `MISE_LOCKED=1` in the `run_after_onchange_06_trust-install-global-mise-tools.sh.tmpl` script.
+However, the deployed `config.toml` defaults to `locked = false` to ensure that local projects are not forced to use lockfiles by default.
 
 ### Updating tools and relocking
 
