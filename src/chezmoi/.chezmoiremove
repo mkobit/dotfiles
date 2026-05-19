@@ -19,6 +19,10 @@ install-asdf.sh
 .local/bin/claude_statusline.py
 .local/bin/test_claude_statusline.py
 
+# Do not lock global versions (reduces maintenance friction)
+# We rely on pinned versions in .chezmoidata/bin/mise.toml instead
+.config/mise/mise.lock
+
 # Old hello_world example
 .local/bin/tools/hello_world
 
