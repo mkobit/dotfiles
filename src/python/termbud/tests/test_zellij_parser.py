@@ -8,10 +8,8 @@ from termbud.main import app
 
 runner = CliRunner()
 
-ZELLIJ_ENV = {"ZELLIJ": "0", "ZELLIJ_PANE_ID": "5", "ZELLIJ_SESSION_NAME": "test"}
-WORKER_ENV = {**ZELLIJ_ENV, "ZELLIJ_PANE_ID": "6"}
-CMD = ["zellij", "history-search"]
-WORKER_CMD = [*CMD, "--source-pane-id", "5"]
+ZELLIJ_ENV = {"ZELLIJ": "0", "ZELLIJ_PANE_ID": "6", "ZELLIJ_SESSION_NAME": "test"}
+CMD_PANE = ["zellij", "history-search", "--source-pane-id", "5"]
 
 
 @pytest.fixture
@@ -36,29 +34,7 @@ def _fzf_result(yank: str) -> MagicMock:
     return m
 
 
-# --- launcher mode ---
-
-def test_launcher_spawns_floating_pane(mock_subprocess_run):
-    runner.invoke(app, CMD, env=ZELLIJ_ENV)
-    calls = _calls_for(mock_subprocess_run, "new-pane", "--floating", "--source-pane-id", "5")
-    assert calls
-
-
-def test_launcher_passes_patterns_file(mock_subprocess_run):
-    runner.invoke(app, [*CMD, "--patterns-file", "/tmp/p.toml"], env=ZELLIJ_ENV)
-    calls = _calls_for(mock_subprocess_run, "new-pane", "--patterns-file", "/tmp/p.toml")
-    assert calls
-
-
-def test_launcher_requires_zellij_env():
-    with patch.dict("os.environ", {}, clear=True):
-        result = runner.invoke(app, CMD)
-    assert result.exit_code == 1
-
-
-# --- worker mode ---
-
-def _worker_side_effect(scrollback: str, yank: str):
+def _side_effect(scrollback: str, yank: str):
     def _run(cmd, *args, **kwargs):
         if "dump-screen" in cmd:
             return _dump_result(scrollback)
@@ -68,27 +44,29 @@ def _worker_side_effect(scrollback: str, yank: str):
     return _run
 
 
-def test_worker_dumps_source_pane(mock_subprocess_run):
-    mock_subprocess_run.side_effect = _worker_side_effect("https://example.com", "")
-    runner.invoke(app, WORKER_CMD, env=WORKER_ENV)
+# --- --source-pane-id path (dump-screen + write-chars) ---
+
+def test_dumps_source_pane(mock_subprocess_run):
+    mock_subprocess_run.side_effect = _side_effect("https://example.com", "")
+    runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
     assert _calls_for(mock_subprocess_run, "dump-screen", "-p", "5")
 
 
-def test_worker_writes_selection_back(mock_subprocess_run):
-    mock_subprocess_run.side_effect = _worker_side_effect("https://example.com", "https://example.com")
-    result = runner.invoke(app, WORKER_CMD, env=WORKER_ENV)
+def test_writes_selection_back_to_source(mock_subprocess_run):
+    mock_subprocess_run.side_effect = _side_effect("https://example.com", "https://example.com")
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
     assert result.exit_code == 0
-    assert _calls_for(mock_subprocess_run, "write-chars", "https://example.com")
+    assert _calls_for(mock_subprocess_run, "write-chars", "--pane-id", "5", "https://example.com")
 
 
-def test_worker_no_patterns_exits_silently(mock_subprocess_run):
-    mock_subprocess_run.side_effect = _worker_side_effect("nothing matchable here", "")
-    result = runner.invoke(app, WORKER_CMD, env=WORKER_ENV)
+def test_no_patterns_exits_silently(mock_subprocess_run):
+    mock_subprocess_run.side_effect = _side_effect("nothing matchable here", "")
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
     assert result.exit_code == 0
     assert not _calls_for(mock_subprocess_run, "write-chars")
 
 
-def test_worker_fzf_no_selection_no_write(mock_subprocess_run):
+def test_fzf_no_selection_no_write(mock_subprocess_run):
     def side_effect(cmd, *args, **kwargs):
         if "dump-screen" in cmd:
             return _dump_result("https://example.com")
@@ -97,13 +75,71 @@ def test_worker_fzf_no_selection_no_write(mock_subprocess_run):
         return MagicMock()
 
     mock_subprocess_run.side_effect = side_effect
-    result = runner.invoke(app, WORKER_CMD, env=WORKER_ENV)
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
     assert result.exit_code == 0
     assert not _calls_for(mock_subprocess_run, "write-chars")
 
 
-def test_worker_no_content_exits_silently(mock_subprocess_run):
-    mock_subprocess_run.side_effect = _worker_side_effect("", "")
-    result = runner.invoke(app, WORKER_CMD, env=WORKER_ENV)
+def test_no_content_exits_silently(mock_subprocess_run):
+    mock_subprocess_run.side_effect = _side_effect("", "")
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
     assert result.exit_code == 0
     assert not _calls_for(mock_subprocess_run, "write-chars")
+
+
+def test_requires_zellij_env():
+    with patch.dict("os.environ", {}, clear=True):
+        result = runner.invoke(app, CMD_PANE)
+    assert result.exit_code == 1
+
+
+# --- --from-file path (DumpScreen-based, no write-back) ---
+
+def test_from_file_reads_scrollback(mock_subprocess_run, tmp_path):
+    scrollback_file = tmp_path / "scrollback.txt"
+    scrollback_file.write_text("https://example.com")
+    mock_subprocess_run.side_effect = _side_effect("", "")
+    runner.invoke(
+        app,
+        ["zellij", "history-search", "--from-file", str(scrollback_file)],
+        env=ZELLIJ_ENV,
+    )
+    assert not _calls_for(mock_subprocess_run, "dump-screen")
+
+
+def test_from_file_no_write_back_without_pane_id(mock_subprocess_run, tmp_path):
+    scrollback_file = tmp_path / "scrollback.txt"
+    scrollback_file.write_text("https://example.com")
+
+    def side_effect(cmd, *args, **kwargs):
+        if cmd[0] == "fzf":
+            return _fzf_result("https://example.com")
+        return MagicMock()
+
+    mock_subprocess_run.side_effect = side_effect
+    result = runner.invoke(
+        app,
+        ["zellij", "history-search", "--from-file", str(scrollback_file)],
+        env=ZELLIJ_ENV,
+    )
+    assert result.exit_code == 0
+    assert not _calls_for(mock_subprocess_run, "write-chars")
+
+
+def test_from_file_no_content_exits_silently(mock_subprocess_run, tmp_path):
+    scrollback_file = tmp_path / "scrollback.txt"
+    scrollback_file.write_text("")
+    mock_subprocess_run.side_effect = _side_effect("", "")
+    result = runner.invoke(
+        app,
+        ["zellij", "history-search", "--from-file", str(scrollback_file)],
+        env=ZELLIJ_ENV,
+    )
+    assert result.exit_code == 0
+    assert not _calls_for(mock_subprocess_run, "write-chars")
+
+
+def test_requires_from_file_or_pane_id(mock_subprocess_run):
+    mock_subprocess_run.return_value = MagicMock()
+    result = runner.invoke(app, ["zellij", "history-search"], env=ZELLIJ_ENV)
+    assert result.exit_code == 1

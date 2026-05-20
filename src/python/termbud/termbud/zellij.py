@@ -147,6 +147,11 @@ def _zellij(*args: str) -> None:
 
 @app.command("history-search")
 def history_search(
+    from_file: Path | None = typer.Option(
+        None,
+        "--from-file",
+        help="Read scrollback from file (written by DumpScreen keybind action before Run)",
+    ),
     patterns_file: Path | None = typer.Option(
         None,
         "--patterns-file",
@@ -156,34 +161,24 @@ def history_search(
     open_cmd: str | None = typer.Option(None, "--open-cmd", help="Command to open URLs"),
     source_pane_id: str | None = typer.Option(None, "--source-pane-id", hidden=True),
 ) -> None:
-    """Scrollback pattern picker — manages its own Zellij floating pane.
+    """Scrollback pattern picker — runs inside a Zellij floating pane.
 
-    When invoked without --source-pane-id (e.g. from a keybind), spawns a
-    floating pane running itself with --source-pane-id set to the caller's
-    pane.  The floating instance dumps scrollback, runs fzf, and writes the
-    selection back.
+    Invoke via DumpScreen keybind (config.kdl):
+
+        DumpScreen "/tmp/termbud_scrollback.txt" { full true }
+        Run "termbud" "zellij" "history-search" "--from-file" "/tmp/termbud_scrollback.txt" {
+            floating true
+            close_on_exit true
+        }
     """
     if "ZELLIJ" not in os.environ:
         print("termbud: must be run inside a Zellij session", file=sys.stderr)
         raise typer.Exit(1)
 
-    if source_pane_id is None:
-        # Launcher: record our pane ID and re-invoke self inside a floating pane.
-        cmd: list[str] = [
-            "termbud", "zellij", "history-search",
-            "--source-pane-id", os.environ["ZELLIJ_PANE_ID"],
-        ]
-        if patterns_file:
-            cmd += ["--patterns-file", str(patterns_file)]
-        if open_cmd:
-            cmd += ["--open-cmd", open_cmd]
-        subprocess.run(
-            ["zellij", "action", "new-pane", "--floating", "--close-on-exit", "--", *cmd],
-            capture_output=True,
-        )
-        return
+    if from_file is None and source_pane_id is None:
+        print("termbud: --from-file or --source-pane-id required", file=sys.stderr)
+        raise typer.Exit(1)
 
-    # Worker: we are inside the floating pane; do the actual work.
     default_open, copy_cmd = _platform_cmds()
     open_cmd = open_cmd or default_open
     editor = _editor_cmd()
@@ -191,11 +186,14 @@ def history_search(
     atexit.register(lambda: _zellij("switch-mode", "normal"))
     _zellij("switch-mode", "locked")
 
-    scrollback = subprocess.run(
-        ["zellij", "action", "dump-screen", "--full", "-p", source_pane_id],
-        capture_output=True,
-        text=True,
-    ).stdout
+    if from_file is not None:
+        scrollback = from_file.read_text()
+    else:
+        scrollback = subprocess.run(
+            ["zellij", "action", "dump-screen", "--full", "-p", source_pane_id],
+            capture_output=True,
+            text=True,
+        ).stdout
 
     if not scrollback.strip():
         raise typer.Exit(0)
@@ -216,5 +214,7 @@ def history_search(
     if result.stdout:
         parts = result.stdout.strip().split("\t")
         yank = parts[2] if len(parts) >= 3 else ""
-        if yank:
+        # Write-back requires source pane ID; blocked by Zellij #4993 (ZELLIJ_ORIGIN_PANE_ID not
+        # exposed in Run-spawned panes) and #4136 (focus-previous-pane broken in floating panes).
+        if yank and source_pane_id:
             _zellij("write-chars", "--pane-id", source_pane_id, yank)
