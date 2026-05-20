@@ -1,7 +1,6 @@
 import atexit
 import os
 import re
-import shlex
 import shutil
 import subprocess
 import sys
@@ -13,7 +12,6 @@ import typer
 
 app = typer.Typer(help="Zellij subcommands")
 
-_URL_PATTERN = re.compile(r"[a-zA-Z][a-zA-Z0-9+.-]*://[a-zA-Z0-9_.~!*'();:@&=+$,/?%#-]+")
 _ANSI_ESCAPE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
 
@@ -147,58 +145,45 @@ def _zellij(*args: str) -> None:
     subprocess.run(["zellij", "action", *args], capture_output=True)
 
 
-@app.command("pick")
-def pick(
+@app.command("history-search")
+def history_search(
     patterns_file: Path | None = typer.Option(
         None,
         "--patterns-file",
         "-p",
-        help="Patterns TOML file (default: $XDG_CONFIG_HOME/termbud/patterns.toml)",
+        help="Extra patterns TOML file (default: $XDG_CONFIG_HOME/termbud/patterns.toml)",
     ),
     open_cmd: str | None = typer.Option(None, "--open-cmd", help="Command to open URLs"),
+    source_pane_id: str | None = typer.Option(None, "--source-pane-id", hidden=True),
 ) -> None:
-    """Pick a pattern match from stdin and open or yank it.
+    """Scrollback pattern picker — manages its own Zellij floating pane.
 
-    Reads scrollback text from stdin. Pipe from the shell wrapper:
-        zellij action dump-screen --full | termbud zellij pick
+    When invoked without --source-pane-id (e.g. from a keybind), spawns a
+    floating pane running itself with --source-pane-id set to the caller's
+    pane.  The floating instance dumps scrollback, runs fzf, and writes the
+    selection back.
     """
-    default_open, copy_cmd = _platform_cmds()
-    open_cmd = open_cmd or default_open
-    editor = _editor_cmd()
-
-    text = sys.stdin.read()
-
-    patterns = _BUILTIN_PATTERNS + _load_patterns(patterns_file or _default_patterns_file())
-    matches = _extract(text, patterns)
-
-    if not matches:
-        print("termbud: no patterns found", file=sys.stderr)
-        sys.exit(0)
-
-    subprocess.run(
-        _fzf_args(open_cmd, copy_cmd, editor),
-        input=_format_lines(matches),
-        text=True,
-    )
-
-
-@app.command("open")
-def open_picker(
-    patterns_file: Path | None = typer.Option(
-        None,
-        "--patterns-file",
-        "-p",
-        help="Patterns TOML file (default: $XDG_CONFIG_HOME/termbud/patterns.toml)",
-    ),
-    open_cmd: str | None = typer.Option(None, "--open-cmd", help="Command to open URLs"),
-) -> None:
-    """Open the scrollback picker from a Zellij floating pane."""
     if "ZELLIJ" not in os.environ:
         print("termbud: must be run inside a Zellij session", file=sys.stderr)
         raise typer.Exit(1)
 
-    floating_pane_id = os.environ["ZELLIJ_PANE_ID"]
+    if source_pane_id is None:
+        # Launcher: record our pane ID and re-invoke self inside a floating pane.
+        cmd: list[str] = [
+            "termbud", "zellij", "history-search",
+            "--source-pane-id", os.environ["ZELLIJ_PANE_ID"],
+        ]
+        if patterns_file:
+            cmd += ["--patterns-file", str(patterns_file)]
+        if open_cmd:
+            cmd += ["--open-cmd", open_cmd]
+        subprocess.run(
+            ["zellij", "action", "new-pane", "--floating", "--close-on-exit", "--", *cmd],
+            capture_output=True,
+        )
+        return
 
+    # Worker: we are inside the floating pane; do the actual work.
     default_open, copy_cmd = _platform_cmds()
     open_cmd = open_cmd or default_open
     editor = _editor_cmd()
@@ -206,20 +191,13 @@ def open_picker(
     atexit.register(lambda: _zellij("switch-mode", "normal"))
     _zellij("switch-mode", "locked")
 
-    source_pane_id: str | None = None
-    scrollback = ""
-    for pane_id in range(int(floating_pane_id) - 1, 0, -1):
-        out = subprocess.run(
-            ["zellij", "action", "dump-screen", "--full", "-p", str(pane_id)],
-            capture_output=True,
-            text=True,
-        ).stdout
-        if out.strip():
-            source_pane_id = str(pane_id)
-            scrollback = out
-            break
+    scrollback = subprocess.run(
+        ["zellij", "action", "dump-screen", "--full", "-p", source_pane_id],
+        capture_output=True,
+        text=True,
+    ).stdout
 
-    if not source_pane_id:
+    if not scrollback.strip():
         raise typer.Exit(0)
 
     patterns = _BUILTIN_PATTERNS + _load_patterns(patterns_file or _default_patterns_file())
