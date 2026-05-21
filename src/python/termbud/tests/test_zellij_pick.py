@@ -174,13 +174,13 @@ prefix = "wiki:"
 
 # --- pick command integration ---
 
-def _invoke_pick(scrollback: str, platform: str, env: dict | None = None, which=MagicMock(return_value="found")):
+def _invoke_pick(scrollback: str, platform: str, env: dict | None = None, which: MagicMock | None = None):
     with ExitStack() as s:
         mock_run = s.enter_context(patch.object(subprocess, "run", return_value=MagicMock()))
         s.enter_context(patch.object(sys, "platform", platform))
         s.enter_context(patch.object(os, "uname", return_value=MagicMock(release="6.1.0-generic")))
         s.enter_context(patch.dict(os.environ, env or {}, clear=True))
-        s.enter_context(patch.object(shutil, "which", which))
+        s.enter_context(patch.object(shutil, "which", which or MagicMock(return_value="found")))
         runner.invoke(app, ["zellij", "pick"], input=scrollback)
     return mock_run
 

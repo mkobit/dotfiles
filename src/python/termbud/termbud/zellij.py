@@ -142,7 +142,7 @@ def _format_lines(matches: list[Match]) -> str:
 
 
 def _zellij(*args: str) -> None:
-    subprocess.run(["zellij", "action", *args], capture_output=True)
+    subprocess.run(["zellij", "action", *args], capture_output=True, check=False)
 
 
 @app.command("history-search")
@@ -189,10 +189,12 @@ def history_search(
     if from_file is not None:
         scrollback = from_file.read_text()
     else:
+        assert source_pane_id is not None
         scrollback = subprocess.run(
             ["zellij", "action", "dump-screen", "--full", "-p", source_pane_id],
             capture_output=True,
             text=True,
+            check=False,
         ).stdout
 
     if not scrollback.strip():
@@ -209,6 +211,7 @@ def history_search(
         input=_format_lines(matches),
         text=True,
         stdout=subprocess.PIPE,
+        check=False,
     )
 
     if result.stdout:
