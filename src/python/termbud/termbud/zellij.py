@@ -94,7 +94,7 @@ def _extract(text: str, patterns: list[Pattern]) -> list[Match]:
 
 
 _DIM_CYAN = "\033[2;36m"
-_RESET    = "\033[0m"
+_RESET = "\033[0m"
 
 
 def _fmt(label: str, display: str, label_width: int = 4) -> str:
@@ -119,15 +119,20 @@ def _fzf_args(open_cmd: str, copy_cmd: str, editor: str) -> list[str]:
     return [
         "fzf",
         "--ansi",
-        "--prompt", "pick> ",
-        "--header", f"enter: insert  ctrl-o: open  ctrl-y: yank  ctrl-e: open in {editor}  esc: quit",
-        "--delimiter", "\t",
-        "--with-nth", "1",
+        "--prompt",
+        "pick> ",
+        "--header",
+        f"enter: insert  ctrl-o: open  ctrl-y: yank  ctrl-e: open in {editor}  esc: quit",
+        "--delimiter",
+        "\t",
+        "--with-nth",
+        "1",
         f"--bind=ctrl-o:execute-silent({open_cmd} {{2}})+clear-query",
         f"--bind=ctrl-y:execute-silent(printf '%s' {{3}} | {copy_cmd})",
         f"--bind=ctrl-e:execute({editor} {{3}})+abort",
         "--no-multi",
-        "--layout", "reverse",
+        "--layout",
+        "reverse",
     ]
 
 

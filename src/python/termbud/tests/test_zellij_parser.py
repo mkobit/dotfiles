@@ -1,4 +1,3 @@
-import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -41,10 +40,12 @@ def _side_effect(scrollback: str, yank: str):
         if cmd[0] == "fzf":
             return _fzf_result(yank)
         return MagicMock()
+
     return _run
 
 
 # --- --source-pane-id path (dump-screen + write-chars) ---
+
 
 def test_dumps_source_pane(mock_subprocess_run):
     mock_subprocess_run.side_effect = _side_effect("https://example.com", "")
@@ -94,6 +95,7 @@ def test_requires_zellij_env():
 
 
 # --- --from-file path (DumpScreen-based, no write-back) ---
+
 
 def test_from_file_reads_scrollback(mock_subprocess_run, tmp_path):
     scrollback_file = tmp_path / "scrollback.txt"

@@ -64,6 +64,7 @@ BUILTIN_PATH_PATTERN: Pattern = {
 
 # --- extraction helpers ---
 
+
 def test_extract_web_url():
     text = "visit https://en.wikipedia.org/wiki/Main_Page today"
     matches = _extract(text, [BUILTIN_WEB_PATTERN])
@@ -174,6 +175,7 @@ prefix = "wiki:"
 
 # --- pick command integration ---
 
+
 def _invoke_pick(scrollback: str, platform: str, env: dict | None = None, which: MagicMock | None = None):
     with ExitStack() as s:
         mock_run = s.enter_context(patch.object(subprocess, "run", return_value=MagicMock()))
@@ -201,8 +203,7 @@ regex = 'https://en\\.wikipedia\\.org/wiki/(\\S+)'
 url = "https://en.wikipedia.org/wiki/{match}"
 prefix = ""
 """)
-    with patch.object(subprocess, "run", return_value=MagicMock()), \
-         patch.object(sys, "platform", "darwin"):
+    with patch.object(subprocess, "run", return_value=MagicMock()), patch.object(sys, "platform", "darwin"):
         runner.invoke(
             app,
             ["zellij", "pick", "--patterns-file", str(patterns_file)],
@@ -227,7 +228,8 @@ def test_pick_binds_macos_open_and_pbcopy():
 
 def test_pick_binds_linux_wayland():
     mock_run = _invoke_pick(
-        "https://en.wikipedia.org/wiki/Wayland_(protocol)", "linux",
+        "https://en.wikipedia.org/wiki/Wayland_(protocol)",
+        "linux",
         env={"WAYLAND_DISPLAY": "wayland-0"},
     )
     args = _fzf_call_args(mock_run)
@@ -237,7 +239,8 @@ def test_pick_binds_linux_wayland():
 
 def test_pick_binds_linux_x11():
     mock_run = _invoke_pick(
-        "https://en.wikipedia.org/wiki/X_Window_System", "linux",
+        "https://en.wikipedia.org/wiki/X_Window_System",
+        "linux",
         which=MagicMock(return_value=None),
     )
     args = _fzf_call_args(mock_run)
