@@ -145,3 +145,15 @@ def test_requires_from_file_or_pane_id(mock_subprocess_run):
     mock_subprocess_run.return_value = MagicMock()
     result = runner.invoke(app, ["zellij", "history-search"], env=ZELLIJ_ENV)
     assert result.exit_code == 1
+
+
+def test_fzf_invoked_when_matches_found(mock_subprocess_run, tmp_path):
+    scrollback_file = tmp_path / "scrollback.txt"
+    scrollback_file.write_text("https://example.com")
+    mock_subprocess_run.return_value = MagicMock(stdout="")
+    runner.invoke(
+        app,
+        ["zellij", "history-search", "--from-file", str(scrollback_file)],
+        env=ZELLIJ_ENV,
+    )
+    assert _calls_for(mock_subprocess_run, "fzf")

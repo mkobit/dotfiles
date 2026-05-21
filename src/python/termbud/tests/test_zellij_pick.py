@@ -1,18 +1,21 @@
 import os
 import re
 import shutil
-import subprocess
 import sys
-from contextlib import ExitStack
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
-from typer.testing import CliRunner
-
-from termbud.main import app
-from termbud.zellij import Match, Pattern, _extract, _fmt, _load_patterns
-
-runner = CliRunner()
+from termbud.zellij import (
+    Match,
+    Pattern,
+    _editor_cmd,
+    _extract,
+    _fmt,
+    _format_lines,
+    _fzf_args,
+    _load_patterns,
+    _platform_cmds,
+)
 
 # Generic sample text — no relation to any specific org or product.
 SAMPLE_SCROLLBACK = """
@@ -173,96 +176,95 @@ prefix = "wiki:"
     assert patterns[0]["prefix"] == "wiki:"
 
 
-# --- pick command integration ---
+# --- format lines ---
 
 
-def _invoke_pick(scrollback: str, platform: str, env: dict | None = None, which: MagicMock | None = None):
-    with ExitStack() as s:
-        mock_run = s.enter_context(patch.object(subprocess, "run", return_value=MagicMock()))
-        s.enter_context(patch.object(sys, "platform", platform))
-        s.enter_context(patch.object(os, "uname", return_value=MagicMock(release="6.1.0-generic")))
-        s.enter_context(patch.dict(os.environ, env or {}, clear=True))
-        s.enter_context(patch.object(shutil, "which", which or MagicMock(return_value="found")))
-        runner.invoke(app, ["zellij", "pick"], input=scrollback)
-    return mock_run
+def test_format_lines_tab_separated():
+    matches = [Match("web", "example.com", "https://example.com", "")]
+    line = _format_lines(matches)
+    assert line.count("\t") >= 2  # display \t url \t yank_value
+    assert "web" in line
+    assert "example.com" in line
 
 
-def _fzf_call_args(mock_run) -> list[str]:
-    for c in mock_run.call_args_list:
-        if c[0][0][0] == "fzf":
-            return c[0][0]
-    return []
+def test_format_lines_url_template_expanded():
+    matches = [Match("ticket", "TICK-123", "https://issues.example.com/browse/{match}", "")]
+    line = _format_lines(matches)
+    assert "https://issues.example.com/browse/TICK-123" in line
 
 
-def test_pick_execs_fzf(tmp_path):
-    patterns_file = tmp_path / "patterns.toml"
-    patterns_file.write_text("""
-[patterns.wiki]
-label = "wikipedia"
-regex = 'https://en\\.wikipedia\\.org/wiki/(\\S+)'
-url = "https://en.wikipedia.org/wiki/{match}"
-prefix = ""
-""")
-    with patch.object(subprocess, "run", return_value=MagicMock()), patch.object(sys, "platform", "darwin"):
-        runner.invoke(
-            app,
-            ["zellij", "pick", "--patterns-file", str(patterns_file)],
-            input="see https://en.wikipedia.org/wiki/Python_(programming_language)",
-        )
+def test_format_lines_prefix_in_display_and_yank():
+    matches = [Match("shortlink", "docs/setup", "https://links.example.com/{match}", "go/")]
+    line = _format_lines(matches)
+    assert "go/docs/setup" in line
 
 
-def test_pick_no_patterns_found():
-    with patch.object(subprocess, "run", return_value=MagicMock()):
-        result = runner.invoke(app, ["zellij", "pick"], input="nothing to match here !!!")
-
-    assert result.exit_code == 0
-    assert "no patterns found" in result.stderr
+# --- platform command selection ---
 
 
-def test_pick_binds_macos_open_and_pbcopy():
-    mock_run = _invoke_pick("https://en.wikipedia.org/wiki/Zellij", "darwin")
-    args = _fzf_call_args(mock_run)
-    assert any("open {2}" in a for a in args)
-    assert any("pbcopy" in a for a in args)
+def test_platform_cmds_macos():
+    with patch.object(sys, "platform", "darwin"):
+        assert _platform_cmds() == ("open", "pbcopy")
 
 
-def test_pick_binds_linux_wayland():
-    mock_run = _invoke_pick(
-        "https://en.wikipedia.org/wiki/Wayland_(protocol)",
-        "linux",
-        env={"WAYLAND_DISPLAY": "wayland-0"},
-    )
-    args = _fzf_call_args(mock_run)
-    assert any("xdg-open {2}" in a for a in args)
-    assert any("wl-copy" in a for a in args)
+def test_platform_cmds_wsl():
+    with (
+        patch.object(sys, "platform", "linux"),
+        patch.object(os, "uname", return_value=MagicMock(release="5.15.0-microsoft-standard-WSL2")),
+    ):
+        assert _platform_cmds() == ("wslview", "clip.exe")
 
 
-def test_pick_binds_linux_x11():
-    mock_run = _invoke_pick(
-        "https://en.wikipedia.org/wiki/X_Window_System",
-        "linux",
-        which=MagicMock(return_value=None),
-    )
-    args = _fzf_call_args(mock_run)
-    assert any("xclip -selection clipboard" in a for a in args)
+def test_platform_cmds_linux_wayland():
+    with (
+        patch.object(sys, "platform", "linux"),
+        patch.object(os, "uname", return_value=MagicMock(release="6.1.0-generic")),
+        patch.dict(os.environ, {"WAYLAND_DISPLAY": "wayland-0"}),
+    ):
+        assert _platform_cmds() == ("xdg-open", "wl-copy")
 
 
-def test_pick_binds_ctrl_e_editor():
-    mock_run = _invoke_pick("https://en.wikipedia.org/wiki/Vim", "darwin", env={"EDITOR": "vim"})
-    args = _fzf_call_args(mock_run)
+def test_platform_cmds_linux_x11():
+    with (
+        patch.object(sys, "platform", "linux"),
+        patch.object(os, "uname", return_value=MagicMock(release="6.1.0-generic")),
+        patch.dict(os.environ, {"WAYLAND_DISPLAY": ""}),
+        patch.object(shutil, "which", return_value=None),
+    ):
+        assert _platform_cmds() == ("xdg-open", "xclip -selection clipboard")
+
+
+# --- editor command selection ---
+
+
+def test_editor_cmd_prefers_visual():
+    with patch.dict(os.environ, {"VISUAL": "emacs", "EDITOR": "vim"}):
+        assert _editor_cmd() == "emacs"
+
+
+def test_editor_cmd_falls_back_to_editor():
+    with patch.dict(os.environ, {"VISUAL": "", "EDITOR": "vim"}):
+        assert _editor_cmd() == "vim"
+
+
+def test_editor_cmd_defaults_to_nvim():
+    with patch.dict(os.environ, {"VISUAL": "", "EDITOR": ""}):
+        assert _editor_cmd() == "nvim"
+
+
+# --- fzf argument construction ---
+
+
+def test_fzf_args_open_bind():
+    args = _fzf_args("open", "pbcopy", "nvim")
+    assert any("ctrl-o" in a and "open {2}" in a for a in args)
+
+
+def test_fzf_args_copy_bind():
+    args = _fzf_args("open", "pbcopy", "nvim")
+    assert any("ctrl-y" in a and "pbcopy" in a for a in args)
+
+
+def test_fzf_args_editor_bind():
+    args = _fzf_args("open", "pbcopy", "vim")
     assert any("ctrl-e" in a and "vim" in a for a in args)
-
-
-def test_pick_ctrl_e_defaults_to_nvim():
-    mock_run = _invoke_pick("/etc/hosts", "darwin", env={})
-    args = _fzf_call_args(mock_run)
-    assert any("ctrl-e" in a and "nvim" in a for a in args)
-
-
-def test_pick_fzf_input_tab_separated():
-    mock_run = _invoke_pick("https://en.wikipedia.org/wiki/Fzf", "darwin")
-    fzf_call = next(c for c in mock_run.call_args_list if c[0][0][0] == "fzf")
-    fzf_input = fzf_call[1]["input"]
-    assert "web" in fzf_input
-    assert "wikipedia.org" in fzf_input
-    assert fzf_input.count("\t") >= 2  # display \t url \t yank_value

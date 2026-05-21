@@ -1,4 +1,5 @@
 import atexit
+import contextlib
 import os
 import re
 import shutil
@@ -147,7 +148,8 @@ def _format_lines(matches: list[Match]) -> str:
 
 
 def _zellij(*args: str) -> None:
-    subprocess.run(["zellij", "action", *args], capture_output=True, check=False)
+    with contextlib.suppress(OSError):
+        subprocess.run(["zellij", "action", *args], capture_output=True, check=False)
 
 
 @app.command("history-search")
