@@ -50,10 +50,6 @@ package_manager = "bun"
   version             = "1.95.0"
   installation_method = "mise"
 
-  [mise.global_tools.uv]
-  version             = "0.11.7"
-  installation_method = "mise"
-
   [mise.global_tools.bun]
   version             = "1.3.13"
   installation_method = "mise"
