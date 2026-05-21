@@ -2,6 +2,10 @@ version = 1
 revision = 3
 requires-python = ">=3.14"
 
+[options]
+exclude-newer = "2026-05-13T22:35:49.253991Z"
+exclude-newer-span = "P7D"
+
 [manifest]
 members = [
     "claude-statusline",
@@ -178,7 +182,7 @@ dev = [
 requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "rich", specifier = ">=15.0.0" },
-    { name = "typer", specifier = ">=0.25.1" },
+    { name = "typer", specifier = ">=0.15.1" },
     { name = "whenever", specifier = ">=0.9.5" },
 ]
 
@@ -521,7 +525,7 @@ dependencies = [
 requires-dist = [
     { name = "aiohttp", specifier = ">=3" },
     { name = "pydantic", specifier = ">=2" },
-    { name = "typer", specifier = ">=0.25.1" },
+    { name = "typer", specifier = ">=0.24.1" },
     { name = "whenever", specifier = ">=0.6" },
 ]
 
@@ -974,7 +978,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "typer", specifier = ">=0.25.1" }]
+requires-dist = [{ name = "typer", specifier = ">=0.12.0" }]
 
 [[package]]
 name = "termtext"
@@ -1041,7 +1045,7 @@ requires-dist = [
     { name = "faster-whisper", specifier = ">=1" },
     { name = "jinja2", specifier = ">=3" },
     { name = "tqdm", specifier = ">=4" },
-    { name = "typer", specifier = ">=0.25.1" },
+    { name = "typer", specifier = ">=0.24.2" },
 ]
 
 [[package]]

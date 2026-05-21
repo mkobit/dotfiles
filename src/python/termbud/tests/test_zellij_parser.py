@@ -1,4 +1,3 @@
-import subprocess
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -8,6 +7,9 @@ from termbud.main import app
 
 runner = CliRunner()
 
+ZELLIJ_ENV = {"ZELLIJ": "0", "ZELLIJ_PANE_ID": "6", "ZELLIJ_SESSION_NAME": "test"}
+CMD_PANE = ["zellij", "history-search", "--source-pane-id", "5"]
+
 
 @pytest.fixture
 def mock_subprocess_run():
@@ -15,183 +17,143 @@ def mock_subprocess_run():
         yield mock
 
 
-def test_zellij_open_url_success_linux(mock_subprocess_run):
-    def side_effect_run(cmd, *args, **kwargs):
-        if cmd[0] == "zellij" and cmd[1] == "action" and cmd[2] == "dump-screen":
-            file_path = cmd[3]
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write("Here is a url: https://example.com")
-            return MagicMock()
+def _calls_for(mock, *tokens) -> list:
+    return [c for c in mock.call_args_list if all(t in c.args[0] for t in tokens)]
+
+
+def _dump_result(text: str) -> MagicMock:
+    m = MagicMock()
+    m.stdout = text
+    return m
+
+
+def _fzf_result(yank: str) -> MagicMock:
+    m = MagicMock()
+    m.stdout = f"display\turl\t{yank}\n"
+    return m
+
+
+def _side_effect(scrollback: str, yank: str):
+    def _run(cmd, *args, **kwargs):
+        if "dump-screen" in cmd:
+            return _dump_result(scrollback)
         if cmd[0] == "fzf":
-            mock = MagicMock()
-            mock.stdout = "enter\nhttps://example.com\n"
-            return mock
+            return _fzf_result(yank)
         return MagicMock()
 
-    mock_subprocess_run.side_effect = side_effect_run
+    return _run
 
-    with patch("sys.platform", "linux"), patch("os.uname") as mock_uname:
-        mock_uname.return_value = MagicMock(release="5.15.0-generic")
-        result = runner.invoke(app, ["zellij", "open-url"])
 
+# --- --source-pane-id path (dump-screen + write-chars) ---
+
+
+def test_dumps_source_pane(mock_subprocess_run):
+    mock_subprocess_run.side_effect = _side_effect("https://example.com", "")
+    runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
+    assert _calls_for(mock_subprocess_run, "dump-screen", "-p", "5")
+
+
+def test_writes_selection_back_to_source(mock_subprocess_run):
+    mock_subprocess_run.side_effect = _side_effect("https://example.com", "https://example.com")
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
     assert result.exit_code == 0
-    # One for dump-screen, one for fzf, one for xdg-open
-    assert mock_subprocess_run.call_count == 3
-    # Check that xdg-open was called with the URL
-    last_call = mock_subprocess_run.call_args_list[-1]
-    assert last_call[0][0] == ["xdg-open", "https://example.com"]
+    assert _calls_for(mock_subprocess_run, "write-chars", "--pane-id", "5", "https://example.com")
 
 
-def test_zellij_open_url_success_darwin(mock_subprocess_run):
-    def side_effect_run(cmd, *args, **kwargs):
-        if cmd[0] == "zellij" and cmd[1] == "action" and cmd[2] == "dump-screen":
-            file_path = cmd[3]
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write("https://apple.com")
-            return MagicMock()
+def test_no_patterns_exits_silently(mock_subprocess_run):
+    mock_subprocess_run.side_effect = _side_effect("nothing matchable here", "")
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
+    assert result.exit_code == 0
+    assert not _calls_for(mock_subprocess_run, "write-chars")
+
+
+def test_fzf_no_selection_no_write(mock_subprocess_run):
+    def side_effect(cmd, *args, **kwargs):
+        if "dump-screen" in cmd:
+            return _dump_result("https://example.com")
         if cmd[0] == "fzf":
-            mock = MagicMock()
-            mock.stdout = "enter\nhttps://apple.com\n"
-            return mock
+            return _dump_result("")
         return MagicMock()
 
-    mock_subprocess_run.side_effect = side_effect_run
-
-    with patch("sys.platform", "darwin"):
-        result = runner.invoke(app, ["zellij", "open-url"])
-
+    mock_subprocess_run.side_effect = side_effect
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
     assert result.exit_code == 0
-    assert mock_subprocess_run.call_count == 3
-    last_call = mock_subprocess_run.call_args_list[-1]
-    assert last_call[0][0] == ["open", "https://apple.com"]
+    assert not _calls_for(mock_subprocess_run, "write-chars")
 
 
-def test_zellij_open_url_success_wsl(mock_subprocess_run):
-    def side_effect_run(cmd, *args, **kwargs):
-        if cmd[0] == "zellij" and cmd[1] == "action" and cmd[2] == "dump-screen":
-            file_path = cmd[3]
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write("https://microsoft.com")
-            return MagicMock()
-        if cmd[0] == "fzf":
-            mock = MagicMock()
-            mock.stdout = "enter\nhttps://microsoft.com\n"
-            return mock
-        return MagicMock()
-
-    mock_subprocess_run.side_effect = side_effect_run
-
-    with patch("sys.platform", "linux"), patch("os.uname") as mock_uname:
-        mock_uname.return_value = MagicMock(release="5.15.90.1-microsoft-standard-WSL2")
-        result = runner.invoke(app, ["zellij", "open-url"])
-
+def test_no_content_exits_silently(mock_subprocess_run):
+    mock_subprocess_run.side_effect = _side_effect("", "")
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
     assert result.exit_code == 0
-    assert mock_subprocess_run.call_count == 3
-    last_call = mock_subprocess_run.call_args_list[-1]
-    assert last_call[0][0] == ["wslview", "https://microsoft.com"]
+    assert not _calls_for(mock_subprocess_run, "write-chars")
 
 
-def test_zellij_open_url_no_urls(mock_subprocess_run):
-    def side_effect_run(cmd, *args, **kwargs):
-        if cmd[0] == "zellij" and cmd[1] == "action" and cmd[2] == "dump-screen":
-            file_path = cmd[3]
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write("No urls here.")
-        return MagicMock()
-
-    mock_subprocess_run.side_effect = side_effect_run
-
-    result = runner.invoke(app, ["zellij", "open-url"])
-
-    assert result.exit_code == 0
-    assert "No URLs found." in result.stderr
-    # Only zellij call
-    assert mock_subprocess_run.call_count == 1
-
-
-def test_zellij_open_url_dump_fail(mock_subprocess_run):
-    mock_subprocess_run.side_effect = subprocess.CalledProcessError(1, "zellij")
-    result = runner.invoke(app, ["zellij", "open-url"])
-
+def test_requires_zellij_env():
+    with patch.dict("os.environ", {}, clear=True):
+        result = runner.invoke(app, CMD_PANE)
     assert result.exit_code == 1
-    assert "Failed to capture Zellij pane" in result.stderr
 
 
-def test_zellij_open_url_not_found(mock_subprocess_run):
-    mock_subprocess_run.side_effect = FileNotFoundError("zellij")
-    result = runner.invoke(app, ["zellij", "open-url"])
-
-    assert result.exit_code == 1
-    assert "Zellij command not found. Are you running inside Zellij?" in result.stderr
+# --- --from-file path (DumpScreen-based, no write-back) ---
 
 
-def test_zellij_open_url_fzf_fail(mock_subprocess_run):
-    def side_effect_run(cmd, *args, **kwargs):
-        if cmd[0] == "zellij" and cmd[1] == "action" and cmd[2] == "dump-screen":
-            file_path = cmd[3]
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write("https://example.com")
-            return MagicMock()
+def test_from_file_reads_scrollback(mock_subprocess_run, tmp_path):
+    scrollback_file = tmp_path / "scrollback.txt"
+    scrollback_file.write_text("https://example.com")
+    mock_subprocess_run.side_effect = _side_effect("", "")
+    runner.invoke(
+        app,
+        ["zellij", "history-search", "--from-file", str(scrollback_file)],
+        env=ZELLIJ_ENV,
+    )
+    assert not _calls_for(mock_subprocess_run, "dump-screen")
+
+
+def test_from_file_no_write_back_without_pane_id(mock_subprocess_run, tmp_path):
+    scrollback_file = tmp_path / "scrollback.txt"
+    scrollback_file.write_text("https://example.com")
+
+    def side_effect(cmd, *args, **kwargs):
         if cmd[0] == "fzf":
-            raise OSError("fzf failed")
+            return _fzf_result("https://example.com")
         return MagicMock()
 
-    mock_subprocess_run.side_effect = side_effect_run
-
-    result = runner.invoke(app, ["zellij", "open-url"])
-
-    assert result.exit_code == 1
-    assert "Failed to execute fzf" in result.stderr
-
-
-def test_zellij_open_url_copy(mock_subprocess_run):
-    def side_effect_run(cmd, *args, **kwargs):
-        if cmd[0] == "zellij" and cmd[1] == "action" and cmd[2] == "dump-screen":
-            file_path = cmd[3]
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write("https://example.com")
-            return MagicMock()
-        if cmd[0] == "fzf":
-            mock = MagicMock()
-            mock.stdout = "ctrl-c\nhttps://example.com\n"
-            return mock
-        return MagicMock()
-
-    mock_subprocess_run.side_effect = side_effect_run
-
-    with patch("sys.platform", "linux"), patch("os.uname") as mock_uname:
-        mock_uname.return_value = MagicMock(release="5.15.0-generic")
-        result = runner.invoke(app, ["zellij", "open-url"])
-
+    mock_subprocess_run.side_effect = side_effect
+    result = runner.invoke(
+        app,
+        ["zellij", "history-search", "--from-file", str(scrollback_file)],
+        env=ZELLIJ_ENV,
+    )
     assert result.exit_code == 0
-    assert mock_subprocess_run.call_count == 3
-    last_call = mock_subprocess_run.call_args_list[-1]
-    # xclip -selection clipboard
-    assert last_call[0][0] == ["xclip", "-selection", "clipboard"]
-    assert last_call[1]["input"] == "https://example.com"
+    assert not _calls_for(mock_subprocess_run, "write-chars")
 
 
-def test_zellij_open_url_injection_prevention(mock_subprocess_run):
-    def side_effect_run(cmd, *args, **kwargs):
-        if cmd[0] == "zellij" and cmd[1] == "action" and cmd[2] == "dump-screen":
-            file_path = cmd[3]
-            with open(file_path, "w", encoding="utf-8") as f:
-                f.write("https://example.com/$(id)")
-            return MagicMock()
-        if cmd[0] == "fzf":
-            mock = MagicMock()
-            mock.stdout = "enter\nhttps://example.com/$(id)\n"
-            return mock
-        return MagicMock()
-
-    mock_subprocess_run.side_effect = side_effect_run
-
-    with patch("sys.platform", "linux"), patch("os.uname") as mock_uname:
-        mock_uname.return_value = MagicMock(release="5.15.0-generic")
-        result = runner.invoke(app, ["zellij", "open-url"])
-
+def test_from_file_no_content_exits_silently(mock_subprocess_run, tmp_path):
+    scrollback_file = tmp_path / "scrollback.txt"
+    scrollback_file.write_text("")
+    mock_subprocess_run.side_effect = _side_effect("", "")
+    result = runner.invoke(
+        app,
+        ["zellij", "history-search", "--from-file", str(scrollback_file)],
+        env=ZELLIJ_ENV,
+    )
     assert result.exit_code == 0
-    last_call = mock_subprocess_run.call_args_list[-1]
-    # It should be a single argument, not split by shell
-    assert last_call[0][0] == ["xdg-open", "https://example.com/$(id)"]
-    assert last_call[1].get("shell", False) is False
+    assert not _calls_for(mock_subprocess_run, "write-chars")
+
+
+def test_requires_from_file_or_pane_id(mock_subprocess_run):
+    mock_subprocess_run.return_value = MagicMock()
+    result = runner.invoke(app, ["zellij", "history-search"], env=ZELLIJ_ENV)
+    assert result.exit_code == 1
+
+
+def test_fzf_invoked_when_matches_found(mock_subprocess_run, tmp_path):
+    scrollback_file = tmp_path / "scrollback.txt"
+    scrollback_file.write_text("https://example.com")
+    mock_subprocess_run.return_value = MagicMock(stdout="")
+    runner.invoke(
+        app,
+        ["zellij", "history-search", "--from-file", str(scrollback_file)],
+        env=ZELLIJ_ENV,
+    )
+    assert _calls_for(mock_subprocess_run, "fzf")
