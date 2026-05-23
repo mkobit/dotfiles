@@ -17,7 +17,6 @@ echo "Git commit hash: ${GIT_COMMIT_HASH}"
 echo "Git commit date: ${GIT_COMMIT_DATE}"
 echo "------------------------------"
 
-export MISE_DEBUG=1
 
 # Step 1: Install chezmoi matching CI version, then apply it.
 # This writes the global mise config (dot_config/mise/) to $HOME, which is required
