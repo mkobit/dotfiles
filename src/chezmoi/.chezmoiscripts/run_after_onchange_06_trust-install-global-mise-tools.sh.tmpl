@@ -22,20 +22,19 @@ log_info "Trusting global mise config: {{ .chezmoi.destDir }}/.config/mise/confi
 "$MISE" trust "{{ .chezmoi.destDir }}/.config/mise/config.toml"
 log_success "Global mise config trusted: {{ .chezmoi.destDir }}/.config/mise/config.toml"
 
-log_info "Installing global mise tools in {{ .chezmoi.destDir }}..."
-if MISE_INSTALL_BEFORE=0d MISE_LOCKED=0 "$MISE" install -C "{{ .chezmoi.destDir }}"; then
-    log_success "Global mise tools installed in {{ .chezmoi.destDir }}."
+log_info "Installing global mise tools..."
+if MISE_INSTALL_BEFORE=0d "$MISE" install -C /tmp; then
+    log_success "Global mise tools installed."
 else
-    log_error "Failed to install global mise tools in {{ .chezmoi.destDir }}."
+    log_error "Failed to install global mise tools."
     exit 1
 fi
 
-log_info "Pruning unused global mise tools in {{ .chezmoi.destDir }}..."
-if "$MISE" prune -y -C "{{ .chezmoi.destDir }}"; then
-    log_success "Global mise tools pruned in {{ .chezmoi.destDir }}."
+log_info "Pruning unused global mise tools..."
+if "$MISE" prune -y -C /tmp; then
+    log_success "Global mise tools pruned."
 else
-    log_warn "Failed to prune global mise tools in {{ .chezmoi.destDir }}."
-    # We don't exit 1 here, as prune failure shouldn't fail the whole install process
+    log_warn "Failed to prune global mise tools."
 fi
 
 log_info "Reshimming global mise tools..."
