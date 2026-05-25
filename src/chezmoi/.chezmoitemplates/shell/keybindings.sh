@@ -21,8 +21,10 @@ zle -N zle-line-init      _zle_vi_mode_cursor
 {{- if eq .shell "bash" }}
 # Enable vi mode in bash
 set -o vi
-# Bash cursor shape in vi mode
-bind 'set show-mode-in-prompt on'
-bind 'set vi-ins-mode-string \1\e[6 q\2'
-bind 'set vi-cmd-mode-string \1\e[2 q\2'
+# Bash cursor shape in vi mode — only when readline is active (interactive terminal)
+if [[ $- == *i* ]]; then
+    bind 'set show-mode-in-prompt on'
+    bind 'set vi-ins-mode-string \1\e[6 q\2'
+    bind 'set vi-cmd-mode-string \1\e[2 q\2'
+fi
 {{- end }}
