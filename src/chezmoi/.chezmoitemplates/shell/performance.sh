@@ -149,7 +149,7 @@ setopt HIST_SAVE_NO_DUPS
 {{- if eq .shell "zsh" }}
 unsetopt FLOW_CONTROL
 {{- end }}
-stty -ixon
+[[ -t 0 ]] && stty -ixon
 
 # Speed up job control for tmux environments
 {{- if eq .shell "zsh" }}
