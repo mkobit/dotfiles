@@ -20,8 +20,11 @@ if [[ -f "{{ .chezmoi.destDir }}/.bashrc" ]]; then
 elif [[ -f "{{ .chezmoi.destDir }}/.profile" ]]; then
   source "{{ .chezmoi.destDir }}/.profile"
 fi
-# Ensure our config is always loaded even if standard files are missing or overriden
-if ! type -t g &>/dev/null && [[ -f "{{ .chezmoi.destDir }}/.dotfiles/bash/config.bash" ]]; then
+# Only load our config in interactive shells. Non-interactive login shells (e.g.
+# env-save hooks that run `bash -l -c 'env'`) must not source config.bash because
+# it prints tool-not-found warnings to stdout, corrupting any env-capture that
+# reads the login shell's stdout as KEY=VALUE pairs.
+if [[ $- == *i* ]] && ! type -t g &>/dev/null && [[ -f "{{ .chezmoi.destDir }}/.dotfiles/bash/config.bash" ]]; then
   source "{{ .chezmoi.destDir }}/.dotfiles/bash/config.bash"
 fi
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:bash:{{ include "modify_dot_bash_profile.tmpl" | sha256sum | substr 0 8 }}
