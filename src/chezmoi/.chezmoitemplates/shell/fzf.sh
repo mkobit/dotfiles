@@ -66,7 +66,7 @@ if [ -n "$FZF_BINARY" ]; then
 
         export FZF_ALT_C_OPTS
     fi
-else
+elif [[ -o interactive ]]; then
     if [ -z "$FZF_INSTALL_HINT_SHOWN" ]; then
         echo -e "\033[1;33m⚠️  fzf not found\033[0m - install for enhanced history search and fuzzy finding:"
         echo -e "  \033[1;34mMore info:\033[0m https://github.com/junegunn/fzf#installation"
