@@ -4,11 +4,11 @@
 set -euo pipefail
 
 UV_TOOL_BIN_DIR="{{ .chezmoi.destDir }}/.local/bin/dotfiles" \
-  mise exec -- uv tool install --force --editable "{{ .chezmoi.workingTree }}/src/python/transcribe"
+  mise exec --cd "{{ .chezmoi.workingTree }}" -- uv tool install --force --editable "{{ .chezmoi.workingTree }}/src/python/transcribe"
 {{- else }}
 #!/usr/bin/env bash
 set -euo pipefail
 
 UV_TOOL_BIN_DIR="{{ .chezmoi.destDir }}/.local/bin/dotfiles" \
-  mise exec -- uv tool uninstall transcribe 2>/dev/null || true
+  mise exec --cd "{{ .chezmoi.workingTree }}" -- uv tool uninstall transcribe 2>/dev/null || true
 {{- end }}
