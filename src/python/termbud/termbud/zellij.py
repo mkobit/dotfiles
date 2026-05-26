@@ -2,7 +2,6 @@ import atexit
 import contextlib
 import os
 import re
-import shutil
 import subprocess
 import sys
 import tomllib
@@ -10,6 +9,8 @@ from pathlib import Path
 from typing import NamedTuple, TypedDict
 
 import typer
+
+from termbud.utils import editor_cmd, platform_cmds
 
 app = typer.Typer(help="Zellij subcommands")
 
@@ -102,20 +103,6 @@ def _fmt(label: str, display: str, label_width: int = 4) -> str:
     return f"{_DIM_CYAN}{label:>{label_width}}{_RESET}  {display}"
 
 
-def _platform_cmds() -> tuple[str, str]:
-    if sys.platform == "darwin":
-        return "open", "pbcopy"
-    if "microsoft" in os.uname().release.lower():
-        return "wslview", "clip.exe"
-    if os.environ.get("WAYLAND_DISPLAY") or shutil.which("wl-copy"):
-        return "xdg-open", "wl-copy"
-    return "xdg-open", "xclip -selection clipboard"
-
-
-def _editor_cmd() -> str:
-    return os.environ.get("VISUAL") or os.environ.get("EDITOR") or "nvim"
-
-
 def _fzf_args(open_cmd: str, copy_cmd: str, editor: str) -> list[str]:
     return [
         "fzf",
@@ -186,9 +173,9 @@ def history_search(
         print("termbud: --from-file or --source-pane-id required", file=sys.stderr)
         raise typer.Exit(1)
 
-    default_open, copy_cmd = _platform_cmds()
+    default_open, copy_cmd = platform_cmds()
     open_cmd = open_cmd or default_open
-    editor = _editor_cmd()
+    editor = editor_cmd()
 
     atexit.register(lambda: _zellij("switch-mode", "normal"))
     _zellij("switch-mode", "locked")

@@ -59,3 +59,10 @@ welcome_screen = true
 # Custom modes not yet supported: https://github.com/zellij-org/zellij/issues/248
 # https://zellij.dev/documentation/keybindings-modes
 [zellij.modes.normal.keybinds]
+"alt-y" = '''bind "Alt y" {
+    DumpScreen "/tmp/termbud_scrollback_extract.txt" { full true; }
+    Run "termbud" "scrollback" "extract" "--from-file" "/tmp/termbud_scrollback_extract.txt" "--interactive" {
+        floating true
+        close_on_exit true
+    }
+}'''

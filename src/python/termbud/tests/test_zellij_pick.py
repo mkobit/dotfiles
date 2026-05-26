@@ -5,16 +5,15 @@ import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
+from termbud.utils import editor_cmd, platform_cmds
 from termbud.zellij import (
     Match,
     Pattern,
-    _editor_cmd,
     _extract,
     _fmt,
     _format_lines,
     _fzf_args,
     _load_patterns,
-    _platform_cmds,
 )
 
 # Generic sample text — no relation to any specific org or product.
@@ -202,54 +201,54 @@ def test_format_lines_prefix_in_display_and_yank():
 # --- platform command selection ---
 
 
-def test_platform_cmds_macos():
+def testplatform_cmds_macos():
     with patch.object(sys, "platform", "darwin"):
-        assert _platform_cmds() == ("open", "pbcopy")
+        assert platform_cmds() == ("open", "pbcopy")
 
 
-def test_platform_cmds_wsl():
+def testplatform_cmds_wsl():
     with (
         patch.object(sys, "platform", "linux"),
         patch.object(os, "uname", return_value=MagicMock(release="5.15.0-microsoft-standard-WSL2")),
     ):
-        assert _platform_cmds() == ("wslview", "clip.exe")
+        assert platform_cmds() == ("wslview", "clip.exe")
 
 
-def test_platform_cmds_linux_wayland():
+def testplatform_cmds_linux_wayland():
     with (
         patch.object(sys, "platform", "linux"),
         patch.object(os, "uname", return_value=MagicMock(release="6.1.0-generic")),
         patch.dict(os.environ, {"WAYLAND_DISPLAY": "wayland-0"}),
     ):
-        assert _platform_cmds() == ("xdg-open", "wl-copy")
+        assert platform_cmds() == ("xdg-open", "wl-copy")
 
 
-def test_platform_cmds_linux_x11():
+def testplatform_cmds_linux_x11():
     with (
         patch.object(sys, "platform", "linux"),
         patch.object(os, "uname", return_value=MagicMock(release="6.1.0-generic")),
         patch.dict(os.environ, {"WAYLAND_DISPLAY": ""}),
         patch.object(shutil, "which", return_value=None),
     ):
-        assert _platform_cmds() == ("xdg-open", "xclip -selection clipboard")
+        assert platform_cmds() == ("xdg-open", "xclip -selection clipboard")
 
 
 # --- editor command selection ---
 
 
-def test_editor_cmd_prefers_visual():
+def testeditor_cmd_prefers_visual():
     with patch.dict(os.environ, {"VISUAL": "emacs", "EDITOR": "vim"}):
-        assert _editor_cmd() == "emacs"
+        assert editor_cmd() == "emacs"
 
 
-def test_editor_cmd_falls_back_to_editor():
+def testeditor_cmd_falls_back_to_editor():
     with patch.dict(os.environ, {"VISUAL": "", "EDITOR": "vim"}):
-        assert _editor_cmd() == "vim"
+        assert editor_cmd() == "vim"
 
 
-def test_editor_cmd_defaults_to_nvim():
+def testeditor_cmd_defaults_to_nvim():
     with patch.dict(os.environ, {"VISUAL": "", "EDITOR": ""}):
-        assert _editor_cmd() == "nvim"
+        assert editor_cmd() == "nvim"
 
 
 # --- fzf argument construction ---
