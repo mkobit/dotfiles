@@ -23,7 +23,7 @@ failIfUnavailable = false
 
 [claude_code.settings.statusLine]
 type = "command"
-command = "claude_statusline"
+command = "claude-statusline"
 
 [claude_code.settings.permissions]
 tools = "allow"
