@@ -1,6 +1,5 @@
 import pytest
 
-
 TOOLS = ["jules", "termbud", "transcribe", "claude-statusline"]
 
 

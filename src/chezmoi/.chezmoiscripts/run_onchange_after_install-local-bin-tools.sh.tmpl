@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# hashes:{{ range $name, $tool := .local_bin_tools }}
+# {{ $name }}: {{ include (joinPath $.chezmoi.workingTree $tool.source_dir "pyproject.toml") | sha256sum }}{{ end }}
+set -euo pipefail
+
+{{ range $name, $tool := .local_bin_tools -}}
+{{- if eq $tool.installation_method "dotfiles.uv" }}
+UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
+  mise exec --cd "{{ $.chezmoi.workingTree }}" -- uv tool install --force --editable "{{ $.chezmoi.workingTree }}/{{ $tool.source_dir }}"
+{{- else }}
+UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
+  mise exec --cd "{{ $.chezmoi.workingTree }}" -- uv tool uninstall {{ $tool.package_name }} 2>/dev/null || true
+{{- end }}
+{{ end -}}
