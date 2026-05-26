@@ -1,0 +1,14 @@
+{{- if eq .local_bin_tools.termbud.installation_method "dotfiles.uv" -}}
+#!/usr/bin/env bash
+# hash: {{ include (joinPath .chezmoi.workingTree "src/python/termbud/pyproject.toml") | sha256sum }}
+set -euo pipefail
+
+UV_TOOL_BIN_DIR="{{ .chezmoi.destDir }}/.local/bin/dotfiles" \
+  mise exec -- uv tool install --force --editable "{{ .chezmoi.workingTree }}/src/python/termbud"
+{{- else }}
+#!/usr/bin/env bash
+set -euo pipefail
+
+UV_TOOL_BIN_DIR="{{ .chezmoi.destDir }}/.local/bin/dotfiles" \
+  mise exec -- uv tool uninstall termbud 2>/dev/null || true
+{{- end }}

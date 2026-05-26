@@ -8,6 +8,11 @@ if [[ -d "{{ .chezmoi.destDir }}/.local/bin/tools" && ":$PATH:" != *":{{ .chezmo
     export PATH="{{ .chezmoi.destDir }}/.local/bin/tools:$PATH"
 fi
 
+# Add ~/.local/bin/dotfiles to PATH if it exists and isn't already in PATH
+if [[ -d "{{ .chezmoi.destDir }}/.local/bin/dotfiles" && ":$PATH:" != *":{{ .chezmoi.destDir }}/.local/bin/dotfiles:"* ]]; then
+    export PATH="{{ .chezmoi.destDir }}/.local/bin/dotfiles:$PATH"
+fi
+
 # Add nvim to PATH if it exists
 if [[ -d "{{ .chezmoi.destDir }}/.local/nvim/bin" && ":$PATH:" != *":{{ .chezmoi.destDir }}/.local/nvim/bin:"* ]]; then
     export PATH="{{ .chezmoi.destDir }}/.local/nvim/bin:$PATH"
