@@ -11,7 +11,7 @@ if [[ -o interactive ]] && command -v zoxide &> /dev/null; then
     {{- fail (printf "unsupported shell: %s" .shell) }}
     {{- end }}
 
-else
+elif [[ -o interactive ]]; then
     if [ -z "$ZOXIDE_INSTALL_HINT_SHOWN" ]; then
         echo -e "\033[1;33m⚠️  zoxide not found\033[0m - install for better directory navigation: \033[1;34mhttps://github.com/ajeetdsouza/zoxide\033[0m"
         export ZOXIDE_INSTALL_HINT_SHOWN=1
