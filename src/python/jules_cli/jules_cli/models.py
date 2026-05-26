@@ -40,7 +40,7 @@ class Source(BaseModel):
 class GitHubRepoContext(BaseModel):
     """Context for a GitHub repository source."""
 
-    starting_branch: str
+    starting_branch: str | None = None
     model_config = frozen_config
 
 
