@@ -90,7 +90,7 @@ if (\$modified) {
     \$json = \$settings | ConvertTo-Json -Depth 20
     # ConvertTo-Json will escape our backslash, creating '\\u001b' in the file.
     # We replace it back to a single backslash so WT parses it as an escape character.
-    \$json = \$json -replace '\\\\u001b', '\u001b'
+    \$json = \$json.Replace('\\u001b', '\u001b')
     [System.IO.File]::WriteAllText(\$settingsPath, \$json, [System.Text.UTF8Encoding]::new(\$false))
     Write-Host \"Successfully updated Windows Terminal settings at \$settingsPath\"
 } else {
