@@ -1,7 +1,7 @@
 [project]
 name = "jules-cli"
 version = "0.0.0"
-requires-python = ">=3.14"
+requires-python = ">=3.12"
 dependencies = [
     "aiohttp>=3",
     "pydantic>=2",
@@ -15,3 +15,6 @@ jules = "jules_cli.main:cli"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.pytest.ini_options]
+pythonpath = ["."]

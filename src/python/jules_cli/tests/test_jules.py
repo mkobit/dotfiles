@@ -3,7 +3,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 
 from jules_cli.client import JulesClient
-from jules_cli.models import CreateSessionRequest, Session, SourceContext
+from jules_cli.session import CreateSessionRequest, Session
+from jules_cli.source import SourceContext
 
 # Mock data matches Pydantic camelCase conversion
 MOCK_SESSION_DATA = {
