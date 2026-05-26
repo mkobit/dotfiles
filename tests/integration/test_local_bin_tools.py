@@ -8,9 +8,7 @@ TOOLS = ["jules", "termbud", "transcribe", "claude-statusline"]
 def test_tool_installed_in_dotfiles_bin(host, tool):
     result = host.run(f"zsh -i -c 'command -v {tool}'")
     assert result.rc == 0, f"{tool} not found in PATH.\nstderr: {result.stderr}"
-    assert "dotfiles" in result.stdout, (
-        f"{tool} not installed in ~/.local/bin/dotfiles/.\nstdout: {result.stdout}"
-    )
+    assert "dotfiles" in result.stdout, f"{tool} not installed in ~/.local/bin/dotfiles/.\nstdout: {result.stdout}"
 
 
 @pytest.mark.integration
@@ -23,5 +21,3 @@ def test_tool_not_using_uv_run(host, tool):
     assert "uv run" not in content, (
         f"{tool} at {binary_path} still delegates to 'uv run'; expected a uv tool install binary."
     )
-
-
