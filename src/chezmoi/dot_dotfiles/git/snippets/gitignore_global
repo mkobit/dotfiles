@@ -7,3 +7,5 @@
 /bazel-*
 .scratch/
 mise.local.toml
+.antigravity/
+.antigravitycli/
