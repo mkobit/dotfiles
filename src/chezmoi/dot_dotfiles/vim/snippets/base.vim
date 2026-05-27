@@ -34,9 +34,18 @@ set hidden
 """ Updates the buffer when a file is changed externally
 set autoread
 
-""" Use the system clipboard
-""" Seamlessly copy/paste between Vim and other applications
+" Use the system clipboard
+"" Seamlessly copy/paste between Vim and other applications
 set clipboard=unnamed
+
+" WSL clipboard integration
+if has('wsl')
+  let g:clipboard = {}
+  let g:clipboard.name = 'WslClipboard'
+  let g:clipboard.copy = { '+': 'clip.exe', '*': 'clip.exe' }
+  let g:clipboard.paste = { '+': 'powershell.exe -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))', '*': 'powershell.exe -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))' }
+  let g:clipboard.cache_enabled = 0
+endif
 
 """ Set default encoding to UTF-8
 """ Ensures proper handling of international characters
