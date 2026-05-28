@@ -23,7 +23,7 @@
 {{- $url      := $gr.url_format      | replace "{base}" $base | replace "{repo}" $gr.repo | replace "{tag}" $tag | replace "{filename}" $filename -}}
 {{- $checksum := dig "checksums" $platform "" $gr -}}
 
-{{- $binName := $gr.path_format | splitList "/" | last -}}
+{{- $binName := dig "path_format" "" $gr | splitList "/" | last -}}
 {{- if not $binName -}}{{- $binName = $name -}}{{- end -}}
 
 ["{{ $binName }}"]

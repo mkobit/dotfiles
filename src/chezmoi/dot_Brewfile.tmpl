@@ -1,9 +1,11 @@
 {{- if eq .chezmoi.os "darwin" -}}
 {{- /* Managed by chezmoi — do not edit */ -}}
 {{- $lines := list -}}
+
+{{- /* Packages from .packages namespace */ -}}
 {{- range $name, $tool := .packages -}}
-{{-   $method := "" -}}
 {{-   $im := dig "installation_method" "" $tool -}}
+{{-   $method := "" -}}
 {{-   if kindIs "string" $im -}}
 {{-     $method = $im -}}
 {{-   else if kindIs "map" $im -}}
@@ -13,16 +15,33 @@
 {{-     $pkg := dig "package" "homebrew" (dict) $tool -}}
 {{-     if $pkg -}}
 {{-       $pname := dig "name" $name $pkg -}}
-{{-       $type := dig "type" "formula" $pkg -}}
-{{-       if eq $type "cask" -}}
+{{-       if eq (dig "type" "formula" $pkg) "cask" -}}
 {{-         $lines = append $lines (printf "cask \"%s\"" $pname) -}}
 {{-       else -}}
 {{-         $lines = append $lines (printf "brew \"%s\"" $pname) -}}
 {{-       end -}}
 {{-     end -}}
 {{-   end -}}
-{{- end }}
-{{ range $lines }}
-{{ . }}
-{{- end }}
+{{- end -}}
+
+{{- /* Bin tools from BOM with homebrew method */ -}}
+{{- range $name, $tool := .bin -}}
+{{-   $method := dig $name (dict) $.local.bin | dig "installation_method" "none" -}}
+{{-   if eq $method "homebrew" -}}
+{{-     $hb := dig "homebrew" (dict) $tool -}}
+{{-     if not $hb -}}
+{{-       fail (printf "bin.%s: installation_method is homebrew but no homebrew catalog entry exists" $name) -}}
+{{-     end -}}
+{{-     $pname := dig "name" $name $hb -}}
+{{-     if dig "cask" false $hb -}}
+{{-       $lines = append $lines (printf "cask \"%s\"" $pname) -}}
+{{-     else -}}
+{{-       $lines = append $lines (printf "brew \"%s\"" $pname) -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+
+{{ range ($lines | uniq | sortAlpha) }}
+{{- . }}
+{{ end -}}
 {{- end -}}

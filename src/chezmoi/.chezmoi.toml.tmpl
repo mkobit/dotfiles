@@ -5,6 +5,10 @@ sourceDir = {{ .chezmoi.destDir | printf "%s/.local/share/chezmoi-base" | quote 
 # homebrew        = fallback where no static binary exists for the platform
 # none            = not installed on this machine
 
+# mise is the tool manager — always installed first via static binary
+[data.local.bin.mise]
+installation_method = "github_releases"
+
 # Static binaries available on all supported platforms
 [data.local.bin.bat]
 installation_method = "github_releases"
