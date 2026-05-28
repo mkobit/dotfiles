@@ -2,6 +2,11 @@
 
 source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 
+if [[ "$(defaults read com.googlecode.iterm2 SilenceBell 2>/dev/null)" == "1" ]]; then
+    log_info "iTerm2 bell already silenced — skipping"
+    exit 0
+fi
+
 log_info "Configuring iTerm2 to disable bell sounds..."
 
 # iTerm2 configuration is stored in com.googlecode.iterm2.plist
