@@ -1,44 +1,32 @@
 {{- /*
-  Generates chezmoi external entries for bin tools with installation_method = "chezmoi_external".
-  Data source: .chezmoidata/bin/*.toml — each tool under [bin.<name>].
-  Overlay environments override individual tools via .chezmoidata/zz-*/bin.toml.
-  Unknown enabled methods cause a hard fail at template render time.
+  Generates chezmoi external entries for bin tools selected in the BOM.
+  BOM: .local.bin.<name>.installation_method — set in .chezmoi.toml.tmpl.
+  Default is "none" (all off); each machine opts in via its config template.
+
+  Supported methods:
+    github_releases  — download from GitHub releases via chezmoi externals
+    homebrew         — managed by Brewfile; nothing to emit here
+    apt              — managed by run_onchange_install-apt; nothing to emit here
+    none             — skip
 */ -}}
 {{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
-{{- $base := dig "github_releases" "base_url" "https://github.com" . -}}
+{{- $base     := dig "github_releases" "base_url" "https://github.com" . -}}
 {{- range $name, $tool := .bin -}}
-{{-   $method := dig "installation_method" "chezmoi_external" $tool -}}
-{{-   if eq $method "none" -}}
-{{-     /* explicitly disabled — skip */ -}}
-{{-   else if eq $method "chezmoi_external" -}}
-{{-     $target := dig "platforms" $platform "" $tool -}}
-{{-     if not $target -}}
-{{-       fail (printf "bin.%s: no platform entry for %s" $name $platform) -}}
+{{-   $method := dig $name (dict) $.local.bin | dig "installation_method" "none" -}}
+{{-   if eq $method "github_releases" -}}
+{{-     if not (hasKey $tool "github_releases") -}}
+{{-       fail (printf "bin.%s: installation_method is github_releases but no github_releases catalog entry exists" $name) -}}
 {{-     end -}}
-{{-     $ext := dig "ext" $platform "" $tool -}}
-{{-     $tag      := $tool.tag_format      | replace "{version}" $tool.version -}}
-{{-     $filename := $tool.filename_format | replace "{version}" $tool.version | replace "{target}" $target | replace "{ext}" $ext -}}
-{{-     $url      := $tool.url_format      | replace "{base}" $base | replace "{repo}" $tool.repo | replace "{tag}" $tag | replace "{filename}" $filename -}}
-{{-     $checksum := dig "checksums" $platform "" $tool -}}
-{{-     /* binary name: last path component of path_format (no placeholders in final segment) */ -}}
-{{-     $binName  := $tool.path_format | splitList "/" | last -}}
-{{-     if not $binName -}}{{- $binName = $name -}}{{- end -}}
-
-["{{ $binName }}"]
-type       = {{ $tool.external_type | quote }}
-url        = {{ $url | quote }}
-executable = {{ $tool.executable | default false }}
-{{- if $checksum }}
-["{{ $binName }}".checksum]
-{{ $tool.checksum_type }} = {{ $checksum | quote }}
-{{- end }}
-{{- if eq $tool.external_type "archive-file" }}
-{{-   $path := $tool.path_format | replace "{version}" $tool.version | replace "{target}" $target }}
-path = {{ $path | quote }}
-{{- end }}
-{{- if hasKey $tool "strip_components" }}
-strip_components = {{ $tool.strip_components }}
-{{- end }}
+{{-     if not (hasKey $tool.github_releases.platforms $platform) -}}
+{{-       fail (printf "bin.%s: no github_releases platform entry for %s" $name $platform) -}}
+{{-     end -}}
+{{ includeTemplate "bin/github-releases-entry.tmpl" (dict "name" $name "tool" $tool "platform" $platform "base" $base) }}
+{{-   else if eq $method "homebrew" -}}
+{{-     /* managed by Brewfile — nothing to emit */ -}}
+{{-   else if eq $method "apt" -}}
+{{-     /* managed by apt installer — nothing to emit */ -}}
+{{-   else if eq $method "none" -}}
+{{-     /* explicitly disabled */ -}}
 {{-   else -}}
 {{-     fail (printf "bin.%s: unknown installation_method %q" $name $method) -}}
 {{-   end -}}
