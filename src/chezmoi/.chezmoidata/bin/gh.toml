@@ -1,7 +1,29 @@
 [bin.gh]
 version = "2.92.0"
 
-# gh checksums kept for reference; github_releases entry not used (non-standard archive naming)
+# gh uses OS-capitalized platform strings (macOS vs linux) and zip on darwin
+[bin.gh.github_releases]
+repo            = "cli/cli"
+external_type   = "archive-file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "v{version}"
+filename_format = "gh_{version}_{target}.{ext}"
+path_format     = "gh_{version}_{target}/bin/gh"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.gh.github_releases.platforms]
+darwin_arm64 = "macOS_arm64"
+darwin_amd64 = "macOS_amd64"
+linux_amd64  = "linux_amd64"
+linux_arm64  = "linux_arm64"
+
+[bin.gh.github_releases.ext]
+darwin_arm64 = "zip"
+darwin_amd64 = "zip"
+linux_amd64  = "tar.gz"
+linux_arm64  = "tar.gz"
+
 [bin.gh.github_releases.checksums]
 darwin_arm64 = "b11c54f6bd7d15ed6590475079e5b2fcf36f45d3991a80041b29c9d0cc1f1d07"
 darwin_amd64 = "ae9bb327ab0d91071bdada79f8f14034a2a0f19b0e001835a782eafa519d2af0"
@@ -11,6 +33,6 @@ linux_arm64  = "c2248526dd0160c08d3fccca2332c3c1a07c15a78b23978e77735f1b5a18cfee
 [bin.gh.homebrew]
 name = "gh"
 
-# apt requires adding github cli apt repo separately
+# apt requires adding the GitHub CLI apt repository first
 [bin.gh.apt]
 name = "gh"

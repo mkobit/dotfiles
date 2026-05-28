@@ -50,7 +50,5 @@ installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"githu
 [data.local.bin.opencode]
 installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
 
-# gh: catalog needs proper github_releases entry (non-standard archive naming)
-# using homebrew until that is fixed
 [data.local.bin.gh]
-installation_method = "homebrew"
+installation_method = "github_releases"
