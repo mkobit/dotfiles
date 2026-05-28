@@ -22,6 +22,11 @@ set -euo pipefail
 
 source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 
+if [[ "$(defaults read com.apple.speech.recognition.AppleSpeechRecognition.prefs DictationAccepted 2>/dev/null)" == "1" ]]; then
+    log_info "macOS input already configured — skipping"
+    exit 0
+fi
+
 SYMBOLIC_HOTKEYS_PLIST="{{ .chezmoi.destDir }}/Library/Preferences/com.apple.symbolichotkeys.plist"
 
 # Suppress dictation "Enable?" pop-ups
