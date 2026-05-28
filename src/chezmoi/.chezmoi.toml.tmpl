@@ -1,0 +1,56 @@
+sourceDir = {{ .chezmoi.destDir | printf "%s/.local/share/chezmoi-base" | quote }}
+
+# BOM — static binaries strongly preferred over package managers.
+# github_releases = static binary download via chezmoi externals
+# homebrew        = fallback where no static binary exists for the platform
+# none            = not installed on this machine
+
+# Static binaries available on all supported platforms
+[data.local.bin.bat]
+installation_method = "github_releases"
+
+[data.local.bin.fd]
+installation_method = "github_releases"
+
+[data.local.bin.fzf]
+installation_method = "github_releases"
+
+[data.local.bin.jq]
+installation_method = "github_releases"
+
+[data.local.bin.nvim]
+installation_method = "github_releases"
+
+[data.local.bin.ripgrep]
+installation_method = "github_releases"
+
+[data.local.bin.shellcheck]
+installation_method = "github_releases"
+
+[data.local.bin.starship]
+installation_method = "github_releases"
+
+[data.local.bin.zellij]
+installation_method = "github_releases"
+
+[data.local.bin.zoxide]
+installation_method = "github_releases"
+
+# No macOS static binary published — homebrew fallback on darwin
+[data.local.bin.eza]
+installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"github_releases"{{ end }}
+
+[data.local.bin.btop]
+installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"github_releases"{{ end }}
+
+[data.local.bin.chafa]
+installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"github_releases"{{ end }}
+
+# Linux only — no macOS release
+[data.local.bin.opencode]
+installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
+
+# gh: catalog needs proper github_releases entry (non-standard archive naming)
+# using homebrew until that is fixed
+[data.local.bin.gh]
+installation_method = "homebrew"
