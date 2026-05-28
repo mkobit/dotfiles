@@ -1,3 +1,6 @@
 [zsh]
 set_as_default_login_shell = true
 prompt = "starship"
+
+[zsh.config_fragments."10-personal"]
+template = "shell/personal-zshrc.sh"
