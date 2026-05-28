@@ -1,4 +1,4 @@
-[zoxide]
+[bin.zoxide]
 version             = "0.9.9"
 installation_method = "chezmoi_external"
 repo                = "ajeetdsouza/zoxide"
@@ -10,13 +10,13 @@ filename_format     = "zoxide-{version}-{target}.tar.gz"
 path_format         = "zoxide"
 url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
-[zoxide.platforms]
+[bin.zoxide.platforms]
 darwin_arm64 = "aarch64-apple-darwin"
 darwin_amd64 = "x86_64-apple-darwin"
 linux_amd64  = "x86_64-unknown-linux-musl"
 linux_arm64  = "aarch64-unknown-linux-musl"
 
-[zoxide.checksums]
+[bin.zoxide.checksums]
 darwin_arm64 = "57e733d0436309dae2ed97e46bba43937209395298e1d88812d4e893900cb40a"
 darwin_amd64 = "364249cff18354397c72ebb6b8f7358404c051c486e0f2f7a46e36c86c16f8c7"
 linux_amd64  = "4ff057d3c4d957946937274c2b8be7af2a9bbae7f90a1b5e9baaa7cb65a20caa"

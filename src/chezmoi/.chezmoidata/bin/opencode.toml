@@ -1,4 +1,4 @@
-[opencode]
+[bin.opencode]
 external_type       = "archive-file"
 executable          = true
 tag_format          = "v{version}"
@@ -10,14 +10,14 @@ repo                = "anomalyco/opencode"
 checksum_type       = "sha256"
 filename_format     = "opencode-{target}.{ext}"
 
-[opencode.platforms]
+[bin.opencode.platforms]
 linux_amd64  = "linux-x64"
 linux_arm64  = "linux-arm64"
 
-[opencode.ext]
+[bin.opencode.ext]
 linux_amd64  = "tar.gz"
 linux_arm64  = "tar.gz"
 
-[opencode.checksums]
+[bin.opencode.checksums]
 linux_amd64  = "d27d3c85183a7bd2df4506484a2f508d1897962063b7ccc8466705b493963dc5"
 linux_arm64  = "2ffa63bb6115d7aa193cb1f6fa766eb79e1b399776871a624935a752e4461105"

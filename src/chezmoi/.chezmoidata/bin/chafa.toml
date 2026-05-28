@@ -1,4 +1,4 @@
-[chafa]
+[bin.chafa]
 version              = "1.18.1"
 installation_method  = "chezmoi_external"
 repo                 = "hpjansson/chafa"
@@ -12,10 +12,10 @@ url_format           = "{base}/{repo}/releases/download/{tag}/{filename}"
 fallback_url_format  = "https://hpjansson.org/chafa/releases/static/{filename}"
 
 # linux-only — no macOS GitHub releases; darwin intentionally absent
-[chafa.platforms]
+[bin.chafa.platforms]
 linux_amd64 = "x86_64-linux-gnu"
 linux_arm   = "armv7l-linux-gnu"
 
-[chafa.checksums]
+[bin.chafa.checksums]
 linux_amd64 = "aae17508b9e21f67291f50b849e2ce5d31cf194ab65ac3b439bc45effa64be33"
 linux_arm   = "94f6b33e3a417a3cafcb0fe31059ae015323dc4ae2eb57bbf57360a5962d8d82"

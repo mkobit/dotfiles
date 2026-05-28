@@ -1,4 +1,4 @@
-[zellij]
+[bin.zellij]
 version             = "v0.44.3"
 installation_method = "chezmoi_external"
 repo                = "zellij-org/zellij"
@@ -11,18 +11,15 @@ path_format         = "zellij"
 url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
 # zellij version already includes "v" prefix — tag_format = "{version}" (no added v)
-[zellij.platforms]
+[bin.zellij.platforms]
 darwin_arm64 = "aarch64-apple-darwin"
 darwin_amd64 = "x86_64-apple-darwin"
 linux_amd64  = "x86_64-unknown-linux-musl"
 linux_arm64  = "aarch64-unknown-linux-musl"
 
-[zellij.checksums]
+[bin.zellij.checksums]
 darwin_arm64 = "b6acf83a7739cf5f0f4e9bd47709642d4d98acbbf8c34d4a12c6e706f531da61"
 darwin_amd64 = "59f803faa32cd4e5f316f0dc2d3b7a5530a72553e38ad939286471848a418eeb"
 linux_amd64  = "0f7c346788627f506c0a28296517768633cff24fc822a739f8264b640ecad751"
 linux_arm64  = "15e6534d42644d66973d136c590c49739dcfd6a1a2a0d3d917973f16c81b45fb"
 
-[zellij.config]
-scrollback_lines_to_serialize = 75000
-show_startup_tips             = true
