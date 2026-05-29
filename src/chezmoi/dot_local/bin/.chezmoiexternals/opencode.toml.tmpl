@@ -1,8 +1,0 @@
-{{- with .opencode -}}
-{{- if eq .installation_method "chezmoi_external" -}}
-{{- $platform := printf "%s_%s" $.chezmoi.os $.chezmoi.arch -}}
-{{- $ext := dig "ext" $platform "tar.gz" . -}}
-{{- $d := set . "filename_format" (replace "{ext}" $ext .filename_format) -}}
-{{- template "external/release" (dict "key" "opencode" "data" $d "root" $) -}}
-{{- end -}}
-{{- end -}}
