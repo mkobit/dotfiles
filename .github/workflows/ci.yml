@@ -19,6 +19,7 @@ env:
   DEBIAN_FRONTEND: noninteractive
   UV_CACHE_DIR: /tmp/.uv-cache
   MISE_CACHE_DIR: /tmp/.mise-cache
+  CHEZMOI_CACHE_DIR: /tmp/.chezmoi-cache
   CHEZMOI_VERSION: v2.70.3
 
 defaults:
@@ -94,7 +95,7 @@ jobs:
       - name: Cache chezmoi downloads
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
-          path: ~/.chezmoi-cache
+          path: ${{ env.CHEZMOI_CACHE_DIR }}
           key: chezmoi-cache-v4-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}
           restore-keys: |
             chezmoi-cache-v4-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
@@ -117,19 +118,23 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Initialize chezmoi
+        env:
+          HOME: /tmp/chezmoi-test
         run: |
           mkdir -p /tmp/chezmoi-test
-          chezmoi init --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
+          chezmoi init --cache=${{ env.CHEZMOI_CACHE_DIR }} --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
 
       - name: Run chezmoi doctor
-        run: chezmoi doctor --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --no-network
+        env:
+          HOME: /tmp/chezmoi-test
+        run: chezmoi doctor --cache=${{ env.CHEZMOI_CACHE_DIR }} --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --no-network
 
       - name: Run chezmoi apply
         env:
           HOME: /tmp/chezmoi-test
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
-        run: chezmoi apply --cache=~/.chezmoi-cache --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
+        run: chezmoi apply --cache=${{ env.CHEZMOI_CACHE_DIR }} --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
 
       - name: Prune mise cache
         run: |
