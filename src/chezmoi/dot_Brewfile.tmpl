@@ -29,9 +29,6 @@
 {{-   $method := dig $name (dict) $.local.bin | dig "installation_method" "none" -}}
 {{-   if eq $method "homebrew" -}}
 {{-     $hb := dig "homebrew" (dict) $tool -}}
-{{-     if not $hb -}}
-{{-       fail (printf "bin.%s: installation_method is homebrew but no homebrew catalog entry exists" $name) -}}
-{{-     end -}}
 {{-     $pname := dig "name" $name $hb -}}
 {{-     if dig "cask" false $hb -}}
 {{-       $lines = append $lines (printf "cask \"%s\"" $pname) -}}

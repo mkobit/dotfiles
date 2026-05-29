@@ -1,13 +1,7 @@
 {{- /*
-  Generates chezmoi external entries for bin tools selected in the BOM.
+  Generates chezmoi external entries for bin tools whose BOM selects github_releases.
   BOM: .local.bin.<name>.installation_method — set in .chezmoi.toml.tmpl.
-  Default is "none" (all off); each machine opts in via its config template.
-
-  Supported methods:
-    github_releases  — download from GitHub releases via chezmoi externals
-    homebrew         — managed by Brewfile; nothing to emit here
-    apt              — managed by run_onchange_install-apt; nothing to emit here
-    none             — skip
+  Default is "none"; each machine opts in via its config template.
 */ -}}
 {{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
 {{- $base     := dig "github_releases" "base_url" "https://github.com" . -}}
@@ -21,13 +15,5 @@
 {{-       fail (printf "bin.%s: no github_releases platform entry for %s" $name $platform) -}}
 {{-     end -}}
 {{ includeTemplate "bin/github-releases-entry.tmpl" (dict "name" $name "tool" $tool "platform" $platform "base" $base) }}
-{{-   else if eq $method "homebrew" -}}
-{{-     /* managed by Brewfile — nothing to emit */ -}}
-{{-   else if eq $method "apt" -}}
-{{-     /* managed by apt installer — nothing to emit */ -}}
-{{-   else if eq $method "none" -}}
-{{-     /* explicitly disabled */ -}}
-{{-   else -}}
-{{-     fail (printf "bin.%s: unknown installation_method %q" $name $method) -}}
 {{-   end -}}
 {{- end -}}
