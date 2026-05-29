@@ -25,8 +25,9 @@
 {{- end -}}
 
 {{- /* Bin tools from BOM with homebrew method */ -}}
+{{- $localBin := dig "local" (dict) $ | dig "bin" (dict) -}}
 {{- range $name, $tool := .bin -}}
-{{-   $method := dig $name (dict) $.local.bin | dig "installation_method" "none" -}}
+{{-   $method := dig $name (dict) $localBin | dig "installation_method" "none" -}}
 {{-   if eq $method "homebrew" -}}
 {{-     $hb := dig "homebrew" (dict) $tool -}}
 {{-     $pname := dig "name" $name $hb -}}

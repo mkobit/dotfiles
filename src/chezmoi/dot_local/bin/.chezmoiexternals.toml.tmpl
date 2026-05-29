@@ -5,8 +5,9 @@
 */ -}}
 {{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
 {{- $base     := dig "github_releases" "base_url" "https://github.com" . -}}
+{{- $localBin := dig "local" (dict) $ | dig "bin" (dict) -}}
 {{- range $name, $tool := .bin -}}
-{{-   $method := dig $name (dict) $.local.bin | dig "installation_method" "none" -}}
+{{-   $method := dig $name (dict) $localBin | dig "installation_method" "none" -}}
 {{-   if eq $method "github_releases" -}}
 {{-     if not (hasKey $tool "github_releases") -}}
 {{-       fail (printf "bin.%s: installation_method is github_releases but no github_releases catalog entry exists" $name) -}}
