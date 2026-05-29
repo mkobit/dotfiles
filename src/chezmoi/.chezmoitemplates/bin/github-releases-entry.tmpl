@@ -29,7 +29,7 @@
 ["{{ $binName }}"]
 type       = {{ $gr.external_type | quote }}
 url        = {{ $url | quote }}
-executable = {{ $gr.executable | default false }}
+executable = {{ dig "executable" false $gr }}
 {{- if $checksum }}
 ["{{ $binName }}".checksum]
 {{ $gr.checksum_type }} = {{ $checksum | quote }}
