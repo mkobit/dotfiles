@@ -1,24 +1,22 @@
 [bin.chafa]
-version = "1.18.1"
+version = "1.18.2"
 
-# chafa does not publish macOS GitHub releases — linux only
-[bin.chafa.github_releases]
-repo            = "hpjansson/chafa"
+# chafa publishes static binaries on hpjansson.org, not GitHub
+[bin.chafa.direct_release]
 external_type   = "archive-file"
 executable      = true
 checksum_type   = "sha256"
-tag_format      = "v{version}"
 filename_format = "chafa-{version}-1-{target}.tar.gz"
 path_format     = "chafa-{version}-1-{target}/chafa"
-url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+url_format      = "https://hpjansson.org/chafa/releases/static/{filename}"
 
-[bin.chafa.github_releases.platforms]
+[bin.chafa.direct_release.platforms]
 linux_amd64 = "x86_64-linux-gnu"
 linux_arm   = "armv7l-linux-gnu"
 
-[bin.chafa.github_releases.checksums]
-linux_amd64 = "aae17508b9e21f67291f50b849e2ce5d31cf194ab65ac3b439bc45effa64be33"
-linux_arm   = "94f6b33e3a417a3cafcb0fe31059ae015323dc4ae2eb57bbf57360a5962d8d82"
+[bin.chafa.direct_release.checksums]
+linux_amd64 = "deb149bc8823589f635f24db3ecc83b7daa86e4c20d8a9f58e9ce53bd97bdda9"
+linux_arm   = "d0ce237308a5b22abed0dd5e5af150cafeb9c90908810e40608389cbad34bfc1"
 
 [bin.chafa.homebrew]
 name = "chafa"

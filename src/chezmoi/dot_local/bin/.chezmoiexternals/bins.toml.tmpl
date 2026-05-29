@@ -1,5 +1,5 @@
 {{- /*
-  Generates chezmoi external entries for bin tools whose BOM selects github_releases.
+  Generates chezmoi external entries for bin tools whose BOM selects a download method.
   BOM: .local.bin.<name>.installation_method — set in .chezmoi.toml.tmpl.
   Default is "none"; each machine opts in via its config template.
   Tools with external_type "archive" (e.g. nvim) are handled via dot_local/.chezmoiexternals/.
@@ -20,5 +20,13 @@
 {{-       end -}}
 {{ includeTemplate "bin/github-releases-entry.tmpl" (dict "name" $name "tool" $tool "platform" $platform "base" $base) }}
 {{-     end -}}
+{{-   else if eq $method "direct_release" -}}
+{{-     if not (hasKey $tool "direct_release") -}}
+{{-       fail (printf "bin.%s: installation_method is direct_release but no direct_release catalog entry exists" $name) -}}
+{{-     end -}}
+{{-     if not (hasKey $tool.direct_release.platforms $platform) -}}
+{{-       fail (printf "bin.%s: no direct_release platform entry for %s" $name $platform) -}}
+{{-     end -}}
+{{ includeTemplate "bin/direct-release-entry.tmpl" (dict "name" $name "tool" $tool "platform" $platform) }}
 {{-   end -}}
 {{- end -}}

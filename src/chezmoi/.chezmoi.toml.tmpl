@@ -46,7 +46,7 @@ installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"githu
 installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"github_releases"{{ end }}
 
 [data.local.bin.chafa]
-installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"github_releases"{{ end }}
+installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"direct_release"{{ end }}
 
 # Linux only — no macOS release
 [data.local.bin.opencode]

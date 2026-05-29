@@ -1,0 +1,36 @@
+{{- /*
+  Emits a chezmoi externals TOML block for one direct_release tool.
+  For vendor-hosted static binaries not published as GitHub releases.
+  Context dict keys: name, tool (root bin entry), platform.
+*/ -}}
+{{- $name     := .name -}}
+{{- $tool     := .tool -}}
+{{- $platform := .platform -}}
+{{- $dr       := $tool.direct_release -}}
+
+{{- if not (hasKey $dr.platforms $platform) -}}
+{{-   fail (printf "bin.%s: no direct_release platform entry for %s" $name $platform) -}}
+{{- end -}}
+
+{{- $target   := dig "platforms" $platform "" $dr -}}
+{{- $filename := $dr.filename_format | replace "{version}" $tool.version | replace "{target}" $target -}}
+{{- $url      := $dr.url_format | replace "{filename}" $filename -}}
+{{- $checksum := dig "checksums" $platform "" $dr -}}
+
+{{- $binName := dig "path_format" "" $dr | splitList "/" | last -}}
+{{- if not $binName -}}{{- $binName = $name -}}{{- end -}}
+
+["{{ $binName }}"]
+type       = {{ $dr.external_type | quote }}
+url        = {{ $url | quote }}
+{{- if dig "executable" false $dr }}
+executable = true
+{{- end }}
+{{- if eq $dr.external_type "archive-file" }}
+{{-   $path := $dr.path_format | replace "{version}" $tool.version | replace "{target}" $target }}
+path = {{ $path | quote }}
+{{- end }}
+{{- if $checksum }}
+["{{ $binName }}".checksum]
+{{ $dr.checksum_type }} = {{ $checksum | quote }}
+{{- end }}
