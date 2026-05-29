@@ -1,4 +1,4 @@
-{{- $prompt := default "starship" .zsh.prompt -}}
+{{- $prompt := dig "zsh" "prompt" "starship" $ -}}
 {{- if eq $prompt "starship" }}
 # Initialize Starship
 if command -v starship >/dev/null 2>&1; then
