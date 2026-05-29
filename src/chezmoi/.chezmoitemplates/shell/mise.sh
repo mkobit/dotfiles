@@ -1,4 +1,4 @@
-{{ if eq .mise.installation_method "chezmoi_external" -}}
+{{ if ne (dig "local" "bin" "mise" "installation_method" "none" $) "none" -}}
 # mise version manager
 if command -v mise >/dev/null 2>&1; then
   eval "$(mise activate {{ .shell }})"
