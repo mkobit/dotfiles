@@ -29,15 +29,17 @@
 ["{{ $binName }}"]
 type       = {{ $gr.external_type | quote }}
 url        = {{ $url | quote }}
-executable = {{ dig "executable" false $gr }}
-{{- if $checksum }}
-["{{ $binName }}".checksum]
-{{ $gr.checksum_type }} = {{ $checksum | quote }}
+{{- if dig "executable" false $gr }}
+executable = true
 {{- end }}
 {{- if eq $gr.external_type "archive-file" }}
 {{-   $path := $gr.path_format | replace "{version}" $tool.version | replace "{target}" $target }}
 path = {{ $path | quote }}
 {{- end }}
 {{- if hasKey $gr "strip_components" }}
-strip_components = {{ $gr.strip_components }}
+stripComponents = {{ $gr.strip_components }}
+{{- end }}
+{{- if $checksum }}
+["{{ $binName }}".checksum]
+{{ $gr.checksum_type }} = {{ $checksum | quote }}
 {{- end }}
