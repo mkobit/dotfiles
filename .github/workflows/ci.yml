@@ -141,7 +141,6 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
-          HOME: ${{ env.CHEZMOI_DEST }}
         run: |
           chezmoi apply \
             --cache=${{ env.CHEZMOI_CACHE_DIR }} \
