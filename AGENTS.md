@@ -48,54 +48,56 @@ Never assume you are on `main` or in the primary checkout directory.
 ## Chezmoi externals & scripts
 
 - **Externals (`.chezmoiexternals/`)**: MUST be used for all downloads (binaries, archives).
+  - Use the directory form `.chezmoiexternals/<name>.toml.tmpl` — flat `.chezmoiexternals.toml.tmpl` files are NOT recognized by chezmoi.
   - Define versions/checksums in `.chezmoidata/bin/`.
   - Never use custom curl/wget scripts for installation.
-- **Shared scripts**: Use `src/scripts/` for reusable shell libraries.
-  - Source with `${CHEZMOI_SOURCE_DIR:?}/scripts/lib.sh`.
+- **Shared scripts**: Source shared shell libraries from `.chezmoitemplates/` via `{{ .chezmoi.sourceDir }}`.
 
 ## Data schema: `.chezmoidata/bin/` (static binaries)
 
-Each tool in `bin/` describes a GitHub release download managed by the `external/release` named template.
+Each tool lives in `.chezmoidata/bin/<name>.toml` under `[bin.<name>]`.
+The **BOM** (Bill of Materials) in `.chezmoi.toml.tmpl` controls which tools are downloaded on each machine:
+
+```toml
+[data.local.bin.<name>]
+installation_method = "github_releases"  # or "direct_release", "homebrew", "apt", "none"
+```
+
+The template `dot_local/bin/.chezmoiexternals/bins.toml.tmpl` iterates `.bin`, reads each tool's `installation_method` from `local.bin`, and dispatches to the appropriate entry template.
+
+### `github_releases` sub-table
+
+For tools published as GitHub release assets.
 
 Required keys:
-- `version` — release version (e.g. `"0.26.1"`)
-- `installation_method` — `"chezmoi_external"` (flat string); work config can override
-- `repo` — GitHub `owner/name` (e.g. `"sharkdp/bat"`)
-- `external_type` — `"archive-file"` (single file from archive) or `"file"` (standalone binary)
-- `executable` — must be `true` for binaries
-- `checksum_type` — `"sha256"` or `"none"`
-- `tag_format` — format string for the git tag (e.g. `"v{version}"`)
-- `filename_format` — format string for the release asset (e.g. `"bat-v{version}-{target}.tar.gz"`)
-- `url_format` — download URL template with `{base}`, `{repo}`, `{tag}`, `{filename}` tokens
-- `platforms` — map of `os_arch` to target triple (e.g. `darwin_arm64 = "aarch64-apple-darwin"`)
+- `repo` — GitHub `owner/name`
+- `external_type` — `"archive-file"`, `"archive"`, or `"file"`
+- `checksum_type` — `"sha256"`
+- `tag_format` — git tag format string (e.g. `"v{version}"`)
+- `filename_format` — release asset name (e.g. `"bat-v{version}-{target}.tar.gz"`)
+- `url_format` — URL with `{base}`, `{repo}`, `{tag}`, `{filename}` tokens
+- `platforms` — map of `os_arch` to target triple
 
-Optional keys:
+Optional:
 - `path_format` — path inside archive to extract (required for `archive-file`)
-- `checksums` — map of `os_arch` to SHA-256 hash (required when `checksum_type = "sha256"`)
-- `fallback_url_format` — secondary download URL emitted as chezmoi `urls` field
-- `strip_components` — tar strip depth
-- `include` — list of globs to extract from archive
-- `readonly` — deploy as read-only
+- `checksums` — map of `os_arch` to SHA-256 hash
+- `strip_components` — tar strip depth (camelCase `stripComponents` in rendered TOML)
+- `executable` — `true` for standalone binaries
 
 The `{base}` token resolves to `github_releases.base_url` from data (default `https://github.com`).
-Work config can inject an Artifactory mirror URL to override this on Stripe machines.
+Work config can inject an Artifactory mirror URL to override this.
 
-## Data schema: `.chezmoidata/packages/` (package-managed tools)
+Tools with `external_type = "archive"` (multi-file tree extraction, e.g. nvim) are NOT handled by `bins.toml.tmpl` — they require their own file in a parent `.chezmoiexternals/` directory.
 
-Each tool in `packages/` describes something installed via a system package manager (brew, snap, apt).
-Templates iterate `.packages` to generate a Brewfile (darwin) or snap install script (linux).
+### `direct_release` sub-table
 
-Required keys:
-- `installation_method` — flat string (`"homebrew"`) or per-OS map (`darwin = "homebrew"`, `linux = "snap"`)
+For vendor-hosted static binaries not published on GitHub (e.g. chafa on hpjansson.org).
+Same keys as `github_releases` except `repo`, `tag_format`, and `{base}`/`{repo}`/`{tag}` tokens are omitted — `url_format` is a full URL pattern using only `{filename}`.
 
-Package metadata (nested under `package.<manager>`):
-- `package.homebrew.name` — brew formula/cask name
-- `package.homebrew.type` — `"formula"` or `"cask"` (MECE, no booleans)
-- `package.snap.name` — snap package name
-- `package.snap.confinement` — `"strict"` or `"classic"` (MECE, no booleans)
+### Package manager sub-tables
 
-Only tools that actually use package managers belong here.
-Tools using `chezmoi_external` should NOT have `package.*` metadata — work config can inject overrides if needed.
+Tools may also declare `homebrew`, `apt` sub-tables for package-manager fallback on platforms without a static binary.
+`dot_Brewfile.tmpl` and install scripts read `installation_method` from the BOM to decide which tools to include.
 
 ## Configuration patterns
 
