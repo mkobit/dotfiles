@@ -20,6 +20,8 @@ env:
   UV_CACHE_DIR: /tmp/.uv-cache
   MISE_CACHE_DIR: /tmp/.mise-cache
   CHEZMOI_CACHE_DIR: /tmp/.chezmoi-cache
+  CHEZMOI_CONFIG: /tmp/.chezmoi-config.toml
+  CHEZMOI_DEST: /tmp/chezmoi-test
   CHEZMOI_VERSION: v2.70.3
 
 defaults:
@@ -118,41 +120,55 @@ jobs:
           echo "$HOME/.local/bin" >> $GITHUB_PATH
 
       - name: Initialize chezmoi
-        env:
-          HOME: /tmp/chezmoi-test
         run: |
-          mkdir -p /tmp/chezmoi-test
-          chezmoi init --cache=${{ env.CHEZMOI_CACHE_DIR }} --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
+          mkdir -p ${{ env.CHEZMOI_DEST }}
+          chezmoi init \
+            --cache=${{ env.CHEZMOI_CACHE_DIR }} \
+            --source=${{ github.workspace }} \
+            --destination=${{ env.CHEZMOI_DEST }} \
+            --config-path=${{ env.CHEZMOI_CONFIG }}
 
       - name: Run chezmoi doctor
-        env:
-          HOME: /tmp/chezmoi-test
-        run: chezmoi doctor --cache=${{ env.CHEZMOI_CACHE_DIR }} --source=${{ github.workspace }} --destination=/tmp/chezmoi-test --no-network
+        run: |
+          chezmoi doctor \
+            --cache=${{ env.CHEZMOI_CACHE_DIR }} \
+            --config=${{ env.CHEZMOI_CONFIG }} \
+            --source=${{ github.workspace }} \
+            --destination=${{ env.CHEZMOI_DEST }} \
+            --no-network
 
       - name: Run chezmoi apply
         env:
-          HOME: /tmp/chezmoi-test
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
-        run: chezmoi apply --cache=${{ env.CHEZMOI_CACHE_DIR }} --source=${{ github.workspace }} --destination=/tmp/chezmoi-test
+          HOME: ${{ env.CHEZMOI_DEST }}
+        run: |
+          chezmoi apply \
+            --cache=${{ env.CHEZMOI_CACHE_DIR }} \
+            --config=${{ env.CHEZMOI_CONFIG }} \
+            --source=${{ github.workspace }} \
+            --destination=${{ env.CHEZMOI_DEST }}
 
       - name: Prune mise cache
         run: |
-          MISE_BIN_DIR=$(chezmoi --source=${{ github.workspace }} --destination=/tmp/chezmoi-test target-path ${{ github.workspace }}/src/chezmoi/dot_local/bin)
+          MISE_BIN_DIR=$(chezmoi \
+            --config=${{ env.CHEZMOI_CONFIG }} \
+            --source=${{ github.workspace }} \
+            --destination=${{ env.CHEZMOI_DEST }} \
+            target-path ${{ github.workspace }}/src/chezmoi/dot_local/bin)
           echo "$MISE_BIN_DIR" >> $GITHUB_PATH
           "$MISE_BIN_DIR/mise" cache prune --yes
 
       - name: Install python dependencies for integration tests
         env:
-          HOME: /tmp/chezmoi-test
+          HOME: ${{ env.CHEZMOI_DEST }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mise exec -- uv sync --all-packages --frozen
 
       - name: Run system integration tests
         env:
-          CHEZMOI_DEST: /tmp/chezmoi-test
-          HOME: /tmp/chezmoi-test
+          HOME: ${{ env.CHEZMOI_DEST }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mise exec -- uv run pytest tests/integration
