@@ -17,10 +17,10 @@ linux_amd64  = "linux-x64"
 linux_arm64  = "linux-arm64"
 
 [mise.checksums]
-darwin_arm64 = "35d100e053df088d8845899e44db5707226f289b66ac1b3b6e8375396e1958d6"
-darwin_amd64 = "f9079283dca3ad136ae4f15de4eecbb927ab6883e2512da6e028cf587e0fa547"
-linux_amd64  = "7fb48f37ae029b515b7d81efd86a5bbfbad2567964eb43660d84ab8424927729"
-linux_arm64  = "219486ed1b3b9e5d02ad979e471fa72272fc03fff4417cc48ed92fb1ba914f9d"
+darwin_arm64 = "90e298df8cda4fdbaa5feb538e496b73ba079379b0f7df8fd9d1ac6f994c3fc5"
+darwin_amd64 = "2498b6e55d51237d400dc9c14e4dfec50968de1b138959a474fa26d641024635"
+linux_amd64  = "849b8419be0a807cdf4e1d451e199347d1524848aadf792238a78ff3ee83351a"
+linux_arm64  = "30bd61cb827c263231537cd83acb8e82ddfa47b1ef89dbbaec222d609c72f06f"
 
 [mise.settings]
 # Configuration settings: https://mise.jdx.dev/configuration/settings.html
