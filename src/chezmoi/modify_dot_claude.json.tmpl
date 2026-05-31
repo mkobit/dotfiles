@@ -17,4 +17,4 @@ preferences = json.loads("""{{ .claude_code.preferences | toPrettyJson }}""")
 
 merged = {**existing, **preferences}
 
-print(json.dumps(merged, indent=2))
+print(json.dumps(merged, indent=2), end='')

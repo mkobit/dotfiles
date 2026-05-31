@@ -1,6 +1,7 @@
+{{- $root := dig "local_bin_tools_root" .chezmoi.workingTree . -}}
 #!/usr/bin/env bash
 # hashes:{{ range $name, $tool := .local_bin_tools }}{{ if index $tool "source_dir" }}
-# {{ $name }}: {{ include (joinPath $.chezmoi.workingTree (index $tool "source_dir") "pyproject.toml") | sha256sum }}{{ end }}{{ end }}
+# {{ $name }}: {{ include (joinPath $root (index $tool "source_dir") "pyproject.toml") | sha256sum }}{{ end }}{{ end }}
 set -euo pipefail
 
 MISE="{{ .chezmoi.destDir }}/.local/bin/mise"
@@ -14,9 +15,9 @@ fi
 {{ range $name, $tool := .local_bin_tools -}}
 {{- if eq $tool.installation_method "dotfiles.uv" }}
 UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
-  "$MISE" exec --cd "{{ $.chezmoi.workingTree }}" -- uv tool install --force --editable "{{ $.chezmoi.workingTree }}/{{ $tool.source_dir }}"
+  "$MISE" exec --cd "{{ $root }}" -- uv tool install --force --editable "{{ $root }}/{{ $tool.source_dir }}"
 {{- else if ne $tool.installation_method "none" }}
 UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
-  "$MISE" exec --cd "{{ $.chezmoi.workingTree }}" -- uv tool uninstall {{ index $tool "package_name" }} 2>/dev/null || true
+  "$MISE" exec --cd "{{ $root }}" -- uv tool uninstall {{ index $tool "package_name" }} 2>/dev/null || true
 {{- end }}
 {{ end -}}
