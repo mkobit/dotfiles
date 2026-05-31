@@ -1,5 +1,5 @@
 [gh]
-version             = "2.92.0"
+version             = "2.93.0"
 installation_method = "chezmoi_external"
 
 # gh uses a non-standard archive naming scheme (macOS alias, zip vs tar.gz per OS)
