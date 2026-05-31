@@ -1,23 +1,24 @@
-[opencode]
-external_type       = "archive-file"
-executable          = true
-tag_format          = "v{version}"
-path_format         = "opencode"
-url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
-version             = "1.14.41"
-installation_method = "chezmoi_external"
-repo                = "anomalyco/opencode"
-checksum_type       = "sha256"
-filename_format     = "opencode-{target}.{ext}"
+[bin.opencode]
+version = "1.14.41"
 
-[opencode.platforms]
-linux_amd64  = "linux-x64"
-linux_arm64  = "linux-arm64"
+[bin.opencode.github_releases]
+repo            = "anomalyco/opencode"
+external_type   = "archive-file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "v{version}"
+filename_format = "opencode-{target}.{ext}"
+path_format     = "opencode"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
 
-[opencode.ext]
-linux_amd64  = "tar.gz"
-linux_arm64  = "tar.gz"
+[bin.opencode.github_releases.platforms]
+linux_amd64 = "linux-x64"
+linux_arm64 = "linux-arm64"
 
-[opencode.checksums]
-linux_amd64  = "d27d3c85183a7bd2df4506484a2f508d1897962063b7ccc8466705b493963dc5"
-linux_arm64  = "2ffa63bb6115d7aa193cb1f6fa766eb79e1b399776871a624935a752e4461105"
+[bin.opencode.github_releases.ext]
+linux_amd64 = "tar.gz"
+linux_arm64 = "tar.gz"
+
+[bin.opencode.github_releases.checksums]
+linux_amd64 = "d27d3c85183a7bd2df4506484a2f508d1897962063b7ccc8466705b493963dc5"
+linux_arm64 = "2ffa63bb6115d7aa193cb1f6fa766eb79e1b399776871a624935a752e4461105"

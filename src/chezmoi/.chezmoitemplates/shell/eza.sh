@@ -1,8 +1,6 @@
 {{- $chezmoiSourceDir := .chezmoi.sourceDir -}}
 {{- $chezmoiTargetDir := .chezmoi.destDir -}}
-{{- with .eza -}}
-{{- $installation := dig "packages" "eza" "installation_method" $.chezmoi.os "none" $ -}}
-{{- if ne $installation "none" -}}
+{{- if ne (dig "local" "bin" "eza" "installation_method" "none" $) "none" -}}
 # eza completions and aliases
 if command -v eza >/dev/null 2>&1; then
     {{- if eq $.shell "zsh" }}
@@ -21,5 +19,4 @@ if command -v eza >/dev/null 2>&1; then
     alias tree='eza --tree'
     alias lt='eza --tree'
 fi
-{{- end -}}
 {{- end }}

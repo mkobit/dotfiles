@@ -1,0 +1,43 @@
+{{- if eq .chezmoi.os "linux" -}}
+{{- $aptPkgs := list -}}
+{{- range $name, $tool := .packages -}}
+{{-   $im := dig "installation_method" "" $tool -}}
+{{-   $method := "" -}}
+{{-   if kindIs "string" $im -}}
+{{-     $method = $im -}}
+{{-   else if kindIs "map" $im -}}
+{{-     $method = dig "linux" "" $im -}}
+{{-   end -}}
+{{-   if eq $method "apt" -}}
+{{-     $aptPkgs = append $aptPkgs $name -}}
+{{-   end -}}
+{{- end -}}
+{{- if $aptPkgs -}}
+#!/usr/bin/env bash
+# apt packages hash: {{ $aptPkgs | toJson | sha256sum }}
+
+set -euo pipefail
+
+source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
+
+if ! check_command apt-get; then
+    log_error "apt-get not found — cannot install packages"
+    exit 1
+fi
+
+{{- range $aptPkgs }}
+{{-   $tool := index $.packages . }}
+{{-   $pkg := dig "package" "apt" (dict) $tool }}
+{{-   $name := dig "name" . $pkg }}
+
+if dpkg -l {{ $name }} 2>/dev/null | grep -q "^ii"; then
+    log_success "{{ $name }} already installed via apt"
+else
+    log_info "Installing {{ $name }} via apt..."
+    sudo apt-get install -y {{ $name }} \
+        || { log_error "Failed to install {{ $name }} via apt"; exit 1; }
+    log_success "{{ $name }} installed"
+fi
+{{- end }}
+{{- end }}
+{{- end }}

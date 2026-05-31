@@ -1,26 +1,29 @@
-[mise]
-version             = "v2026.5.6"
-installation_method = "chezmoi_external"
-repo                = "jdx/mise"
-external_type       = "file"
-executable          = true
-checksum_type       = "sha256"
-tag_format          = "{version}"
-filename_format     = "mise-{version}-{target}"
-url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
+# mise version already includes "v" prefix — tag_format = "{version}" (no added v)
+[bin.mise]
+version = "v2026.5.6"
 
-# mise version already includes "v" prefix in data — tag_format = "{version}" (no added v)
-[mise.platforms]
+[bin.mise.github_releases]
+repo            = "jdx/mise"
+external_type   = "file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "{version}"
+filename_format = "mise-{version}-{target}"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.mise.github_releases.platforms]
 darwin_arm64 = "macos-arm64"
 darwin_amd64 = "macos-x64"
 linux_amd64  = "linux-x64"
 linux_arm64  = "linux-arm64"
 
-[mise.checksums]
+[bin.mise.github_releases.checksums]
 darwin_arm64 = "35d100e053df088d8845899e44db5707226f289b66ac1b3b6e8375396e1958d6"
 darwin_amd64 = "f9079283dca3ad136ae4f15de4eecbb927ab6883e2512da6e028cf587e0fa547"
 linux_amd64  = "7fb48f37ae029b515b7d81efd86a5bbfbad2567964eb43660d84ab8424927729"
 linux_arm64  = "219486ed1b3b9e5d02ad979e471fa72272fc03fff4417cc48ed92fb1ba914f9d"
+
+[mise]
 
 [mise.settings]
 # Configuration settings: https://mise.jdx.dev/configuration/settings.html

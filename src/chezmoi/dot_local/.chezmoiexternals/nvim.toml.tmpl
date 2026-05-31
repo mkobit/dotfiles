@@ -1,5 +1,6 @@
-{{- with .nvim -}}
-{{- if eq .installation_method "chezmoi_external" -}}
-{{- template "external/release" (dict "key" "nvim" "data" . "root" $) -}}
-{{- end -}}
+{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
+{{- $base     := dig "github_releases" "base_url" "https://github.com" . -}}
+{{- $method   := dig "local" "bin" "nvim" "installation_method" "none" $ -}}
+{{- if eq $method "github_releases" -}}
+{{- includeTemplate "bin/github-releases-entry.tmpl" (dict "name" "nvim" "tool" .bin.nvim "platform" $platform "base" $base) -}}
 {{- end -}}
