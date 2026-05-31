@@ -41,5 +41,5 @@ stripComponents = {{ $gr.strip_components }}
 {{- end }}
 {{- if $checksum }}
 ["{{ $binName }}".checksum]
-{{ $gr.checksum_type }} = {{ $checksum | quote }}
+{{- printf "\n%s = %s" $gr.checksum_type ($checksum | quote) }}
 {{- end }}

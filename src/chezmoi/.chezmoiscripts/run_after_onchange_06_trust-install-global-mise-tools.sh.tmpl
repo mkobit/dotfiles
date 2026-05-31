@@ -38,7 +38,7 @@ else
 fi
 
 log_info "Reshimming global mise tools..."
-if "$MISE" reshim; then
+if "$MISE" reshim -C "{{ .chezmoi.destDir }}"; then
     log_success "Global mise tools reshimmed."
 else
     log_error "Failed to reshim global mise tools."

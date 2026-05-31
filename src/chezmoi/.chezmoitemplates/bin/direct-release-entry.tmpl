@@ -32,5 +32,5 @@ path = {{ $path | quote }}
 {{- end }}
 {{- if $checksum }}
 ["{{ $binName }}".checksum]
-{{ $dr.checksum_type }} = {{ $checksum | quote }}
+{{- printf "\n%s = %s" $dr.checksum_type ($checksum | quote) }}
 {{- end }}
