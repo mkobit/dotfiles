@@ -32,3 +32,4 @@ files = "allow"
 [claude_code.settings.env]
 DISABLE_AUTOUPDATER = "true"
 DISABLE_TELEMETRY = "true"
+ENABLE_TOOL_SEARCH = "true"
