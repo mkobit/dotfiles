@@ -1,6 +1,6 @@
 [core]
 	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreeditor
-{{- if lookPath "nvim" }}
+{{- if or (lookPath "nvim") (ne (dig "local" "bin" "nvim" "installation_method" "none" $) "none") }}
 	editor = nvim
 {{- else if lookPath "vim" }}
 	editor = vim
