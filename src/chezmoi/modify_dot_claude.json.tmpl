@@ -15,6 +15,7 @@ except Exception:
 
 preferences = json.loads("""{{ .claude_code.preferences | toPrettyJson }}""")
 
+
 def deep_merge(d1, d2):
     for k, v in d2.items():
         if isinstance(v, dict) and k in d1 and isinstance(d1[k], dict):
@@ -23,6 +24,7 @@ def deep_merge(d1, d2):
             d1[k] = v
     return d1
 
+
 merged = deep_merge(existing.copy(), preferences)
 
-print(json.dumps(merged, indent=2), end='')
+print(json.dumps(merged, indent=2, sort_keys=True), end="")
