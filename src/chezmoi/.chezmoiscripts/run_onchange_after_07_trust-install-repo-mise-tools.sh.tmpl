@@ -1,7 +1,8 @@
-{{- if ne (dig "local" "bin" "mise" "installation_method" "none" $) "none" -}}
+{{- $misePath := joinPath .chezmoi.workingTree "mise.toml" -}}
+{{- if and (ne (dig "local" "bin" "mise" "installation_method" "none" $) "none") (stat $misePath) -}}
 #!/usr/bin/env bash
 # mise version: {{ .bin.mise.version }}
-# mise.toml hash: {{ joinPath .chezmoi.workingTree "mise.toml" | include | sha256sum }}
+# mise.toml hash: {{ include $misePath | sha256sum }}
 
 set -euo pipefail
 
