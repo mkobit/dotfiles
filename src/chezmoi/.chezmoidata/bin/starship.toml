@@ -1,5 +1,5 @@
 [bin.starship]
-version = "1.25.0"
+version = "1.25.1"
 
 [bin.starship.github_releases]
 repo            = "starship/starship"
@@ -18,10 +18,10 @@ linux_amd64  = "x86_64-unknown-linux-gnu"
 linux_arm64  = "aarch64-unknown-linux-musl"
 
 [bin.starship.github_releases.checksums]
-darwin_arm64 = "365301b5f4938322a9f378764b4bc640048bca7d6ac28eaabd406cadd6fc703a"
-darwin_amd64 = "05421bfc05ed00394ec4a7ea20213bd9920b2858713cbe1ddf257ebcebf5da88"
-linux_amd64  = "025a6540717a20d2545410c0108caf216a6a14ab2cce91a473d91ed42762bc6b"
-linux_arm64  = "68ffcb75582e5ed336b43598bb4d8ecc4ec994ea26eac7955d3d378f1375da34"
+darwin_arm64 = "1062a2363489b9335529b83204472f02633c08fc3609f1b325be5eba36feb631"
+darwin_amd64 = "f86fbe7a3b9f262bcf34ca61e9e996243da511c5500dcd81a1e4daa542869276"
+linux_amd64  = "4488c11ca632327d1f1f16fb2f102c0646094c35479cd5435991385da43c61ac"
+linux_arm64  = "01517aab398959ea9ea73bdb4f032ea4dbb51dff5c8e5eb05b4a1b9b7ab872b8"
 
 [bin.starship.homebrew]
 name = "starship"
