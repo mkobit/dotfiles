@@ -15,6 +15,14 @@ except Exception:
 
 preferences = json.loads("""{{ .claude_code.preferences | toPrettyJson }}""")
 
-merged = {**existing, **preferences}
+def deep_merge(d1, d2):
+    for k, v in d2.items():
+        if isinstance(v, dict) and k in d1 and isinstance(d1[k], dict):
+            deep_merge(d1[k], v)
+        else:
+            d1[k] = v
+    return d1
+
+merged = deep_merge(existing.copy(), preferences)
 
 print(json.dumps(merged, indent=2), end='')

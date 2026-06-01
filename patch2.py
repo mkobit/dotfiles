@@ -1,15 +1,7 @@
-#!/usr/bin/env python3
-# Manages ~/.claude/settings.json — deployment config only.
-# UI preferences (editorMode, etc.) live in ~/.claude.json; see modify_dot_claude.json.tmpl.
 import json
-import sys
 
-try:
-    existing = json.load(sys.stdin)
-except Exception:
-    existing = {}
-
-managed = json.loads("""{{ .claude_code.settings | toPrettyJson }}""")
+existing = {"env": {"EXISTING_VAR": "true"}}
+managed = {"env": {"DISABLE_TELEMETRY": "true", "ENABLE_TOOL_SEARCH": "auto"}}
 
 def deep_merge(d1, d2):
     for k, v in d2.items():
