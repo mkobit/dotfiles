@@ -12,6 +12,8 @@ if [[ ! -x "$MISE" ]]; then
     exit 0
 fi
 
+"$MISE" trust "{{ $root }}/mise.toml"
+
 {{ range $name, $tool := .local_bin_tools -}}
 {{- if eq $tool.installation_method "dotfiles.uv" }}
 UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
