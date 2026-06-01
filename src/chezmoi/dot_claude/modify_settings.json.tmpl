@@ -11,6 +11,7 @@ except Exception:
 
 managed = json.loads("""{{ .claude_code.settings | toPrettyJson }}""")
 
+
 def deep_merge(d1, d2):
     for k, v in d2.items():
         if isinstance(v, dict) and k in d1 and isinstance(d1[k], dict):
@@ -19,13 +20,7 @@ def deep_merge(d1, d2):
             d1[k] = v
     return d1
 
+
 merged = deep_merge(existing.copy(), managed)
 
-def sort_keys(obj):
-    if isinstance(obj, dict):
-        return {k: sort_keys(v) for k, v in sorted(obj.items())}
-    elif isinstance(obj, list):
-        return [sort_keys(i) for i in obj]
-    return obj
-
-print(json.dumps(sort_keys(merged), indent=2))
+print(json.dumps(merged, indent=2, sort_keys=True))
