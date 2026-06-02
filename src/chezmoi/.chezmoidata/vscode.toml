@@ -1,3 +1,6 @@
+# Shift+Enter in the integrated terminal sends ESC+CR instead of submitting the line.
+# VS Code and Cursor do not natively support this — required for Claude Code's
+# multi-line input (and any other tool that reads ESC+Enter as a soft newline).
 [[vscode.keybindings]]
 key = "shift+enter"
 command = "workbench.action.terminal.sendSequence"
