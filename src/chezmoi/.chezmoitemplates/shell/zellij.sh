@@ -11,6 +11,12 @@ if command -v zellij >/dev/null 2>&1; then
     # We strip out the `_zellij "$@"` execution and leave only the definitions and aliases.
     if [[ "{{ .shell }}" == "zsh" ]]; then
         eval "$(zellij setup --generate-completion zsh | grep -v '^_zellij "$@"$')"
+        compdef zj=zellij
+        compdef zja=zellij
+    elif [[ "{{ .shell }}" == "bash" ]]; then
+        eval "$(zellij setup --generate-completion {{ .shell }})"
+        complete -F _zellij -o bashdefault -o default zj
+        complete -F _zellij -o bashdefault -o default zja
     else
         eval "$(zellij setup --generate-completion {{ .shell }})"
     fi
