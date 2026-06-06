@@ -11,3 +11,9 @@
 	excludesFile = ~/.dotfiles/git/snippets/gitignore_global
 	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor
 	fsmonitor = true
+	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-corepager
+{{- if or (lookPath "delta") (ne (dig "local" "bin" "delta" "installation_method" "none" $) "none") }}
+	pager = delta
+{{- else if lookPath "less" }}
+	pager = less -FX
+{{- end }}
