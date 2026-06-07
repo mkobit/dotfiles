@@ -72,7 +72,7 @@ if (!\$actionExists) {
     \$newAction = [PSCustomObject]@{
         command = [PSCustomObject]@{
             action = 'sendInput'
-            input = '\u001b[13;2u'
+            input = '\u001b\r'
         }
         id = \$targetActionId
         keys = 'shift+enter'
