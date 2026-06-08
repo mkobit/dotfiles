@@ -1,4 +1,4 @@
-{{- $items := index .ai_plugins "items" -}}
+{{- $items := index (default dict (get . "ai_plugins")) "items" -}}
 {{- if $items -}}
 #!/usr/bin/env bash
 {{/*
@@ -38,7 +38,7 @@ fi
 
 # --- 2. Desired set (rendered from registry at chezmoi apply time) ---
 DESIRED=$(cat <<'DESIRED_PLUGINS'
-{{ range (index .ai_plugins "items") -}}
+{{ range (index (default dict (get . "ai_plugins")) "items") -}}
 {{ if eq .tool "claude" -}}
 {{ .name }}
 {{ end -}}
