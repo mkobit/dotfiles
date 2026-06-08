@@ -1,4 +1,4 @@
-{{- $items := index .ai_plugins "items" -}}
+{{- $items := index (default dict (get . "ai_plugins")) "items" -}}
 {{- if $items -}}
 #!/usr/bin/env bash
 {{/*
@@ -9,7 +9,7 @@
     - Uninstalls plugins installed from @personal-plugins but removed from registry
   Never touches plugins from other marketplaces (e.g. @stripe-internal-marketplace).
 */ -}}
-# registry hash: {{ include (joinPath .chezmoi.sourceDir "dot_local/share/ai/.chezmoidata/plugins.toml") | sha256sum }}
+# registry hash: {{ include (joinPath (.chezmoi.sourceDir | toString) "dot_local/share/ai/.chezmoidata/plugins.toml") | sha256sum }}
 
 set -euo pipefail
 
@@ -38,7 +38,7 @@ fi
 
 # --- 2. Desired set (rendered from registry at chezmoi apply time) ---
 DESIRED=$(cat <<'DESIRED_PLUGINS'
-{{ range (index .ai_plugins "items") -}}
+{{ range (index (default dict (get . "ai_plugins")) "items") -}}
 {{ if eq .tool "claude" -}}
 {{ .name }}
 {{ end -}}
