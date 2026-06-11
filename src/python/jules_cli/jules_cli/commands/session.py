@@ -5,6 +5,7 @@ import sys
 import typer
 
 from jules_cli.client import JulesClient
+from jules_cli.config import get_api_key
 from jules_cli.core import JulesContext
 from jules_cli.session import AutomationMode, CreateSessionRequest, SessionState
 from jules_cli.source import GitHubRepoContext, SourceContext
@@ -13,8 +14,6 @@ session_app = typer.Typer(add_completion=False, help="Manage sessions.")
 
 
 def _get_api_key(ctx: typer.Context) -> str:
-    from jules_cli.main import get_api_key  # noqa: PLC0415
-
     jules_ctx: JulesContext = ctx.obj
     return get_api_key(jules_ctx.api_key)
 

@@ -11,9 +11,9 @@ from typer.testing import CliRunner
 from whenever import Instant
 
 from jules_cli.activity import Activity
-from jules_cli.config import JulesConfig
+from jules_cli.config import JulesConfig, get_api_key
 from jules_cli.core import JulesContext
-from jules_cli.main import cli, get_api_key
+from jules_cli.main import cli
 from jules_cli.session import Session
 from jules_cli.source import GitHubRepo, Source, SourceContext
 
@@ -21,7 +21,7 @@ from jules_cli.source import GitHubRepo, Source, SourceContext
 def test_get_api_key_ignores_env_var() -> None:
     with (
         patch.dict(os.environ, {"JULES_API_KEY": "env_key"}),
-        patch("jules_cli.main.load_config", return_value=JulesConfig()),
+        patch("jules_cli.config.load_config", return_value=JulesConfig()),
         patch("pathlib.Path.exists", return_value=False),
         pytest.raises(SystemExit),
     ):
@@ -31,13 +31,13 @@ def test_get_api_key_ignores_env_var() -> None:
 def test_get_api_key_from_config() -> None:
     mock_config = MagicMock()
     mock_config.api_key = "config_key"
-    with patch("jules_cli.main.load_config", return_value=mock_config):
+    with patch("jules_cli.config.load_config", return_value=mock_config):
         assert get_api_key() == "config_key"
 
 
 def test_get_api_key_override() -> None:
     # Even if config fails, override should win
-    with patch("jules_cli.main.load_config", side_effect=Exception("No config")):
+    with patch("jules_cli.config.load_config", side_effect=Exception("No config")):
         assert get_api_key("override_key") == "override_key"
 
 
