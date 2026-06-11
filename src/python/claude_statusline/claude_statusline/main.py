@@ -135,10 +135,11 @@ def main(  # noqa: C901
         return []
 
     async def fetch_all() -> None:  # noqa: C901
+        nonlocal all_segments
         git_key = f"internal.git:{cwd.resolve()}"
         cached_git = await cache.get(git_key)
         if cached_git is not None:
-            all_segments.extend(cached_git)
+            all_segments = all_segments + cached_git
         else:
 
             async def wrap_git():
@@ -154,7 +155,7 @@ def main(  # noqa: C901
             cmd_key = f"external:{cmd}"
             cached_cmd = await cache.get(cmd_key)
             if cached_cmd is not None:
-                all_segments.extend(cached_cmd)
+                all_segments = all_segments + cached_cmd
             else:
 
                 async def wrap_cmd(c=cmd, ck=cmd_key):
@@ -171,9 +172,9 @@ def main(  # noqa: C901
         cache_updates = []
         for _, key, res in results:
             if isinstance(res, Exception):
-                all_segments.extend(handle_error(res, key))
+                all_segments = all_segments + handle_error(res, key)
             else:
-                all_segments.extend(res)
+                all_segments = all_segments + res
                 if res:
                     try:
                         if any(hasattr(r, "cache_duration") and r.cache_duration for r in res):
@@ -205,9 +206,9 @@ def main(  # noqa: C901
             format_lines_impact(payload),
         ]
         for result_list in internal_results_nested:
-            all_segments.extend(result_list)
+            all_segments = all_segments + result_list
     except Exception as e:
-        all_segments.extend(handle_error(e, "internal.claude_or_workspace"))
+        all_segments = all_segments + handle_error(e, "internal.claude_or_workspace")
 
     lines = render_lines(payload, None, all_segments)
 
