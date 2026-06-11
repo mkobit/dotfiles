@@ -1,10 +1,12 @@
 import logging
 import os
+import sys
 import tomllib
 from functools import cached_property
 from pathlib import Path
 from typing import Self
 
+import typer
 from pydantic import BaseModel, model_validator
 
 logger = logging.getLogger(__name__)
@@ -67,3 +69,31 @@ def load_config(config_path: str | None = None) -> JulesConfig:
             return None
 
     return next((cfg for cfg in map(try_load, candidates) if cfg), None) or JulesConfig()
+
+
+def get_api_key(api_key_override: str | None = None) -> str:
+    """Retrieves the Jules API key.
+
+    Checks override first, then config, then legacy XDG config location
+    (~/.config/jules/api_key).
+    """
+    if api_key_override:
+        return api_key_override
+
+    try:
+        config = load_config()
+        if config.api_key:
+            return config.api_key
+    except Exception as e:
+        # If loading fails (e.g., config file malformed), log warning and proceed
+        logging.warning("Failed to load config: %s", e)
+
+    # Legacy check XDG config
+    xdg_config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
+    legacy_file = Path(xdg_config_home) / "jules" / "api_key"
+
+    if legacy_file.exists():
+        return legacy_file.read_text().strip()
+
+    typer.echo(f"Error: API key not found in config or {legacy_file}.", err=True)
+    sys.exit(1)
