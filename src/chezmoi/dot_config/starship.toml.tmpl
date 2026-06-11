@@ -38,3 +38,8 @@ ignore_branches = {{ dig "starship" "ignore_branches" list . | toToml }}
 
 [python]
 disabled = {{ not (dig "starship" "modules" "python" "enabled" true .) }}
+{{- range $name, $cfg := dig "starship" "custom_segments" dict . }}
+
+[custom.{{ $name }}]
+{{ $cfg | toToml -}}
+{{- end }}
