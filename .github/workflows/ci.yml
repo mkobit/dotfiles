@@ -22,7 +22,7 @@ env:
   CHEZMOI_CACHE_DIR: /tmp/.chezmoi-cache
   CHEZMOI_CONFIG: /tmp/.chezmoi-config.toml
   CHEZMOI_DEST: /tmp/chezmoi-test
-  CHEZMOI_VERSION: v2.70.4
+  CHEZMOI_VERSION: v2.70.5
 
 defaults:
   run:
@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@v4.0.1
       - name: Restore uv cache
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
@@ -65,7 +65,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
-      - uses: jdx/mise-action@v4
+      - uses: jdx/mise-action@v4.0.1
       - name: Restore uv cache
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:

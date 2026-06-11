@@ -1,5 +1,4 @@
-{{- $zellij := index . "zellij" | default (dict) -}}
-{{- if eq (dig "installation_method" "" $zellij) "chezmoi_external" }}
+{{- if ne (dig "local" "bin" "zellij" "installation_method" "none" $) "none" }}
 # Zellij aliases and fzf completion
 alias zj="zellij"
 alias zja="zellij attach"
