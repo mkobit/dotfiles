@@ -1,0 +1,5 @@
+{{- with .shellcheck -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "shellcheck" "data" . "root" $) -}}
+{{- end -}}
+{{- end -}}

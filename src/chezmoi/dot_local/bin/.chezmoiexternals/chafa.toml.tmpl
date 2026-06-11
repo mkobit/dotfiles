@@ -1,0 +1,5 @@
+{{- with .chafa -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "chafa" "data" . "root" $) -}}
+{{- end -}}
+{{- end -}}

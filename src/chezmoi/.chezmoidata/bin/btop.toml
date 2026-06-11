@@ -1,24 +1,19 @@
-[bin.btop]
-version = "1.4.7"
+[btop]
+version             = "1.4.7"
+installation_method = "chezmoi_external"
+repo                = "aristocratos/btop"
+external_type       = "archive-file"
+executable          = true
+checksum_type       = "sha256"
+tag_format          = "v{version}"
+filename_format     = "btop-{target}.tar.gz"
+path_format         = "./btop/bin/btop"
+url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
 
-# btop does not publish macOS binaries — linux only
-[bin.btop.github_releases]
-repo            = "aristocratos/btop"
-external_type   = "archive-file"
-executable      = true
-checksum_type   = "sha256"
-tag_format      = "v{version}"
-filename_format = "btop-{target}.tar.gz"
-path_format     = "./btop/bin/btop"
-url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+[btop.platforms]
+linux_amd64  = "x86_64-unknown-linux-musl"
+linux_arm64  = "aarch64-unknown-linux-musl"
 
-[bin.btop.github_releases.platforms]
-linux_amd64 = "x86_64-unknown-linux-musl"
-linux_arm64 = "aarch64-unknown-linux-musl"
-
-[bin.btop.github_releases.checksums]
-linux_amd64 = "5099054dd6a101bd12eb6ff3702a9a6a3f57aaa27923a0da478ae5b517faf335"
-linux_arm64 = "6270de0ef4c84cf0eea61cb148b3ad9ae91a11e9c3309867ffc6b3751024c252"
-
-[bin.btop.homebrew]
-name = "btop"
+[btop.checksums]
+linux_amd64  = "5099054dd6a101bd12eb6ff3702a9a6a3f57aaa27923a0da478ae5b517faf335"
+linux_arm64  = "6270de0ef4c84cf0eea61cb148b3ad9ae91a11e9c3309867ffc6b3751024c252"

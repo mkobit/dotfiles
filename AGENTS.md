@@ -47,33 +47,75 @@ Never assume you are on `main` or in the primary checkout directory.
 
 ## Chezmoi externals & scripts
 
-All binary downloads go through chezmoi externals — never custom curl/wget scripts.
-Use the `.chezmoiexternals/` **directory** form (flat `.chezmoiexternals.toml.tmpl` files are not recognized by chezmoi).
-Versions, checksums, and download metadata live in `.chezmoidata/bin/`.
-Shared shell libraries live in `.chezmoitemplates/` and are sourced via `{{ .chezmoi.sourceDir }}` at script render time.
+- **Externals (`.chezmoiexternals/`)**: MUST be used for all downloads (binaries, archives).
+  - Define versions/checksums in `.chezmoidata/bin/`.
+  - Never use custom curl/wget scripts for installation.
+- **Shared scripts**: Use `src/scripts/` for reusable shell libraries.
+  - Source with `${CHEZMOI_SOURCE_DIR:?}/scripts/lib.sh`.
 
-## Binary tool catalog (BOM pattern)
+## Data schema: `.chezmoidata/bin/` (static binaries)
 
-Each binary tool has a catalog entry in `.chezmoidata/bin/` describing how to download it (URL pattern, platform map, checksums) for each supported source (GitHub releases, vendor hosting, package managers).
-The **BOM** (Bill of Materials) in `.chezmoi.toml.tmpl` declares which tools are active on a given machine and by which method — catalog entries are inert until opted into via the BOM.
-A dispatch template in `.chezmoiexternals/` reads the BOM and generates the appropriate chezmoi external entries.
+Each tool in `bin/` describes a GitHub release download managed by the `external/release` named template.
 
-When adding a tool: add a catalog entry, add a BOM entry, verify the correct source type is used (GitHub releases, direct vendor download, or package manager — don't conflate them).
-When a tool extracts a full directory tree rather than a single binary, it needs its own `.chezmoiexternals/` entry rather than going through the shared dispatch template.
+Required keys:
+- `version` — release version (e.g. `"0.26.1"`)
+- `installation_method` — `"chezmoi_external"` (flat string); work config can override
+- `repo` — GitHub `owner/name` (e.g. `"sharkdp/bat"`)
+- `external_type` — `"archive-file"` (single file from archive) or `"file"` (standalone binary)
+- `executable` — must be `true` for binaries
+- `checksum_type` — `"sha256"` or `"none"`
+- `tag_format` — format string for the git tag (e.g. `"v{version}"`)
+- `filename_format` — format string for the release asset (e.g. `"bat-v{version}-{target}.tar.gz"`)
+- `url_format` — download URL template with `{base}`, `{repo}`, `{tag}`, `{filename}` tokens
+- `platforms` — map of `os_arch` to target triple (e.g. `darwin_arm64 = "aarch64-apple-darwin"`)
 
-## Data and templates
+Optional keys:
+- `path_format` — path inside archive to extract (required for `archive-file`)
+- `checksums` — map of `os_arch` to SHA-256 hash (required when `checksum_type = "sha256"`)
+- `fallback_url_format` — secondary download URL emitted as chezmoi `urls` field
+- `strip_components` — tar strip depth
+- `include` — list of globs to extract from archive
+- `readonly` — deploy as read-only
 
-All configuration data lives in `.chezmoidata/`.
-Config values set in `.chezmoi.toml.tmpl` take precedence over `.chezmoidata/` for the same key path.
-Use `dig` for safe key traversal — direct map access fails in strict mode when a key is absent.
-Access hyphenated keys with `index` rather than dot notation.
+The `{base}` token resolves to `github_releases.base_url` from data (default `https://github.com`).
+Work config can inject an Artifactory mirror URL to override this on Stripe machines.
 
-## Troubleshooting package installations
+## Data schema: `.chezmoidata/packages/` (package-managed tools)
 
-If an install fails due to a package being too new, check for a minimum release age setting in the relevant config (mise, uv, etc.) and use an older version that satisfies it.
+Each tool in `packages/` describes something installed via a system package manager (brew, snap, apt).
+Templates iterate `.packages` to generate a Brewfile (darwin) or snap install script (linux).
+
+Required keys:
+- `installation_method` — flat string (`"homebrew"`) or per-OS map (`darwin = "homebrew"`, `linux = "snap"`)
+
+Package metadata (nested under `package.<manager>`):
+- `package.homebrew.name` — brew formula/cask name
+- `package.homebrew.type` — `"formula"` or `"cask"` (MECE, no booleans)
+- `package.snap.name` — snap package name
+- `package.snap.confinement` — `"strict"` or `"classic"` (MECE, no booleans)
+
+Only tools that actually use package managers belong here.
+Tools using `chezmoi_external` should NOT have `package.*` metadata — work config can inject overrides if needed.
+
+## Configuration patterns
+
+- **Data**: All configuration data lives in `.chezmoidata/` (e.g., `src/.chezmoidata/git.toml`).
+- **Templates**: Use `{{ .chezmoi.sourceDir }}` to reference source files if needed, but prefer `{{ .chezmoi.destDir }}` for target paths.
+- **Hyphens**: Access keys with hyphens using `index`: `{{- with (index .zsh "oh-my-zsh") }}`.
+
+## Data merge hierarchy
+
+`--config [data.*]` beats `.chezmoidata/` unconditionally; `.chezmoidata/` files deep-merge (sibling keys coexist, last alpha file wins on conflicts).
+All tool entries in `.chezmoidata/` must declare an explicit `installation_method` key.
+Use `dig` for safe access when the key may be absent or may be a per-OS map.
+Work-imposed locks in the generated config always win — personal cannot override them.
+
+## Troubleshooting Package Installations
+When resolving package installation failures (e.g. `npm`, `pnpm`, `bun`, `uv`), check if the failure is due to the minimum release age configuration (e.g. `min-release-age`, `minimumReleaseAge`, `exclude-newer`). If so, the package might be too new and you should use an older version.
 
 ## Zellij layout system
 
-Each environment owns its layout files directly — no cross-repo injection.
-Scalar config defaults live in `.chezmoidata/zellij.toml`; overlay environments override via `[data.zellij.*]`.
+Personal layouts live in `src/chezmoi/dot_config/zellij/layouts/`.
+Each environment (overlay, personal machine, remote) owns its own layout files directly — no cross-repo injection for layouts.
+Config scalar defaults (`scrollback_lines_to_serialize`, `show_startup_tips`) live in `.chezmoidata/zellij.toml`; overlay environments may override via `[data.zellij.config]`.
 Docs: https://zellij.dev/documentation/creating-a-layout

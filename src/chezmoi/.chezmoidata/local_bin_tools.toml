@@ -1,6 +1,6 @@
 # Local Python tools installed via uv from src/python/ workspace.
 # Set installation_method = "none" to skip on machines where you don't want them.
-# source_dir: path relative to local_bin_tools_root (defaults to workingTree)
+# source_dir: path relative to workingTree root
 # package_name: uv package name (used for uninstall)
 
 [local_bin_tools.claude_statusline]

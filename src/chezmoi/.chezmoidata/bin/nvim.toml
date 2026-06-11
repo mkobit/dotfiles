@@ -1,28 +1,21 @@
-[bin.nvim]
-version = "0.12.2"
+[nvim]
+version             = "0.10.4"
+installation_method = "chezmoi_external"
+repo                = "neovim/neovim"
+external_type       = "archive"
+checksum_type       = "sha256"
+tag_format          = "v{version}"
+filename_format     = "nvim-{target}.tar.gz"
+path_format         = "nvim"
+url_format          = "{base}/{repo}/releases/download/{tag}/{filename}"
+strip_components    = 1
 
-[bin.nvim.github_releases]
-repo             = "neovim/neovim"
-external_type    = "archive"
-checksum_type    = "sha256"
-tag_format       = "v{version}"
-filename_format  = "nvim-{target}.tar.gz"
-path_format      = "nvim"
-url_format       = "{base}/{repo}/releases/download/{tag}/{filename}"
-strip_components = 1
-
-[bin.nvim.github_releases.platforms]
+[nvim.platforms]
 darwin_arm64 = "macos-arm64"
 darwin_amd64 = "macos-x86_64"
 linux_amd64  = "linux-x86_64"
-linux_arm64  = "linux-arm64"
 
-[bin.nvim.github_releases.checksums]
-darwin_arm64 = "eeddee1009734f9071266e6b1b8a70308cb60cbcc45f5e1c1023adc471450fee"
-darwin_amd64 = "728321db960a9b6af6c03881892a6abfd743bf759bc62d233f52fa1be64ace3c"
-linux_amd64  = "31cf85945cb600d96cdf69f88bc68bec814acbff50863c5546adef3a1bcef260"
-linux_arm64  = "f697d4e4582b6e4b5c3c26e76e06ce26efa08ba1768e03fd2733fcc422bb0490"
-
-[bin.nvim.homebrew]
-name = "neovim"
-cask = false
+[nvim.checksums]
+darwin_arm64 = "3d7b07ec9b491d2a3d55167bc1db1cfa96773a1a37e74ea384cb15ab0189223b"
+darwin_amd64 = "c1405071127b59dbdefc31d9c52e9a5c36db67dcef6dcf83e898aada1f3f778e"
+linux_amd64  = "95aaa8e89473f5421114f2787c13ae0ec6e11ebbd1a13a1bd6fcf63420f8073f"

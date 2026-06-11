@@ -1,0 +1,5 @@
+{{- with .jq -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "jq" "data" . "root" $) -}}
+{{- end -}}
+{{- end -}}

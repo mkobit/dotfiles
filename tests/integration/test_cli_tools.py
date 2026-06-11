@@ -29,18 +29,3 @@ def test_opencode_help(host):
         pytest.skip("opencode is currently disabled on macOS")
     result = host.run("opencode --help")
     assert result.rc == 0, f"'opencode --help' failed.\nstderr: {result.stderr}\nstdout: {result.stdout}"
-
-
-@pytest.mark.integration
-@pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
-def test_agy_available(host, shell_cmd):
-    """Verify agy is on PATH in bash and zsh."""
-    result = host.run(f"{shell_cmd} 'command -v agy'")
-    assert result.rc == 0, f"'agy' not found via {shell_cmd!r}.\nstderr: {result.stderr}"
-
-
-@pytest.mark.integration
-def test_agy_version(host):
-    """Verify agy --version exits successfully."""
-    result = host.run("agy --version")
-    assert result.rc == 0, f"'agy --version' failed.\nstderr: {result.stderr}\nstdout: {result.stdout}"

@@ -1,0 +1,5 @@
+{{- with .btop -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "btop" "data" . "root" $) -}}
+{{- end -}}
+{{- end -}}

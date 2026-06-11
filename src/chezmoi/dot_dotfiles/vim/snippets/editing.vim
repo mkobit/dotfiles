@@ -21,15 +21,6 @@ set autoread
 " Use system clipboard for all operations
 set clipboard=unnamed,unnamedplus
 
-" WSL clipboard integration
-if has('wsl')
-  let g:clipboard = {}
-  let g:clipboard.name = 'WslClipboard'
-  let g:clipboard.copy = { '+': 'clip.exe', '*': 'clip.exe' }
-  let g:clipboard.paste = { '+': 'powershell.exe -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))', '*': 'powershell.exe -c [Console]::Out.Write($(Get-Clipboard -Raw).tostring().replace("`r", ""))' }
-  let g:clipboard.cache_enabled = 0
-endif
-
 " Set a reasonable update time (affects plugins like gitgutter)
 set updatetime=300
 

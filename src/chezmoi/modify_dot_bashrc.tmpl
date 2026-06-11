@@ -1,43 +1,22 @@
-{{- $frags := .bash.config_fragments | default (dict) | keys | sortAlpha -}}
-{{- $hashParts := list (include "modify_dot_bashrc.tmpl") -}}
-{{- range $frags -}}
-{{-   $frag := index $.bash.config_fragments . -}}
-{{-   $hashParts = append $hashParts (includeTemplate $frag.template $) -}}
-{{- end -}}
-{{- $hash := $hashParts | join "" | sha256sum | substr 0 8 -}}
 #!/bin/sh
+{{/* Enhanced sed compatibility for macOS BSD sed and Ubuntu GNU sed */}}
 tempfile="$(mktemp)"
 trap 'rm -rf "${tempfile}"' EXIT
 cat > "${tempfile}"
 
-expected_hash="{{ $hash }}"
-
-# Early exit: correct fragment blocks with current hash exist
-all_current=1
-{{- range $frags }}
-if ! grep -q "chezmoi:fragment:{{ . }}:begin:${expected_hash}" "${tempfile}"; then all_current=0; fi
-{{- end }}
-actual_count="$(grep -c 'chezmoi:fragment:.*:begin:' "${tempfile}" 2>/dev/null || echo 0)"
-[ "$actual_count" = "{{ len $frags }}" ] || all_current=0
-if [ "$all_current" = "1" ]; then cat "${tempfile}"; exit 0; fi
-
-# Remove all existing fragment blocks (any hash)
-sed -i.bak '/.*chezmoi:fragment:.*:begin:/,/.*chezmoi:fragment:.*:end:/d' "${tempfile}"
-
-# Remove legacy blocks
+# Remove existing chezmoi section if present
 sed -i.bak '/.*modify_dot_bashrc\.tmpl:BEGIN:chezmoi:bash/,/.*modify_dot_bashrc\.tmpl:END:chezmoi:bash/d' "${tempfile}"
-sed -i.bak '/.*modify_dot_bashrc\.tmpl:BEGIN:chezmoi:stripe/,/.*modify_dot_bashrc\.tmpl:END:chezmoi:stripe/d' "${tempfile}"
 
-# Ensure trailing newline
+# Check if file ends with newline, if not add one
 if [ -s "${tempfile}" ] && [ "$(tail -c1 "${tempfile}")" != "" ]; then
   echo >> "${tempfile}"
 fi
-{{ range $frags -}}
-{{-   $frag := index $.bash.config_fragments . }}
-cat >> "${tempfile}" << 'CHEZMOI_EOF'
-# chezmoi:fragment:{{ . }}:begin:{{ $hash }} - managed by chezmoi, do not edit
-{{ includeTemplate $frag.template $ -}}
-# chezmoi:fragment:{{ . }}:end:{{ $hash }}
-CHEZMOI_EOF
-{{ end -}}
+
+# Add our managed section
+cat >> "${tempfile}" << 'EOF'
+# {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:BEGIN:chezmoi:bash:{{ include "modify_dot_bashrc.tmpl" | sha256sum | substr 0 8 }} - WARNING: managed by chezmoi, do not edit
+source "{{ .chezmoi.destDir }}/.dotfiles/bash/config.bash"
+# {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:bash:{{ include "modify_dot_bashrc.tmpl" | sha256sum | substr 0 8 }}
+EOF
+
 cat "${tempfile}"

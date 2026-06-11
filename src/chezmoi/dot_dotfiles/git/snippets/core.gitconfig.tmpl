@@ -1,6 +1,6 @@
 [core]
 	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreeditor
-{{- if or (lookPath "nvim") (ne (dig "local" "bin" "nvim" "installation_method" "none" $) "none") }}
+{{- if lookPath "nvim" }}
 	editor = nvim
 {{- else if lookPath "vim" }}
 	editor = vim
@@ -8,12 +8,6 @@
 	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreautocrlf
 	autocrlf = input
 	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-coreexcludesFile
-	excludesFile = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/gitignore_global
+	excludesFile = ~/.dotfiles/git/snippets/gitignore_global
 	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-corefsmonitor
 	fsmonitor = true
-	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-corepager
-{{- if or (lookPath "delta") (ne (dig "local" "bin" "delta" "installation_method" "none" $) "none") }}
-	pager = delta
-{{- else if lookPath "less" }}
-	pager = less -FX
-{{- end }}

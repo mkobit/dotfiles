@@ -1,4 +1,4 @@
-{{- $workspaceDir := joinPath (.chezmoi.destDir | toString) "workspace/mkobit" -}}
+{{- $workspaceDir := joinPath .chezmoi.homeDir "workspace/mkobit" -}}
 {{- if stat $workspaceDir -}}
 layout {
     default_tab_template {

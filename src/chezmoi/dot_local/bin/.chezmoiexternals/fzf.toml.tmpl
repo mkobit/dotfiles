@@ -1,0 +1,5 @@
+{{- with .fzf -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "fzf" "data" . "root" $) -}}
+{{- end -}}
+{{- end -}}

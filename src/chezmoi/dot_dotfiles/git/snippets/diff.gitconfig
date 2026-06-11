@@ -1,18 +1,3 @@
 [diff]
 	# Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-diffcompactionHeuristic
 	compactionHeuristic = true
-[interactive]
-	diffFilter = delta --color-only
-
-[delta]
-	navigate = true
-	light = false
-	side-by-side = true
-	line-numbers = true
-	# Features let you group settings.
-	features = decorations
-
-[delta "decorations"]
-	commit-decoration-style = bold yellow box ul
-	file-style = bold yellow ul
-	file-decoration-style = none

@@ -13,7 +13,7 @@ session_app = typer.Typer(add_completion=False, help="Manage sessions.")
 
 
 def _get_api_key(ctx: typer.Context) -> str:
-    from jules_cli.main import get_api_key
+    from jules_cli.main import get_api_key  # noqa: PLC0415
 
     jules_ctx: JulesContext = ctx.obj
     return get_api_key(jules_ctx.api_key)

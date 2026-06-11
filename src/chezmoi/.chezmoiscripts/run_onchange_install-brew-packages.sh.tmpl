@@ -1,6 +1,6 @@
 {{- if eq .chezmoi.os "darwin" -}}
 #!/usr/bin/env bash
-# Brewfile hash: {{ include "dot_Brewfile.tmpl" | sha256sum }}
+# Brewfile hash: {{ includeTemplate "dot_Brewfile.tmpl" . | sha256sum }}
 
 set -euo pipefail
 

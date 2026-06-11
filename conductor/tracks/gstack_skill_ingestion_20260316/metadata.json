@@ -1,0 +1,8 @@
+{
+  "track_id": "gstack_skill_ingestion_20260316",
+  "type": "feature",
+  "status": "new",
+  "created_at": "2026-03-16T11:00:00Z",
+  "updated_at": "2026-03-16T11:00:00Z",
+  "description": "add ingestion and support for deploying features in https://github.com/garrytan/gstack . we want to leverage our infrastructure to select and use and possibly rename skills across our tools"
+}

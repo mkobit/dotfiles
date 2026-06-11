@@ -1,0 +1,5 @@
+{{- with .starship -}}
+{{- if eq .installation_method "chezmoi_external" -}}
+{{- template "external/release" (dict "key" "starship" "data" . "root" $) -}}
+{{- end -}}
+{{- end -}}
