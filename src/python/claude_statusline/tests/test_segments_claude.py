@@ -68,12 +68,12 @@ class TestFormatContextUsage(unittest.TestCase):
             with self.subTest(used_pct=used_pct):
                 res = format_context_usage(ContextWindowInfo(used_percentage=used_pct))
                 assert res is not None
-                self.assertIn(expected_color, res.segment.text)
+                self.assertIn(expected_color, " ".join([r.segment.text for r in res]))
 
     def test_battery_icon_present(self) -> None:
         res = format_context_usage(ContextWindowInfo(used_percentage=22.0))
         assert res is not None
-        self.assertIn("78%", res.segment.text)
+        self.assertIn("78%", " ".join([r.segment.text for r in res]))
 
     def test_token_counts_shown_when_window_known(self) -> None:
         cw = ContextWindowInfo(
@@ -84,23 +84,23 @@ class TestFormatContextUsage(unittest.TestCase):
         )
         res = format_context_usage(cw)
         assert res is not None
-        self.assertIn("50k", res.segment.text)
-        self.assertIn("200k", res.segment.text)
+        self.assertIn("50k", " ".join([r.segment.text for r in res]))
+        self.assertIn("200k", " ".join([r.segment.text for r in res]))
 
     def test_no_token_counts_without_window_size(self) -> None:
         res = format_context_usage(ContextWindowInfo(used_percentage=50.0))
         assert res is not None
-        self.assertNotIn("/", res.segment.text)
+        self.assertNotIn("/", " ".join([r.segment.text for r in res]))
 
     def test_zero_usage_defaults_to_bright_green(self) -> None:
         res = format_context_usage(ContextWindowInfo(used_percentage=None))
         assert res is not None
-        self.assertIn(BRIGHT_GREEN, res.segment.text)
+        self.assertIn(BRIGHT_GREEN, " ".join([r.segment.text for r in res]))
 
     def test_placed_on_line_2(self) -> None:
         res = format_context_usage(ContextWindowInfo(used_percentage=50.0))
         assert res is not None
-        self.assertEqual(res.line, 2)
+        self.assertEqual(res[0].line if res else None, 2)
 
 
 class TestFormatModelInfo(unittest.TestCase):
@@ -108,7 +108,7 @@ class TestFormatModelInfo(unittest.TestCase):
         payload = StatusLineStdIn(model=ModelInfo(display_name="Sonnet 4.6"))
         res = format_model_info(payload)
         assert res is not None
-        self.assertIn("Sonnet 4.6", res.segment.text)
+        self.assertIn("Sonnet 4.6", " ".join([r.segment.text for r in res]))
 
     def test_output_style_present(self) -> None:
         payload = StatusLineStdIn(
@@ -117,14 +117,14 @@ class TestFormatModelInfo(unittest.TestCase):
         )
         res = format_model_info(payload)
         assert res is not None
-        self.assertIn("[concise]", res.segment.text)
+        self.assertIn("[concise]", " ".join([r.segment.text for r in res]))
 
     def test_no_output_style_when_absent(self) -> None:
         payload = StatusLineStdIn(model=ModelInfo(display_name="X"))
         res = format_model_info(payload)
         assert res is not None
-        self.assertNotIn("concise", res.segment.text)
-        self.assertNotIn("default", res.segment.text)
+        self.assertNotIn("concise", " ".join([r.segment.text for r in res]))
+        self.assertNotIn("default", " ".join([r.segment.text for r in res]))
 
     def test_agent_name_present(self) -> None:
         payload = StatusLineStdIn(
@@ -133,7 +133,7 @@ class TestFormatModelInfo(unittest.TestCase):
         )
         res = format_model_info(payload)
         assert res is not None
-        self.assertIn("my-agent", res.segment.text)
+        self.assertIn("my-agent", " ".join([r.segment.text for r in res]))
 
 
 class TestFormatSessionInfo(unittest.TestCase):
@@ -141,22 +141,22 @@ class TestFormatSessionInfo(unittest.TestCase):
         payload = StatusLineStdIn(session_name="my-session")
         res = format_session_info(payload)
         assert res is not None
-        self.assertIn("my-session", res.segment.text)
+        self.assertIn("my-session", " ".join([r.segment.text for r in res]))
 
     def test_session_id_hash_not_shown(self) -> None:
         payload = StatusLineStdIn(session_id="abc123def456")
         res = format_session_info(payload)
-        self.assertIsNone(res)
+        self.assertEqual(res, [])
 
     def test_timer_formatted(self) -> None:
         payload = StatusLineStdIn(cost=CostInfo(total_duration_ms=3_661_000))
         res = format_session_info(payload)
         assert res is not None
-        self.assertIn("01:01:01", res.segment.text)
+        self.assertIn("01:01:01", " ".join([r.segment.text for r in res]))
 
     def test_returns_none_with_no_data(self) -> None:
         res = format_session_info(StatusLineStdIn())
-        self.assertIsNone(res)
+        self.assertEqual(res, [])
 
 
 class TestFormatCost(unittest.TestCase):
@@ -164,18 +164,18 @@ class TestFormatCost(unittest.TestCase):
         payload = StatusLineStdIn(cost=CostInfo(total_cost_usd=1.23))
         res = format_cost(payload)
         assert res is not None
-        self.assertIn("1.23", res.segment.text)
+        self.assertIn("1.23", " ".join([r.segment.text for r in res]))
 
     def test_returns_none_when_zero(self) -> None:
         payload = StatusLineStdIn(cost=CostInfo(total_cost_usd=0.0))
         res = format_cost(payload)
-        self.assertIsNone(res)
+        self.assertEqual(res, [])
 
     def test_placed_on_line_2(self) -> None:
         payload = StatusLineStdIn(cost=CostInfo(total_cost_usd=0.5))
         res = format_cost(payload)
         assert res is not None
-        self.assertEqual(res.line, 2)
+        self.assertEqual(res[0].line if res else None, 2)
 
 
 if __name__ == "__main__":

@@ -33,7 +33,7 @@ def format_tokens(tokens: int, max_tokens: int = 0) -> str:
     return f"{val:>{width}}"
 
 
-def format_context_usage(cw: ContextWindowInfo) -> SegmentGenerationResult | None:
+def format_context_usage(cw: ContextWindowInfo) -> list[SegmentGenerationResult]:
     """Formats context usage as a battery icon with remaining % and token counts."""
     used_pct = cw.used_percentage or 0.0
     remaining_pct = 100.0 - used_pct
@@ -63,32 +63,55 @@ def format_context_usage(cw: ContextWindowInfo) -> SegmentGenerationResult | Non
     )
 
     dot = get_icon("dot")
-    parts = [pct_str, f"{DIM}{dot}{RESET} {token_str}" if token_str else None]
 
-    return SegmentGenerationResult(
-        line=2,
-        index=0,
-        generator="internal.claude",
-        segment=Segment(text=" ".join(filter(None, parts))),
-    )
+    results = []
+    if pct_str:
+        results.append(
+            SegmentGenerationResult(
+                line=2, index=0, column=0, generator="internal.claude", segment=Segment(text=pct_str)
+            )
+        )
+    if token_str:
+        results.append(
+            SegmentGenerationResult(
+                line=2,
+                index=10,
+                column=1,
+                generator="internal.claude",
+                segment=Segment(text=f"{DIM}{dot}{RESET} {token_str}"),
+            )
+        )
+    return results
 
 
-def format_model_info(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
+def format_model_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
     style = payload.output_style
-    parts = [
-        f"{get_icon('robot')} {BLUE}{BOLD}{payload.model.display_name}{RESET}",
-        f"{MAGENTA}@{payload.agent.name}{RESET}" if payload.agent.name else None,
-        f"{DIM}[{style.name}]{RESET}" if style and style.name else None,
-    ]
-    return SegmentGenerationResult(
-        line=0,
-        index=0,
-        generator="internal.claude",
-        segment=Segment(text=" ".join(filter(None, parts))),
+    results = []
+    model_str = f"{get_icon('robot')} {BLUE}{BOLD}{payload.model.display_name}{RESET}"
+    results.append(
+        SegmentGenerationResult(line=0, index=0, column=0, generator="internal.claude", segment=Segment(text=model_str))
     )
 
+    agent_style_parts = []
+    if payload.agent.name:
+        agent_style_parts.append(f"{MAGENTA}@{payload.agent.name}{RESET}")
+    if style and style.name:
+        agent_style_parts.append(f"{DIM}[{style.name}]{RESET}")
 
-def format_session_info(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
+    if agent_style_parts:
+        results.append(
+            SegmentGenerationResult(
+                line=0,
+                index=10,
+                column=1,
+                generator="internal.claude",
+                segment=Segment(text=" ".join(agent_style_parts)),
+            )
+        )
+    return results
+
+
+def format_session_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
     parts = [
         f"{CYAN}#{payload.session_name}{RESET}" if payload.session_name else None,
     ]
@@ -102,43 +125,68 @@ def format_session_info(payload: StatusLineStdIn) -> SegmentGenerationResult | N
 
         parts.append(f"{YELLOW}{get_icon('timer')} {timer}{RESET}")
 
-    filtered = [p for p in parts if p]
-    if not filtered:
-        return None
-    return SegmentGenerationResult(
-        line=0,
-        index=10,
-        generator="internal.claude",
-        segment=Segment(text=" ".join(filtered)),
-    )
+    results = []
+    if payload.session_name:
+        results.append(
+            SegmentGenerationResult(
+                line=0,
+                index=0,
+                column=1,
+                generator="internal.claude",
+                segment=Segment(text=f"{CYAN}#{payload.session_name}{RESET}"),
+            )
+        )
+
+    if payload.cost.total_duration_ms:
+        elapsed_seconds = payload.cost.total_duration_ms // 1000
+        hours, remainder = divmod(elapsed_seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        timer = f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours > 0 else f"{minutes:02d}:{seconds:02d}"
+        results.append(
+            SegmentGenerationResult(
+                line=0,
+                index=10,
+                column=4,
+                generator="internal.claude",
+                segment=Segment(text=f"{YELLOW}{get_icon('timer')} {timer}{RESET}"),
+            )
+        )
+
+    return results
 
 
-def format_cost(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
+def format_cost(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
     if not payload.cost.total_cost_usd:
-        return None
-    return SegmentGenerationResult(
-        line=2,
-        index=20,
-        generator="internal.claude",
-        segment=Segment(text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"),
-    )
+        return []
+    return [
+        SegmentGenerationResult(
+            line=2,
+            index=20,
+            column=4,
+            generator="internal.claude",
+            segment=Segment(text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"),
+        )
+    ]
 
 
-def format_lines_impact(payload: StatusLineStdIn) -> SegmentGenerationResult | None:
+def format_lines_impact(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
     added = payload.cost.total_lines_added or 0
     removed = payload.cost.total_lines_removed or 0
 
     if added == 0 and removed == 0:
-        return None
+        return []
 
     parts = [
         f"{BRIGHT_GREEN}+{added}{RESET}" if added > 0 else None,
         f"{BRIGHT_RED}-{removed}{RESET}" if removed > 0 else None,
     ]
 
-    return SegmentGenerationResult(
-        line=1,
-        index=30,
-        generator="internal.claude",
-        segment=Segment(text=" ".join(filter(None, parts))),
-    )
+    return [
+        SegmentGenerationResult(
+            line=1,
+            index=30,
+            column=4,
+            generator="internal.claude",
+            segment=Segment(text=" ".join(filter(None, parts))),
+        )
+    ]
