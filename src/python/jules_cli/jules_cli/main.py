@@ -1,14 +1,11 @@
 import logging
-import os
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 
 import typer
 
 from jules_cli.commands import activity_app, session_app, source_app
-from jules_cli.config import load_config
 from jules_cli.core import JulesContext
 
 cli = typer.Typer(
@@ -44,34 +41,6 @@ def main_callback(
 ) -> None:
     ctx.obj = JulesContext(api_key=api_key)
     logging.basicConfig(level=logging.DEBUG if debug else logging.INFO)
-
-
-def get_api_key(api_key_override: str | None = None) -> str:
-    """
-    Retrieves the Jules API key.
-    Checks override first, then config, then legacy XDG config location
-    (~/.config/jules/api_key).
-    """
-    if api_key_override:
-        return api_key_override
-
-    try:
-        config = load_config()
-        if config.api_key:
-            return config.api_key
-    except Exception as e:
-        # If loading fails (e.g., config file malformed), log warning and proceed
-        logging.warning("Failed to load config: %s", e)
-
-    # Legacy check XDG config
-    xdg_config_home = os.environ.get("XDG_CONFIG_HOME", os.path.expanduser("~/.config"))
-    legacy_file = Path(xdg_config_home) / "jules" / "api_key"
-
-    if legacy_file.exists():
-        return legacy_file.read_text().strip()
-
-    typer.echo(f"Error: API key not found in config or {legacy_file}.", err=True)
-    sys.exit(1)
 
 
 def run_fzf(items: list[str]) -> str | None:
