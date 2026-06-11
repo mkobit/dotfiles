@@ -20,15 +20,10 @@ class TestRenderLines(unittest.TestCase):
 
         lines = render_lines(payload, None, segments)
 
-        # We should have 3 lines of output.
-        # Line 0: "A0   A10"
-        # Line 1: "B0      "
-        # Line 2: "C0   C10"
+        # Output with Rich Panel should have borders (top and bottom) + 3 rows = 5 lines.
+        self.assertEqual(len(lines), 5)
 
-        self.assertEqual(len(lines), 3)
-        # Because we're using Rich, exact whitespace might differ depending on padding,
-        # but the order and alignment should be there.
-        self.assertTrue("A0" in lines[0] and "A10" in lines[0])
-        self.assertTrue("B0" in lines[1])
-        self.assertFalse("B10" in lines[1])
-        self.assertTrue("C0" in lines[2] and "C10" in lines[2])
+        self.assertTrue("A0" in lines[1] and "A10" in lines[1])
+        self.assertTrue("B0" in lines[2])
+        self.assertFalse("B10" in lines[2])
+        self.assertTrue("C0" in lines[3] and "C10" in lines[3])
