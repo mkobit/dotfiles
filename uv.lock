@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.14"
 
 [options]
-exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
+exclude-newer = "2026-06-04T14:39:21.824782748Z"
 exclude-newer-span = "P7D"
 
 [manifest]
@@ -181,7 +181,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "rich", specifier = ">=15.0.0" },
+    { name = "rich", specifier = ">=14" },
     { name = "typer", specifier = ">=0.15.1" },
     { name = "whenever", specifier = ">=0.9.5" },
 ]
@@ -989,7 +989,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "rich", specifier = ">=14.0.0" }]
+requires-dist = [{ name = "rich", specifier = ">=14" }]
 
 [[package]]
 name = "tokenizers"
