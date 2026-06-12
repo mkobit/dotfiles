@@ -69,6 +69,19 @@ Config values set in `.chezmoi.toml.tmpl` take precedence over `.chezmoidata/` f
 Use `dig` for safe key traversal — direct map access fails in strict mode when a key is absent.
 Access hyphenated keys with `index` rather than dot notation.
 
+## Overlay compatibility
+
+This repo is designed to be composed with an overlay — a separate chezmoi source tree that layers environment-specific configuration on top.
+The overlay wins all file collisions; individual data values are overridden via `[data.*]` entries in the overlay's `.chezmoi.toml.tmpl` or additional `.chezmoidata/` files.
+
+When adding features, keep them overlay-friendly:
+
+- Put all defaults in `.chezmoidata/` so overlays have a stable override target.
+- Use generic key names — describe the concept, not the environment.
+- Use `dig` for any key an overlay might omit so absence is a no-op, not a template error.
+- Loop over maps (`range $k, $v := .feature.items`) for injectable content so overlays extend by adding keys, not editing base files.
+- Keep all source files and data environment-neutral; machine-specific values belong in the overlay.
+
 ## Troubleshooting package installations
 
 If an install fails due to a package being too new, check for a minimum release age setting in the relevant config (mise, uv, etc.) and use an older version that satisfies it.
