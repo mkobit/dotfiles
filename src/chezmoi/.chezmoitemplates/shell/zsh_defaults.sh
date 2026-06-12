@@ -5,5 +5,6 @@ setopt CORRECT
 bindkey -v
 export KEYTIMEOUT=1
 
+autoload -Uz compinit && compinit
 autoload -U +X bashcompinit && bashcompinit
 {{- end }}
