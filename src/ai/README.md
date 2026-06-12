@@ -1,6 +1,6 @@
 # AI skill deployment
 
-Skills are deployed as static files into each tool's discovery directory (`~/.claude/skills/`, `~/.gemini/antigravity-cli/skills/`).
+Skills are deployed as static files into each tool's discovery directory (`~/.claude/skills/`, `~/.gemini/antigravity-cli/skills/`, `~/.cursor/skills/`).
 There is no marketplace, plugin CLI, or symlinking — chezmoi owns the full lifecycle.
 
 Two kinds of skills share one catalog: `src/chezmoi/.chezmoidata/ai/skills.toml`.
@@ -31,9 +31,9 @@ To compute the pin for a new ref:
 curl -sL https://codeload.github.com/<owner>/<repo>/tar.gz/<commit-sha> | sha256sum
 ```
 
-A skill state is `"present"` (deploy to every tool), `"absent"`, or a single tool name (`"claude"`, `"antigravity"`) to deploy only to that tool.
+A skill state is `"present"` (deploy to every tool), `"absent"`, or a single tool name (`"claude"`, `"antigravity"`, `"cursor"`) to deploy only to that tool.
 To remove a skill, set it to `"absent"` — never delete the key, which would orphan the installed copy.
-The `.chezmoiremove.tmpl` files in `dot_claude/` and `dot_gemini/` prune any skill that does not target their tool on apply.
+The `.chezmoiremove.tmpl` files in `dot_claude/`, `dot_gemini/`, and `dot_cursor/` prune any skill that does not target their tool on apply.
 
 ## Upstream agents (Claude Code only)
 
@@ -68,6 +68,6 @@ Overlay-only sources go in an overlay `.chezmoidata` file under distinct `[ai.sk
 
 ```sh
 chezmoi diff
-chezmoi apply ~/.claude/skills ~/.gemini/antigravity-cli/skills
+chezmoi apply ~/.claude/skills ~/.gemini/antigravity-cli/skills ~/.cursor/skills
 uv run pytest src/python/skill_filter
 ```

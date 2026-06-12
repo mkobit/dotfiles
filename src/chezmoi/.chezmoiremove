@@ -30,17 +30,14 @@ install-asdf.sh
 .claude/skills/claude-extension-builder
 .claude/commands/claude/new/skill.md
 
-# Rulesync-era cursor rules and skill copies (dot_cursor/ was deleted from
-# source without pruning; cursor is not a skill deployment target)
+# Rulesync-era cursor rules (dot_cursor/ was deleted from source without
+# pruning). Skill copies are pruned by dot_cursor/.chezmoiremove.tmpl now
+# that cursor is a skill deployment target.
 .cursor/rules/00-preferences.mdc
 .cursor/rules/01-agents-md.mdc
 .cursor/rules/02-no-auto-commit.mdc
 .cursor/rules/10-technical-writing.mdc
 .cursor/rules/11-write-agent-context.mdc
-.cursor/skills/pr-reviewer
-.cursor/skills/technical-writing
-.cursor/skills/typescript-expert
-.cursor/skills/write-agent-context
 
 # Orphaned unmanaged agents from April 2026 experiments: agency-agents
 # engineering category (dumped flat and as a directory) and manual extractions

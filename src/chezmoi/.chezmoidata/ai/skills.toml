@@ -3,7 +3,7 @@
 # Skills are deployed as static files by chezmoi externals (see .chezmoiexternals/ai-skills.toml.tmpl).
 # Each upstream is pinned to an exact commit and archive checksum.
 # The archive is piped through src/python/skill_filter at apply time to extract one skill per external.
-# Skills marked "absent" are pruned via dot_claude/.chezmoiremove.tmpl and dot_gemini/.chezmoiremove.tmpl;
+# Skills marked "absent" are pruned via the .chezmoiremove.tmpl files in dot_claude/, dot_gemini/, and dot_cursor/;
 # keep the key when deselecting a skill — deleting it outright orphans any installed copy.
 #
 # Every present skill installs to every tool's skill directory; the target
@@ -34,7 +34,7 @@ write-agent-context = "present"
 # url (full archive URL for one-off published artifacts, bypasses host construction).
 # Each [.skills] entry maps an upstream skill directory name to a state:
 #   "present" (all tools), "absent" (pruned everywhere), or a single tool name
-#   ("claude", "antigravity") to deploy only to that tool.
+#   ("claude", "antigravity", "cursor") to deploy only to that tool.
 [ai.skills.external.superpowers]
 repo = "obra/superpowers"
 ref = "6fd4507659784c351abbd2bc264c7162cfd386dc" # 2026-05-29
