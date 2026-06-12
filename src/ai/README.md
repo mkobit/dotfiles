@@ -31,8 +31,9 @@ To compute the pin for a new ref:
 curl -sL https://codeload.github.com/<owner>/<repo>/tar.gz/<commit-sha> | sha256sum
 ```
 
+A skill state is `"present"` (deploy to every tool), `"absent"`, or a single tool name (`"claude"`, `"antigravity"`) to deploy only to that tool.
 To remove a skill, set it to `"absent"` — never delete the key, which would orphan the installed copy.
-The `.chezmoiremove.tmpl` files in `dot_claude/` and `dot_gemini/` prune absent skills on apply.
+The `.chezmoiremove.tmpl` files in `dot_claude/` and `dot_gemini/` prune any skill that does not target their tool on apply.
 
 ## Authored skills
 

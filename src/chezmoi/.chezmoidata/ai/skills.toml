@@ -24,7 +24,7 @@ url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"
 # deployed via file:// externals (see .chezmoiexternals/ai-authored-skills.toml.tmpl).
 [ai.skills.authored]
 example_skill = "absent"
-pr-reviewer = "present"
+pr-reviewer = "absent" # source deleted 2026-06-11; replaced by superpowers requesting/receiving-code-review
 technical-writing = "present"
 typescript-expert = "absent" # source deleted 2026-06-11; find a publicly maintained replacement
 write-agent-context = "present"
@@ -32,7 +32,9 @@ write-agent-context = "present"
 # External sources: [ai.skills.external.<name>] with repo, ref (commit SHA), sha256 (downloaded archive).
 # Optional: host (archive host key, default "github"), skills_root (default "skills"),
 # url (full archive URL for one-off published artifacts, bypasses host construction).
-# Each [.skills] entry maps an upstream skill directory name to "present" or "absent".
+# Each [.skills] entry maps an upstream skill directory name to a state:
+#   "present" (all tools), "absent" (pruned everywhere), or a single tool name
+#   ("claude", "antigravity") to deploy only to that tool.
 [ai.skills.external.superpowers]
 repo = "obra/superpowers"
 ref = "6fd4507659784c351abbd2bc264c7162cfd386dc" # 2026-05-29
@@ -40,8 +42,25 @@ sha256 = "bae555f742a6f223bca7825f79f0305315944653e8763b7939f19f93f9adda32"
 
 [ai.skills.external.superpowers.skills]
 brainstorming = "present"
+executing-plans = "present"
+finishing-a-development-branch = "present"
+receiving-code-review = "present"
+requesting-code-review = "present"
 systematic-debugging = "present"
 test-driven-development = "present"
+using-git-worktrees = "present"
+verification-before-completion = "present"
+writing-plans = "present"
+writing-skills = "present"
+
+[ai.skills.external.anthropics-skills]
+repo = "anthropics/skills"
+ref = "57546260929473d4e0d1c1bb75297be2fdfa1949" # 2026-06-09
+sha256 = "7a3e7ac65a8057d56c3ed78292b69d1a0b48cb3adfe3e77ec5019621c42e940e"
+
+[ai.skills.external.anthropics-skills.skills]
+skill-creator = "claude" # authoring tooling is only useful inside Claude Code
+webapp-testing = "present"
 
 # Built distribution repo (GoogleChrome/modern-web-guidance-src is the source repo;
 # its skills-src content is bundled into the modern-web-guidance skill's guides here).
