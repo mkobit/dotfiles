@@ -3,14 +3,6 @@
 {{- if ne (dig "local" "bin" "eza" "installation_method" "none" $) "none" -}}
 # eza completions and aliases
 if command -v eza >/dev/null 2>&1; then
-    {{- if eq $.shell "zsh" }}
-    if type brew &>/dev/null; then
-        export FPATH="$(brew --prefix)/share/zsh/site-functions:${FPATH}"
-        autoload -Uz compinit
-        compinit
-    fi
-    {{- end }}
-
     # eza aliases - modern ls replacement
     alias ls='eza'
     alias ll='eza --long'
@@ -20,12 +12,14 @@ if command -v eza >/dev/null 2>&1; then
     alias lt='eza --tree'
 
     {{- if eq $.shell "zsh" }}
-    compdef ls=eza
-    compdef ll=eza
-    compdef la=eza
-    compdef l=eza
-    compdef tree=eza
-    compdef lt=eza
+    if (( ${+_comps[eza]} )); then
+        compdef ls=eza
+        compdef ll=eza
+        compdef la=eza
+        compdef l=eza
+        compdef tree=eza
+        compdef lt=eza
+    fi
     {{- else if eq $.shell "bash" }}
     complete -F _eza -o bashdefault -o default ls
     complete -F _eza -o bashdefault -o default ll

@@ -13,6 +13,13 @@ from termstatus.main import cli, run_external_generator
 from termstatus.segments.workspace import shorten_path
 
 
+@pytest.fixture(autouse=True)
+def wide_terminal(monkeypatch):
+    # Rendering truncates to the terminal width (render.py reads COLUMNS via
+    # shutil.get_terminal_size), so narrow terminals cut off asserted text.
+    monkeypatch.setenv("COLUMNS", "200")
+
+
 class TestMainSmoke(unittest.TestCase):
     """Smoke tests verifying the CLI entry point runs end-to-end."""
 

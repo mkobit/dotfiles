@@ -8,9 +8,9 @@
   "absent" are pruned by the .chezmoiremove templates; a file deleted from a
   present skill leaves an orphan in the target until removed manually (file
   externals are not exact). A skill state may also name a single tool
-  ("claude", "antigravity") to deploy only there.
+  ("claude", "antigravity", "cursor") to deploy only there.
 */ -}}
-{{- $tools := dict "claude" ".claude/skills" "antigravity" ".gemini/antigravity-cli/skills" -}}
+{{- $tools := dict "claude" ".claude/skills" "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" -}}
 {{- $root := joinPath .chezmoi.workingTree "src/ai/skills" -}}
 {{- $config := dict -}}
 {{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}

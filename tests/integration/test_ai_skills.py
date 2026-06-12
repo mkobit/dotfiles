@@ -6,10 +6,6 @@ import pytest
 ACTIVE_SKILL_DIRS = [
     pytest.param(Path(".claude/skills"), id="claude"),
     pytest.param(Path(".gemini/antigravity-cli/skills"), id="antigravity"),
-]
-
-# Directories of tools that are not deployment targets yet but may hold skills.
-OPTIONAL_SKILL_DIRS = [
     pytest.param(Path(".cursor/skills"), id="cursor"),
 ]
 
@@ -35,11 +31,25 @@ def test_tool_skill_dir_deployed_and_valid(chezmoi_dest, relative_dir):
     assert_entries_are_valid_skills(skills_dir)
 
 
+# Tool agent directories actively deployed to by .chezmoiexternals/ai-agents.toml.tmpl.
+ACTIVE_AGENT_DIRS = [
+    pytest.param(Path(".claude/agents"), id="claude"),
+    pytest.param(Path(".config/opencode/agents"), id="opencode"),
+]
+
+
 @pytest.mark.integration
-@pytest.mark.parametrize("relative_dir", OPTIONAL_SKILL_DIRS)
-def test_optional_tool_skill_dir_valid_when_present(chezmoi_dest, relative_dir):
-    """Verify skill directories of non-target tools contain only valid skills if they exist."""
-    skills_dir = chezmoi_dest / relative_dir
-    if not skills_dir.is_dir():
-        pytest.skip(f"{relative_dir} is not deployed on this machine")
-    assert_entries_are_valid_skills(skills_dir)
+@pytest.mark.parametrize("relative_dir", ACTIVE_AGENT_DIRS)
+def test_agents_dir_deployed_and_valid(chezmoi_dest, relative_dir):
+    """Verify each deployed agent source directory contains only non-empty .md agent files."""
+    agents_dir = chezmoi_dest / relative_dir
+    assert agents_dir.is_dir(), f"{agents_dir} does not exist after chezmoi apply"
+    source_dirs = [entry for entry in sorted(agents_dir.iterdir()) if entry.name != ".DS_Store"]
+    assert source_dirs, f"{agents_dir} contains no agent sources"
+    for source_dir in source_dirs:
+        assert source_dir.is_dir(), f"{source_dir} is not a directory; agent sources must be directories"
+        agent_files = [entry for entry in sorted(source_dir.iterdir()) if entry.name != ".DS_Store"]
+        assert agent_files, f"{source_dir} contains no agents"
+        for agent_file in agent_files:
+            assert agent_file.suffix == ".md", f"{agent_file} is not an .md agent file"
+            assert agent_file.stat().st_size > 0, f"{agent_file} is empty"

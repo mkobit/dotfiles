@@ -1,0 +1,52 @@
+# AI agent deployment catalog.
+#
+# Agents are single .md files selected from pinned upstream archives by
+# .chezmoiexternals/ai-agents.toml.tmpl. Claude Code receives the native
+# format flat under ~/.claude/agents/<source>/ (the upstream agency-agents
+# frontmatter is native Claude Code subagent format). Antigravity and cursor
+# consume agents as skills: each agent is rewritten to SKILL.md form by the
+# skill_filter agent-skill transform (skill name = file basename, description
+# carried over, body unchanged) and placed in the tool's skills directory.
+# opencode gets agents rewritten by the agent-opencode transform (explicit
+# name + mode: subagent) flat under ~/.config/opencode/agents/<source>/.
+#
+# Each [.agents] entry maps an in-archive path (under agents_root, default "")
+# without the .md suffix to a state, mirroring the skills vocabulary:
+# "present" (all tools), "absent", or a single tool name ("claude",
+# "antigravity", "cursor", "opencode"). The Claude and opencode externals are
+# exact, so deselected agents prune automatically there; antigravity/cursor
+# copies are pruned by the dot_gemini/ and dot_cursor/ .chezmoiremove.tmpl
+# files — keep keys when deselecting. Emptying a source entirely orphans its
+# ~/.claude/agents/<source>/ and ~/.config/opencode/agents/<source>/
+# directories — prune manually.
+#
+# Onboarding requires a prompt-injection review of each agent at the pinned
+# ref (see memory: supply-chain scrutiny). Pin via:
+#   curl -sL https://codeload.github.com/<repo>/tar.gz/<ref> | sha256sum
+
+[ai.agents.external.agency-agents]
+repo = "msitarzewski/agency-agents"
+ref = "a077c9ac0be381ec15e7dcbb690f641d6091a5db" # 2026-06-07
+sha256 = "dbe0b0aadd2b12a5cceb5a0f613c272e74da6ddc4acc66344dfece16ea172d5b"
+
+[ai.agents.external.agency-agents.agents]
+"engineering/engineering-backend-architect" = "present"
+"engineering/engineering-codebase-onboarding-engineer" = "present"
+"engineering/engineering-database-optimizer" = "present"
+"engineering/engineering-prompt-engineer" = "present"
+"engineering/engineering-software-architect" = "present"
+"engineering/engineering-sre" = "present"
+"product/product-feedback-synthesizer" = "present"
+"product/product-manager" = "present"
+"product/product-sprint-prioritizer" = "present"
+"product/product-trend-researcher" = "present"
+"project-management/project-management-experiment-tracker" = "present"
+"project-management/project-management-meeting-notes-specialist" = "present"
+"project-management/project-management-project-shepherd" = "present"
+# Rejected 2026-06-12: prompt embeds the author's own project layout (runs
+# ./qa-playwright-capture.sh, writes ai/memory-bank/ paths); adapt or replace.
+"project-management/project-manager-senior" = "absent"
+# Audit caveat 2026-06-12: no malicious content, but the prompt eagerly directs
+# running real load/stress/penetration tests — only point it at safe targets.
+"testing/testing-api-tester" = "present"
+"testing/testing-performance-benchmarker" = "present"

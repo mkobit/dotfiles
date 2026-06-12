@@ -1,6 +1,6 @@
 # AI skill deployment
 
-Skills are deployed as static files into each tool's discovery directory (`~/.claude/skills/`, `~/.gemini/antigravity-cli/skills/`).
+Skills are deployed as static files into each tool's discovery directory (`~/.claude/skills/`, `~/.gemini/antigravity-cli/skills/`, `~/.cursor/skills/`).
 There is no marketplace, plugin CLI, or symlinking — chezmoi owns the full lifecycle.
 
 Two kinds of skills share one catalog: `src/chezmoi/.chezmoidata/ai/skills.toml`.
@@ -31,9 +31,21 @@ To compute the pin for a new ref:
 curl -sL https://codeload.github.com/<owner>/<repo>/tar.gz/<commit-sha> | sha256sum
 ```
 
-A skill state is `"present"` (deploy to every tool), `"absent"`, or a single tool name (`"claude"`, `"antigravity"`) to deploy only to that tool.
+A skill state is `"present"` (deploy to every tool), `"absent"`, or a single tool name (`"claude"`, `"antigravity"`, `"cursor"`) to deploy only to that tool.
 To remove a skill, set it to `"absent"` — never delete the key, which would orphan the installed copy.
-The `.chezmoiremove.tmpl` files in `dot_claude/` and `dot_gemini/` prune any skill that does not target their tool on apply.
+The `.chezmoiremove.tmpl` files in `dot_claude/`, `dot_gemini/`, and `dot_cursor/` prune any skill that does not target their tool on apply.
+
+## Upstream agents
+
+Agents follow the same pin-and-select model via `src/chezmoi/.chezmoidata/ai/agents.toml` and `src/chezmoi/.chezmoiexternals/ai-agents.toml.tmpl`.
+Agent states use the same vocabulary as skills: `"present"` (all tools), `"absent"`, or a single tool name.
+Each tool receives agents in its native shape:
+
+- **Claude Code** gets the raw upstream format: one exact archive external per source placing selected agent `.md` files flat under `~/.claude/agents/<source>/` (discovery is recursive, and the agent's identity is its frontmatter `name:`), so deselected agents prune automatically.
+- **Antigravity and cursor** consume agents as skills: each agent is rewritten to `SKILL.md` form by the `skill_filter` `agent-skill` transform (skill name = the agent file's basename, `description` carried over verbatim, body unchanged) and placed as `<skills dir>/<basename>/SKILL.md`. Deselected copies are pruned by the same `.chezmoiremove.tmpl` files that prune skills.
+- **opencode** gets one exact external per source under `~/.config/opencode/agents/<source>/`, with each agent rewritten by the `agent-opencode` transform: an explicit `name:` (overriding opencode's path-derived agent name) plus `mode: subagent`. Deselected agents prune automatically.
+
+Onboarding an agent requires a prompt-injection review of its full content at the pinned ref.
 
 ## Authored skills
 
@@ -61,6 +73,6 @@ Overlay-only sources go in an overlay `.chezmoidata` file under distinct `[ai.sk
 
 ```sh
 chezmoi diff
-chezmoi apply ~/.claude/skills ~/.gemini/antigravity-cli/skills
+chezmoi apply ~/.claude/skills ~/.gemini/antigravity-cli/skills ~/.cursor/skills
 uv run pytest src/python/skill_filter
 ```
