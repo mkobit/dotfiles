@@ -6,14 +6,14 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from claude_statusline.layout import SegmentGenerationResult
-from claude_statusline.payload import StatusLineStdIn
-from claude_statusline.segments.constants import get_icon
-from claude_statusline.segments.git import GitInfo
+from termstatus.layout import SegmentGenerationResult
+from termstatus.payload import StatusLineStdIn
+from termstatus.segments.constants import get_icon
+from termstatus.segments.git import GitInfo
 
 
 def render_lines(
-    payload: StatusLineStdIn,
+    payload: StatusLineStdIn | None,
     git_info: GitInfo | None,
     segments: Iterable[SegmentGenerationResult],
 ) -> list[str]:

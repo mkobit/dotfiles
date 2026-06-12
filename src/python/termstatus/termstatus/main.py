@@ -12,24 +12,91 @@ import typer
 from pydantic import TypeAdapter, ValidationError
 from whenever import Instant
 
-from claude_statusline.cache import SegmentCache
-from claude_statusline.layout import Segment, SegmentGenerationResult
-from claude_statusline.payload import StatusLineStdIn
-from claude_statusline.render import render_lines
-from claude_statusline.segments.claude import (
+from termstatus.cache import SegmentCache
+from termstatus.layout import Segment, SegmentGenerationResult
+from termstatus.payload import StatusLineStdIn
+from termstatus.payloads.antigravity import AntigravityPayload
+from termstatus.render import render_lines
+from termstatus.segments.antigravity import format_agent_state, format_vcs_info, format_workspace_info, generate_title
+from termstatus.segments.antigravity import format_context_usage as ag_format_context_usage
+from termstatus.segments.antigravity import format_model_info as ag_format_model_info
+from termstatus.segments.claude import (
     format_context_usage,
     format_cost,
     format_lines_impact,
     format_model_info,
     format_session_info,
 )
-from claude_statusline.segments.git import generate_git_segment
-from claude_statusline.segments.workspace import format_directory, format_obsidian_vault
+from termstatus.segments.git import generate_git_segment
+from termstatus.segments.workspace import format_directory, format_obsidian_vault
 
 logging.basicConfig(level=logging.WARNING, stream=sys.stderr, format="%(levelname)s: %(message)s")
 logger = logging.getLogger(__name__)
 
 cli = typer.Typer(add_completion=False)
+
+antigravity_app = typer.Typer()
+cli.add_typer(antigravity_app, name="antigravity")
+
+
+@antigravity_app.command("render")
+def antigravity_render():
+    raw_json_str = "{}"
+    try:
+        if not sys.stdin.isatty():
+            raw_json_str = sys.stdin.read()
+            raw_data = json.loads(raw_json_str) if raw_json_str.strip() else {}
+        else:
+            raw_data = {}
+    except Exception as e:
+        logger.debug(f"Failed to read/parse stdin: {e}")
+        raw_data = {}
+
+    try:
+        payload = AntigravityPayload(**raw_data)
+    except Exception as e:
+        logger.debug(f"Failed to validate payload: {e}")
+        payload = AntigravityPayload()
+
+    all_segments: list[SegmentGenerationResult] = []
+
+    try:
+        all_segments.extend(format_agent_state(payload))
+        all_segments.extend(ag_format_model_info(payload))
+        all_segments.extend(format_workspace_info(payload))
+        all_segments.extend(format_vcs_info(payload))
+        all_segments.extend(ag_format_context_usage(payload))
+    except Exception as e:
+        logger.warning(f"Error generating segments: {e}")
+
+    lines = render_lines(None, None, all_segments)
+
+    for line in lines:
+        print(line)
+
+
+@antigravity_app.command("title")
+def antigravity_title():
+    raw_json_str = "{}"
+    try:
+        if not sys.stdin.isatty():
+            raw_json_str = sys.stdin.read()
+            raw_data = json.loads(raw_json_str) if raw_json_str.strip() else {}
+        else:
+            raw_data = {}
+    except Exception as e:
+        logger.debug(f"Failed to read/parse stdin: {e}")
+        raw_data = {}
+
+    try:
+        payload = AntigravityPayload(**raw_data)
+    except Exception as e:
+        logger.debug(f"Failed to validate payload: {e}")
+        payload = AntigravityPayload()
+
+    title = generate_title(payload)
+    print(title)
+
 
 SEGMENT_GENERATION_ADAPTER = TypeAdapter(list[SegmentGenerationResult] | SegmentGenerationResult)
 
@@ -78,8 +145,12 @@ async def run_external_generator(
     return []
 
 
-@cli.command()
-def main(  # noqa: C901
+claude_app = typer.Typer()
+cli.add_typer(claude_app, name="claude")
+
+
+@claude_app.command("render")
+def claude_render(  # noqa: C901
     generator: Annotated[
         list[str] | None, typer.Option(help="External command or script to generate segments (takes JSON on stdin).")
     ] = None,
@@ -114,9 +185,9 @@ def main(  # noqa: C901
 
     xdg_cache_home = os.environ.get("XDG_CACHE_HOME")
     if xdg_cache_home:
-        cache_path = Path(xdg_cache_home) / "claude_statusline" / "cache.json"
+        cache_path = Path(xdg_cache_home) / "termstatus" / "cache.json"
     else:
-        cache_path = Path.home() / ".cache" / "claude_statusline" / "cache.json"
+        cache_path = Path.home() / ".cache" / "termstatus" / "cache.json"
     cache = SegmentCache(cache_path)
     cache.load()
     all_segments: list[SegmentGenerationResult] = []
