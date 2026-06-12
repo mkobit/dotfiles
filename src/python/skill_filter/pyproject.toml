@@ -1,0 +1,21 @@
+[project]
+name = "skill-filter"
+version = "0.0.0"
+requires-python = ">=3.14"
+# No runtime dependencies: executed by system python3 at chezmoi apply time, before uv/mise exist.
+dependencies = []
+
+[project.scripts]
+skill-filter = "skill_filter.main:main"
+
+[build-system]
+requires = [
+    "hatchling",
+]
+build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "ruff>=0.15.7",
+]

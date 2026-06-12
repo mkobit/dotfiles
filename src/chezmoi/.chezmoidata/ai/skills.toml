@@ -1,0 +1,55 @@
+# AI skill deployment catalog.
+#
+# Skills are deployed as static files by chezmoi externals (see .chezmoiexternals/ai-skills.toml.tmpl).
+# Each upstream is pinned to an exact commit and archive checksum.
+# The archive is piped through src/python/skill_filter at apply time to extract one skill per external.
+# Skills marked "absent" are pruned via dot_claude/.chezmoiremove.tmpl and dot_gemini/.chezmoiremove.tmpl;
+# keep the key when deselecting a skill — deleting it outright orphans any installed copy.
+#
+# Every present skill installs to every tool's skill directory; the target
+# directories are hardcoded in the externals and removal templates above.
+#
+# Overlay and per-machine composition (config data takes key-path precedence over this file):
+# - Proxy GitHub downloads:   [data.ai.skills.hosts.github] url_format = "https://artifacts.corp/github/{repo}/tar.gz/{ref}"
+# - Add an internal host:     [ai.skills.hosts.ghe] url_format = "https://ghe.corp/api/v3/repos/{repo}/tarball/{ref}"
+#   in an overlay .chezmoidata file, then set host = "ghe" on overlay sources.
+# - Remove one skill:         [data.ai.skills.external.superpowers.skills] brainstorming = "absent"
+# - Add overlay-only sources in an overlay .chezmoidata file under distinct [ai.skills.external.<name>] keys.
+
+# Archive hosts: each url_format substitutes {repo} and {ref} from the source entry.
+[ai.skills.hosts.github]
+url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"
+
+# Authored skills: full directory trees under src/ai/skills/<name>/ in this repo,
+# deployed via file:// externals (see .chezmoiexternals/ai-authored-skills.toml.tmpl).
+[ai.skills.authored]
+example_skill = "absent"
+pr-reviewer = "present"
+technical-writing = "present"
+typescript-expert = "absent" # source deleted 2026-06-11; find a publicly maintained replacement
+write-agent-context = "present"
+
+# External sources: [ai.skills.external.<name>] with repo, ref (commit SHA), sha256 (downloaded archive).
+# Optional: host (archive host key, default "github"), skills_root (default "skills"),
+# url (full archive URL for one-off published artifacts, bypasses host construction).
+# Each [.skills] entry maps an upstream skill directory name to "present" or "absent".
+[ai.skills.external.superpowers]
+repo = "obra/superpowers"
+ref = "6fd4507659784c351abbd2bc264c7162cfd386dc" # 2026-05-29
+sha256 = "bae555f742a6f223bca7825f79f0305315944653e8763b7939f19f93f9adda32"
+
+[ai.skills.external.superpowers.skills]
+brainstorming = "present"
+systematic-debugging = "present"
+test-driven-development = "present"
+
+# Built distribution repo (GoogleChrome/modern-web-guidance-src is the source repo;
+# its skills-src content is bundled into the modern-web-guidance skill's guides here).
+[ai.skills.external.modern-web-guidance]
+repo = "GoogleChrome/modern-web-guidance"
+ref = "5733cdd9f89b0f19119e855532f8b8ac7997ecb6" # 2026-06-08
+sha256 = "3d2793fd566307a2e95387266f3c36fe251f727a62883257bda15e36f2aacead"
+
+[ai.skills.external.modern-web-guidance.skills]
+chrome-extensions = "present"
+modern-web-guidance = "present"

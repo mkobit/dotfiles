@@ -14,10 +14,11 @@ Never assume you are on `main` or in the primary checkout directory.
 
 ## Repository structure
 
-- `src/` - Chezmoi templates and deployment configuration (the source of truth).
-- `config/` - Build configuration and profile management.
-- `.chezmoidata/` - Modular configuration data (TOML).
-- `src/chezmoi/dot_local/share/ai/` - AI tool plugin registry and marketplace.
+- `src/chezmoi/` - Chezmoi templates and deployment configuration (the source of truth; `.chezmoiroot`).
+- `src/chezmoi/.chezmoidata/` - Modular configuration data (TOML).
+- `src/chezmoi/.chezmoidata/ai/skills.toml` - AI skill deployment catalog (pinned upstream skills installed via chezmoi externals).
+- `src/ai/skills/` - Authored AI skills (canonical sources, deployed as copies).
+- `src/python/` - Local Python tools (uv workspace).
 
 ## Critical path rules
 

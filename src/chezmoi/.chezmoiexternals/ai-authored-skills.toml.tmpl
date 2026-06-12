@@ -1,0 +1,40 @@
+{{- /*
+  Generates one file external per (present authored skill file, tool dir) from
+  the catalog in .chezmoidata/ai/skills.toml. Authored skills are full
+  directory trees under src/ai/skills/<skill>/; nested paths are preserved, so
+  the overlay rsync union must include src/ai/skills/. file:// URLs read
+  straight from the working tree and refreshPeriod re-reads them on every
+  apply, keeping deployed copies in sync with local edits. Skills marked
+  "absent" are pruned by the .chezmoiremove templates; a file deleted from a
+  present skill leaves an orphan in the target until removed manually (file
+  externals are not exact).
+*/ -}}
+{{- $skillsDirs := list ".claude/skills" ".gemini/antigravity-cli/skills" -}}
+{{- $root := joinPath .chezmoi.workingTree "src/ai/skills" -}}
+{{- $config := dict -}}
+{{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
+{{-   if eq $state "present" -}}
+{{-     $skillDir := joinPath $root $skillName -}}
+{{-     $found := false -}}
+{{-     range $path := glob (joinPath $skillDir "**/*") -}}
+{{-       if eq (lstat $path).type "file" -}}
+{{-         $found = true -}}
+{{-         $rel := trimPrefix (printf "%s/" $skillDir) $path -}}
+{{-         range $dir := $skillsDirs -}}
+{{-           $entry := dict
+                "type" "file"
+                "url" (printf "file://%s" $path)
+                "refreshPeriod" "1s"
+-}}
+{{-           $_ := set $config (printf "%s/%s/%s" $dir $skillName $rel) $entry -}}
+{{-         end -}}
+{{-       end -}}
+{{-     end -}}
+{{-     if not $found -}}
+{{-       fail (printf "ai.skills.authored.%s: no files found under %s" $skillName $skillDir) -}}
+{{-     end -}}
+{{-   else if ne $state "absent" -}}
+{{-     fail (printf "ai.skills.authored.%s: state must be \"present\" or \"absent\", got %q" $skillName $state) -}}
+{{-   end -}}
+{{- end -}}
+{{- if $config -}}{{- toToml $config -}}{{- end -}}

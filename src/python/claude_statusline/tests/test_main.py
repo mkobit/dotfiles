@@ -170,10 +170,13 @@ def test_main_with_xdg_cache_home(tmp_path):
         assert (tmp_path / "claude_statusline" / "cache.json").parent.exists()
 
 
-def test_main_with_internal_error():
+def test_main_with_internal_error(tmp_path):
     """Goals: Ensure internal pipeline failures (like Git) are captured gracefully as errors when requested."""
-    # Force an error in git generation
-    with patch("claude_statusline.main.generate_git_segment", side_effect=Exception("Git error")):
+    # Isolate the cache: a populated user cache would mask the error with a cached git segment.
+    with (
+        patch.dict(os.environ, {"XDG_CACHE_HOME": str(tmp_path)}),
+        patch("claude_statusline.main.generate_git_segment", side_effect=Exception("Git error")),
+    ):
         result = runner.invoke(cli, ["--show-errors"], input='{"cwd": "/tmp"}')
         assert result.exit_code == 0
         assert "Error: internal.git" in result.stdout or "[Error: internal.git" in result.stdout
