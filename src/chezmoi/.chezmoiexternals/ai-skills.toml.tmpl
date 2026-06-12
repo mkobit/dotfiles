@@ -20,7 +20,12 @@
 {{-       end -}}
 {{-       $url := dig "url" "" $source -}}
 {{-       if not $url -}}
-{{-         $url = printf "%s/%s/tar.gz/%s" $cfg.github_archives.base_url $source.repo $source.ref -}}
+{{-         $hostName := dig "host" "github" $source -}}
+{{-         $host := dig $hostName (dict) $cfg.hosts -}}
+{{-         if not $host -}}
+{{-           fail (printf "ai.skills.external.%s: unknown host %q (no ai.skills.hosts.%s entry)" $sourceName $hostName $hostName) -}}
+{{-         end -}}
+{{-         $url = $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
 {{-       end -}}
 {{-       $path := printf "%s/%s" (dig "skills_root" "skills" $source) $skillName -}}
 {{-       range $skillsDir := $skillsDirs -}}

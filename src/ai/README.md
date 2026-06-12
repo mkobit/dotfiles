@@ -22,6 +22,9 @@ sha256 = "<sha256 of the downloaded archive>"
 brainstorming = "present"
 ```
 
+Each source downloads from an archive host (`host`, default `"github"`) declared under `[ai.skills.hosts.<name>]` with a `url_format` substituting `{repo}` and `{ref}`.
+Overlays can repoint a host at a proxy, add internal hosts (for example GitHub Enterprise), or set `url` on a source for a one-off published archive.
+
 To compute the pin for a new ref:
 
 ```sh
@@ -42,9 +45,9 @@ To add a skill: create `src/ai/skills/<name>/SKILL.md` and add `<name> = "presen
 Config `[data.*]` values take per-leaf precedence over the catalog:
 
 ```toml
-# Route downloads through a proxy.
-[data.ai.skills.github_archives]
-base_url = "https://artifacts.corp/github"
+# Route GitHub downloads through a proxy.
+[data.ai.skills.hosts.github]
+url_format = "https://artifacts.corp/github/{repo}/tar.gz/{ref}"
 
 # Deselect a skill on this machine.
 [data.ai.skills.external.superpowers.skills]
