@@ -71,7 +71,7 @@ Access hyphenated keys with `index` rather than dot notation.
 
 ## Overlay compatibility
 
-This repo is designed to be used as a base that an overlay repo rsyncs on top of.
+This repo is designed to be composed with an overlay — a separate chezmoi source tree that layers environment-specific configuration on top.
 The overlay wins all file collisions; individual data values are overridden via `[data.*]` entries in the overlay's `.chezmoi.toml.tmpl` or additional `.chezmoidata/` files.
 
 When adding features, keep them overlay-friendly:
