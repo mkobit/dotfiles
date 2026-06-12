@@ -6,10 +6,6 @@ import pytest
 ACTIVE_SKILL_DIRS = [
     pytest.param(Path(".claude/skills"), id="claude"),
     pytest.param(Path(".gemini/antigravity-cli/skills"), id="antigravity"),
-]
-
-# Directories of tools that are not deployment targets yet but may hold skills.
-OPTIONAL_SKILL_DIRS = [
     pytest.param(Path(".cursor/skills"), id="cursor"),
 ]
 
@@ -32,16 +28,6 @@ def test_tool_skill_dir_deployed_and_valid(chezmoi_dest, relative_dir):
     skills_dir = chezmoi_dest / relative_dir
     assert skills_dir.is_dir(), f"{skills_dir} does not exist after chezmoi apply"
     assert any(skills_dir.iterdir()), f"{skills_dir} contains no skills"
-    assert_entries_are_valid_skills(skills_dir)
-
-
-@pytest.mark.integration
-@pytest.mark.parametrize("relative_dir", OPTIONAL_SKILL_DIRS)
-def test_optional_tool_skill_dir_valid_when_present(chezmoi_dest, relative_dir):
-    """Verify skill directories of non-target tools contain only valid skills if they exist."""
-    skills_dir = chezmoi_dest / relative_dir
-    if not skills_dir.is_dir():
-        pytest.skip(f"{relative_dir} is not deployed on this machine")
     assert_entries_are_valid_skills(skills_dir)
 
 
