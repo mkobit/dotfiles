@@ -30,6 +30,18 @@ install-asdf.sh
 .claude/skills/claude-extension-builder
 .claude/commands/claude/new/skill.md
 
+# Rulesync-era cursor rules and skill copies (dot_cursor/ was deleted from
+# source without pruning; cursor is not a skill deployment target)
+.cursor/rules/00-preferences.mdc
+.cursor/rules/01-agents-md.mdc
+.cursor/rules/02-no-auto-commit.mdc
+.cursor/rules/10-technical-writing.mdc
+.cursor/rules/11-write-agent-context.mdc
+.cursor/skills/pr-reviewer
+.cursor/skills/technical-writing
+.cursor/skills/typescript-expert
+.cursor/skills/write-agent-context
+
 # Remove Oh-My-Zsh installation and custom configuration files when it is disabled
 {{ if ne .zsh.prompt "oh-my-zsh" }}
 .dotfiles/external/oh-my-zsh

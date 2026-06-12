@@ -26,7 +26,7 @@ url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"
 example_skill = "absent"
 pr-reviewer = "present"
 technical-writing = "present"
-typescript-expert = "present"
+typescript-expert = "absent" # source deleted 2026-06-11; find a publicly maintained replacement
 write-agent-context = "present"
 
 # External sources: [ai.skills.external.<name>] with repo, ref (commit SHA), sha256 (downloaded archive).
