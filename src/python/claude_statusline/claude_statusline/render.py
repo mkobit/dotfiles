@@ -32,23 +32,38 @@ def render_lines(
     # Find unique rows (lines)
     all_lines = sorted({seg.line for seg in segments_list})
 
+    # Reference: https://github.com/Owloops/claude-powerline
+    # TUI Mode layout engine uses a 5-column grid by default.
     table = Table(show_header=False, show_edge=False, box=None, padding=(0, 1), expand=True)
-    table.add_column("left", justify="left", ratio=1, no_wrap=True)
-    table.add_column("right", justify="right", no_wrap=True)
+    table.add_column("col0", justify="left", no_wrap=True)
+    table.add_column("col1", justify="left", ratio=1, no_wrap=True)
+    table.add_column("col2", justify="right", no_wrap=True)
+    table.add_column("col3", justify="right", no_wrap=True)
+    table.add_column("col4", justify="right", no_wrap=True)
 
     for line in all_lines:
         line_segs = [s for s in segments_list if s.line == line]
 
-        # Split into left (index < 10) and right (index >= 10)
-        left_segs = [s for s in line_segs if s.index < 10]
-        right_segs = [s for s in line_segs if s.index >= 10]
+        # Group segments by column
+        col_segs: dict[int, list[SegmentGenerationResult]] = {i: [] for i in range(5)}
 
-        left_text = sep.join(s.segment.text for s in sorted(left_segs, key=lambda x: x.index))
-        right_text = sep.join(s.segment.text for s in sorted(right_segs, key=lambda x: x.index))
+        for s in line_segs:
+            if s.column is not None:
+                col = max(0, min(4, s.column))
+                col_segs[col].append(s)
+            # Fallback mapping based on index
+            elif s.index < 10:
+                col_segs[0].append(s)
+            else:
+                col_segs[4].append(s)
 
-        table.add_row(
-            Text.from_ansi(left_text) if left_text else Text(""), Text.from_ansi(right_text) if right_text else Text("")
-        )
+        col_texts = []
+        for i in range(5):
+            segs = sorted(col_segs[i], key=lambda x: x.index)
+            text = sep.join(s.segment.text for s in segs)
+            col_texts.append(Text.from_ansi(text) if text else Text(""))
+
+        table.add_row(*col_texts)
 
     console = Console(width=safe_width, force_terminal=True, color_system="truecolor", highlight=False)
     with console.capture() as capture:

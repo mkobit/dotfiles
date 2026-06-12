@@ -34,56 +34,56 @@ class TestFormatGitFull(unittest.TestCase):
     def test_branch_name_shown(self) -> None:
         res = format_git_full(_git_info())
         assert res is not None
-        self.assertIn("main", res.segment.text)
+        self.assertIn("main", " ".join([r.segment.text for r in res]))
 
     def test_clean_icon_in_brackets(self) -> None:
         res = format_git_full(_git_info())
         assert res is not None
-        self.assertIn(get_icon("clean"), res.segment.text)
-        self.assertIn("[", res.segment.text)
-        self.assertIn("]", res.segment.text)
+        self.assertIn(get_icon("clean"), " ".join([r.segment.text for r in res]))
+        self.assertIn("[", " ".join([r.segment.text for r in res]))
+        self.assertIn("]", " ".join([r.segment.text for r in res]))
 
     def test_dirty_icon_in_brackets(self) -> None:
         res = format_git_full(_git_info(dirty=True))
         assert res is not None
-        self.assertIn(RED, res.segment.text)
-        self.assertIn(get_icon("dirty"), res.segment.text)
-        self.assertIn("[", res.segment.text)
+        self.assertIn(RED, " ".join([r.segment.text for r in res]))
+        self.assertIn(get_icon("dirty"), " ".join([r.segment.text for r in res]))
+        self.assertIn("[", " ".join([r.segment.text for r in res]))
 
     def test_staged_icon_in_brackets(self) -> None:
         res = format_git_full(_git_info(staged=True))
         assert res is not None
-        self.assertIn(YELLOW, res.segment.text)
-        self.assertIn(get_icon("staged"), res.segment.text)
+        self.assertIn(YELLOW, " ".join([r.segment.text for r in res]))
+        self.assertIn(get_icon("staged"), " ".join([r.segment.text for r in res]))
 
     def test_untracked_icon_in_brackets(self) -> None:
         res = format_git_full(_git_info(untracked=True))
         assert res is not None
-        self.assertIn(CYAN, res.segment.text)
-        self.assertIn(get_icon("untracked"), res.segment.text)
+        self.assertIn(CYAN, " ".join([r.segment.text for r in res]))
+        self.assertIn(get_icon("untracked"), " ".join([r.segment.text for r in res]))
 
     def test_ahead_behind_shown(self) -> None:
         res = format_git_full(_git_info(ahead=3, behind=1))
         assert res is not None
-        self.assertIn("↑3", res.segment.text)
-        self.assertIn("↓1", res.segment.text)
+        self.assertIn("↑3", " ".join([r.segment.text for r in res]))
+        self.assertIn("↓1", " ".join([r.segment.text for r in res]))
 
     def test_stash_shown(self) -> None:
         res = format_git_full(_git_info(stash_count=2))
         assert res is not None
-        self.assertIn("2", res.segment.text)
-        self.assertIn(get_icon("stash"), res.segment.text)
+        self.assertIn("2", " ".join([r.segment.text for r in res]))
+        self.assertIn(get_icon("stash"), " ".join([r.segment.text for r in res]))
 
     def test_stash_hidden_when_zero(self) -> None:
         res = format_git_full(_git_info(stash_count=0))
         assert res is not None
-        self.assertNotIn(get_icon("stash"), res.segment.text)
+        self.assertNotIn(get_icon("stash"), " ".join([r.segment.text for r in res]))
 
     def test_remote_link_points_to_branch(self) -> None:
         res = format_git_full(_git_info(branch="feat/my-feature"))
         assert res is not None
         expected = "https://github.com/example/repo/tree/feat/my-feature"
-        self.assertIn(expected, res.segment.text)
+        self.assertIn(expected, " ".join([r.segment.text for r in res]))
 
     def test_gitlab_remote_link_uses_dash_tree(self) -> None:
         res = format_git_full(
@@ -93,26 +93,26 @@ class TestFormatGitFull(unittest.TestCase):
             )
         )
         assert res is not None
-        self.assertIn("https://gitlab.com/org/project/-/tree/main", res.segment.text)
+        self.assertIn("https://gitlab.com/org/project/-/tree/main", " ".join([r.segment.text for r in res]))
 
     def test_no_remote_no_link(self) -> None:
         res = format_git_full(_git_info(remote=None))
         assert res is not None
-        self.assertNotIn(get_icon("remote"), res.segment.text)
+        self.assertNotIn(get_icon("remote"), " ".join([r.segment.text for r in res]))
 
     def test_worktree_uses_worktree_icon(self) -> None:
         res = format_git_full(_git_info(is_worktree=True))
         assert res is not None
-        self.assertIn(get_icon("worktree"), res.segment.text)
-        self.assertNotIn(get_icon("branch"), res.segment.text)
+        self.assertIn(get_icon("worktree"), " ".join([r.segment.text for r in res]))
+        self.assertNotIn(get_icon("branch"), " ".join([r.segment.text for r in res]))
 
     def test_placed_on_line_1(self) -> None:
         res = format_git_full(_git_info())
         assert res is not None
-        self.assertEqual(res.line, 1)
+        self.assertEqual(res[0].line if res else None, 1)
 
     def test_returns_none_for_none_input(self) -> None:
-        self.assertIsNone(format_git_full(None))
+        self.assertEqual(format_git_full(None), [])
 
 
 class TestGenerateGitSegment(unittest.TestCase):
@@ -148,7 +148,7 @@ class TestGenerateGitSegment(unittest.TestCase):
             results = asyncio.run(generate_git_segment(Path("/tmp/repo"), False))
 
         self.assertGreater(len(results), 0)
-        text = results[0].segment.text
+        text = " ".join(r.segment.text for r in results)
         self.assertIn("feature-branch", text)
         self.assertIn("https://github.com/user/repo", text)
         self.assertIn(GREEN, text)

@@ -19,6 +19,7 @@ from claude_statusline.render import render_lines
 from claude_statusline.segments.claude import (
     format_context_usage,
     format_cost,
+    format_lines_impact,
     format_model_info,
     format_session_info,
 )
@@ -134,10 +135,11 @@ def main(  # noqa: C901
         return []
 
     async def fetch_all() -> None:  # noqa: C901
+        nonlocal all_segments
         git_key = f"internal.git:{cwd.resolve()}"
         cached_git = await cache.get(git_key)
         if cached_git is not None:
-            all_segments.extend(cached_git)
+            all_segments = all_segments + cached_git
         else:
 
             async def wrap_git():
@@ -153,7 +155,7 @@ def main(  # noqa: C901
             cmd_key = f"external:{cmd}"
             cached_cmd = await cache.get(cmd_key)
             if cached_cmd is not None:
-                all_segments.extend(cached_cmd)
+                all_segments = all_segments + cached_cmd
             else:
 
                 async def wrap_cmd(c=cmd, ck=cmd_key):
@@ -170,9 +172,9 @@ def main(  # noqa: C901
         cache_updates = []
         for _, key, res in results:
             if isinstance(res, Exception):
-                all_segments.extend(handle_error(res, key))
+                all_segments = all_segments + handle_error(res, key)
             else:
-                all_segments.extend(res)
+                all_segments = all_segments + res
                 if res:
                     try:
                         if any(hasattr(r, "cache_duration") and r.cache_duration for r in res):
@@ -194,17 +196,19 @@ def main(  # noqa: C901
     asyncio.run(fetch_all())
 
     try:
-        internal_results = [
+        internal_results_nested = [
             format_model_info(payload),
             format_session_info(payload),
             format_directory(cwd),
             format_obsidian_vault(cwd),
             format_context_usage(payload.context_window),
             format_cost(payload),
+            format_lines_impact(payload),
         ]
-        all_segments.extend([r for r in internal_results if r])
+        for result_list in internal_results_nested:
+            all_segments = all_segments + result_list
     except Exception as e:
-        all_segments.extend(handle_error(e, "internal.claude_or_workspace"))
+        all_segments = all_segments + handle_error(e, "internal.claude_or_workspace")
 
     lines = render_lines(payload, None, all_segments)
 
