@@ -23,6 +23,12 @@ ref = "a077c9ac0be381ec15e7dcbb690f641d6091a5db" # 2026-06-07
 sha256 = "dbe0b0aadd2b12a5cceb5a0f613c272e74da6ddc4acc66344dfece16ea172d5b"
 
 [ai.agents.external.agency-agents.agents]
+"engineering/engineering-backend-architect" = "present"
+"engineering/engineering-codebase-onboarding-engineer" = "present"
+"engineering/engineering-database-optimizer" = "present"
+"engineering/engineering-prompt-engineer" = "present"
+"engineering/engineering-software-architect" = "present"
+"engineering/engineering-sre" = "present"
 "product/product-feedback-synthesizer" = "present"
 "product/product-manager" = "present"
 "product/product-sprint-prioritizer" = "present"
@@ -33,3 +39,7 @@ sha256 = "dbe0b0aadd2b12a5cceb5a0f613c272e74da6ddc4acc66344dfece16ea172d5b"
 # Rejected 2026-06-12: prompt embeds the author's own project layout (runs
 # ./qa-playwright-capture.sh, writes ai/memory-bank/ paths); adapt or replace.
 "project-management/project-manager-senior" = "absent"
+# Audit caveat 2026-06-12: no malicious content, but the prompt eagerly directs
+# running real load/stress/penetration tests — only point it at safe targets.
+"testing/testing-api-tester" = "present"
+"testing/testing-performance-benchmarker" = "present"
