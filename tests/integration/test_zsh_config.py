@@ -21,6 +21,8 @@ def test_zsh_interactive_login_loads_cleanly(host):
     ]
     for warning in known_benign:
         stderr_lower = stderr_lower.replace(warning, "")
-    assert "error" not in stderr_lower and "command not found" not in stderr_lower, (
-        f"Errors found during zsh startup:\n{result.stderr}"
-    )
+    assert (
+        "error" not in stderr_lower
+        and "command not found" not in stderr_lower
+        and "unknown command or service" not in stderr_lower
+    ), f"Errors found during zsh startup:\n{result.stderr}"
