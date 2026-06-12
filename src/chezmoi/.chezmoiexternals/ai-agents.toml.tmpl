@@ -1,0 +1,53 @@
+{{- /*
+  Generates one archive external per source with present agents from the
+  catalog in .chezmoidata/ai/agents.toml. Each external downloads the pinned
+  upstream archive (verified against sha256, cached once per URL) and pipes it
+  through skill_filter with one --select per present agent file, placing them
+  flat under .claude/agents/<source>/ (Claude Code discovers agents in
+  subdirectories). The external is exact, so absent agents are pruned without
+  a removal template. Archive hosts are shared with the skills catalog
+  ([ai.skills.hosts]). The filter runs via system python3 and must stay
+  stdlib-only because uv and mise are not installed until after apply.
+*/ -}}
+{{- $cfg := .ai.agents -}}
+{{- $hosts := .ai.skills.hosts -}}
+{{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
+{{- $config := dict -}}
+{{- range $sourceName, $source := $cfg.external -}}
+{{-   $selects := list -}}
+{{-   range $agentPath, $state := dig "agents" (dict) $source -}}
+{{-     if eq $state "present" -}}
+{{-       if or (not (dig "ref" "" $source)) (not (dig "sha256" "" $source)) -}}
+{{-         fail (printf "ai.agents.external.%s: ref and sha256 are required (versions are always pinned)" $sourceName) -}}
+{{-       end -}}
+{{-       $root := dig "agents_root" "" $source -}}
+{{-       $path := ternary (printf "%s/%s.md" $root $agentPath) (printf "%s.md" $agentPath) (ne $root "") -}}
+{{-       $selects = concat $selects (list "--select" $path) -}}
+{{-     else if ne $state "absent" -}}
+{{-       fail (printf "ai.agents.external.%s.agents.%s: state must be \"present\" or \"absent\", got %q" $sourceName $agentPath $state) -}}
+{{-     end -}}
+{{-   end -}}
+{{-   if $selects -}}
+{{-     $url := dig "url" "" $source -}}
+{{-     if not $url -}}
+{{-       $hostName := dig "host" "github" $source -}}
+{{-       $host := dig $hostName (dict) $hosts -}}
+{{-       if not $host -}}
+{{-         fail (printf "ai.agents.external.%s: unknown host %q (no ai.skills.hosts.%s entry)" $sourceName $hostName $hostName) -}}
+{{-       end -}}
+{{-       $url = $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
+{{-     end -}}
+{{-     $entry := dict
+            "type" "archive"
+            "url" $url
+            "checksum" (dict "sha256" $source.sha256)
+            "exact" true
+            "format" "tar"
+            "filter" (dict
+              "command" "python3"
+              "args" (concat (list $script) $selects))
+-}}
+{{-     $_ := set $config (printf ".claude/agents/%s" $sourceName) $entry -}}
+{{-   end -}}
+{{- end -}}
+{{- if $config -}}{{- toToml $config -}}{{- end -}}
