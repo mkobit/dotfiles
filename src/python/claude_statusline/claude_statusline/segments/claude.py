@@ -8,7 +8,6 @@ from claude_statusline.segments.constants import (
     BOLD,
     BRIGHT_GREEN,
     BRIGHT_RED,
-    CYAN,
     DIM,
     GREEN,
     MAGENTA,
@@ -112,30 +111,7 @@ def format_model_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]
 
 
 def format_session_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
-    parts = [
-        f"{CYAN}#{payload.session_name}{RESET}" if payload.session_name else None,
-    ]
-
-    if payload.cost.total_duration_ms:
-        elapsed_seconds = payload.cost.total_duration_ms // 1000
-        hours, remainder = divmod(elapsed_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-
-        timer = f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours > 0 else f"{minutes:02d}:{seconds:02d}"
-
-        parts.append(f"{YELLOW}{get_icon('timer')} {timer}{RESET}")
-
     results = []
-    if payload.session_name:
-        results.append(
-            SegmentGenerationResult(
-                line=0,
-                index=0,
-                column=1,
-                generator="internal.claude",
-                segment=Segment(text=f"{CYAN}#{payload.session_name}{RESET}"),
-            )
-        )
 
     if payload.cost.total_duration_ms:
         elapsed_seconds = payload.cost.total_duration_ms // 1000

@@ -1,14 +1,14 @@
 import shutil
 from collections.abc import Iterable
 
-from rich.console import Console
+from rich.console import Console, Group
 from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
 from claude_statusline.layout import SegmentGenerationResult
 from claude_statusline.payload import StatusLineStdIn
-from claude_statusline.segments.constants import get_icon
+from claude_statusline.segments.constants import CYAN, RESET, get_icon
 from claude_statusline.segments.git import GitInfo
 
 
@@ -36,7 +36,7 @@ def render_lines(
     # TUI Mode layout engine uses a 5-column grid by default.
     table = Table(show_header=False, show_edge=False, box=None, padding=(0, 1), expand=True)
     table.add_column("col0", justify="left", no_wrap=True)
-    table.add_column("col1", justify="left", ratio=1, no_wrap=True)
+    table.add_column("col1", justify="left", ratio=1, overflow="ellipsis", no_wrap=True)
     table.add_column("col2", justify="right", no_wrap=True)
     table.add_column("col3", justify="right", no_wrap=True)
     table.add_column("col4", justify="right", no_wrap=True)
@@ -66,8 +66,17 @@ def render_lines(
         table.add_row(*col_texts)
 
     console = Console(width=safe_width, force_terminal=True, color_system="truecolor", highlight=False)
+
+    # Put session name at the top stretch row if available
+    if payload.session_name:
+        session_text = Text.from_ansi(f"{CYAN}#{payload.session_name}{RESET}", no_wrap=True)
+        session_text.overflow = "ellipsis"
+        renderable = Group(session_text, table)
+    else:
+        renderable = table
+
     with console.capture() as capture:
-        console.print(Panel(table, border_style="dim", expand=True))
+        console.print(Panel(renderable, border_style="dim", expand=True))
 
     captured_lines = capture.get().splitlines()
 
