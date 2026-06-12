@@ -42,6 +42,19 @@ install-asdf.sh
 .cursor/skills/typescript-expert
 .cursor/skills/write-agent-context
 
+# Orphaned unmanaged agents from April 2026 experiments: agency-agents
+# engineering category (dumped flat and as a directory) and manual extractions
+# of installed official plugins. Agents will be onboarded curated + pinned via
+# the catalog later; drop/adjust these entries when that phase deploys to
+# .claude/agents so they don't fight the externals.
+.claude/agents/engineering
+.claude/agents/engineering-*.md
+.claude/agents/agent-sdk-dev
+.claude/agents/compound-review-agents
+.claude/agents/feature-dev
+.claude/agents/plugin-dev
+.claude/agents/pr-review-toolkit
+
 # Remove Oh-My-Zsh installation and custom configuration files when it is disabled
 {{ if ne .zsh.prompt "oh-my-zsh" }}
 .dotfiles/external/oh-my-zsh
