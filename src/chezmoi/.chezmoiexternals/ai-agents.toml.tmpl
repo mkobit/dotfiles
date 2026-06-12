@@ -1,33 +1,35 @@
 {{- /*
-  Generates one archive external per source with present agents from the
-  catalog in .chezmoidata/ai/agents.toml. Each external downloads the pinned
-  upstream archive (verified against sha256, cached once per URL) and pipes it
-  through skill_filter with one --select per present agent file, placing them
-  flat under .claude/agents/<source>/ (Claude Code discovers agents in
-  subdirectories). The external is exact, so absent agents are pruned without
-  a removal template. Archive hosts are shared with the skills catalog
+  Generates externals for the agents catalog in .chezmoidata/ai/agents.toml.
+  Each source's pinned upstream archive (verified against sha256, cached once
+  per URL) is piped through skill_filter per target tool:
+
+  - Claude Code gets the native format: one exact external per source with one
+    --select per agent, placed flat under .claude/agents/<source>/ (Claude
+    Code discovers agents in subdirectories). Absent or other-tool agents are
+    pruned automatically because the external is exact.
+  - Antigravity and cursor consume agents as skills: one exact external per
+    (agent, tool) keyed <skills dir>/<basename>, with the file rewritten to
+    SKILL.md form by the agent-skill transform (name from the file basename,
+    description carried over, body unchanged). Deselected agents are pruned by
+    the dot_gemini/ and dot_cursor/ .chezmoiremove.tmpl files.
+
+  Agent states mirror the skills vocabulary: "present" (all tools), "absent",
+  or a single tool name. Archive hosts are shared with the skills catalog
   ([ai.skills.hosts]). The filter runs via system python3 and must stay
   stdlib-only because uv and mise are not installed until after apply.
 */ -}}
 {{- $cfg := .ai.agents -}}
 {{- $hosts := .ai.skills.hosts -}}
 {{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
+{{- $skillTools := dict "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" -}}
+{{- $validStates := list "present" "absent" "claude" "antigravity" "cursor" -}}
 {{- $config := dict -}}
 {{- range $sourceName, $source := $cfg.external -}}
-{{-   $selects := list -}}
-{{-   range $agentPath, $state := dig "agents" (dict) $source -}}
-{{-     if eq $state "present" -}}
-{{-       if or (not (dig "ref" "" $source)) (not (dig "sha256" "" $source)) -}}
-{{-         fail (printf "ai.agents.external.%s: ref and sha256 are required (versions are always pinned)" $sourceName) -}}
-{{-       end -}}
-{{-       $root := dig "agents_root" "" $source -}}
-{{-       $path := ternary (printf "%s/%s.md" $root $agentPath) (printf "%s.md" $agentPath) (ne $root "") -}}
-{{-       $selects = concat $selects (list "--select" $path) -}}
-{{-     else if ne $state "absent" -}}
-{{-       fail (printf "ai.agents.external.%s.agents.%s: state must be \"present\" or \"absent\", got %q" $sourceName $agentPath $state) -}}
+{{-   $states := dig "agents" (dict) $source -}}
+{{-   if $states -}}
+{{-     if or (not (dig "ref" "" $source)) (not (dig "sha256" "" $source)) -}}
+{{-       fail (printf "ai.agents.external.%s: ref and sha256 are required (versions are always pinned)" $sourceName) -}}
 {{-     end -}}
-{{-   end -}}
-{{-   if $selects -}}
 {{-     $url := dig "url" "" $source -}}
 {{-     if not $url -}}
 {{-       $hostName := dig "host" "github" $source -}}
@@ -37,17 +39,49 @@
 {{-       end -}}
 {{-       $url = $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
 {{-     end -}}
-{{-     $entry := dict
-            "type" "archive"
-            "url" $url
-            "checksum" (dict "sha256" $source.sha256)
-            "exact" true
-            "format" "tar"
-            "filter" (dict
-              "command" "python3"
-              "args" (concat (list $script) $selects))
+{{-     $root := dig "agents_root" "" $source -}}
+{{-     $claudeSelects := list -}}
+{{-     range $agentPath, $state := $states -}}
+{{-       if not (has $state $validStates) -}}
+{{-         fail (printf "ai.agents.external.%s.agents.%s: state must be one of %v, got %q" $sourceName $agentPath $validStates $state) -}}
+{{-       end -}}
+{{-       $path := ternary (printf "%s/%s.md" $root $agentPath) (printf "%s.md" $agentPath) (ne $root "") -}}
+{{-       if or (eq $state "present") (eq $state "claude") -}}
+{{-         $claudeSelects = concat $claudeSelects (list "--select" $path) -}}
+{{-       end -}}
+{{-       range $tool, $skillsDir := $skillTools -}}
+{{-         if or (eq $state "present") (eq $state $tool) -}}
+{{-           $key := printf "%s/%s" $skillsDir (base $agentPath) -}}
+{{-           if hasKey $config $key -}}
+{{-             fail (printf "ai.agents: duplicate external target %q (agent basenames must be unique across sources)" $key) -}}
+{{-           end -}}
+{{-           $entry := dict
+                  "type" "archive"
+                  "url" $url
+                  "checksum" (dict "sha256" $source.sha256)
+                  "exact" true
+                  "format" "tar"
+                  "filter" (dict
+                    "command" "python3"
+                    "args" (list $script "--select" (printf "%s:SKILL.md" $path) "--transform" "agent-skill"))
 -}}
-{{-     $_ := set $config (printf ".claude/agents/%s" $sourceName) $entry -}}
+{{-           $_ := set $config $key $entry -}}
+{{-         end -}}
+{{-       end -}}
+{{-     end -}}
+{{-     if $claudeSelects -}}
+{{-       $entry := dict
+                "type" "archive"
+                "url" $url
+                "checksum" (dict "sha256" $source.sha256)
+                "exact" true
+                "format" "tar"
+                "filter" (dict
+                  "command" "python3"
+                  "args" (concat (list $script) $claudeSelects))
+-}}
+{{-       $_ := set $config (printf ".claude/agents/%s" $sourceName) $entry -}}
+{{-     end -}}
 {{-   end -}}
 {{- end -}}
 {{- if $config -}}{{- toToml $config -}}{{- end -}}

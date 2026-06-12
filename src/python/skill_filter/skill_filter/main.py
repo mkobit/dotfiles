@@ -20,6 +20,11 @@ are placed in the output. ``dest`` defaults to the basename of ``src``; a
 hardlink members are skipped with a warning. Members with absolute paths or
 ``..`` components abort the run, since pinned-checksum archives should never
 contain them.
+
+``--transform`` applies a content rewrite to every selected file:
+``agent-skill`` converts a Claude Code agent ``.md`` into SKILL.md form
+(``name`` derived from the source file basename, ``description`` carried over
+verbatim, body unchanged) for tools that consume agents as skills.
 """
 
 import argparse
@@ -29,7 +34,7 @@ import io
 import posixpath
 import sys
 import tarfile
-from collections.abc import Iterable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from typing import BinaryIO, NamedTuple
 
 
@@ -63,6 +68,27 @@ def _normalize_relative(path: str, what: str) -> str:
     return normalized
 
 
+Transform = Callable[[str, bytes], bytes]
+
+
+def _transform_agent_skill(src: str, content: bytes) -> bytes:
+    lines = content.decode("utf-8").split("\n")
+    if not lines or lines[0] != "---":
+        raise FilterError(f"agent file {src!r} has no frontmatter")
+    closing = next((index for index, line in enumerate(lines[1:], start=1) if line == "---"), None)
+    if closing is None:
+        raise FilterError(f"agent file {src!r} has unterminated frontmatter")
+    description = next((line for line in lines[1:closing] if line.startswith("description:")), None)
+    if description is None:
+        raise FilterError(f"agent file {src!r} frontmatter has no description")
+    name = posixpath.basename(src).removesuffix(".md")
+    header = ("---", f"name: {name}", description, "---")
+    return "\n".join((*header, *lines[closing + 1 :])).encode("utf-8")
+
+
+TRANSFORMS: dict[str, Transform] = {"agent-skill": _transform_agent_skill}
+
+
 def _stripped_name(name: str, strip_components: int) -> str | None:
     normalized = posixpath.normpath(name)
     if normalized.startswith(("/", "..")):
@@ -81,7 +107,7 @@ def _output_name(name: str, selection: Selection) -> str | None:
     return f"{selection.dest}/{remainder}" if remainder else selection.dest
 
 
-def _renamed_member(member: tarfile.TarInfo, name: str) -> tarfile.TarInfo:
+def _renamed_member(member: tarfile.TarInfo, name: str, size: int | None = None) -> tarfile.TarInfo:
     # TarInfo.replace() requires python 3.12; copy manually to support older system pythons.
     renamed = copy.copy(member)
     renamed.name = name
@@ -89,6 +115,8 @@ def _renamed_member(member: tarfile.TarInfo, name: str) -> tarfile.TarInfo:
     renamed.gid = 0
     renamed.uname = ""
     renamed.gname = ""
+    if size is not None:
+        renamed.size = size
     return renamed
 
 
@@ -97,6 +125,7 @@ def filter_archive(
     dst: BinaryIO,
     selections: Sequence[Selection],
     strip_components: int = 1,
+    transform: Transform | None = None,
 ) -> None:
     """Copy selected, re-rooted subtrees from a tar.gz stream to a tar stream."""
     # stdin is not seekable, so buffer the archive to allow random access reads.
@@ -104,7 +133,7 @@ def filter_archive(
     with tarfile.open(fileobj=buffered, mode="r:") as archive:
         triples = sorted(
             (
-                (output_name, member, selection.src)
+                (output_name, member, selection)
                 for member in archive.getmembers()
                 if (name := _stripped_name(member.name, strip_components)) is not None
                 for selection in selections
@@ -112,19 +141,23 @@ def filter_archive(
             ),
             key=lambda triple: triple[0],
         )
-        matched_sources = {src_path for _, _, src_path in triples}
+        matched_sources = {selection.src for _, _, selection in triples}
         unmatched = [selection.src for selection in selections if selection.src not in matched_sources]
         if unmatched:
             raise FilterError(f"selections matched nothing in the archive: {', '.join(unmatched)}")
         # Stream mode: stdout is a pipe when invoked by chezmoi, and plain "w" mode seeks.
         with tarfile.open(fileobj=dst, mode="w|") as output:
-            for output_name, member, _ in triples:
+            for output_name, member, selection in triples:
                 if member.issym() or member.islnk():
                     print(f"skill-filter: skipping link member {member.name!r}", file=sys.stderr)
                 elif member.isfile():
-                    content = archive.extractfile(member)
-                    assert content is not None
-                    output.addfile(_renamed_member(member, output_name), content)
+                    extracted = archive.extractfile(member)
+                    assert extracted is not None
+                    if transform is None:
+                        output.addfile(_renamed_member(member, output_name), extracted)
+                    else:
+                        content = transform(selection.src, extracted.read())
+                        output.addfile(_renamed_member(member, output_name, size=len(content)), io.BytesIO(content))
                 elif member.isdir():
                     output.addfile(_renamed_member(member, output_name))
                 else:
@@ -146,6 +179,11 @@ def _parse_args(argv: Iterable[str]) -> argparse.Namespace:
         default=1,
         help="leading path components to strip before matching (default 1, the GitHub archive top directory)",
     )
+    parser.add_argument(
+        "--transform",
+        choices=sorted(TRANSFORMS),
+        help="content rewrite applied to every selected file",
+    )
     return parser.parse_args(list(argv))
 
 
@@ -155,7 +193,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         selections = [parse_selection(raw) for raw in args.select]
         if len(selections) > 1 and any(selection.dest == "." for selection in selections):
             raise FilterError("a '.' destination is only allowed with a single --select")
-        filter_archive(sys.stdin.buffer, sys.stdout.buffer, selections, args.strip_components)
+        transform = TRANSFORMS[args.transform] if args.transform else None
+        filter_archive(sys.stdin.buffer, sys.stdout.buffer, selections, args.strip_components, transform)
     except (FilterError, tarfile.TarError, gzip.BadGzipFile, EOFError) as error:
         print(f"skill-filter: {error}", file=sys.stderr)
         return 1
