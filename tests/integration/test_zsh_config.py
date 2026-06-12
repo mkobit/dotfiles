@@ -11,6 +11,7 @@ def test_zsh_interactive_login_loads_cleanly(host):
         "not interactive and can't open terminal",
         "compinit: initialization aborted",
         "inappropriate ioctl for device",
+        "zsh: command not found: compdef",
         "can't change option: zle",
         "stty: 'standard input'",
         "(eval):1:",
