@@ -37,7 +37,6 @@ def test_zsh_initialization(host):
         "not interactive and can't open terminal",
         "compinit: initialization aborted",
         "inappropriate ioctl for device",
-        "zsh: command not found: compdef",
         "can't change option: zle",
         "stty: 'standard input'",
         "(eval):1:",
@@ -49,5 +48,10 @@ def test_zsh_initialization(host):
     for warning in known_benign_warnings:
         stderr_lower = stderr_lower.replace(warning.lower(), "")
 
-    if "error" in stderr_lower or "command not found" in stderr_lower or "no such file or directory" in stderr_lower:
+    if (
+        "error" in stderr_lower
+        or "command not found" in stderr_lower
+        or "no such file or directory" in stderr_lower
+        or "unknown command or service" in stderr_lower
+    ):
         pytest.fail(f"Potential errors found during zsh startup:\n{result.stderr}\nFiltered Stderr:\n{stderr_lower}")
