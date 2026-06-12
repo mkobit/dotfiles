@@ -1,0 +1,40 @@
+# AI skill deployment catalog.
+#
+# Skills are deployed as static files by chezmoi externals (see .chezmoiexternals/ai-skills.toml.tmpl).
+# Each upstream is pinned to an exact commit and archive checksum.
+# The archive is piped through src/python/skill_filter at apply time to extract one skill per external.
+# Skills marked "absent" are pruned via dot_claude/.chezmoiremove.tmpl and dot_gemini/.chezmoiremove.tmpl;
+# keep the key when deselecting a skill — deleting it outright orphans any installed copy.
+#
+# Every present skill installs to every tool's skill directory; the target
+# directories are hardcoded in the externals and removal templates above.
+#
+# Overlay and per-machine composition (config data takes key-path precedence over this file):
+# - Proxy all downloads:      [data.ai.skills.github_archives] base_url = "https://artifacts.corp/github"
+# - Remove one skill:         [data.ai.skills.external.superpowers.skills] brainstorming = "absent"
+# - Add overlay-only sources in an overlay .chezmoidata file under distinct [ai.skills.external.<name>] keys.
+
+[ai.skills.github_archives]
+base_url = "https://codeload.github.com"
+
+# Authored skills: full directory trees under src/ai/skills/<name>/ in this repo,
+# deployed via file:// externals (see .chezmoiexternals/ai-authored-skills.toml.tmpl).
+[ai.skills.authored]
+example_skill = "absent"
+pr-reviewer = "present"
+technical-writing = "present"
+typescript-expert = "present"
+write-agent-context = "present"
+
+# External sources: [ai.skills.external.<name>] with repo, ref (commit SHA), sha256 (downloaded archive).
+# Optional: skills_root (default "skills"), url (full archive URL, replaces base_url construction).
+# Each [.skills] entry maps an upstream skill directory name to "present" or "absent".
+[ai.skills.external.superpowers]
+repo = "obra/superpowers"
+ref = "6fd4507659784c351abbd2bc264c7162cfd386dc" # 2026-05-29
+sha256 = "bae555f742a6f223bca7825f79f0305315944653e8763b7939f19f93f9adda32"
+
+[ai.skills.external.superpowers.skills]
+brainstorming = "present"
+systematic-debugging = "present"
+test-driven-development = "present"
