@@ -2,6 +2,15 @@ from pathlib import Path
 
 from termstatus.layout import Segment, SegmentGenerationResult
 from termstatus.payloads.antigravity import AntigravityPayload
+from termstatus.segments.constants import BLUE, CYAN, DIM, GREEN, MAGENTA, RESET, WHITE, YELLOW
+
+AGENT_STATE_COLORS = {
+    "idle": DIM,
+    "thinking": CYAN,
+    "working": BLUE,
+    "tool_use": MAGENTA,
+    "initializing": YELLOW,
+}
 
 
 def format_agent_state(payload: AntigravityPayload) -> list[SegmentGenerationResult]:
@@ -9,24 +18,13 @@ def format_agent_state(payload: AntigravityPayload) -> list[SegmentGenerationRes
     if not state:
         return []
 
-    color = "white"
-    if state == "idle":
-        color = "grey62"
-    elif state == "thinking":
-        color = "cyan"
-    elif state == "working":
-        color = "blue"
-    elif state == "tool_use":
-        color = "magenta"
-    elif state == "initializing":
-        color = "yellow"
-
+    color = AGENT_STATE_COLORS.get(state, WHITE)
     return [
         SegmentGenerationResult(
             line=3,
             index=10,
             generator="internal.antigravity.agent_state",
-            segment=Segment(text=f"[{color}][{state}][/{color}]"),
+            segment=Segment(text=f"{color}[{state}]{RESET}"),
         )
     ]
 
@@ -40,7 +38,7 @@ def format_model_info(payload: AntigravityPayload) -> list[SegmentGenerationResu
             line=3,
             index=20,
             generator="internal.antigravity.model_info",
-            segment=Segment(text=f"[green]{payload.model.display_name}[/green]"),
+            segment=Segment(text=f"{GREEN}{payload.model.display_name}{RESET}"),
         )
     ]
 
@@ -56,7 +54,7 @@ def format_workspace_info(payload: AntigravityPayload) -> list[SegmentGeneration
             line=3,
             index=30,
             generator="internal.antigravity.workspace",
-            segment=Segment(text=f"[blue]{basename}[/blue]"),
+            segment=Segment(text=f"{BLUE}{basename}{RESET}"),
         )
     ]
 
@@ -72,7 +70,7 @@ def format_vcs_info(payload: AntigravityPayload) -> list[SegmentGenerationResult
             line=3,
             index=40,
             generator="internal.antigravity.vcs",
-            segment=Segment(text=f"[yellow]{branch}{dirty_marker}[/yellow]"),
+            segment=Segment(text=f"{YELLOW}{branch}{dirty_marker}{RESET}"),
         )
     ]
 
@@ -87,30 +85,20 @@ def format_context_usage(payload: AntigravityPayload) -> list[SegmentGenerationR
             line=3,
             index=50,
             generator="internal.antigravity.context_usage",
-            segment=Segment(text=f"[cyan]{percent:.1f}% context[/cyan]"),
+            segment=Segment(text=f"{CYAN}{percent:.1f}% context{RESET}"),
         )
     ]
 
 
 def generate_title(payload: AntigravityPayload) -> str:
-    parts = []
-
-    # State
-    if payload.agent_state:
-        parts.append(f"[{payload.agent_state}]")
-
-    # Workspace
-    if payload.cwd:
-        basename = Path(payload.cwd).name
-        parts.append(basename)
-
-    # Model
-    if payload.model and payload.model.display_name:
-        parts.append(f"({payload.model.display_name})")
-
-    # Session
-    if payload.conversation_id:
-        short_id = payload.conversation_id.split("-")[0]
-        parts.append(f"- {short_id}")
-
+    basename = Path(payload.cwd).name if payload.cwd else None
+    display_name = payload.model.display_name if payload.model else None
+    short_id = payload.conversation_id.split("-")[0] if payload.conversation_id else None
+    candidates = [
+        f"[{payload.agent_state}]" if payload.agent_state else None,
+        basename,
+        f"({display_name})" if display_name else None,
+        f"- {short_id}" if short_id else None,
+    ]
+    parts = [part for part in candidates if part]
     return " ".join(parts) if parts else "Antigravity"
