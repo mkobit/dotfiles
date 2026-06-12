@@ -1,17 +1,22 @@
-# AI agent deployment catalog (Claude Code subagents only).
+# AI agent deployment catalog.
 #
-# Agents are single .md files selected from pinned upstream archives and placed
-# under ~/.claude/skills sibling dir ~/.claude/agents/<source>/ by
-# .chezmoiexternals/ai-agents.toml.tmpl. Claude Code is the only target: agent
-# frontmatter is tool-proprietary (antigravity converts agents into skills,
-# cursor into .mdc rules, etc.), so cross-tool deployment needs the deferred
-# transformation layer. The upstream agency-agents format (name, description,
-# color, emoji, vibe) is native Claude Code subagent format.
+# Agents are single .md files selected from pinned upstream archives by
+# .chezmoiexternals/ai-agents.toml.tmpl. Claude Code receives the native
+# format flat under ~/.claude/agents/<source>/ (the upstream agency-agents
+# frontmatter is native Claude Code subagent format). Antigravity and cursor
+# consume agents as skills: each agent is rewritten to SKILL.md form by the
+# skill_filter agent-skill transform (skill name = file basename, description
+# carried over, body unchanged) and placed in the tool's skills directory.
+# opencode is a planned target (needs its own transform).
 #
 # Each [.agents] entry maps an in-archive path (under agents_root, default "")
-# without the .md suffix to "present" or "absent". The external is exact, so
-# agents flipped to "absent" are pruned on the next apply; emptying a source
-# entirely orphans its ~/.claude/agents/<source>/ directory — prune manually.
+# without the .md suffix to a state, mirroring the skills vocabulary:
+# "present" (all tools), "absent", or a single tool name ("claude",
+# "antigravity", "cursor"). The Claude external is exact, so deselected agents
+# prune automatically there; antigravity/cursor copies are pruned by the
+# dot_gemini/ and dot_cursor/ .chezmoiremove.tmpl files — keep keys when
+# deselecting. Emptying a source entirely orphans its
+# ~/.claude/agents/<source>/ directory — prune manually.
 #
 # Onboarding requires a prompt-injection review of each agent at the pinned
 # ref (see memory: supply-chain scrutiny). Pin via:

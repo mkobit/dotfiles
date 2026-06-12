@@ -35,11 +35,16 @@ A skill state is `"present"` (deploy to every tool), `"absent"`, or a single too
 To remove a skill, set it to `"absent"` — never delete the key, which would orphan the installed copy.
 The `.chezmoiremove.tmpl` files in `dot_claude/`, `dot_gemini/`, and `dot_cursor/` prune any skill that does not target their tool on apply.
 
-## Upstream agents (Claude Code only)
+## Upstream agents
 
-Claude Code subagents follow the same pin-and-select model via `src/chezmoi/.chezmoidata/ai/agents.toml` and `src/chezmoi/.chezmoiexternals/ai-agents.toml.tmpl`.
-Each source gets one exact archive external placing selected agent `.md` files flat under `~/.claude/agents/<source>/`, so flipping an agent to `"absent"` prunes it on the next apply without a removal template.
-Agents deploy only to Claude Code: agent frontmatter is tool-proprietary (other tools need format conversion), unlike the quasi-standard SKILL.md.
+Agents follow the same pin-and-select model via `src/chezmoi/.chezmoidata/ai/agents.toml` and `src/chezmoi/.chezmoiexternals/ai-agents.toml.tmpl`.
+Agent states use the same vocabulary as skills: `"present"` (all tools), `"absent"`, or a single tool name.
+Each tool receives agents in its native shape:
+
+- **Claude Code** gets the raw upstream format: one exact archive external per source placing selected agent `.md` files flat under `~/.claude/agents/<source>/` (discovery is recursive, and the agent's identity is its frontmatter `name:`), so deselected agents prune automatically.
+- **Antigravity and cursor** consume agents as skills: each agent is rewritten to `SKILL.md` form by the `skill_filter` `agent-skill` transform (skill name = the agent file's basename, `description` carried over verbatim, body unchanged) and placed as `<skills dir>/<basename>/SKILL.md`. Deselected copies are pruned by the same `.chezmoiremove.tmpl` files that prune skills.
+
+opencode is a planned target — it needs its own transform (`mode: subagent` frontmatter).
 Onboarding an agent requires a prompt-injection review of its full content at the pinned ref.
 
 ## Authored skills

@@ -1,5 +1,6 @@
 {{- /*
-  Prunes catalog skills (.chezmoidata/ai/skills.toml) that do not target
+  Prunes catalog skills (.chezmoidata/ai/skills.toml) and agents-as-skills
+  (.chezmoidata/ai/agents.toml) that do not target
   ~/.gemini/antigravity-cli/skills (antigravity CLI global skills): state
   "absent", or a tool-name state for another tool. Only known catalog keys
   are removed; deleting a catalog key outright orphans any installed copy.
@@ -14,5 +15,12 @@ antigravity-cli/skills/{{ $skillName }}
 {{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
 {{-   if not (or (eq $state "present") (eq $state "antigravity")) }}
 antigravity-cli/skills/{{ $skillName }}
+{{-   end -}}
+{{- end -}}
+{{- range $sourceName, $source := .ai.agents.external -}}
+{{-   range $agentPath, $state := dig "agents" (dict) $source -}}
+{{-     if not (or (eq $state "present") (eq $state "antigravity")) }}
+antigravity-cli/skills/{{ base $agentPath }}
+{{-     end -}}
 {{-   end -}}
 {{- end -}}

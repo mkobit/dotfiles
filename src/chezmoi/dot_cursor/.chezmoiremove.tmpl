@@ -1,8 +1,8 @@
 {{- /*
-  Prunes catalog skills (.chezmoidata/ai/skills.toml) that do not target
-  ~/.cursor/skills: state "absent", or a tool-name state for another tool.
-  Only known catalog keys are removed; deleting a catalog key outright
-  orphans any installed copy.
+  Prunes catalog skills (.chezmoidata/ai/skills.toml) and agents-as-skills
+  (.chezmoidata/ai/agents.toml) that do not target ~/.cursor/skills: state
+  "absent", or a tool-name state for another tool. Only known catalog keys
+  are removed; deleting a catalog key outright orphans any installed copy.
 */ -}}
 {{- range $sourceName, $source := .ai.skills.external -}}
 {{-   range $skillName, $state := dig "skills" (dict) $source -}}
@@ -14,5 +14,12 @@ skills/{{ $skillName }}
 {{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
 {{-   if not (or (eq $state "present") (eq $state "cursor")) }}
 skills/{{ $skillName }}
+{{-   end -}}
+{{- end -}}
+{{- range $sourceName, $source := .ai.agents.external -}}
+{{-   range $agentPath, $state := dig "agents" (dict) $source -}}
+{{-     if not (or (eq $state "present") (eq $state "cursor")) }}
+skills/{{ base $agentPath }}
+{{-     end -}}
 {{-   end -}}
 {{- end -}}

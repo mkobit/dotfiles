@@ -7,7 +7,14 @@ from pathlib import Path
 
 import pytest
 
-from skill_filter.main import FilterError, Selection, filter_archive, main, parse_selection
+from skill_filter.main import (
+    TRANSFORMS,
+    FilterError,
+    Selection,
+    filter_archive,
+    main,
+    parse_selection,
+)
 
 SCRIPT = Path(__file__).parent.parent / "skill_filter" / "main.py"
 
@@ -36,9 +43,15 @@ def read_archive(buffer: io.BytesIO) -> dict[str, bytes | None]:
         }
 
 
-def run_filter(source: io.BytesIO, selections: list[Selection], strip_components: int = 1) -> io.BytesIO:
+def run_filter(
+    source: io.BytesIO,
+    selections: list[Selection],
+    strip_components: int = 1,
+    transform_name: str | None = None,
+) -> io.BytesIO:
     output = io.BytesIO()
-    filter_archive(source, output, selections, strip_components)
+    transform = TRANSFORMS[transform_name] if transform_name else None
+    filter_archive(source, output, selections, strip_components, transform)
     return output
 
 
@@ -160,6 +173,62 @@ class TestDeterminism:
         assert names == sorted(names)
 
 
+AGENT_MD = b"""---
+name: SRE (Site Reliability Engineer)
+description: Expert site reliability engineer specializing in SLOs and error budgets.
+color: "#e63946"
+emoji: \xf0\x9f\x9b\xa1\xef\xb8\x8f
+vibe: Reliability is a feature.
+---
+
+# Mission
+
+A body line that is exactly
+---
+must survive unchanged.
+"""
+
+AGENT_AS_SKILL_MD = b"""---
+name: engineering-sre
+description: Expert site reliability engineer specializing in SLOs and error budgets.
+---
+
+# Mission
+
+A body line that is exactly
+---
+must survive unchanged.
+"""
+
+
+class TestAgentSkillTransform:
+    def test_rewrites_frontmatter_and_preserves_body(self):
+        source = make_archive({"engineering/engineering-sre.md": AGENT_MD})
+        result = read_archive(
+            run_filter(
+                source,
+                [parse_selection("engineering/engineering-sre.md:SKILL.md")],
+                transform_name="agent-skill",
+            )
+        )
+        assert result == {"SKILL.md": AGENT_AS_SKILL_MD}
+
+    def test_missing_frontmatter_raises(self):
+        source = make_archive({"engineering/agent.md": b"# Just a heading\n"})
+        with pytest.raises(FilterError, match="no frontmatter"):
+            run_filter(source, [parse_selection("engineering/agent.md:SKILL.md")], transform_name="agent-skill")
+
+    def test_unterminated_frontmatter_raises(self):
+        source = make_archive({"engineering/agent.md": b"---\nname: x\n"})
+        with pytest.raises(FilterError, match="unterminated"):
+            run_filter(source, [parse_selection("engineering/agent.md:SKILL.md")], transform_name="agent-skill")
+
+    def test_missing_description_raises(self):
+        source = make_archive({"engineering/agent.md": b"---\nname: x\n---\nbody\n"})
+        with pytest.raises(FilterError, match="no description"):
+            run_filter(source, [parse_selection("engineering/agent.md:SKILL.md")], transform_name="agent-skill")
+
+
 class TestSelectionParsing:
     @pytest.mark.parametrize("raw", ["", "/abs", "../up", "a/../..", "a:..", "a:/abs", "."])
     def test_invalid_selection_raises(self, raw):
@@ -225,3 +294,20 @@ class TestSubprocess:
         result = self.run_script("--select", "skills/a:.", stdin=b"not a tarball")
         assert result.returncode == 1
         assert result.stdout == b""
+
+    def test_agent_skill_transform_through_pipes(self):
+        source = make_archive({"engineering/engineering-sre.md": AGENT_MD})
+        result = self.run_script(
+            "--select",
+            "engineering/engineering-sre.md:SKILL.md",
+            "--transform",
+            "agent-skill",
+            stdin=source.getvalue(),
+        )
+        assert result.returncode == 0, result.stderr.decode()
+        assert read_archive(io.BytesIO(result.stdout)) == {"SKILL.md": AGENT_AS_SKILL_MD}
+
+    def test_unknown_transform_rejected(self):
+        result = self.run_script("--select", "a:.", "--transform", "nonsense", stdin=b"")
+        assert result.returncode == 2
+        assert b"invalid choice" in result.stderr
