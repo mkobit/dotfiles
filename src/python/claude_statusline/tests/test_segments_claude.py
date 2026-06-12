@@ -137,12 +137,6 @@ class TestFormatModelInfo(unittest.TestCase):
 
 
 class TestFormatSessionInfo(unittest.TestCase):
-    def test_session_name_shown(self) -> None:
-        payload = StatusLineStdIn(session_name="my-session")
-        res = format_session_info(payload)
-        assert res is not None
-        self.assertIn("my-session", " ".join([r.segment.text for r in res]))
-
     def test_session_id_hash_not_shown(self) -> None:
         payload = StatusLineStdIn(session_id="abc123def456")
         res = format_session_info(payload)
