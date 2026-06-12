@@ -4,8 +4,8 @@ from pathlib import Path
 import pytest
 from whenever import Instant, hours
 
-from claude_statusline.cache import SegmentCache
-from claude_statusline.layout import Segment, SegmentGenerationResult
+from termstatus.cache import SegmentCache
+from termstatus.layout import Segment, SegmentGenerationResult
 
 
 @pytest.fixture
@@ -39,7 +39,7 @@ async def test_cache_set_and_get(cache: SegmentCache, cache_file: Path, monkeypa
         def now(cls):
             return fixed_now
 
-    monkeypatch.setattr("claude_statusline.cache.Instant", MockInstant)
+    monkeypatch.setattr("termstatus.cache.Instant", MockInstant)
 
     cached = await cache.get("key1")
     assert cached is not None
@@ -62,7 +62,7 @@ async def test_cache_expires(cache: SegmentCache, monkeypatch: pytest.MonkeyPatc
         def now(cls):
             return fixed_now
 
-    monkeypatch.setattr("claude_statusline.cache.Instant", MockInstant)
+    monkeypatch.setattr("termstatus.cache.Instant", MockInstant)
 
     assert await cache.get("key1") is None
     assert "key1" not in cache._cache
@@ -87,7 +87,7 @@ async def test_cache_load_valid(cache_file: Path, monkeypatch: pytest.MonkeyPatc
         def now(cls):
             return fixed_now
 
-    monkeypatch.setattr("claude_statusline.cache.Instant", MockInstant)
+    monkeypatch.setattr("termstatus.cache.Instant", MockInstant)
 
     cached = await new_cache.get("key1")
     assert cached is not None

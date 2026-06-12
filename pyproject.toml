@@ -7,7 +7,7 @@ dependencies = [
     "jules-cli",
     "transcribe",
     "termtext",
-    "claude-statusline",
+    "termstatus",
     "skill-filter",
 ]
 
@@ -28,7 +28,7 @@ python-preference = "only-managed"
 members = [
     "src/python/termbud",
     "src/python/jules_cli",
-    "src/python/claude_statusline",
+    "src/python/termstatus",
     "src/python/transcribe",
     "src/python/termtext",
     "src/python/skill_filter",
@@ -39,7 +39,7 @@ termbud = { workspace = true }
 jules-cli = { workspace = true }
 transcribe = { workspace = true }
 termtext = { workspace = true }
-claude-statusline = { workspace = true }
+termstatus = { workspace = true }
 skill-filter = { workspace = true }
 
 [tool.ruff]
@@ -129,7 +129,7 @@ ban-relative-imports = "all"
 max-complexity = 15
 
 [tool.ruff.lint.isort]
-known-first-party = ["termbud", "jules_cli", "claude_statusline", "transcribe", "termtext", "skill_filter"]
+known-first-party = ["termbud", "jules_cli", "termstatus", "transcribe", "termtext", "skill_filter"]
 
 [tool.ty.src]
 include = [

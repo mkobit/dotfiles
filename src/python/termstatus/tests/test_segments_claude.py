@@ -1,6 +1,6 @@
 import unittest
 
-from claude_statusline.payload import (
+from termstatus.payload import (
     AgentInfo,
     ContextWindowInfo,
     CostInfo,
@@ -8,14 +8,14 @@ from claude_statusline.payload import (
     OutputStyle,
     StatusLineStdIn,
 )
-from claude_statusline.segments.claude import (
+from termstatus.segments.claude import (
     format_context_usage,
     format_cost,
     format_model_info,
     format_session_info,
     format_tokens,
 )
-from claude_statusline.segments.constants import (
+from termstatus.segments.constants import (
     BRIGHT_GREEN,
     GREEN,
     ORANGE,

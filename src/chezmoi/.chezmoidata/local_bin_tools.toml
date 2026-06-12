@@ -3,10 +3,15 @@
 # source_dir: path relative to local_bin_tools_root (defaults to workingTree)
 # package_name: uv package name (used for uninstall)
 
+# Renamed to termstatus; the non-uv method triggers the uninstall branch.
 [local_bin_tools.claude_statusline]
-installation_method = "dotfiles.uv"
-source_dir = "src/python/claude_statusline"
+installation_method = "uninstall"
 package_name = "claude-statusline"
+
+[local_bin_tools.termstatus]
+installation_method = "dotfiles.uv"
+source_dir = "src/python/termstatus"
+package_name = "termstatus"
 
 [local_bin_tools.jules]
 installation_method = "dotfiles.uv"

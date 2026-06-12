@@ -6,14 +6,14 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
-from claude_statusline.layout import SegmentGenerationResult
-from claude_statusline.payload import StatusLineStdIn
-from claude_statusline.segments.constants import CYAN, RESET, get_icon
-from claude_statusline.segments.git import GitInfo
+from termstatus.layout import SegmentGenerationResult
+from termstatus.payload import StatusLineStdIn
+from termstatus.segments.constants import CYAN, RESET, get_icon
+from termstatus.segments.git import GitInfo
 
 
 def render_lines(
-    payload: StatusLineStdIn,
+    payload: StatusLineStdIn | None,
     git_info: GitInfo | None,
     segments: Iterable[SegmentGenerationResult],
 ) -> list[str]:
@@ -68,7 +68,7 @@ def render_lines(
     console = Console(width=safe_width, force_terminal=True, color_system="truecolor", highlight=False)
 
     # Put session name at the top stretch row if available
-    if payload.session_name:
+    if payload is not None and payload.session_name:
         session_text = Text.from_ansi(f"{CYAN}#{payload.session_name}{RESET}", no_wrap=True)
         session_text.overflow = "ellipsis"
         renderable = Group(session_text, table)

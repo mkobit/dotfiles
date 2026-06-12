@@ -1,9 +1,9 @@
-from claude_statusline.layout import Segment, SegmentGenerationResult
-from claude_statusline.payload import (
+from termstatus.layout import Segment, SegmentGenerationResult
+from termstatus.payload import (
     ContextWindowInfo,
     StatusLineStdIn,
 )
-from claude_statusline.segments.constants import (
+from termstatus.segments.constants import (
     BLUE,
     BOLD,
     BRIGHT_GREEN,

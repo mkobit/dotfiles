@@ -4,14 +4,14 @@ from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock, patch
 
-from claude_statusline.segments.constants import (
+from termstatus.segments.constants import (
     CYAN,
     GREEN,
     RED,
     YELLOW,
     get_icon,
 )
-from claude_statusline.segments.git import GitInfo, format_git_full, generate_git_segment
+from termstatus.segments.git import GitInfo, format_git_full, generate_git_segment
 
 
 def _git_info(**overrides: Any) -> GitInfo:
@@ -143,7 +143,7 @@ class TestGenerateGitSegment(unittest.TestCase):
 
         with (
             patch.object(Path, "exists", return_value=False),
-            patch("claude_statusline.segments.git._check_is_repo", return_value=True),
+            patch("termstatus.segments.git._check_is_repo", return_value=True),
         ):
             results = asyncio.run(generate_git_segment(Path("/tmp/repo"), False))
 

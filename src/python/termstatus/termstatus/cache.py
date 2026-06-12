@@ -6,7 +6,7 @@ from pathlib import Path
 from pydantic import BaseModel, TypeAdapter, ValidationError
 from whenever import Instant
 
-from claude_statusline.layout import SegmentGenerationResult
+from termstatus.layout import SegmentGenerationResult
 
 
 class CachedSegment(BaseModel):

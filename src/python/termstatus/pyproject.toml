@@ -1,5 +1,5 @@
 [project]
-name = "claude-statusline"
+name = "termstatus"
 version = "0.0.0"
 requires-python = ">=3.14"
 dependencies = [
@@ -10,7 +10,7 @@ dependencies = [
 ]
 
 [project.scripts]
-claude-statusline = "claude_statusline.main:cli"
+statusline = "termstatus.main:cli"
 
 [build-system]
 requires = [

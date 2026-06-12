@@ -1,8 +1,8 @@
 import unittest
 
-from claude_statusline.layout import Segment, SegmentGenerationResult
-from claude_statusline.payload import StatusLineStdIn
-from claude_statusline.render import render_lines
+from termstatus.layout import Segment, SegmentGenerationResult
+from termstatus.payload import StatusLineStdIn
+from termstatus.render import render_lines
 
 
 class TestRenderLines(unittest.TestCase):

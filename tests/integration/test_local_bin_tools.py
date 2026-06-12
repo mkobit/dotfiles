@@ -1,6 +1,6 @@
 import pytest
 
-TOOLS = ["jules", "termbud", "transcribe", "claude-statusline"]
+TOOLS = ["jules", "termbud", "transcribe", "statusline"]
 
 
 @pytest.mark.integration

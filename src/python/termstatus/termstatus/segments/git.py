@@ -7,8 +7,8 @@ from typing import NamedTuple
 from pydantic import BaseModel
 from whenever import TimeDelta
 
-from claude_statusline.layout import Segment, SegmentGenerationResult
-from claude_statusline.segments.constants import (
+from termstatus.layout import Segment, SegmentGenerationResult
+from termstatus.segments.constants import (
     CYAN,
     GREEN,
     MAGENTA,
