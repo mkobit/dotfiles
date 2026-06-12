@@ -43,8 +43,8 @@ Each tool receives agents in its native shape:
 
 - **Claude Code** gets the raw upstream format: one exact archive external per source placing selected agent `.md` files flat under `~/.claude/agents/<source>/` (discovery is recursive, and the agent's identity is its frontmatter `name:`), so deselected agents prune automatically.
 - **Antigravity and cursor** consume agents as skills: each agent is rewritten to `SKILL.md` form by the `skill_filter` `agent-skill` transform (skill name = the agent file's basename, `description` carried over verbatim, body unchanged) and placed as `<skills dir>/<basename>/SKILL.md`. Deselected copies are pruned by the same `.chezmoiremove.tmpl` files that prune skills.
+- **opencode** gets one exact external per source under `~/.config/opencode/agents/<source>/`, with each agent rewritten by the `agent-opencode` transform: an explicit `name:` (overriding opencode's path-derived agent name) plus `mode: subagent`. Deselected agents prune automatically.
 
-opencode is a planned target — it needs its own transform (`mode: subagent` frontmatter).
 Onboarding an agent requires a prompt-injection review of its full content at the pinned ref.
 
 ## Authored skills

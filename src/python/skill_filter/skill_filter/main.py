@@ -21,10 +21,12 @@ hardlink members are skipped with a warning. Members with absolute paths or
 ``..`` components abort the run, since pinned-checksum archives should never
 contain them.
 
-``--transform`` applies a content rewrite to every selected file:
-``agent-skill`` converts a Claude Code agent ``.md`` into SKILL.md form
-(``name`` derived from the source file basename, ``description`` carried over
-verbatim, body unchanged) for tools that consume agents as skills.
+``--transform`` applies a content rewrite to every selected file. All
+transforms derive ``name`` from the source file basename, carry the
+``description`` frontmatter line over verbatim, and leave the body unchanged:
+``agent-skill`` converts a Claude Code agent ``.md`` into SKILL.md form for
+tools that consume agents as skills; ``agent-opencode`` emits opencode agent
+frontmatter (adds ``mode: subagent``).
 """
 
 import argparse
@@ -71,7 +73,13 @@ def _normalize_relative(path: str, what: str) -> str:
 Transform = Callable[[str, bytes], bytes]
 
 
-def _transform_agent_skill(src: str, content: bytes) -> bytes:
+class _AgentParts(NamedTuple):
+    name: str
+    description: str
+    body: tuple[str, ...]
+
+
+def _parse_agent(src: str, content: bytes) -> _AgentParts:
     lines = content.decode("utf-8").split("\n")
     if not lines or lines[0] != "---":
         raise FilterError(f"agent file {src!r} has no frontmatter")
@@ -82,11 +90,27 @@ def _transform_agent_skill(src: str, content: bytes) -> bytes:
     if description is None:
         raise FilterError(f"agent file {src!r} frontmatter has no description")
     name = posixpath.basename(src).removesuffix(".md")
-    header = ("---", f"name: {name}", description, "---")
-    return "\n".join((*header, *lines[closing + 1 :])).encode("utf-8")
+    return _AgentParts(name=name, description=description, body=tuple(lines[closing + 1 :]))
 
 
-TRANSFORMS: dict[str, Transform] = {"agent-skill": _transform_agent_skill}
+def _transform_agent_skill(src: str, content: bytes) -> bytes:
+    parts = _parse_agent(src, content)
+    header = ("---", f"name: {parts.name}", parts.description, "---")
+    return "\n".join((*header, *parts.body)).encode("utf-8")
+
+
+def _transform_agent_opencode(src: str, content: bytes) -> bytes:
+    # An explicit name overrides opencode's path-derived agent name, which
+    # would otherwise contain the source subdirectory (e.g. "src/agent-name").
+    parts = _parse_agent(src, content)
+    header = ("---", f"name: {parts.name}", parts.description, "mode: subagent", "---")
+    return "\n".join((*header, *parts.body)).encode("utf-8")
+
+
+TRANSFORMS: dict[str, Transform] = {
+    "agent-skill": _transform_agent_skill,
+    "agent-opencode": _transform_agent_opencode,
+}
 
 
 def _stripped_name(name: str, strip_components: int) -> str | None:

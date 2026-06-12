@@ -12,6 +12,11 @@
     SKILL.md form by the agent-skill transform (name from the file basename,
     description carried over, body unchanged). Deselected agents are pruned by
     the dot_gemini/ and dot_cursor/ .chezmoiremove.tmpl files.
+  - opencode gets one exact external per source under
+    .config/opencode/agents/<source>/ (discovery is recursive), with each file
+    rewritten by the agent-opencode transform (explicit name overrides
+    opencode's path-derived agent name; mode: subagent). Pruning is automatic
+    because the external is exact.
 
   Agent states mirror the skills vocabulary: "present" (all tools), "absent",
   or a single tool name. Archive hosts are shared with the skills catalog
@@ -22,7 +27,7 @@
 {{- $hosts := .ai.skills.hosts -}}
 {{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
 {{- $skillTools := dict "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" -}}
-{{- $validStates := list "present" "absent" "claude" "antigravity" "cursor" -}}
+{{- $validStates := list "present" "absent" "claude" "antigravity" "cursor" "opencode" -}}
 {{- $config := dict -}}
 {{- range $sourceName, $source := $cfg.external -}}
 {{-   $states := dig "agents" (dict) $source -}}
@@ -41,6 +46,7 @@
 {{-     end -}}
 {{-     $root := dig "agents_root" "" $source -}}
 {{-     $claudeSelects := list -}}
+{{-     $opencodeSelects := list -}}
 {{-     range $agentPath, $state := $states -}}
 {{-       if not (has $state $validStates) -}}
 {{-         fail (printf "ai.agents.external.%s.agents.%s: state must be one of %v, got %q" $sourceName $agentPath $validStates $state) -}}
@@ -48,6 +54,9 @@
 {{-       $path := ternary (printf "%s/%s.md" $root $agentPath) (printf "%s.md" $agentPath) (ne $root "") -}}
 {{-       if or (eq $state "present") (eq $state "claude") -}}
 {{-         $claudeSelects = concat $claudeSelects (list "--select" $path) -}}
+{{-       end -}}
+{{-       if or (eq $state "present") (eq $state "opencode") -}}
+{{-         $opencodeSelects = concat $opencodeSelects (list "--select" $path) -}}
 {{-       end -}}
 {{-       range $tool, $skillsDir := $skillTools -}}
 {{-         if or (eq $state "present") (eq $state $tool) -}}
@@ -81,6 +90,19 @@
                   "args" (concat (list $script) $claudeSelects))
 -}}
 {{-       $_ := set $config (printf ".claude/agents/%s" $sourceName) $entry -}}
+{{-     end -}}
+{{-     if $opencodeSelects -}}
+{{-       $entry := dict
+                "type" "archive"
+                "url" $url
+                "checksum" (dict "sha256" $source.sha256)
+                "exact" true
+                "format" "tar"
+                "filter" (dict
+                  "command" "python3"
+                  "args" (concat (list $script) $opencodeSelects (list "--transform" "agent-opencode")))
+-}}
+{{-       $_ := set $config (printf ".config/opencode/agents/%s" $sourceName) $entry -}}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
