@@ -29,21 +29,25 @@
    ]
    ```
 
-3. **Create chezmoi executable template**: `src/chezmoi/dot_local/bin/tools/executable_my_tool.tmpl`
-   ```toml
-   {{- if eq .local_bin_tools.my_tool.installation "uv" -}}
-   #!/bin/bash
-   exec uv run --project {{ .chezmoi.sourceDir }}/src/python/my_tool -m my_tool.main "$@"
-   {{- end -}}
-   ```
-
-4. **Add chezmoi data**: In `src/chezmoi/.chezmoidata/local_bin_tools.toml`:
+3. **Add chezmoi data**: In `src/chezmoi/.chezmoidata/local_bin_tools.toml`:
    ```toml
    [local_bin_tools.my_tool]
-   installation = "uv"
+   installation_method = "dotfiles.uv"
+   source_dir = "src/python/my_tool"
+   package_name = "my-tool"
    ```
 
-5. **Deploy**: `chezmoi apply ~/.local/bin/tools/my_tool`
+4. **Deploy**: Run `chezmoi apply`.
+   - The executable name comes from `[project.scripts]`.
+   - The bin path is `{{ .chezmoi.destDir }}/.local/bin/dotfiles/my-tool`.
+   - Installation happens via the `run_onchange` script on apply.
+
+## Renaming or retiring a tool
+
+Keep the old catalog key.
+Set a non-uv `installation_method` (e.g. `"uninstall"`) with its `package_name`.
+The script's uninstall branch removes the stale uv tool and bin symlink.
+Only delete the key after all machines have applied.
 
 ## Module imports
 
