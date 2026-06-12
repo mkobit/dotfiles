@@ -7,16 +7,18 @@
 # consume agents as skills: each agent is rewritten to SKILL.md form by the
 # skill_filter agent-skill transform (skill name = file basename, description
 # carried over, body unchanged) and placed in the tool's skills directory.
-# opencode is a planned target (needs its own transform).
+# opencode gets agents rewritten by the agent-opencode transform (explicit
+# name + mode: subagent) flat under ~/.config/opencode/agents/<source>/.
 #
 # Each [.agents] entry maps an in-archive path (under agents_root, default "")
 # without the .md suffix to a state, mirroring the skills vocabulary:
 # "present" (all tools), "absent", or a single tool name ("claude",
-# "antigravity", "cursor"). The Claude external is exact, so deselected agents
-# prune automatically there; antigravity/cursor copies are pruned by the
-# dot_gemini/ and dot_cursor/ .chezmoiremove.tmpl files — keep keys when
-# deselecting. Emptying a source entirely orphans its
-# ~/.claude/agents/<source>/ directory — prune manually.
+# "antigravity", "cursor", "opencode"). The Claude and opencode externals are
+# exact, so deselected agents prune automatically there; antigravity/cursor
+# copies are pruned by the dot_gemini/ and dot_cursor/ .chezmoiremove.tmpl
+# files — keep keys when deselecting. Emptying a source entirely orphans its
+# ~/.claude/agents/<source>/ and ~/.config/opencode/agents/<source>/
+# directories — prune manually.
 #
 # Onboarding requires a prompt-injection review of each agent at the pinned
 # ref (see memory: supply-chain scrutiny). Pin via:

@@ -31,10 +31,18 @@ def test_tool_skill_dir_deployed_and_valid(chezmoi_dest, relative_dir):
     assert_entries_are_valid_skills(skills_dir)
 
 
+# Tool agent directories actively deployed to by .chezmoiexternals/ai-agents.toml.tmpl.
+ACTIVE_AGENT_DIRS = [
+    pytest.param(Path(".claude/agents"), id="claude"),
+    pytest.param(Path(".config/opencode/agents"), id="opencode"),
+]
+
+
 @pytest.mark.integration
-def test_claude_agents_dir_deployed_and_valid(chezmoi_dest):
+@pytest.mark.parametrize("relative_dir", ACTIVE_AGENT_DIRS)
+def test_agents_dir_deployed_and_valid(chezmoi_dest, relative_dir):
     """Verify each deployed agent source directory contains only non-empty .md agent files."""
-    agents_dir = chezmoi_dest / ".claude/agents"
+    agents_dir = chezmoi_dest / relative_dir
     assert agents_dir.is_dir(), f"{agents_dir} does not exist after chezmoi apply"
     source_dirs = [entry for entry in sorted(agents_dir.iterdir()) if entry.name != ".DS_Store"]
     assert source_dirs, f"{agents_dir} contains no agent sources"
