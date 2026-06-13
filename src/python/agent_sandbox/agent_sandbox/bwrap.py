@@ -50,7 +50,7 @@ class SandboxSpec:
     cwd: Path
     git_common_dir: Path | None = None
     extra_env: dict[str, str] = field(default_factory=dict)
-    keep_tty: bool = False
+    tty: bool = False
 
 
 def default_mask_paths(uid: int) -> tuple[str, ...]:
@@ -69,7 +69,7 @@ def build_args(spec: SandboxSpec, environ: Mapping[str, str], mask_paths: Sequen
         "--unshare-uts",
         "--unshare-cgroup-try",
     ]
-    if not spec.keep_tty:
+    if not spec.tty:
         # Prevents TIOCSTI input injection into the host terminal.
         args.append("--new-session")
     # /tmp here is the bwrap mount target for a fresh tmpfs, not insecure temp use.
