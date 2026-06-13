@@ -23,11 +23,15 @@ name = "agent-sandbox"
 version = "0.0.0"
 source = { editable = "src/python/agent_sandbox" }
 dependencies = [
+    { name = "pydantic" },
     { name = "typer" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "typer", specifier = ">=0.12.0" }]
+requires-dist = [
+    { name = "pydantic", specifier = ">=2.0.0" },
+    { name = "typer", specifier = ">=0.15.1" },
+]
 
 [[package]]
 name = "aiohappyeyeballs"
