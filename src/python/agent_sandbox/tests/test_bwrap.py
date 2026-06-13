@@ -46,7 +46,7 @@ def spec_for(home, project, **overrides):
         cwd=overrides.pop("cwd", project),
         git_common_dir=overrides.pop("git_common_dir", None),
         extra_env=overrides.pop("extra_env", {}),
-        keep_tty=overrides.pop("keep_tty", False),
+        tty=overrides.pop("tty", False),
     )
 
 
@@ -128,9 +128,9 @@ def test_mask_paths_are_tmpfs(home, project):
     assert "/run/user/1000" in tmpfs_targets
 
 
-def test_new_session_unless_keep_tty(home, project):
+def test_new_session_unless_tty(home, project):
     assert "--new-session" in build_args(spec_for(home, project), {})
-    assert "--new-session" not in build_args(spec_for(home, project, keep_tty=True), {})
+    assert "--new-session" not in build_args(spec_for(home, project, tty=True), {})
 
 
 def test_chdir_to_cwd(home, project):

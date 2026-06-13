@@ -130,7 +130,7 @@ def _resolve(profile_flag: str | None, cwd: Path) -> tuple[SandboxConfig, Profil
     return config, profile, backend
 
 
-def _sandbox_spec(profile: Profile, cwd: Path, keep_tty: bool) -> SandboxSpec:
+def _sandbox_spec(profile: Profile, cwd: Path, *, tty: bool) -> SandboxSpec:
     home = Path.home()
     project_root = _project_root(cwd)
     if project_root == home or project_root in home.parents:
@@ -150,7 +150,7 @@ def _sandbox_spec(profile: Profile, cwd: Path, keep_tty: bool) -> SandboxSpec:
         cwd=cwd,
         git_common_dir=_git_common_dir(cwd, project_root),
         extra_env=extra_env,
-        keep_tty=keep_tty,
+        tty=tty,
     )
 
 
@@ -163,22 +163,23 @@ def _require_bwrap() -> None:
 def run(
     ctx: typer.Context,
     profile: str | None = typer.Option(None, "--profile", help="Sandbox profile (default: configured default)."),
-    keep_tty: bool = typer.Option(
+    tty: bool = typer.Option(
         False,
-        "--keep-tty",
-        help="Keep the controlling terminal for interactive TUIs (weakens isolation: TIOCSTI injection).",
+        "--tty",
+        "-t",
+        help="Allocate a pseudo-TTY for interactive TUIs (weakens isolation: enables TIOCSTI injection).",
     ),
     show_command: bool = typer.Option(False, "--show-command", help="Print the sandbox invocation instead of running."),
 ) -> None:
-    """Run a command in the sandbox: agent-run run --profile autonomous -- claude -p 'fix tests'."""
+    """Run a command in the sandbox: agent-run run -t --profile autonomous -- claude."""
     command = [arg for arg in ctx.args if arg != "--"]
     if not command:
-        raise _fail("no command given; usage: agent-run run [--profile NAME] -- COMMAND [ARGS...]")
+        raise _fail("no command given; usage: agent-run run [-t] [--profile NAME] -- COMMAND [ARGS...]")
     cwd = Path.cwd()
     _, active, backend = _resolve(profile, cwd)
     if isinstance(backend, BwrapBackend):
         _require_bwrap()
-    spec = _sandbox_spec(active, cwd, keep_tty)
+    spec = _sandbox_spec(active, cwd, tty=tty)
     command = _adapt_command(command, spec.extra_env)
     args = [*backend.build_args(spec, os.environ, default_mask_paths(os.getuid())), *command]
     if show_command:
@@ -196,7 +197,7 @@ def doctor(
     _, active, backend = _resolve(profile, cwd)
     if isinstance(backend, BwrapBackend):
         _require_bwrap()
-    spec = _sandbox_spec(active, cwd, keep_tty=False)
+    spec = _sandbox_spec(active, cwd, tty=False)
     spec.extra_env["PROBE_PROJECT"] = str(spec.project_root)
     spec.extra_env["PROBE_PROJECT_WRITE"] = "1" if spec.project_write else "0"
     spec.extra_env["PROBE_EXPECT_GH"] = "1" if "GH_TOKEN" in spec.extra_env else "0"
