@@ -1,0 +1,10 @@
+{{- /* Claude Code settings fragment for agent-run autonomous sandbox sessions,
+passed via `claude --settings`. Prompts are bypassed because the bwrap sandbox
+plus credential absence is the boundary; nothing inside the sandbox is
+trusted, so per-tool deny lists are deliberately empty (they live in
+agent-writable files anyway). Claude's own native sandbox stays off because
+our outer bwrap is the enforcement layer. */ -}}
+{{- dict
+      "permissions" (dict "defaultMode" "bypassPermissions")
+      "sandbox" (dict "enabled" false)
+    | toPrettyJson "  " -}}
