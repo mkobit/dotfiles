@@ -5,6 +5,7 @@
 memory={{ .wsl.wsl2.memory }}
 swap={{ .wsl.wsl2.swap }}
 processors={{ .wsl.wsl2.processors }}
+networkingMode={{ .wsl.wsl2.networkingMode }}
 
 [experimental]
 autoMemoryReclaim={{ .wsl.experimental.autoMemoryReclaim }}
