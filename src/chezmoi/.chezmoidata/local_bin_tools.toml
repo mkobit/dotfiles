@@ -27,3 +27,8 @@ package_name = "transcribe"
 installation_method = "dotfiles.uv"
 source_dir = "src/python/termbud"
 package_name = "termbud"
+
+[local_bin_tools.agent_run]
+installation_method = "dotfiles.uv"
+source_dir = "src/python/agent_sandbox"
+package_name = "agent-sandbox"

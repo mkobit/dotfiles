@@ -1,0 +1,34 @@
+# Sandbox profiles consumed by `agent-run` (src/python/agent_sandbox).
+#
+# Overlay-extensible: override or add profiles via [data.ai.sandbox.*] in an
+# overlay chezmoi.toml.tmpl or .chezmoidata/ai/sandbox.toml.
+#
+# HITL = run agent CLIs directly (claude, agy, opencode). The tool's own
+# permission prompts are the UX. Nothing here applies.
+#
+# Autonomous = run via `agent-run -- TOOL ARGS`. The wrapper consults this
+# data to build the outer sandbox; the tool runs with its own
+# --dangerously-skip-permissions (or equivalent) inside it.
+
+[ai.sandbox]
+# Profile picked when `agent-run` is called without --profile and
+# $AGENT_RUN_PROFILE is unset.
+default_profile = "autonomous"
+
+[ai.sandbox.profiles.autonomous]
+enabled = true
+# "auto" = bwrap on linux, sandbox-exec on darwin. Future: explicit "bwrap"
+# or "seatbelt" overrides for testing.
+backend = "auto"
+# Project worktree mounted read-write.
+project_write = true
+# Network namespace shared with host so the agent can reach model APIs and
+# localhost:11434 (ollama). "none" reserved for future air-gapped runs.
+network = "shared"
+
+[ai.sandbox.profiles.readonly]
+enabled = true
+backend = "auto"
+# Project mounted read-only — for audit / read-only inspection runs.
+project_write = false
+network = "shared"

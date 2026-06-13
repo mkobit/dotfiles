@@ -1,0 +1,10 @@
+# Global git config used inside agent-run sandboxes via GIT_CONFIG_GLOBAL.
+# Inherits the regular config, then forces signing off: ~/.gnupg is masked in
+# the sandbox, so signed commits would fail. Unsigned commits also mark
+# sandbox-made history for later human review.
+[include]
+	path = {{ .chezmoi.destDir }}/.dotfiles/git/config
+[commit]
+	gpgsign = false
+[tag]
+	gpgSign = false
