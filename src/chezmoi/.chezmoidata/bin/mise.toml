@@ -1,6 +1,6 @@
 # mise version already includes "v" prefix — tag_format = "{version}" (no added v)
 [bin.mise]
-version = "v2026.5.16"
+version = "v2026.6.5"
 
 [bin.mise.github_releases]
 repo            = "jdx/mise"
@@ -18,10 +18,10 @@ linux_amd64  = "linux-x64"
 linux_arm64  = "linux-arm64"
 
 [bin.mise.github_releases.checksums]
-darwin_arm64 = "952118ce892730c5a1ba27166d2ce93ecdd6a12e823f7b4fe78ae27da452b950"
-darwin_amd64 = "5854b90978ee8aa95f1d05abee0db4beedb412a8536b9e7d15c8f5a399359385"
-linux_amd64  = "fb2d7bf1a3751398a5c336a3565cd3c60af9b41952abe6fd62e2f2f0d5f06b60"
-linux_arm64  = "a068f29d8821ab0707f1a006721b5ab0baa80acaafc5a7b71e04371287108b92"
+darwin_arm64 = "ba62b0aa53f236de67c9830fdc62d858eed8f24412c28526c117493d1b4b9861"
+darwin_amd64 = "04da4138d5440fda42e248578025f7f054d8791ba764f6ff6f515460800c0d8c"
+linux_amd64  = "9ca3e4e25c26c64886d036fe9ddb2e5415a204f2d5b9c35bf67abd4f15f0f768"
+linux_arm64  = "028ddacc8c3d1285f1173e6d5d92ec20af24571b7c515cdb98c920067c453fea"
 
 [mise]
 
