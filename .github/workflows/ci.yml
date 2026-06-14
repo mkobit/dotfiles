@@ -35,6 +35,11 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - uses: jdx/mise-action@v4.0.1
+        with:
+          # Pin to match .chezmoidata/bin/mise.toml. Without this, the
+          # action falls back to a default that has been yanked from
+          # upstream (mise v2026.6.7 returned 404 on 2026-06-14).
+          version: 2026.5.16
       - name: Restore uv cache
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
@@ -66,6 +71,11 @@ jobs:
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       - uses: jdx/mise-action@v4.0.1
+        with:
+          # Pin to match .chezmoidata/bin/mise.toml. Without this, the
+          # action falls back to a default that has been yanked from
+          # upstream (mise v2026.6.7 returned 404 on 2026-06-14).
+          version: 2026.5.16
       - name: Restore uv cache
         uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
         with:
