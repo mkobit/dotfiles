@@ -238,7 +238,9 @@ if command -v gh >/dev/null 2>&1; then
   fi
 fi
 if command -v curl >/dev/null 2>&1; then
-  curl -fsS -m 2 "http://${OLLAMA_HOST:-localhost:11434}/api/version" >/dev/null 2>&1 && pass "ollama reachable" || printf 'WARN: %s\n' "ollama not reachable"
+  ollama_url="${OLLAMA_HOST:-localhost:11434}"
+  case "$ollama_url" in http://*|https://*) ;; *) ollama_url="http://$ollama_url" ;; esac
+  curl -fsS -m 2 "${ollama_url}/api/version" >/dev/null 2>&1 && pass "ollama reachable" || printf 'WARN: %s\n' "ollama not reachable"
 fi
 printf 'failures: %d\n' "$fails"
 exit "$fails"
