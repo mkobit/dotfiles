@@ -16,10 +16,9 @@
 
 ## Lockfile
 
-`mise.lock` in this directory is the global lockfile managed by chezmoi.
-It pins checksums for all global tools across all platforms.
-Locking is **enforced during deployment** via `MISE_LOCKED=1` in the `run_after_onchange_06_trust-install-global-mise-tools.sh.tmpl` script.
-However, the deployed `config.toml` defaults to `locked = false` to ensure that local projects are not forced to use lockfiles by default.
+`~/.config/mise/mise.lock` is regenerated locally by `mise lock` and is **not tracked in this repo** — `.chezmoiignore` blocks it (`**/.config/mise/mise.lock`) so per-machine drift doesn't pollute the chezmoi diff.
+Locking is **enforced during deployment** via `MISE_LOCKED=1` in the `run_after_onchange_06_trust-install-global-mise-tools.sh.tmpl` script, so whatever lockfile is locally present is honored at install time.
+The deployed `config.toml` defaults to `locked = false` so local projects aren't forced to use lockfiles by default.
 
 ### Updating tools and relocking
 
@@ -37,7 +36,3 @@ Do not substitute alternative commands — especially in Jules, where `mise lock
    MISE_LOCKED=0 mise -C ~ lock --global
    ```
    The `-C ~` flag is required — running from the dotfiles repo root causes global-only tools (e.g. `uv`) to be excluded because the local `.mise.toml` claims them.
-4. Copy the lockfile back to the chezmoi source:
-   ```
-   chezmoi add ~/.config/mise/mise.lock
-   ```
