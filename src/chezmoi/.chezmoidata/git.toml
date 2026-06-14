@@ -1,6 +1,8 @@
-# Git personal configuration - all-or-nothing feature flag
+# Personal git identity (data — the "who I am" facts). The on/off directive
+# and any per-machine scope restriction live in `.chezmoi.toml.tmpl` under
+# `[data.git.personal]`. Overlays can override individual fields here by
+# setting `[data.git.personal] name = "…"` etc. in their own chezmoi.toml.tmpl.
 [git.personal]
-enabled = true
 name = "Mike Kobit"
 email = "mkobit@gmail.com"
 signing_key = "0BCB5C5A05188FFC"

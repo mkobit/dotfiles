@@ -89,3 +89,14 @@ installation_method = "mise"
 
 [data.local.mise.global_tools.ollama]
 installation_method = "mise"
+
+# Git personal identity directive — turn on personal identity on this machine.
+# Identity values (name/email/signing_key) live in .chezmoidata/git.toml as
+# data. Overlays restrict where personal applies by defining
+# `[data.git.personal.scopes]` as a label -> gitdir-pattern map (e.g.
+# `personal = "~/personal/"`); when any scope is present the renderer emits
+# `[includeIf "gitdir:<pattern>"]` blocks instead of an unconditional
+# `[include]`. Base layer (personal machine) leaves scopes empty so every
+# repo — including fresh `git init` with no remote — picks up identity.
+[data.git.personal]
+enabled = true
