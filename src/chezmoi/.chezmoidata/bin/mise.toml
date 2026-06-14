@@ -64,3 +64,11 @@ package_manager = "bun"
   [mise.global_tools.gemini-cli]
   version             = "0.42.0"
   installation_method = "mise"
+
+  # CLI talks to a remote ollama server via OLLAMA_HOST (Windows side on WSL,
+  # mirrored networking exposes it on localhost:11434). Installing here gives
+  # us `ollama list`, `ollama run`, etc. on PATH; we don't run the server in
+  # WSL — Windows-side is canonical.
+  [mise.global_tools.ollama]
+  version             = "0.30.5"
+  installation_method = "mise"
