@@ -7,8 +7,11 @@
 
 ## Configuration
 
-- **Global tools**: Defined in `src/chezmoi/.chezmoidata/mise.toml` under `[mise.global_tools]`.
-- **Settings**: Also in `src/chezmoi/.chezmoidata/mise.toml` under `[mise.settings]`.
+- **Global tools catalog** (versions, postinstall hooks): `src/chezmoi/.chezmoidata/bin/mise.toml` under `[mise.global_tools.<tool>]`.
+- **Global tools BOM** (per-machine opt-in via `installation_method`): `src/chezmoi/.chezmoi.toml.tmpl` under `[data.local.mise.global_tools.<tool>]`.
+  Catalog entries are inert until a BOM entry opts in (`installation_method = "mise"`).
+  Mirrors the `.local.bin.*` convention.
+- **Settings**: `src/chezmoi/.chezmoidata/bin/mise.toml` under `[mise.settings]`.
 - **Shell**: Automatically hooked into `.zshrc` / `.bashrc`.
 
 ## Lockfile
@@ -23,7 +26,8 @@ However, the deployed `config.toml` defaults to `locked = false` to ensure that 
 Follow these steps exactly when updating any mise-managed tool version.
 Do not substitute alternative commands — especially in Jules, where `mise lock` destroys the shell session permanently and irrevocably.
 
-1. Update the version in `src/chezmoi/.chezmoidata/bin/mise.toml` under `[mise.global_tools.<tool>]`.
+1. Update the version in `src/chezmoi/.chezmoidata/bin/mise.toml` under `[mise.global_tools.<tool>]` (catalog).
+   New tools also require a BOM entry in `src/chezmoi/.chezmoi.toml.tmpl` under `[data.local.mise.global_tools.<tool>]` with `installation_method = "mise"`, followed by `chezmoi init` to propagate.
 2. Apply the config to the home directory:
    ```
    chezmoi apply ~/.config/mise/config.toml

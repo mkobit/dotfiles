@@ -1,5 +1,5 @@
-{{- $geminiTool := index .mise.global_tools "gemini-cli" -}}
-{{- if eq $geminiTool.installation_method "mise" -}}
+{{- $geminiMethod := dig "local" "mise" "global_tools" "gemini-cli" "installation_method" "" . -}}
+{{- if eq $geminiMethod "mise" -}}
 {{-   $settings := dict
         "model" (dict "name" .gemini.model)
         "telemetry" (dict "enabled" .gemini.telemetry.enabled "logPrompts" .gemini.telemetry.log_prompts)
