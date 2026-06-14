@@ -12,9 +12,13 @@ from pathlib import Path
 ENV_PASSTHROUGH = ("TERM", "LANG", "LC_ALL", "COLORTERM", "OLLAMA_HOST")
 
 # Read-only toolchain and config mounts re-exposed under the tmpfs home.
+# .local/state/mise carries mise's trust state for project-local mise.toml
+# files; without it, any mise shim invoked inside the sandbox from a
+# directory that has a local mise.toml (like this repo) errors on trust.
 RO_HOME_PATHS = (
     ".local/bin",
     ".local/share/mise",
+    ".local/state/mise",
     ".config/mise",
     ".dotfiles",
     ".config/ai-policy",
