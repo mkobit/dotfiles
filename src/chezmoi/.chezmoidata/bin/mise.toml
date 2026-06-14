@@ -37,30 +37,34 @@ package_manager = "bun"
 
 [mise.global_tools]
 
+# Catalog only — version + tool-specific metadata. Per-machine opt-in
+# (installation_method) lives in the BOM at
+# [data.local.mise.global_tools.<tool>] in .chezmoi.toml.tmpl, matching
+# the .local.bin.* convention. Overlays can flip individual tools off by
+# setting installation_method = "none" in their own BOM entry.
+
   [mise.global_tools.python]
-  version             = "3.14.4"
-  installation_method = "mise"
+  version = "3.14.4"
 
   [mise.global_tools.pnpm]
-  version             = "10.33.0"
-  installation_method = "mise"
+  version = "10.33.0"
 
   [mise.global_tools.java]
-  version             = "temurin-21.0.2+13.0.LTS"
-  installation_method = "mise"
+  version = "temurin-21.0.2+13.0.LTS"
 
   [mise.global_tools.rust]
-  version             = "1.95.0"
-  installation_method = "mise"
+  version = "1.95.0"
 
   [mise.global_tools.bun]
-  version             = "1.3.13"
-  installation_method = "mise"
+  version = "1.3.13"
 
   [mise.global_tools.node]
-  version             = "22.14.0"
-  installation_method = "mise"
+  version = "22.14.0"
 
   [mise.global_tools.gemini-cli]
-  version             = "0.42.0"
-  installation_method = "mise"
+  version = "0.42.0"
+
+  # CLI for the Windows-side ollama server (reachable via mirrored networking).
+  # No WSL-side server — Windows install is canonical.
+  [mise.global_tools.ollama]
+  version = "0.30.5"

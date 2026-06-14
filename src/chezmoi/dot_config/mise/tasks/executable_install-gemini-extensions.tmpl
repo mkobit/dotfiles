@@ -1,5 +1,5 @@
-{{- $geminiCli := index .mise.global_tools "gemini-cli" -}}
-{{- if ne $geminiCli.installation_method "none" -}}
+{{- $geminiMethod := dig "local" "mise" "global_tools" "gemini-cli" "installation_method" "" . -}}
+{{- if ne $geminiMethod "none" -}}
 #!/usr/bin/env bash
 # mise description="Installs Gemini CLI extensions"
 
