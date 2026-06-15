@@ -88,6 +88,54 @@ else
     log_success "Hyper-V firewall rule added for port 11434"
 fi
 
+
+# --- Sync OLLAMA_KEEP_ALIVE environment variable ---
+{{- $keep_alive := dig "packages" "ollama" "keep_alive" "" . }}
+TARGET_KEEP_ALIVE="{{ $keep_alive }}"
+CURRENT_KEEP_ALIVE=$("${POWERSHELL_EXE}" -NoProfile -Command '[Environment]::GetEnvironmentVariable("OLLAMA_KEEP_ALIVE", "User")' 2>/dev/null | tr -d '\r\n')
+
+if [[ -n "${TARGET_KEEP_ALIVE}" ]]; then
+    if [[ "${CURRENT_KEEP_ALIVE}" != "${TARGET_KEEP_ALIVE}" ]]; then
+        log_info "Setting Windows OLLAMA_KEEP_ALIVE to ${TARGET_KEEP_ALIVE}..."
+        "${POWERSHELL_EXE}" -NoProfile -Command "[Environment]::SetEnvironmentVariable('OLLAMA_KEEP_ALIVE', '${TARGET_KEEP_ALIVE}', 'User')"
+        log_success "Windows OLLAMA_KEEP_ALIVE updated. Restarting Ollama process..."
+
+        "${POWERSHELL_EXE}" -NoProfile -Command "
+            Get-Process -Name 'ollama*', 'ollama app*' -ErrorAction SilentlyContinue | Stop-Process -Force
+            Start-Sleep -Seconds 2
+            \$app = \"\$env:USERPROFILE\\AppData\\Local\\Programs\\Ollama\\ollama app.exe\"
+            \$cli = \"\$env:USERPROFILE\\AppData\\Local\\Programs\\Ollama\\ollama.exe\"
+            if (Test-Path \$app) {
+                Start-Process -FilePath \$app
+            } elseif (Test-Path \$cli) {
+                Start-Process -FilePath \$cli -WindowStyle Hidden
+            }
+        "
+        log_success "Ollama restarted with new keep-alive setting"
+    else
+        log_success "Windows OLLAMA_KEEP_ALIVE is already correct (${TARGET_KEEP_ALIVE})"
+    fi
+else
+    if [[ -n "${CURRENT_KEEP_ALIVE}" ]]; then
+        log_info "Removing Windows OLLAMA_KEEP_ALIVE..."
+        "${POWERSHELL_EXE}" -NoProfile -Command "[Environment]::SetEnvironmentVariable('OLLAMA_KEEP_ALIVE', \$null, 'User')"
+        log_success "Windows OLLAMA_KEEP_ALIVE removed. Restarting Ollama process..."
+
+        "${POWERSHELL_EXE}" -NoProfile -Command "
+            Get-Process -Name 'ollama*', 'ollama app*' -ErrorAction SilentlyContinue | Stop-Process -Force
+            Start-Sleep -Seconds 2
+            \$app = \"\$env:USERPROFILE\\AppData\\Local\\Programs\\Ollama\\ollama app.exe\"
+            \$cli = \"\$env:USERPROFILE\\AppData\\Local\\Programs\\Ollama\\ollama.exe\"
+            if (Test-Path \$app) {
+                Start-Process -FilePath \$app
+            } elseif (Test-Path \$cli) {
+                Start-Process -FilePath \$cli -WindowStyle Hidden
+            }
+        "
+        log_success "Ollama restarted with default keep-alive"
+    fi
+fi
+
 log_info "Restart WSL for networking changes to take effect: run 'wsl --shutdown' from Windows PowerShell, then reopen this terminal"
 {{- end }}
 {{- end -}}
