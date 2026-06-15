@@ -1,7 +1,3 @@
-[packages.eza.installation_method]
-darwin = "homebrew"
-linux  = "chezmoi_external"
-
 [packages.eza.package.homebrew]
 name = "eza"
 type = "formula"

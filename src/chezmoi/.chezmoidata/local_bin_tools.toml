@@ -5,30 +5,24 @@
 
 # Renamed to termstatus; the non-uv method triggers the uninstall branch.
 [local_bin_tools.claude_statusline]
-installation_method = "uninstall"
 package_name = "claude-statusline"
 
 [local_bin_tools.termstatus]
-installation_method = "dotfiles.uv"
 source_dir = "src/python/termstatus"
 package_name = "termstatus"
 
 [local_bin_tools.jules]
-installation_method = "dotfiles.uv"
 source_dir = "src/python/jules_cli"
 package_name = "jules-cli"
 
 [local_bin_tools.transcribe]
-installation_method = "dotfiles.uv"
 source_dir = "src/python/transcribe"
 package_name = "transcribe"
 
 [local_bin_tools.termbud]
-installation_method = "dotfiles.uv"
 source_dir = "src/python/termbud"
 package_name = "termbud"
 
 [local_bin_tools.agent_run]
-installation_method = "dotfiles.uv"
 source_dir = "src/python/agent_sandbox"
 package_name = "agent-sandbox"
