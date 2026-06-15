@@ -185,8 +185,8 @@ def format_git_full(info: GitInfo | None) -> list[SegmentGenerationResult]:
     results.append(
         SegmentGenerationResult(
             line=1,
-            index=0,
-            column=0,
+            index=10,
+            column=1,
             segment=Segment(text=f"{MAGENTA}{branch_icon} {branch_display}{RESET}"),
             generator="internal.git",
             cache_duration=TimeDelta(seconds=5),
@@ -206,8 +206,8 @@ def format_git_full(info: GitInfo | None) -> list[SegmentGenerationResult]:
     results.append(
         SegmentGenerationResult(
             line=1,
-            index=10,
-            column=1,
+            index=20,
+            column=2,
             segment=Segment(text=f"[{''.join(filled)}]"),
             generator="internal.git",
             cache_duration=TimeDelta(seconds=5),
@@ -225,8 +225,8 @@ def format_git_full(info: GitInfo | None) -> list[SegmentGenerationResult]:
         results.append(
             SegmentGenerationResult(
                 line=1,
-                index=20,
-                column=2,
+                index=30,
+                column=3,
                 segment=Segment(text=" ".join(ahead_behind_parts)),
                 generator="internal.git",
                 cache_duration=TimeDelta(seconds=5),
@@ -252,8 +252,8 @@ def format_git_full(info: GitInfo | None) -> list[SegmentGenerationResult]:
         results.append(
             SegmentGenerationResult(
                 line=1,
-                index=30,
-                column=3,
+                index=40,
+                column=4,
                 segment=Segment(text=" ".join(stash_remote_parts)),
                 generator="internal.git",
                 cache_duration=TimeDelta(seconds=5),

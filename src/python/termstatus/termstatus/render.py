@@ -27,7 +27,7 @@ def render_lines(
 
     term_size = shutil.get_terminal_size((80, 24))
     # We leave a small buffer of ~4 columns for panel borders and padding.
-    safe_width = max(20, term_size.columns - 4)
+    safe_width = max(40, term_size.columns)
 
     # Find unique rows (lines)
     all_lines = sorted({seg.line for seg in segments_list})
@@ -35,7 +35,7 @@ def render_lines(
     # Reference: https://github.com/Owloops/claude-powerline
     # TUI Mode layout engine uses a 5-column grid by default.
     table = Table(show_header=False, show_edge=False, box=None, padding=(0, 1), expand=True)
-    table.add_column("col0", justify="left", no_wrap=True)
+    table.add_column("col0", justify="left", overflow="ellipsis", no_wrap=True)
     table.add_column("col1", justify="left", ratio=1, overflow="ellipsis", no_wrap=True)
     table.add_column("col2", justify="right", no_wrap=True)
     table.add_column("col3", justify="right", no_wrap=True)

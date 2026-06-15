@@ -120,8 +120,8 @@ def format_session_info(payload: StatusLineStdIn) -> list[SegmentGenerationResul
         timer = f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours > 0 else f"{minutes:02d}:{seconds:02d}"
         results.append(
             SegmentGenerationResult(
-                line=0,
-                index=10,
+                line=2,
+                index=30,
                 column=4,
                 generator="internal.claude",
                 segment=Segment(text=f"{YELLOW}{get_icon('timer')} {timer}{RESET}"),
@@ -160,7 +160,7 @@ def format_lines_impact(payload: StatusLineStdIn) -> list[SegmentGenerationResul
     return [
         SegmentGenerationResult(
             line=1,
-            index=30,
+            index=50,
             column=4,
             generator="internal.claude",
             segment=Segment(text=" ".join(filter(None, parts))),
