@@ -136,9 +136,7 @@ _GIT_GENERATORS = frozenset({"internal.git", "internal.chezmoi"})
 
 
 def _is_git_section(line_segs: Sequence[SegmentGenerationResult]) -> bool:
-    return all(s.generator in _GIT_GENERATORS for s in line_segs) and any(
-        (s.column or 0) == 1 for s in line_segs
-    )
+    return all(s.generator in _GIT_GENERATORS for s in line_segs) and any((s.column or 0) == 1 for s in line_segs)
 
 
 def _build_git_subtable(
