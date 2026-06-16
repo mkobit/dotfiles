@@ -182,6 +182,7 @@ def test_main_with_internal_error(tmp_path):
     # Isolate the cache: a populated user cache would mask the error with a cached git segment.
     with (
         patch.dict(os.environ, {"XDG_CACHE_HOME": str(tmp_path)}),
+        patch("termstatus.main.detect_chezmoi_root", return_value=None),
         patch("termstatus.main.generate_git_segment", side_effect=Exception("Git error")),
     ):
         result = runner.invoke(cli, ["claude", "render", "--show-errors"], input='{"cwd": "/tmp"}')

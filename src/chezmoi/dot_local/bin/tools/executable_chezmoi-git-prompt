@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Detects chezmoi dual-repo source dir via git toplevel.
+# When .chezmoiroot and src/base/.git coexist, outputs dual-repo git info.
+# Usage:
+#   chezmoi-git-prompt          — output dual-repo status
+#   chezmoi-git-prompt --check  — exit 0 if in chezmoi source dir, 1 otherwise
+
+find_chezmoi_root() {
+    local root
+    root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
+    [[ -f "$root/.chezmoiroot" && -d "$root/src/base/.git" ]] || return 1
+    printf '%s' "$root"
+}
+
+if [[ "${1:-}" == "--check" ]]; then
+    find_chezmoi_root >/dev/null 2>&1
+    exit $?
+fi
+
+root="$(find_chezmoi_root)" || exit 0
+base_root="$root/src/base"
+
+o_branch="$(git -C "$root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")"
+b_branch="$(git -C "$base_root" rev-parse --abbrev-ref HEAD 2>/dev/null || echo "?")"
+
+o_status="✓"
+if [[ -n "$(git -C "$root" status --porcelain 2>/dev/null | head -1)" ]]; then
+    o_status="!"
+fi
+
+b_status="✓"
+if [[ -n "$(git -C "$base_root" status --porcelain 2>/dev/null | head -1)" ]]; then
+    b_status="!"
+fi
+
+printf 'chezmoi overlay:%s[%s] base:%s[%s]' "$o_branch" "$o_status" "$b_branch" "$b_status"

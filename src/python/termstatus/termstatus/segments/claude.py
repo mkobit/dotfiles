@@ -15,120 +15,114 @@ from termstatus.segments.constants import (
     RED,
     RESET,
     YELLOW,
-    get_battery_icon,
     get_icon,
 )
 
+_CONTEXT_LINE = 10
 
-def format_tokens(tokens: int, max_tokens: int = 0) -> str:
-    if max_tokens >= 1_000_000 or max_tokens >= 100_000:
-        width = 4
-    elif max_tokens >= 10_000:
-        width = 3
-    else:
-        width = 5
+_BAR_WIDTH = 12
+_BAR_FILLED = "▰"
+_BAR_EMPTY = "▱"
 
-    val = str(tokens) if tokens < 1000 else f"{tokens / 1000:.1f}k".replace(".0k", "k")
-    return f"{val:>{width}}"
+
+def _format_tokens_compact(tokens: int) -> str:
+    if tokens >= 1_000_000:
+        return f"{tokens / 1_000_000:.1f}M".replace(".0M", "M")
+    if tokens >= 1000:
+        return f"{tokens / 1000:.1f}k".replace(".0k", "k")
+    return str(tokens)
+
+
+def _context_color(remaining_pct: float) -> str:
+    if remaining_pct >= 85:
+        return BRIGHT_GREEN
+    if remaining_pct >= 70:
+        return GREEN
+    if remaining_pct >= 55:
+        return YELLOW
+    if remaining_pct >= 30:
+        return ORANGE
+    return RED
+
+
+def _make_bar(used_pct: float, color: str) -> str:
+    filled_count = round((used_pct / 100.0) * _BAR_WIDTH)
+    filled = _BAR_FILLED * filled_count
+    empty = _BAR_EMPTY * (_BAR_WIDTH - filled_count)
+    return f"{color}{filled}{DIM}{empty}{RESET}"
 
 
 def format_context_usage(cw: ContextWindowInfo) -> list[SegmentGenerationResult]:
-    """Formats context usage as a battery icon with remaining % and token counts."""
+    """Formats context as a progress bar with percentage and token ratio."""
     used_pct = cw.used_percentage or 0.0
     remaining_pct = 100.0 - used_pct
-
-    color = (
-        BRIGHT_GREEN
-        if remaining_pct >= 85
-        else GREEN
-        if remaining_pct >= 70
-        else YELLOW
-        if remaining_pct >= 55
-        else ORANGE
-        if remaining_pct >= 30
-        else RED
-    )
-
-    battery = get_battery_icon(remaining_pct)
-    pct_str = f"{color}{battery} {int(remaining_pct)}%{RESET}"
+    color = _context_color(remaining_pct)
 
     total_used = (cw.total_input_tokens or 0) + (cw.total_output_tokens or 0)
     window_size = cw.context_window_size or 0
-    token_str = (
-        f"{BLUE}{format_tokens(total_used, window_size).strip()}"
-        f"/{format_tokens(window_size, window_size).strip()}{RESET}"
+
+    bar = _make_bar(used_pct, color)
+    pct_text = f"{color}{int(remaining_pct)}%{RESET}"
+
+    token_text = (
+        f"{DIM}{_format_tokens_compact(total_used)}/{_format_tokens_compact(window_size)}{RESET}"
         if window_size > 0
-        else None
+        else ""
     )
 
-    dot = get_icon("dot")
+    parts = [p for p in (bar, pct_text, token_text) if p]
 
-    results = []
-    if pct_str:
-        results.append(
-            SegmentGenerationResult(
-                line=2, index=0, column=0, generator="internal.claude", segment=Segment(text=pct_str)
-            )
+    return [
+        SegmentGenerationResult(
+            line=_CONTEXT_LINE,
+            index=0,
+            column=0,
+            generator="internal.claude",
+            segment=Segment(text="  ".join(parts)),
         )
-    if token_str:
-        results.append(
-            SegmentGenerationResult(
-                line=2,
-                index=10,
-                column=1,
-                generator="internal.claude",
-                segment=Segment(text=f"{DIM}{dot}{RESET} {token_str}"),
-            )
-        )
-    return results
+    ]
 
 
 def format_model_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
     style = payload.output_style
-    results = []
     model_str = f"{get_icon('robot')} {BLUE}{BOLD}{payload.model.display_name}{RESET}"
-    results.append(
+
+    agent_style_parts = [
+        f"{MAGENTA}@{payload.agent.name}{RESET}" if payload.agent.name else None,
+        f"{DIM}[{style.name}]{RESET}" if style and style.name else None,
+    ]
+    agent_text = " ".join(p for p in agent_style_parts if p)
+
+    results = [
         SegmentGenerationResult(line=0, index=0, column=0, generator="internal.claude", segment=Segment(text=model_str))
-    )
-
-    agent_style_parts = []
-    if payload.agent.name:
-        agent_style_parts.append(f"{MAGENTA}@{payload.agent.name}{RESET}")
-    if style and style.name:
-        agent_style_parts.append(f"{DIM}[{style.name}]{RESET}")
-
-    if agent_style_parts:
-        results.append(
+    ]
+    if agent_text:
+        results = [
+            *results,
             SegmentGenerationResult(
-                line=0,
-                index=10,
-                column=1,
-                generator="internal.claude",
-                segment=Segment(text=" ".join(agent_style_parts)),
-            )
-        )
+                line=0, index=10, column=1, generator="internal.claude", segment=Segment(text=agent_text)
+            ),
+        ]
     return results
 
 
 def format_session_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
-    results = []
+    if not payload.cost.total_duration_ms:
+        return []
 
-    if payload.cost.total_duration_ms:
-        elapsed_seconds = payload.cost.total_duration_ms // 1000
-        hours, remainder = divmod(elapsed_seconds, 3600)
-        minutes, seconds = divmod(remainder, 60)
-        timer = f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours > 0 else f"{minutes:02d}:{seconds:02d}"
-        results.append(
-            SegmentGenerationResult(
-                line=2,
-                index=30,
-                column=4,
-                generator="internal.claude",
-                segment=Segment(text=f"{YELLOW}{get_icon('timer')} {timer}{RESET}"),
-            )
+    elapsed_seconds = payload.cost.total_duration_ms // 1000
+    hours, remainder = divmod(elapsed_seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+    timer = f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours > 0 else f"{minutes:02d}:{seconds:02d}"
+    return [
+        SegmentGenerationResult(
+            line=0,
+            index=40,
+            column=4,
+            generator="internal.claude",
+            segment=Segment(text=f"{DIM}{get_icon('timer')} {timer}{RESET}"),
         )
-
-    return results
+    ]
 
 
 def format_cost(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
@@ -136,9 +130,9 @@ def format_cost(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
         return []
     return [
         SegmentGenerationResult(
-            line=2,
-            index=20,
-            column=4,
+            line=0,
+            index=30,
+            column=3,
             generator="internal.claude",
             segment=Segment(text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"),
         )
@@ -163,6 +157,6 @@ def format_lines_impact(payload: StatusLineStdIn) -> list[SegmentGenerationResul
             index=50,
             column=4,
             generator="internal.claude",
-            segment=Segment(text=" ".join(filter(None, parts))),
+            segment=Segment(text=" ".join(p for p in parts if p)),
         )
     ]
