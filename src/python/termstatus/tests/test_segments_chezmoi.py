@@ -61,13 +61,14 @@ class TestFormatRepo:
             stash_count=0,
         )
         results = _format_repo("ovl", info, line=2)
-        assert len(results) == 3
+        assert len(results) == 4
         assert results[0].line == 2
         assert results[0].column == 0
         assert "ovl" in results[0].segment.text
         assert results[1].column == 1
         assert "main" in results[1].segment.text
-        assert results[2].column == 3
+        assert results[2].column == 2
+        assert results[3].column == 3
 
     def test_dirty_repo_with_ahead_behind(self):
         info = GitInfo(
@@ -82,15 +83,16 @@ class TestFormatRepo:
             stash_count=0,
         )
         results = _format_repo("base", info, line=3)
-        assert len(results) == 3
+        assert len(results) == 4
         assert results[0].line == 3
         assert results[0].column == 0
         assert "base" in results[0].segment.text
         assert results[1].column == 1
         assert "feature" in results[1].segment.text
-        assert results[2].column == 3
-        assert "↑2" in results[2].segment.text
-        assert "↓1" in results[2].segment.text
+        assert results[2].column == 2
+        assert results[3].column == 3
+        assert "↑2" in results[3].segment.text
+        assert "↓1" in results[3].segment.text
 
     def test_clean_no_remote_no_right_segment(self):
         info = GitInfo(
@@ -105,9 +107,10 @@ class TestFormatRepo:
             stash_count=0,
         )
         results = _format_repo("ovl", info, line=2)
-        assert len(results) == 2
+        assert len(results) == 3
         assert results[0].column == 0
         assert results[1].column == 1
+        assert results[2].column == 2
 
 
 @pytest.mark.asyncio

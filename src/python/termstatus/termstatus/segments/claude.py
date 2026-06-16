@@ -70,7 +70,6 @@ def format_context_usage(cw: ContextWindowInfo) -> list[SegmentGenerationResult]
         else ""
     )
 
-    dot = f" {DIM}{get_icon('dot')}{RESET} "
     parts = [p for p in (bar, pct_text, token_text) if p]
 
     return [
@@ -79,7 +78,7 @@ def format_context_usage(cw: ContextWindowInfo) -> list[SegmentGenerationResult]
             index=0,
             column=0,
             generator="internal.claude",
-            segment=Segment(text=dot.join(parts)),
+            segment=Segment(text="  ".join(parts)),
         )
     ]
 

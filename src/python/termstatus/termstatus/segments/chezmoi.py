@@ -88,7 +88,8 @@ def _format_repo(
         filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
 
     label_text = f"{DIM}{label}{RESET}"
-    branch_text = f"{MAGENTA}{get_icon('branch')} {branch_display}{RESET} [{''.join(filled)}]"
+    branch_text = f"{MAGENTA}{get_icon('branch')} {branch_display}{RESET}"
+    status_text = f"[{''.join(filled)}]"
 
     right_parts = [
         f"{GREEN}↑{info.ahead}{RESET}" if info.ahead > 0 else None,
@@ -125,6 +126,14 @@ def _format_repo(
             index=5,
             column=1,
             segment=Segment(text=branch_text),
+            generator="internal.chezmoi",
+            cache_duration=TimeDelta(seconds=5),
+        ),
+        SegmentGenerationResult(
+            line=line,
+            index=6,
+            column=2,
+            segment=Segment(text=status_text),
             generator="internal.chezmoi",
             cache_duration=TimeDelta(seconds=5),
         ),

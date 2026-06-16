@@ -118,7 +118,8 @@ async def probe_terminal_width() -> int | None:
 
 def _effective_width(probed: int | None) -> int:
     # Panel border + padding takes 4 chars (│ + space each side + │)
-    return max(40, (probed or 80) - 4)
+    raw = (probed or 80) - 4
+    return max(56, min(raw, 90))
 
 
 def _group_segments_by_line(
@@ -142,31 +143,34 @@ def _is_git_section(line_segs: Sequence[SegmentGenerationResult]) -> bool:
 
 def _build_git_subtable(
     lines: Sequence[Sequence[SegmentGenerationResult]],
-    sep: str,
 ) -> Table:
     table = Table(
         show_header=False,
         show_edge=False,
         box=None,
-        padding=(0, 0),
-        expand=False,
+        padding=(0, 1),
+        expand=True,
     )
-    table.add_column("label", justify="left", no_wrap=True)
+    table.add_column("label", justify="left", no_wrap=True, min_width=7)
     table.add_column("branch", justify="left", no_wrap=True, ratio=1)
+    table.add_column("status", justify="left", no_wrap=True)
     table.add_column("right", justify="right", no_wrap=True)
 
     for line_segs in lines:
         col0 = [s for s in line_segs if (s.column or 0) == 0]
         col1 = [s for s in line_segs if (s.column or 0) == 1]
+        col2 = [s for s in line_segs if (s.column or 0) == 2]
         col_right = [s for s in line_segs if (s.column or 0) >= _RIGHT_COLUMN_THRESHOLD]
 
-        label_text = sep.join(s.segment.text for s in col0) if col0 else ""
-        branch_text = sep.join(s.segment.text for s in col1) if col1 else ""
-        right_text = sep.join(s.segment.text for s in col_right) if col_right else ""
+        label_text = " ".join(s.segment.text for s in col0) if col0 else ""
+        branch_text = " ".join(s.segment.text for s in col1) if col1 else ""
+        status_text = " ".join(s.segment.text for s in col2) if col2 else ""
+        right_text = " ".join(s.segment.text for s in col_right) if col_right else ""
 
         table.add_row(
             Text.from_ansi(label_text, no_wrap=True) if label_text else Text(""),
             Text.from_ansi(branch_text, no_wrap=True) if branch_text else Text(""),
+            Text.from_ansi(status_text, no_wrap=True) if status_text else Text(""),
             Text.from_ansi(right_text, no_wrap=True) if right_text else Text(""),
         )
 
@@ -175,12 +179,12 @@ def _build_git_subtable(
 
 def _build_standard_row(
     line_segs: Sequence[SegmentGenerationResult],
-    sep: str,
+    left_sep: str,
 ) -> tuple[Text, Text]:
     left = [s for s in line_segs if (s.column or 0) < _RIGHT_COLUMN_THRESHOLD]
     right = [s for s in line_segs if (s.column or 0) >= _RIGHT_COLUMN_THRESHOLD]
-    left_text = sep.join(s.segment.text for s in left) if left else ""
-    right_text = sep.join(s.segment.text for s in right) if right else ""
+    left_text = left_sep.join(s.segment.text for s in left) if left else ""
+    right_text = "  ".join(s.segment.text for s in right) if right else ""
     return (
         Text.from_ansi(left_text, no_wrap=True) if left_text else Text(""),
         Text.from_ansi(right_text, no_wrap=True) if right_text else Text(""),
@@ -195,7 +199,7 @@ def render_lines(
     terminal_width: int | None = None,
 ) -> list[str]:
     """Renders segments as a panel with subtables for aligned git sections."""
-    sep = f" {DIM}{get_icon('dot')}{RESET} "
+    left_sep = f" {DIM}{get_icon('dot')}{RESET} "
 
     segments_list = list(segments)
     if not segments_list:
@@ -208,7 +212,7 @@ def render_lines(
         show_header=False,
         show_edge=False,
         box=None,
-        padding=(0, 0),
+        padding=(0, 1),
         expand=True,
     )
     outer.add_column("left", justify="left", ratio=1, overflow="ellipsis", no_wrap=True)
@@ -219,7 +223,7 @@ def render_lines(
     def flush_git_buffer() -> None:
         if not git_line_buffer:
             return
-        subtable = _build_git_subtable(git_line_buffer, sep)
+        subtable = _build_git_subtable(git_line_buffer)
         outer.add_row(subtable, Text(""))
         git_line_buffer.clear()
 
@@ -228,7 +232,7 @@ def render_lines(
             git_line_buffer.append(line_segs)
         else:
             flush_git_buffer()
-            left_cell, right_cell = _build_standard_row(line_segs, sep)
+            left_cell, right_cell = _build_standard_row(line_segs, left_sep)
             outer.add_row(left_cell, right_cell)
 
     flush_git_buffer()
@@ -248,6 +252,6 @@ def render_lines(
         renderable = outer
 
     with console.capture() as capture:
-        console.print(Panel(renderable, border_style="dim", expand=False))
+        console.print(Panel(renderable, border_style="dim", expand=True))
 
     return [line.rstrip() for line in capture.get().splitlines() if line.strip()]
