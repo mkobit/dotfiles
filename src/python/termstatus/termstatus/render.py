@@ -131,14 +131,60 @@ def _group_segments_by_line(
 
 
 _RIGHT_COLUMN_THRESHOLD = 3
+_GIT_GENERATORS = frozenset({"internal.git", "internal.chezmoi"})
 
 
-def _split_left_right(
-    segments: Sequence[SegmentGenerationResult],
-) -> tuple[Sequence[SegmentGenerationResult], Sequence[SegmentGenerationResult]]:
-    left = [s for s in segments if (s.column or 0) < _RIGHT_COLUMN_THRESHOLD]
-    right = [s for s in segments if (s.column or 0) >= _RIGHT_COLUMN_THRESHOLD]
-    return left, right
+def _is_git_section(line_segs: Sequence[SegmentGenerationResult]) -> bool:
+    return all(s.generator in _GIT_GENERATORS for s in line_segs) and any(
+        (s.column or 0) == 1 for s in line_segs
+    )
+
+
+def _build_git_subtable(
+    lines: Sequence[Sequence[SegmentGenerationResult]],
+    sep: str,
+) -> Table:
+    table = Table(
+        show_header=False,
+        show_edge=False,
+        box=None,
+        padding=(0, 0),
+        expand=False,
+    )
+    table.add_column("label", justify="left", no_wrap=True)
+    table.add_column("branch", justify="left", no_wrap=True, ratio=1)
+    table.add_column("right", justify="right", no_wrap=True)
+
+    for line_segs in lines:
+        col0 = [s for s in line_segs if (s.column or 0) == 0]
+        col1 = [s for s in line_segs if (s.column or 0) == 1]
+        col_right = [s for s in line_segs if (s.column or 0) >= _RIGHT_COLUMN_THRESHOLD]
+
+        label_text = sep.join(s.segment.text for s in col0) if col0 else ""
+        branch_text = sep.join(s.segment.text for s in col1) if col1 else ""
+        right_text = sep.join(s.segment.text for s in col_right) if col_right else ""
+
+        table.add_row(
+            Text.from_ansi(label_text, no_wrap=True) if label_text else Text(""),
+            Text.from_ansi(branch_text, no_wrap=True) if branch_text else Text(""),
+            Text.from_ansi(right_text, no_wrap=True) if right_text else Text(""),
+        )
+
+    return table
+
+
+def _build_standard_row(
+    line_segs: Sequence[SegmentGenerationResult],
+    sep: str,
+) -> tuple[Text, Text]:
+    left = [s for s in line_segs if (s.column or 0) < _RIGHT_COLUMN_THRESHOLD]
+    right = [s for s in line_segs if (s.column or 0) >= _RIGHT_COLUMN_THRESHOLD]
+    left_text = sep.join(s.segment.text for s in left) if left else ""
+    right_text = sep.join(s.segment.text for s in right) if right else ""
+    return (
+        Text.from_ansi(left_text, no_wrap=True) if left_text else Text(""),
+        Text.from_ansi(right_text, no_wrap=True) if right_text else Text(""),
+    )
 
 
 def render_lines(
@@ -148,7 +194,7 @@ def render_lines(
     *,
     terminal_width: int | None = None,
 ) -> list[str]:
-    """Renders the statusline as a 2-column table (left/right aligned) in a compact panel."""
+    """Renders segments as a panel with subtables for aligned git sections."""
     sep = f" {DIM}{get_icon('dot')}{RESET} "
 
     segments_list = list(segments)
@@ -158,24 +204,34 @@ def render_lines(
     effective_width = _effective_width(terminal_width)
     lines_map = _group_segments_by_line(segments_list)
 
-    table = Table(
+    outer = Table(
         show_header=False,
         show_edge=False,
         box=None,
         padding=(0, 0),
         expand=True,
     )
-    table.add_column("left", justify="left", ratio=1, overflow="ellipsis", no_wrap=True)
-    table.add_column("right", justify="right", no_wrap=True)
+    outer.add_column("left", justify="left", ratio=1, overflow="ellipsis", no_wrap=True)
+    outer.add_column("right", justify="right", no_wrap=True)
+
+    git_line_buffer: list[Sequence[SegmentGenerationResult]] = []
+
+    def flush_git_buffer() -> None:
+        if not git_line_buffer:
+            return
+        subtable = _build_git_subtable(git_line_buffer, sep)
+        outer.add_row(subtable, Text(""))
+        git_line_buffer.clear()
 
     for line_segs in lines_map.values():
-        left_segs, right_segs = _split_left_right(line_segs)
-        left_text = sep.join(s.segment.text for s in left_segs) if left_segs else ""
-        right_text = sep.join(s.segment.text for s in right_segs) if right_segs else ""
-        table.add_row(
-            Text.from_ansi(left_text, no_wrap=True) if left_text else Text(""),
-            Text.from_ansi(right_text, no_wrap=True) if right_text else Text(""),
-        )
+        if _is_git_section(line_segs):
+            git_line_buffer.append(line_segs)
+        else:
+            flush_git_buffer()
+            left_cell, right_cell = _build_standard_row(line_segs, sep)
+            outer.add_row(left_cell, right_cell)
+
+    flush_git_buffer()
 
     console = Console(
         width=effective_width,
@@ -187,9 +243,9 @@ def render_lines(
     if payload is not None and payload.session_name:
         session_text = Text.from_ansi(f"{CYAN}#{payload.session_name}{RESET}", no_wrap=True)
         session_text.overflow = "ellipsis"
-        renderable = Group(session_text, table)
+        renderable = Group(session_text, outer)
     else:
-        renderable = table
+        renderable = outer
 
     with console.capture() as capture:
         console.print(Panel(renderable, border_style="dim", expand=False))

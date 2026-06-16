@@ -87,8 +87,8 @@ def _format_repo(
     if not filled:
         filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
 
-    padded_label = label.ljust(7)
-    left_text = f"{DIM}{padded_label}{RESET} {MAGENTA}{get_icon('branch')} {branch_display}{RESET} [{''.join(filled)}]"
+    label_text = f"{DIM}{label}{RESET}"
+    branch_text = f"{MAGENTA}{get_icon('branch')} {branch_display}{RESET} [{''.join(filled)}]"
 
     right_parts = [
         f"{GREEN}↑{info.ahead}{RESET}" if info.ahead > 0 else None,
@@ -116,7 +116,15 @@ def _format_repo(
             line=line,
             index=0,
             column=0,
-            segment=Segment(text=left_text),
+            segment=Segment(text=label_text),
+            generator="internal.chezmoi",
+            cache_duration=TimeDelta(seconds=5),
+        ),
+        SegmentGenerationResult(
+            line=line,
+            index=5,
+            column=1,
+            segment=Segment(text=branch_text),
             generator="internal.chezmoi",
             cache_duration=TimeDelta(seconds=5),
         ),
