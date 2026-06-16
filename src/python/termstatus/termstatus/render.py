@@ -1,5 +1,6 @@
 import asyncio
 import os
+import shlex
 import shutil
 import sys
 from collections.abc import Iterable, Sequence
@@ -60,11 +61,11 @@ async def _get_tty_for_pid(pid: int) -> str | None:
 
 
 async def _get_width_for_tty(tty: str) -> int | None:
-    device_path = f"/dev/{tty}"
+    quoted_path = shlex.quote(f"/dev/{tty}")
     commands = [
-        f"stty -f {device_path} size",
-        f"stty -F {device_path} size",
-        f"stty size < {device_path}",
+        f"stty -f {quoted_path} size",
+        f"stty -F {quoted_path} size",
+        f"stty size < {quoted_path}",
     ]
     for cmd in commands:
         output = await _run_shell_cmd(cmd)

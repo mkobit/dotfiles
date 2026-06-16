@@ -68,7 +68,7 @@ async def _run_git_cmd(cmd: list[str], cwd: Path) -> str | None:
         stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=2.0)
         if proc.returncode == 0:
             return stdout.decode().strip()
-    except (TimeoutError, Exception) as e:
+    except (TimeoutError, OSError) as e:
         logger.debug(f"Git command failed: {e}")
     return None
 
@@ -105,7 +105,7 @@ async def _get_status(cwd: Path) -> GitStatusInfo:
 
     res = await _run_git_cmd(["git", "status", "--porcelain"], cwd)
     if res:
-        lines = res.splitlines()
+        lines = [line for line in res.splitlines() if len(line) >= 2]
         staged = any(line[0] not in (" ", "?") for line in lines)
         dirty = any(line[1] != " " and not line.startswith("??") for line in lines)
         untracked = any(line.startswith("??") for line in lines)
