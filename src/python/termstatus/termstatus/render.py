@@ -1,4 +1,5 @@
 import os
+import shutil
 import subprocess
 import sys
 from collections.abc import Iterable, Sequence
@@ -23,9 +24,16 @@ def _probe_terminal_width() -> int | None:
         if parsed is not None:
             return parsed
 
+    # Fast path: works when process has a TTY (e.g., manual invocation)
+    size = shutil.get_terminal_size(fallback=(0, 0))
+    if size.columns > 0:
+        return size.columns
+
     if sys.platform == "win32":
         return None
 
+    # Slow path: Claude Code spawns with piped stdio (no TTY).
+    # Walk up ancestors to find the shell that owns the real PTY.
     pid = os.getpid()
     for _ in range(8):
         parent_pid = _get_parent_pid(pid)
@@ -38,19 +46,6 @@ def _probe_terminal_width() -> int | None:
         width = _get_width_for_tty(tty)
         if width is not None:
             return width
-
-    try:
-        result = subprocess.run(
-            ["tput", "cols"],
-            capture_output=True,
-            text=True,
-            timeout=2,
-            check=False,
-        )
-        if result.returncode == 0:
-            return _parse_positive_int(result.stdout.strip())
-    except subprocess.TimeoutExpired, FileNotFoundError, OSError:
-        pass
 
     return None
 
