@@ -31,7 +31,7 @@ require_repo = true
 shell = ["bash", "-c"]
 format = "[$output]($style) "
 style = "bold purple"
-description = "Nested repo status when chezmoi source contains a base submodule"
+description = "Dual-repo status for chezmoi overlay + base source directory"
 
 [nodejs]
 disabled = {{ not (dig "starship" "modules" "nodejs" "enabled" true .) }}

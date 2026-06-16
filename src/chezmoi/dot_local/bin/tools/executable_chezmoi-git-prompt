@@ -1,22 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Walks up from $PWD to find a .chezmoiroot file indicating a chezmoi source dir.
-# When found and src/base/.git exists, outputs dual-repo git info for starship.
+# Detects chezmoi dual-repo source dir via git toplevel.
+# When .chezmoiroot and src/base/.git coexist, outputs dual-repo git info.
 # Usage:
 #   chezmoi-git-prompt          — output dual-repo status
 #   chezmoi-git-prompt --check  — exit 0 if in chezmoi source dir, 1 otherwise
 
 find_chezmoi_root() {
-    local dir="$PWD"
-    while [[ "$dir" != "/" ]]; do
-        if [[ -f "$dir/.chezmoiroot" && -d "$dir/src/base/.git" ]]; then
-            printf '%s' "$dir"
-            return 0
-        fi
-        dir="$(dirname "$dir")"
-    done
-    return 1
+    local root
+    root="$(git rev-parse --show-toplevel 2>/dev/null)" || return 1
+    [[ -f "$root/.chezmoiroot" && -d "$root/src/base/.git" ]] || return 1
+    printf '%s' "$root"
 }
 
 if [[ "${1:-}" == "--check" ]]; then
