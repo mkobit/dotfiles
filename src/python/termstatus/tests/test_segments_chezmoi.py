@@ -18,11 +18,11 @@ class TestDetectChezmoiRoot:
         subdir.mkdir(parents=True)
         assert detect_chezmoi_root(subdir) is None
 
-    def test_returns_none_when_chezmoiroot_but_no_base(self, tmp_path: Path):
+    def test_detects_when_chezmoiroot_without_base(self, tmp_path: Path):
         (tmp_path / ".chezmoiroot").write_text("src/chezmoi")
         subdir = tmp_path / "src" / "chezmoi"
         subdir.mkdir(parents=True)
-        assert detect_chezmoi_root(subdir) is None
+        assert detect_chezmoi_root(subdir) == tmp_path
 
     def test_returns_root_when_both_present(self, tmp_path: Path):
         (tmp_path / ".chezmoiroot").write_text("src/chezmoi")

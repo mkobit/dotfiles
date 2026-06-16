@@ -31,9 +31,7 @@ def detect_chezmoi_root(cwd: Path) -> Path | None:
     current = cwd.resolve()
     while current != current.parent:
         if (current / ".chezmoiroot").exists():
-            base_git = current / _BASE_RELATIVE_PATH / ".git"
-            if base_git.exists():
-                return current
+            return current
         current = current.parent
     return None
 
@@ -167,19 +165,26 @@ def _chezmoi_dir_indicator() -> SegmentGenerationResult:
 
 
 async def generate_chezmoi_segment(cwd: Path, chezmoi_root: Path) -> Sequence[SegmentGenerationResult]:
-    overlay_path = chezmoi_root
     base_path = chezmoi_root / _BASE_RELATIVE_PATH
+    has_base = (base_path / ".git").exists()
 
-    overlay_info, base_info = await asyncio.gather(
-        _fetch_repo_info(overlay_path),
-        _fetch_repo_info(base_path),
-    )
+    if has_base:
+        overlay_info, base_info = await asyncio.gather(
+            _fetch_repo_info(chezmoi_root),
+            _fetch_repo_info(base_path),
+        )
+        if overlay_info is None and base_info is None:
+            return []
+        return [
+            _chezmoi_dir_indicator(),
+            *(_format_repo("overlay", overlay_info, line=2) if overlay_info else []),
+            *(_format_repo("base", base_info, line=3) if base_info else []),
+        ]
 
-    if overlay_info is None and base_info is None:
-        return []
-
+    repo_info = await _fetch_repo_info(chezmoi_root)
+    if repo_info is None:
+        return [_chezmoi_dir_indicator()]
     return [
         _chezmoi_dir_indicator(),
-        *(_format_repo("overlay", overlay_info, line=2) if overlay_info else []),
-        *(_format_repo("base", base_info, line=3) if base_info else []),
+        *_format_repo("source", repo_info, line=2),
     ]
