@@ -40,4 +40,4 @@ if [[ -n "$(git -C "$base_root" status --porcelain 2>/dev/null | head -1)" ]]; t
     b_status="!"
 fi
 
-printf 'chezmoi ovl:%s[%s] base:%s[%s]' "$o_branch" "$o_status" "$b_branch" "$b_status"
+printf 'chezmoi overlay:%s[%s] base:%s[%s]' "$o_branch" "$o_status" "$b_branch" "$b_status"

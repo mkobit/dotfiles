@@ -73,9 +73,7 @@ def _build_branch_url(remote: str, branch: str) -> str:
 def _format_repo(
     label: str,
     info: GitInfo,
-    branch_column: int,
-    status_column: int,
-    base_index: int,
+    line: int,
 ) -> Sequence[SegmentGenerationResult]:
     branch_url = _build_branch_url(info.remote, info.branch) if info.remote else None
     branch_display = f"\033]8;;{branch_url}\033\\{info.branch}\033]8;;\033\\" if branch_url else info.branch
@@ -89,39 +87,17 @@ def _format_repo(
     if not filled:
         filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
 
-    ahead_behind_parts = [
+    left_text = f"{DIM}{label}{RESET} {MAGENTA}{get_icon('branch')} {branch_display}{RESET} [{''.join(filled)}]"
+
+    right_parts = [
         f"{GREEN}↑{info.ahead}{RESET}" if info.ahead > 0 else None,
         f"{RED}↓{info.behind}{RESET}" if info.behind > 0 else None,
+        f"{YELLOW}{get_icon('stash')}{info.stash_count}{RESET}" if info.stash_count > 0 else None,
     ]
-    ab_text = " ".join(p for p in ahead_behind_parts if p is not None)
-    status_text = f"[{''.join(filled)}]"
-    if ab_text:
-        status_text = f"{status_text} {ab_text}"
+    right_filled = [p for p in right_parts if p is not None]
 
-    return [
-        SegmentGenerationResult(
-            line=1,
-            index=base_index,
-            column=branch_column,
-            segment=Segment(text=f"{DIM}{label}{RESET} {MAGENTA}{get_icon('branch')} {branch_display}{RESET}"),
-            generator="internal.chezmoi",
-            cache_duration=TimeDelta(seconds=5),
-        ),
-        SegmentGenerationResult(
-            line=1,
-            index=base_index + 1,
-            column=status_column,
-            segment=Segment(text=status_text),
-            generator="internal.chezmoi",
-            cache_duration=TimeDelta(seconds=5),
-        ),
-    ]
-
-
-def _format_remotes(overlay_info: GitInfo | None, base_info: GitInfo | None) -> Sequence[SegmentGenerationResult]:
-    def _remote_icon(info: GitInfo) -> str | None:
-        if not info.remote:
-            return None
+    remote_text = None
+    if info.remote:
         platform_icon = (
             get_icon("github")
             if "github.com" in info.remote
@@ -129,24 +105,47 @@ def _format_remotes(overlay_info: GitInfo | None, base_info: GitInfo | None) -> 
             if "gitlab.com" in info.remote
             else get_icon("remote")
         )
-        return f"\033]8;;{info.remote}\033\\{platform_icon}\033]8;;\033\\"
+        remote_text = f"\033]8;;{info.remote}\033\\{platform_icon}\033]8;;\033\\"
 
-    icons = [_remote_icon(info) for info in [overlay_info, base_info] if info is not None]
-    filled = [i for i in icons if i is not None]
+    if remote_text:
+        right_filled = [*right_filled, remote_text]
 
-    if not filled:
-        return []
-
-    return [
+    results = [
         SegmentGenerationResult(
-            line=1,
-            index=40,
-            column=4,
-            segment=Segment(text=f"[ {' '.join(filled)} ]"),
+            line=line,
+            index=0,
+            column=0,
+            segment=Segment(text=left_text),
             generator="internal.chezmoi",
             cache_duration=TimeDelta(seconds=5),
         ),
     ]
+
+    if right_filled:
+        results = [
+            *results,
+            SegmentGenerationResult(
+                line=line,
+                index=10,
+                column=3,
+                segment=Segment(text=" ".join(right_filled)),
+                generator="internal.chezmoi",
+                cache_duration=TimeDelta(seconds=5),
+            ),
+        ]
+
+    return results
+
+
+def _chezmoi_dir_indicator() -> SegmentGenerationResult:
+    return SegmentGenerationResult(
+        line=1,
+        index=0,
+        column=0,
+        segment=Segment(text=f"{MAGENTA}{get_icon('chezmoi')} chezmoi{RESET}"),
+        generator="internal.chezmoi",
+        cache_duration=TimeDelta(seconds=5),
+    )
 
 
 async def generate_chezmoi_segment(cwd: Path, chezmoi_root: Path) -> Sequence[SegmentGenerationResult]:
@@ -162,7 +161,7 @@ async def generate_chezmoi_segment(cwd: Path, chezmoi_root: Path) -> Sequence[Se
         return []
 
     return [
-        *(_format_repo("ovl", overlay_info, branch_column=0, status_column=1, base_index=10) if overlay_info else []),
-        *(_format_repo("base", base_info, branch_column=2, status_column=3, base_index=20) if base_info else []),
-        *_format_remotes(overlay_info, base_info),
+        _chezmoi_dir_indicator(),
+        *(_format_repo("overlay", overlay_info, line=2) if overlay_info else []),
+        *(_format_repo("base", base_info, line=3) if base_info else []),
     ]

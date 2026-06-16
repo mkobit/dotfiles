@@ -60,14 +60,15 @@ class TestFormatRepo:
             is_repo=True,
             stash_count=0,
         )
-        results = _format_repo("ovl", info, branch_column=0, status_column=1, base_index=10)
+        results = _format_repo("ovl", info, line=2)
         assert len(results) == 2
+        assert results[0].line == 2
         assert results[0].column == 0
-        assert results[1].column == 1
+        assert results[1].column == 3
         assert "ovl" in results[0].segment.text
         assert "main" in results[0].segment.text
 
-    def test_dirty_repo(self):
+    def test_dirty_repo_with_ahead_behind(self):
         info = GitInfo(
             branch="feature",
             remote=None,
@@ -79,14 +80,31 @@ class TestFormatRepo:
             is_repo=True,
             stash_count=0,
         )
-        results = _format_repo("base", info, branch_column=2, status_column=3, base_index=20)
+        results = _format_repo("base", info, line=3)
         assert len(results) == 2
-        assert results[0].column == 2
+        assert results[0].line == 3
+        assert results[0].column == 0
         assert results[1].column == 3
         assert "base" in results[0].segment.text
         assert "feature" in results[0].segment.text
         assert "↑2" in results[1].segment.text
         assert "↓1" in results[1].segment.text
+
+    def test_clean_no_remote_single_segment(self):
+        info = GitInfo(
+            branch="main",
+            remote=None,
+            dirty=False,
+            staged=False,
+            untracked=False,
+            ahead=0,
+            behind=0,
+            is_repo=True,
+            stash_count=0,
+        )
+        results = _format_repo("ovl", info, line=2)
+        assert len(results) == 1
+        assert results[0].column == 0
 
 
 @pytest.mark.asyncio
@@ -116,9 +134,12 @@ class TestGenerateChezmoiSegment:
 
         results = await generate_chezmoi_segment(tmp_path, tmp_path)
 
-        assert len(results) >= 4
+        assert len(results) >= 2
         generators = {r.generator for r in results}
         assert "internal.chezmoi" in generators
+        lines = {r.line for r in results}
+        assert 2 in lines
+        assert 3 in lines
 
     @patch("termstatus.segments.chezmoi._check_is_repo", new_callable=AsyncMock)
     async def test_no_repos_returns_empty(self, mock_is_repo: AsyncMock, tmp_path: Path):

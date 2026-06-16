@@ -9,11 +9,11 @@ from termstatus.payload import (
     StatusLineStdIn,
 )
 from termstatus.segments.claude import (
+    _format_tokens_compact,
     format_context_usage,
     format_cost,
     format_model_info,
     format_session_info,
-    format_tokens,
 )
 from termstatus.segments.constants import (
     BRIGHT_GREEN,
@@ -24,35 +24,20 @@ from termstatus.segments.constants import (
 )
 
 
-class TestFormatTokens(unittest.TestCase):
-    def test_standard_values(self) -> None:
-        self.assertEqual(format_tokens(0, 0), "    0")
-        self.assertEqual(format_tokens(999, 0), "  999")
+class TestFormatTokensCompact(unittest.TestCase):
+    def test_small_values(self) -> None:
+        self.assertEqual(_format_tokens_compact(0), "0")
+        self.assertEqual(_format_tokens_compact(999), "999")
 
-    def test_k_suffix_logic(self) -> None:
-        self.assertEqual(format_tokens(1000, 0), "   1k")
-        self.assertEqual(format_tokens(1100, 0), " 1.1k")
-        self.assertEqual(format_tokens(10000, 0), "  10k")
+    def test_k_suffix(self) -> None:
+        self.assertEqual(_format_tokens_compact(1000), "1k")
+        self.assertEqual(_format_tokens_compact(1100), "1.1k")
+        self.assertEqual(_format_tokens_compact(10000), "10k")
+        self.assertEqual(_format_tokens_compact(50000), "50k")
 
-    def test_width_alignment_by_max_tokens(self) -> None:
-        # max_tokens < 10000 -> width 5
-        self.assertEqual(format_tokens(100, 0), "  100")
-        self.assertEqual(format_tokens(100, 9999), "  100")
-
-        # max_tokens >= 10000 -> width 3
-        self.assertEqual(format_tokens(100, 10000), "100")
-        self.assertEqual(format_tokens(1000, 10000), " 1k")
-
-        # max_tokens >= 100000 -> width 4
-        self.assertEqual(format_tokens(100, 100000), " 100")
-        self.assertEqual(format_tokens(1000, 100000), "  1k")
-
-        # max_tokens >= 1000000 -> width 4
-        self.assertEqual(format_tokens(100, 1000000), " 100")
-        self.assertEqual(format_tokens(1000, 1000000), "  1k")
-
-    def test_large_values(self) -> None:
-        self.assertEqual(format_tokens(1000000, 1000000), "1000k")
+    def test_m_suffix(self) -> None:
+        self.assertEqual(_format_tokens_compact(1000000), "1M")
+        self.assertEqual(_format_tokens_compact(1500000), "1.5M")
 
 
 class TestFormatContextUsage(unittest.TestCase):
@@ -70,7 +55,7 @@ class TestFormatContextUsage(unittest.TestCase):
                 assert res is not None
                 self.assertIn(expected_color, " ".join([r.segment.text for r in res]))
 
-    def test_battery_icon_present(self) -> None:
+    def test_remaining_pct_shown(self) -> None:
         res = format_context_usage(ContextWindowInfo(used_percentage=22.0))
         assert res is not None
         self.assertIn("78%", " ".join([r.segment.text for r in res]))
@@ -97,10 +82,10 @@ class TestFormatContextUsage(unittest.TestCase):
         assert res is not None
         self.assertIn(BRIGHT_GREEN, " ".join([r.segment.text for r in res]))
 
-    def test_placed_on_line_2(self) -> None:
+    def test_placed_on_context_line(self) -> None:
         res = format_context_usage(ContextWindowInfo(used_percentage=50.0))
         assert res is not None
-        self.assertEqual(res[0].line if res else None, 2)
+        self.assertEqual(res[0].line if res else None, 10)
 
 
 class TestFormatModelInfo(unittest.TestCase):
@@ -165,11 +150,11 @@ class TestFormatCost(unittest.TestCase):
         res = format_cost(payload)
         self.assertEqual(res, [])
 
-    def test_placed_on_line_2(self) -> None:
+    def test_placed_on_line_0(self) -> None:
         payload = StatusLineStdIn(cost=CostInfo(total_cost_usd=0.5))
         res = format_cost(payload)
         assert res is not None
-        self.assertEqual(res[0].line if res else None, 2)
+        self.assertEqual(res[0].line if res else None, 0)
 
 
 if __name__ == "__main__":
