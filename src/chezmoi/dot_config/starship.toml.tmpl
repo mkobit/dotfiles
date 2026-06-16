@@ -24,6 +24,15 @@ detect_folders = [".obsidian"]
 format = "on [\uf039 Obsidian]($style) "
 style = "bold #8B5CF6"
 
+[custom.chezmoi_git]
+command = "chezmoi-git-prompt"
+when = "chezmoi-git-prompt --check"
+require_repo = true
+shell = ["bash", "-c"]
+format = "[$output]($style) "
+style = "bold purple"
+description = "Nested repo status when chezmoi source contains a base submodule"
+
 [nodejs]
 disabled = {{ not (dig "starship" "modules" "nodejs" "enabled" true .) }}
 

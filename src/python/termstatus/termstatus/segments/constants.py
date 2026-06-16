@@ -55,6 +55,7 @@ IconKey = Literal[
     "robot",
     "worktree",
     "obsidian",
+    "chezmoi",
 ]
 
 ICONS: dict[IconKey, IconPair] = {
@@ -76,6 +77,7 @@ ICONS: dict[IconKey, IconPair] = {
     "robot": IconPair("\uf544", "🤖"),
     "worktree": IconPair("\uf1bb", "🌳"),
     "obsidian": IconPair("\ue65d", "🟣"),
+    "chezmoi": IconPair("\U000f0112", "⚙"),
 }
 
 

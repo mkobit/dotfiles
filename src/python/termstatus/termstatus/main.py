@@ -20,6 +20,7 @@ from termstatus.render import render_lines
 from termstatus.segments.antigravity import format_agent_state, format_vcs_info, format_workspace_info, generate_title
 from termstatus.segments.antigravity import format_context_usage as ag_format_context_usage
 from termstatus.segments.antigravity import format_model_info as ag_format_model_info
+from termstatus.segments.chezmoi import detect_chezmoi_root, generate_chezmoi_segment
 from termstatus.segments.claude import (
     format_context_usage,
     format_cost,
@@ -207,7 +208,8 @@ def claude_render(  # noqa: C901
 
     async def fetch_all() -> None:  # noqa: C901
         nonlocal all_segments
-        git_key = f"internal.git:{cwd.resolve()}"
+        chezmoi_root = detect_chezmoi_root(cwd)
+        git_key = f"internal.chezmoi:{cwd.resolve()}" if chezmoi_root else f"internal.git:{cwd.resolve()}"
         cached_git = await cache.get(git_key)
         if cached_git is not None:
             all_segments = all_segments + cached_git
@@ -215,7 +217,10 @@ def claude_render(  # noqa: C901
 
             async def wrap_git():
                 try:
-                    res = await generate_git_segment(cwd, is_worktree)
+                    if chezmoi_root:
+                        res = await generate_chezmoi_segment(cwd, chezmoi_root)
+                    else:
+                        res = await generate_git_segment(cwd, is_worktree)
                     return ("git", git_key, res)
                 except Exception as e:
                     return ("git", git_key, e)
