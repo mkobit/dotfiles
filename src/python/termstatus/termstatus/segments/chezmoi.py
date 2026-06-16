@@ -87,7 +87,8 @@ def _format_repo(
     if not filled:
         filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
 
-    left_text = f"{DIM}{label}{RESET} {MAGENTA}{get_icon('branch')} {branch_display}{RESET} [{''.join(filled)}]"
+    padded_label = label.ljust(7)
+    left_text = f"{DIM}{padded_label}{RESET} {MAGENTA}{get_icon('branch')} {branch_display}{RESET} [{''.join(filled)}]"
 
     right_parts = [
         f"{GREEN}↑{info.ahead}{RESET}" if info.ahead > 0 else None,
