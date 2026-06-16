@@ -1,4 +1,4 @@
-{{- $method := dig "packages" "ollama" "installation_method" .chezmoi.os "none" . -}}
+{{- $method := dig "packages" "ollama" "installation_method" "none" . -}}
 {{- if eq $method "dotfiles.script" -}}
 #!/usr/bin/env bash
 set -euo pipefail
