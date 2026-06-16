@@ -7,6 +7,7 @@ from collections.abc import Iterable, Sequence
 
 from rich.console import Console, Group
 from rich.panel import Panel
+from rich.table import Table
 from rich.text import Text
 
 from termstatus.layout import SegmentGenerationResult
@@ -129,6 +130,17 @@ def _group_segments_by_line(
     return {k: sorted(v, key=lambda s: s.index) for k, v in sorted(by_line.items())}
 
 
+_RIGHT_COLUMN_THRESHOLD = 3
+
+
+def _split_left_right(
+    segments: Sequence[SegmentGenerationResult],
+) -> tuple[Sequence[SegmentGenerationResult], Sequence[SegmentGenerationResult]]:
+    left = [s for s in segments if (s.column or 0) < _RIGHT_COLUMN_THRESHOLD]
+    right = [s for s in segments if (s.column or 0) >= _RIGHT_COLUMN_THRESHOLD]
+    return left, right
+
+
 def render_lines(
     payload: StatusLineStdIn | None,
     git_info: GitInfo | None,
@@ -136,7 +148,7 @@ def render_lines(
     *,
     terminal_width: int | None = None,
 ) -> list[str]:
-    """Renders the statusline as a list of strings using a flex layout."""
+    """Renders the statusline as a 2-column table (left/right aligned) in a compact panel."""
     sep = f" {DIM}{get_icon('dot')}{RESET} "
 
     segments_list = list(segments)
@@ -146,13 +158,24 @@ def render_lines(
     effective_width = _effective_width(terminal_width)
     lines_map = _group_segments_by_line(segments_list)
 
-    renderables: list[Text] = []
+    table = Table(
+        show_header=False,
+        show_edge=False,
+        box=None,
+        padding=(0, 0),
+        expand=True,
+    )
+    table.add_column("left", justify="left", ratio=1, overflow="ellipsis", no_wrap=True)
+    table.add_column("right", justify="right", no_wrap=True)
 
     for line_segs in lines_map.values():
-        line_text = sep.join(s.segment.text for s in line_segs)
-        text = Text.from_ansi(line_text, no_wrap=True)
-        text.overflow = "ellipsis"
-        renderables.append(text)
+        left_segs, right_segs = _split_left_right(line_segs)
+        left_text = sep.join(s.segment.text for s in left_segs) if left_segs else ""
+        right_text = sep.join(s.segment.text for s in right_segs) if right_segs else ""
+        table.add_row(
+            Text.from_ansi(left_text, no_wrap=True) if left_text else Text(""),
+            Text.from_ansi(right_text, no_wrap=True) if right_text else Text(""),
+        )
 
     console = Console(
         width=effective_width,
@@ -164,9 +187,9 @@ def render_lines(
     if payload is not None and payload.session_name:
         session_text = Text.from_ansi(f"{CYAN}#{payload.session_name}{RESET}", no_wrap=True)
         session_text.overflow = "ellipsis"
-        renderable = Group(session_text, *renderables)
+        renderable = Group(session_text, table)
     else:
-        renderable = Group(*renderables)
+        renderable = table
 
     with console.capture() as capture:
         console.print(Panel(renderable, border_style="dim", expand=False))
