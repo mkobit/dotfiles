@@ -64,22 +64,24 @@ When a tool extracts a full directory tree rather than a single binary, it needs
 
 ## Data and templates
 
-All configuration data lives in `.chezmoidata/`.
-Config values set in `.chezmoi.toml.tmpl` take precedence over `.chezmoidata/` for the same key path.
-Use `dig` for safe key traversal — direct map access fails in strict mode when a key is absent.
+`.chezmoidata/` is the capability catalog — environment-neutral tool metadata, catalog entries, and structural additive data (config fragment registrations, plugin arrays, keybinds).
+`.chezmoi.toml.tmpl` is the control plane — `installation_method` declarations, opt-in/opt-out decisions, and any logic requiring Go template conditionals.
+Template values take precedence over `.chezmoidata/` for the same key path.
+Scripts that read `installation_method` must use `dig "installation_method" "none" $tool` so a missing key is a no-op, not an accidental install or uninstall.
 Access hyphenated keys with `index` rather than dot notation.
 
 ## Overlay compatibility
 
 This repo is designed to be composed with an overlay — a separate chezmoi source tree that layers environment-specific configuration on top.
-The overlay wins all file collisions; individual data values are overridden via `[data.*]` entries in the overlay's `.chezmoi.toml.tmpl` or additional `.chezmoidata/` files.
+The overlay wins all file collisions, including `.chezmoi.toml.tmpl` — the overlay's init template completely replaces this one.
 
 When adding features, keep them overlay-friendly:
 
-- Put all defaults in `.chezmoidata/` so overlays have a stable override target.
+- `installation_method` decisions belong in `.chezmoi.toml.tmpl`; overlays re-declare them in their own init template.
+- Capability data (catalog entries, structural config) belongs in `.chezmoidata/` — overlays extend by adding keys, not editing base files.
 - Use generic key names — describe the concept, not the environment.
-- Use `dig` for any key an overlay might omit so absence is a no-op, not a template error.
-- Loop over maps (`range $k, $v := .feature.items`) for injectable content so overlays extend by adding keys, not editing base files.
+- Use `dig` with a safe default for any key an overlay might omit so absence is a no-op.
+- Loop over maps (`range $k, $v := .feature.items`) for injectable content.
 - Keep all source files and data environment-neutral; machine-specific values belong in the overlay.
 
 ## Troubleshooting package installations
