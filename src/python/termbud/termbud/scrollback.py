@@ -9,7 +9,16 @@ import typer
 
 from termbud.utils import editor_cmd, platform_cmds
 
-app = typer.Typer(help="Scrollback extraction and interaction")
+app = typer.Typer(
+    help=(
+        "Extract command output blocks from a terminal scrollback buffer.\n\n"
+        "Typical Zellij trigger (bind to a key in config.kdl):\n\n"
+        "  zellij action dump-screen --full /tmp/termbud-scrollback.txt\n"
+        "  termbud scrollback extract --from-file /tmp/termbud-scrollback.txt -i\n\n"
+        "Or pipe from stdin:\n\n"
+        "  cat /tmp/termbud-scrollback.txt | termbud scrollback extract -i"
+    )
+)
 
 _ANSI_ESCAPE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
 
@@ -75,7 +84,11 @@ def extract(
     ] = False,
 ) -> None:
     """
-    Extract command output blocks from scrollback.
+    Split scrollback into blocks of output between shell prompts.
+
+    Each block is the stdout/stderr printed between two prompt lines.
+    Without flags, prints the most recent block to stdout.
+    Use -i to pick any block interactively via fzf (copy, edit, or dump).
     """
     scrollback = from_file.read_text() if from_file else sys.stdin.read()
 
