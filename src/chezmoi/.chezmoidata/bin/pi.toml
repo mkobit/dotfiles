@@ -1,0 +1,27 @@
+[bin.pi]
+version = "0.79.6"
+
+[bin.pi.github_releases]
+repo            = "earendil-works/pi"
+external_type   = "archive-file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "v{version}"
+filename_format = "pi-{target}.tar.gz"
+path_format     = "pi/pi"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.pi.github_releases.platforms]
+darwin_arm64 = "darwin-arm64"
+darwin_amd64 = "darwin-x64"
+linux_amd64  = "linux-x64"
+linux_arm64  = "linux-arm64"
+
+[bin.pi.github_releases.checksums]
+darwin_arm64 = "ec0d7bf5c855376fb904732e702b1ad3b4fa5425bf6fe66e0fd90d1cc2f57595"
+darwin_amd64 = "b800ac6936f4d9ab93c229a2920a64e3e9fd23e45c1718b95f18e09aecd67572"
+linux_amd64  = "05000ec8f5b2a8a2df8e2f505aab89eb80552dcf6dc11680fa0f3285839bb4cf"
+linux_arm64  = "c4c6f3984e7b556a4f447c0b6a458a20d1d53bb646565cadb7a0ca080ce690d8"
+
+[bin.pi.homebrew]
+name = "pi"
