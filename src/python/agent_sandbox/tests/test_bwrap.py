@@ -47,6 +47,7 @@ def spec_for(home, project, **overrides):
         git_common_dir=overrides.pop("git_common_dir", None),
         extra_env=overrides.pop("extra_env", {}),
         tty=overrides.pop("tty", False),
+        network=overrides.pop("network", "shared"),
     )
 
 
@@ -110,6 +111,7 @@ def test_env_is_cleared_with_allowlist_only(home, project):
     assert env["OLLAMA_HOST"] == "localhost:11434"
     assert env["HOME"] == str(home)
     assert env["AGENT_RUN_PROFILE"] == "autonomous"
+    assert env["AGENT_RUN_IN_SANDBOX"] == "1"
     assert env["GIT_CONFIG_GLOBAL"] == str(home / ".config/ai-policy/git/sandbox.gitconfig")
     assert "SSH_AUTH_SOCK" not in env
     assert "GPG_TTY" not in env
@@ -138,3 +140,13 @@ def test_chdir_to_cwd(home, project):
     idx = args.index("--chdir")
     assert args[idx + 1] == str(project)
     assert Path(args[idx + 1]).is_absolute()
+
+
+def test_network_shared_does_not_unshare(home, project):
+    args = build_args(spec_for(home, project, network="shared"), {})
+    assert "--unshare-net" not in args
+
+
+def test_network_none_unshares_net(home, project):
+    args = build_args(spec_for(home, project, network="none"), {})
+    assert "--unshare-net" in args

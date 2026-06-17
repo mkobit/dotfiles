@@ -55,6 +55,9 @@ class SandboxSpec:
     git_common_dir: Path | None = None
     extra_env: dict[str, str] = field(default_factory=dict)
     tty: bool = False
+    # "shared" reuses the host netns; "none" adds --unshare-net for an
+    # air-gapped sandbox (no model APIs, no exfiltration, no apt/npm/cargo).
+    network: str = "shared"
 
 
 def default_mask_paths(uid: int) -> tuple[str, ...]:
@@ -76,6 +79,8 @@ def build_args(spec: SandboxSpec, environ: Mapping[str, str], mask_paths: Sequen
     if not spec.tty:
         # Prevents TIOCSTI input injection into the host terminal.
         args.append("--new-session")
+    if spec.network == "none":
+        args.append("--unshare-net")
     # /tmp here is the bwrap mount target for a fresh tmpfs, not insecure temp use.
     args += ["--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp"]  # noqa: S108
     for path in mask_paths:
@@ -103,6 +108,9 @@ def build_args(spec: SandboxSpec, environ: Mapping[str, str], mask_paths: Sequen
             args += ["--setenv", key, value]
     env = {
         "AGENT_RUN_PROFILE": spec.profile_name,
+        # Marker for nesting detection: agent-run refuses to start when it
+        # sees this set, since it means we're already inside a sandbox.
+        "AGENT_RUN_IN_SANDBOX": "1",
         "GIT_CONFIG_GLOBAL": str(home / ".config/ai-policy/git/sandbox.gitconfig"),
         **spec.extra_env,
     }

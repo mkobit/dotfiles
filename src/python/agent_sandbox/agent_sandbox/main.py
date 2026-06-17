@@ -130,6 +130,14 @@ def _resolve(profile_flag: str | None, cwd: Path) -> tuple[SandboxConfig, Profil
     return config, profile, backend
 
 
+def _refuse_if_nested() -> None:
+    if os.environ.get("AGENT_RUN_IN_SANDBOX") == "1":
+        raise _fail(
+            "refusing nested agent-run invocation: already inside a sandbox "
+            "(AGENT_RUN_IN_SANDBOX=1). Exit and rerun on the host."
+        )
+
+
 def _sandbox_spec(profile: Profile, cwd: Path, *, tty: bool) -> SandboxSpec:
     home = Path.home()
     project_root = _project_root(cwd)
@@ -151,6 +159,7 @@ def _sandbox_spec(profile: Profile, cwd: Path, *, tty: bool) -> SandboxSpec:
         git_common_dir=_git_common_dir(cwd, project_root),
         extra_env=extra_env,
         tty=tty,
+        network=profile.network,
     )
 
 
@@ -172,6 +181,7 @@ def run(
     show_command: bool = typer.Option(False, "--show-command", help="Print the sandbox invocation instead of running."),
 ) -> None:
     """Run a command in the sandbox: agent-run run -t --profile autonomous -- claude."""
+    _refuse_if_nested()
     command = [arg for arg in ctx.args if arg != "--"]
     if not command:
         raise _fail("no command given; usage: agent-run run [-t] [--profile NAME] -- COMMAND [ARGS...]")
@@ -193,6 +203,7 @@ def doctor(
     profile: str = typer.Option("autonomous", "--profile", help="Profile to verify."),
 ) -> None:
     """Verify the sandbox guarantees by probing from inside it."""
+    _refuse_if_nested()
     cwd = Path.cwd()
     _, active, backend = _resolve(profile, cwd)
     if isinstance(backend, BwrapBackend):
@@ -201,6 +212,7 @@ def doctor(
     spec.extra_env["PROBE_PROJECT"] = str(spec.project_root)
     spec.extra_env["PROBE_PROJECT_WRITE"] = "1" if spec.project_write else "0"
     spec.extra_env["PROBE_EXPECT_GH"] = "1" if "GH_TOKEN" in spec.extra_env else "0"
+    spec.extra_env["PROBE_NETWORK"] = spec.network
     args = [
         *backend.build_args(spec, os.environ, default_mask_paths(os.getuid())),
         "bash",
@@ -238,9 +250,15 @@ if command -v gh >/dev/null 2>&1; then
   fi
 fi
 if command -v curl >/dev/null 2>&1; then
-  ollama_url="${OLLAMA_HOST:-localhost:11434}"
-  case "$ollama_url" in http://*|https://*) ;; *) ollama_url="http://$ollama_url" ;; esac
-  curl -fsS -m 2 "${ollama_url}/api/version" >/dev/null 2>&1 && pass "ollama reachable" || printf 'WARN: %s\n' "ollama not reachable"
+  if [ "$PROBE_NETWORK" = "none" ]; then
+    # Air-gapped profile: any outbound TCP should fail fast. Probe a reliable
+    # public endpoint; success here means --unshare-net is not engaging.
+    curl -fsS -m 2 "https://api.github.com/zen" >/dev/null 2>&1 && fail "network reachable on air-gapped profile" || pass "network unreachable (air-gapped)"
+  else
+    ollama_url="${OLLAMA_HOST:-localhost:11434}"
+    case "$ollama_url" in http://*|https://*) ;; *) ollama_url="http://$ollama_url" ;; esac
+    curl -fsS -m 2 "${ollama_url}/api/version" >/dev/null 2>&1 && pass "ollama reachable" || printf 'WARN: %s\n' "ollama not reachable"
+  fi
 fi
 printf 'failures: %d\n' "$fails"
 exit "$fails"
