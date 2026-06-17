@@ -201,12 +201,12 @@ def test_format_lines_prefix_in_display_and_yank():
 # --- platform command selection ---
 
 
-def testplatform_cmds_macos():
+def test_platform_cmds_macos():
     with patch.object(sys, "platform", "darwin"):
         assert platform_cmds() == ("open", "pbcopy")
 
 
-def testplatform_cmds_wsl():
+def test_platform_cmds_wsl():
     with (
         patch.object(sys, "platform", "linux"),
         patch.object(os, "uname", return_value=MagicMock(release="5.15.0-microsoft-standard-WSL2")),
@@ -214,7 +214,7 @@ def testplatform_cmds_wsl():
         assert platform_cmds() == ("wslview", "clip.exe")
 
 
-def testplatform_cmds_linux_wayland():
+def test_platform_cmds_linux_wayland():
     with (
         patch.object(sys, "platform", "linux"),
         patch.object(os, "uname", return_value=MagicMock(release="6.1.0-generic")),
@@ -223,7 +223,7 @@ def testplatform_cmds_linux_wayland():
         assert platform_cmds() == ("xdg-open", "wl-copy")
 
 
-def testplatform_cmds_linux_x11():
+def test_platform_cmds_linux_x11():
     with (
         patch.object(sys, "platform", "linux"),
         patch.object(os, "uname", return_value=MagicMock(release="6.1.0-generic")),
@@ -236,17 +236,17 @@ def testplatform_cmds_linux_x11():
 # --- editor command selection ---
 
 
-def testeditor_cmd_prefers_visual():
+def test_editor_cmd_prefers_visual():
     with patch.dict(os.environ, {"VISUAL": "emacs", "EDITOR": "vim"}):
         assert editor_cmd() == "emacs"
 
 
-def testeditor_cmd_falls_back_to_editor():
+def test_editor_cmd_falls_back_to_editor():
     with patch.dict(os.environ, {"VISUAL": "", "EDITOR": "vim"}):
         assert editor_cmd() == "vim"
 
 
-def testeditor_cmd_defaults_to_nvim():
+def test_editor_cmd_defaults_to_nvim():
     with patch.dict(os.environ, {"VISUAL": "", "EDITOR": ""}):
         assert editor_cmd() == "nvim"
 

@@ -57,13 +57,10 @@ def test_extract_blocks_no_trailing_prompt():
 ➜  ~ echo "hello"
 hello
 """
-    extract_blocks(text)
-    # The current heuristic requires a prompt to close the block.
-    # If there's no trailing prompt, it might not capture anything,
-    # or it might capture up to the end. Let's see how our heuristic behaves.
-    # Actually, the last prompt is found first (reversed), and it will close
-    # the block. Wait, if there is only one prompt, it won't yield a block
-    # because it needs a *subsequent* prompt to start accumulating and then another to close it.
+    blocks = extract_blocks(text)
+    # The prompt acts as the block closer when iterating in reverse:
+    # "hello" accumulates, then the prompt line closes it.
+    assert blocks == ["hello"]
 
 
 def test_extract_cli_copy(tmp_path, monkeypatch):
