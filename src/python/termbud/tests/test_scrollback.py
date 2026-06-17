@@ -52,6 +52,12 @@ def test_extract_blocks_empty():
     assert len(blocks) == 0
 
 
+def test_extract_blocks_strips_ansi():
+    text = "\x1b[32m➜\x1b[0m  ~ echo hello\nhello world\n\x1b[32m➜\x1b[0m  ~\n"
+    blocks = extract_blocks(text)
+    assert blocks == ["hello world"]
+
+
 def test_extract_blocks_no_trailing_prompt():
     text = """
 ➜  ~ echo "hello"

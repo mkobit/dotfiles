@@ -11,6 +11,8 @@ from termbud.utils import editor_cmd, platform_cmds
 
 app = typer.Typer(help="Scrollback extraction and interaction")
 
+_ANSI_ESCAPE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])")
+
 _PROMPT_REGEXES = [
     r"^➜\s+~.*$",  # Example starship success prompt
     r"^❯\s+.*$",  # noqa: RUF001
@@ -23,7 +25,7 @@ def extract_blocks(scrollback: str) -> list[str]:
     Extracts individual command output blocks from the scrollback by splitting
     on shell prompts heuristically.
     """
-    lines = scrollback.splitlines()
+    lines = _ANSI_ESCAPE.sub("", scrollback).splitlines()
     blocks = []
     current_block = []
 
@@ -110,9 +112,9 @@ def extract(
                 "--header",
                 f"ctrl-y: copy  ctrl-e: edit in {editor}  enter: dump  esc: quit",
                 "--preview",
-                f"cat {td}/block_{{+1 | grep -o '[0-9]*'}}.txt",
-                f"--bind=ctrl-y:execute-silent(cat {td}/block_{{+1 | grep -o '[0-9]*'}}.txt | {copy_cmd})+abort",
-                f"--bind=ctrl-e:execute({editor} {td}/block_{{+1 | grep -o '[0-9]*'}}.txt)+abort",
+                f"cat {td}/block_{{2}}.txt",
+                f"--bind=ctrl-y:execute-silent(cat {td}/block_{{2}}.txt | {copy_cmd})+abort",
+                f"--bind=ctrl-e:execute({editor} {td}/block_{{2}}.txt)+abort",
                 "--bind=enter:accept",
             ]
 
