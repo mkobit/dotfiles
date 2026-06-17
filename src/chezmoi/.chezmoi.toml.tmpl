@@ -100,3 +100,52 @@ installation_method = "mise"
 # repo — including fresh `git init` with no remote — picks up identity.
 [data.git.personal]
 enabled = true
+
+# Packages & Frameworks Installation Methods
+[data.packages.ghostty]
+installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"snap"{{ end }}
+
+[data.packages.eza]
+installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"chezmoi_external"{{ end }}
+
+[data.packages.ollama]
+installation_method = {{ if eq .chezmoi.os "linux" }}"dotfiles.script"{{ else }}"none"{{ end }}
+
+[data.packages.hammerspoon]
+installation_method = "homebrew"
+
+# Local Python Tools (via uv) Installation Methods
+[data.local_bin_tools.claude_statusline]
+installation_method = "uninstall"
+
+[data.local_bin_tools.termstatus]
+installation_method = "dotfiles.uv"
+
+[data.local_bin_tools.jules]
+installation_method = "dotfiles.uv"
+
+[data.local_bin_tools.transcribe]
+installation_method = "dotfiles.uv"
+
+[data.local_bin_tools.termbud]
+installation_method = "dotfiles.uv"
+
+[data.local_bin_tools.agent_run]
+installation_method = "dotfiles.uv"
+
+# Fonts Installation Methods
+[data.fonts.fira_mono]
+installation_method = "chezmoi_external"
+
+[data.fonts.jetbrains_mono]
+installation_method = "chezmoi_external"
+
+# External Scripts & Configs Installation Methods
+[data.claude_code]
+installation_method = "dotfiles.script"
+
+[data.agy]
+installation_method = "dotfiles.script"
+
+[data.npmrc]
+installation_method = "chezmoi"

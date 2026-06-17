@@ -1,13 +1,7 @@
 {{- if eq .chezmoi.os "linux" -}}
 {{- $aptPkgs := list -}}
 {{- range $name, $tool := .packages -}}
-{{-   $im := dig "installation_method" "" $tool -}}
-{{-   $method := "" -}}
-{{-   if kindIs "string" $im -}}
-{{-     $method = $im -}}
-{{-   else if kindIs "map" $im -}}
-{{-     $method = dig "linux" "" $im -}}
-{{-   end -}}
+{{-   $method := dig "installation_method" "" $tool -}}
 {{-   if eq $method "apt" -}}
 {{-     $aptPkgs = append $aptPkgs $name -}}
 {{-   end -}}

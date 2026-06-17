@@ -1,4 +1,3 @@
 [agy]
-installation_method = "dotfiles.script"
 # Update to trigger reinstall; installer always fetches latest from the manifest service
 version             = "1.0.2"
