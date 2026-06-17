@@ -15,10 +15,11 @@ fi
 "$MISE" trust "{{ $root }}/mise.toml"
 
 {{ range $name, $tool := (default dict (get . "local_bin_tools")) -}}
-{{- if eq $tool.installation_method "dotfiles.uv" }}
+{{- $method := dig "installation_method" "none" $tool -}}
+{{- if eq $method "dotfiles.uv" }}
 UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
   "$MISE" exec --cd "{{ $root }}" -- uv tool install --force --editable "{{ $root }}/{{ $tool.source_dir }}"
-{{- else if ne $tool.installation_method "none" }}
+{{- else if eq $method "uninstall" }}
 UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
   "$MISE" exec --cd "{{ $root }}" -- uv tool uninstall {{ index $tool "package_name" }} 2>/dev/null || true
 {{- end }}
