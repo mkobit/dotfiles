@@ -48,6 +48,8 @@ def spec_for(home, project, **overrides):
         extra_env=overrides.pop("extra_env", {}),
         tty=overrides.pop("tty", False),
         network=overrides.pop("network", "shared"),
+        home_rw=overrides.pop("home_rw", ()),
+        home_mask=overrides.pop("home_mask", ()),
     )
 
 
@@ -150,3 +152,34 @@ def test_network_shared_does_not_unshare(home, project):
 def test_network_none_unshares_net(home, project):
     args = build_args(spec_for(home, project, network="none"), {})
     assert "--unshare-net" in args
+
+
+def test_home_rw_binds_existing_paths(home, project):
+    (home / ".config").mkdir()
+    (home / ".local/state").mkdir(parents=True)
+    args = build_args(spec_for(home, project, home_rw=(".config", ".local/state", ".nonexistent")), {})
+    rw = bind_pairs(args, "--bind")
+    assert (str(home / ".config"), str(home / ".config")) in rw
+    assert (str(home / ".local/state"), str(home / ".local/state")) in rw
+    # Skipped because the dir doesn't exist on disk; mirrors RW_HOME_PATHS behavior.
+    assert all(".nonexistent" not in src for src, _ in rw)
+
+
+def test_home_mask_tmpfs_overrides_home_rw(home, project):
+    (home / ".config").mkdir()
+    args = build_args(spec_for(home, project, home_rw=(".config",), home_mask=(".config/gh",)), {})
+    rw = bind_pairs(args, "--bind")
+    tmpfs_targets = [args[i + 1] for i, a in enumerate(args) if a == "--tmpfs"]
+    assert (str(home / ".config"), str(home / ".config")) in rw
+    assert str(home / ".config/gh") in tmpfs_targets
+    # Mask must appear AFTER the bind so it takes effect.
+    bind_idx = next(i for i, a in enumerate(args) if a == "--bind" and args[i + 1] == str(home / ".config"))
+    tmpfs_idx = next(i for i, a in enumerate(args) if a == "--tmpfs" and args[i + 1] == str(home / ".config/gh"))
+    assert bind_idx < tmpfs_idx
+
+
+def test_home_rw_empty_by_default(home, project):
+    args = build_args(spec_for(home, project), {})
+    rw = bind_pairs(args, "--bind")
+    # ~/.config is not among the standard RW_HOME_PATHS, only via home_rw.
+    assert (str(home / ".config"), str(home / ".config")) not in rw

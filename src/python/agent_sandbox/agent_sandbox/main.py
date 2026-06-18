@@ -160,6 +160,8 @@ def _sandbox_spec(profile: Profile, cwd: Path, *, tty: bool) -> SandboxSpec:
         extra_env=extra_env,
         tty=tty,
         network=profile.network,
+        home_rw=tuple(profile.home_rw),
+        home_mask=tuple(profile.home_mask),
     )
 
 

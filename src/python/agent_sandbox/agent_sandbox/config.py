@@ -30,6 +30,15 @@ class Profile(BaseModel):
     backend: Backend = "auto"
     project_write: bool = False
     network: Network = "shared"
+    # Paths under $HOME to re-expose rw after the tmpfs default-deny.
+    # Empty for most profiles; broad for the `chezmoi` profile that needs
+    # to test deploying templates by running `chezmoi apply`.
+    home_rw: tuple[str, ...] = ()
+    # Paths to tmpfs-mask after home_rw, for credential dirs nested inside
+    # an otherwise rw-exposed parent (e.g., ~/.config/gh when ~/.config is
+    # bound rw). Paths not under any home_rw entry are already masked by
+    # the home tmpfs and don't need to be listed here.
+    home_mask: tuple[str, ...] = ()
 
 
 class SandboxConfig(BaseModel):
