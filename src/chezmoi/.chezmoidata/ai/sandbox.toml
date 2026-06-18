@@ -32,3 +32,15 @@ backend = "auto"
 # Project mounted read-only — for audit / read-only inspection runs.
 project_write = false
 network = "shared"
+
+[ai.sandbox.profiles.autonomous-airgapped]
+enabled = true
+backend = "auto"
+# Trust the project enough to write but not enough to phone home.
+# Useful for running tests/builds on untrusted code (npm test, cargo test,
+# pytest) where you've already vendored dependencies and don't want any
+# possibility of exfiltration via curl/wget/sockets.
+project_write = true
+# --unshare-net inside bwrap: no model APIs, no ollama, no registry
+# fetches. If the build needs the network, the test will fail loudly.
+network = "none"
