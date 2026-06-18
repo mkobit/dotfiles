@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from agent_sandbox import bwrap as bwrap_mod
 from agent_sandbox.bwrap import CACHE_REL, SandboxSpec, build_args
 
 
@@ -130,6 +131,24 @@ def test_mask_paths_are_tmpfs(home, project):
     tmpfs_targets = [args[i + 1] for i, a in enumerate(args) if a == "--tmpfs"]
     assert "/mnt" in tmpfs_targets
     assert "/run/user/1000" in tmpfs_targets
+
+
+def test_wsl_resolv_conf_rebound_after_mnt_mask(home, project, monkeypatch):
+    monkeypatch.setattr(bwrap_mod, "_wsl_runtime_binds", lambda: ("/mnt/wsl/resolv.conf",))
+    args = build_args(spec_for(home, project), {}, mask_paths=("/mnt",))
+    tmpfs_mnt_idx = next(i for i, a in enumerate(args) if a == "--tmpfs" and args[i + 1] == "/mnt")
+    rebind_idx = next(
+        i
+        for i, a in enumerate(args)
+        if a == "--ro-bind" and args[i + 1] == "/mnt/wsl/resolv.conf" and args[i + 2] == "/mnt/wsl/resolv.conf"
+    )
+    assert tmpfs_mnt_idx < rebind_idx
+
+
+def test_wsl_rebinds_skipped_when_runtime_unavailable(home, project, monkeypatch):
+    monkeypatch.setattr(bwrap_mod, "_wsl_runtime_binds", tuple)
+    args = build_args(spec_for(home, project), {}, mask_paths=("/mnt",))
+    assert "/mnt/wsl/resolv.conf" not in args
 
 
 def test_new_session_unless_tty(home, project):
