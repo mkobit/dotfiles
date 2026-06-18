@@ -28,7 +28,7 @@
 **/expected_*
 **/test_data.toml
 
-{{- if ne .npmrc.installation_method "chezmoi" }}
+{{- if ne (dig "npmrc" "installation_method" "chezmoi" .) "chezmoi" }}
 .npmrc
 {{- end }}
 

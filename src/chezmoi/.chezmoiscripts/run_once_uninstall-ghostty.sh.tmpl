@@ -1,5 +1,5 @@
 {{- $method := dig "packages" "ghostty" "installation_method" "none" . -}}
-{{- if eq $method "none" }}#!/usr/bin/env bash
+{{- if eq $method "uninstall" }}#!/usr/bin/env bash
 
 source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 
