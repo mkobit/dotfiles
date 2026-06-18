@@ -44,3 +44,21 @@ project_write = true
 # --unshare-net inside bwrap: no model APIs, no ollama, no registry
 # fetches. If the build needs the network, the test will fail loudly.
 network = "none"
+
+[ai.sandbox.profiles.chezmoi]
+enabled = true
+backend = "auto"
+# For working on the dotfiles repo itself: needs rw access to the home
+# subdirs chezmoi manages so `chezmoi diff` / `chezmoi apply --dry-run`
+# can run and verify template renders. Only invoke this profile from
+# inside the dotfiles repo — running it on a random project gives a
+# malicious agent rw access to most of your $HOME.
+project_write = true
+network = "shared"
+# Broad re-exposes: chezmoi templates can target anywhere under .config,
+# .local/share, .local/bin, .local/state. Top-level credential dirs
+# (.ssh, .gnupg) stay tmpfs-masked because they're not in this list.
+home_rw = [".config", ".local/share", ".local/bin", ".local/state"]
+# gh tokens live under .config/gh which would otherwise be exposed by
+# the .config rw bind. Mask explicitly to keep the credential boundary.
+home_mask = [".config/gh"]

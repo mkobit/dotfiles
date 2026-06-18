@@ -58,6 +58,10 @@ class SandboxSpec:
     # "shared" reuses the host netns; "none" adds --unshare-net for an
     # air-gapped sandbox (no model APIs, no exfiltration, no apt/npm/cargo).
     network: str = "shared"
+    # Profile-supplied paths under $HOME to expose rw / mask. See
+    # config.Profile.home_rw / home_mask for the schema rationale.
+    home_rw: tuple[str, ...] = ()
+    home_mask: tuple[str, ...] = ()
 
 
 def default_mask_paths(uid: int) -> tuple[str, ...]:
@@ -95,6 +99,14 @@ def build_args(spec: SandboxSpec, environ: Mapping[str, str], mask_paths: Sequen
         if path.exists():
             args += ["--bind", str(path), str(path)]
     args += ["--bind", str(home / CACHE_REL), str(home / ".cache")]
+    # Profile-supplied broad rw exposes (e.g. .config for the chezmoi profile).
+    # Run before home_mask so credential subdirs are tmpfs-masked on top.
+    for rel in spec.home_rw:
+        path = home / rel
+        if path.exists():
+            args += ["--bind", str(path), str(path)]
+    for rel in spec.home_mask:
+        args += ["--tmpfs", str(home / rel)]
     project_bind = "--bind" if spec.project_write else "--ro-bind"
     args += [project_bind, str(spec.project_root), str(spec.project_root)]
     if spec.git_common_dir is not None:
