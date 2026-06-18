@@ -1,7 +1,7 @@
 {{- $base := dig "github_releases" "base_url" "https://github.com" $ -}}
 {{- $config := dict -}}
 {{- range $key, $font := .fonts -}}
-  {{- if eq $font.installation_method "chezmoi_external" -}}
+  {{- if eq (dig "installation_method" "" $font) "chezmoi_external" -}}
     {{- $target := printf "NerdFonts/%s" $font.name -}}
     {{- $fontConfig := dict
         "type"     "archive"
