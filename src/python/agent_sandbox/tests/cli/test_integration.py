@@ -89,33 +89,25 @@ def test_run_show_command_project_rw_bound(tmp_path):
 
 
 def test_run_show_command_readonly_profile_ro_binds_project(tmp_path):
-    result = runner.invoke(
-        app, ["run", "--profile", "readonly", "--show-command", "--", "bash"]
-    )
+    result = runner.invoke(app, ["run", "--profile", "readonly", "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert f"--ro-bind {tmp_path} {tmp_path}" in result.output
 
 
 def test_run_show_command_airgap_profile_unshares_net():
-    result = runner.invoke(
-        app, ["run", "--profile", "airgap", "--show-command", "--", "bash"]
-    )
+    result = runner.invoke(app, ["run", "--profile", "airgap", "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert "--unshare-net" in result.output
 
 
 def test_run_show_command_network_none_override_unshares_net():
-    result = runner.invoke(
-        app, ["run", "--network", "none", "--show-command", "--", "bash"]
-    )
+    result = runner.invoke(app, ["run", "--network", "none", "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert "--unshare-net" in result.output
 
 
 def test_run_show_command_network_shared_does_not_unshare_net():
-    result = runner.invoke(
-        app, ["run", "--network", "shared", "--show-command", "--", "bash"]
-    )
+    result = runner.invoke(app, ["run", "--network", "shared", "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert "--unshare-net" not in result.output
 
@@ -123,9 +115,7 @@ def test_run_show_command_network_shared_does_not_unshare_net():
 def test_run_show_command_extra_ro_bound_when_path_exists(tmp_path):
     ro = tmp_path / "ro_file.txt"
     ro.write_text("data")
-    result = runner.invoke(
-        app, ["run", "--ro", str(ro), "--show-command", "--", "bash"]
-    )
+    result = runner.invoke(app, ["run", "--ro", str(ro), "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert f"--ro-bind {ro} {ro}" in result.output
 
@@ -133,18 +123,14 @@ def test_run_show_command_extra_ro_bound_when_path_exists(tmp_path):
 def test_run_show_command_extra_rw_bound_when_path_exists(tmp_path):
     rw = tmp_path / "state_dir"
     rw.mkdir()
-    result = runner.invoke(
-        app, ["run", "--rw", str(rw), "--show-command", "--", "bash"]
-    )
+    result = runner.invoke(app, ["run", "--rw", str(rw), "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert f"--bind {rw} {rw}" in result.output
 
 
 def test_run_show_command_extra_ro_not_bound_when_missing(tmp_path):
     missing = tmp_path / "nonexistent"
-    result = runner.invoke(
-        app, ["run", "--ro", str(missing), "--show-command", "--", "bash"]
-    )
+    result = runner.invoke(app, ["run", "--ro", str(missing), "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert str(missing) not in result.output
 
@@ -153,9 +139,7 @@ def test_run_show_command_ssh_agent_bound_when_sock_exists(tmp_path, monkeypatch
     sock = tmp_path / "agent.sock"
     sock.touch()
     monkeypatch.setenv("SSH_AUTH_SOCK", str(sock))
-    result = runner.invoke(
-        app, ["run", "--ssh-agent", "--show-command", "--", "bash"]
-    )
+    result = runner.invoke(app, ["run", "--ssh-agent", "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert f"--bind {sock} {sock}" in result.output
     assert f"SSH_AUTH_SOCK {sock}" in result.output
@@ -165,9 +149,7 @@ def test_run_show_command_no_ssh_agent_flag_skips_sock(tmp_path, monkeypatch):
     sock = tmp_path / "agent.sock"
     sock.touch()
     monkeypatch.setenv("SSH_AUTH_SOCK", str(sock))
-    result = runner.invoke(
-        app, ["run", "--no-ssh-agent", "--show-command", "--", "bash"]
-    )
+    result = runner.invoke(app, ["run", "--no-ssh-agent", "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert f"SSH_AUTH_SOCK {sock}" not in result.output
 
@@ -178,9 +160,7 @@ def test_run_no_command_exits_nonzero():
 
 
 def test_run_unknown_profile_exits_nonzero():
-    result = runner.invoke(
-        app, ["run", "--profile", "unknown", "--show-command", "--", "bash"]
-    )
+    result = runner.invoke(app, ["run", "--profile", "unknown", "--show-command", "--", "bash"])
     assert result.exit_code != 0
 
 

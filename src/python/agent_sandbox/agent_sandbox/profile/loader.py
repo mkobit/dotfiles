@@ -45,9 +45,7 @@ def resolve_profile(
             return profile
     profile = config.profiles.get(config.default_profile)
     if profile is None:
-        raise ConfigError(
-            f"default_profile {config.default_profile!r} is not an enabled profile"
-        )
+        raise ConfigError(f"default_profile {config.default_profile!r} is not an enabled profile")
     return profile
 
 

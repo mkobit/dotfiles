@@ -28,9 +28,7 @@ app = typer.Typer()
 @app.command(context_settings=_CTX)
 def run(
     ctx: typer.Context,
-    profile: Annotated[
-        str | None, typer.Option("--profile", help="Named sandbox profile.")
-    ] = None,
+    profile: Annotated[str | None, typer.Option("--profile", help="Named sandbox profile.")] = None,
     tty: Annotated[
         bool,
         typer.Option(

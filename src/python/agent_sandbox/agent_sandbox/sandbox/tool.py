@@ -10,12 +10,8 @@ from pathlib import Path
 _DEFAULT_CLAUDE_SETTINGS = (
     Path.home() / ".config" / "ai-policy" / "claude" / "autonomous-settings.json"
 )
-_DEFAULT_AGY_SETTINGS = (
-    Path.home() / ".config" / "ai-policy" / "agy" / "autonomous-settings.json"
-)
-_DEFAULT_OPENCODE_CONFIG = (
-    Path.home() / ".config" / "ai-policy" / "opencode" / "autonomous.json"
-)
+_DEFAULT_AGY_SETTINGS = Path.home() / ".config" / "ai-policy" / "agy" / "autonomous-settings.json"
+_DEFAULT_OPENCODE_CONFIG = Path.home() / ".config" / "ai-policy" / "opencode" / "autonomous.json"
 
 _SKIP_PERMS = "--dangerously-skip-permissions"
 

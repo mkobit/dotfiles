@@ -24,9 +24,7 @@ _CTX = {
 
 @app.command(context_settings=_CTX)
 def shell(
-    profile: Annotated[
-        str | None, typer.Option("--profile", help="Named sandbox profile.")
-    ] = None,
+    profile: Annotated[str | None, typer.Option("--profile", help="Named sandbox profile.")] = None,
     tty: Annotated[
         bool, typer.Option("--tty/--no-tty", "-t", help="Allocate a pseudo-TTY.")
     ] = True,

@@ -15,9 +15,7 @@ from agent_sandbox.profile.loader import load_config, resolve_profile
 from agent_sandbox.profile.schema import ConfigError, Profile, SandboxConfig
 from agent_sandbox.sandbox.spec import SandboxSpec
 
-TOKEN_PATH = (
-    Path.home() / ".local" / "state" / "ai-policy" / "tokens" / "readonly.token"
-)
+TOKEN_PATH = Path.home() / ".local" / "state" / "ai-policy" / "tokens" / "readonly.token"
 
 
 def _fail(message: str) -> typer.Exit:
@@ -35,9 +33,7 @@ def _refuse_if_nested() -> None:
 
 def _require_bwrap() -> None:
     if shutil.which("bwrap") is None:
-        raise _fail(
-            "bwrap not found; install via the run_once_install-sandbox-deps chezmoi script"
-        )
+        raise _fail("bwrap not found; install via the run_once_install-sandbox-deps chezmoi script")
 
 
 def _git(cwd: Path, *args: str) -> str | None:
@@ -52,7 +48,7 @@ def _git(cwd: Path, *args: str) -> str | None:
             timeout=10,
             check=False,
         )
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return None
     return result.stdout.strip() if result.returncode == 0 else None
 
@@ -110,7 +106,7 @@ def _gpg_agent_sock() -> Path | None:
             timeout=5,
             check=False,
         )
-    except (OSError, subprocess.SubprocessError):
+    except OSError, subprocess.SubprocessError:
         return None
     if result.returncode != 0 or not result.stdout.strip():
         return None
@@ -118,9 +114,7 @@ def _gpg_agent_sock() -> Path | None:
     return path if path.exists() else None
 
 
-def _resolve(
-    profile_flag: str | None, cwd: Path
-) -> tuple[SandboxConfig, Profile, SandboxBackend]:
+def _resolve(profile_flag: str | None, cwd: Path) -> tuple[SandboxConfig, Profile, SandboxBackend]:
     try:
         config = load_config()
         profile = resolve_profile(config, profile_flag, os.environ.get("AGENT_RUN_PROFILE"))
