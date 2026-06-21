@@ -1,6 +1,6 @@
 import pytest
 
-from agent_sandbox.profile.loader import load_config, merge_cli_overrides, resolve_profile
+from agent_sandbox.profile.loader import load_config, merge_cli_overrides
 from agent_sandbox.profile.schema import SandboxConfig
 
 BASE_TOML = """

@@ -7,9 +7,17 @@ prompts are bypassed because they would only add friction here.
 from collections.abc import Mapping
 from pathlib import Path
 
-_DEFAULT_CLAUDE_SETTINGS = Path.home() / ".config" / "ai-policy" / "claude" / "autonomous-settings.json"
-_DEFAULT_AGY_SETTINGS = Path.home() / ".config" / "ai-policy" / "agy" / "autonomous-settings.json"
-_DEFAULT_OPENCODE_CONFIG = Path.home() / ".config" / "ai-policy" / "opencode" / "autonomous.json"
+_DEFAULT_CLAUDE_SETTINGS = (
+    Path.home() / ".config" / "ai-policy" / "claude" / "autonomous-settings.json"
+)
+_DEFAULT_AGY_SETTINGS = (
+    Path.home() / ".config" / "ai-policy" / "agy" / "autonomous-settings.json"
+)
+_DEFAULT_OPENCODE_CONFIG = (
+    Path.home() / ".config" / "ai-policy" / "opencode" / "autonomous.json"
+)
+
+_SKIP_PERMS = "--dangerously-skip-permissions"
 
 
 def adapt_command(
@@ -30,16 +38,24 @@ def adapt_command(
     if tool == "claude":
         adapted = [
             *command,
-            *(["--settings", str(settings_path)] if "--settings" not in command and settings_path.exists() else []),
-            *([] if "--dangerously-skip-permissions" in command else ["--dangerously-skip-permissions"]),
+            *(
+                ["--settings", str(settings_path)]
+                if "--settings" not in command and settings_path.exists()
+                else []
+            ),
+            *([] if _SKIP_PERMS in command else [_SKIP_PERMS]),
         ]
         return adapted, {}
     agy_path = agy_settings or _DEFAULT_AGY_SETTINGS
     if tool == "agy":
         adapted = [
             *command,
-            *(["--settings", str(agy_path)] if "--settings" not in command and agy_path.exists() else []),
-            *([] if "--dangerously-skip-permissions" in command else ["--dangerously-skip-permissions"]),
+            *(
+                ["--settings", str(agy_path)]
+                if "--settings" not in command and agy_path.exists()
+                else []
+            ),
+            *([] if _SKIP_PERMS in command else [_SKIP_PERMS]),
             # Do NOT pass --sandbox: combining with --dangerously-skip-permissions
             # auto-approves bypassing the sandbox itself (antigravity-cli #36).
         ]

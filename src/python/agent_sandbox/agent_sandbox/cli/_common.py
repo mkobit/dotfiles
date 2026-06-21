@@ -4,6 +4,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import typer
@@ -14,7 +15,9 @@ from agent_sandbox.profile.loader import load_config, resolve_profile
 from agent_sandbox.profile.schema import ConfigError, Profile, SandboxConfig
 from agent_sandbox.sandbox.spec import SandboxSpec
 
-TOKEN_PATH = Path.home() / ".local" / "state" / "ai-policy" / "tokens" / "readonly.token"
+TOKEN_PATH = (
+    Path.home() / ".local" / "state" / "ai-policy" / "tokens" / "readonly.token"
+)
 
 
 def _fail(message: str) -> typer.Exit:
@@ -38,9 +41,12 @@ def _require_bwrap() -> None:
 
 
 def _git(cwd: Path, *args: str) -> str | None:
+    git = shutil.which("git")
+    if git is None:
+        return None
     try:
         result = subprocess.run(
-            ["git", "-C", str(cwd), *args],
+            [git, "-C", str(cwd), *args],
             capture_output=True,
             text=True,
             timeout=10,
@@ -93,9 +99,12 @@ def _ssh_agent_sock() -> Path | None:
 
 def _gpg_agent_sock() -> Path | None:
     """Return the host GPG agent socket path via gpgconf, or None if unavailable."""
+    gpgconf = shutil.which("gpgconf")
+    if gpgconf is None:
+        return None
     try:
         result = subprocess.run(
-            ["gpgconf", "--list-dirs", "agent-socket"],
+            [gpgconf, "--list-dirs", "agent-socket"],
             capture_output=True,
             text=True,
             timeout=5,
@@ -112,8 +121,6 @@ def _gpg_agent_sock() -> Path | None:
 def _resolve(
     profile_flag: str | None, cwd: Path
 ) -> tuple[SandboxConfig, Profile, SandboxBackend]:
-    import sys
-
     try:
         config = load_config()
         profile = resolve_profile(config, profile_flag, os.environ.get("AGENT_RUN_PROFILE"))

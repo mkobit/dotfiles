@@ -29,25 +29,54 @@ hidden "gh credentials" "$HOME/.config/gh"
 hidden "ai-policy token store" "$HOME/.local/state/ai-policy"
 command -v git >/dev/null 2>&1 && pass "git on PATH" || fail "git missing"
 command -v rg >/dev/null 2>&1 && pass "rg on PATH" || fail "rg missing"
-[ "$(git config --global commit.gpgsign 2>/dev/null)" = "false" ] && pass "commit signing disabled" || fail "commit signing not disabled"
-if touch /agent-sandbox-probe 2>/dev/null; then rm -f /agent-sandbox-probe; fail "root filesystem writable"; else pass "root filesystem read-only"; fi
+if [ "$(git config --global commit.gpgsign 2>/dev/null)" = "false" ]; then
+  pass "commit signing disabled"
+else
+  fail "commit signing not disabled"
+fi
+if touch /agent-sandbox-probe 2>/dev/null; then
+  rm -f /agent-sandbox-probe
+  fail "root filesystem writable"
+else
+  pass "root filesystem read-only"
+fi
 probe_file="$PROBE_PROJECT/.agent-sandbox-probe.$$"
 if touch "$probe_file" 2>/dev/null; then rm -f "$probe_file"; writable=1; else writable=0; fi
-if [ "$writable" = "$PROBE_PROJECT_WRITE" ]; then pass "project write=$writable as expected"; else fail "project write=$writable expected=$PROBE_PROJECT_WRITE"; fi
+if [ "$writable" = "$PROBE_PROJECT_WRITE" ]; then
+  pass "project write=$writable as expected"
+else
+  fail "project write=$writable expected=$PROBE_PROJECT_WRITE"
+fi
 if command -v gh >/dev/null 2>&1; then
   if [ "$PROBE_EXPECT_GH" = "1" ]; then
-    gh auth status >/dev/null 2>&1 && pass "gh authenticated via injected token" || fail "gh token injected but unauthenticated"
+    if gh auth status >/dev/null 2>&1; then
+      pass "gh authenticated via injected token"
+    else
+      fail "gh token injected but unauthenticated"
+    fi
   else
-    gh auth status >/dev/null 2>&1 && fail "gh authenticated without injected token" || pass "gh unauthenticated"
+    if gh auth status >/dev/null 2>&1; then
+      fail "gh authenticated without injected token"
+    else
+      pass "gh unauthenticated"
+    fi
   fi
 fi
 if command -v curl >/dev/null 2>&1; then
   if [ "$PROBE_NETWORK" = "none" ]; then
-    curl -fsS -m 2 "https://api.github.com/zen" >/dev/null 2>&1 && fail "network reachable on air-gapped profile" || pass "network unreachable (air-gapped)"
+    if curl -fsS -m 2 "https://api.github.com/zen" >/dev/null 2>&1; then
+      fail "network reachable on air-gapped profile"
+    else
+      pass "network unreachable (air-gapped)"
+    fi
   else
     ollama_url="${OLLAMA_HOST:-localhost:11434}"
     case "$ollama_url" in http://*|https://*) ;; *) ollama_url="http://$ollama_url" ;; esac
-    curl -fsS -m 2 "${ollama_url}/api/version" >/dev/null 2>&1 && pass "ollama reachable" || printf 'WARN: %s\n' "ollama not reachable"
+    if curl -fsS -m 2 "${ollama_url}/api/version" >/dev/null 2>&1; then
+      pass "ollama reachable"
+    else
+      printf 'WARN: %s\n' "ollama not reachable"
+    fi
   fi
 fi
 printf 'failures: %d\n' "$fails"
@@ -58,7 +87,9 @@ exit "$fails"
 @app.command()
 def doctor(
     profile: Annotated[str, typer.Option("--profile", help="Profile to verify.")] = "autonomous",
-    network: Annotated[str | None, typer.Option("--network", help="Network mode: shared|none.")] = None,
+    network: Annotated[
+        str | None, typer.Option("--network", help="Network mode: shared|none.")
+    ] = None,
     ssh_agent: Annotated[bool | None, typer.Option("--ssh-agent/--no-ssh-agent")] = None,
     gpg_agent: Annotated[bool | None, typer.Option("--gpg-agent/--no-gpg-agent")] = None,
 ) -> None:

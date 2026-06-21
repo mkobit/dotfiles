@@ -116,7 +116,7 @@ def test_env_is_cleared_with_allowlist_only(home: Path, project: Path) -> None:
 
 def test_extra_env_injected(home: Path, project: Path) -> None:
     args = build_args(spec_for(home, project, extra_env={"GH_TOKEN": "scoped"}), {})
-    assert setenv_map(args)["GH_TOKEN"] == "scoped"
+    assert setenv_map(args)["GH_TOKEN"] == "scoped"  # noqa: S105
 
 
 def test_mask_paths_are_tmpfs(home: Path, project: Path) -> None:

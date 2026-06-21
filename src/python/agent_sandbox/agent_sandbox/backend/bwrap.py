@@ -71,7 +71,7 @@ def build_args(
     if spec.network == "none":
         args.append("--unshare-net")
     # /tmp is a bwrap tmpfs mount target, not a temp-file use.
-    args += ["--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp"]  # noqa: S108
+    args += ["--ro-bind", "/", "/", "--dev", "/dev", "--proc", "/proc", "--tmpfs", "/tmp"]
     for path in mask_paths:
         args += ["--tmpfs", path]
     args += ["--tmpfs", str(home)]

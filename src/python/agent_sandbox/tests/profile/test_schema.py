@@ -60,7 +60,13 @@ def test_load_invalid_toml_raises(tmp_path):
 def test_load_unknown_backend_raises(tmp_path):
     path = write_config(
         tmp_path,
-        'default_profile = "x"\n[profiles.x]\nenabled = true\nbackend = "docker"\nproject_write = true\n',
+        (
+            'default_profile = "x"\n'
+            "[profiles.x]\n"
+            "enabled = true\n"
+            'backend = "docker"\n'
+            "project_write = true\n"
+        ),
     )
     with pytest.raises(ConfigError, match="invalid sandbox config"):
         load_config(path)
@@ -69,7 +75,14 @@ def test_load_unknown_backend_raises(tmp_path):
 def test_load_unknown_profile_key_raises(tmp_path):
     path = write_config(
         tmp_path,
-        'default_profile = "x"\n[profiles.x]\nenabled = true\nbackend = "auto"\nproject_write = true\nsurprise = "nope"\n',
+        (
+            'default_profile = "x"\n'
+            "[profiles.x]\n"
+            "enabled = true\n"
+            'backend = "auto"\n'
+            "project_write = true\n"
+            'surprise = "nope"\n'
+        ),
     )
     with pytest.raises(ConfigError, match="invalid sandbox config"):
         load_config(path)
@@ -129,7 +142,13 @@ def test_resolve_missing_default_raises(tmp_path):
     config = load_config(
         write_config(
             tmp_path,
-            'default_profile = "ghost"\n[profiles.readonly]\nenabled = true\nbackend = "auto"\nproject_write = false\n',
+            (
+                'default_profile = "ghost"\n'
+                "[profiles.readonly]\n"
+                "enabled = true\n"
+                'backend = "auto"\n'
+                "project_write = false\n"
+            ),
         )
     )
     with pytest.raises(ConfigError, match="default_profile"):

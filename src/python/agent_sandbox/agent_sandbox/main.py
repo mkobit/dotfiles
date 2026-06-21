@@ -11,27 +11,26 @@ import sys
 
 import typer
 
+from agent_sandbox.cli.doctor import doctor
+from agent_sandbox.cli.profiles import profiles
+from agent_sandbox.cli.run import run
+from agent_sandbox.cli.shell import shell
+
 app = typer.Typer(
     help="Run commands in an outer sandbox per ~/.config/ai-policy/sandbox.toml.",
     no_args_is_help=True,
 )
 
-_RUN_CTX = {"allow_extra_args": True, "ignore_unknown_options": True, "allow_interspersed_args": False}
+_RUN_CTX = {
+    "allow_extra_args": True,
+    "ignore_unknown_options": True,
+    "allow_interspersed_args": False,
+}
 
-
-def _register_commands() -> None:
-    from agent_sandbox.cli.doctor import doctor
-    from agent_sandbox.cli.profiles import profiles
-    from agent_sandbox.cli.run import run
-    from agent_sandbox.cli.shell import shell
-
-    app.command(context_settings=_RUN_CTX)(run)
-    app.command(context_settings=_RUN_CTX)(shell)
-    app.command()(doctor)
-    app.command()(profiles)
-
-
-_register_commands()
+app.command(context_settings=_RUN_CTX)(run)
+app.command(context_settings=_RUN_CTX)(shell)
+app.command()(doctor)
+app.command()(profiles)
 
 
 def main() -> None:
