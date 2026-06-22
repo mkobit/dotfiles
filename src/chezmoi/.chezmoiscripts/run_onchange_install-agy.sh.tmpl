@@ -1,4 +1,4 @@
-{{- if eq .agy.installation_method "dotfiles.script" -}}
+{{- if eq (dig "installation_method" "none" .agy) "dotfiles.script" -}}
 #!/bin/bash
 # agy {{ .agy.version }}
 set -euo pipefail
