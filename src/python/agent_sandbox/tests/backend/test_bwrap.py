@@ -31,23 +31,39 @@ def project(tmp_path: Path) -> Path:
     return project
 
 
-def spec_for(home: Path, project: Path, **overrides: object) -> SandboxSpec:
+def spec_for(
+    home: Path,
+    project: Path,
+    *,
+    project_write: bool = True,
+    profile_name: str = "autonomous",
+    git_common_dir: Path | None = None,
+    extra_env: dict[str, str] | None = None,
+    tty: bool = False,
+    network: str = "shared",
+    ssh_agent_sock: Path | None = None,
+    gpg_agent_sock: Path | None = None,
+    extra_ro: tuple[Path, ...] = (),
+    extra_rw: tuple[Path, ...] = (),
+    home_rw: tuple[str, ...] = (),
+    home_mask: tuple[str, ...] = (),
+) -> SandboxSpec:
     return SandboxSpec(
-        home=overrides.pop("home", home),  # type: ignore[arg-type]
-        project_root=overrides.pop("project_root", project),  # type: ignore[arg-type]
-        project_write=overrides.pop("project_write", True),  # type: ignore[arg-type]
-        profile_name=overrides.pop("profile_name", "autonomous"),  # type: ignore[arg-type]
-        cwd=overrides.pop("cwd", project),  # type: ignore[arg-type]
-        git_common_dir=overrides.pop("git_common_dir", None),  # type: ignore[arg-type]
-        extra_env=overrides.pop("extra_env", {}),  # type: ignore[arg-type]
-        tty=overrides.pop("tty", False),  # type: ignore[arg-type]
-        network=overrides.pop("network", "shared"),  # type: ignore[arg-type]
-        ssh_agent_sock=overrides.pop("ssh_agent_sock", None),  # type: ignore[arg-type]
-        gpg_agent_sock=overrides.pop("gpg_agent_sock", None),  # type: ignore[arg-type]
-        extra_ro=overrides.pop("extra_ro", ()),  # type: ignore[arg-type]
-        extra_rw=overrides.pop("extra_rw", ()),  # type: ignore[arg-type]
-        home_rw=overrides.pop("home_rw", ()),  # type: ignore[arg-type]
-        home_mask=overrides.pop("home_mask", ()),  # type: ignore[arg-type]
+        home=home,
+        project_root=project,
+        project_write=project_write,
+        profile_name=profile_name,
+        cwd=project,
+        git_common_dir=git_common_dir,
+        extra_env=extra_env or {},
+        tty=tty,
+        network=network,
+        ssh_agent_sock=ssh_agent_sock,
+        gpg_agent_sock=gpg_agent_sock,
+        extra_ro=extra_ro,
+        extra_rw=extra_rw,
+        home_rw=home_rw,
+        home_mask=home_mask,
     )
 
 
