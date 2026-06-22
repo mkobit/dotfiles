@@ -1,0 +1,25 @@
+# Universal agent guidelines — shared across all AI coding tools.
+# Consumed by dot_claude/CLAUDE.md.tmpl, dot_codex/AGENTS.md.tmpl, and goose.
+# Keep this tight — injected into every conversation turn.
+
+[[ai.guidelines.sections]]
+content = """
+## Writing style
+- Sentence case: headings, commits, PR titles, UI labels — always.
+- Prose and documentation: one sentence per line.
+- Codify tools, commands, and syntax with target output markup.
+- Source links (docs, code, issues) in PR descriptions, Slack drafts, and research summaries.
+- Voice for drafted messages: lowercase body (capitalize proper nouns only), no filler adjectives, front-load the action, fact-driven.
+- Example — instead of "We introduced a shared config to ensure consistency across tools" → "creates `guidelines.toml` as single source for all tools, one-line changes propagate everywhere"."""
+
+[[ai.guidelines.sections]]
+content = """
+## Approach
+- State assumptions before implementing; if multiple interpretations exist, surface them rather than picking silently.
+- Ask rather than guess.
+- Minimum code for the task; no speculative features or abstractions."""
+
+[[ai.guidelines.sections]]
+content = """
+## Tools
+- `fd` over `find`; `rg` over `grep`."""
