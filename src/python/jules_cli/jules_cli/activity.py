@@ -84,7 +84,7 @@ class SessionCompleted(BaseModel):
 class GitPatch(BaseModel):
     """A patch in Git format."""
 
-    unidiff_patch: str
+    unidiff_patch: str | None = None
     base_commit_id: str | None = None
     suggested_commit_message: str | None = None
     model_config = frozen_config
