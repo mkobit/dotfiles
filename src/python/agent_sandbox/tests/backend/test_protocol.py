@@ -2,37 +2,39 @@ from pathlib import Path
 
 import pytest
 
-from agent_sandbox.backend import BwrapBackend, SeatbeltBackend, select_backend
-from agent_sandbox.bwrap import SandboxSpec
+from agent_sandbox.backend.bwrap import BwrapBackend
+from agent_sandbox.backend.protocol import select_backend
+from agent_sandbox.backend.seatbelt import SeatbeltBackend
+from agent_sandbox.sandbox.spec import SandboxSpec
 
 
-def test_select_auto_linux_returns_bwrap():
+def test_select_auto_linux_returns_bwrap() -> None:
     assert isinstance(select_backend("auto", platform="linux"), BwrapBackend)
 
 
-def test_select_auto_darwin_returns_seatbelt():
+def test_select_auto_darwin_returns_seatbelt() -> None:
     assert isinstance(select_backend("auto", platform="darwin"), SeatbeltBackend)
 
 
-def test_select_auto_unknown_platform_raises():
+def test_select_auto_unknown_platform_raises() -> None:
     with pytest.raises(ValueError, match="no auto backend"):
         select_backend("auto", platform="freebsd")
 
 
-def test_select_explicit_bwrap_works_everywhere():
+def test_select_explicit_bwrap_works_everywhere() -> None:
     assert isinstance(select_backend("bwrap", platform="darwin"), BwrapBackend)
 
 
-def test_select_explicit_seatbelt_works_everywhere():
+def test_select_explicit_seatbelt_works_everywhere() -> None:
     assert isinstance(select_backend("seatbelt", platform="linux"), SeatbeltBackend)
 
 
-def test_select_unknown_backend_raises():
+def test_select_unknown_backend_raises() -> None:
     with pytest.raises(ValueError, match="unknown backend"):
         select_backend("docker", platform="linux")
 
 
-def test_seatbelt_build_args_raises_not_implemented(tmp_path: Path):
+def test_seatbelt_build_args_raises_not_implemented(tmp_path: Path) -> None:
     spec = SandboxSpec(
         home=tmp_path,
         project_root=tmp_path,

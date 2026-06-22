@@ -17,33 +17,43 @@ default_profile = "autonomous"
 
 [ai.sandbox.profiles.autonomous]
 enabled = true
-# "auto" = bwrap on linux, sandbox-exec on darwin. Future: explicit "bwrap"
-# or "seatbelt" overrides for testing.
+# "auto" = bwrap on linux, sandbox-exec on darwin.
 backend = "auto"
 # Project worktree mounted read-write.
 project_write = true
-# Network namespace shared with host so the agent can reach model APIs and
-# localhost:11434 (ollama). "none" reserved for future air-gapped runs.
+# Network shared with host so the agent can reach model APIs and ollama.
 network = "shared"
-
-[ai.sandbox.profiles.readonly]
-enabled = true
-backend = "auto"
-# Project mounted read-only — for audit / read-only inspection runs.
-project_write = false
-network = "shared"
+# No agent socket forwarding by default; enable ad-hoc with --ssh-agent.
+ssh_agent = false
+gpg_agent = false
 
 [ai.sandbox.profiles.autonomous-airgapped]
 enabled = true
 backend = "auto"
-# Trust the project enough to write but not enough to phone home.
-# Useful for running tests/builds on untrusted code (npm test, cargo test,
-# pytest) where you've already vendored dependencies and don't want any
-# possibility of exfiltration via curl/wget/sockets.
 project_write = true
-# --unshare-net inside bwrap: no model APIs, no ollama, no registry
-# fetches. If the build needs the network, the test will fail loudly.
+# Completely isolated from the network -- no model API, no package registries.
 network = "none"
+ssh_agent = false
+gpg_agent = false
+
+[ai.sandbox.profiles.readonly]
+enabled = true
+backend = "auto"
+# Project mounted read-only -- for audit / read-only inspection runs.
+project_write = false
+network = "shared"
+ssh_agent = false
+gpg_agent = false
+
+[ai.sandbox.profiles.untrusted]
+enabled = true
+backend = "auto"
+# Strictest profile: read-only project, no network, no agent sockets.
+# Use this when running code from an untrusted source.
+project_write = false
+network = "none"
+ssh_agent = false
+gpg_agent = false
 
 [ai.sandbox.profiles.chezmoi]
 enabled = true
@@ -55,6 +65,8 @@ backend = "auto"
 # malicious agent rw access to most of your $HOME.
 project_write = true
 network = "shared"
+ssh_agent = false
+gpg_agent = false
 # Broad re-exposes: chezmoi templates can target anywhere under .config,
 # .local/share, .local/bin, .local/state. Top-level credential dirs
 # (.ssh, .gnupg) stay tmpfs-masked because they're not in this list.

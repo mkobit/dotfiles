@@ -3,7 +3,8 @@ import tomllib
 import pytest
 from pydantic import ValidationError
 
-from agent_sandbox.config import ConfigError, Profile, SandboxConfig, load_config, resolve_profile
+from agent_sandbox.profile.loader import load_config, resolve_profile
+from agent_sandbox.profile.schema import ConfigError, Profile, SandboxConfig
 
 BASE_TOML = """
 default_profile = "autonomous"
@@ -13,12 +14,16 @@ enabled = true
 backend = "auto"
 project_write = true
 network = "shared"
+ssh_agent = false
+gpg_agent = false
 
 [profiles.readonly]
 enabled = true
 backend = "auto"
 project_write = false
 network = "shared"
+ssh_agent = false
+gpg_agent = false
 
 [profiles.disabled]
 enabled = false
@@ -55,7 +60,13 @@ def test_load_invalid_toml_raises(tmp_path):
 def test_load_unknown_backend_raises(tmp_path):
     path = write_config(
         tmp_path,
-        'default_profile = "x"\n[profiles.x]\nenabled = true\nbackend = "docker"\nproject_write = true\n',
+        (
+            'default_profile = "x"\n'
+            "[profiles.x]\n"
+            "enabled = true\n"
+            'backend = "docker"\n'
+            "project_write = true\n"
+        ),
     )
     with pytest.raises(ConfigError, match="invalid sandbox config"):
         load_config(path)
@@ -64,7 +75,14 @@ def test_load_unknown_backend_raises(tmp_path):
 def test_load_unknown_profile_key_raises(tmp_path):
     path = write_config(
         tmp_path,
-        'default_profile = "x"\n[profiles.x]\nenabled = true\nbackend = "auto"\nproject_write = true\nsurprise = "nope"\n',
+        (
+            'default_profile = "x"\n'
+            "[profiles.x]\n"
+            "enabled = true\n"
+            'backend = "auto"\n'
+            "project_write = true\n"
+            'surprise = "nope"\n'
+        ),
     )
     with pytest.raises(ConfigError, match="invalid sandbox config"):
         load_config(path)
@@ -79,6 +97,18 @@ def test_profile_is_frozen():
     p = Profile(name="autonomous", backend="auto", project_write=True, network="shared")
     with pytest.raises(ValidationError):
         p.project_write = False  # type: ignore[misc]
+
+
+def test_profile_ssh_agent_defaults_false():
+    p = Profile(name="test", backend="auto", project_write=True, network="shared")
+    assert p.ssh_agent is False
+    assert p.gpg_agent is False
+
+
+def test_profile_extra_ro_rw_default_empty():
+    p = Profile(name="test", backend="auto", project_write=True, network="shared")
+    assert p.extra_ro == ()
+    assert p.extra_rw == ()
 
 
 @pytest.fixture
@@ -112,8 +142,14 @@ def test_resolve_missing_default_raises(tmp_path):
     config = load_config(
         write_config(
             tmp_path,
-            'default_profile = "ghost"\n[profiles.readonly]\nenabled = true\nbackend = "auto"\nproject_write = false\n',
-        )
+            (
+                'default_profile = "ghost"\n'
+                "[profiles.readonly]\n"
+                "enabled = true\n"
+                'backend = "auto"\n'
+                "project_write = false\n"
+            ),
+        ),
     )
     with pytest.raises(ConfigError, match="default_profile"):
         resolve_profile(config, None, None)
