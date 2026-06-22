@@ -26,17 +26,20 @@ _CTX = {
 def shell(
     profile: Annotated[str | None, typer.Option("--profile", help="Named sandbox profile.")] = None,
     tty: Annotated[
-        bool, typer.Option("--tty/--no-tty", "-t", help="Allocate a pseudo-TTY.")
+        bool,
+        typer.Option("--tty/--no-tty", "-t", help="Allocate a pseudo-TTY."),
     ] = True,
     show_command: Annotated[
-        bool, typer.Option("--show-command", help="Print bwrap invocation instead of running.")
+        bool,
+        typer.Option("--show-command", help="Print bwrap invocation instead of running."),
     ] = False,
     project_write: Annotated[
         bool | None,
         typer.Option("--project-write/--no-project-write"),
     ] = None,
     network: Annotated[
-        str | None, typer.Option("--network", help="Network mode: shared|none.")
+        str | None,
+        typer.Option("--network", help="Network mode: shared|none."),
     ] = None,
     ssh_agent: Annotated[
         bool | None,
@@ -47,10 +50,12 @@ def shell(
         typer.Option("--gpg-agent/--no-gpg-agent", help="Forward host GPG agent socket."),
     ] = None,
     extra_ro: Annotated[
-        list[str] | None, typer.Option("--ro", help="Bind path read-only (repeatable).")
+        list[str] | None,
+        typer.Option("--ro", help="Bind path read-only (repeatable)."),
     ] = None,
     extra_rw: Annotated[
-        list[str] | None, typer.Option("--rw", help="Bind path read-write (repeatable).")
+        list[str] | None,
+        typer.Option("--rw", help="Bind path read-write (repeatable)."),
     ] = None,
 ) -> None:
     """Drop into a sandboxed interactive shell.

@@ -88,7 +88,8 @@ exit "$fails"
 def doctor(
     profile: Annotated[str, typer.Option("--profile", help="Profile to verify.")] = "autonomous",
     network: Annotated[
-        str | None, typer.Option("--network", help="Network mode: shared|none.")
+        str | None,
+        typer.Option("--network", help="Network mode: shared|none."),
     ] = None,
     ssh_agent: Annotated[bool | None, typer.Option("--ssh-agent/--no-ssh-agent")] = None,
     gpg_agent: Annotated[bool | None, typer.Option("--gpg-agent/--no-gpg-agent")] = None,

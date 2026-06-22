@@ -149,7 +149,7 @@ def test_resolve_missing_default_raises(tmp_path):
                 'backend = "auto"\n'
                 "project_write = false\n"
             ),
-        )
+        ),
     )
     with pytest.raises(ConfigError, match="default_profile"):
         resolve_profile(config, None, None)

@@ -27,7 +27,7 @@ def _refuse_if_nested() -> None:
     if os.environ.get("AGENT_RUN_IN_SANDBOX") == "1":
         raise _fail(
             "refusing nested agent-run invocation: already inside a sandbox "
-            "(AGENT_RUN_IN_SANDBOX=1). Exit the sandbox shell and rerun on the host."
+            "(AGENT_RUN_IN_SANDBOX=1). Exit the sandbox shell and rerun on the host.",
         )
 
 
@@ -130,7 +130,7 @@ def _sandbox_spec(profile: Profile, cwd: Path, *, tty: bool) -> SandboxSpec:
     if project_root == home or project_root in home.parents:
         raise _fail(
             f"refusing to sandbox {project_root}: it contains the whole home directory; "
-            "run from a project checkout"
+            "run from a project checkout",
         )
     (home / CACHE_REL).mkdir(parents=True, exist_ok=True)
     extra_env: dict[str, str] = {}

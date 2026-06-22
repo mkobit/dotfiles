@@ -24,9 +24,11 @@ def select_backend(backend_name: str, *, platform: str) -> SandboxBackend:
             return BwrapBackend()
         if platform == "darwin":
             return SeatbeltBackend()
-        raise ValueError(f"no auto backend for platform {platform!r}")
+        msg = f"no auto backend for platform {platform!r}"
+        raise ValueError(msg)
     if backend_name == "bwrap":
         return BwrapBackend()
     if backend_name == "seatbelt":
         return SeatbeltBackend()
-    raise ValueError(f"unknown backend {backend_name!r}")
+    msg = f"unknown backend {backend_name!r}"
+    raise ValueError(msg)

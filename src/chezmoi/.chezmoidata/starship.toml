@@ -1,0 +1,13 @@
+# Starship prompt configuration data.
+# Custom segments are injected into starship.toml.tmpl via
+# `dig "starship" "custom_segments" dict .`
+
+[starship.custom_segments.agent_sandbox]
+# Show active sandbox profile when inside an agent-run sandbox.
+# AGENT_RUN_IN_SANDBOX=1 and AGENT_RUN_PROFILE are set by agent-run.
+format = '[$symbol$output]($style) '
+symbol = '⬡ '
+command = 'printf "%s" "${AGENT_RUN_PROFILE:-sandbox}"'
+when = 'test "$AGENT_RUN_IN_SANDBOX" = "1"'
+style = 'bold yellow'
+description = 'Active agent-run sandbox profile'

@@ -19,6 +19,5 @@ class SeatbeltBackend:
         environ: Mapping[str, str],
         mask_paths: Sequence[str] = (),
     ) -> list[str]:
-        raise NotImplementedError(
-            "macOS Seatbelt backend not yet implemented; track this when first Mac use is needed"
-        )
+        msg = "macOS Seatbelt backend not yet implemented; track this when first Mac use is needed"
+        raise NotImplementedError(msg)

@@ -21,22 +21,41 @@ line-length = 100
 
 [tool.ruff.lint]
 select = [
+    "A",    # flake8-builtins — catch shadowing of built-in names
+    "B",    # flake8-bugbear — common footguns
+    "C4",   # flake8-comprehensions — prefer list/dict/set comprehensions
     "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
+    "EM",   # flake8-errmsg — no inline strings in exception constructors
     "F",    # pyflakes
+    "FBT",  # flake8-boolean-trap — avoid boolean positional args
+    "FURB", # refurb — modern Python idioms
     "I",    # isort
-    "UP",   # pyupgrade
-    "B",    # flake8-bugbear (common footguns)
-    "SIM",  # flake8-simplify
-    "PLC",  # pylint convention — PLC0415 catches import-outside-toplevel / __import__()
-    "S",    # bandit security checks
+    "ISC",  # flake8-implicit-str-concat
+    "N",    # pep8-naming conventions
+    "PERF", # perflint — performance antipatterns
+    "PIE",  # flake8-pie — misc improvements
+    "PLC",  # pylint convention — PLC0415 catches import-outside-toplevel
+    "PT",   # flake8-pytest-style
+    "RET",  # flake8-return — explicit return value patterns
+    "RSE",  # flake8-raise — raise patterns
     "RUF",  # ruff-specific rules
+    "S",    # bandit security checks
+    "SIM",  # flake8-simplify
+    "T20",  # flake8-print — no print() in production code
+    "TRY",  # tryceratops — try/except hygiene
+    "UP",   # pyupgrade
+    "W",    # pycodestyle warnings
 ]
 ignore = [
-    "S603",  # subprocess call without shell=True — we always use shell=False
-    "S606",  # os.execvp — intentional, not a shell injection risk here
-    "S108",  # /tmp hardcoded — intentional bwrap mount target (noqa also in place)
+    "COM812", # trailing comma: defer to formatter — enabling both creates a conflict
+    "S603",   # subprocess call: we always use shell=False
+    "S606",   # os.execvp: intentional, not a shell injection risk
+    "S108",   # /tmp hardcoded: intentional bwrap mount target
+    "TRY003", # long message outside exception class: our _fail() is not an exception constructor
 ]
 
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]  # assert is expected in tests
+# _fail() returns typer.Exit (not an exception); typer requires bool defaults for flags
+"agent_sandbox/cli/**" = ["EM", "FBT"]
+"agent_sandbox/main.py" = ["EM", "FBT"]

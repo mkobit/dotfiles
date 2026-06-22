@@ -14,17 +14,19 @@ def load_config(path: Path | None = None) -> SandboxConfig:
     try:
         raw = tomllib.loads(config_path.read_text())
     except FileNotFoundError as exc:
-        raise ConfigError(
-            f"sandbox config not found: {config_path} (run `chezmoi apply` to deploy it)"
-        ) from exc
+        msg = f"sandbox config not found: {config_path} (run `chezmoi apply` to deploy it)"
+        raise ConfigError(msg) from exc
     except (OSError, tomllib.TOMLDecodeError) as exc:
-        raise ConfigError(f"unreadable sandbox config {config_path}: {exc}") from exc
+        msg = f"unreadable sandbox config {config_path}: {exc}"
+        raise ConfigError(msg) from exc
     try:
         config = SandboxConfig.model_validate(raw)
     except ValidationError as exc:
-        raise ConfigError(f"invalid sandbox config {config_path}: {exc}") from exc
+        msg = f"invalid sandbox config {config_path}: {exc}"
+        raise ConfigError(msg) from exc
     if not config.profiles:
-        raise ConfigError(f"no enabled profiles in {config_path}")
+        msg = f"no enabled profiles in {config_path}"
+        raise ConfigError(msg)
     return config
 
 
@@ -38,14 +40,16 @@ def resolve_profile(
         if candidate:
             profile = config.profiles.get(candidate)
             if profile is None:
-                raise ConfigError(
+                msg = (
                     f"unknown profile {candidate!r} from {source}; "
                     f"available: {sorted(config.profiles)}"
                 )
+                raise ConfigError(msg)
             return profile
     profile = config.profiles.get(config.default_profile)
     if profile is None:
-        raise ConfigError(f"default_profile {config.default_profile!r} is not an enabled profile")
+        msg = f"default_profile {config.default_profile!r} is not an enabled profile"
+        raise ConfigError(msg)
     return profile
 
 
