@@ -21,6 +21,15 @@ class Profile(BaseModel):
     gpg_agent: bool = False
     extra_ro: tuple[str, ...] = Field(default=())
     extra_rw: tuple[str, ...] = Field(default=())
+    # Paths under $HOME to re-expose rw after the tmpfs default-deny.
+    # Empty for most profiles; broad for the `chezmoi` profile that needs
+    # to test deploying templates by running `chezmoi apply`.
+    home_rw: tuple[str, ...] = Field(default=())
+    # Paths to tmpfs-mask after home_rw, for credential dirs nested inside
+    # an otherwise rw-exposed parent (e.g., ~/.config/gh when ~/.config is
+    # bound rw). Paths not under any home_rw entry are already masked by
+    # the home tmpfs and don't need to be listed here.
+    home_mask: tuple[str, ...] = Field(default=())
 
 
 class SandboxConfig(BaseModel):

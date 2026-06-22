@@ -48,7 +48,7 @@ def _git(cwd: Path, *args: str) -> str | None:
             timeout=10,
             check=False,
         )
-    except OSError, subprocess.SubprocessError:
+    except (OSError, subprocess.SubprocessError):  # fmt: skip
         return None
     return result.stdout.strip() if result.returncode == 0 else None
 
@@ -106,7 +106,7 @@ def _gpg_agent_sock() -> Path | None:
             timeout=5,
             check=False,
         )
-    except OSError, subprocess.SubprocessError:
+    except (OSError, subprocess.SubprocessError):  # fmt: skip
         return None
     if result.returncode != 0 or not result.stdout.strip():
         return None
@@ -153,4 +153,6 @@ def _sandbox_spec(profile: Profile, cwd: Path, *, tty: bool) -> SandboxSpec:
         gpg_agent_sock=gpg_sock,
         extra_ro=tuple(Path(p).expanduser() for p in profile.extra_ro),
         extra_rw=tuple(Path(p).expanduser() for p in profile.extra_rw),
+        home_rw=profile.home_rw,
+        home_mask=profile.home_mask,
     )

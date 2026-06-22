@@ -1,4 +1,5 @@
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -45,6 +46,8 @@ def spec_for(home: Path, project: Path, **overrides: object) -> SandboxSpec:
         gpg_agent_sock=overrides.pop("gpg_agent_sock", None),  # type: ignore[arg-type]
         extra_ro=overrides.pop("extra_ro", ()),  # type: ignore[arg-type]
         extra_rw=overrides.pop("extra_rw", ()),  # type: ignore[arg-type]
+        home_rw=overrides.pop("home_rw", ()),  # type: ignore[arg-type]
+        home_mask=overrides.pop("home_mask", ()),  # type: ignore[arg-type]
     )
 
 
@@ -191,3 +194,56 @@ def test_extra_path_missing_not_bound(home: Path, project: Path, tmp_path: Path)
     missing = tmp_path / "does-not-exist"
     args = build_args(spec_for(home, project, extra_ro=(missing,)), {})
     assert str(missing) not in " ".join(args)
+
+
+def test_home_rw_binds_existing_paths(home: Path, project: Path) -> None:
+    (home / ".config").mkdir()
+    (home / ".local/state").mkdir(parents=True)
+    home_rw = (".config", ".local/state", ".nonexistent")
+    args = build_args(spec_for(home, project, home_rw=home_rw), {})
+    rw = bind_pairs(args, "--bind")
+    assert (str(home / ".config"), str(home / ".config")) in rw
+    assert (str(home / ".local/state"), str(home / ".local/state")) in rw
+    # Skipped because the dir doesn't exist on disk; mirrors RW_HOME_PATHS behavior.
+    assert all(".nonexistent" not in src for src, _ in rw)
+
+
+def test_home_mask_tmpfs_overrides_home_rw(home: Path, project: Path) -> None:
+    (home / ".config").mkdir()
+    args = build_args(spec_for(home, project, home_rw=(".config",), home_mask=(".config/gh",)), {})
+    rw = bind_pairs(args, "--bind")
+    tmpfs_targets = [args[i + 1] for i, a in enumerate(args) if a == "--tmpfs"]
+    assert (str(home / ".config"), str(home / ".config")) in rw
+    assert str(home / ".config/gh") in tmpfs_targets
+    # Mask must appear AFTER the bind so it takes effect.
+    config_path = str(home / ".config")
+    bind_idx = next(i for i, a in enumerate(args) if a == "--bind" and args[i + 1] == config_path)
+    tmpfs_idx = next(
+        i for i, a in enumerate(args) if a == "--tmpfs" and args[i + 1] == str(home / ".config/gh")
+    )
+    assert bind_idx < tmpfs_idx
+
+
+def test_home_rw_empty_by_default(home: Path, project: Path) -> None:
+    args = build_args(spec_for(home, project), {})
+    rw = bind_pairs(args, "--bind")
+    # ~/.config is not among the standard RW_HOME_PATHS, only via home_rw.
+    assert (str(home / ".config"), str(home / ".config")) not in rw
+
+
+def test_wsl_resolv_conf_rebound_after_mnt_mask(home: Path, project: Path, tmp_path: Path) -> None:
+    resolv = tmp_path / "resolv.conf"
+    resolv.write_text("nameserver 1.1.1.1")
+    with patch("agent_sandbox.backend.bwrap._WSL_RUNTIME_BINDS", (str(resolv),)):
+        args = build_args(spec_for(home, project), {}, mask_paths=("/mnt",))
+    tmpfs_targets = [args[i + 1] for i, a in enumerate(args) if a == "--tmpfs"]
+    ro = bind_pairs(args, "--ro-bind")
+    assert "/mnt" in tmpfs_targets
+    assert (str(resolv), str(resolv)) in ro
+    # resolv.conf rebind must come after the /mnt tmpfs mask.
+    mnt_idx = next(i for i, a in enumerate(args) if a == "--tmpfs" and args[i + 1] == "/mnt")
+    resolv_str = str(resolv)
+    resolv_idx = next(
+        i for i, a in enumerate(args) if a == "--ro-bind" and args[i + 1] == resolv_str
+    )
+    assert mnt_idx < resolv_idx

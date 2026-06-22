@@ -17,3 +17,5 @@ class SandboxSpec:
     gpg_agent_sock: Path | None = None
     extra_ro: tuple[Path, ...] = ()
     extra_rw: tuple[Path, ...] = ()
+    home_rw: tuple[str, ...] = ()
+    home_mask: tuple[str, ...] = ()
