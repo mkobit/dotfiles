@@ -29,6 +29,8 @@ tools that consume agents as skills; ``agent-opencode`` emits opencode agent
 frontmatter (adds ``mode: subagent``).
 """
 
+from __future__ import annotations
+
 import argparse
 import copy
 import gzip
