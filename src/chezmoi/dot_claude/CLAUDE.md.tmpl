@@ -1,0 +1,15 @@
+{{ template "ai/global-context" . -}}
+{{- $env := dig "ai" "agent_context" "environment" "" . -}}
+{{- $wf := dig "ai" "agent_context" "workflows" "" . -}}
+{{- if $env }}
+
+# Environment
+
+{{ $env | trim }}
+{{- end -}}
+{{- if $wf }}
+
+# Workflows
+
+{{ $wf | trim }}
+{{- end }}
