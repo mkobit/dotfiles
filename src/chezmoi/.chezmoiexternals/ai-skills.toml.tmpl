@@ -11,6 +11,7 @@
 */ -}}
 {{- $cfg := .ai.skills -}}
 {{- $tools := dict "claude" ".claude/skills" "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" "codex" ".codex/skills" -}}
+{{- $python := "/usr/bin/python3" -}}
 {{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
 {{- $config := dict -}}
 {{- range $sourceName, $source := $cfg.external -}}
@@ -38,7 +39,7 @@
                 "exact" true
                 "format" "tar"
                 "filter" (dict
-                  "command" "python3"
+                  "command" $python
                   "args" (list $script "--select" (printf "%s:." $path)))
 -}}
 {{-           $_ := set $config (printf "%s/%s" $skillsDir $skillName) $entry -}}
