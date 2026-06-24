@@ -17,6 +17,12 @@ function reloadConfig(files)
     end
 end
 
+-- Enable IPC for hs CLI access
+require("hs.ipc")
+
+-- Load configuration (sets _G.DotfilesConfig)
+dofile(hs.configdir .. "/config.lua")
+
 -- Use hs.configdir to get the actual configured directory
 -- This respects the MJConfigFile preference we set during installation
 local configWatcher = hs.pathwatcher.new(hs.configdir, reloadConfig):start()
@@ -30,3 +36,4 @@ if _G.DotfilesConfig and _G.DotfilesConfig.window_manager and _G.DotfilesConfig.
     local WindowManager = require("window-manager")
     WindowManager.start()
 end
+
