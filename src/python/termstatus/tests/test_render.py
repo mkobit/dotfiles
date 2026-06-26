@@ -32,7 +32,9 @@ class TestRenderLines(unittest.TestCase):
         payload = StatusLineStdIn()
 
         segments = [
-            SegmentGenerationResult(line=0, index=0, segment=Segment(text="Long text that would usually wrap or exceed narrow width")),
+            SegmentGenerationResult(
+                line=0, index=0, segment=Segment(text="Long text that would usually wrap or exceed narrow width")
+            ),
             SegmentGenerationResult(line=0, index=10, segment=Segment(text="More text")),
         ]
 
