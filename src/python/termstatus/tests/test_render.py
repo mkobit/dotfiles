@@ -27,3 +27,17 @@ class TestRenderLines(unittest.TestCase):
         self.assertTrue("B0" in lines[2])
         self.assertFalse("B10" in lines[2])
         self.assertTrue("C0" in lines[3] and "C10" in lines[3])
+
+    def test_render_lines_narrow_terminal(self):
+        payload = StatusLineStdIn()
+
+        segments = [
+            SegmentGenerationResult(line=0, index=0, segment=Segment(text="Long text that would usually wrap or exceed narrow width")),
+            SegmentGenerationResult(line=0, index=10, segment=Segment(text="More text")),
+        ]
+
+        lines = render_lines(payload, None, segments, terminal_width=40)
+
+        # Output with Rich Panel should have borders (top and bottom) + content = at least 3 lines.
+        self.assertTrue(len(lines) >= 3)
+        self.assertTrue(any(line.strip() for line in lines))

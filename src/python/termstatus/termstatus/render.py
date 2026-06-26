@@ -119,7 +119,7 @@ async def probe_terminal_width() -> int | None:
 def _effective_width(probed: int | None) -> int:
     # Panel border + padding takes 4 chars (│ + space each side + │)
     raw = (probed or 80) - 4
-    return max(56, min(raw, 90))
+    return max(20, min(raw, 90))
 
 
 def _group_segments_by_line(
