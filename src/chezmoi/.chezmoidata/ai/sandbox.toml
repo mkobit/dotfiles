@@ -1,4 +1,4 @@
-# Sandbox profiles consumed by `agent-run` (src/python/agent_sandbox).
+# Sandbox profiles consumed by `sandboxr` (src/python/sandboxr).
 #
 # Overlay-extensible: override or add profiles via [data.ai.sandbox.*] in an
 # overlay chezmoi.toml.tmpl or .chezmoidata/ai/sandbox.toml.
@@ -6,12 +6,12 @@
 # HITL = run agent CLIs directly (claude, agy, opencode). The tool's own
 # permission prompts are the UX. Nothing here applies.
 #
-# Autonomous = run via `agent-run -- TOOL ARGS`. The wrapper consults this
+# Autonomous = run via `sandboxr -- TOOL ARGS`. The wrapper consults this
 # data to build the outer sandbox; the tool runs with its own
 # --dangerously-skip-permissions (or equivalent) inside it.
 
 [ai.sandbox]
-# Profile picked when `agent-run` is called without --profile and
+# Profile picked when `sandboxr` is called without --profile and
 # $AGENT_RUN_PROFILE is unset.
 default_profile = "autonomous"
 

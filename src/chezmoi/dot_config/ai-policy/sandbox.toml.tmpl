@@ -1,4 +1,4 @@
-{{- /* Sandbox profile config consumed by agent-run.
+{{- /* Sandbox profile config consumed by sandboxr.
        Source of truth: src/chezmoi/.chezmoidata/ai/sandbox.toml.
        Overlays extend or override via [data.ai.sandbox.*]. */ -}}
 {{- dig "ai" "sandbox" (dict) . | toToml -}}

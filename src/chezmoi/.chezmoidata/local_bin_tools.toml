@@ -24,5 +24,8 @@ source_dir = "src/python/termbud"
 package_name = "termbud"
 
 [local_bin_tools.agent_run]
-source_dir = "src/python/agent_sandbox"
 package_name = "agent-sandbox"
+
+[local_bin_tools.sandboxr]
+source_dir = "src/python/sandboxr"
+package_name = "sandboxr"
