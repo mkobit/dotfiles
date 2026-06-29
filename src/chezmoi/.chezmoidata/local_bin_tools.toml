@@ -29,3 +29,7 @@ package_name = "agent-sandbox"
 [local_bin_tools.sandboxr]
 source_dir = "src/python/sandboxr"
 package_name = "sandboxr"
+
+[local_bin_tools.browser_sync]
+source_dir = "src/python/browser_sync"
+package_name = "browser-sync"

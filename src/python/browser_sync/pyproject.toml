@@ -1,0 +1,15 @@
+[project]
+name = "browser-sync"
+version = "0.0.0"
+description = "Sync browser site search shortcuts, Vimium config, and bookmarklets via DevTools console paste"
+requires-python = ">=3.14"
+dependencies = [
+    "pydantic>=2",
+]
+
+[project.scripts]
+browser-sync = "browser_sync.main:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
