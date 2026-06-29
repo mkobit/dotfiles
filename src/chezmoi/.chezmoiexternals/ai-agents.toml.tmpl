@@ -72,7 +72,7 @@
                   "format" "tar"
                   "filter" (dict
                     "command" "python3"
-                    "args" (list $script "--select" (printf "%s:SKILL.md" $path) "--transform" "agent-skill"))
+                    "args" (list $script "--cache-key" $source.sha256 "--select" (printf "%s:SKILL.md" $path) "--transform" "agent-skill"))
 -}}
 {{-           $_ := set $config $key $entry -}}
 {{-         end -}}
@@ -87,7 +87,7 @@
                 "format" "tar"
                 "filter" (dict
                   "command" "python3"
-                  "args" (concat (list $script) $claudeSelects))
+                  "args" (concat (list $script "--cache-key" $source.sha256) $claudeSelects))
 -}}
 {{-       $_ := set $config (printf ".claude/agents/%s" $sourceName) $entry -}}
 {{-     end -}}
@@ -100,7 +100,7 @@
                 "format" "tar"
                 "filter" (dict
                   "command" "python3"
-                  "args" (concat (list $script) $opencodeSelects (list "--transform" "agent-opencode")))
+                  "args" (concat (list $script "--cache-key" $source.sha256) $opencodeSelects (list "--transform" "agent-opencode")))
 -}}
 {{-       $_ := set $config (printf ".config/opencode/agents/%s" $sourceName) $entry -}}
 {{-     end -}}
