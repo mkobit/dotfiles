@@ -34,7 +34,9 @@ from __future__ import annotations
 import argparse
 import copy
 import gzip
+import hashlib
 import io
+import os
 import posixpath
 import sys
 import tarfile
@@ -154,40 +156,47 @@ def filter_archive(
     transform: Transform | None = None,
 ) -> None:
     """Copy selected, re-rooted subtrees from a tar.gz stream to a tar stream."""
-    # stdin is not seekable, so buffer the archive to allow random access reads.
-    buffered = io.BytesIO(gzip.decompress(src.read()))
-    with tarfile.open(fileobj=buffered, mode="r:") as archive:
-        triples = sorted(
-            (
-                (output_name, member, selection)
-                for member in archive.getmembers()
-                if (name := _stripped_name(member.name, strip_components)) is not None
-                for selection in selections
-                if (output_name := _output_name(name, selection)) is not None
-            ),
-            key=lambda triple: triple[0],
-        )
-        matched_sources = {selection.src for _, _, selection in triples}
-        unmatched = [selection.src for selection in selections if selection.src not in matched_sources]
-        if unmatched:
-            raise FilterError(f"selections matched nothing in the archive: {', '.join(unmatched)}")
-        # Stream mode: stdout is a pipe when invoked by chezmoi, and plain "w" mode seeks.
-        with tarfile.open(fileobj=dst, mode="w|") as output:
-            for output_name, member, selection in triples:
-                if member.issym() or member.islnk():
-                    print(f"skill-filter: skipping link member {member.name!r}", file=sys.stderr)
-                elif member.isfile():
-                    extracted = archive.extractfile(member)
-                    assert extracted is not None
-                    if transform is None:
-                        output.addfile(_renamed_member(member, output_name), extracted)
-                    else:
-                        content = transform(selection.src, extracted.read())
-                        output.addfile(_renamed_member(member, output_name, size=len(content)), io.BytesIO(content))
-                elif member.isdir():
-                    output.addfile(_renamed_member(member, output_name))
-                else:
-                    print(f"skill-filter: skipping special member {member.name!r}", file=sys.stderr)
+    matched_triples = []
+    matched_sources = set()
+
+    with tarfile.open(fileobj=src, mode="r|gz") as archive:
+        for member in archive:
+            name = _stripped_name(member.name, strip_components)
+            if name is None:
+                continue
+            for selection in selections:
+                output_name = _output_name(name, selection)
+                if output_name is not None:
+                    matched_sources.add(selection.src)
+                    content = None
+                    if member.isfile():
+                        extracted = archive.extractfile(member)
+                        if extracted is not None:
+                            if transform is None:
+                                content = extracted.read()
+                            else:
+                                content = transform(selection.src, extracted.read())
+                    matched_triples.append((output_name, member, selection, content))
+                    break
+
+    unmatched = [selection.src for selection in selections if selection.src not in matched_sources]
+    if unmatched:
+        raise FilterError(f"selections matched nothing in the archive: {', '.join(unmatched)}")
+
+    # Sort output by name to satisfy TestDeterminism
+    matched_triples.sort(key=lambda x: x[0])
+
+    with tarfile.open(fileobj=dst, mode="w|") as output:
+        for output_name, member, _selection, content in matched_triples:
+            if member.issym() or member.islnk():
+                print(f"skill-filter: skipping link member {member.name!r}", file=sys.stderr)
+            elif member.isfile():
+                if content is not None:
+                    output.addfile(_renamed_member(member, output_name, size=len(content)), io.BytesIO(content))
+            elif member.isdir():
+                output.addfile(_renamed_member(member, output_name))
+            else:
+                print(f"skill-filter: skipping special member {member.name!r}", file=sys.stderr)
 
 
 def _parse_args(argv: Iterable[str]) -> argparse.Namespace:
@@ -210,6 +219,10 @@ def _parse_args(argv: Iterable[str]) -> argparse.Namespace:
         choices=sorted(TRANSFORMS),
         help="content rewrite applied to every selected file",
     )
+    parser.add_argument(
+        "--cache-key",
+        help="cache key (usually the source archive SHA256) to enable caching of filtered output",
+    )
     return parser.parse_args(list(argv))
 
 
@@ -220,7 +233,40 @@ def main(argv: Sequence[str] | None = None) -> int:
         if len(selections) > 1 and any(selection.dest == "." for selection in selections):
             raise FilterError("a '.' destination is only allowed with a single --select")
         transform = TRANSFORMS[args.transform] if args.transform else None
-        filter_archive(sys.stdin.buffer, sys.stdout.buffer, selections, args.strip_components, transform)
+
+        cache_file = None
+        if args.cache_key:
+            # Generate a stable hash of the selections and transforms
+            args_str = f"select={sorted(args.select)},transform={args.transform},strip={args.strip_components}"
+            args_hash = hashlib.sha256(args_str.encode("utf-8")).hexdigest()
+            cache_dir = os.path.expanduser("~/.cache/skill-filter")
+            cache_file = os.path.join(cache_dir, f"{args.cache_key}-{args_hash}.tar")
+            if os.path.exists(cache_file):
+                try:
+                    with open(cache_file, "rb") as f:
+                        cache_data = f.read()
+                    sys.stdout.buffer.write(cache_data)
+                    # Discard stdin to avoid SIGPIPE in parent
+                    while sys.stdin.buffer.read(1024 * 1024):
+                        pass
+                    return 0
+                except Exception as e:
+                    print(f"skill-filter cache read error: {e}", file=sys.stderr)
+
+        if cache_file:
+            output_buffer = io.BytesIO()
+            filter_archive(sys.stdin.buffer, output_buffer, selections, args.strip_components, transform)
+            output_data = output_buffer.getvalue()
+            sys.stdout.buffer.write(output_data)
+            try:
+                os.makedirs(os.path.dirname(cache_file), exist_ok=True)  # noqa: PTH103, PTH120
+                with open(cache_file, "wb") as f:
+                    f.write(output_data)
+            except Exception as e:
+                print(f"skill-filter cache write error: {e}", file=sys.stderr)
+        else:
+            filter_archive(sys.stdin.buffer, sys.stdout.buffer, selections, args.strip_components, transform)
+
     except (FilterError, tarfile.TarError, gzip.BadGzipFile, EOFError) as error:
         print(f"skill-filter: {error}", file=sys.stderr)
         return 1

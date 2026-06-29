@@ -40,7 +40,7 @@
                 "format" "tar"
                 "filter" (dict
                   "command" $python
-                  "args" (list $script "--select" (printf "%s:." $path)))
+                  "args" (list $script "--cache-key" $source.sha256 "--select" (printf "%s:." $path)))
 -}}
 {{-           $_ := set $config (printf "%s/%s" $skillsDir $skillName) $entry -}}
 {{-         end -}}

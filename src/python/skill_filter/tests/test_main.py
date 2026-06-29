@@ -336,3 +336,37 @@ class TestSubprocess:
         result = self.run_script("--select", "a:.", "--transform", "nonsense", stdin=b"")
         assert result.returncode == 2
         assert b"invalid choice" in result.stderr
+
+    def test_caching_mechanism(self, tmp_path, monkeypatch):
+        # Override the user cache directory with a temporary directory
+        monkeypatch.setenv("HOME", str(tmp_path))
+
+        source = make_archive({"skills/a/SKILL.md": b"hello"})
+
+        # First run: cache miss, should write cache file and return filtered content
+        result1 = self.run_script(
+            "--cache-key",
+            "my-test-key",
+            "--select",
+            "skills/a:.",
+            stdin=source.getvalue(),
+        )
+        assert result1.returncode == 0
+        assert read_archive(io.BytesIO(result1.stdout)) == {"SKILL.md": b"hello"}
+
+        # Verify the cache file was created
+        cache_dir = tmp_path / ".cache" / "skill-filter"
+        assert cache_dir.exists()
+        cache_files = list(cache_dir.glob("my-test-key-*.tar"))
+        assert len(cache_files) == 1
+
+        # Second run: cache hit, should read from cache file and bypass stdin content
+        result2 = self.run_script(
+            "--cache-key",
+            "my-test-key",
+            "--select",
+            "skills/a:.",
+            stdin=b"garbage that would fail to decompress if read",
+        )
+        assert result2.returncode == 0
+        assert read_archive(io.BytesIO(result2.stdout)) == {"SKILL.md": b"hello"}

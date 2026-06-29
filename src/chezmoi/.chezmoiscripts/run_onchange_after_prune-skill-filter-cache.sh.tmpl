@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# This script runs automatically when your AI skills or agents configuration changes.
+# It prunes stale `.tar` cache files from `~/.cache/skill-filter/`.
+
+cache_dir="$HOME/.cache/skill-filter"
+if [ -d "$cache_dir" ]; then
+  echo "Checking for stale skill-filter cache files..."
+  
+  # Build a space-separated string of active checksums for cross-platform matching
+  {{- $activeKeys := list -}}
+  {{- range $sourceName, $source := .ai.skills.external }}
+    {{- $activeKeys = concat $activeKeys (list $source.sha256) }}
+  {{- end }}
+  {{- range $sourceName, $source := .ai.agents.external }}
+    {{- $activeKeys = concat $activeKeys (list $source.sha256) }}
+  {{- end }}
+  active_keys=" {{ $activeKeys | uniq | join " " }} "
+
+  # Remove any cache file whose SHA256 prefix is not active
+  for file in "$cache_dir"/*.tar; do
+    [ -e "$file" ] || continue
+    filename=$(basename "$file")
+    key="${filename%%-*}"
+    
+    # Check if the key is present in our active keys string
+    case "$active_keys" in
+      *" $key "*)
+        # Active, keep the file
+        ;;
+      *)
+        echo "Pruning stale skill-filter cache file: $filename"
+        rm "$file"
+        ;;
+    esac
+  done
+fi
