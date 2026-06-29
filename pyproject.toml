@@ -9,7 +9,7 @@ dependencies = [
     "termtext",
     "termstatus",
     "skill-filter",
-    "agent-sandbox",
+    "sandboxr",
 ]
 
 [dependency-groups]
@@ -33,7 +33,7 @@ members = [
     "src/python/transcribe",
     "src/python/termtext",
     "src/python/skill_filter",
-    "src/python/agent_sandbox",
+    "src/python/sandboxr",
 ]
 
 [tool.uv.sources]
@@ -43,7 +43,8 @@ transcribe = { workspace = true }
 termtext = { workspace = true }
 termstatus = { workspace = true }
 skill-filter = { workspace = true }
-agent-sandbox = { workspace = true }
+sandboxr = { workspace = true }
+
 
 [tool.ruff]
 line-length = 120

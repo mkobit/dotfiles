@@ -1,5 +1,5 @@
-{{- $geminiMethod := dig "local" "mise" "global_tools" "gemini-cli" "installation_method" "" . -}}
-{{- if eq $geminiMethod "mise" -}}
+{{- $agyMethod := dig "agy" "installation_method" "" . -}}
+{{- if ne $agyMethod "none" -}}
 {{-   $settings := dict
         "model" (dict "name" .gemini.model)
         "telemetry" (dict "enabled" .gemini.telemetry.enabled "logPrompts" .gemini.telemetry.log_prompts)
@@ -33,6 +33,16 @@
         )
         "experimental" (dict
           "worktrees" .gemini.experimental.worktrees
+        )
+        "statusLine" (dict
+          "type" "command"
+          "command" (printf "%s/.local/bin/dotfiles/termstatus antigravity render" .chezmoi.destDir)
+          "enabled" true
+        )
+        "title" (dict
+          "type" "command"
+          "command" (printf "%s/.local/bin/dotfiles/termstatus antigravity title" .chezmoi.destDir)
+          "enabled" true
         )
 -}}
 {{-   $settings | toPrettyJson "  " -}}
