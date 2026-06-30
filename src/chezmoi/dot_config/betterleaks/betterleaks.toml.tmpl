@@ -1,15 +1,8 @@
-{{- /* Global betterleaks config, shared across every repo the pre-commit hook
-       runs in (passed via `betterleaks git -c`). Values come from
-       .chezmoidata/betterleaks.toml. Deploys only when the pre_commit hook is
-       enabled AND every bin tool it declares in git_hooks.pre_commit.requires_bin
-       is installed — the hook→tool dependency is data-driven, not hardcoded.
-       Renders empty (→ removed by chezmoi) otherwise. */ -}}
-{{- $hook   := dig "git_hooks" "pre_commit" (dict) . -}}
-{{- $depsOk := eq (dig "installation_method" "none" $hook) "chezmoi" -}}
-{{- range (dig "requires_bin" (list) $hook) -}}
-{{-   if eq (dig . "installation_method" "none" (dig "local" "bin" (dict) $)) "none" -}}{{- $depsOk = false -}}{{- end -}}
-{{- end -}}
-{{- if $depsOk -}}
+{{- /* betterleaks' global config — its own setup that follows the binary:
+       deploys whenever betterleaks is installed (used by the hook via -c and by
+       manual scans), empty (→ removed by chezmoi) otherwise. Values come from
+       .chezmoidata/betterleaks.toml. */ -}}
+{{- if ne (dig "betterleaks" "installation_method" "none" (dig "local" "bin" (dict) .)) "none" -}}
 {{- $c := .betterleaks.config -}}
 # Managed by chezmoi — edit .chezmoidata/betterleaks.toml, not this file.
 title = {{ $c.title | quote }}

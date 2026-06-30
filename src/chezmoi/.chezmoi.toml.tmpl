@@ -72,10 +72,10 @@ installation_method = "github_releases"
 [data.local.bin.betterleaks]
 installation_method = "github_releases"
 
-# Git hooks BOM — separate from the binary. Each hook is its own knob.
-# "chezmoi" deploys the hook + core.hooksPath snippet (mkobit-scoped via
-# includeIf); "none" removes them. The managed betterleaks config deploys only
-# when BOTH this and the betterleaks binary are enabled.
+# Git hooks BOM — separate knob from the binary. "chezmoi" deploys the
+# pre-commit hook + core.hooksPath snippet (mkobit-scoped via includeIf) when the
+# betterleaks binary is also installed; "none" removes them. The betterleaks
+# config follows the binary independently (see dot_config/betterleaks).
 [data.git_hooks.pre_commit]
 installation_method = "chezmoi"
 

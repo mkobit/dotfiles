@@ -1,8 +1,0 @@
-# Git hook catalog. Per-hook opt-in (installation_method) lives in the control
-# plane at [data.git_hooks.<name>] in .chezmoi.toml.tmpl; this declares each
-# hook's metadata and the bin tools it depends on. The hook deploys when its
-# method is "chezmoi"; its managed config deploys only when the hook is enabled
-# AND every requires_bin tool is installed (see dot_config/betterleaks/).
-[git_hooks.pre_commit]
-description  = "betterleaks staged secret scan"
-requires_bin = ["betterleaks"]

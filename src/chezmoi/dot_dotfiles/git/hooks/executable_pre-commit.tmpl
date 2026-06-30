@@ -1,10 +1,11 @@
 {{- /* Deployed to <destDir>/.dotfiles/git/hooks/pre-commit and wired via
-       core.hooksPath (snippets/hooks.gitconfig, mkobit remotes only). Gated on
-       the git_hooks.pre_commit BOM knob — renders empty when "none", so chezmoi
-       removes the file and no hook runs. The betterleaks binary is a separate
-       knob; if the hook is on but the binary off, the runtime check below fails
-       gracefully. Antigravity artifacts are handled by gitignore, not here. */ -}}
-{{- if eq (dig "pre_commit" "installation_method" "none" (dig "git_hooks" (dict) .)) "chezmoi" -}}
+       core.hooksPath (snippets/hooks.gitconfig, mkobit remotes only). Two knobs:
+       the git_hooks.pre_commit BOM enables the hook, and it depends on the
+       betterleaks binary being installed. Renders empty (→ chezmoi removes the
+       file) unless both hold. Antigravity artifacts are handled by gitignore. */ -}}
+{{- $binOn  := ne (dig "betterleaks" "installation_method" "none" (dig "local" "bin" (dict) .)) "none" -}}
+{{- $hookOn := eq (dig "pre_commit"  "installation_method" "none" (dig "git_hooks" (dict) .)) "chezmoi" -}}
+{{- if and $binOn $hookOn -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
