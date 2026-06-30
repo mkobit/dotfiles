@@ -1,13 +1,8 @@
 {{- /*
-  Generates one archive external per (present skill, active tool) from the
-  catalog in .chezmoidata/ai/skills.toml. Each external downloads the pinned
-  upstream archive (verified against sha256, cached once per URL) and pipes it
-  through skill_filter to re-root a single skill directory at the target.
-  The filter runs via system python3 and must stay stdlib-only because uv and
-  mise are not installed until after apply. Target directories are fixed by
-  each tool's skill discovery and are hardcoded here; overlays deselect skills
-  via "absent" states rather than disabling a target. A skill state may also
-  name a single tool ("claude", "antigravity", "cursor", "codex") to deploy only there.
+  Generates archive externals for the skills catalog in .chezmoidata/ai/skills.toml.
+  To minimize Python filter executions, skills from the same source are grouped
+  into a single archive external under a hidden source directory.
+  Symlinks are created post-apply by run_onchange_after_symlink-ai-skills.sh.tmpl.
 */ -}}
 {{- $cfg := .ai.skills -}}
 {{- $tools := dict "claude" ".claude/skills" "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" "codex" ".codex/skills" -}}
@@ -15,38 +10,43 @@
 {{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
 {{- $config := dict -}}
 {{- range $sourceName, $source := $cfg.external -}}
-{{-   range $skillName, $state := dig "skills" (dict) $source -}}
-{{-     if or (eq $state "present") (hasKey $tools $state) -}}
-{{-       if or (not (dig "ref" "" $source)) (not (dig "sha256" "" $source)) -}}
-{{-         fail (printf "ai.skills.external.%s: ref and sha256 are required (versions are always pinned)" $sourceName) -}}
+{{-   if or (not (dig "ref" "" $source)) (not (dig "sha256" "" $source)) -}}
+{{-     fail (printf "ai.skills.external.%s: ref and sha256 are required" $sourceName) -}}
+{{-   end -}}
+{{-   $url := dig "url" "" $source -}}
+{{-   if not $url -}}
+{{-     $hostName := dig "host" "github" $source -}}
+{{-     $host := dig $hostName (dict) $cfg.hosts -}}
+{{-      if not $host -}}
+{{-        fail (printf "ai.skills.external.%s: unknown host %q" $sourceName $hostName) -}}
+{{-      end -}}
+{{-      $url = $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
+{{-   end -}}
+{{-   $skillsRoot := dig "skills_root" "skills" $source -}}
+{{-   range $toolName, $skillsDir := $tools -}}
+{{-     $selects := list -}}
+{{-     range $skillName, $state := dig "skills" (dict) $source -}}
+{{-       if or (eq $state "present") (eq $state $toolName) -}}
+{{-         $path := printf "%s/%s" $skillsRoot $skillName -}}
+{{-         $selects = concat $selects (list "--select" (printf "%s:%s" $path $skillName)) -}}
+{{-       else if and (ne $state "absent") (not (hasKey $tools $state)) -}}
+{{-         fail (printf "ai.skills.external.%s.skills.%s: invalid state %q" $sourceName $skillName $state) -}}
 {{-       end -}}
-{{-       $url := dig "url" "" $source -}}
-{{-       if not $url -}}
-{{-         $hostName := dig "host" "github" $source -}}
-{{-         $host := dig $hostName (dict) $cfg.hosts -}}
-{{-         if not $host -}}
-{{-           fail (printf "ai.skills.external.%s: unknown host %q (no ai.skills.hosts.%s entry)" $sourceName $hostName $hostName) -}}
-{{-         end -}}
-{{-         $url = $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
-{{-       end -}}
-{{-       $path := printf "%s/%s" (dig "skills_root" "skills" $source) $skillName -}}
-{{-       range $toolName, $skillsDir := $tools -}}
-{{-         if or (eq $state "present") (eq $state $toolName) -}}
-{{-           $entry := dict
-                "type" "archive"
-                "url" $url
-                "checksum" (dict "sha256" $source.sha256)
-                "exact" true
-                "format" "tar"
-                "filter" (dict
-                  "command" $python
-                  "args" (list $script "--cache-key" $source.sha256 "--select" (printf "%s:." $path)))
--}}
-{{-           $_ := set $config (printf "%s/%s" $skillsDir $skillName) $entry -}}
-{{-         end -}}
-{{-       end -}}
-{{-     else if ne $state "absent" -}}
-{{-       fail (printf "ai.skills.external.%s.skills.%s: state must be \"present\", \"absent\", or a tool name (%s), got %q" $sourceName $skillName (keys $tools | sortAlpha | join ", ") $state) -}}
+{{-     end -}}
+{{-     if $selects -}}
+{{-       $sourceDir := printf ".source-%s" $sourceName -}}
+{{-       $archiveKey := printf "%s/%s" $skillsDir $sourceDir -}}
+{{-       $archiveEntry := dict
+            "type" "archive"
+            "url" $url
+            "checksum" (dict "sha256" $source.sha256)
+            "exact" true
+            "format" "tar"
+            "filter" (dict
+              "command" $python
+              "args" (concat (list $script "--cache-key" $source.sha256) $selects))
+       -}}
+{{-       $_ := set $config $archiveKey $archiveEntry -}}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}

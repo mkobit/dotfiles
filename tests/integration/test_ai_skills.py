@@ -13,7 +13,7 @@ ACTIVE_SKILL_DIRS = [
 def assert_entries_are_valid_skills(skills_dir: Path) -> None:
     """Assert every entry in a skills directory is a directory with a non-empty SKILL.md."""
     for entry in sorted(skills_dir.iterdir()):
-        if entry.name == ".DS_Store":
+        if entry.name.startswith("."):
             continue
         assert entry.is_dir(), f"{entry} is not a directory; deployed skills must be directories"
         skill_md = entry / "SKILL.md"
