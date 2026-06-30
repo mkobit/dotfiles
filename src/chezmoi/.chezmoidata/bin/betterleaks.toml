@@ -1,0 +1,24 @@
+[bin.betterleaks]
+version = "1.6.1"
+
+[bin.betterleaks.github_releases]
+repo            = "betterleaks/betterleaks"
+external_type   = "archive-file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "v{version}"
+filename_format = "betterleaks_{version}_{target}.tar.gz"
+path_format     = "betterleaks"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.betterleaks.github_releases.platforms]
+darwin_arm64 = "darwin_arm64"
+darwin_amd64 = "darwin_x64"
+linux_amd64  = "linux_x64"
+linux_arm64  = "linux_arm64"
+
+[bin.betterleaks.github_releases.checksums]
+darwin_arm64 = "9996bfcc93fd2ae6976c7902e3b2177766ec1960c1e30a15398609d5177ef3f8"
+darwin_amd64 = "07ddb85c4b2c55da6b671a6af667c89d89c68c52aff8fd73a1118a92d373db8c"
+linux_amd64  = "fbefc700a0bd4522cc952dd2a8f259cdb80526d7e60114aca19bb2d6fdc80f81"
+linux_arm64  = "bab9688ba968264ace67b608fc7a7d8f5e61218cde70029d32cbc894e3808fdf"

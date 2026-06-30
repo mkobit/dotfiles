@@ -1,0 +1,16 @@
+# betterleaks secret-scanner config data (catalog only).
+# Rendered into <destDir>/.config/betterleaks/betterleaks.toml by
+# dot_config/betterleaks/betterleaks.toml.tmpl and consumed by the pre-commit
+# hook via `betterleaks git -c`. Deployment is gated on the betterleaks BOM
+# (.local.bin.betterleaks.installation_method) in .chezmoi.toml.tmpl — this
+# file is inert until that opts in. Extend the allowlist here rather than
+# scattering per-repo .betterleaks.toml files.
+[betterleaks.config]
+title             = "personal global betterleaks config"
+use_default_rules = true
+
+[betterleaks.config.allowlist]
+description = "personal global allowlist"
+paths       = []
+regexes     = []
+stopwords   = []

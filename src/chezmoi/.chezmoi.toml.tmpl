@@ -66,6 +66,19 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 [data.local.bin.gh]
 installation_method = "github_releases"
 
+# betterleaks secret scanner BINARY only — installed via the shared
+# github_releases bin dispatch. Independent of the hook below, so the scanner
+# can exist for manual use without wiring any git hook.
+[data.local.bin.betterleaks]
+installation_method = "github_releases"
+
+# Git hooks BOM — separate from the binary. Each hook is its own knob.
+# "chezmoi" deploys the hook + core.hooksPath snippet (mkobit-scoped via
+# includeIf); "none" removes them. The managed betterleaks config deploys only
+# when BOTH this and the betterleaks binary are enabled.
+[data.git_hooks.pre_commit]
+installation_method = "chezmoi"
+
 # Mise global tools BOM. Catalog (versions, metadata) lives in
 # .chezmoidata/bin/mise.toml; per-machine opt-in is here.
 # Mirror of .local.bin.* convention but for mise-managed tools.

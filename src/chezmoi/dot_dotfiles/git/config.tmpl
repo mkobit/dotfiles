@@ -23,6 +23,14 @@
 [includeIf "hasconfig:remote.*.url:git@github.com:*/**"]
   path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/prune.gitconfig
 
+# Pre-commit secret + Antigravity-artifact guard — personal (mkobit) remotes only.
+# The snippet renders empty (→ removed by chezmoi) unless betterleaks is installed,
+# and git ignores include paths that do not exist, so this is a no-op when disabled.
+[includeIf "hasconfig:remote.*.url:git@github.com:mkobit/**"]
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/hooks.gitconfig
+[includeIf "hasconfig:remote.*.url:https://github.com/mkobit/**"]
+  path = {{ .chezmoi.destDir }}/.dotfiles/git/snippets/hooks.gitconfig
+
 # Personal configuration — unconditional on the base layer so fresh `git init`
 # repos (no remote yet, any directory) still get user.name/email/signing.
 # Overlays restrict by defining [git.personal.scopes] in chezmoi data.

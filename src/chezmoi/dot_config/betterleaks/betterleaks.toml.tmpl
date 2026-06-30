@@ -1,0 +1,27 @@
+{{- /* Global betterleaks config, shared across every repo the pre-commit hook
+       runs in (passed via `betterleaks git -c`). Values come from
+       .chezmoidata/betterleaks.toml. Depends on BOTH knobs: the betterleaks
+       binary AND the pre_commit hook. Renders empty (→ removed) otherwise. */ -}}
+{{- $binOn  := eq (dig "betterleaks" "installation_method" "none" (dig "local" "bin" (dict) .)) "github_releases" -}}
+{{- $hookOn := eq (dig "pre_commit" "installation_method" "none" (dig "git_hooks" (dict) .)) "chezmoi" -}}
+{{- if and $binOn $hookOn -}}
+{{- $c := .betterleaks.config -}}
+# Managed by chezmoi — edit .chezmoidata/betterleaks.toml, not this file.
+title = {{ $c.title | quote }}
+
+[extend]
+useDefault = {{ $c.use_default_rules }}
+{{ if or $c.allowlist.paths $c.allowlist.regexes $c.allowlist.stopwords }}
+[[allowlists]]
+description = {{ $c.allowlist.description | quote }}
+{{- with $c.allowlist.paths }}
+paths = [{{ range $i, $p := . }}{{ if $i }}, {{ end }}{{ $p | quote }}{{ end }}]
+{{- end }}
+{{- with $c.allowlist.regexes }}
+regexes = [{{ range $i, $r := . }}{{ if $i }}, {{ end }}{{ $r | quote }}{{ end }}]
+{{- end }}
+{{- with $c.allowlist.stopwords }}
+stopwords = [{{ range $i, $s := . }}{{ if $i }}, {{ end }}{{ $s | quote }}{{ end }}]
+{{- end }}
+{{- end }}
+{{- end -}}

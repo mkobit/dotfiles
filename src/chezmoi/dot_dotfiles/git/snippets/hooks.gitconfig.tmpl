@@ -1,0 +1,8 @@
+{{- /* Renders core.hooksPath only when the git_hooks.pre_commit BOM knob is on.
+       When "none" this output is empty, chezmoi removes the target, and the
+       includeIf in config.tmpl points at a non-existent file (a no-op). */ -}}
+{{- if eq (dig "pre_commit" "installation_method" "none" (dig "git_hooks" (dict) .)) "chezmoi" -}}
+[core]
+	# Documentation: https://git-scm.com/docs/githooks
+	hooksPath = {{ .chezmoi.destDir }}/.dotfiles/git/hooks
+{{- end -}}

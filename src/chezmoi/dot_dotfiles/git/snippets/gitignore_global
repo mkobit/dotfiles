@@ -9,5 +9,6 @@
 mise.local.toml
 .antigravity/
 .antigravitycli/
+.agy
 __pycache__/
 *.py[cod]

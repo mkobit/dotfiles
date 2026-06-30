@@ -3,6 +3,11 @@
 .agents/
 .directory
 
+# Antigravity / agy editor artifacts (also in the chezmoi global gitignore)
+.antigravity/
+.antigravitycli/
+.agy
+
 # Linux trash folder which might appear on any partition or disk
 .Trash-*
 
