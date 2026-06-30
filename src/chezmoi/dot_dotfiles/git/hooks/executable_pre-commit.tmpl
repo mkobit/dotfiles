@@ -1,0 +1,25 @@
+{{- /* Deployed to <destDir>/.dotfiles/git/hooks/pre-commit and wired via
+       core.hooksPath (snippets/hooks.gitconfig, mkobit remotes only). Two knobs:
+       the git_hooks.pre_commit BOM enables the hook, and it depends on the
+       betterleaks binary being installed. Renders empty (→ chezmoi removes the
+       file) unless both hold. */ -}}
+{{- $binOn  := ne (dig "betterleaks" "installation_method" "none" (dig "local" "bin" (dict) .)) "none" -}}
+{{- $hookOn := eq (dig "pre_commit"  "installation_method" "none" (dig "git_hooks" (dict) .)) "chezmoi" -}}
+{{- if and $binOn $hookOn -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Scan staged changes for secrets with betterleaks, using the chezmoi-managed
+# global config (one ruleset/allowlist for every repo this hook runs in).
+scanner="{{ .chezmoi.destDir }}/.local/bin/betterleaks"
+[[ -x "$scanner" ]] || scanner="$(command -v betterleaks || true)"
+if [[ -z "$scanner" ]]; then
+  echo "pre-commit: betterleaks not found though enabled in the chezmoi BOM — run chezmoi apply" >&2
+  exit 1
+fi
+
+args=(git --staged --redact --no-banner)
+config="{{ .chezmoi.destDir }}/.config/betterleaks/betterleaks.toml"
+[[ -f "$config" ]] && args+=(-c "$config")
+exec "$scanner" "${args[@]}"
+{{- end -}}

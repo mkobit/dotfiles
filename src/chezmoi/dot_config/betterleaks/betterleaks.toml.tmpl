@@ -1,0 +1,26 @@
+{{- /* betterleaks' global config — its own setup that follows the binary:
+       deploys whenever betterleaks is installed (used by the hook via -c and by
+       manual scans), empty (→ removed by chezmoi) otherwise. Values come from
+       .chezmoidata/betterleaks.toml. */ -}}
+{{- if ne (dig "betterleaks" "installation_method" "none" (dig "local" "bin" (dict) .)) "none" -}}
+{{- $c := .betterleaks.config -}}
+# Managed by chezmoi — edit .chezmoidata/betterleaks.toml, not this file.
+title = {{ $c.title | quote }}
+
+[extend]
+useDefault = {{ $c.use_default_rules }}
+{{- if or $c.allowlist.paths $c.allowlist.regexes $c.allowlist.stopwords }}
+
+[[allowlists]]
+description = {{ $c.allowlist.description | quote }}
+{{- with $c.allowlist.paths }}
+paths = [{{ range $i, $p := . }}{{ if $i }}, {{ end }}{{ $p | quote }}{{ end }}]
+{{- end }}
+{{- with $c.allowlist.regexes }}
+regexes = [{{ range $i, $r := . }}{{ if $i }}, {{ end }}{{ $r | quote }}{{ end }}]
+{{- end }}
+{{- with $c.allowlist.stopwords }}
+stopwords = [{{ range $i, $s := . }}{{ if $i }}, {{ end }}{{ $s | quote }}{{ end }}]
+{{- end }}
+{{- end }}
+{{- end -}}

@@ -66,6 +66,14 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 [data.local.bin.gh]
 installation_method = "github_releases"
 
+# Secret scanner binary; also enables its config and the pre-commit hook below.
+[data.local.bin.betterleaks]
+installation_method = "github_releases"
+
+# Git hooks, gated on the betterleaks binary above ("chezmoi" / "none").
+[data.git_hooks.pre_commit]
+installation_method = "chezmoi"
+
 # Mise global tools BOM. Catalog (versions, metadata) lives in
 # .chezmoidata/bin/mise.toml; per-machine opt-in is here.
 # Mirror of .local.bin.* convention but for mise-managed tools.

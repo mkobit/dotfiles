@@ -1,0 +1,13 @@
+{{- /* Renders core.hooksPath only when the pre_commit hook is enabled AND the
+       betterleaks binary is installed. Empty otherwise → chezmoi removes the
+       target and the includeIf in config.tmpl points at a missing file (a
+       no-op). */ -}}
+{{- $binOn  := ne (dig "betterleaks" "installation_method" "none" (dig "local" "bin" (dict) .)) "none" -}}
+{{- $hookOn := eq (dig "pre_commit"  "installation_method" "none" (dig "git_hooks" (dict) .)) "chezmoi" -}}
+{{- if and $binOn $hookOn -}}
+[core]
+	# Documentation: https://git-scm.com/docs/githooks
+	# NOTE: core.hooksPath is singular — this supersedes per-repo .git/hooks in
+	# matched (mkobit) repos. Add any other hooks to this dir, not .git/hooks.
+	hooksPath = {{ .chezmoi.destDir }}/.dotfiles/git/hooks
+{{- end -}}
