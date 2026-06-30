@@ -9,7 +9,8 @@ title = {{ $c.title | quote }}
 
 [extend]
 useDefault = {{ $c.use_default_rules }}
-{{ if or $c.allowlist.paths $c.allowlist.regexes $c.allowlist.stopwords }}
+{{- if or $c.allowlist.paths $c.allowlist.regexes $c.allowlist.stopwords }}
+
 [[allowlists]]
 description = {{ $c.allowlist.description | quote }}
 {{- with $c.allowlist.paths }}

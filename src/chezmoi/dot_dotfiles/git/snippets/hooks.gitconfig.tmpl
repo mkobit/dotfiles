@@ -7,5 +7,7 @@
 {{- if and $binOn $hookOn -}}
 [core]
 	# Documentation: https://git-scm.com/docs/githooks
+	# NOTE: core.hooksPath is singular — this supersedes per-repo .git/hooks in
+	# matched (mkobit) repos. Add any other hooks to this dir, not .git/hooks.
 	hooksPath = {{ .chezmoi.destDir }}/.dotfiles/git/hooks
 {{- end -}}
