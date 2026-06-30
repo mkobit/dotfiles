@@ -1,0 +1,69 @@
+#!/bin/bash
+
+# Config checksum: {{ printf "%s-%s" (toToml .ai.skills) (toToml .ai.agents) | sha256sum }}
+
+# This script runs automatically when AI skills or agents configuration changes.
+# It creates symlinks for active skills/agents and prunes stale ones.
+
+{{- $tools := dict "claude" ".claude/skills" "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" "codex" ".codex/skills" -}}
+{{- range $toolName, $skillsDir := $tools }}
+# Tool: {{ $toolName }}
+skills_dir="$HOME/{{ $skillsDir }}"
+if [ -d "$skills_dir" ] || [ "{{ $toolName }}" = "antigravity" ] || [ "{{ $toolName }}" = "claude" ]; then
+  # Create directory if it doesn't exist
+  mkdir -p "$skills_dir"
+  
+  # List of active/authored skill directories to preserve
+  {{- $activeNames := list -}}
+  
+  # Authored skills
+  {{- range $skillName, $state := $.ai.skills.authored }}
+    {{- if or (eq $state "present") (eq $state $toolName) }}
+      {{- $activeNames = concat $activeNames (list $skillName) }}
+    {{- end }}
+  {{- end }}
+  
+  # External skills
+  {{- range $sourceName, $source := $.ai.skills.external }}
+    {{- range $skillName, $state := dig "skills" (dict) $source }}
+      {{- if or (eq $state "present") (eq $state $toolName) }}
+        {{- $activeNames = concat $activeNames (list $skillName) }}
+        # Create symlink
+        ln -sfn ".source-{{ $sourceName }}/{{ $skillName }}" "$skills_dir/{{ $skillName }}"
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  
+  # External agents-as-skills (for antigravity and cursor)
+  {{- if or (eq $toolName "antigravity") (eq $toolName "cursor") }}
+    {{- range $sourceName, $source := $.ai.agents.external }}
+      {{- range $agentPath, $state := dig "agents" (dict) $source }}
+        {{- if or (eq $state "present") (eq $state $toolName) }}
+          {{- $agentName := base $agentPath }}
+          {{- $activeNames = concat $activeNames (list $agentName) }}
+          # Create symlink
+          ln -sfn ".agents-{{ $sourceName }}/{{ $agentName }}" "$skills_dir/{{ $agentName }}"
+        {{- end }}
+      {{- end }}
+    {{- end }}
+  {{- end }}
+  
+  # Prune any stale directories or symlinks that are not active or hidden source directories
+  active_names=" {{ $activeNames | uniq | join " " }} "
+  for entry in "$skills_dir"/*; do
+    [ -e "$entry" ] || continue
+    name=$(basename "$entry")
+    # Skip hidden files/directories (like .source-* and .agents-*)
+    [[ "$name" == .* ]] && continue
+    case "$active_names" in
+      *" $name "*)
+        # Active, keep
+        ;;
+      *)
+        echo "Pruning stale skill directory/symlink: $entry"
+        rm -rf "$entry"
+        ;;
+    esac
+  done
+fi
+{{ end }}
