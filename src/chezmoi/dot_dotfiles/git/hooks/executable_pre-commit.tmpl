@@ -2,7 +2,7 @@
        core.hooksPath (snippets/hooks.gitconfig, mkobit remotes only). Two knobs:
        the git_hooks.pre_commit BOM enables the hook, and it depends on the
        betterleaks binary being installed. Renders empty (→ chezmoi removes the
-       file) unless both hold. Antigravity artifacts are handled by gitignore. */ -}}
+       file) unless both hold. */ -}}
 {{- $binOn  := ne (dig "betterleaks" "installation_method" "none" (dig "local" "bin" (dict) .)) "none" -}}
 {{- $hookOn := eq (dig "pre_commit"  "installation_method" "none" (dig "git_hooks" (dict) .)) "chezmoi" -}}
 {{- if and $binOn $hookOn -}}
