@@ -34,7 +34,7 @@
 # Personal configuration — unconditional on the base layer so fresh `git init`
 # repos (no remote yet, any directory) still get user.name/email/signing.
 # Overlays restrict by defining [git.personal.scopes] in chezmoi data.
-{{- if .git.personal.enabled }}
+{{- if dig "git" "personal" "enabled" false . }}
 {{-   $scopes := dig "git" "personal" "scopes" (dict) . }}
 {{-   if $scopes }}
 {{-     range $name, $path := $scopes }}
