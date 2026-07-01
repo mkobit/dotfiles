@@ -44,3 +44,9 @@ Tested through the uv workspace; the deployed artifact is just this file tree, n
 uv run pytest src/python/skill_filter
 uv run ruff check src/python/skill_filter
 ```
+
+## Performance
+
+To minimize process spawning overhead during `chezmoi apply` (which runs this filter command 60+ times), always invoke the script with the Python `-S` flag.
+This flag bypasses Python's default `site` module initialization (skipping scanning for site-packages).
+Bypassing this module drops the startup latency of each Python filter run from ~100ms down to ~12ms.
