@@ -23,3 +23,9 @@ content = """
 content = """
 ## Tools
 - `fd` over `find`; `rg` over `grep`."""
+
+[[ai.guidelines.sections]]
+content = """
+## Session resets
+- At a clear stopping point before starting unrelated work, ask whether to reset the session and restart.
+- Give the continuation prompt in a fenced code block (tagged `markdown` or `md`) so it can be copied in one action."""
