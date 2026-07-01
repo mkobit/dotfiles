@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+# Manages ~/.gemini/antigravity-cli/settings.json
+import json
+import sys
+
+try:
+    existing = json.load(sys.stdin)
+except Exception:
+    existing = {}
+
+{{ $agyMethod := dig "agy" "installation_method" "" . }}
+{{- if ne $agyMethod "none" }}
+
+# Managed settings from chezmoi
+{{ $settings := dict
+    "telemetry" (dict "enabled" .gemini.telemetry.enabled "logPrompts" .gemini.telemetry.log_prompts)
+    "ui" (dict
+      "showLineNumbers" .gemini.ui.show_line_numbers
+      "showMemoryUsage" .gemini.ui.show_memory_usage
+      "showModelInfoInChat" .gemini.ui.show_model_info_in_chat
+      "footer" (dict "hideContextPercentage" .gemini.ui.footer.hide_context_percentage)
+    )
+    "general" (dict
+      "enableAutoUpdate" .gemini.general.enable_auto_update
+      "previewFeatures" .gemini.general.preview_features
+      "vimMode" .gemini.general.vim_mode
+      "sessionRetention" (dict
+        "enabled" .gemini.general.sessionRetention.enabled
+        "maxAge" .gemini.general.sessionRetention.max_age
+        "warningAcknowledged" .gemini.general.sessionRetention.warning_acknowledged
+      )
+    )
+    "security" (dict
+      "auth" (dict
+        "selectedType" "oauth-personal"
+      )
+    )
+    "tools" (dict
+      "sandbox" .gemini.tools.sandbox
+      "sandboxAllowedPaths" .gemini.tools.sandbox_allowed_paths
+    )
+    "context" (dict
+      "includeDirectories" .gemini.context.include_directories
+    )
+    "experimental" (dict
+      "worktrees" .gemini.experimental.worktrees
+    )
+    "statusLine" (dict
+      "type" "command"
+      "command" (printf "%s/.local/bin/dotfiles/statusline antigravity render" .chezmoi.destDir)
+      "enabled" true
+    )
+    "title" (dict
+      "type" "command"
+      "command" (printf "%s/.local/bin/dotfiles/statusline antigravity title" .chezmoi.destDir)
+      "enabled" true
+    )
+}}
+
+managed = json.loads("""{{ $settings | toPrettyJson }}""")
+
+def deep_merge(d1, d2):
+    for k, v in d2.items():
+        if isinstance(v, dict) and k in d1 and isinstance(d1[k], dict):
+            deep_merge(d1[k], v)
+        else:
+            d1[k] = v
+    return d1
+
+merged = deep_merge(existing.copy(), managed)
+
+{{- else }}
+merged = existing
+{{- end }}
+
+print(json.dumps(merged, indent=2, sort_keys=True), end="")
