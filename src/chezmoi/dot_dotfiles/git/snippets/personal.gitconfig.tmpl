@@ -1,18 +1,18 @@
-{{- with .git.personal }}
-{{- if .enabled }}
-{{- if not (and .name .email) }}
+{{- $personal := dig "git" "personal" (dict) . }}
+{{- if dig "enabled" false $personal }}
+{{- if not (and $personal.name $personal.email) }}
 {{- fail "git.personal.enabled is true but name or email is empty" }}
 {{- end }}
 
 [user]
-  name = {{ .name | quote }}
-  email = {{ .email | quote }}
-{{- if .signing_key }}
-  signingkey = {{ .signing_key }}
+  name = {{ $personal.name | quote }}
+  email = {{ $personal.email | quote }}
+{{- if $personal.signing_key }}
+  signingkey = {{ $personal.signing_key }}
 {{- end }}
 
 [commit]
-{{- if .signing_key }}
+{{- if $personal.signing_key }}
   gpgsign = true
 {{- else }}
   gpgsign = false
@@ -20,5 +20,4 @@
 
 [gpg]
   program = gpg
-{{- end }}
 {{- end }}

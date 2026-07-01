@@ -15,4 +15,4 @@
   font-family = "DejaVu Sans Mono"
   {{- end }}
   ```
-- **Profiles**: Profile-specific settings (e.g., window titles) are rendered based on `.git.personal.enabled`.
+- **Profiles**: Profile-specific settings (e.g., window titles) are rendered based on `dig "git" "personal" "enabled" false .`.
