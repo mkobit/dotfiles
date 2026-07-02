@@ -25,6 +25,9 @@ else
 fi
 
 CHEZMOI_SOURCE="$(pwd)"
+GOMAXPROCS=1 chezmoi init \
+    --source="${CHEZMOI_SOURCE}" --destination="${HOME}" --no-tty
+
 GOMAXPROCS=1 chezmoi apply \
     --source="${CHEZMOI_SOURCE}" --destination="${HOME}" --no-tty \
     --exclude=remove
