@@ -60,7 +60,7 @@ sha256 = "7a3e7ac65a8057d56c3ed78292b69d1a0b48cb3adfe3e77ec5019621c42e940e"
 
 [ai.skills.external.anthropics-skills.skills]
 skill-creator = "claude" # authoring tooling is only useful inside Claude Code
-webapp-testing = "present"
+webapp-testing = "absent"
 
 # Built distribution repo (GoogleChrome/modern-web-guidance-src is the source repo;
 # its skills-src content is bundled into the modern-web-guidance skill's guides here).
