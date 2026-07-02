@@ -4,5 +4,11 @@
 [[vscode.keybindings]]
 key = "shift+enter"
 command = "workbench.action.terminal.sendSequence"
-when = "terminalFocus"
+when = "terminalFocus && remoteName == 'wsl'"
+args = { text = "\u001b[200~\r\n\u001b[201~" }
+
+[[vscode.keybindings]]
+key = "shift+enter"
+command = "workbench.action.terminal.sendSequence"
+when = "terminalFocus && remoteName != 'wsl'"
 args = { text = "\u001b[13;2u" }
