@@ -3,7 +3,6 @@
 set -euo pipefail
 
 # Font face: {{ .windows_terminal.font_face }}, size: {{ .windows_terminal.font_size }}
-# Version: 3
 
 main() {
     local WIN_LOCALAPPDATA
@@ -60,19 +59,30 @@ if (!\$settings.actions) {
 }
 
 \$targetActionId = 'User.sendInput.shiftEnter'
-\$actionExists = \$false
+# Built via [char]27 rather than a backslash-escape literal: this whole
+# command is embedded in a bash double-quoted heredoc, which silently
+# drops one level of backslash escaping before powershell.exe ever sees
+# it. That is the root cause behind the shift+enter fixes in #586, #616,
+# and #686 never actually sticking.
+\$shiftEnterInput = [char]27 + '[13;2u'
+\$existingAction = \$null
 foreach (\$action in \$settings.actions) {
     if (\$action.id -eq \$targetActionId) {
-        \$actionExists = \$true
+        \$existingAction = \$action
         break
     }
 }
 
-if (!\$actionExists) {
+if (\$existingAction) {
+    if (\$existingAction.command.input -ne \$shiftEnterInput) {
+        \$existingAction.command.input = \$shiftEnterInput
+        \$modified = \$true
+    }
+} else {
     \$newAction = [PSCustomObject]@{
         command = [PSCustomObject]@{
             action = 'sendInput'
-            input = '\u001b[13;2u'
+            input = \$shiftEnterInput
         }
         id = \$targetActionId
         keys = 'shift+enter'
@@ -88,9 +98,6 @@ if (!\$actionExists) {
 
 if (\$modified) {
     \$json = \$settings | ConvertTo-Json -Depth 20
-    # ConvertTo-Json will escape our backslash, creating '\\u001b' in the file.
-    # We replace it back to a single backslash so WT parses it as an escape character.
-    \$json = \$json.Replace('\\u001b', '\u001b')
     [System.IO.File]::WriteAllText(\$settingsPath, \$json, [System.Text.UTF8Encoding]::new(\$false))
     Write-Host \"Successfully updated Windows Terminal settings at \$settingsPath\"
 } else {
