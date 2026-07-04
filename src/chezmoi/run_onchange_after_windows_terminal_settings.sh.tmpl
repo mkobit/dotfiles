@@ -59,12 +59,22 @@ if (!\$settings.actions) {
 }
 
 \$targetActionId = 'User.sendInput.shiftEnter'
-# Built via [char]27 rather than a backslash-escape literal: this whole
-# command is embedded in a bash double-quoted heredoc, which silently
-# drops one level of backslash escaping before powershell.exe ever sees
-# it. That is the root cause behind the shift+enter fixes in #586, #616,
-# and #686 never actually sticking.
-\$shiftEnterInput = [char]27 + '[13;2u'
+# Built via [char]27 + [char]13 rather than a backslash- or backtick-escape
+# literal: this whole command is embedded in a bash double-quoted heredoc,
+# which silently drops one level of backslash escaping (and would treat a
+# literal backtick as command substitution) before powershell.exe ever sees
+# it. That is the root cause behind the shift+enter fixes in #586, #616, and
+# #686 never actually sticking -- every prior attempt sent literal escaped
+# text, never a real escape byte.
+#
+# ESC+CR, not the CSI-u form (ESC [ 13 ; 2 u): Windows Terminal does not
+# distinguish Shift+Enter from Enter at the raw pty level under WSL (both
+# send a bare CR by default), and once the CSI-u form was actually sent
+# correctly, Claude Code treated it as a plain Enter (submit) rather than a
+# newline. ESC+CR (the classic meta+enter convention) is what Claude Code
+# under WSL actually recognizes as insert-newline; confirmed empirically
+# 2026-07-03.
+\$shiftEnterInput = [char]27 + [char]13
 \$existingAction = \$null
 foreach (\$action in \$settings.actions) {
     if (\$action.id -eq \$targetActionId) {
