@@ -12,3 +12,4 @@ mise.local.toml
 .agy
 __pycache__/
 *.py[cod]
+.claude/settings.local.json
