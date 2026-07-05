@@ -1,7 +1,7 @@
 # Sandboxr two-layer sandbox design
 
 Date: 2026-07-05.
-Status: approved design, pre-implementation.
+Status: fallback option — superseded as primary by the srt direction in `HANDOFF-sandboxr-runtime-decision.md` after the fails-closed criterion was made explicit and srt's mount-level `denyRead` absence was verified empirically.
 
 sandboxr becomes a policy compiler emitting a two-layer invocation: an outer minimal bwrap mask owned by this repo, wrapping an inner `codex sandbox` (from [openai/codex](https://github.com/openai/codex), Apache-2.0) that owns enforcement.
 
