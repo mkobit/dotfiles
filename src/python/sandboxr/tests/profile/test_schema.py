@@ -111,6 +111,33 @@ def test_profile_extra_ro_rw_default_empty():
     assert p.extra_rw == ()
 
 
+def test_profile_allowlist_requires_domains():
+    with pytest.raises(ValidationError, match="allowed_domains"):
+        Profile(name="test", backend="srt", project_write=True, network="allowlist")
+
+
+def test_profile_non_allowlist_rejects_domains():
+    with pytest.raises(ValidationError, match="allowed_domains"):
+        Profile(
+            name="test",
+            backend="auto",
+            project_write=True,
+            network="shared",
+            allowed_domains=("api.example.com",),
+        )
+
+
+def test_profile_allowlist_with_domains_is_valid():
+    p = Profile(
+        name="test",
+        backend="srt",
+        project_write=True,
+        network="allowlist",
+        allowed_domains=("api.example.com",),
+    )
+    assert p.allowed_domains == ("api.example.com",)
+
+
 @pytest.fixture
 def config(tmp_path):
     return load_config(write_config(tmp_path, BASE_TOML))

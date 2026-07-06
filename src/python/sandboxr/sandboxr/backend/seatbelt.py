@@ -21,3 +21,6 @@ class SeatbeltBackend:
     ) -> list[str]:
         msg = "macOS Seatbelt backend not yet implemented; track this when first Mac use is needed"
         raise NotImplementedError(msg)
+
+    def wrap_command(self, cmd: Sequence[str]) -> Sequence[str]:
+        return cmd

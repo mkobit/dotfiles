@@ -55,6 +55,21 @@ network = "none"
 ssh_agent = false
 gpg_agent = false
 
+[ai.sandbox.profiles.srt-claude]
+enabled = true
+# srt (not "auto"): domain-allowlisted egress, no hand-rolled network
+# enforcement. See docs/HANDOFF-sandboxr-runtime-decision.md.
+backend = "srt"
+project_write = true
+network = "allowlist"
+ssh_agent = false
+gpg_agent = false
+# Claude Code's known egress set. Provisional — tighten/verify against a
+# real run once srt acceptance testing (follow-up #4) actually executes a
+# live `claude` session through this profile; don't treat this list as
+# already verified.
+allowed_domains = ["api.anthropic.com", "statsig.anthropic.com", "sentry.io"]
+
 [ai.sandbox.profiles.chezmoi]
 enabled = true
 backend = "auto"

@@ -189,3 +189,6 @@ class BwrapBackend:
         mask_paths: Sequence[str] = (),
     ) -> list[str]:
         return build_args(spec, environ, mask_paths)
+
+    def wrap_command(self, cmd: Sequence[str]) -> Sequence[str]:
+        return cmd

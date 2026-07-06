@@ -107,6 +107,24 @@ def test_merge_extra_rw_appends_to_profile(config: SandboxConfig) -> None:
     assert "/tmp/state" in result.extra_rw
 
 
+def test_merge_allowed_domains_appends_to_profile(tmp_path) -> None:
+    toml = """
+default_profile = "allowlisted"
+
+[profiles.allowlisted]
+enabled = true
+backend = "srt"
+project_write = true
+network = "allowlist"
+allowed_domains = ["base.example.com"]
+"""
+    cfg = load_config(write_config(tmp_path, toml))
+    profile = cfg.profiles["allowlisted"]
+    result = merge_cli_overrides(profile, allowed_domains=["cli.example.com"])
+    assert "base.example.com" in result.allowed_domains
+    assert "cli.example.com" in result.allowed_domains
+
+
 def test_merge_none_values_not_applied(config: SandboxConfig) -> None:
     profile = config.profiles["autonomous"]
     result = merge_cli_overrides(profile, project_write=None, network=None)

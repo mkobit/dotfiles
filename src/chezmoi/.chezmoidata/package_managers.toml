@@ -1,7 +1,7 @@
 
 [bun]
 min_release_age_days = 7
-ignored_release_age = ["@google/gemini-cli"]
+ignored_release_age = ["@google/gemini-cli", "@anthropic-ai/sandbox-runtime"]
 
 [uv]
 min_release_age_days = 7

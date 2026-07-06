@@ -2,8 +2,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-Backend = Literal["auto", "bwrap", "seatbelt"]
-Network = Literal["shared", "none"]
+Backend = Literal["auto", "bwrap", "seatbelt", "srt"]
+Network = Literal["shared", "none", "allowlist"]
 
 
 class ConfigError(Exception):
@@ -30,6 +30,19 @@ class Profile(BaseModel):
     # bound rw). Paths not under any home_rw entry are already masked by
     # the home tmpfs and don't need to be listed here.
     home_mask: tuple[str, ...] = Field(default=())
+    # Domain allowlist for network="allowlist" (srt backend only). Required
+    # non-empty when network="allowlist"; must be empty otherwise.
+    allowed_domains: tuple[str, ...] = Field(default=())
+
+    @model_validator(mode="after")
+    def _check_allowed_domains(self) -> Profile:
+        if self.network == "allowlist" and not self.allowed_domains:
+            msg = "allowed_domains must be non-empty when network='allowlist'"
+            raise ValueError(msg)
+        if self.network != "allowlist" and self.allowed_domains:
+            msg = "allowed_domains is only valid when network='allowlist'"
+            raise ValueError(msg)
+        return self
 
 
 class SandboxConfig(BaseModel):

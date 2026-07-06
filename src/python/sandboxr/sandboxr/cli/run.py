@@ -6,10 +6,12 @@ from typing import Annotated
 import typer
 
 from sandboxr.backend.bwrap import BwrapBackend, default_mask_paths
+from sandboxr.backend.srt import SrtBackend
 from sandboxr.cli._common import (
     _fail,
     _refuse_if_nested,
     _require_bwrap,
+    _require_srt,
     _resolve,
     _sandbox_spec,
 )
@@ -84,11 +86,16 @@ def run(
     )
     if isinstance(backend, BwrapBackend):
         _require_bwrap()
+    if isinstance(backend, SrtBackend):
+        _require_srt()
     spec = _sandbox_spec(active, cwd, tty=tty)
     adapted_cmd, tool_env = adapt_command(command, os.environ)
     if tool_env:
         spec = dataclasses.replace(spec, extra_env={**spec.extra_env, **tool_env})
-    args = [*backend.build_args(spec, os.environ, default_mask_paths(os.getuid())), *adapted_cmd]
+    args = [
+        *backend.build_args(spec, os.environ, default_mask_paths(os.getuid())),
+        *backend.wrap_command(adapted_cmd),
+    ]
     if show_command:
         typer.echo(" ".join(args))
         return

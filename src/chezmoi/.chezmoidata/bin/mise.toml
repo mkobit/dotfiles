@@ -64,6 +64,14 @@ package_manager = "bun"
   [mise.global_tools.gemini-cli]
   version = "0.42.0"
 
+  # sandboxr's srt backend (docs/HANDOFF-sandboxr-runtime-decision.md):
+  # enforcement runtime for domain-allowlisted sandboxing. No registry
+  # shorthand exists for this package, so the tool key is the fully
+  # qualified npm backend spec. Resolved at runtime via `mise where`
+  # (sandboxr/backend/srt.py) rather than a hardcoded install path.
+  [mise.global_tools."npm:@anthropic-ai/sandbox-runtime"]
+  version = "0.0.63"
+
   # CLI for the Windows-side ollama server (reachable via mirrored networking).
   # No WSL-side server — Windows install is canonical.
   [mise.global_tools.ollama]

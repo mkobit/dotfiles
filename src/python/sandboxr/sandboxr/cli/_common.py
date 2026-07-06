@@ -11,6 +11,7 @@ import typer
 
 from sandboxr.backend.bwrap import CACHE_REL
 from sandboxr.backend.protocol import SandboxBackend, select_backend
+from sandboxr.backend.srt import MISE_NPM_SPEC, resolve_cli_js
 from sandboxr.profile.loader import load_config, resolve_profile
 from sandboxr.profile.schema import ConfigError, Profile, SandboxConfig
 from sandboxr.sandbox.spec import SandboxSpec
@@ -34,6 +35,16 @@ def _refuse_if_nested() -> None:
 def _require_bwrap() -> None:
     if shutil.which("bwrap") is None:
         raise _fail("bwrap not found; install via the run_once_install-sandbox-deps chezmoi script")
+
+
+def _require_srt() -> None:
+    if shutil.which("node") is None:
+        raise _fail("node not found; required for the srt backend (provided by the mise toolchain)")
+    mise_path = shutil.which("mise")
+    if mise_path is None:
+        raise _fail("mise not found; required to locate the srt install")
+    if resolve_cli_js(mise_path) is None:
+        raise _fail(f"srt not provisioned via mise ({MISE_NPM_SPEC}); run `chezmoi apply`")
 
 
 def _git(cwd: Path, *args: str) -> str | None:
@@ -155,4 +166,5 @@ def _sandbox_spec(profile: Profile, cwd: Path, *, tty: bool) -> SandboxSpec:
         extra_rw=tuple(Path(p).expanduser() for p in profile.extra_rw),
         home_rw=profile.home_rw,
         home_mask=profile.home_mask,
+        allowed_domains=profile.allowed_domains,
     )
