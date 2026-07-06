@@ -83,12 +83,15 @@ if command -v curl >/dev/null 2>&1; then
     # X-Proxy-Error: blocked-by-sandbox-runtime), which is a *successful*
     # curl transaction, not a connection failure. So check for that header
     # specifically rather than inferring from curl's exit code or a
-    # generic HTTP status.
+    # generic HTTP status. curl's own stderr (-S) is discarded, not folded
+    # into $headers, so a real connection failure leaves $headers empty
+    # instead of masquerading as "reachable".
     probe_domain() {
-      headers=$(curl -sS -m 4 -D - -o /dev/null "https://$1" 2>&1)
+      headers=$(curl -sS -m 4 -D - -o /dev/null "https://$1" 2>/dev/null)
+      code=$?
       if printf '%s' "$headers" | grep -qi '^X-Proxy-Error:'; then
         echo "blocked"
-      elif [ -n "$headers" ]; then
+      elif [ "$code" -eq 0 ]; then
         echo "reachable"
       else
         echo "unreachable"
