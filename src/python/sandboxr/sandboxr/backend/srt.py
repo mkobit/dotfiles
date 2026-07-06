@@ -7,6 +7,7 @@ enforcement logic lives here.
 """
 
 import json
+import shlex
 import shutil
 import subprocess
 import time
@@ -183,7 +184,15 @@ def build_args(
 
 
 def wrap_command(cmd: Sequence[str]) -> Sequence[str]:
-    return ["bash", "-c", f'sleep {_GRACE_SLEEP_SECONDS}; exec "$@"', "--", *cmd]
+    # srt silently drops every positional arg that follows a `bash -c
+    # <script>` command in its spawn -- confirmed empirically (0.0.63):
+    # `bash -c 'echo got:$0' myarg0` execs with $0 defaulting to the resolved
+    # bash binary path, not "myarg0" -- so a trailing "$@"-style wrapper
+    # (`bash -c '...; exec "$@"' -- <cmd>`) always execs against an empty
+    # argument list. The command must be fully embedded in the script string
+    # itself, with zero args trailing `-c`, to reach the sandboxed process.
+    script = f"sleep {_GRACE_SLEEP_SECONDS}; exec {shlex.join(cmd)}"
+    return ["bash", "-c", script]
 
 
 class SrtBackend:

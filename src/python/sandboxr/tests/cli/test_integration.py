@@ -285,5 +285,6 @@ def test_run_srt_backend_show_command(monkeypatch: pytest.MonkeyPatch, tmp_path:
     assert "/usr/bin/node" in result.output
     assert str(cli_js) in result.output
     assert "-s" in result.output
-    # startup-race workaround: the trailing command is wrapped, not raw.
-    assert 'sleep 0.2; exec "$@"' in result.output
+    # startup-race workaround: the trailing command is embedded in the
+    # wrapper script itself (srt drops positional args after `bash -c`).
+    assert "sleep 0.2; exec bash" in result.output

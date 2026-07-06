@@ -1,6 +1,7 @@
 import dataclasses
 import json
 import os
+import shlex
 import stat
 from pathlib import Path
 from subprocess import CompletedProcess
@@ -298,13 +299,25 @@ def test_build_args_raises_when_srt_not_provisioned(home: Path, project: Path) -
 def test_wrap_command_prepends_grace_sleep() -> None:
     cmd = ["claude", "--dangerously-skip-permissions"]
     wrapped = wrap_command(cmd)
-    assert wrapped == ["bash", "-c", 'sleep 0.2; exec "$@"', "--", *cmd]
+    assert wrapped == ["bash", "-c", "sleep 0.2; exec claude --dangerously-skip-permissions"]
+
+
+def test_wrap_command_has_no_trailing_positional_args() -> None:
+    # Regression: srt silently drops every positional arg that follows a
+    # `bash -c <script>` spawn, so the wrapped command must be exactly
+    # ["bash", "-c", script] -- nothing trailing for srt to swallow.
+    wrapped = wrap_command(["claude", "--dangerously-skip-permissions"])
+    assert len(wrapped) == 3
+    assert wrapped[0] == "bash"
+    assert wrapped[1] == "-c"
 
 
 def test_wrap_command_preserves_args_with_spaces_and_quotes() -> None:
     cmd = ["sh", "-c", 'echo "hi there"']
     wrapped = wrap_command(cmd)
-    assert wrapped[-3:] == cmd
+    script = wrapped[2]
+    embedded = script.removeprefix("sleep 0.2; exec ")
+    assert shlex.split(embedded) == cmd
 
 
 def test_backend_name_is_srt() -> None:
