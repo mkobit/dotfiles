@@ -14,7 +14,7 @@ import uuid
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from sandboxr.backend.bwrap import CACHE_REL, RO_HOME_PATHS, RW_HOME_PATHS
+from sandboxr.backend.bwrap import CACHE_REL, ENV_PASSTHROUGH, RO_HOME_PATHS, RW_HOME_PATHS
 from sandboxr.sandbox.spec import SandboxSpec
 
 # srt is installed as a mise global tool (no registry shorthand exists for
@@ -45,9 +45,11 @@ def build_settings(spec: SandboxSpec, mask_paths: Sequence[str] = ()) -> dict:
         )
         raise ValueError(msg)
     home = spec.home
-    deny_read = [str(home), *mask_paths]
+    deny_read = [str(home), *mask_paths, *(str(home / rel) for rel in spec.home_mask)]
     allow_read = [
         *(str(home / rel) for rel in RO_HOME_PATHS if (home / rel).exists()),
+        # RW_HOME_PATHS mirrors bwrap's --bind, which grants read+write.
+        *(str(home / rel) for rel in RW_HOME_PATHS if (home / rel).exists()),
         *(str(p) for p in spec.extra_ro),
         *(str(home / rel) for rel in spec.home_rw if (home / rel).exists()),
         str(spec.project_root),
@@ -130,6 +132,32 @@ def resolve_cli_js(mise_path: str) -> Path | None:
     return cli_js if cli_js.exists() else None
 
 
+def _build_env(spec: SandboxSpec, environ: Mapping[str, str]) -> dict[str, str]:
+    # Neither srt's settings.json nor its own internal bwrap wrapping clears
+    # the environment (confirmed via debug capture: srt's bwrap invocation
+    # has no --clearenv, only --setenv additions on top of whatever it
+    # inherits) — sandboxr must curate it itself here, mirroring bwrap.py's
+    # _build_env_args, or the full host environment leaks into the sandbox.
+    home = spec.home
+    env: dict[str, str] = {
+        "HOME": str(home),
+        "PATH": environ.get("PATH", "/usr/local/bin:/usr/bin:/bin"),
+        "AGENT_RUN_PROFILE": spec.profile_name,
+        "AGENT_RUN_IN_SANDBOX": "1",
+        "GIT_CONFIG_GLOBAL": str(home / ".config/ai-policy/git/sandbox.gitconfig"),
+        **spec.extra_env,
+    }
+    for key in ENV_PASSTHROUGH:
+        value = environ.get(key)
+        if value is not None:
+            env[key] = value
+    if spec.ssh_agent_sock is not None and spec.ssh_agent_sock.exists():
+        env["SSH_AUTH_SOCK"] = str(spec.ssh_agent_sock)
+    if spec.gpg_agent_sock is not None and spec.gpg_agent_sock.exists():
+        env["GNUPGHOME"] = str(home / ".gnupg")
+    return env
+
+
 def build_args(
     spec: SandboxSpec,
     environ: Mapping[str, str],
@@ -149,7 +177,9 @@ def build_args(
         raise RuntimeError(msg)
     settings = build_settings(spec, mask_paths)
     settings_path = write_settings(settings, spec.home)
-    return [node_path, str(cli_js), "-s", str(settings_path)]
+    env = _build_env(spec, environ)
+    env_prefix = ["env", "-i", *(f"{key}={env[key]}" for key in sorted(env))]
+    return [*env_prefix, node_path, str(cli_js), "-s", str(settings_path)]
 
 
 def wrap_command(cmd: Sequence[str]) -> Sequence[str]:

@@ -1,3 +1,4 @@
+import dataclasses
 import json
 import os
 import stat
@@ -126,6 +127,16 @@ def test_allow_write_includes_rw_home_paths(home: Path, project: Path) -> None:
     assert str(home / CACHE_REL) in allow_write
 
 
+def test_allow_read_includes_rw_home_paths(home: Path, project: Path) -> None:
+    # RW_HOME_PATHS must be readable too, not just writable -- e.g. claude
+    # needs to *read* ~/.claude.json (its own auth state), not just write it.
+    # bwrap's --bind grants read+write; the srt port must match that.
+    settings = build_settings(spec_for(home, project))
+    allow_read = settings["filesystem"]["allowRead"]
+    assert str(home / ".claude") in allow_read
+    assert str(home / ".claude.json") in allow_read
+
+
 def test_allow_write_includes_project_only_when_project_write(home: Path, project: Path) -> None:
     writable = build_settings(spec_for(home, project, project_write=True))
     readonly = build_settings(spec_for(home, project, project_write=False))
@@ -136,6 +147,14 @@ def test_allow_write_includes_project_only_when_project_write(home: Path, projec
 def test_deny_write_includes_home_mask(home: Path, project: Path) -> None:
     settings = build_settings(spec_for(home, project, home_mask=(".config/gh",)))
     assert str(home / ".config/gh") in settings["filesystem"]["denyWrite"]
+
+
+def test_deny_read_includes_home_mask(home: Path, project: Path) -> None:
+    # home_mask must hide read too, not just write -- otherwise a credential
+    # dir nested under a home_rw expose (e.g. .config/gh under .config)
+    # stays readable even though it's supposed to be masked.
+    settings = build_settings(spec_for(home, project, home_mask=(".config/gh",)))
+    assert str(home / ".config/gh") in settings["filesystem"]["denyRead"]
 
 
 def test_network_allowlist_sets_allowed_domains(home: Path, project: Path) -> None:
@@ -190,10 +209,57 @@ def test_build_args_returns_node_cli_and_settings(
     mise_install: Path,
 ) -> None:
     args = build_args(spec_for(home, project), {})
-    assert args[0] == "/usr/bin/node"
-    assert args[1] == str(mise_install)
-    assert args[2] == "-s"
-    assert Path(args[3]).exists()
+    assert args[-4] == "/usr/bin/node"
+    assert args[-3] == str(mise_install)
+    assert args[-2] == "-s"
+    assert Path(args[-1]).exists()
+
+
+def test_build_args_env_prefix_curates_environment(
+    home: Path,
+    project: Path,
+    mise_install: Path,
+) -> None:
+    # Neither srt's settings.json nor its own internal bwrap wrapping clears
+    # the environment, so sandboxr must curate it itself, the same way
+    # bwrap.py's --clearenv/--setenv does -- otherwise the full host
+    # environment (secrets included) flows straight into the sandbox.
+    args = build_args(spec_for(home, project), {"SECRET_TOKEN": "leak-me"})
+    assert args[0] == "env"
+    assert args[1] == "-i"
+    env_args = args[2:-4]
+    assert f"HOME={home}" in env_args
+    assert "AGENT_RUN_IN_SANDBOX=1" in env_args
+    assert "AGENT_RUN_PROFILE=srt-test" in env_args
+    assert not any(a.startswith("SECRET_TOKEN") for a in env_args)
+
+
+def test_build_args_env_includes_extra_env(home: Path, project: Path, mise_install: Path) -> None:
+    spec = spec_for(home, project)
+    spec = dataclasses.replace(spec, extra_env={"GH_TOKEN": "abc123"})
+    args = build_args(spec, {})
+    assert "GH_TOKEN=abc123" in args[2:-4]
+
+
+def test_build_args_env_includes_ssh_and_gpg_agent_vars(
+    home: Path,
+    project: Path,
+    tmp_path: Path,
+    mise_install: Path,
+) -> None:
+    ssh_sock = tmp_path / "ssh.sock"
+    ssh_sock.touch()
+    args = build_args(spec_for(home, project, ssh_agent_sock=ssh_sock), {})
+    assert f"SSH_AUTH_SOCK={ssh_sock}" in args[2:-4]
+
+
+def test_build_args_env_passthrough_from_environ(
+    home: Path,
+    project: Path,
+    mise_install: Path,
+) -> None:
+    args = build_args(spec_for(home, project), {"TERM": "xterm-256color"})
+    assert "TERM=xterm-256color" in args[2:-4]
 
 
 def test_build_args_raises_when_node_missing(home: Path, project: Path) -> None:

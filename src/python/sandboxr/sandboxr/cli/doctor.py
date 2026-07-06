@@ -77,18 +77,37 @@ if command -v curl >/dev/null 2>&1; then
       pass "network unreachable (air-gapped)"
     fi
   elif [ "$PROBE_NETWORK" = "allowlist" ]; then
+    # A plain curl exit code conflates "connection-level failure" with
+    # "reached the destination, got an HTTP error status" -- a denied
+    # domain reaches srt's own proxy and gets a real HTTP 403 back (with
+    # X-Proxy-Error: blocked-by-sandbox-runtime), which is a *successful*
+    # curl transaction, not a connection failure. So check for that header
+    # specifically rather than inferring from curl's exit code or a
+    # generic HTTP status.
+    probe_domain() {
+      headers=$(curl -sS -m 4 -D - -o /dev/null "https://$1" 2>&1)
+      if printf '%s' "$headers" | grep -qi '^X-Proxy-Error:'; then
+        echo "blocked"
+      elif [ -n "$headers" ]; then
+        echo "reachable"
+      else
+        echo "unreachable"
+      fi
+    }
     if [ -n "${PROBE_ALLOWED_DOMAIN:-}" ]; then
-      if curl -fsS -m 4 "https://${PROBE_ALLOWED_DOMAIN}" >/dev/null 2>&1; then
+      status=$(probe_domain "$PROBE_ALLOWED_DOMAIN")
+      if [ "$status" = "reachable" ]; then
         pass "allowed domain reachable ($PROBE_ALLOWED_DOMAIN)"
       else
-        fail "allowed domain unreachable ($PROBE_ALLOWED_DOMAIN)"
+        fail "allowed domain $status, expected reachable ($PROBE_ALLOWED_DOMAIN)"
       fi
     fi
     if [ -n "${PROBE_DENIED_DOMAIN:-}" ]; then
-      if curl -fsS -m 4 "https://${PROBE_DENIED_DOMAIN}" >/dev/null 2>&1; then
-        fail "denied domain reachable ($PROBE_DENIED_DOMAIN)"
-      else
+      status=$(probe_domain "$PROBE_DENIED_DOMAIN")
+      if [ "$status" = "blocked" ]; then
         pass "denied domain blocked ($PROBE_DENIED_DOMAIN)"
+      else
+        fail "denied domain $status, expected blocked ($PROBE_DENIED_DOMAIN)"
       fi
     fi
   else

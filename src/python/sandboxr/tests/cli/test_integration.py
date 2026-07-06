@@ -280,7 +280,9 @@ def test_run_srt_backend_show_command(monkeypatch: pytest.MonkeyPatch, tmp_path:
         ["run", "--profile", "srt-allowlist", "--show-command", "--", "bash"],
     )
     assert result.exit_code == 0
-    assert result.output.startswith("/usr/bin/node")
+    assert result.output.startswith("env -i ")
+    assert "AGENT_RUN_IN_SANDBOX=1" in result.output
+    assert "/usr/bin/node" in result.output
     assert str(cli_js) in result.output
     assert "-s" in result.output
     # startup-race workaround: the trailing command is wrapped, not raw.
