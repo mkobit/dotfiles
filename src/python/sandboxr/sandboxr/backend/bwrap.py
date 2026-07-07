@@ -17,10 +17,16 @@ ENV_PASSTHROUGH = ("TERM", "LANG", "LC_ALL", "COLORTERM", "OLLAMA_HOST")
 # .local/state/mise carries mise's trust state for project-local mise.toml
 # files; without it, mise shims invoked from a directory with a local
 # mise.toml error on trust checks.
+# .local/share/claude is the Claude Code CLI's own native-installer target:
+# ~/.local/bin/claude is only a symlink into a versioned dir here, so without
+# this the symlink resolves to a masked (denied) path and `claude` can't exec
+# at all inside the sandbox -- confirmed empirically running the srt-claude
+# profile (follow-up #4 acceptance test).
 RO_HOME_PATHS = (
     ".local/bin",
     ".local/share/mise",
     ".local/state/mise",
+    ".local/share/claude",
     ".config/mise",
     ".dotfiles",
     ".config/ai-policy",
