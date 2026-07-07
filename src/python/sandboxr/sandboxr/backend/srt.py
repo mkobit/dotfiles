@@ -15,7 +15,13 @@ import uuid
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
-from sandboxr.backend.bwrap import CACHE_REL, ENV_PASSTHROUGH, RO_HOME_PATHS, RW_HOME_PATHS
+from sandboxr.backend.bwrap import (
+    CACHE_REL,
+    ENV_PASSTHROUGH,
+    RO_HOME_PATHS,
+    RW_HOME_PATHS,
+    wsl_runtime_binds,
+)
 from sandboxr.sandbox.spec import SandboxSpec
 
 # srt is installed as a mise global tool (no registry shorthand exists for
@@ -51,6 +57,10 @@ def build_settings(spec: SandboxSpec, mask_paths: Sequence[str] = ()) -> dict:
         *(str(home / rel) for rel in RO_HOME_PATHS if (home / rel).exists()),
         # RW_HOME_PATHS mirrors bwrap's --bind, which grants read+write.
         *(str(home / rel) for rel in RW_HOME_PATHS if (home / rel).exists()),
+        # /etc/resolv.conf is a symlink into /mnt/wsl/resolv.conf on WSL2;
+        # mask_paths denyReads /mnt, so without this DNS resolution inside
+        # the sandbox fails outright (confirmed empirically).
+        *wsl_runtime_binds(),
         *(str(p) for p in spec.extra_ro),
         *(str(home / rel) for rel in spec.home_rw if (home / rel).exists()),
         str(spec.project_root),

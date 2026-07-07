@@ -250,7 +250,7 @@ def test_home_rw_empty_by_default(home: Path, project: Path) -> None:
 def test_wsl_resolv_conf_rebound_after_mnt_mask(home: Path, project: Path, tmp_path: Path) -> None:
     resolv = tmp_path / "resolv.conf"
     resolv.write_text("nameserver 1.1.1.1")
-    with patch("sandboxr.backend.bwrap._WSL_RUNTIME_BINDS", (str(resolv),)):
+    with patch("sandboxr.backend.bwrap.WSL_RUNTIME_BINDS", (str(resolv),)):
         args = build_args(spec_for(home, project), {}, mask_paths=("/mnt",))
     tmpfs_targets = [args[i + 1] for i, a in enumerate(args) if a == "--tmpfs"]
     ro = bind_pairs(args, "--ro-bind")

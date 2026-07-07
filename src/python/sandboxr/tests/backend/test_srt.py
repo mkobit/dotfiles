@@ -158,6 +158,20 @@ def test_deny_read_includes_home_mask(home: Path, project: Path) -> None:
     assert str(home / ".config/gh") in settings["filesystem"]["denyRead"]
 
 
+def test_allow_read_includes_wsl_resolv_conf(home: Path, project: Path, tmp_path: Path) -> None:
+    # Regression: default_mask_paths() denyReads /mnt on WSL2, and
+    # /etc/resolv.conf is a symlink into /mnt/wsl/resolv.conf -- without
+    # re-exposing it, DNS resolution inside the sandbox fails outright
+    # (confirmed empirically: a real `claude` session hung after this broke).
+    # bwrap.py already has this re-expose (wsl_runtime_binds()); srt.py must
+    # match it.
+    resolv = tmp_path / "resolv.conf"
+    resolv.write_text("nameserver 1.1.1.1")
+    with patch("sandboxr.backend.bwrap.WSL_RUNTIME_BINDS", (str(resolv),)):
+        settings = build_settings(spec_for(home, project), mask_paths=("/mnt",))
+    assert str(resolv) in settings["filesystem"]["allowRead"]
+
+
 def test_network_allowlist_sets_allowed_domains(home: Path, project: Path) -> None:
     domains = ("api.example.com", "*.foo.com")
     settings = build_settings(spec_for(home, project, network="allowlist", allowed_domains=domains))
