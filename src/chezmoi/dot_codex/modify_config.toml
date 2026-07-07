@@ -1,0 +1,7 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $config := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $config = fromToml .chezmoi.stdin -}}
+{{- end -}}
+{{- $vimModeDefault := dig "codex" "tui" "vim_mode_default" true . -}}
+{{- $config | setValueAtPath "tui.vim_mode_default" $vimModeDefault | toToml -}}
