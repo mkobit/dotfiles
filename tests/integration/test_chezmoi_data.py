@@ -1,5 +1,4 @@
 import pytest
-
 from chezmoi_test_data import SUPPORTED_INSTALLATION_METHODS, installation_method
 
 
@@ -18,7 +17,7 @@ def test_installation_method_defaults_missing_method_to_none():
 
 
 def test_supported_installation_methods_include_agy_contract():
-    assert SUPPORTED_INSTALLATION_METHODS == frozenset({"dotfiles.script", "preinstalled", "none", "uninstall"})
+    assert frozenset({"dotfiles.script", "preinstalled", "none", "uninstall"}) == SUPPORTED_INSTALLATION_METHODS
 
 
 @pytest.mark.integration
