@@ -19,7 +19,9 @@ from skill_filter.main import (
 SCRIPT = Path(__file__).parent.parent / "skill_filter" / "main.py"
 
 
-def make_archive(entries: dict[str, bytes | None], prefix: str = "repo-abc123") -> io.BytesIO:
+def make_archive(
+    entries: dict[str, bytes | None], prefix: str = "repo-abc123"
+) -> io.BytesIO:
     """Build an in-memory tar.gz; a value of None creates a directory entry."""
     raw = io.BytesIO()
     with tarfile.open(fileobj=raw, mode="w") as archive:
@@ -38,7 +40,9 @@ def read_archive(buffer: io.BytesIO) -> dict[str, bytes | None]:
     buffer.seek(0)
     with tarfile.open(fileobj=buffer, mode="r:") as archive:
         return {
-            member.name: extracted.read() if (extracted := archive.extractfile(member)) is not None else None
+            member.name: extracted.read()
+            if (extracted := archive.extractfile(member)) is not None
+            else None
             for member in archive.getmembers()
         }
 
@@ -66,7 +70,9 @@ class TestSelection:
                 "README.md": b"readme",
             }
         )
-        result = read_archive(run_filter(source, [parse_selection("skills/brainstorming:.")]))
+        result = read_archive(
+            run_filter(source, [parse_selection("skills/brainstorming:.")])
+        )
         assert result == {
             "SKILL.md": b"# brainstorm",
             "scripts/run.py": b"print()",
@@ -74,7 +80,9 @@ class TestSelection:
 
     def test_dest_defaults_to_src_basename(self):
         source = make_archive({"skills/brainstorming/SKILL.md": b"x"})
-        result = read_archive(run_filter(source, [parse_selection("skills/brainstorming")]))
+        result = read_archive(
+            run_filter(source, [parse_selection("skills/brainstorming")])
+        )
         assert result == {"brainstorming/SKILL.md": b"x"}
 
     def test_multiple_selections(self):
@@ -101,7 +109,9 @@ class TestSelection:
 
     def test_strip_components_zero(self):
         source = make_archive({"a/SKILL.md": b"a"}, prefix="skills")
-        result = read_archive(run_filter(source, [parse_selection("skills/a:.")], strip_components=0))
+        result = read_archive(
+            run_filter(source, [parse_selection("skills/a:.")], strip_components=0)
+        )
         assert result == {"SKILL.md": b"a"}
 
 
@@ -241,21 +251,35 @@ class TestAgentSkillTransform:
     def test_missing_frontmatter_raises(self):
         source = make_archive({"engineering/agent.md": b"# Just a heading\n"})
         with pytest.raises(FilterError, match="no frontmatter"):
-            run_filter(source, [parse_selection("engineering/agent.md:SKILL.md")], transform_name="agent-skill")
+            run_filter(
+                source,
+                [parse_selection("engineering/agent.md:SKILL.md")],
+                transform_name="agent-skill",
+            )
 
     def test_unterminated_frontmatter_raises(self):
         source = make_archive({"engineering/agent.md": b"---\nname: x\n"})
         with pytest.raises(FilterError, match="unterminated"):
-            run_filter(source, [parse_selection("engineering/agent.md:SKILL.md")], transform_name="agent-skill")
+            run_filter(
+                source,
+                [parse_selection("engineering/agent.md:SKILL.md")],
+                transform_name="agent-skill",
+            )
 
     def test_missing_description_raises(self):
         source = make_archive({"engineering/agent.md": b"---\nname: x\n---\nbody\n"})
         with pytest.raises(FilterError, match="no description"):
-            run_filter(source, [parse_selection("engineering/agent.md:SKILL.md")], transform_name="agent-skill")
+            run_filter(
+                source,
+                [parse_selection("engineering/agent.md:SKILL.md")],
+                transform_name="agent-skill",
+            )
 
 
 class TestSelectionParsing:
-    @pytest.mark.parametrize("raw", ["", "/abs", "../up", "a/../..", "a:..", "a:/abs", "."])
+    @pytest.mark.parametrize(
+        "raw", ["", "/abs", "../up", "a/../..", "a:..", "a:/abs", "."]
+    )
     def test_invalid_selection_raises(self, raw):
         with pytest.raises(FilterError):
             parse_selection(raw)
@@ -273,7 +297,9 @@ class TestMain:
         source = make_archive({"skills/a/SKILL.md": b"hello"})
         monkeypatch.setattr("sys.stdin", type("FakeStdin", (), {"buffer": source})())
         captured = io.BytesIO()
-        monkeypatch.setattr("sys.stdout", type("FakeStdout", (), {"buffer": captured})())
+        monkeypatch.setattr(
+            "sys.stdout", type("FakeStdout", (), {"buffer": captured})()
+        )
         assert main(["--select", "skills/a:."]) == 0
         assert read_archive(captured) == {"SKILL.md": b"hello"}
 
@@ -285,7 +311,9 @@ class TestSubprocess:
     output requirement that in-memory tests cannot catch.
     """
 
-    def run_script(self, *args: str, stdin: bytes) -> subprocess.CompletedProcess[bytes]:
+    def run_script(
+        self, *args: str, stdin: bytes
+    ) -> subprocess.CompletedProcess[bytes]:
         return subprocess.run(
             [sys.executable, str(SCRIPT), *args],
             input=stdin,
@@ -302,7 +330,9 @@ class TestSubprocess:
                 "skills/other/SKILL.md": b"# other",
             }
         )
-        result = self.run_script("--select", "skills/brainstorming:.", stdin=source.getvalue())
+        result = self.run_script(
+            "--select", "skills/brainstorming:.", stdin=source.getvalue()
+        )
         assert result.returncode == 0, result.stderr.decode()
         assert read_archive(io.BytesIO(result.stdout)) == {
             "SKILL.md": b"# brainstorm",
@@ -311,7 +341,9 @@ class TestSubprocess:
 
     def test_unmatched_selection_fails_with_diagnostic(self):
         source = make_archive({"skills/a/SKILL.md": b"a"})
-        result = self.run_script("--select", "skills/missing:.", stdin=source.getvalue())
+        result = self.run_script(
+            "--select", "skills/missing:.", stdin=source.getvalue()
+        )
         assert result.returncode == 1
         assert b"skills/missing" in result.stderr
 
@@ -330,10 +362,14 @@ class TestSubprocess:
             stdin=source.getvalue(),
         )
         assert result.returncode == 0, result.stderr.decode()
-        assert read_archive(io.BytesIO(result.stdout)) == {"SKILL.md": AGENT_AS_SKILL_MD}
+        assert read_archive(io.BytesIO(result.stdout)) == {
+            "SKILL.md": AGENT_AS_SKILL_MD
+        }
 
     def test_unknown_transform_rejected(self):
-        result = self.run_script("--select", "a:.", "--transform", "nonsense", stdin=b"")
+        result = self.run_script(
+            "--select", "a:.", "--transform", "nonsense", stdin=b""
+        )
         assert result.returncode == 2
         assert b"invalid choice" in result.stderr
 

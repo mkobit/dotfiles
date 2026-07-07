@@ -41,7 +41,7 @@ import posixpath
 import sys
 import tarfile
 from collections.abc import Callable, Iterable, Sequence
-from typing import BinaryIO, NamedTuple
+from typing import BinaryIO, NamedTuple, Optional
 
 
 class Selection(NamedTuple):
@@ -87,14 +87,20 @@ def _parse_agent(src: str, content: bytes) -> _AgentParts:
     lines = content.decode("utf-8").split("\n")
     if not lines or lines[0] != "---":
         raise FilterError(f"agent file {src!r} has no frontmatter")
-    closing = next((index for index, line in enumerate(lines[1:], start=1) if line == "---"), None)
+    closing = next(
+        (index for index, line in enumerate(lines[1:], start=1) if line == "---"), None
+    )
     if closing is None:
         raise FilterError(f"agent file {src!r} has unterminated frontmatter")
-    description = next((line for line in lines[1:closing] if line.startswith("description:")), None)
+    description = next(
+        (line for line in lines[1:closing] if line.startswith("description:")), None
+    )
     if description is None:
         raise FilterError(f"agent file {src!r} frontmatter has no description")
     name = posixpath.basename(src).removesuffix(".md")
-    return _AgentParts(name=name, description=description, body=tuple(lines[closing + 1 :]))
+    return _AgentParts(
+        name=name, description=description, body=tuple(lines[closing + 1 :])
+    )
 
 
 def _transform_agent_skill(src: str, content: bytes) -> bytes:
@@ -117,7 +123,7 @@ TRANSFORMS: dict[str, Transform] = {
 }
 
 
-def _stripped_name(name: str, strip_components: int) -> str | None:
+def _stripped_name(name: str, strip_components: int) -> Optional[str]:
     normalized = posixpath.normpath(name)
     if normalized.startswith(("/", "..")):
         raise FilterError(f"archive member {name!r} escapes the extraction root")
@@ -126,7 +132,7 @@ def _stripped_name(name: str, strip_components: int) -> str | None:
     return "/".join(remainder) if remainder else None
 
 
-def _output_name(name: str, selection: Selection) -> str | None:
+def _output_name(name: str, selection: Selection) -> Optional[str]:
     if name != selection.src and not name.startswith(f"{selection.src}/"):
         return None
     remainder = name[len(selection.src) :].lstrip("/")
@@ -135,7 +141,9 @@ def _output_name(name: str, selection: Selection) -> str | None:
     return f"{selection.dest}/{remainder}" if remainder else selection.dest
 
 
-def _renamed_member(member: tarfile.TarInfo, name: str, size: int | None = None) -> tarfile.TarInfo:
+def _renamed_member(
+    member: tarfile.TarInfo, name: str, size: Optional[int] = None
+) -> tarfile.TarInfo:
     # TarInfo.replace() requires python 3.12; copy manually to support older system pythons.
     renamed = copy.copy(member)
     renamed.name = name
@@ -153,7 +161,7 @@ def filter_archive(
     dst: BinaryIO,
     selections: Sequence[Selection],
     strip_components: int = 1,
-    transform: Transform | None = None,
+    transform: Optional[Transform] = None,
 ) -> None:
     """Copy selected, re-rooted subtrees from a tar.gz stream to a tar stream."""
     matched_triples = []
@@ -179,9 +187,15 @@ def filter_archive(
                     matched_triples.append((output_name, member, selection, content))
                     break
 
-    unmatched = [selection.src for selection in selections if selection.src not in matched_sources]
+    unmatched = [
+        selection.src
+        for selection in selections
+        if selection.src not in matched_sources
+    ]
     if unmatched:
-        raise FilterError(f"selections matched nothing in the archive: {', '.join(unmatched)}")
+        raise FilterError(
+            f"selections matched nothing in the archive: {', '.join(unmatched)}"
+        )
 
     # Sort output by name to satisfy TestDeterminism
     matched_triples.sort(key=lambda x: x[0])
@@ -189,18 +203,29 @@ def filter_archive(
     with tarfile.open(fileobj=dst, mode="w|") as output:
         for output_name, member, _selection, content in matched_triples:
             if member.issym() or member.islnk():
-                print(f"skill-filter: skipping link member {member.name!r}", file=sys.stderr)
+                print(
+                    f"skill-filter: skipping link member {member.name!r}",
+                    file=sys.stderr,
+                )
             elif member.isfile():
                 if content is not None:
-                    output.addfile(_renamed_member(member, output_name, size=len(content)), io.BytesIO(content))
+                    output.addfile(
+                        _renamed_member(member, output_name, size=len(content)),
+                        io.BytesIO(content),
+                    )
             elif member.isdir():
                 output.addfile(_renamed_member(member, output_name))
             else:
-                print(f"skill-filter: skipping special member {member.name!r}", file=sys.stderr)
+                print(
+                    f"skill-filter: skipping special member {member.name!r}",
+                    file=sys.stderr,
+                )
 
 
 def _parse_args(argv: Iterable[str]) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(
+        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    )
     parser.add_argument(
         "--select",
         action="append",
@@ -226,12 +251,16 @@ def _parse_args(argv: Iterable[str]) -> argparse.Namespace:
     return parser.parse_args(list(argv))
 
 
-def main(argv: Sequence[str] | None = None) -> int:
+def main(argv: Optional[Sequence[str]] = None) -> int:
     args = _parse_args(sys.argv[1:] if argv is None else argv)
     try:
         selections = [parse_selection(raw) for raw in args.select]
-        if len(selections) > 1 and any(selection.dest == "." for selection in selections):
-            raise FilterError("a '.' destination is only allowed with a single --select")
+        if len(selections) > 1 and any(
+            selection.dest == "." for selection in selections
+        ):
+            raise FilterError(
+                "a '.' destination is only allowed with a single --select"
+            )
         transform = TRANSFORMS[args.transform] if args.transform else None
 
         cache_file = None
@@ -255,7 +284,13 @@ def main(argv: Sequence[str] | None = None) -> int:
 
         if cache_file:
             output_buffer = io.BytesIO()
-            filter_archive(sys.stdin.buffer, output_buffer, selections, args.strip_components, transform)
+            filter_archive(
+                sys.stdin.buffer,
+                output_buffer,
+                selections,
+                args.strip_components,
+                transform,
+            )
             output_data = output_buffer.getvalue()
             sys.stdout.buffer.write(output_data)
             try:
@@ -265,7 +300,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             except Exception as e:
                 print(f"skill-filter cache write error: {e}", file=sys.stderr)
         else:
-            filter_archive(sys.stdin.buffer, sys.stdout.buffer, selections, args.strip_components, transform)
+            filter_archive(
+                sys.stdin.buffer,
+                sys.stdout.buffer,
+                selections,
+                args.strip_components,
+                transform,
+            )
 
     except (FilterError, tarfile.TarError, gzip.BadGzipFile, EOFError) as error:
         print(f"skill-filter: {error}", file=sys.stderr)
