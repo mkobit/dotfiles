@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - uses: jdx/mise-action@v4.1.0
         with:
           # Pin to match .chezmoidata/bin/mise.toml. Without this, the
@@ -41,7 +41,7 @@ jobs:
           # upstream (mise v2026.6.7 returned 404 on 2026-06-14).
           version: 2026.5.16
       - name: Restore uv cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.UV_CACHE_DIR }}
           key: uv-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}
@@ -69,7 +69,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
       - uses: jdx/mise-action@v4.1.0
         with:
           # Pin to match .chezmoidata/bin/mise.toml. Without this, the
@@ -77,7 +77,7 @@ jobs:
           # upstream (mise v2026.6.7 returned 404 on 2026-06-14).
           version: 2026.5.16
       - name: Restore uv cache
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.UV_CACHE_DIR }}
           key: uv-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}
@@ -102,10 +102,10 @@ jobs:
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
       - name: Cache chezmoi downloads
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.CHEZMOI_CACHE_DIR }}
           key: chezmoi-cache-v4-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}
@@ -115,7 +115,7 @@ jobs:
             chezmoi-cache-v4-${{ runner.os }}-
 
       - name: Cache mise downloads
-        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.MISE_CACHE_DIR }}
           key: mise-cache-v1-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/mise.toml') }}
