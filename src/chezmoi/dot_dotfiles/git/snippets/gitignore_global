@@ -6,6 +6,7 @@
 *~
 /bazel-*
 .scratch/
+docs/superpowers/plans/*
 mise.local.toml
 .antigravity/
 .antigravitycli/
