@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-      - uses: jdx/mise-action@v4.1.0
+      - uses: jdx/mise-action@v4.2.0
         with:
           # Pin to match .chezmoidata/bin/mise.toml. Without this, the
           # action falls back to a default that has been yanked from
@@ -70,7 +70,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
-      - uses: jdx/mise-action@v4.1.0
+      - uses: jdx/mise-action@v4.2.0
         with:
           # Pin to match .chezmoidata/bin/mise.toml. Without this, the
           # action falls back to a default that has been yanked from
