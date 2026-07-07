@@ -19,3 +19,6 @@ dev = [
     "pytest>=9.0.2",
     "ruff>=0.15.7",
 ]
+
+[tool.ruff.lint]
+ignore = ["UP045", "UP007"] # Allow Optional/Union over X | None to support py3.9
