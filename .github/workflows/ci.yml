@@ -124,6 +124,15 @@ jobs:
             mise-cache-v1-${{ runner.os }}-main-
             mise-cache-v1-${{ runner.os }}-
 
+      - name: Install bubblewrap
+        if: runner.os == 'Linux'
+        # sandboxr's bwrap backend integration test needs the real binary;
+        # bwrap isn't provisioned via chezmoi (it's a system package, not a
+        # chezmoi external), so install it directly on the runner.
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bubblewrap
+
       - name: Install chezmoi
         run: |
           sh -c "$(curl --retry 5 -fsLS get.chezmoi.io)" -- -b ~/.local/bin -t ${{ env.CHEZMOI_VERSION }}
