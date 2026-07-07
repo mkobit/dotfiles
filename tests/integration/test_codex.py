@@ -13,6 +13,6 @@ def test_codex_config_toml_is_valid(host, chezmoi_dest):
     """Verify ~/.codex/config.toml parses as TOML."""
     config_path = chezmoi_dest / ".codex" / "config.toml"
     result = host.run(
-        f"python3 -c \"import pathlib, tomllib; tomllib.loads(pathlib.Path({str(config_path)!r}).read_text())\""
+        f'python3 -c "import pathlib, tomllib; tomllib.loads(pathlib.Path({str(config_path)!r}).read_text())"'
     )
     assert result.rc == 0, f"~/.codex/config.toml is invalid TOML.\nstderr: {result.stderr}"
