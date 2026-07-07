@@ -1,5 +1,5 @@
 [bin.fzf]
-version = "0.73.1"
+version = "0.74.0"
 
 # fzf filename uses {os}_{arch} directly — not a target triple
 [bin.fzf.github_releases]
@@ -20,10 +20,10 @@ linux_amd64  = ""
 linux_arm64  = ""
 
 [bin.fzf.github_releases.checksums]
-darwin_arm64 = "d27fd68c04fb9b42f7c73a3f7d38069a74d308e40174f64a072c747213e97286"
-darwin_amd64 = "75bbf15248d1cf0a13eafc75b8a55f5075c437e2ba6d76899afc53f4f3e1b38c"
-linux_amd64  = "f3252c2c366bc1700d3c85781ec8c9695998927ac127870eb049ceea2d540f8a"
-linux_arm64  = "a408b0b6c08d486307b8f1554f967b8b50ee1b3ea8b4035e3161bab31fdfc28d"
+darwin_arm64 = "da60e8980e4239a0fc5f1fcfe873f243dfda93a6a13b696b00e1dc8584a77a87"
+darwin_amd64 = "e2c470f058ac18615f54c0bebe0fd2956f2aa8e306a11621783a00aaa386eedd"
+linux_amd64  = "cf919f05b7581b4c744d764eaa704665d61dd6d3ca785f0df2351281dff60cda"
+linux_arm64  = "bd9e6165ebdb702215d42368cbb95b8dd70a4e77ee97925adac8c31660e30ef7"
 
 [bin.fzf.homebrew]
 name = "fzf"
