@@ -1,0 +1,2 @@
+[packages.socat.package.apt]
+name = "socat"
