@@ -48,4 +48,14 @@ _fzf_complete_zja() {
 _fzf_complete_zj() {
     _fzf_complete_zellij "$@"
 }
+
+{{- if eq .shell "zsh" }}
+# Emit OSC 7 on each prompt so Zellij tracks the active pane's cwd.
+# Without this, new panes inherit the cwd of the parent shell process rather
+# than the running shell — visible when using subshells like `chezmoi cd`.
+_zellij_report_cwd() {
+    printf '\e]7;file://%s%s\e\\' "${HOST}" "${PWD}"
+}
+precmd_functions+=(_zellij_report_cwd)
+{{- end }}
 {{- end }}
