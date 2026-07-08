@@ -125,6 +125,9 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"dotfiles.script"{{ else }}
 [data.packages.hammerspoon]
 installation_method = "homebrew"
 
+[data.packages.strace]
+installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
+
 # Local Python Tools (via uv) Installation Methods
 [data.local_bin_tools.claude_statusline]
 installation_method = "uninstall"
