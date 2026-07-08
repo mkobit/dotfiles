@@ -30,9 +30,7 @@ def test_zellij_osc7_precmd_registered(host):
     """Verify _zellij_report_cwd is defined and registered in precmd_functions."""
     result = host.run("zsh -i -l -c 'print ${precmd_functions[@]}'")
     assert result.rc == 0, f"zsh -i -l failed.\nstderr: {result.stderr}"
-    assert "_zellij_report_cwd" in result.stdout, (
-        f"_zellij_report_cwd not in precmd_functions: {result.stdout!r}"
-    )
+    assert "_zellij_report_cwd" in result.stdout, f"_zellij_report_cwd not in precmd_functions: {result.stdout!r}"
 
 
 @pytest.mark.integration
@@ -40,6 +38,4 @@ def test_zellij_osc7_emits_sequence(host):
     """Verify _zellij_report_cwd emits a valid OSC 7 working-directory sequence."""
     result = host.run("zsh -i -l -c '_zellij_report_cwd'")
     assert result.rc == 0, f"_zellij_report_cwd failed.\nstderr: {result.stderr}"
-    assert "\x1b]7;file://" in result.stdout, (
-        f"OSC 7 sequence not found in output: {result.stdout!r}"
-    )
+    assert "\x1b]7;file://" in result.stdout, f"OSC 7 sequence not found in output: {result.stdout!r}"
