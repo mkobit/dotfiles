@@ -5,7 +5,12 @@ SUPPORTED_INSTALLATION_METHODS = frozenset({"dotfiles.script", "preinstalled", "
 
 
 def installation_method(data: Mapping[str, Any], feature: str) -> str:
-    feature_data = data.get(feature)
+    feature_data: Any = data
+    for part in feature.split("."):
+        if not isinstance(feature_data, Mapping):
+            return "none"
+        feature_data = feature_data.get(part)
+
     if not isinstance(feature_data, Mapping):
         return "none"
 

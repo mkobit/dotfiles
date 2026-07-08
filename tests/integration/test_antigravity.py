@@ -2,10 +2,11 @@ import pytest
 
 
 @pytest.mark.integration
+@pytest.mark.chezmoi_installation("agy", methods={"dotfiles.script", "preinstalled"})
 def test_antigravity_version(host):
-    """Verify that the agy CLI is accessible and operational."""
-    result = host.run("command -v agy")
-    assert result.rc == 0, f"agy not found in PATH.\nstderr: {result.stderr}"
+    """Verify that the agy CLI is operational when enabled."""
+    result = host.run("agy --version")
+    assert result.rc == 0, f"'agy --version' failed.\nstderr: {result.stderr}\nstdout: {result.stdout}"
 
 
 @pytest.mark.integration

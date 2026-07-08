@@ -8,6 +8,18 @@ def test_installation_method_reads_top_level_feature():
     assert installation_method(data, "agy") == "preinstalled"
 
 
+def test_installation_method_reads_dotted_feature_path():
+    data = {"packages": {"strace": {"installation_method": "apt"}}}
+
+    assert installation_method(data, "packages.strace") == "apt"
+
+
+def test_installation_method_defaults_missing_dotted_path_to_none():
+    data = {"packages": {}}
+
+    assert installation_method(data, "packages.strace") == "none"
+
+
 def test_installation_method_defaults_missing_feature_to_none():
     assert installation_method({}, "agy") == "none"
 
