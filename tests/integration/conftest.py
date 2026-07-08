@@ -5,7 +5,7 @@ from collections.abc import Iterable
 from pathlib import Path
 
 import pytest
-from chezmoi_test_data import installation_method
+from chezmoi_test_data import required_installation_method
 
 
 def pytest_configure(config):
@@ -31,7 +31,7 @@ def skip_unmatched_chezmoi_installation(request):
 
     feature = marker.args[0]
     allowed_methods = frozenset(methods)
-    active_method = installation_method(request.getfixturevalue("chezmoi_data"), feature)
+    active_method = required_installation_method(request.getfixturevalue("chezmoi_data"), feature)
 
     if active_method not in allowed_methods:
         allowed = ", ".join(sorted(allowed_methods))
