@@ -32,15 +32,18 @@ def test_opencode_help(host):
 
 
 @pytest.mark.integration
+@pytest.mark.chezmoi_installation("agy", methods={"dotfiles.script", "preinstalled"})
 @pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
 def test_agy_available(host, shell_cmd):
-    """Verify agy is on PATH in bash and zsh."""
+    """Verify agy is on PATH in bash and zsh when enabled."""
     result = host.run(f"{shell_cmd} 'command -v agy'")
     assert result.rc == 0, f"'agy' not found via {shell_cmd!r}.\nstderr: {result.stderr}"
 
 
 @pytest.mark.integration
-def test_agy_version(host):
-    """Verify agy --version exits successfully."""
-    result = host.run("agy --version")
-    assert result.rc == 0, f"'agy --version' failed.\nstderr: {result.stderr}\nstdout: {result.stdout}"
+@pytest.mark.chezmoi_installation("agy", methods={"none"})
+@pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
+def test_agy_not_available(host, shell_cmd):
+    """Verify agy is not on PATH in bash and zsh when disabled."""
+    result = host.run(f"{shell_cmd} 'command -v agy'")
+    assert result.rc != 0, f"'agy' was found via {shell_cmd!r} despite agy.installation_method = 'none'"
