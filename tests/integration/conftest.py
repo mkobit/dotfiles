@@ -38,8 +38,8 @@ def skip_unmatched_chezmoi_installation(request):
         pytest.skip(f"{feature}.installation_method is {active_method!r}; expected one of: {allowed}")
 
 
-def _chezmoi_command(chezmoi_source_root, *args):
-    command = ["chezmoi", "--source", str(chezmoi_source_root)]
+def _chezmoi_command(*args):
+    command = ["chezmoi"]
 
     if config_path := os.environ.get("CHEZMOI_CONFIG"):
         command.extend(["--config", config_path])
@@ -51,9 +51,9 @@ def _chezmoi_command(chezmoi_source_root, *args):
 
 
 @pytest.fixture()
-def chezmoi_data(host, chezmoi_source_root):
+def chezmoi_data(host):
     """Return rendered chezmoi data from the initialized test environment."""
-    result = host.run(_chezmoi_command(chezmoi_source_root, "data", "--format=json"))
+    result = host.run(_chezmoi_command("data", "--format=json"))
     assert result.rc == 0, f"chezmoi data failed.\nstderr: {result.stderr}\nstdout: {result.stdout}"
     return json.loads(result.stdout)
 
@@ -65,9 +65,9 @@ def chezmoi_source_root():
 
 
 @pytest.fixture()
-def chezmoi_dest(host, chezmoi_source_root):
+def chezmoi_dest(host):
     """Return the absolute path to the chezmoi destination (usually $HOME)."""
-    result = host.run(_chezmoi_command(chezmoi_source_root, "target-path"))
+    result = host.run(_chezmoi_command("target-path"))
     if result.rc == 0:
         return Path(result.stdout.strip())
     return Path(host.user().home)
