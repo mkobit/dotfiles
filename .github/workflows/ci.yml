@@ -104,13 +104,26 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
-      - name: Allow unprivileged user namespaces (bwrap)
+      - name: Load scoped AppArmor profile for bwrap
         if: runner.os == 'Linux'
-        # Ubuntu 24.04's AppArmor default blocks unprivileged CLONE_NEWUSER,
-        # which bwrap requires for rootless sandboxing -- without this,
-        # sandboxr's bwrap-backed integration tests fail with "setting up
-        # uid map: Permission denied" / "loopback: Failed RTM_NEWADDR".
-        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+        # Ubuntu 24.04's AppArmor default blocks unprivileged CLONE_NEWUSER
+        # for otherwise-unconfined processes, which bwrap needs for rootless
+        # sandboxing -- without this, sandboxr's bwrap-backed integration
+        # tests fail with "setting up uid map: Permission denied" /
+        # "loopback: Failed RTM_NEWADDR". A profile scoped to /usr/bin/bwrap
+        # that grants it `userns,` exempts only that binary; every other
+        # process on the runner keeps the restriction, unlike flipping
+        # kernel.apparmor_restrict_unprivileged_userns off runner-wide.
+        # Ref: https://discourse.ubuntu.com/t/spec-unprivileged-user-namespace-restrictions-via-apparmor-in-ubuntu-23-10/37626
+        run: |
+          cat <<'PROFILE' | sudo tee /etc/apparmor.d/bwrap >/dev/null
+          abi <abi/4.0>,
+
+          /usr/bin/bwrap flags=(unconfined) {
+            allow userns create,
+          }
+          PROFILE
+          sudo apparmor_parser -r /etc/apparmor.d/bwrap
 
       - name: Cache chezmoi downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
