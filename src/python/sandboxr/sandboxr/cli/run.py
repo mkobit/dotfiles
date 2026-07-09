@@ -8,6 +8,7 @@ import typer
 from sandboxr.backend.bwrap import BwrapBackend, default_mask_paths
 from sandboxr.backend.srt import SrtBackend
 from sandboxr.cli._common import (
+    _apply_timeout,
     _fail,
     _refuse_if_nested,
     _require_bwrap,
@@ -67,9 +68,15 @@ def run(
         list[str] | None,
         typer.Option("--rw", help="Bind path read-write (repeatable)."),
     ] = None,
+    timeout: Annotated[
+        float | None,
+        typer.Option("--timeout", help="Kill the sandboxed invocation after N seconds (exit 124)."),
+    ] = None,
 ) -> None:
     """Run a command in the sandbox: sandboxr run [FLAGS] -- COMMAND [ARGS...]"""
     _refuse_if_nested()
+    if timeout is not None and timeout <= 0:
+        raise _fail("--timeout must be positive")
     command = [arg for arg in ctx.args if arg != "--"]
     if not command:
         raise _fail("no command given; usage: sandboxr run [FLAGS] -- COMMAND [ARGS...]")
@@ -83,6 +90,7 @@ def run(
         gpg_agent=gpg_agent,
         extra_ro=extra_ro or [],
         extra_rw=extra_rw or [],
+        timeout_seconds=timeout,
     )
     if isinstance(backend, BwrapBackend):
         _require_bwrap()
@@ -92,10 +100,13 @@ def run(
     adapted_cmd, tool_env = adapt_command(command, os.environ)
     if tool_env:
         spec = dataclasses.replace(spec, extra_env={**spec.extra_env, **tool_env})
-    args = [
-        *backend.build_args(spec, os.environ, default_mask_paths(os.getuid())),
-        *backend.wrap_command(adapted_cmd),
-    ]
+    args = _apply_timeout(
+        [
+            *backend.build_args(spec, os.environ, default_mask_paths(os.getuid())),
+            *backend.wrap_command(adapted_cmd),
+        ],
+        active.timeout_seconds,
+    )
     if show_command:
         typer.echo(" ".join(args))
         return

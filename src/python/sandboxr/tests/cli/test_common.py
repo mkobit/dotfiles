@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 import typer
 
-from sandboxr.cli._common import _require_srt
+from sandboxr.cli._common import _apply_timeout, _require_srt
 
 
 def _which(*, node_ok: bool, mise_ok: bool):
@@ -63,3 +63,21 @@ def test_require_srt_passes_when_resolved(tmp_path: Path) -> None:
         patch("sandboxr.backend.srt.subprocess.run", side_effect=_run),
     ):
         _require_srt()
+
+
+def test_apply_timeout_none_returns_args_unchanged() -> None:
+    assert _apply_timeout(["bwrap", "--foo"], None) == ["bwrap", "--foo"]
+
+
+def test_apply_timeout_prefixes_with_foreground_flag() -> None:
+    with patch("shutil.which", return_value="/usr/bin/timeout"):
+        result = _apply_timeout(["bwrap", "--foo"], 300)
+    assert result == ["/usr/bin/timeout", "--foreground", "300", "bwrap", "--foo"]
+
+
+def test_apply_timeout_raises_when_binary_missing() -> None:
+    with (
+        patch("shutil.which", return_value=None),
+        pytest.raises(typer.Exit),
+    ):
+        _apply_timeout(["bwrap", "--foo"], 300)

@@ -138,6 +138,22 @@ def test_profile_allowlist_with_domains_is_valid():
     assert p.allowed_domains == ("api.example.com",)
 
 
+def test_profile_timeout_seconds_defaults_none():
+    p = Profile(name="test", backend="auto", project_write=True, network="shared")
+    assert p.timeout_seconds is None
+
+
+def test_profile_timeout_seconds_rejects_non_positive():
+    with pytest.raises(ValidationError, match="timeout_seconds"):
+        Profile(
+            name="test",
+            backend="auto",
+            project_write=True,
+            network="shared",
+            timeout_seconds=0,
+        )
+
+
 @pytest.fixture
 def config(tmp_path):
     return load_config(write_config(tmp_path, BASE_TOML))

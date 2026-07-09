@@ -5,6 +5,7 @@ import shutil
 import stat
 import subprocess
 import sys
+from collections.abc import Sequence
 from pathlib import Path
 
 import typer
@@ -35,6 +36,20 @@ def _refuse_if_nested() -> None:
 def _require_bwrap() -> None:
     if shutil.which("bwrap") is None:
         raise _fail("bwrap not found; install via the run_once_install-sandbox-deps chezmoi script")
+
+
+def _apply_timeout(args: Sequence[str], timeout_seconds: float | None) -> list[str]:
+    """Prefix `args` with `timeout --foreground` so a hang exits fast (124), not forever.
+
+    `--foreground` lets signals (Ctrl-C, terminal job control) reach the
+    wrapped process directly, matching execvp's usual signal behavior.
+    """
+    if timeout_seconds is None:
+        return list(args)
+    timeout_bin = shutil.which("timeout")
+    if timeout_bin is None:
+        raise _fail("timeout not found; required for timeout_seconds (provided by coreutils)")
+    return [timeout_bin, "--foreground", str(timeout_seconds), *args]
 
 
 def _require_srt() -> None:
