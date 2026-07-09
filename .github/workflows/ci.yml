@@ -104,6 +104,14 @@ jobs:
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
 
+      - name: Allow unprivileged user namespaces (bwrap)
+        if: runner.os == 'Linux'
+        # Ubuntu 24.04's AppArmor default blocks unprivileged CLONE_NEWUSER,
+        # which bwrap requires for rootless sandboxing -- without this,
+        # sandboxr's bwrap-backed integration tests fail with "setting up
+        # uid map: Permission denied" / "loopback: Failed RTM_NEWADDR".
+        run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+
       - name: Cache chezmoi downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
