@@ -17,12 +17,18 @@ default_profile = "autonomous"
 
 [ai.sandbox.profiles.autonomous]
 enabled = true
-# "auto" = bwrap on linux, sandbox-exec on darwin.
-backend = "auto"
+# srt (not "auto"): unrestricted ("shared") egress let an autonomous, hours-
+# long unsupervised run exfiltrate anything through the harness's own
+# session credential -- domain-allowlisted egress is required for the
+# default profile, not just the purpose-built srt-claude one. Domain list
+# is Claude Code's, copied from the already-verified srt-claude profile
+# below -- this profile is Claude-Code-specific until a second harness is
+# actually run through sandboxr and gets its own verified list.
+backend = "srt"
 # Project worktree mounted read-write.
 project_write = true
-# Network shared with host so the agent can reach model APIs and ollama.
-network = "shared"
+network = "allowlist"
+allowed_domains = ["api.anthropic.com", "statsig.anthropic.com", "sentry.io"]
 # No agent socket forwarding by default; enable ad-hoc with --ssh-agent.
 ssh_agent = false
 gpg_agent = false

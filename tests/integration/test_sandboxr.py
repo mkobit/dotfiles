@@ -24,7 +24,9 @@ def test_sandboxr_on_path(host):
 def test_doctor_bwrap_profile_passes(host):
     if not _tool_available(host, "bwrap"):
         pytest.skip("bwrap not installed on this runner")
-    result = host.run("sandboxr doctor --profile autonomous")
+    # readonly, not autonomous: autonomous moved to the srt backend
+    # (domain-allowlisted egress) so it no longer exercises bwrap.
+    result = host.run("sandboxr doctor --profile readonly")
     assert result.rc == 0, f"doctor failed.\nstdout: {result.stdout}\nstderr: {result.stderr}"
     assert "sandboxr doctor: all probes passed" in result.stdout
     assert "FAIL:" not in result.stdout
