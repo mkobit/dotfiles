@@ -3,6 +3,7 @@ from typing import Protocol
 
 from sandboxr.backend.bwrap import BwrapBackend
 from sandboxr.backend.seatbelt import SeatbeltBackend
+from sandboxr.backend.srt import SrtBackend
 from sandboxr.sandbox.spec import SandboxSpec
 
 
@@ -15,6 +16,8 @@ class SandboxBackend(Protocol):
         environ: Mapping[str, str],
         mask_paths: Sequence[str] = (),
     ) -> list[str]: ...
+
+    def wrap_command(self, cmd: Sequence[str]) -> Sequence[str]: ...
 
 
 def select_backend(backend_name: str, *, platform: str) -> SandboxBackend:
@@ -30,5 +33,7 @@ def select_backend(backend_name: str, *, platform: str) -> SandboxBackend:
         return BwrapBackend()
     if backend_name == "seatbelt":
         return SeatbeltBackend()
+    if backend_name == "srt":
+        return SrtBackend()
     msg = f"unknown backend {backend_name!r}"
     raise ValueError(msg)

@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from sandboxr.backend.bwrap import CACHE_REL, build_args
+from sandboxr.backend.bwrap import CACHE_REL, BwrapBackend, build_args
 from sandboxr.sandbox.spec import SandboxSpec
 
 
@@ -250,7 +250,7 @@ def test_home_rw_empty_by_default(home: Path, project: Path) -> None:
 def test_wsl_resolv_conf_rebound_after_mnt_mask(home: Path, project: Path, tmp_path: Path) -> None:
     resolv = tmp_path / "resolv.conf"
     resolv.write_text("nameserver 1.1.1.1")
-    with patch("sandboxr.backend.bwrap._WSL_RUNTIME_BINDS", (str(resolv),)):
+    with patch("sandboxr.backend.bwrap.WSL_RUNTIME_BINDS", (str(resolv),)):
         args = build_args(spec_for(home, project), {}, mask_paths=("/mnt",))
     tmpfs_targets = [args[i + 1] for i, a in enumerate(args) if a == "--tmpfs"]
     ro = bind_pairs(args, "--ro-bind")
@@ -263,3 +263,8 @@ def test_wsl_resolv_conf_rebound_after_mnt_mask(home: Path, project: Path, tmp_p
         i for i, a in enumerate(args) if a == "--ro-bind" and args[i + 1] == resolv_str
     )
     assert mnt_idx < resolv_idx
+
+
+def test_wrap_command_is_identity() -> None:
+    cmd = ["claude", "--dangerously-skip-permissions"]
+    assert BwrapBackend().wrap_command(cmd) == cmd

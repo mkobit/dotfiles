@@ -8,10 +8,13 @@ is faked so _require_bwrap passes on non-Linux hosts.
 
 import os
 import shutil
+import subprocess
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
+from sandboxr.backend import srt as srt_backend
 from sandboxr.main import app
 from sandboxr.profile import loader
 
@@ -39,6 +42,15 @@ enabled = true
 backend = "bwrap"
 project_write = false
 network = "none"
+ssh_agent = false
+gpg_agent = false
+
+[profiles.srt-allowlist]
+enabled = true
+backend = "srt"
+project_write = true
+network = "allowlist"
+allowed_domains = ["api.example.com"]
 ssh_agent = false
 gpg_agent = false
 """
@@ -216,3 +228,63 @@ def test_profiles_shows_capability_fields():
     assert "project_write=" in result.output
     assert "ssh_agent=" in result.output
     assert "gpg_agent=" in result.output
+
+
+# ── run --show-command (srt backend) ────────────────────────────────────────
+
+
+def test_run_srt_backend_fails_when_node_missing(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(shutil, "which", lambda name, **kwargs: None)
+    result = runner.invoke(
+        app,
+        ["run", "--profile", "srt-allowlist", "--show-command", "--", "bash"],
+    )
+    assert result.exit_code != 0
+
+
+def test_run_srt_backend_fails_when_not_provisioned(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.setattr(
+        shutil,
+        "which",
+        lambda name, **kwargs: f"/usr/bin/{name}" if name in ("node", "mise") else None,
+    )
+
+    def _run(args, **kwargs):
+        return subprocess.CompletedProcess(args, 1, stdout="", stderr="not installed")
+
+    monkeypatch.setattr(srt_backend.subprocess, "run", _run)
+    result = runner.invoke(
+        app,
+        ["run", "--profile", "srt-allowlist", "--show-command", "--", "bash"],
+    )
+    assert result.exit_code != 0
+
+
+def test_run_srt_backend_show_command(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
+    monkeypatch.setattr(
+        shutil,
+        "which",
+        lambda name, **kwargs: f"/usr/bin/{name}" if name in ("node", "mise") else None,
+    )
+    install_dir = tmp_path / "mise-installs" / "npm-anthropic-ai-sandbox-runtime" / "0.0.63"
+    cli_js = install_dir / srt_backend.CLI_JS_RELATIVE_TO_INSTALL
+    cli_js.parent.mkdir(parents=True)
+    cli_js.write_text("")
+
+    def _run(args, **kwargs):
+        return subprocess.CompletedProcess(args, 0, stdout=f"{install_dir}\n", stderr="")
+
+    monkeypatch.setattr(srt_backend.subprocess, "run", _run)
+    result = runner.invoke(
+        app,
+        ["run", "--profile", "srt-allowlist", "--show-command", "--", "bash"],
+    )
+    assert result.exit_code == 0
+    assert result.output.startswith("env -i ")
+    assert "AGENT_RUN_IN_SANDBOX=1" in result.output
+    assert "/usr/bin/node" in result.output
+    assert str(cli_js) in result.output
+    assert "-s" in result.output
+    # startup-race workaround: the trailing command is embedded in the
+    # wrapper script itself (srt drops positional args after `bash -c`).
+    assert "sleep 0.2; exec bash" in result.output

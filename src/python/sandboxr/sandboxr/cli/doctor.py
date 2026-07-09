@@ -7,15 +7,22 @@ from typing import Annotated
 import typer
 
 from sandboxr.backend.bwrap import BwrapBackend, default_mask_paths
+from sandboxr.backend.srt import SrtBackend
 from sandboxr.cli._common import (
     _refuse_if_nested,
     _require_bwrap,
+    _require_srt,
     _resolve,
     _sandbox_spec,
 )
 from sandboxr.profile.loader import merge_cli_overrides
+from sandboxr.sandbox.spec import SandboxSpec
 
 app = typer.Typer()
+
+# Never a real allowlist entry — used as the deliberately-unreachable target
+# for the "denied domain stays blocked" probe.
+_DENIED_DOMAIN_PROBE_TARGET = "example.com"
 
 PROBE_SCRIPT = r"""
 set -u
@@ -69,6 +76,43 @@ if command -v curl >/dev/null 2>&1; then
     else
       pass "network unreachable (air-gapped)"
     fi
+  elif [ "$PROBE_NETWORK" = "allowlist" ]; then
+    # A plain curl exit code conflates "connection-level failure" with
+    # "reached the destination, got an HTTP error status" -- a denied
+    # domain reaches srt's own proxy and gets a real HTTP 403 back (with
+    # X-Proxy-Error: blocked-by-sandbox-runtime), which is a *successful*
+    # curl transaction, not a connection failure. So check for that header
+    # specifically rather than inferring from curl's exit code or a
+    # generic HTTP status. curl's own stderr (-S) is discarded, not folded
+    # into $headers, so a real connection failure leaves $headers empty
+    # instead of masquerading as "reachable".
+    probe_domain() {
+      headers=$(curl -sS -m 4 -D - -o /dev/null "https://$1" 2>/dev/null)
+      code=$?
+      if printf '%s' "$headers" | grep -qi '^X-Proxy-Error:'; then
+        echo "blocked"
+      elif [ "$code" -eq 0 ]; then
+        echo "reachable"
+      else
+        echo "unreachable"
+      fi
+    }
+    if [ -n "${PROBE_ALLOWED_DOMAIN:-}" ]; then
+      status=$(probe_domain "$PROBE_ALLOWED_DOMAIN")
+      if [ "$status" = "reachable" ]; then
+        pass "allowed domain reachable ($PROBE_ALLOWED_DOMAIN)"
+      else
+        fail "allowed domain $status, expected reachable ($PROBE_ALLOWED_DOMAIN)"
+      fi
+    fi
+    if [ -n "${PROBE_DENIED_DOMAIN:-}" ]; then
+      status=$(probe_domain "$PROBE_DENIED_DOMAIN")
+      if [ "$status" = "blocked" ]; then
+        pass "denied domain blocked ($PROBE_DENIED_DOMAIN)"
+      else
+        fail "denied domain $status, expected blocked ($PROBE_DENIED_DOMAIN)"
+      fi
+    fi
   else
     ollama_url="${OLLAMA_HOST:-localhost:11434}"
     case "$ollama_url" in http://*|https://*) ;; *) ollama_url="http://$ollama_url" ;; esac
@@ -82,6 +126,19 @@ fi
 printf 'failures: %d\n' "$fails"
 exit "$fails"
 """
+
+
+def _probe_env(spec: SandboxSpec) -> dict[str, str]:
+    env = {
+        "PROBE_PROJECT": str(spec.project_root),
+        "PROBE_PROJECT_WRITE": "1" if spec.project_write else "0",
+        "PROBE_EXPECT_GH": "1" if "GH_TOKEN" in spec.extra_env else "0",
+        "PROBE_NETWORK": spec.network,
+    }
+    if spec.network == "allowlist" and spec.allowed_domains:
+        env["PROBE_ALLOWED_DOMAIN"] = spec.allowed_domains[0]
+        env["PROBE_DENIED_DOMAIN"] = _DENIED_DOMAIN_PROBE_TARGET
+    return env
 
 
 @app.command()
@@ -101,22 +158,13 @@ def doctor(
     active = merge_cli_overrides(active, network=network, ssh_agent=ssh_agent, gpg_agent=gpg_agent)
     if isinstance(backend, BwrapBackend):
         _require_bwrap()
+    if isinstance(backend, SrtBackend):
+        _require_srt()
     spec = _sandbox_spec(active, cwd, tty=False)
-    spec = dataclasses.replace(
-        spec,
-        extra_env={
-            **spec.extra_env,
-            "PROBE_PROJECT": str(spec.project_root),
-            "PROBE_PROJECT_WRITE": "1" if spec.project_write else "0",
-            "PROBE_EXPECT_GH": "1" if "GH_TOKEN" in spec.extra_env else "0",
-            "PROBE_NETWORK": spec.network,
-        },
-    )
+    spec = dataclasses.replace(spec, extra_env={**spec.extra_env, **_probe_env(spec)})
     args = [
         *backend.build_args(spec, os.environ, default_mask_paths(os.getuid())),
-        "bash",
-        "-c",
-        PROBE_SCRIPT,
+        *backend.wrap_command(["bash", "-c", PROBE_SCRIPT]),
     ]
     result = subprocess.run(args, check=False)
     if result.returncode == 0:

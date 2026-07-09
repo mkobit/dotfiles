@@ -62,11 +62,12 @@ def merge_cli_overrides(
     gpg_agent: bool | None = None,
     extra_ro: Sequence[str] = (),
     extra_rw: Sequence[str] = (),
+    allowed_domains: Sequence[str] = (),
 ) -> Profile:
     """Return a new Profile with CLI flag values applied on top of the base profile.
 
-    None values are ignored (not overridden). extra_ro/extra_rw are appended
-    to any paths already declared in the profile.
+    None values are ignored (not overridden). extra_ro/extra_rw/allowed_domains
+    are appended to any entries already declared in the profile.
     """
     overrides: dict[str, object] = {
         k: v
@@ -82,4 +83,6 @@ def merge_cli_overrides(
         overrides["extra_ro"] = (*profile.extra_ro, *extra_ro)
     if extra_rw:
         overrides["extra_rw"] = (*profile.extra_rw, *extra_rw)
+    if allowed_domains:
+        overrides["allowed_domains"] = (*profile.allowed_domains, *allowed_domains)
     return profile.model_copy(update=overrides) if overrides else profile

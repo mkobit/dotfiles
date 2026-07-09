@@ -19,3 +19,4 @@ class SandboxSpec:
     extra_rw: tuple[Path, ...] = ()
     home_rw: tuple[str, ...] = ()
     home_mask: tuple[str, ...] = ()
+    allowed_domains: tuple[str, ...] = ()
