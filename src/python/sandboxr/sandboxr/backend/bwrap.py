@@ -36,6 +36,24 @@ RO_HOME_PATHS = (
 # Agent state and OAuth stores: the agents' own credentials must be present
 # for the tools to function. Both common agy state dirs are bound so OAuth
 # state survives regardless of which one ends up canonical.
+#
+# Known limitation: entries here that are individual files rather than
+# directories (currently just .claude.json, a top-level dotfile sibling of
+# .claude/, not nested inside it) get bind-mounted as their own mountpoint.
+# A mountpoint can never be the target of rename(2) -- confirmed via strace
+# that Claude Code's atomic-write pattern for .claude.json (write a temp
+# file, rename() it over the target) always fails EBUSY inside the sandbox,
+# for both this backend and srt.py (same underlying bwrap mount, same
+# constant). Claude Code has a working fallback (open+truncate+write in
+# place instead of atomic rename), so this doesn't break functionality, but
+# it is a real correctness downgrade -- the write is no longer atomic for a
+# credentials/session file that's shared with every other concurrent claude
+# session on the host. This is a general bind-mount-sandbox limitation (the
+# same class of gotcha as Docker's well-known single-file bind mount +
+# rename issue), not something fixable by changing what gets bound here
+# without widening the exposed surface (e.g. binding all of $HOME, which
+# defeats the deny-then-allow model this file implements). Not treated as a
+# bug to fix; documented here so the tradeoff is explicit.
 RW_HOME_PATHS = (
     ".claude",
     ".claude.json",
