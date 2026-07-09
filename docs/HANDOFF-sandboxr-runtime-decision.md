@@ -21,8 +21,8 @@ Audience: fresh agent session executing follow-ups.
 **Primary: adopt `@anthropic-ai/sandbox-runtime` (srt) as the enforcement runtime.**
 sandboxr compiles `SandboxSpec`/`sandbox.toml` profiles into srt settings JSON and the srt invocation.
 
-**Fallback (already spec'd and committed): two-layer bwrap-mask + `codex sandbox`** — see `docs/DESIGN-sandboxr-two-layer.md`.
-Use it if srt's maturity/proxy issues (below) prove disqualifying.
+**Fallback design (two-layer bwrap-mask + `codex sandbox`) retired.**
+User rejected maintaining it as a standing fallback ("maintaining two designs is wasted effort"); the design doc (`docs/DESIGN-sandboxr-two-layer.md`) was deleted once srt acceptance passed.
 
 ### Why the recommendation flipped from the codex two-layer spec
 
@@ -80,7 +80,7 @@ srt is the only process-level option with fail-closed egress (domain allowlist v
 3. **Provisioning design**: pinned srt without global npm — e.g. `npm pack`ed tarball as chezmoi external, node via existing mise toolchain; must satisfy "policy inputs not writable from inside sandbox".
 4. **Acceptance test**: run a real `claude` loop inside srt with `allowedDomains` limited to its API + statsig/sentry endpoints; extend `doctor.py` probes (absence through layers, write scoping, allowed vs denied domains, proxy health).
 5. **Map `SandboxSpec`/`sandbox.toml` → srt settings generator**; keep the pure-function compilation + unit test pattern from `test_bwrap.py`.
-6. **Housekeeping**: delete `seatbelt.py` stub; mark `DESIGN-sandboxr-two-layer.md` as fallback; decide `bwrap.py`'s fate (likely deleted once srt acceptance passes).
+6. **Housekeeping**: delete `seatbelt.py` stub; decide `bwrap.py`'s fate (likely deleted once srt acceptance passes). `DESIGN-sandboxr-two-layer.md` itself already deleted.
 
 ## Continuation prompt for the next session
 

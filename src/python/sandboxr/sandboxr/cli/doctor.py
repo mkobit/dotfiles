@@ -9,6 +9,7 @@ import typer
 from sandboxr.backend.bwrap import BwrapBackend, default_mask_paths
 from sandboxr.backend.srt import SrtBackend
 from sandboxr.cli._common import (
+    _fail,
     _refuse_if_nested,
     _require_bwrap,
     _require_srt,
@@ -16,6 +17,7 @@ from sandboxr.cli._common import (
     _sandbox_spec,
 )
 from sandboxr.profile.loader import merge_cli_overrides
+from sandboxr.profile.schema import ConfigError
 from sandboxr.sandbox.spec import SandboxSpec
 
 app = typer.Typer()
@@ -155,7 +157,12 @@ def doctor(
     _refuse_if_nested()
     cwd = Path.cwd()
     _, active, backend = _resolve(profile, cwd)
-    active = merge_cli_overrides(active, network=network, ssh_agent=ssh_agent, gpg_agent=gpg_agent)
+    try:
+        active = merge_cli_overrides(
+            active, network=network, ssh_agent=ssh_agent, gpg_agent=gpg_agent
+        )
+    except ConfigError as exc:
+        raise _fail(str(exc)) from exc
     if isinstance(backend, BwrapBackend):
         _require_bwrap()
     if isinstance(backend, SrtBackend):
