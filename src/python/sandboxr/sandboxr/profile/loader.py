@@ -63,6 +63,7 @@ def merge_cli_overrides(
     extra_ro: Sequence[str] = (),
     extra_rw: Sequence[str] = (),
     allowed_domains: Sequence[str] = (),
+    timeout_seconds: float | None = None,
 ) -> Profile:
     """Return a new Profile with CLI flag values applied on top of the base profile.
 
@@ -76,6 +77,7 @@ def merge_cli_overrides(
             "network": network,
             "ssh_agent": ssh_agent,
             "gpg_agent": gpg_agent,
+            "timeout_seconds": timeout_seconds,
         }.items()
         if v is not None
     }

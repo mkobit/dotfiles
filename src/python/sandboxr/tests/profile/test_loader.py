@@ -130,3 +130,15 @@ def test_merge_none_values_not_applied(config: SandboxConfig) -> None:
     result = merge_cli_overrides(profile, project_write=None, network=None)
     assert result.project_write == profile.project_write
     assert result.network == profile.network
+
+
+def test_merge_timeout_seconds_override(config: SandboxConfig) -> None:
+    profile = config.profiles["autonomous"]
+    result = merge_cli_overrides(profile, timeout_seconds=300)
+    assert result.timeout_seconds == 300
+
+
+def test_merge_timeout_seconds_none_not_applied(config: SandboxConfig) -> None:
+    profile = config.profiles["autonomous"]
+    result = merge_cli_overrides(profile, timeout_seconds=None)
+    assert result.timeout_seconds == profile.timeout_seconds

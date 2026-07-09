@@ -33,6 +33,10 @@ class Profile(BaseModel):
     # Domain allowlist for network="allowlist" (srt backend only). Required
     # non-empty when network="allowlist"; must be empty otherwise.
     allowed_domains: tuple[str, ...] = Field(default=())
+    # Wall-clock bound on the whole sandboxed invocation (outer bwrap/srt
+    # process included). None = unbounded. Turns a silent hang into a fast,
+    # visible exit-124 instead of leaving it to the caller to notice.
+    timeout_seconds: float | None = Field(default=None, gt=0)
 
     @model_validator(mode="after")
     def _check_allowed_domains(self) -> Profile:
