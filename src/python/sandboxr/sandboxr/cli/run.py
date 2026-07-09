@@ -17,6 +17,7 @@ from sandboxr.cli._common import (
     _sandbox_spec,
 )
 from sandboxr.profile.loader import merge_cli_overrides
+from sandboxr.profile.schema import ConfigError
 from sandboxr.sandbox.tool import adapt_command
 
 _CTX = {
@@ -82,16 +83,19 @@ def run(
         raise _fail("no command given; usage: sandboxr run [FLAGS] -- COMMAND [ARGS...]")
     cwd = Path.cwd()
     _, active, backend = _resolve(profile, cwd)
-    active = merge_cli_overrides(
-        active,
-        project_write=project_write,
-        network=network,
-        ssh_agent=ssh_agent,
-        gpg_agent=gpg_agent,
-        extra_ro=extra_ro or [],
-        extra_rw=extra_rw or [],
-        timeout_seconds=timeout,
-    )
+    try:
+        active = merge_cli_overrides(
+            active,
+            project_write=project_write,
+            network=network,
+            ssh_agent=ssh_agent,
+            gpg_agent=gpg_agent,
+            extra_ro=extra_ro or [],
+            extra_rw=extra_rw or [],
+            timeout_seconds=timeout,
+        )
+    except ConfigError as exc:
+        raise _fail(str(exc)) from exc
     if isinstance(backend, BwrapBackend):
         _require_bwrap()
     if isinstance(backend, SrtBackend):

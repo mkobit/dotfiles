@@ -87,4 +87,10 @@ def merge_cli_overrides(
         overrides["extra_rw"] = (*profile.extra_rw, *extra_rw)
     if allowed_domains:
         overrides["allowed_domains"] = (*profile.allowed_domains, *allowed_domains)
-    return profile.model_copy(update=overrides) if overrides else profile
+    if not overrides:
+        return profile
+    try:
+        return Profile.model_validate({**profile.model_dump(), **overrides})
+    except ValidationError as exc:
+        msg = f"invalid override for profile {profile.name!r}: {exc}"
+        raise ConfigError(msg) from exc

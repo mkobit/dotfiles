@@ -1,7 +1,7 @@
 import pytest
 
 from sandboxr.profile.loader import load_config, merge_cli_overrides
-from sandboxr.profile.schema import SandboxConfig
+from sandboxr.profile.schema import ConfigError, SandboxConfig
 
 BASE_TOML = """
 default_profile = "autonomous"
@@ -142,3 +142,19 @@ def test_merge_timeout_seconds_none_not_applied(config: SandboxConfig) -> None:
     profile = config.profiles["autonomous"]
     result = merge_cli_overrides(profile, timeout_seconds=None)
     assert result.timeout_seconds == profile.timeout_seconds
+
+
+def test_merge_invalid_network_override_raises(config: SandboxConfig) -> None:
+    # network is a Literal["shared", "none", "allowlist"]; model_copy would
+    # silently accept any string, so this must go through real validation.
+    profile = config.profiles["autonomous"]
+    with pytest.raises(ConfigError):
+        merge_cli_overrides(profile, network="bogus")
+
+
+def test_merge_invalid_timeout_seconds_override_raises(config: SandboxConfig) -> None:
+    # timeout_seconds has gt=0; a non-positive override must raise, not
+    # silently produce a Profile with an invalid timeout.
+    profile = config.profiles["autonomous"]
+    with pytest.raises(ConfigError):
+        merge_cli_overrides(profile, timeout_seconds=-5)

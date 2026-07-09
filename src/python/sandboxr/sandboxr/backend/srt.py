@@ -52,6 +52,23 @@ def build_settings(spec: SandboxSpec, mask_paths: Sequence[str] = ()) -> dict:
         )
         raise ValueError(msg)
     home = spec.home
+    # Agent sockets live under /run/user/<uid>, masked (denyRead) via
+    # mask_paths on the same default_mask_paths() bwrap.py also uses -- must
+    # be re-exposed here or the sockets become unreachable. bwrap's --bind
+    # grants read+write, so both sockets go into allow_read and allow_write
+    # to match; ~/.gnupg mirrors bwrap's --ro-bind (read-only keyring lookup,
+    # the private key stays on the host).
+    ssh_sock = (
+        spec.ssh_agent_sock
+        if spec.ssh_agent_sock is not None and spec.ssh_agent_sock.exists()
+        else None
+    )
+    gpg_sock = (
+        spec.gpg_agent_sock
+        if spec.gpg_agent_sock is not None and spec.gpg_agent_sock.exists()
+        else None
+    )
+    gnupg_dir = home / ".gnupg"
     deny_read = [str(home), *mask_paths, *(str(home / rel) for rel in spec.home_mask)]
     allow_read = [
         *(str(home / rel) for rel in RO_HOME_PATHS if (home / rel).exists()),
@@ -65,6 +82,9 @@ def build_settings(spec: SandboxSpec, mask_paths: Sequence[str] = ()) -> dict:
         *(str(home / rel) for rel in spec.home_rw if (home / rel).exists()),
         str(spec.project_root),
         *([str(spec.git_common_dir)] if spec.git_common_dir is not None else []),
+        *([str(ssh_sock)] if ssh_sock is not None else []),
+        *([str(gpg_sock)] if gpg_sock is not None else []),
+        *([str(gnupg_dir)] if gpg_sock is not None and gnupg_dir.exists() else []),
     ]
     allow_write = [
         *(str(home / rel) for rel in RW_HOME_PATHS if (home / rel).exists()),
@@ -77,8 +97,22 @@ def build_settings(spec: SandboxSpec, mask_paths: Sequence[str] = ()) -> dict:
             if spec.project_write and spec.git_common_dir is not None
             else []
         ),
+        *([str(ssh_sock)] if ssh_sock is not None else []),
+        *([str(gpg_sock)] if gpg_sock is not None else []),
     ]
     deny_write = [str(home / rel) for rel in spec.home_mask]
+    # Known limitation (verified live, 2026-07-09): on Linux, srt's
+    # allowUnixSockets is a documented no-op -- its own linux-sandbox-utils.d.ts
+    # states "allowUnixSockets configuration is not path-based on Linux (unlike
+    # macOS) because seccomp-bpf cannot inspect user-space memory to read
+    # socket paths". The compiled JS confirms: unless allowAllUnixSockets is
+    # true, a blanket seccomp filter blocks every AF_UNIX socket() call
+    # (reproduced directly: a bare `socket.socket(AF_UNIX, SOCK_STREAM)` raises
+    # PermissionError before any connect() or path is involved). So even with
+    # the allowRead/allowWrite re-expose above, ssh_agent/gpg_agent forwarding
+    # does not actually work under the srt backend on Linux today -- only
+    # allowAllUnixSockets:true (an unscoped grant, not specific to these
+    # sockets) would make it connect, and that tradeoff hasn't been made.
     allow_unix_sockets = [
         str(sock) for sock in (spec.ssh_agent_sock, spec.gpg_agent_sock) if sock is not None
     ]

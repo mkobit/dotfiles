@@ -202,6 +202,63 @@ def test_no_allow_unix_sockets_key_when_no_agents(home: Path, project: Path) -> 
     assert "allowUnixSockets" not in settings["network"]
 
 
+def test_ssh_agent_socket_reexposed_after_run_user_mask(
+    home: Path, project: Path, tmp_path: Path
+) -> None:
+    # /run/user/<uid> is masked (denyRead) via mask_paths, same as bwrap's
+    # default_mask_paths() -- without a matching allowRead/allowWrite entry
+    # the ssh agent socket becomes unreachable inside the sandbox.
+    ssh_sock = tmp_path / "ssh.sock"
+    ssh_sock.touch()
+    settings = build_settings(
+        spec_for(home, project, ssh_agent_sock=ssh_sock), mask_paths=(f"/run/user/{os.getuid()}",)
+    )
+    assert str(ssh_sock) in settings["filesystem"]["allowRead"]
+    assert str(ssh_sock) in settings["filesystem"]["allowWrite"]
+
+
+def test_gpg_agent_socket_reexposed_after_run_user_mask(
+    home: Path, project: Path, tmp_path: Path
+) -> None:
+    gpg_sock = tmp_path / "gpg.sock"
+    gpg_sock.touch()
+    settings = build_settings(
+        spec_for(home, project, gpg_agent_sock=gpg_sock), mask_paths=(f"/run/user/{os.getuid()}",)
+    )
+    assert str(gpg_sock) in settings["filesystem"]["allowRead"]
+    assert str(gpg_sock) in settings["filesystem"]["allowWrite"]
+
+
+def test_gnupg_dir_readonly_when_gpg_agent_enabled(
+    home: Path, project: Path, tmp_path: Path
+) -> None:
+    # Mirrors bwrap's --ro-bind for ~/.gnupg: keyring lookup only, the
+    # private key stays on the host -- must not be writable.
+    gpg_sock = tmp_path / "gpg.sock"
+    gpg_sock.touch()
+    (home / ".gnupg").mkdir()
+    settings = build_settings(spec_for(home, project, gpg_agent_sock=gpg_sock))
+    assert str(home / ".gnupg") in settings["filesystem"]["allowRead"]
+    assert str(home / ".gnupg") not in settings["filesystem"]["allowWrite"]
+
+
+def test_gnupg_dir_absent_from_allow_read_when_missing(
+    home: Path, project: Path, tmp_path: Path
+) -> None:
+    gpg_sock = tmp_path / "gpg.sock"
+    gpg_sock.touch()
+    settings = build_settings(spec_for(home, project, gpg_agent_sock=gpg_sock))
+    assert str(home / ".gnupg") not in settings["filesystem"]["allowRead"]
+
+
+def test_no_agent_socket_expose_when_sockets_absent(home: Path, project: Path) -> None:
+    settings = build_settings(spec_for(home, project))
+    allow_read = settings["filesystem"]["allowRead"]
+    allow_write = settings["filesystem"]["allowWrite"]
+    assert str(home / ".gnupg") not in allow_read
+    assert not any(entry.endswith(".sock") for entry in (*allow_read, *allow_write))
+
+
 def test_write_settings_writes_json_mode_0600(home: Path) -> None:
     path = write_settings({"a": 1}, home)
     assert json.loads(path.read_text()) == {"a": 1}
