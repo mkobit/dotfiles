@@ -2,7 +2,6 @@ from collections.abc import Mapping, Sequence
 from typing import Protocol
 
 from sandboxr.backend.bwrap import BwrapBackend
-from sandboxr.backend.seatbelt import SeatbeltBackend
 from sandboxr.backend.srt import SrtBackend
 from sandboxr.sandbox.spec import SandboxSpec
 
@@ -25,14 +24,10 @@ def select_backend(backend_name: str, *, platform: str) -> SandboxBackend:
     if backend_name == "auto":
         if platform.startswith("linux"):
             return BwrapBackend()
-        if platform == "darwin":
-            return SeatbeltBackend()
         msg = f"no auto backend for platform {platform!r}"
         raise ValueError(msg)
     if backend_name == "bwrap":
         return BwrapBackend()
-    if backend_name == "seatbelt":
-        return SeatbeltBackend()
     if backend_name == "srt":
         return SrtBackend()
     msg = f"unknown backend {backend_name!r}"

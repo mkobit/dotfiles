@@ -18,7 +18,7 @@ The tool's settings file inside the sandbox is *not* trusted — the OS-level is
 - `sandboxr/profile/` — pydantic model for `~/.config/ai-policy/sandbox.toml` plus profile resolution.
 Resolution order: `--profile` CLI flag > `$AGENT_RUN_PROFILE` > `default_profile` from config.
 Never reads from the project tree (so a hostile repo cannot upgrade its own capabilities).
-- `sandboxr/backend/` — `SandboxBackend` `Protocol` plus `BwrapBackend` (implemented) and `SeatbeltBackend` (stub for future macOS support).
+- `sandboxr/backend/` — `SandboxBackend` `Protocol` plus `BwrapBackend` (Linux, default) and `SrtBackend` (`@anthropic-ai/sandbox-runtime`, opt-in).
 - `sandboxr/backend/bwrap.py` — bwrap argv builder.
 Bind table: `/` ro, `$HOME` tmpfs (default-deny), explicit re-binds for the toolchain, agent state dirs, and the project worktree.
 - `sandboxr/main.py` — typer `app` exposing `run` and `doctor`.
@@ -32,7 +32,7 @@ Per-tool adapters (`claude`, `agy`, `opencode`) live in `_adapt_command`.
 - **No per-repo configuration** — profile resolution does not look at git remote, marker files, or `.sandboxr` files in the project.
 - **No write credentials inside the sandbox** — `~/.ssh`, `~/.gnupg`, `~/.config/gh`, and `/run/user/<uid>` are masked.
 A read-only `gh` PAT at `~/.local/state/ai-policy/tokens/readonly.token` (chmod 600 required) is injected as `GH_TOKEN` if present.
-- **No macOS implementation yet** — `SeatbeltBackend.build_args` raises `NotImplementedError`; sketch is in `.claude/plans/` of how a Seatbelt profile would look.
+- **No macOS support** — not a requirement; `select_backend("auto", platform="darwin")` raises rather than falling back to a stub.
 
 ## Verification
 
