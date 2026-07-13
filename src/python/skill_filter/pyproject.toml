@@ -1,8 +1,9 @@
 [project]
 name = "skill-filter"
 version = "0.0.0"
-requires-python = ">=3.14"
+requires-python = ">=3.8"
 # No runtime dependencies: executed by system python3 at chezmoi apply time, before uv/mise exist.
+# requires-python targets the runtime contract; dev tooling (uv workspace) runs on >=3.14.
 dependencies = []
 
 [project.scripts]
