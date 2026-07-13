@@ -40,8 +40,8 @@ import os
 import posixpath
 import sys
 import tarfile
-from collections.abc import Callable, Iterable, Sequence
-from typing import BinaryIO, NamedTuple, Optional
+from collections.abc import Iterable, Sequence
+from typing import BinaryIO, Callable, NamedTuple, Optional
 
 
 class Selection(NamedTuple):
