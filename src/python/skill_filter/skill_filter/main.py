@@ -97,7 +97,8 @@ def _parse_agent(src: str, content: bytes) -> _AgentParts:
     )
     if description is None:
         raise FilterError(f"agent file {src!r} frontmatter has no description")
-    name = posixpath.basename(src).removesuffix(".md")
+    basename = posixpath.basename(src)
+    name = basename[: -len(".md")] if basename.endswith(".md") else basename
     return _AgentParts(
         name=name, description=description, body=tuple(lines[closing + 1 :])
     )
