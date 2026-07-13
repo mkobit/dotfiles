@@ -80,7 +80,7 @@ srt is the only process-level option with fail-closed egress (domain allowlist v
 3. **Provisioning design**: pinned srt without global npm — e.g. `npm pack`ed tarball as chezmoi external, node via existing mise toolchain; must satisfy "policy inputs not writable from inside sandbox".
 4. **Acceptance test**: run a real `claude` loop inside srt with `allowedDomains` limited to its API + statsig/sentry endpoints; extend `doctor.py` probes (absence through layers, write scoping, allowed vs denied domains, proxy health).
 5. **Map `SandboxSpec`/`sandbox.toml` → srt settings generator**; keep the pure-function compilation + unit test pattern from `test_bwrap.py`.
-6. **Housekeeping**: delete `seatbelt.py` stub; decide `bwrap.py`'s fate (likely deleted once srt acceptance passes). `DESIGN-sandboxr-two-layer.md` itself already deleted.
+6. **Housekeeping**: `seatbelt.py` stub deleted; `DESIGN-sandboxr-two-layer.md` deleted. `bwrap.py`'s fate still open — 4 of 6 configured profiles still resolve to it (`backend="auto"` on Linux), so it stays until those migrate too.
 
 ## Continuation prompt for the next session
 

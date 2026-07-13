@@ -2,7 +2,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-Backend = Literal["auto", "bwrap", "seatbelt", "srt"]
+Backend = Literal["auto", "bwrap", "srt"]
 Network = Literal["shared", "none", "allowlist"]
 
 
