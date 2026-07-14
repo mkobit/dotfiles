@@ -1,5 +1,4 @@
 [ai.command_policy.families.git-local]
-enabled = true
 # Everything here is a local, commit-or-object-level operation with no
 # remote/network write and no irrecoverable data loss (reflog covers commit
 # history even across rebase). Deliberately excluded:
