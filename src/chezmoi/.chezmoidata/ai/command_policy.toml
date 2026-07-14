@@ -1,0 +1,60 @@
+# Tool-neutral command-approval policy: named families of shell commands
+# that AI coding agents auto-approve without prompting the human.
+#
+# Overlay-extensible:
+#   - New family:    [data.ai.command_policy.families.<name>] with its own
+#                     `prefixes` (new key = dict merge = additive).
+#   - Extend/shrink an existing family: chezmoi list values replace
+#     wholesale on collision (can't append to `prefixes` directly), so add
+#     an `add`/`remove` list of prefixes instead — separate keys in the same
+#     family table, dict-merged alongside the base `prefixes`:
+#       [data.ai.command_policy.families.git-local]
+#       add    = ["git reset"]
+#       remove = ["git pull"]
+#     Renderers compute the final set per family as (prefixes ∪ add) − remove.
+#   - Disable a base family entirely: override just its `enabled` flag.
+#
+# A prefix is a literal, whitespace-separated command head — no globs, no
+# regex. Renderers translate each prefix into the target tool's own
+# prefix-match syntax:
+#   Claude Code:  Bash(<prefix>:*)               (dot_claude/modify_settings.json.tmpl)
+#   Antigravity:  command(<regex-escaped prefix>) (dot_gemini/antigravity-cli/modify_settings.json.tmpl)
+#
+# This is an allowlist only (no `deny` key yet) — anything not covered here
+# just falls back to each tool's normal prompt-on-first-use behavior.
+
+[ai.command_policy.families.git-local]
+enabled = true
+# Everything here is a local, commit-or-object-level operation with no
+# remote/network write and no irrecoverable data loss (reflog covers commit
+# history even across rebase). Deliberately excluded:
+#   - push: the actual remote-write / code-leak risk this list is scoped
+#     around; always prompt.
+#   - reset, clean: can permanently destroy uncommitted/untracked work with
+#     no reflog entry to recover from, and prefix matching can't separate
+#     safe flags (--soft) from destructive ones (--hard, -fd) — always
+#     prompt for both, in full.
+prefixes = [
+  "git add",
+  "git blame",
+  "git branch",
+  "git checkout",
+  "git cherry-pick",
+  "git commit",
+  "git diff",
+  "git fetch",
+  "git log",
+  "git merge",
+  "git pull",
+  "git rebase",
+  "git restore",
+  "git show",
+  "git stash",
+  "git status",
+  "git switch",
+  "git worktree list",
+]
+
+[ai.command_policy.families.beads]
+enabled = true
+prefixes = ["bd"]

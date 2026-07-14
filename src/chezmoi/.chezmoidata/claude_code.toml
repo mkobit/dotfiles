@@ -24,9 +24,11 @@ failIfUnavailable = false
 type = "command"
 command = "statusline claude render"
 
-[claude_code.settings.permissions]
-tools = "allow"
-files = "allow"
+# permissions.allow is computed at render time from
+# ai.command_policy.families (.chezmoidata/ai/command_policy.toml) —
+# see dot_claude/modify_settings.json.tmpl. (Previously this table set
+# tools/files = "allow" here, but neither key exists in Claude Code's
+# documented permissions schema — removed as inert.)
 
 [claude_code.settings.env]
 DISABLE_AUTOUPDATER = "true"
