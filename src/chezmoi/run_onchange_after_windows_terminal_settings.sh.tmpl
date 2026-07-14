@@ -53,6 +53,12 @@ if (\$settings.profiles.defaults.font.size -ne {{ .windows_terminal.font_size }}
     \$modified = \$true
 }
 
+# Update Paste Warning settings
+if (\$null -eq \$settings.largePasteWarning -or \$settings.largePasteWarning -ne \$false) {
+    \$settings | Add-Member -NotePropertyName largePasteWarning -NotePropertyValue \$false -Force
+    \$modified = \$true
+}
+
 # Update Actions for Claude Code (Shift+Enter mapping)
 if (!\$settings.actions) {
     \$settings | Add-Member -NotePropertyName actions -NotePropertyValue @() -Force
