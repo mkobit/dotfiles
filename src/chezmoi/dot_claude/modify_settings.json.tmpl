@@ -9,7 +9,26 @@ try:
 except Exception:
     existing = {}
 
-managed = json.loads("""{{ .claude_code.settings | toPrettyJson }}""")
+# One-time cleanup: tools/files under permissions were never a real Claude
+# Code settings key (silent no-op); deep_merge below only adds/updates keys,
+# so drop them explicitly or they'd linger in the live file forever.
+existing.get("permissions", {}).pop("tools", None)
+existing.get("permissions", {}).pop("files", None)
+
+{{- $allow := list -}}
+{{- range $name, $family := dig "ai" "command_policy" "families" (dict) . -}}
+{{-   if dig "enabled" true $family -}}
+{{-     $prefixes := concat (dig "prefixes" (list) $family) (dig "add" (list) $family) -}}
+{{-     $removed := dig "remove" (list) $family -}}
+{{-     range $prefixes -}}
+{{-       if not (has . $removed) -}}
+{{-         $allow = append $allow (printf "Bash(%s:*)" .) -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $settings := mergeOverwrite (deepCopy .claude_code.settings) (dict "permissions" (dict "allow" ($allow | uniq | sortAlpha))) }}
+managed = json.loads("""{{ $settings | toPrettyJson }}""")
 
 
 def deep_merge(d1, d2):

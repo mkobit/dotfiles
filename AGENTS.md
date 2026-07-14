@@ -62,6 +62,13 @@ A dispatch template in `.chezmoiexternals/` reads the BOM and generates the appr
 When adding a tool: add a catalog entry, add a BOM entry, verify the correct source type is used (GitHub releases, direct vendor download, or package manager — don't conflate them).
 When a tool extracts a full directory tree rather than a single binary, it needs its own `.chezmoiexternals/` entry rather than going through the shared dispatch template.
 
+## Command approval policy
+
+`.chezmoidata/ai/command_policy/*.toml` — one file per command family (e.g. `git.toml`, `beads.toml`), each declaring `[ai.command_policy.families.<name>]` with `prefixes` (literal command heads, no globs/regex).
+Rendered into each tool's native permission-rule syntax by `dot_claude/modify_settings.json.tmpl` (`Bash(<prefix>:*)`) and `dot_gemini/antigravity-cli/modify_settings.json.tmpl` (`command(<prefix>)`).
+New family = new file under `command_policy/`.
+An overlay extends or shrinks an existing family via sibling `add`/`remove` prefix lists in the same `[ai.command_policy.families.<name>]` table — chezmoi list values replace wholesale on collision, so never restate `prefixes` directly — or disables one entirely via `enabled = false` (defaults to `true`, so base files never need to declare it).
+
 ## Data and templates
 
 `.chezmoidata/` is the capability catalog — environment-neutral tool metadata, catalog entries, and structural additive data (config fragment registrations, plugin arrays, keybinds).

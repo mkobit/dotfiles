@@ -11,6 +11,19 @@ except Exception:
 {{ $agyMethod := dig "agy" "installation_method" "" . }}
 {{- if ne $agyMethod "none" }}
 
+{{- $agAllow := list -}}
+{{- range $name, $family := dig "ai" "command_policy" "families" (dict) . -}}
+{{-   if dig "enabled" true $family -}}
+{{-     $prefixes := concat (dig "prefixes" (list) $family) (dig "add" (list) $family) -}}
+{{-     $removed := dig "remove" (list) $family -}}
+{{-     range $prefixes -}}
+{{-       if not (has . $removed) -}}
+{{-         $agAllow = append $agAllow (printf "command(%s)" (regexQuoteMeta .)) -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+
 # Managed settings from chezmoi
 {{ $settings := dict
     "telemetry" (dict "enabled" .gemini.telemetry.enabled "logPrompts" .gemini.telemetry.log_prompts)
@@ -35,6 +48,9 @@ except Exception:
         "selectedType" "oauth-personal"
       )
     )
+    "permissions" (dict
+      "allow" ($agAllow | uniq | sortAlpha)
+    )
     "tools" (dict
       "sandbox" .gemini.tools.sandbox
       "sandboxAllowedPaths" .gemini.tools.sandbox_allowed_paths
@@ -58,6 +74,13 @@ except Exception:
 }}
 
 managed = json.loads("""{{ $settings | toPrettyJson }}""")
+
+# permissions.allow is union-merged rather than replaced: agy's own in-CLI
+# "always allow" flow writes grants into this same file, and a wholesale
+# replace here would wipe them on every `chezmoi apply`.
+existing_allow = existing.get("permissions", {}).get("allow", [])
+managed["permissions"]["allow"] = sorted(set(existing_allow) | set(managed["permissions"]["allow"]))
+
 
 def deep_merge(d1, d2):
     for k, v in d2.items():
