@@ -1,0 +1,31 @@
+[ai.command_policy.families.git-local]
+enabled = true
+# Everything here is a local, commit-or-object-level operation with no
+# remote/network write and no irrecoverable data loss (reflog covers commit
+# history even across rebase). Deliberately excluded:
+#   - push: the actual remote-write / code-leak risk this list is scoped
+#     around; always prompt.
+#   - reset, clean: can permanently destroy uncommitted/untracked work with
+#     no reflog entry to recover from, and prefix matching can't separate
+#     safe flags (--soft) from destructive ones (--hard, -fd) — always
+#     prompt for both, in full.
+prefixes = [
+  "git add",
+  "git blame",
+  "git branch",
+  "git checkout",
+  "git cherry-pick",
+  "git commit",
+  "git diff",
+  "git fetch",
+  "git log",
+  "git merge",
+  "git pull",
+  "git rebase",
+  "git restore",
+  "git show",
+  "git stash",
+  "git status",
+  "git switch",
+  "git worktree list",
+]

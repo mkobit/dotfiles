@@ -1,0 +1,3 @@
+[ai.command_policy.families.beads]
+enabled = true
+prefixes = ["bd"]
