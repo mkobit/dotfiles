@@ -64,7 +64,7 @@ gpg_agent = false
 [ai.sandbox.profiles.srt-claude]
 enabled = true
 # srt (not "auto"): domain-allowlisted egress, no hand-rolled network
-# enforcement. See docs/HANDOFF-sandboxr-runtime-decision.md.
+# enforcement. See #695 (srt-primary decision, backend).
 backend = "srt"
 project_write = true
 network = "allowlist"

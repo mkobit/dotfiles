@@ -53,11 +53,11 @@ Use `Ctrl+X Ctrl+E` as the open-in-editor alternative in Claude Code when locked
 
 | File | What it controls |
 |---|---|
-| `src/chezmoi/dot_config/zellij/config.kdl` | All Zellij keybindings |
-| `src/chezmoi/conf.d/macos.conf` (Ghostty) | `macos-option-as-alt = true` |
-| `src/chezmoi/conf.d/keybinds.conf` (Ghostty) | `Cmd+Left/Right/Backspace` → readline sequences |
-| `Library/Application Support/{Code,Cursor}/User/modify_keybindings.json.tmpl` | Shift+Enter in VS Code/Cursor (macOS) |
-| `dot_config/{Code,Cursor}/User/modify_keybindings.json.tmpl` | Shift+Enter in VS Code/Cursor (Linux/WSL) |
+| `src/chezmoi/dot_config/zellij/config.kdl.tmpl` | All Zellij keybindings |
+| `src/chezmoi/dot_config/ghostty/conf.d/macos.conf` | `macos-option-as-alt = true` |
+| `src/chezmoi/dot_config/ghostty/conf.d/keybinds.conf` | `Cmd+Left/Right/Backspace` → readline sequences |
+| `src/chezmoi/Library/Application Support/{Code,Cursor}/User/keybindings.json.tmpl` | Shift+Enter in VS Code/Cursor (macOS) |
+| `src/chezmoi/dot_config/{Code,Cursor}/User/keybindings.json.tmpl` | Shift+Enter in VS Code/Cursor (Linux/WSL) |
 
 ---
 

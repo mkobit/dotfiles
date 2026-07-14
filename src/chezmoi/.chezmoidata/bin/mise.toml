@@ -64,7 +64,7 @@ package_manager = "bun"
   [mise.global_tools.gemini-cli]
   version = "0.42.0"
 
-  # sandboxr's srt backend (docs/HANDOFF-sandboxr-runtime-decision.md):
+  # sandboxr's srt backend (#695: srt-primary decision, backend):
   # enforcement runtime for domain-allowlisted sandboxing. No registry
   # shorthand exists for this package, so the tool key is the fully
   # qualified npm backend spec. Resolved at runtime via `mise where`

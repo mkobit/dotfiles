@@ -138,9 +138,6 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 
 # Local Python Tools (via uv) Installation Methods
-[data.local_bin_tools.claude_statusline]
-installation_method = "uninstall"
-
 [data.local_bin_tools.termstatus]
 installation_method = "dotfiles.uv"
 
@@ -152,9 +149,6 @@ installation_method = "dotfiles.uv"
 
 [data.local_bin_tools.termbud]
 installation_method = "dotfiles.uv"
-
-[data.local_bin_tools.agent_run]
-installation_method = "uninstall"
 
 [data.local_bin_tools.sandboxr]
 installation_method = "dotfiles.uv"
