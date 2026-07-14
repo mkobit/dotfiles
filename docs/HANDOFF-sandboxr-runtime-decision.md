@@ -84,4 +84,7 @@ srt is the only process-level option with fail-closed egress (domain allowlist v
 
 ## Continuation prompt for the next session
 
-See PR/branch `feat/sandboxr-two-layer-design` for both documents and the design-decision trail.
+The design-decision trail lives in merged PRs, not a branch — the source branch and both
+design documents referenced above (`DESIGN-sandboxr-two-layer.md`, `seatbelt.py`) were
+deleted after srt acceptance. See #695 (srt-primary decision, backend), #705, #706, #707,
+#708, #709 for the implementation history.

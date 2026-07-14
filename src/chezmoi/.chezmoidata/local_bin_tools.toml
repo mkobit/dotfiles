@@ -3,10 +3,6 @@
 # source_dir: path relative to local_bin_tools_root (defaults to workingTree)
 # package_name: uv package name (used for uninstall)
 
-# Renamed to termstatus; the non-uv method triggers the uninstall branch.
-[local_bin_tools.claude_statusline]
-package_name = "claude-statusline"
-
 [local_bin_tools.termstatus]
 source_dir = "src/python/termstatus"
 package_name = "termstatus"
@@ -22,9 +18,6 @@ package_name = "transcribe"
 [local_bin_tools.termbud]
 source_dir = "src/python/termbud"
 package_name = "termbud"
-
-[local_bin_tools.agent_run]
-package_name = "agent-sandbox"
 
 [local_bin_tools.sandboxr]
 source_dir = "src/python/sandboxr"
