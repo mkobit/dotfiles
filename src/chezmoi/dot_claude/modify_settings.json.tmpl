@@ -16,12 +16,22 @@ existing.get("permissions", {}).pop("tools", None)
 existing.get("permissions", {}).pop("files", None)
 
 {{- $allow := list -}}
-{{- range $cmd, $enabled := dig "ai" "command_policy" "commands" (dict) . -}}
-{{-   if $enabled -}}
+{{- $deny := list -}}
+{{- range $cmd, $mode := dig "ai" "command_policy" "commands" (dict) . -}}
+{{-   if eq $mode "allow" -}}
 {{-     $allow = append $allow (printf "Bash(%s:*)" $cmd) -}}
+{{-   else if eq $mode "deny" -}}
+{{-     $deny = append $deny (printf "Bash(%s:*)" $cmd) -}}
 {{-   end -}}
+{{- /* "ask" (or any other value) renders nowhere — absence from both
+      allow and deny falls back to Claude Code's normal per-use prompt,
+      which is what "ask" means. */ -}}
 {{- end -}}
-{{- $settings := mergeOverwrite (deepCopy .claude_code.settings) (dict "permissions" (dict "allow" ($allow | uniq | sortAlpha))) }}
+{{- $permissions := dict "allow" ($allow | uniq | sortAlpha) -}}
+{{- if gt (len $deny) 0 -}}
+{{-   $permissions = set $permissions "deny" ($deny | uniq | sortAlpha) -}}
+{{- end -}}
+{{- $settings := mergeOverwrite (deepCopy .claude_code.settings) (dict "permissions" $permissions) }}
 managed = json.loads("""{{ $settings | toPrettyJson }}""")
 
 

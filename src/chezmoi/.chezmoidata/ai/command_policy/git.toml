@@ -8,21 +8,21 @@
 #     can't separate safe flags (--soft) from destructive ones (--hard, -fd);
 #     always prompt for both, in full.
 [ai.command_policy.commands]
-"git add" = true
-"git blame" = true
-"git branch" = true
-"git checkout" = true
-"git cherry-pick" = true
-"git commit" = true
-"git diff" = true
-"git fetch" = true
-"git log" = true
-"git merge" = true
-"git pull" = true
-"git rebase" = true
-"git restore" = true
-"git show" = true
-"git stash" = true
-"git status" = true
-"git switch" = true
-"git worktree list" = true
+"git add" = "allow"
+"git blame" = "allow"
+"git branch" = "allow"
+"git checkout" = "allow"
+"git cherry-pick" = "allow"
+"git commit" = "allow"
+"git diff" = "allow"
+"git fetch" = "allow"
+"git log" = "allow"
+"git merge" = "allow"
+"git pull" = "allow"
+"git rebase" = "allow"
+"git restore" = "allow"
+"git show" = "allow"
+"git stash" = "allow"
+"git status" = "allow"
+"git switch" = "allow"
+"git worktree list" = "allow"

@@ -1,2 +1,2 @@
 [ai.command_policy.commands]
-"bd" = true
+"bd" = "allow"

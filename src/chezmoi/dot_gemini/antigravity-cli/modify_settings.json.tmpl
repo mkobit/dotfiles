@@ -12,10 +12,21 @@ except Exception:
 {{- if ne $agyMethod "none" }}
 
 {{- $agAllow := list -}}
-{{- range $cmd, $enabled := dig "ai" "command_policy" "commands" (dict) . -}}
-{{-   if $enabled -}}
+{{- $agDeny := list -}}
+{{- range $cmd, $mode := dig "ai" "command_policy" "commands" (dict) . -}}
+{{-   if eq $mode "allow" -}}
 {{-     $agAllow = append $agAllow (printf "command(%s)" (regexQuoteMeta $cmd)) -}}
+{{-   else if eq $mode "deny" -}}
+{{-     $agDeny = append $agDeny (printf "command(%s)" (regexQuoteMeta $cmd)) -}}
 {{-   end -}}
+{{- /* "ask" renders nowhere — same "absence = normal prompt" logic as
+      the Claude side. deny(...) key name is inferred from Antigravity's
+      documented "Deny > Ask > Allow" precedence, not yet live-tested —
+      harmless today since nothing sets "deny" here. */ -}}
+{{- end -}}
+{{- $agPermissions := dict "allow" ($agAllow | uniq | sortAlpha) -}}
+{{- if gt (len $agDeny) 0 -}}
+{{-   $agPermissions = set $agPermissions "deny" ($agDeny | uniq | sortAlpha) -}}
 {{- end -}}
 
 # Managed settings from chezmoi
