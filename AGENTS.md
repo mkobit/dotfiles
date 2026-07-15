@@ -64,11 +64,8 @@ When a tool extracts a full directory tree rather than a single binary, it needs
 
 ## Command approval policy
 
-`.chezmoidata/ai/command_policy/*.toml` — one file per domain (e.g. `git.toml`, `beads.toml`), all contributing keys to the same `[ai.command_policy.commands]` table: literal command head → `"allow"` / `"ask"` / `"deny"`.
-`"ask"` (or an unrecognized value) renders nowhere — absence from a tool's allow/deny rules falls back to its normal per-use prompt, so most entries just omit the command instead of writing `"ask"` explicitly.
-Rendered into each tool's native permission-rule syntax by `dot_claude/modify_settings.json.tmpl` (`Bash(<command>:*)` in `permissions.allow`/`.deny`) and `dot_gemini/antigravity-cli/modify_settings.json.tmpl` (`command(<command>)`) — prefix/wildcard matching is a renderer detail, not a schema concept.
-New command = new key, in a new or existing domain file.
-An overlay adds a command by adding a key, or changes one's mode by overriding the same key (e.g. `"git rebase" = "ask"`) — plain chezmoi dict merge, no separate add/remove/enabled machinery (scalars override on collision; only lists have the wholesale-replace problem).
+Global, tool-neutral command-approval allowlist for AI coding agents, defined once and rendered into each tool's native permission syntax.
+See `src/chezmoi/AGENTS.md`.
 
 ## Data and templates
 
