@@ -1,30 +1,22 @@
 [claude_code]
 version = "2.1.197"
 
-# Deployment config → managed via modify_settings.json.tmpl → ~/.claude/settings.json
+# Deployment config → managed via modify_settings.json → ~/.claude/settings.json
 # These are operator/admin-level settings: permissions, env, tooling behavior.
-# See: https://docs.anthropic.com/en/docs/claude-code/settings
+# See: https://code.claude.com/docs/en/settings
 [claude_code.settings]
 cleanupPeriodDays = 30
 outputStyle = "concise"
-# Documented top-level settings.json key (code.claude.com/docs/en/settings).
-# Confirmed this is the real, functionally-effective location: the live
-# ~/.claude/settings.json already had editorMode = "vim" before this entry
-# was ever added (from toggling /config previously) -- Claude Code itself
-# reads/writes it here. Also still injected into ~/.claude.json via
-# claude_code.preferences + modify_dot_claude.json.tmpl (PR #718); that's
-# the wrong file per docs (~/.claude.json is OAuth/MCP/trust-state/caches,
-# not settings) and looks like dead weight, same pattern as the removed
-# tools/files keys above -- not removed yet only to avoid touching a file
-# modified on a separate open PR branch. Remove that injection once both
-# PRs are merged.
-editorMode = "vim"
-
-# UI preferences → managed via modify_dot_claude.json.tmpl → ~/.claude.json
-# Claude Code stores user-facing preferences (editorMode, etc.) in ~/.claude.json,
-# which it also uses as a mutable runtime state file (startup counts, feature flags, etc.).
-# We only inject our preferences — the rest of the file is left alone.
-[claude_code.preferences]
+# Documented top-level settings.json key. Confirmed this is the real,
+# functionally-effective location: the live ~/.claude/settings.json already
+# had editorMode = "vim" before this entry was ever added (from toggling
+# /config previously) -- Claude Code itself reads/writes it here.
+# ~/.claude.json (OAuth session / MCP config / trust state / caches, not
+# settings, per the same docs) is not managed by chezmoi at all -- it
+# previously carried a redundant editorMode injection via a now-deleted
+# claude_code.preferences + modify_dot_claude.json.tmpl, which was the
+# wrong file for this key (same class of bug as the removed tools/files
+# keys below) and has been removed outright rather than left in place.
 editorMode = "vim"
 
 [claude_code.settings.sandbox]

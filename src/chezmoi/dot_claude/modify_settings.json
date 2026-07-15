@@ -1,7 +1,7 @@
 {{- /* chezmoi:modify-template */ -}}
 {{- /* Manages ~/.claude/settings.json — deployment config only.
-   UI preferences (editorMode, etc.) live in ~/.claude.json; see
-   modify_dot_claude.json.tmpl. */ -}}
+   ~/.claude.json (OAuth session, MCP config, trust state, caches) is
+   not managed by chezmoi at all; see dot_claude/AGENTS.md. */ -}}
 {{- $allow := list -}}
 {{- $deny := list -}}
 {{- range $cmd, $mode := dig "ai" "command_policy" "commands" (dict) . -}}
