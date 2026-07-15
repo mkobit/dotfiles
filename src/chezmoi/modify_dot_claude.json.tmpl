@@ -27,4 +27,9 @@ def deep_merge(d1, d2):
 
 merged = deep_merge(existing.copy(), preferences)
 
-print(json.dumps(merged, indent=2, sort_keys=True), end="")
+# No sort_keys, no default ensure_ascii: Claude Code writes this file with
+# its own key order and literal UTF-8. Matching that means an apply that
+# only touches editorMode produces a single-line diff instead of
+# reformatting the whole ~2000-line file (key resort + unicode escaping)
+# every time, which made real changes impossible to spot in the noise.
+print(json.dumps(merged, indent=2, ensure_ascii=False), end="")
