@@ -16,15 +16,9 @@ existing.get("permissions", {}).pop("tools", None)
 existing.get("permissions", {}).pop("files", None)
 
 {{- $allow := list -}}
-{{- range $name, $family := dig "ai" "command_policy" "families" (dict) . -}}
-{{-   if dig "enabled" true $family -}}
-{{-     $prefixes := concat (dig "prefixes" (list) $family) (dig "add" (list) $family) -}}
-{{-     $removed := dig "remove" (list) $family -}}
-{{-     range $prefixes -}}
-{{-       if not (has . $removed) -}}
-{{-         $allow = append $allow (printf "Bash(%s:*)" .) -}}
-{{-       end -}}
-{{-     end -}}
+{{- range $cmd, $enabled := dig "ai" "command_policy" "commands" (dict) . -}}
+{{-   if $enabled -}}
+{{-     $allow = append $allow (printf "Bash(%s:*)" $cmd) -}}
 {{-   end -}}
 {{- end -}}
 {{- $settings := mergeOverwrite (deepCopy .claude_code.settings) (dict "permissions" (dict "allow" ($allow | uniq | sortAlpha))) }}

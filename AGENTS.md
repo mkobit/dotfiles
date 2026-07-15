@@ -64,10 +64,10 @@ When a tool extracts a full directory tree rather than a single binary, it needs
 
 ## Command approval policy
 
-`.chezmoidata/ai/command_policy/*.toml` — one file per command family (e.g. `git.toml`, `beads.toml`), each declaring `[ai.command_policy.families.<name>]` with `prefixes` (literal command heads, no globs/regex).
-Rendered into each tool's native permission-rule syntax by `dot_claude/modify_settings.json.tmpl` (`Bash(<prefix>:*)`) and `dot_gemini/antigravity-cli/modify_settings.json.tmpl` (`command(<prefix>)`).
-New family = new file under `command_policy/`.
-An overlay extends or shrinks an existing family via sibling `add`/`remove` prefix lists in the same `[ai.command_policy.families.<name>]` table — chezmoi list values replace wholesale on collision, so never restate `prefixes` directly — or disables one entirely via `enabled = false` (defaults to `true`, so base files never need to declare it).
+`.chezmoidata/ai/command_policy/*.toml` — one file per domain (e.g. `git.toml`, `beads.toml`), all contributing keys to the same `[ai.command_policy.commands]` table: literal command head → `true`/`false`.
+Rendered into each tool's native permission-rule syntax by `dot_claude/modify_settings.json.tmpl` (`Bash(<command>:*)`) and `dot_gemini/antigravity-cli/modify_settings.json.tmpl` (`command(<command>)`) — prefix/wildcard matching is a renderer detail, not a schema concept.
+New command = new key, in a new or existing domain file.
+An overlay adds a command by adding a key, or removes one by setting it to `false` — plain chezmoi dict merge, no separate add/remove/enabled machinery (scalars override on collision; only lists have the wholesale-replace problem).
 
 ## Data and templates
 

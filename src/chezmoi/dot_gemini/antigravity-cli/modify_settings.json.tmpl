@@ -12,15 +12,9 @@ except Exception:
 {{- if ne $agyMethod "none" }}
 
 {{- $agAllow := list -}}
-{{- range $name, $family := dig "ai" "command_policy" "families" (dict) . -}}
-{{-   if dig "enabled" true $family -}}
-{{-     $prefixes := concat (dig "prefixes" (list) $family) (dig "add" (list) $family) -}}
-{{-     $removed := dig "remove" (list) $family -}}
-{{-     range $prefixes -}}
-{{-       if not (has . $removed) -}}
-{{-         $agAllow = append $agAllow (printf "command(%s)" (regexQuoteMeta .)) -}}
-{{-       end -}}
-{{-     end -}}
+{{- range $cmd, $enabled := dig "ai" "command_policy" "commands" (dict) . -}}
+{{-   if $enabled -}}
+{{-     $agAllow = append $agAllow (printf "command(%s)" (regexQuoteMeta $cmd)) -}}
 {{-   end -}}
 {{- end -}}
 
