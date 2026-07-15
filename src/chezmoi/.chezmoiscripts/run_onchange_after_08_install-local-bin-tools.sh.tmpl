@@ -20,7 +20,10 @@ fi
 UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
   "$MISE" exec --cd "{{ $root }}" -- uv tool install --force --editable "{{ $root }}/{{ $tool.source_dir }}"
 {{- else if eq $method "uninstall" }}
+{{- $pkg := index $tool "package_name" -}}
+{{- if $pkg }}
 UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
-  "$MISE" exec --cd "{{ $root }}" -- uv tool uninstall {{ index $tool "package_name" }} 2>/dev/null || true
+  "$MISE" exec --cd "{{ $root }}" -- uv tool uninstall {{ $pkg }} 2>/dev/null || true
+{{- end }}
 {{- end }}
 {{ end -}}
