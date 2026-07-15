@@ -1,0 +1,31 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /* Manages ~/.claude/settings.json — deployment config only.
+   UI preferences (editorMode, etc.) live in ~/.claude.json; see
+   modify_dot_claude.json.tmpl. */ -}}
+{{- $allow := list -}}
+{{- $deny := list -}}
+{{- range $cmd, $mode := dig "ai" "command_policy" "commands" (dict) . -}}
+{{-   if eq $mode "allow" -}}
+{{-     $allow = append $allow (printf "Bash(%s:*)" $cmd) -}}
+{{-   else if eq $mode "deny" -}}
+{{-     $deny = append $deny (printf "Bash(%s:*)" $cmd) -}}
+{{-   end -}}
+{{- /* "ask" (or any other value) renders nowhere — absence from both
+   allow and deny falls back to Claude Code's normal per-use prompt,
+   which is what "ask" means. */ -}}
+{{- end -}}
+{{- $permissions := dict "allow" ($allow | uniq | sortAlpha) -}}
+{{- if gt (len $deny) 0 -}}
+{{-   $permissions = set $permissions "deny" ($deny | uniq | sortAlpha) -}}
+{{- end -}}
+{{- $settings := mergeOverwrite (deepCopy .claude_code.settings) (dict "permissions" $permissions) -}}
+{{- $config := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $config = fromJson .chezmoi.stdin -}}
+{{- end -}}
+{{- /* tools/files under permissions were never a real Claude Code
+   settings key (silent no-op) — drop explicitly since a merge alone
+   wouldn't remove stale keys already in the live file. */ -}}
+{{- $existingPermissions := dig "permissions" (dict) $config -}}
+{{- $config = set $config "permissions" (omit $existingPermissions "tools" "files") -}}
+{{- mergeOverwrite $config $settings | toPrettyJson | trimSuffix "\n" -}}
