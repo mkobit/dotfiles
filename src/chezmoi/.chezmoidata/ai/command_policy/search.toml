@@ -1,0 +1,3 @@
+# Read-only search tools: no filesystem or state mutation.
+[ai.command_policy.commands]
+"rg" = "allow"
