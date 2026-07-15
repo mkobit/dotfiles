@@ -7,6 +7,18 @@ version = "2.1.197"
 [claude_code.settings]
 cleanupPeriodDays = 30
 outputStyle = "concise"
+# Documented top-level settings.json key (code.claude.com/docs/en/settings).
+# Confirmed this is the real, functionally-effective location: the live
+# ~/.claude/settings.json already had editorMode = "vim" before this entry
+# was ever added (from toggling /config previously) -- Claude Code itself
+# reads/writes it here. Also still injected into ~/.claude.json via
+# claude_code.preferences + modify_dot_claude.json.tmpl (PR #718); that's
+# the wrong file per docs (~/.claude.json is OAuth/MCP/trust-state/caches,
+# not settings) and looks like dead weight, same pattern as the removed
+# tools/files keys above -- not removed yet only to avoid touching a file
+# modified on a separate open PR branch. Remove that injection once both
+# PRs are merged.
+editorMode = "vim"
 
 # UI preferences → managed via modify_dot_claude.json.tmpl → ~/.claude.json
 # Claude Code stores user-facing preferences (editorMode, etc.) in ~/.claude.json,
@@ -24,9 +36,9 @@ failIfUnavailable = false
 type = "command"
 command = "statusline claude render"
 
-# permissions.allow is computed at render time from
-# ai.command_policy.families (.chezmoidata/ai/command_policy.toml) —
-# see dot_claude/modify_settings.json.tmpl. (Previously this table set
+# permissions.allow/.deny is computed at render time from
+# ai.command_policy.commands (.chezmoidata/ai/command_policy/*.toml) —
+# see dot_claude/modify_settings.json. (Previously this table set
 # tools/files = "allow" here, but neither key exists in Claude Code's
 # documented permissions schema — removed as inert.)
 
