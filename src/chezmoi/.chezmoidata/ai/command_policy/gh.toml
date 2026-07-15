@@ -1,0 +1,8 @@
+# Read-only gh pr subcommands: query PR/CI state, no mutation of the PR
+# itself or of anything on GitHub (no merge/close/comment/edit/review/etc).
+[ai.command_policy.commands]
+"gh pr checks" = "allow"
+"gh pr diff" = "allow"
+"gh pr list" = "allow"
+"gh pr status" = "allow"
+"gh pr view" = "allow"
