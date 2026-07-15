@@ -204,6 +204,34 @@ def test_shell_show_command_no_tty_adds_new_session():
     assert "--new-session" in result.output
 
 
+def test_shell_srt_backend_show_command_applies_startup_race_workaround(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+):
+    monkeypatch.setenv("SHELL", "/bin/bash")
+    monkeypatch.setattr(
+        shutil,
+        "which",
+        lambda name, **kwargs: f"/usr/bin/{name}" if name in ("node", "mise") else None,
+    )
+    install_dir = tmp_path / "mise-installs" / "npm-anthropic-ai-sandbox-runtime" / "0.0.63"
+    cli_js = install_dir / srt_backend.CLI_JS_RELATIVE_TO_INSTALL
+    cli_js.parent.mkdir(parents=True)
+    cli_js.write_text("")
+
+    def _run(args, **kwargs):
+        return subprocess.CompletedProcess(args, 0, stdout=f"{install_dir}\n", stderr="")
+
+    monkeypatch.setattr(srt_backend.subprocess, "run", _run)
+    result = runner.invoke(
+        app,
+        ["shell", "--profile", "srt-allowlist", "--show-command"],
+    )
+    assert result.exit_code == 0
+    # same startup-race workaround as `run`: srt drops positional args after
+    # `bash -c`, so the shell command must be embedded in the wrapper script.
+    assert "sleep 0.2; exec /bin/bash" in result.output
+
+
 # ── profiles subcommand ─────────────────────────────────────────────────────
 
 

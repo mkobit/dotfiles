@@ -98,7 +98,10 @@ def shell(
         _require_bwrap()
     spec = _sandbox_spec(active, cwd, tty=tty)
     args = _apply_timeout(
-        [*backend.build_args(spec, os.environ, default_mask_paths(os.getuid())), shell_cmd],
+        [
+            *backend.build_args(spec, os.environ, default_mask_paths(os.getuid())),
+            *backend.wrap_command([shell_cmd]),
+        ],
         active.timeout_seconds,
     )
     if show_command:
