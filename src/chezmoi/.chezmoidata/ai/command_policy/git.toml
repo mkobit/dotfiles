@@ -1,30 +1,28 @@
-[ai.command_policy.families.git-local]
-# Everything here is a local, commit-or-object-level operation with no
-# remote/network write and no irrecoverable data loss (reflog covers commit
-# history even across rebase). Deliberately excluded:
-#   - push: the actual remote-write / code-leak risk this list is scoped
-#     around; always prompt.
-#   - reset, clean: can permanently destroy uncommitted/untracked work with
-#     no reflog entry to recover from, and prefix matching can't separate
-#     safe flags (--soft) from destructive ones (--hard, -fd) — always
-#     prompt for both, in full.
-prefixes = [
-  "git add",
-  "git blame",
-  "git branch",
-  "git checkout",
-  "git cherry-pick",
-  "git commit",
-  "git diff",
-  "git fetch",
-  "git log",
-  "git merge",
-  "git pull",
-  "git rebase",
-  "git restore",
-  "git show",
-  "git stash",
-  "git status",
-  "git switch",
-  "git worktree list",
-]
+# Local, commit-or-object-level git operations: no remote/network write, no
+# irrecoverable data loss (reflog covers commit history even across rebase).
+# Deliberately excluded — do not add:
+#   - "git push": the actual remote-write / code-leak risk this list is
+#     scoped around; always prompt.
+#   - "git reset", "git clean": can permanently destroy uncommitted/untracked
+#     work with no reflog entry to recover from, and command-head matching
+#     can't separate safe flags (--soft) from destructive ones (--hard, -fd);
+#     always prompt for both, in full.
+[ai.command_policy.commands]
+"git add" = "allow"
+"git blame" = "allow"
+"git branch" = "allow"
+"git checkout" = "allow"
+"git cherry-pick" = "allow"
+"git commit" = "allow"
+"git diff" = "allow"
+"git fetch" = "allow"
+"git log" = "allow"
+"git merge" = "allow"
+"git pull" = "allow"
+"git rebase" = "allow"
+"git restore" = "allow"
+"git show" = "allow"
+"git stash" = "allow"
+"git status" = "allow"
+"git switch" = "allow"
+"git worktree list" = "allow"

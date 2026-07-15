@@ -45,6 +45,16 @@ Never assume you are on `main` or in the primary checkout directory.
   [configuration]
   # /path/to/script.tmpl:END:section:12345678
   ```
+- **Default new `modify_` scripts to a pure `chezmoi:modify-template`** (`{{- /* chezmoi:modify-template */ -}}` as the first line, e.g. `dot_codex/modify_config.toml`, `dot_claude/modify_settings.json`) rather than embedding another language (Python, shell) inside a rendered template string.
+  - Requires the source filename to have **no `.tmpl` suffix** and **no executable bit**.
+    Both confirmed empirically to break chezmoi's dispatch: it silently falls through to the legacy executable-script code path instead, and `.chezmoi.stdin` is simply absent.
+    For a `.tmpl`-suffixed file missing the executable bit, chezmoi renders the template text but never executes it, so the *rendered source itself* becomes the literal target content, not an error.
+  - Parse the incoming file with `fromJson`/`fromToml`/`fromYaml` on `.chezmoi.stdin` (guard with `{{- if .chezmoi.stdin -}}` for a not-yet-existing target), transform with `mergeOverwrite`/`setValueAtPath`/`omit`, serialize back with `toPrettyJson`/`toToml`/`toYaml`.
+  - `toPrettyJson`'s return value always carries a trailing `\n` that `-}}` trim markers can't remove (trim only strips surrounding template *text*, not a pipeline's runtime value).
+    Pipe through `trimSuffix "\n"` if the target shouldn't end in a blank line.
+  - Go's `fromJson`/`toPrettyJson` always alphabetize map keys (`encoding/json` marshal behavior, no workaround via these functions).
+    That's a non-issue for a script that owns its whole output, but a real problem for a file another live process also writes to with its own key order — it would produce a full-file reformat diff on every apply.
+    Legacy executable scripts remain the right choice for that specific case.
 
 ## Chezmoi externals & scripts
 
@@ -64,10 +74,8 @@ When a tool extracts a full directory tree rather than a single binary, it needs
 
 ## Command approval policy
 
-`.chezmoidata/ai/command_policy/*.toml` — one file per command family (e.g. `git.toml`, `beads.toml`), each declaring `[ai.command_policy.families.<name>]` with `prefixes` (literal command heads, no globs/regex).
-Rendered into each tool's native permission-rule syntax by `dot_claude/modify_settings.json.tmpl` (`Bash(<prefix>:*)`) and `dot_gemini/antigravity-cli/modify_settings.json.tmpl` (`command(<prefix>)`).
-New family = new file under `command_policy/`.
-An overlay extends or shrinks an existing family via sibling `add`/`remove` prefix lists in the same `[ai.command_policy.families.<name>]` table — chezmoi list values replace wholesale on collision, so never restate `prefixes` directly — or disables one entirely via `enabled = false` (defaults to `true`, so base files never need to declare it).
+Global, tool-neutral command-approval allowlist for AI coding agents, defined once and rendered into each tool's native permission syntax.
+See [src/chezmoi/AGENTS.md](src/chezmoi/AGENTS.md).
 
 ## Data and templates
 
