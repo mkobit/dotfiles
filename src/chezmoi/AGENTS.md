@@ -12,7 +12,7 @@ This directory contains the Chezmoi source state for dotfiles management.
 
 ## Notable cross-cutting features
 
-- **AI agent sandbox** (`sandboxr`, see `src/python/sandboxr/AGENTS.md`): autonomous agent CLI runs are wrapped by `sandboxr` reading `.chezmoidata/ai/sandbox.toml`, rendered to `~/.config/ai-policy/sandbox.toml` plus per-tool fragments under `dot_config/ai-policy/`.
+- **AI agent sandbox** (`sandboxr`, see [src/python/sandboxr/AGENTS.md](../python/sandboxr/AGENTS.md)): autonomous agent CLI runs are wrapped by `sandboxr` reading `.chezmoidata/ai/sandbox.toml`, rendered to `~/.config/ai-policy/sandbox.toml` plus per-tool fragments under `dot_config/ai-policy/`.
 - **Command approval policy** (see below): global command-approval allowlist for attended (HITL) agent sessions, rendered into each tool's native permission syntax.
 
 ## Command approval policy

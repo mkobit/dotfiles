@@ -65,7 +65,7 @@ When a tool extracts a full directory tree rather than a single binary, it needs
 ## Command approval policy
 
 Global, tool-neutral command-approval allowlist for AI coding agents, defined once and rendered into each tool's native permission syntax.
-See `src/chezmoi/AGENTS.md`.
+See [src/chezmoi/AGENTS.md](src/chezmoi/AGENTS.md).
 
 ## Data and templates
 
