@@ -1,0 +1,4 @@
+# Read-only linting by default; --fix mutates tracked files but is
+# git-recoverable, same bar as "git add"/"git commit" below.
+[ai.command_policy.commands]
+"bunx eslint" = "allow"
