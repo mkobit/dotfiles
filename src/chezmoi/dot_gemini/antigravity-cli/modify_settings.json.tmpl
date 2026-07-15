@@ -53,9 +53,7 @@ except Exception:
         "selectedType" "oauth-personal"
       )
     )
-    "permissions" (dict
-      "allow" ($agAllow | uniq | sortAlpha)
-    )
+    "permissions" $agPermissions
     "tools" (dict
       "sandbox" .gemini.tools.sandbox
       "sandboxAllowedPaths" .gemini.tools.sandbox_allowed_paths
@@ -79,12 +77,6 @@ except Exception:
 }}
 
 managed = json.loads("""{{ $settings | toPrettyJson }}""")
-
-# permissions.allow is union-merged rather than replaced: agy's own in-CLI
-# "always allow" flow writes grants into this same file, and a wholesale
-# replace here would wipe them on every `chezmoi apply`.
-existing_allow = existing.get("permissions", {}).get("allow", [])
-managed["permissions"]["allow"] = sorted(set(existing_allow) | set(managed["permissions"]["allow"]))
 
 
 def deep_merge(d1, d2):
