@@ -24,7 +24,7 @@
 {{-     $agPermissions = set $agPermissions "deny" ($agDeny | uniq | sortAlpha) -}}
 {{-   end -}}
 {{-   $settings := dict
-        "telemetry" (dict "enabled" .gemini.telemetry.enabled "logPrompts" .gemini.telemetry.log_prompts)
+        "enableTelemetry" .gemini.telemetry.enabled
         "ui" (dict
           "showLineNumbers" .gemini.ui.show_line_numbers
           "showMemoryUsage" .gemini.ui.show_memory_usage
