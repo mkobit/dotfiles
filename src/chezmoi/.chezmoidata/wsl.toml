@@ -4,6 +4,7 @@
 memory = "16GB"
 swap = "2GB"
 processors = 4
+maxCrashDumpCount = 3
 # Shares localhost between WSL and Windows so Windows-hosted services
 # (Ollama at 127.0.0.1:11434, dev servers, etc.) are reachable from inside
 # WSL without juggling the NAT gateway IP. Default WSL2 mode is "nat".
