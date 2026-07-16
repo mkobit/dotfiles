@@ -26,8 +26,8 @@
 
 [ai.agents.external.agency-agents]
 repo = "msitarzewski/agency-agents"
-ref = "a077c9ac0be381ec15e7dcbb690f641d6091a5db" # 2026-06-07
-sha256 = "dbe0b0aadd2b12a5cceb5a0f613c272e74da6ddc4acc66344dfece16ea172d5b"
+ref = "86a6695d4cee1c9720e2be4fd8ae007f9b6d96ae" # 2026-07-15
+sha256 = "cc7e99ab1f744f2a97960d1a1953e0bdf951e7f64a1044f89e0180079835ec2d"
 
 [ai.agents.external.agency-agents.agents]
 "engineering/engineering-backend-architect" = "present"
@@ -36,6 +36,34 @@ sha256 = "dbe0b0aadd2b12a5cceb5a0f613c272e74da6ddc4acc66344dfece16ea172d5b"
 "engineering/engineering-prompt-engineer" = "present"
 "engineering/engineering-software-architect" = "present"
 "engineering/engineering-sre" = "present"
+# Audit caveat 2026-07-15: step 1 assumes an ai/memory-bank/ requirements doc
+# from the author's own pipeline — gather requirements normally if absent.
+"engineering/engineering-ai-engineer" = "present"
+"engineering/engineering-api-platform-engineer" = "present"
+"engineering/engineering-code-reviewer" = "present"
+# Audit caveat 2026-07-15: recommends scheduling live failover/restore drills
+# and production game-days — confirm target environment and blast-radius
+# controls first.
+"engineering/engineering-database-reliability-engineer" = "present"
+"engineering/engineering-developer-tooling-engineer" = "present"
+# Audit caveat 2026-07-15: workflow implies applying Terraform and kubectl
+# mutations directly with no dry-run/approval gate — require plan review and
+# non-prod confirmation first.
+"engineering/engineering-devops-automator" = "present"
+"engineering/engineering-git-workflow-master" = "present"
+"engineering/engineering-i18n-engineer" = "present"
+"engineering/engineering-identity-access-engineer" = "present"
+# Audit caveat 2026-07-15: "delete this and see what breaks" technique
+# assumes reliable test coverage — deprecate instead in low-coverage repos.
+"engineering/engineering-minimal-change-engineer" = "present"
+# Audit caveat 2026-07-15: numeric thresholds (chain length, fan-out, eval
+# counts) are opinionated defaults for production-scale pipelines — treat as
+# heuristics for prototypes.
+"engineering/engineering-multi-agent-systems-architect" = "present"
+# Audit caveat 2026-07-15: hardcoded numeric success metrics assume
+# analytics/support-ticket infra this agent won't have access to — ignore them.
+"engineering/engineering-technical-writer" = "present"
+"engineering/engineering-webassembly-engineer" = "present"
 "product/product-feedback-synthesizer" = "present"
 "product/product-manager" = "present"
 "product/product-sprint-prioritizer" = "present"
@@ -46,6 +74,40 @@ sha256 = "dbe0b0aadd2b12a5cceb5a0f613c272e74da6ddc4acc66344dfece16ea172d5b"
 # Rejected 2026-06-12: prompt embeds the author's own project layout (runs
 # ./qa-playwright-capture.sh, writes ai/memory-bank/ paths); adapt or replace.
 "project-management/project-manager-senior" = "absent"
+"design/design-ui-designer" = "present"
+"design/design-ux-architect" = "present"
+# Audit caveat 2026-07-15: core workflow assumes recruiting and interviewing
+# real human research participants — verify consent/privacy handling before
+# treating its protocols as ready to run.
+"design/design-ux-researcher" = "present"
+# Audit caveat 2026-07-15: directs manual penetration testing/DAST against
+# staging environments — scope to authorized, non-production targets only.
+"security/security-appsec-engineer" = "present"
+# Audit caveat 2026-07-15: workflow generates working exploit/PoC code (SQLi,
+# SSRF, auth-bypass) — confirm target is local/non-production before running.
+"security/security-architect" = "present"
+"security/security-ai-generated-code-auditor" = "present"
+# Audit caveat 2026-07-15: directs live penetration tests/red-team exercises
+# against cloud environments — require explicit written authorization and a
+# non-prod scoped target.
+"security/security-cloud-security-architect" = "present"
+"security/security-compliance-auditor" = "present"
+# Audit caveat 2026-07-15: forensic scripts run as root/admin and collect
+# credentials, logs, and process state — only run against systems you're
+# authorized to investigate.
+"security/security-incident-responder" = "present"
+# Audit caveat 2026-07-15: directs real offensive techniques (credential
+# exfiltration, AD compromise, physical/social engineering) — verify written
+# authorization before executing against any real target.
+"security/security-penetration-tester" = "present"
+# Audit caveat 2026-07-15: leak-response runbook rotates/revokes real
+# provider credentials and rewrites git history — confirm target account/repo
+# and team coordination first.
+"security/security-secrets-credential-engineer" = "present"
+# Rejected 2026-07-15: prompt is built around a fictional internal doc
+# (security/17-security-pattern.md, cited ~30 times) and assumes IdP-backed
+# role sync as ground truth; would need authoring before use.
+"security/security-senior-secops" = "absent"
 # Audit caveat 2026-06-12: no malicious content, but the prompt eagerly directs
 # running real load/stress/penetration tests — only point it at safe targets.
 "testing/testing-api-tester" = "present"

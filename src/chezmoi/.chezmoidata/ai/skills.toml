@@ -37,8 +37,8 @@ write-agent-context = "present"
 #   ("claude", "antigravity", "cursor") to deploy only to that tool.
 [ai.skills.external.superpowers]
 repo = "obra/superpowers"
-ref = "6fd4507659784c351abbd2bc264c7162cfd386dc" # 2026-05-29
-sha256 = "bae555f742a6f223bca7825f79f0305315944653e8763b7939f19f93f9adda32"
+ref = "d884ae04edebef577e82ff7c4e143debd0bbec99" # 2026-07-02
+sha256 = "d2c15e07a4637bffc7df15daa062eeb569c9adf6d6ad6ec08dec4ce6539b3910"
 
 [ai.skills.external.superpowers.skills]
 brainstorming = "present"
