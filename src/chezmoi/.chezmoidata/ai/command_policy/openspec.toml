@@ -1,0 +1,7 @@
+# OpenSpec CLI: local spec-file read/write under a project's openspec/
+# directory, no remote/network write. Three invocation styles seen in the
+# wild for the same tool, each needs its own literal-prefix entry.
+[ai.command_policy.commands]
+"bunx openspec" = "allow"
+"npx openspec" = "allow"
+"openspec" = "allow"

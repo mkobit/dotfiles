@@ -1,0 +1,20 @@
+# Fixed, bounded bun subcommands only. Excluded deliberately:
+#   - install/add/remove/update/link/unlink/patch: mutate deps/lockfile and
+#     can run arbitrary postinstall lifecycle scripts from any involved
+#     package (supply-chain execution risk, not just local mutation).
+#   - create: downloads and runs arbitrary template scaffolding.
+#   - publish: npm registry write, same bar as "git push".
+#   - upgrade: mutates the bun binary itself, not project state.
+#   - run, x/bunx bare, repl, exec: unbounded per-project or ad hoc code
+#     (specific bunx targets like eslint/openspec are allowed individually
+#     elsewhere, not bunx as a whole).
+# "bun test" is the one exception that runs arbitrary project test-file
+# code rather than a fixed operation — kept in deliberately, workflow value
+# judged to outweigh the precedent break.
+[ai.command_policy.commands]
+"bun audit" = "allow"
+"bun build" = "allow"
+"bun info" = "allow"
+"bun outdated" = "allow"
+"bun test" = "allow"
+"bun why" = "allow"
