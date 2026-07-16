@@ -3,7 +3,7 @@
 # Skills are deployed as static files by chezmoi externals (see .chezmoiexternals/ai-skills.toml.tmpl).
 # Each upstream is pinned to an exact commit and archive checksum.
 # The archive is piped through src/python/skill_filter at apply time to extract one skill per external.
-# Skills marked "absent" are pruned via the .chezmoiremove.tmpl files in dot_claude/, dot_gemini/, and dot_cursor/;
+# Skills marked "absent" are pruned via the .chezmoiremove.tmpl files in dot_claude/, dot_gemini/, dot_cursor/, and dot_codex/;
 # keep the key when deselecting a skill — deleting it outright orphans any installed copy.
 #
 # Every present skill installs to every tool's skill directory; the target
