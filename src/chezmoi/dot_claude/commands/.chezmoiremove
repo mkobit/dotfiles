@@ -1,0 +1,5 @@
+# Manually-installed Conductor commands (28 Mar 2026), predating this repo's
+# skill/agent catalog. Never brought under chezmoi management; superseded by
+# the superpowers-derived skills (writing-plans, executing-plans,
+# subagent-driven-development, etc).
+conductor
