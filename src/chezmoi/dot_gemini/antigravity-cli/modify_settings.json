@@ -25,7 +25,6 @@
 {{-   end -}}
 {{-   $settings := dict
         "enableTelemetry" .gemini.telemetry.enabled
-        "telemetry" (dict "enabled" .gemini.telemetry.enabled "logPrompts" .gemini.telemetry.log_prompts)
         "ui" (dict
           "showLineNumbers" .gemini.ui.show_line_numbers
           "showMemoryUsage" .gemini.ui.show_memory_usage
