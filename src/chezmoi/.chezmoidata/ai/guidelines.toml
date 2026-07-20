@@ -29,3 +29,15 @@ content = """
 ## Session resets
 - At a clear stopping point before starting unrelated work, ask whether to reset the session and restart.
 - Give the continuation prompt in a fenced code block (tagged `markdown` or `md`) so it can be copied in one action."""
+
+[[ai.guidelines.sections]]
+content = """
+## Delegation
+- Delegate specific units of work to subagents to keep the main thread focused and context lean.
+- Prefer pre-installed named skills and agents (superpowers, agency-agents) over ad-hoc subagent prompts — they carry tested workflows and better instructions."""
+
+[[ai.guidelines.sections]]
+content = """
+## Preferences
+- Prefer available agentic file searching and read tools over CLI tools when available.
+- Prefer strict TypeScript configuration."""
