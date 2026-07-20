@@ -56,10 +56,16 @@ def _chezmoi_command(*args):
 
 
 def _chezmoi_source_path():
-    """Ask chezmoi itself where its source root is (respects .chezmoiroot);
-    a plain local subprocess call since this is a question about the checkout
-    on this machine, not the deployed host."""
-    result = subprocess.run(_chezmoi_argv("source-path"), capture_output=True, text=True, check=True)
+    """Ask chezmoi itself where its source root is (respects .chezmoiroot).
+    Pytest always runs from the repo root, so that's the --source to resolve
+    against; a plain local subprocess call, not host.run, since this is a
+    question about the checkout on this machine, not the deployed target."""
+    result = subprocess.run(
+        ["chezmoi", "--source", str(Path.cwd()), "source-path"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
     return Path(result.stdout.strip())
 
 
@@ -109,11 +115,9 @@ def pytest_generate_tests(metafunc):
         metafunc.parametrize("layout_name", layouts)
 
     if "chezmoiscript_path" in metafunc.fixturenames:
-        scripts_dir = source_root / ".chezmoiscripts"
-        scripts = sorted(scripts_dir.glob("run_onchange_after_*.sh.tmpl")) if scripts_dir.exists() else []
+        scripts = sorted((source_root / ".chezmoiscripts").glob("run_onchange_after_*.sh.tmpl"))
         metafunc.parametrize("chezmoiscript_path", scripts, ids=lambda p: p.name)
 
     if "workflow_path" in metafunc.fixturenames:
-        workflows_dir = repo_root / ".github" / "workflows"
-        workflows = sorted(workflows_dir.glob("*.yml")) if workflows_dir.exists() else []
+        workflows = sorted((repo_root / ".github" / "workflows").glob("*.yml"))
         metafunc.parametrize("workflow_path", workflows, ids=lambda p: p.name)
