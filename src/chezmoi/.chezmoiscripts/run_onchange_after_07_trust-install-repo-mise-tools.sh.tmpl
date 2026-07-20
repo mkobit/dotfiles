@@ -20,7 +20,7 @@ mise trust "{{ .chezmoi.workingTree }}/mise.toml"
 log_success "Mise config trusted: {{ .chezmoi.workingTree }}/mise.toml"
 
 log_info "Installing mise tools in {{ .chezmoi.workingTree }}..."
-if MISE_INSTALL_BEFORE=0d MISE_LOCKED=0 mise install -C "{{ .chezmoi.workingTree }}"; then
+if mise install -C "{{ .chezmoi.workingTree }}"; then
     log_success "Mise tools installed in {{ .chezmoi.workingTree }}."
 else
     log_error "Failed to install mise tools in {{ .chezmoi.workingTree }}."
