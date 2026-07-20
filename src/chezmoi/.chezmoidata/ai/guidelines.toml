@@ -33,8 +33,8 @@ content = """
 [[ai.guidelines.sections]]
 content = """
 ## Delegation
-- Delegate specific units of work to specialized or generalized subagents to keep the main thread clean.
-- Prefer using subagents installed via superpowers, CLI harnesses, or other AI tooling plugins."""
+- Delegate specific units of work to subagents to keep the main thread focused and context lean.
+- Prefer pre-installed named skills and agents (superpowers, agency-agents) over ad-hoc subagent prompts — they carry tested workflows and better instructions."""
 
 [[ai.guidelines.sections]]
 content = """
