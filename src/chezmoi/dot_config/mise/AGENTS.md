@@ -17,8 +17,14 @@
 ## Lockfile
 
 `~/.config/mise/mise.lock` is regenerated locally by `mise lock` and is **not tracked in this repo** — `.chezmoiignore` blocks it (`**/.config/mise/mise.lock`) so per-machine drift doesn't pollute the chezmoi diff.
-Locking is **relaxed during deployment** via `MISE_LOCKED=0` in the `run_onchange_after_06_trust-install-global-mise-tools.sh.tmpl` script, so global tool installs aren't blocked by a missing or stale lockfile.
-The deployed `config.toml` has no explicit `locked` setting, so mise's own default (unlocked) applies.
+`run_onchange_after_06_trust-install-global-mise-tools.sh.tmpl` installs unlocked (`MISE_LOCKED=0`, fresh machine has nothing to validate against yet), then immediately runs `mise -C {{ .chezmoi.destDir }} lock --global` to populate it.
+Required: mise merges the global config into any `mise install -C <dir>` call, so script `07`'s locked repo-tools install would otherwise re-validate the global tools too and fail.
+
+### Never disable lock enforcement for the repo config
+
+Root `mise.toml` sets `locked = true` (restored by #575 after a prior regression); script `07` installs with no override, by design — this is what keeps `uv` pinned to the committed `mise.lock`.
+If a locked install ever fails, regenerate the stale lockfile (`mise lock`, or the global one above) — never add `MISE_LOCKED=0` to the script.
+Watch for this in agent PRs (e.g. Jules) that hit a locked-install failure and "fix" it by disabling the check instead.
 
 ### Updating tools and relocking
 

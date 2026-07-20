@@ -1,6 +1,7 @@
 import json
 import os
 import shlex
+import subprocess
 from collections.abc import Iterable
 from pathlib import Path
 
@@ -38,7 +39,7 @@ def skip_unmatched_chezmoi_installation(request):
         pytest.skip(f"{feature}.installation_method is {active_method!r}; expected one of: {allowed}")
 
 
-def _chezmoi_command(*args):
+def _chezmoi_argv(*args):
     command = ["chezmoi"]
 
     if config_path := os.environ.get("CHEZMOI_CONFIG"):
@@ -47,7 +48,25 @@ def _chezmoi_command(*args):
         command.extend(["--destination", dest])
 
     command.extend(args)
-    return " ".join(shlex.quote(part) for part in command)
+    return command
+
+
+def _chezmoi_command(*args):
+    return " ".join(shlex.quote(part) for part in _chezmoi_argv(*args))
+
+
+def _chezmoi_source_path():
+    """Ask chezmoi itself where its source root is (respects .chezmoiroot).
+    Pytest always runs from the repo root, so that's the --source to resolve
+    against; a plain local subprocess call, not host.run, since this is a
+    question about the checkout on this machine, not the deployed target."""
+    result = subprocess.run(
+        ["chezmoi", "--source", str(Path.cwd()), "source-path"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return Path(result.stdout.strip())
 
 
 @pytest.fixture()
@@ -60,8 +79,14 @@ def chezmoi_data(host):
 
 @pytest.fixture()
 def chezmoi_source_root():
-    """Return the absolute path to the chezmoi source directory (src/chezmoi)."""
-    return Path(__file__).parent.parent.parent / "src" / "chezmoi"
+    """Return the absolute path to the chezmoi source directory, as resolved by chezmoi itself."""
+    return _chezmoi_source_path()
+
+
+@pytest.fixture()
+def repo_root(chezmoi_source_root):
+    """Return the absolute path to the repository root (src/chezmoi's grandparent)."""
+    return chezmoi_source_root.parent.parent
 
 
 @pytest.fixture()
@@ -74,13 +99,25 @@ def chezmoi_dest(host):
 
 
 def pytest_generate_tests(metafunc):
-    """Dynamically parameterize tests that require layout_name."""
-    if "layout_name" in metafunc.fixturenames:
-        source_root = Path(__file__).parent.parent.parent / "src" / "chezmoi"
-        layout_dir = source_root / "dot_config" / "zellij" / "layouts"
+    """Dynamically parameterize tests that require layout_name, chezmoiscript_path, or workflow_path."""
+    needs_source_root = {"layout_name", "chezmoiscript_path", "workflow_path"} & set(metafunc.fixturenames)
+    if not needs_source_root:
+        return
 
+    source_root = _chezmoi_source_path()
+    repo_root = source_root.parent.parent
+
+    if "layout_name" in metafunc.fixturenames:
+        layout_dir = source_root / "dot_config" / "zellij" / "layouts"
         layouts = []
         if layout_dir.exists():
             layouts = [p.name.removesuffix(".kdl.tmpl") for p in layout_dir.glob("*.kdl.tmpl")]
-
         metafunc.parametrize("layout_name", layouts)
+
+    if "chezmoiscript_path" in metafunc.fixturenames:
+        scripts = sorted((source_root / ".chezmoiscripts").glob("run_onchange_after_*.sh.tmpl"))
+        metafunc.parametrize("chezmoiscript_path", scripts, ids=lambda p: p.name)
+
+    if "workflow_path" in metafunc.fixturenames:
+        workflows = sorted((repo_root / ".github" / "workflows").glob("*.yml"))
+        metafunc.parametrize("workflow_path", workflows, ids=lambda p: p.name)
