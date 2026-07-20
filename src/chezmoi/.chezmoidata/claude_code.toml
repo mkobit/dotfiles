@@ -1,5 +1,5 @@
 [claude_code]
-version = "2.1.197"
+version = "2.1.215"
 
 # Deployment config → managed via modify_settings.json → ~/.claude/settings.json
 # These are operator/admin-level settings: permissions, env, tooling behavior.
