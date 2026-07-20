@@ -30,6 +30,19 @@ else
     exit 1
 fi
 
+# Global config resolution cascades into any `mise install -C <dir>` call
+# elsewhere (e.g. the repo-tools script), so a locked install run from the
+# repo re-validates these global tools too. Without a global lockfile they
+# have nothing to validate against and fail as "not in the lockfile" --
+# writing one here (never committed; see AGENTS.md) closes that gap.
+log_info "Locking global mise tools in {{ .chezmoi.destDir }}..."
+if MISE_LOCKED=0 "$MISE" -C "{{ .chezmoi.destDir }}" lock --global; then
+    log_success "Global mise tools locked in {{ .chezmoi.destDir }}."
+else
+    log_error "Failed to lock global mise tools in {{ .chezmoi.destDir }}."
+    exit 1
+fi
+
 log_info "Pruning unused global mise tools in {{ .chezmoi.destDir }}..."
 if "$MISE" prune -y -C "{{ .chezmoi.destDir }}"; then
     log_success "Global mise tools pruned in {{ .chezmoi.destDir }}."
