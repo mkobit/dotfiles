@@ -4,4 +4,8 @@
 {{-   $config = fromToml .chezmoi.stdin -}}
 {{- end -}}
 {{- $vimModeDefault := dig "codex" "tui" "vim_mode_default" true . -}}
+{{- if eq (dig "tui" "vim_mode_default" nil $config) $vimModeDefault -}}
+{{- .chezmoi.stdin -}}
+{{- else -}}
 {{- $config | setValueAtPath "tui.vim_mode_default" $vimModeDefault | toToml -}}
+{{- end -}}
