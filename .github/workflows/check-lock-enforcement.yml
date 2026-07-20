@@ -1,0 +1,55 @@
+name: Check Lock Enforcement
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'mise.toml'
+      - 'src/chezmoi/.chezmoiscripts/run_onchange_after_07_trust-install-repo-mise-tools.sh.tmpl'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/check-lock-enforcement.yml'
+  pull_request:
+    paths:
+      - 'mise.toml'
+      - 'src/chezmoi/.chezmoiscripts/run_onchange_after_07_trust-install-repo-mise-tools.sh.tmpl'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/check-lock-enforcement.yml'
+
+jobs:
+  check-lock-enforcement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0
+      - name: Check for lock bypasses in the deterministic convergence path
+        run: |
+          fail=0
+
+          repo_tools_script="src/chezmoi/.chezmoiscripts/run_onchange_after_07_trust-install-repo-mise-tools.sh.tmpl"
+          if [ -f "$repo_tools_script" ]; then
+            matches=$(grep -n -E 'MISE_LOCKED=0|--no-locked' "$repo_tools_script") || true
+            if [ -n "$matches" ]; then
+              echo "::error file=$repo_tools_script::Lock bypass found -- regenerate the stale lockfile instead (see dot_config/mise/AGENTS.md)"
+              echo "$matches"
+              fail=1
+            fi
+          fi
+
+          if [ -f mise.toml ] && ! grep -q -E '^locked[ \t]*=[ \t]*true' mise.toml; then
+            echo "::error file=mise.toml::locked = true is missing under [settings]"
+            fail=1
+          fi
+
+          if [ -f .github/workflows/ci.yml ]; then
+            matches=$(grep -n -E 'uv sync' .github/workflows/ci.yml | grep -v -E -- '--frozen|--locked') || true
+            if [ -n "$matches" ]; then
+              echo "::error file=.github/workflows/ci.yml::uv sync missing --frozen/--locked"
+              echo "$matches"
+              fail=1
+            fi
+          fi
+
+          if [ $fail -ne 0 ]; then
+            bash -c "exit 1"
+          fi
+          echo "✅ No lock bypasses found."
