@@ -151,7 +151,7 @@ def run(toml_path: Path, *, prune: bool, confirm: bool, dry_run: bool, no_open: 
         _log.log(_terminal.OK, "copied — adds new entries, previews removals (WOULD-DEL)")
 
         if not no_open:
-            _log.info("opening chrome://settings/searchEngines — paste into console (Cmd+Opt+J)")
+            _log.info("opening chrome://settings/searchEngines — paste into console (Cmd+Option+J)")
             _browser.open_in_chrome(_CHROME_SETTINGS_URL)
         else:
             _log.info("paste clipboard into DevTools console on:\n  %s", _CHROME_SETTINGS_URL)
@@ -168,7 +168,7 @@ def run(toml_path: Path, *, prune: bool, confirm: bool, dry_run: bool, no_open: 
         _log.log(_terminal.OK, "sync script copied to clipboard")
 
         if not no_open:
-            _log.info("opening chrome://settings/searchEngines — paste into console (Cmd+Opt+J)")
+            _log.info("opening chrome://settings/searchEngines — paste into console (Cmd+Option+J)")
             _browser.open_in_chrome(_CHROME_SETTINGS_URL)
         else:
             _log.info("paste clipboard into DevTools console on:\n  %s", _CHROME_SETTINGS_URL)
