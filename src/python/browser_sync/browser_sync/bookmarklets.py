@@ -11,6 +11,7 @@ import re
 import sys
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 from urllib.parse import unquote
 
 from pydantic import BaseModel
@@ -83,7 +84,7 @@ def _get_chrome_bookmarklets() -> Mapping[str, str]:
 
     bookmarks = json.loads(_CHROME_BOOKMARKS.read_text())
 
-    def find_folder(node: dict, name: str) -> dict | None:
+    def find_folder(node: dict[str, Any], name: str) -> dict[str, Any] | None:
         if node.get("name") == name and node.get("type") == "folder":
             return node
         return next((found for child in node.get("children", []) if (found := find_folder(child, name))), None)

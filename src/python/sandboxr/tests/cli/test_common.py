@@ -38,7 +38,7 @@ def test_require_srt_raises_when_mise_missing() -> None:
 
 
 def test_require_srt_raises_when_not_provisioned() -> None:
-    def _run(args: list[str], **kwargs: object) -> CompletedProcess:
+    def _run(args: list[str], **kwargs: object) -> CompletedProcess[str]:
         return CompletedProcess(args, 1, stdout="", stderr="not installed")
 
     with (
@@ -55,7 +55,7 @@ def test_require_srt_passes_when_resolved(tmp_path: Path) -> None:
     cli_js.parent.mkdir(parents=True)
     cli_js.write_text("")
 
-    def _run(args: list[str], **kwargs: object) -> CompletedProcess:
+    def _run(args: list[str], **kwargs: object) -> CompletedProcess[str]:
         return CompletedProcess(args, 0, stdout=f"{install_dir}\n", stderr="")
 
     with (

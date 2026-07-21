@@ -3,32 +3,6 @@ import pytest
 from sandboxr.profile.loader import load_config, merge_cli_overrides
 from sandboxr.profile.schema import ConfigError, SandboxConfig
 
-BASE_TOML = """
-default_profile = "autonomous"
-
-[profiles.autonomous]
-enabled = true
-backend = "auto"
-project_write = true
-network = "shared"
-ssh_agent = false
-gpg_agent = false
-
-[profiles.readonly]
-enabled = true
-backend = "auto"
-project_write = false
-network = "shared"
-ssh_agent = false
-gpg_agent = false
-
-[profiles.disabled]
-enabled = false
-backend = "auto"
-project_write = true
-network = "shared"
-"""
-
 BASE_TOML_WITH_EXTRA_RO = """
 default_profile = "autonomous"
 
@@ -49,17 +23,6 @@ network = "shared"
 ssh_agent = false
 gpg_agent = false
 """
-
-
-def write_config(tmp_path, text):
-    path = tmp_path / "sandbox.toml"
-    path.write_text(text)
-    return path
-
-
-@pytest.fixture
-def config(tmp_path):
-    return load_config(write_config(tmp_path, BASE_TOML))
 
 
 def test_merge_no_overrides_returns_same_profile(config: SandboxConfig) -> None:
@@ -93,8 +56,8 @@ def test_merge_gpg_agent_override(config: SandboxConfig) -> None:
     assert result.gpg_agent is True
 
 
-def test_merge_extra_ro_appends_to_profile(tmp_path) -> None:
-    cfg = load_config(write_config(tmp_path, BASE_TOML_WITH_EXTRA_RO))
+def test_merge_extra_ro_appends_to_profile(write_config) -> None:
+    cfg = load_config(write_config(BASE_TOML_WITH_EXTRA_RO))
     profile = cfg.profiles["autonomous"]
     result = merge_cli_overrides(profile, extra_ro=["/cli/path"])
     assert "/base/path" in result.extra_ro
@@ -107,7 +70,7 @@ def test_merge_extra_rw_appends_to_profile(config: SandboxConfig) -> None:
     assert "/tmp/state" in result.extra_rw
 
 
-def test_merge_allowed_domains_appends_to_profile(tmp_path) -> None:
+def test_merge_allowed_domains_appends_to_profile(write_config) -> None:
     toml = """
 default_profile = "allowlisted"
 
@@ -118,7 +81,7 @@ project_write = true
 network = "allowlist"
 allowed_domains = ["base.example.com"]
 """
-    cfg = load_config(write_config(tmp_path, toml))
+    cfg = load_config(write_config(toml))
     profile = cfg.profiles["allowlisted"]
     result = merge_cli_overrides(profile, allowed_domains=["cli.example.com"])
     assert "base.example.com" in result.allowed_domains

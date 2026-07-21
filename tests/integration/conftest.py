@@ -69,29 +69,32 @@ def _chezmoi_source_path():
     return Path(result.stdout.strip())
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def chezmoi_data(host):
-    """Return rendered chezmoi data from the initialized test environment."""
+    """Return rendered chezmoi data from the initialized test environment.
+    Module-scoped: the underlying `host` fixture (pytest-testinfra) is itself
+    module-scoped, so session scope would raise a ScopeMismatch."""
     result = host.run(_chezmoi_command("data", "--format=json"))
     assert result.rc == 0, f"chezmoi data failed.\nstderr: {result.stderr}\nstdout: {result.stdout}"
     return json.loads(result.stdout)
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def chezmoi_source_root():
     """Return the absolute path to the chezmoi source directory, as resolved by chezmoi itself."""
     return _chezmoi_source_path()
 
 
-@pytest.fixture()
+@pytest.fixture(scope="session")
 def repo_root(chezmoi_source_root):
     """Return the absolute path to the repository root (src/chezmoi's grandparent)."""
     return chezmoi_source_root.parent.parent
 
 
-@pytest.fixture()
+@pytest.fixture(scope="module")
 def chezmoi_dest(host):
-    """Return the absolute path to the chezmoi destination (usually $HOME)."""
+    """Return the absolute path to the chezmoi destination (usually $HOME).
+    Module-scoped to match `host`'s scope; see chezmoi_data for why."""
     result = host.run(_chezmoi_command("target-path"))
     if result.rc == 0:
         return Path(result.stdout.strip())

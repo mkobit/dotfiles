@@ -44,7 +44,7 @@ def mise_install(tmp_path: Path):
             return f"/usr/bin/{name}"
         return None
 
-    def _run(args: list[str], **kwargs: object) -> CompletedProcess:
+    def _run(args: list[str], **kwargs: object) -> CompletedProcess[str]:
         return CompletedProcess(args, 0, stdout=f"{install_dir}\n", stderr="")
 
     with (
@@ -356,7 +356,7 @@ def test_build_args_raises_when_mise_missing(home: Path, project: Path) -> None:
 
 
 def test_build_args_raises_when_srt_not_provisioned(home: Path, project: Path) -> None:
-    def _run(args: list[str], **kwargs: object) -> CompletedProcess:
+    def _run(args: list[str], **kwargs: object) -> CompletedProcess[str]:
         return CompletedProcess(args, 1, stdout="", stderr="not installed")
 
     with (

@@ -123,7 +123,7 @@ class TermText:
         cfg = config or DEFAULT_CONFIG
         empty_style = Style()
 
-        def to_segment(item: str | Interpolation) -> Segment:
+        def to_segment(item: str | Interpolation[object]) -> Segment:
             match item:
                 case str():
                     return Segment(EscapedText(item), empty_style)
