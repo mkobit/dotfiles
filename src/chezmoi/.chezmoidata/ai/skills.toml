@@ -42,6 +42,7 @@ sha256 = "d2c15e07a4637bffc7df15daa062eeb569c9adf6d6ad6ec08dec4ce6539b3910"
 
 [ai.skills.external.superpowers.skills]
 brainstorming = "present"
+dispatching-parallel-agents = "present"
 executing-plans = "present"
 finishing-a-development-branch = "present"
 receiving-code-review = "present"
@@ -50,14 +51,15 @@ subagent-driven-development = "present"
 systematic-debugging = "present"
 test-driven-development = "present"
 using-git-worktrees = "present"
+using-superpowers = "present"
 verification-before-completion = "present"
 writing-plans = "present"
 writing-skills = "present"
 
 [ai.skills.external.anthropics-skills]
 repo = "anthropics/skills"
-ref = "57546260929473d4e0d1c1bb75297be2fdfa1949" # 2026-06-09
-sha256 = "7a3e7ac65a8057d56c3ed78292b69d1a0b48cb3adfe3e77ec5019621c42e940e"
+ref = "fa0fa64bdc967915dc8399e803be67759e1e62b8" # 2026-07-20
+sha256 = "3fa5cb4472fc79626be4ebc3bf997b1ef57e413b8801a7ccac874860b287317f"
 
 [ai.skills.external.anthropics-skills.skills]
 skill-creator = "claude" # authoring tooling is only useful inside Claude Code
@@ -67,9 +69,88 @@ webapp-testing = "absent"
 # its skills-src content is bundled into the modern-web-guidance skill's guides here).
 [ai.skills.external.modern-web-guidance]
 repo = "GoogleChrome/modern-web-guidance"
-ref = "5733cdd9f89b0f19119e855532f8b8ac7997ecb6" # 2026-06-08
-sha256 = "3d2793fd566307a2e95387266f3c36fe251f727a62883257bda15e36f2aacead"
+ref = "79aae1e0bed948e48fd78b58538c5ee1e6463da9" # 2026-07-20
+sha256 = "915d220920d7715d8338ab97381522f74dc29d78849405df82223ac4afc20c7e"
 
 [ai.skills.external.modern-web-guidance.skills]
 chrome-extensions = "present"
 modern-web-guidance = "present"
+
+# Onboarded 2026-07-20: skills from wshobson/agents (see agents.toml
+# wshobson-agents source comment for scope/exclusions). One source per plugin
+# since skills_root is per-source.
+[ai.skills.external.wshobson-llm-application-dev]
+repo = "wshobson/agents"
+ref = "c4b82b0ad771190355eb8e204b1329732a18449a" # 2026-07-18
+sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
+skills_root = "plugins/llm-application-dev/skills"
+
+[ai.skills.external.wshobson-llm-application-dev.skills]
+embedding-strategies = "present"
+hybrid-search-implementation = "present"
+langchain-architecture = "present"
+llm-evaluation = "present"
+prompt-engineering-patterns = "present"
+rag-implementation = "present"
+similarity-search-patterns = "present"
+vector-index-tuning = "present"
+
+[ai.skills.external.wshobson-llm-finetuning]
+repo = "wshobson/agents"
+ref = "c4b82b0ad771190355eb8e204b1329732a18449a" # 2026-07-18
+sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
+skills_root = "plugins/llm-finetuning/skills"
+
+[ai.skills.external.wshobson-llm-finetuning.skills]
+checkpoint-promotion = "present"
+dataset-curation = "present"
+eval-harness-first = "present"
+finetuning-method-selection = "present"
+grpo-rlvr-training = "present"
+lora-qlora-recipes = "present"
+preference-optimization = "present"
+quantized-export = "present"
+trace-to-training-data = "present"
+vision-sft = "present"
+
+[ai.skills.external.wshobson-machine-learning-ops]
+repo = "wshobson/agents"
+ref = "c4b82b0ad771190355eb8e204b1329732a18449a" # 2026-07-18
+sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
+skills_root = "plugins/machine-learning-ops/skills"
+
+[ai.skills.external.wshobson-machine-learning-ops.skills]
+ml-pipeline-workflow = "present"
+# Rejected 2026-07-20: pulls unaudited third-party content via `npx skills add` at agent-invocation time.
+recsys-pipeline-architect = "absent"
+
+[ai.skills.external.wshobson-dotnet-contribution]
+repo = "wshobson/agents"
+ref = "c4b82b0ad771190355eb8e204b1329732a18449a" # 2026-07-18
+sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
+skills_root = "plugins/dotnet-contribution/skills"
+
+[ai.skills.external.wshobson-dotnet-contribution.skills]
+dotnet-backend-patterns = "present"
+
+[ai.skills.external.wshobson-systems-programming]
+repo = "wshobson/agents"
+ref = "c4b82b0ad771190355eb8e204b1329732a18449a" # 2026-07-18
+sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
+skills_root = "plugins/systems-programming/skills"
+
+[ai.skills.external.wshobson-systems-programming.skills]
+go-concurrency-patterns = "present"
+memory-safety-patterns = "present"
+rust-async-patterns = "present"
+
+[ai.skills.external.wshobson-shell-scripting]
+repo = "wshobson/agents"
+ref = "c4b82b0ad771190355eb8e204b1329732a18449a" # 2026-07-18
+sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
+skills_root = "plugins/shell-scripting/skills"
+
+[ai.skills.external.wshobson-shell-scripting.skills]
+bash-defensive-patterns = "present"
+bats-testing-patterns = "present"
+shellcheck-configuration = "present"
