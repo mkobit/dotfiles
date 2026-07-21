@@ -7,7 +7,18 @@ _G.DotfilesConfig = {
     window_manager = {
         enabled = {{ .hammerspoon.window_manager.enabled | default "false" }}
     },
+    chrome = {
+        hotkeys = {
+            {{- with dig "hammerspoon" "chrome" "hotkeys" "vertical_tabs" nil . }}
+            vertical_tabs = { mods = { {{ range .mods }}"{{ . }}", {{ end }} }, key = "{{ .key }}" },
+            {{- end }}
+        },
+    },
 }
 
 -- Load base configuration
 dofile("{{ .chezmoi.destDir }}/.dotfiles/hammerspoon/snippets/init.lua")
+
+{{ range (dig "chrome" "features" (list) .hammerspoon) -}}
+dofile("{{ $.chezmoi.destDir }}/.dotfiles/hammerspoon/snippets/chrome-{{ . }}.lua")
+{{ end -}}

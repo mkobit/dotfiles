@@ -13,6 +13,10 @@ def _srt_available(host) -> bool:
     return host.run("mise where npm:@anthropic-ai/sandbox-runtime").rc == 0
 
 
+def _domain_reachable(host, domain: str) -> bool:
+    return host.run(f"curl -sf --max-time 5 --head https://{domain}").rc == 0
+
+
 @pytest.mark.integration
 def test_sandboxr_on_path(host):
     result = host.run("command -v sandboxr")
@@ -42,6 +46,8 @@ def test_doctor_bwrap_profile_passes(host):
 def test_doctor_srt_claude_profile_passes(host):
     if not _srt_available(host):
         pytest.skip("srt not provisioned via mise on this runner")
+    if not _domain_reachable(host, "api.anthropic.com"):
+        pytest.skip("api.anthropic.com unreachable from runner — sandbox domain probe requires host access")
     result = host.run("sandboxr doctor --profile srt-claude")
     assert result.rc == 0, f"doctor failed.\nstdout: {result.stdout}\nstderr: {result.stderr}"
     assert "sandboxr doctor: all probes passed" in result.stdout
