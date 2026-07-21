@@ -1,10 +1,16 @@
+--- Chrome vertical tabs sidebar toggle.
+-- Active only while Google Chrome is the frontmost application.
+-- Hotkey binding is read from `_G.DotfilesConfig.chrome.hotkeys.vertical_tabs`
+-- (set by config.lua before any snippet is loaded).
+-- Requires Accessibility access for Google Chrome in System Settings → Privacy & Security.
+
 local cfg = _G.DotfilesConfig.chrome.hotkeys.vertical_tabs
 
 local function findSidebarButton(el, depth)
     if depth > 10 then return nil end
     local role  = el:attributeValue("AXRole") or ""
-    local label = el:attributeValue("AXDescription") ~= "" and el:attributeValue("AXDescription")
-                  or el:attributeValue("AXTitle") or ""
+    local desc  = el:attributeValue("AXDescription") or ""
+    local label = desc ~= "" and desc or (el:attributeValue("AXTitle") or "")
     if role == "AXButton" and (label:find("[Ee]xpand [Tt]abs") or label:find("[Cc]ollapse [Tt]abs")) then
         return el
     end
