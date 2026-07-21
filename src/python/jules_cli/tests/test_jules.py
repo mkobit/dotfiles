@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -44,7 +45,7 @@ async def test_client_init_error() -> None:
 async def test_client_get_session() -> None:
     client = JulesClient(api_key="test_key")
 
-    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+    async def mock_get(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         if "123" in endpoint:
             return MOCK_SESSION_DATA
         return {}
@@ -59,7 +60,7 @@ async def test_client_get_session() -> None:
 async def test_client_list_sessions() -> None:
     client = JulesClient(api_key="test_key")
 
-    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+    async def mock_get(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         if params and params.get("pageToken") == "page-2-token":
             return MOCK_LIST_SESSIONS_PAGE_2
         return MOCK_LIST_SESSIONS_PAGE_1
@@ -100,7 +101,7 @@ MOCK_LIST_ACTIVITIES_PAGE_2 = {"activities": [MOCK_ACTIVITY_DATA_2], "nextPageTo
 async def test_client_list_activities() -> None:
     client = JulesClient(api_key="test_key")
 
-    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+    async def mock_get(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         assert params is not None
         assert params.get("pageSize") == 30
         if params and params.get("pageToken") == "page-2-token":
@@ -124,7 +125,7 @@ async def test_client_list_activities() -> None:
 async def test_client_list_activities_custom_page_size() -> None:
     client = JulesClient(api_key="test_key")
 
-    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+    async def mock_get(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         assert params is not None
         assert params.get("pageSize") == 50
         return MOCK_LIST_ACTIVITIES_PAGE_2
@@ -157,7 +158,7 @@ MOCK_LIST_SOURCES_PAGE_2 = {"sources": [MOCK_SOURCE_DATA_2], "nextPageToken": No
 async def test_client_list_sources() -> None:
     client = JulesClient(api_key="test_key")
 
-    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+    async def mock_get(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         if params and params.get("pageToken") == "page-2-token":
             return MOCK_LIST_SOURCES_PAGE_2
         return MOCK_LIST_SOURCES_PAGE_1
@@ -179,7 +180,7 @@ async def test_client_list_sources() -> None:
 async def test_client_create_session() -> None:
     client = JulesClient(api_key="test_key")
 
-    async def mock_post(endpoint: str, data: dict | None = None) -> dict:
+    async def mock_post(endpoint: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         assert endpoint == "/sessions"
         assert data is not None
         assert data.get("prompt") == "New Session Prompt"
@@ -201,7 +202,7 @@ async def test_client_create_session() -> None:
 async def test_client_send_message() -> None:
     client = JulesClient(api_key="test_key")
 
-    async def mock_post(endpoint: str, data: dict | None = None) -> dict:
+    async def mock_post(endpoint: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         assert endpoint == "/sessions/123:sendMessage"
         assert data is not None
         assert data.get("prompt") == "Test Message"
@@ -217,7 +218,7 @@ async def test_client_send_message() -> None:
 async def test_client_approve_plan() -> None:
     client = JulesClient(api_key="test_key")
 
-    async def mock_post(endpoint: str, data: dict | None = None) -> dict:
+    async def mock_post(endpoint: str, data: dict[str, Any] | None = None) -> dict[str, Any]:
         assert endpoint == "/sessions/123:approvePlan"
         assert data is None
         return {"status": "approved"}
@@ -232,7 +233,7 @@ async def test_client_approve_plan() -> None:
 async def test_client_get_activity() -> None:
     client = JulesClient(api_key="test_key")
 
-    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+    async def mock_get(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         if "sessions/123/activities/456" in endpoint:
             return MOCK_ACTIVITY_DATA
         return {}
@@ -248,7 +249,7 @@ async def test_client_get_activity() -> None:
 async def test_client_get_source() -> None:
     client = JulesClient(api_key="test_key")
 
-    async def mock_get(endpoint: str, params: dict | None = None) -> dict:
+    async def mock_get(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
         if "sources/123" in endpoint:
             return MOCK_SOURCE_DATA_1
         return {}

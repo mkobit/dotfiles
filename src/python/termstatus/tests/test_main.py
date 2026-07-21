@@ -3,6 +3,7 @@ import json
 import os
 import unittest
 from pathlib import Path
+from typing import override
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
@@ -39,6 +40,7 @@ class TestMainSmoke(unittest.TestCase):
         )
 
         class MockStdin(io.StringIO):
+            @override
             def isatty(self):
                 return False
 

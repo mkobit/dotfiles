@@ -14,6 +14,7 @@ import time
 import uuid
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Any
 
 from sandboxr.backend.bwrap import (
     CACHE_REL,
@@ -43,7 +44,7 @@ SETTINGS_MAX_AGE_SECONDS = 3600
 _GRACE_SLEEP_SECONDS = "0.2"
 
 
-def build_settings(spec: SandboxSpec, mask_paths: Sequence[str] = ()) -> dict:
+def build_settings(spec: SandboxSpec, mask_paths: Sequence[str] = ()) -> dict[str, Any]:
     if spec.network == "shared":
         msg = (
             "srt backend does not support network='shared' (no expressible "
@@ -143,7 +144,7 @@ def _cleanup_stale_settings(settings_dir: Path) -> None:
             pass
 
 
-def write_settings(settings: dict, home: Path) -> Path:
+def write_settings(settings: dict[str, Any], home: Path) -> Path:
     settings_dir = home / SETTINGS_DIR_REL
     settings_dir.mkdir(parents=True, exist_ok=True)
     _cleanup_stale_settings(settings_dir)

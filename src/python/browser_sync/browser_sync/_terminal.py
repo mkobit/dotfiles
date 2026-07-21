@@ -29,6 +29,7 @@ class _ColorFormatter(logging.Formatter):
         logging.ERROR: "ERR ",
     }
 
+    @typing.override
     def format(self, record: logging.LogRecord) -> str:
         """Format log record with timestamp and colored badge."""
         ts = time.strftime("%H:%M:%S")

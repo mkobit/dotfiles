@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -17,7 +18,7 @@ def mock_subprocess_run():
         yield mock
 
 
-def _calls_for(mock, *tokens) -> list:
+def _calls_for(mock, *tokens) -> list[Any]:
     return [c for c in mock.call_args_list if all(t in c.args[0] for t in tokens)]
 
 
