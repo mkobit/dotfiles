@@ -57,7 +57,7 @@ def getkey() -> str:
 
 def prompt_enter(message: str) -> None:
     """Wait for Enter; exit cleanly on Ctrl+C."""
-    print(f"\n\033[0;36m[?]\033[0m    {message}", end="", flush=True)
+    print(f"\033[0;36m[?]\033[0m    {message}", end="", flush=True)
     while True:
         ch = getkey()
         if ch in ("\r", "\n"):
@@ -71,7 +71,7 @@ def prompt_enter(message: str) -> None:
 
 def prompt_done_or_recopy(copy_fn: Callable[[], None]) -> None:
     """Wait for Enter (done) or 'r' (recopy the clipboard payload)."""
-    print("\n\033[0;36m[?]\033[0m    Press Enter when done, or 'r' to recopy ", end="", flush=True)
+    print("\033[0;36m[?]\033[0m    Press Enter when done, or 'r' to recopy ", end="", flush=True)
     while True:
         ch = getkey()
         if ch in ("\r", "\n"):
@@ -90,7 +90,7 @@ def prompt_done_or_recopy(copy_fn: Callable[[], None]) -> None:
 
 def prompt_prune_or_skip(copy_fn: Callable[[], None]) -> None:
     """Wait for 'p' (copy prune script then confirm) or Enter (skip removals)."""
-    print("\n\033[0;33m[!]\033[0m    Press 'p' to copy PRUNE script, or Enter to skip removals ", end="", flush=True)
+    print("\033[0;33m[!]\033[0m    Press 'p' to copy PRUNE script, or Enter to skip removals ", end="", flush=True)
     while True:
         ch = getkey()
         if ch in ("\r", "\n"):
