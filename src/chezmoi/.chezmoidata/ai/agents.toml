@@ -112,3 +112,50 @@ sha256 = "cc7e99ab1f744f2a97960d1a1953e0bdf951e7f64a1044f89e0180079835ec2d"
 # running real load/stress/penetration tests — only point it at safe targets.
 "testing/testing-api-tester" = "present"
 "testing/testing-performance-benchmarker" = "present"
+
+# Onboarded 2026-07-20: 91-plugin marketplace (agents/skills/commands per
+# plugin). Hook/MCP-bundling plugins (protect-mcp, review-agent-governance,
+# runapi-mcp) and file-conversion (uploads to a third-party SaaS) excluded as
+# a different risk class. Other categories audited clean but left unselected
+# as out of scope.
+[ai.agents.external.wshobson-agents]
+repo = "wshobson/agents"
+ref = "c4b82b0ad771190355eb8e204b1329732a18449a" # 2026-07-18
+sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
+agents_root = "plugins"
+
+[ai.agents.external.wshobson-agents.agents]
+"content-marketing/agents/content-marketer" = "present"
+"content-marketing/agents/search-specialist" = "present"
+"seo-content-creation/agents/seo-content-auditor" = "present"
+"seo-content-creation/agents/seo-content-planner" = "present"
+"seo-content-creation/agents/seo-content-writer" = "present"
+"llm-application-dev/agents/vector-database-engineer" = "present"
+# Rejected 2026-07-20: duplicates existing engineering-ai-engineer pick.
+"llm-application-dev/agents/ai-engineer" = "absent"
+# Rejected 2026-07-20: duplicates existing engineering-prompt-engineer pick.
+"llm-application-dev/agents/prompt-engineer" = "absent"
+"machine-learning-ops/agents/data-scientist" = "present"
+"machine-learning-ops/agents/ml-engineer" = "present"
+"machine-learning-ops/agents/mlops-engineer" = "present"
+"llm-finetuning/agents/llm-finetuning-architect" = "present"
+"llm-finetuning/agents/llm-finetuning-eval-engineer" = "present"
+# Audit caveat 2026-07-20: soft-references an optional dgx-spark-ops plugin
+# and /spark-preflight command not selected here — degrades to a generic
+# fallback, but the reference will point at nothing.
+"llm-finetuning/agents/llm-finetuning-training-engineer" = "present"
+"julia-development/agents/julia-pro" = "present"
+"jvm-languages/agents/csharp-pro" = "present"
+"jvm-languages/agents/java-pro" = "present"
+"jvm-languages/agents/scala-pro" = "present"
+"dotnet-contribution/agents/dotnet-architect" = "present"
+"functional-programming/agents/elixir-pro" = "present"
+"functional-programming/agents/haskell-pro" = "present"
+"systems-programming/agents/c-pro" = "present"
+"systems-programming/agents/cpp-pro" = "present"
+# Rejected 2026-07-20: generic keyword-list style, weaker than c-pro/cpp-pro siblings.
+"systems-programming/agents/golang-pro" = "absent"
+# Rejected 2026-07-20: same generic-list issue as golang-pro.
+"systems-programming/agents/rust-pro" = "absent"
+"shell-scripting/agents/bash-pro" = "present"
+"shell-scripting/agents/posix-shell-pro" = "present"
