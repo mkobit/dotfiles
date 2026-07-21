@@ -1,5 +1,2 @@
 [hammerspoon.window_manager]
 enabled = false
-
-[hammerspoon.chrome]
-features = []
