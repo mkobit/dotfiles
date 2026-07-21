@@ -9,7 +9,7 @@ _G.DotfilesConfig = {
     },
     chrome = {
         hotkeys = {
-            {{- with dig "hotkeys" "vertical_tabs" nil .hammerspoon.chrome }}
+            {{- with dig "hammerspoon" "chrome" "hotkeys" "vertical_tabs" nil . }}
             vertical_tabs = { mods = { {{ range .mods }}"{{ . }}", {{ end }} }, key = "{{ .key }}" },
             {{- end }}
         },
