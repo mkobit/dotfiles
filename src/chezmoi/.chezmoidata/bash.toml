@@ -1,2 +1,5 @@
 [bash.config_fragments."10-personal"]
 template = "shell/personal-bashrc.sh"
+
+[bash.config_fragments."15-secrets"]
+template = "shell/secrets.sh"
