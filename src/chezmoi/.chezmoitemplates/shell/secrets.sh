@@ -1,1 +1,1 @@
-source {{ .chezmoi.destDir }}/.config/zsh/secrets.zsh
+source {{ .chezmoi.destDir }}/.config/shell/secrets.sh
