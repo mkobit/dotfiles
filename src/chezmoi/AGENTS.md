@@ -14,6 +14,7 @@ This directory contains the Chezmoi source state for dotfiles management.
 
 - **AI agent sandbox** (`sandboxr`, see [src/python/sandboxr/AGENTS.md](../python/sandboxr/AGENTS.md)): autonomous agent CLI runs are wrapped by `sandboxr` reading `.chezmoidata/ai/sandbox.toml`, rendered to `~/.config/ai-policy/sandbox.toml` plus per-tool fragments under `dot_config/ai-policy/`.
 - **Command approval policy** (see below): global command-approval allowlist for attended (HITL) agent sessions, rendered into each tool's native permission syntax.
+- **Secrets** (`[data.secrets]` in `.chezmoi.toml.tmpl`, prompted once via `promptStringOnce`, skipped under `env "CI"`): exported to the shell via a `zsh.config_fragments` entry (`.chezmoidata/zsh.toml` → `.chezmoitemplates/shell/secrets.sh`), never written to a git-tracked file. Blank answer = not exported. Add more secrets here rather than inventing a per-tool prompt/deploy mechanism — e.g. a project's `.mcp.json` can reference `${STITCH_API_KEY}` directly with no chezmoi involvement beyond this export.
 
 ## Command approval policy
 

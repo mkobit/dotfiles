@@ -169,3 +169,16 @@ installation_method = "dotfiles.script"
 
 [data.npmrc]
 installation_method = "chezmoi"
+
+# Secrets — prompted once at chezmoi init, exported to the shell (see
+# .chezmoitemplates/shell/secrets.sh via zsh.config_fragments."15-secrets" in
+# .chezmoidata/zsh.toml), never written into any git-tracked file. Blank
+# answer = not exported, harmless no-op. Skipped entirely in CI —
+# promptStringOnce has long-standing upstream bugs falling back to its
+# default under --promptString/non-interactive use, so CI never calls it.
+{{- $stitchApiKey := "" -}}
+{{- if not (env "CI") -}}
+{{-   $stitchApiKey = promptStringOnce . "stitch_api_key" "Stitch API key, exported as $STITCH_API_KEY for use in any project's .mcp.json (blank to skip — stitch.withgoogle.com → Settings → API key)" "" -}}
+{{- end }}
+[data.secrets]
+stitch_api_key = {{ $stitchApiKey | quote }}
