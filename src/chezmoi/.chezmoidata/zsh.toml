@@ -4,3 +4,6 @@ prompt = "starship"
 
 [zsh.config_fragments."10-personal"]
 template = "shell/personal-zshrc.sh"
+
+[zsh.config_fragments."15-secrets"]
+template = "shell/secrets.sh"
