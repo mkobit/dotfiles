@@ -159,3 +159,7 @@ agents_root = "plugins"
 "systems-programming/agents/rust-pro" = "absent"
 "shell-scripting/agents/bash-pro" = "present"
 "shell-scripting/agents/posix-shell-pro" = "present"
+# Rejected 2026-07-24: security clean, but framed exclusively around JS/TS
+# tooling (Nx/Turborepo/Lerna) plus Bazel — no uv/poetry/Python-workspace
+# coverage, so not applicable to this repo's src/python uv workspace.
+"developer-essentials/agents/monorepo-architect" = "absent"
