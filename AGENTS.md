@@ -34,6 +34,19 @@ Never assume you are on `main` or in the primary checkout directory.
    - If a user asks you to use them, you must provably come to the user with the reasons why before ever making an edit.
    - We install to a target directory, which may not be the user's home during testing/CI.
 
+## Editing Claude Code / AI-tool configuration
+
+When a request in this repo mentions editing Claude settings, `CLAUDE.md`, agent definitions, skills, or other AI-tool config, it means editing the chezmoi source and running `chezmoi apply` — **never** editing the deployed file directly.
+Deployed copies under `~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.cursor/`, etc. (or the equivalent under `.chezmoi.destDir` during testing) are chezmoi-managed targets; direct edits there are silently overwritten on the next `chezmoi apply`.
+This applies to every dotfile-managed target, not just Claude's — the same mistake applies to any tool whose config chezmoi owns.
+
+- Global Claude Code prompt: `src/chezmoi/dot_claude/CLAUDE.md.tmpl` → `~/.claude/CLAUDE.md`.
+- Claude Code settings: `src/chezmoi/dot_claude/modify_settings.json` → `~/.claude/settings.json`.
+- Skills catalog: `src/chezmoi/.chezmoidata/ai/skills.toml`; authored skill sources under `src/ai/skills/`.
+- Agents catalog: `src/chezmoi/.chezmoidata/ai/agents.toml` (pinned upstream selections; no authored agent sources exist yet).
+
+After editing source, preview with `chezmoi diff`, then sync with `chezmoi apply` (optionally scoped to a target path, e.g. `chezmoi apply ~/.claude/CLAUDE.md`).
+
 ## Managed environment constraints
 
 - **`modify_` scripts** are the ONLY safe way to customize externally managed files (like `.gitconfig`, `.zshrc` in corporate environments).
