@@ -154,3 +154,20 @@ skills_root = "plugins/shell-scripting/skills"
 bash-defensive-patterns = "present"
 bats-testing-patterns = "present"
 shellcheck-configuration = "present"
+
+# Onboarded 2026-07-24: bazel-build-optimization audited (security: approve,
+# no caveat — read-only Bazel query/build commands, pinned http_archive
+# deps, no secrets or curl|sh). Other skills in this plugin
+# (auth-implementation-patterns, code-review-excellence,
+# debugging-strategies, e2e-testing-patterns, error-handling-patterns,
+# git-advanced-workflows, monorepo-management, nx-workspace-patterns,
+# sql-optimization-patterns, turborepo-caching) not reviewed — revisit
+# before selecting any.
+[ai.skills.external.wshobson-developer-essentials]
+repo = "wshobson/agents"
+ref = "c4b82b0ad771190355eb8e204b1329732a18449a" # 2026-07-18
+sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
+skills_root = "plugins/developer-essentials/skills"
+
+[ai.skills.external.wshobson-developer-essentials.skills]
+bazel-build-optimization = "present"
