@@ -34,7 +34,8 @@ content = """
 content = """
 ## Delegation
 - Delegate specific units of work to subagents to keep the main thread focused and context lean.
-- Prefer pre-installed named skills and agents (superpowers, agency-agents) over ad-hoc subagent prompts — they carry tested workflows and better instructions."""
+- Prefer pre-installed named skills and agents (superpowers, agency-agents) over ad-hoc subagent prompts — they carry tested workflows and better instructions.
+- Match an unnamed subagent request to the best-fitting agent type; use a generic one only if none fits."""
 
 [[ai.guidelines.sections]]
 content = """
