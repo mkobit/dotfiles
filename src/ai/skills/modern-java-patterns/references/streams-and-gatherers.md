@@ -1,7 +1,9 @@
 # Streams and gatherers
 
 Replace imperative loops — `continue`/`break`, nested `if` filtering, manual accumulation into a mutable list — with a stream pipeline.
-Stream basics (`map`/`filter`/`reduce`/`collect`) have been stable since JDK 8; `Stream.toList()` is a later convenience, stable since JDK 16. Both apply at every milestone in this skill's scope.
+Stream basics (`map`/`filter`/`reduce`/`collect`) have been stable since JDK 8.
+`Stream.toList()` is a later convenience, stable since JDK 16.
+Both apply at every milestone in this skill's scope.
 For stateful operations a plain stream cannot express — windowing, fold, scan — use a Gatherer.
 Gatherers (`java.util.stream.Gatherers`) reached general availability in JDK 24 (JEP 485), which is stable under this skill's JDK 25 LTS milestone.
 
