@@ -18,10 +18,10 @@ linux_amd64  = "linux-x64"
 linux_arm64  = "linux-arm64"
 
 [bin.mise.github_releases.checksums]
-darwin_arm64 = "80dad4a76db564540be56ebd19e76165e2425e0b45f6f7aca6ac2d5efa3a6161"
-darwin_amd64 = "62563fe6e4799c6e499db4a328632f63499ee864581c923a7bb45bd90e8827bd"
-linux_amd64  = "2dfb74b2e09d1f73a4cfa0c4db0332418e39d35940b48f501b3b4004b59a379c"
-linux_arm64  = "c002f9c3fd8ef7535afb5e20006cbdcc5f7e8144f7210057c241ec7e902743bc"
+darwin_arm64 = "ef747f4bd944d7cb4efe1832ec6cd29dfdbc217389122fa37c20d116d90c1eb6"
+darwin_amd64 = "3cd0f468c4c8ba1196d949441cb84eeaebb92b94666ef8caa17602c82421f420"
+linux_amd64  = "47878bc295922c5f7ba4b7054cc372ce6ae730a1f12b0753c1cda2f04376eee2"
+linux_arm64  = "f115d1f911b8eed1bdc9d889d94ff6fdaf892131d573b5678914b2bcf14b2965"
 
 [mise]
 
