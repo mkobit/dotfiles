@@ -63,4 +63,4 @@ try (var scope = StructuredTaskScope.open(Joiner.<String>awaitAll())) {
 | Imperative shape | Replacement | Status | Min JDK |
 |---|---|---|---|
 | Manual `ExecutorService` sizing/pooling | `Executors.newVirtualThreadPerTaskExecutor()` | Stable | 21 |
-| Manual `Future` fan-out/fan-in with shared shutdown/error handling | `StructuredTaskScope` | Preview, `--enable-preview` required | 21 (shape changed by 25) |
+| Manual `Future` fan-out/fan-in with shared shutdown/error handling | `StructuredTaskScope` | PREVIEW, `--enable-preview` required | 21 (shape changed by 25) |
