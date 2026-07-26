@@ -24,6 +24,7 @@ url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"
 # deployed via file:// externals (see .chezmoiexternals/ai-authored-skills.toml.tmpl).
 [ai.skills.authored]
 example_skill = "absent"
+modern-java-patterns = "present"
 pr-reviewer = "absent" # source deleted 2026-06-11; replaced by superpowers requesting/receiving-code-review
 technical-writing = "present"
 typescript-expert = "absent" # source deleted 2026-06-11; find a publicly maintained replacement
