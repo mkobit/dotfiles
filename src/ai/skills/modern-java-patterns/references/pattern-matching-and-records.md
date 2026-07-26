@@ -41,6 +41,6 @@ String describe(Shape shape) {
 
 | Imperative shape | Replacement | Min JDK |
 |---|---|---|
-| `if (x instanceof T) { T t = (T) x; ... }` | `if (x instanceof T t) { ... }` | 16 |
+| `if (x instanceof T) { T t = (T) x; ... }` | `if (x instanceof T t) { ... }` | 17 |
 | `if (x == null) return ...;` inside a switch-like chain | `case null ->` in a pattern-matched `switch` | 21 |
 | Type-switch ladder over a closed set of subtypes | Sealed interface/class + pattern-matched `switch` | 21 (17 for sealed alone) |
