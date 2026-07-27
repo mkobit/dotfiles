@@ -1,8 +1,6 @@
-{{- /* Deployed to <destDir>/.dotfiles/git/hooks/pre-commit and wired via
-       core.hooksPath (snippets/hooks.gitconfig, mkobit remotes only). Two knobs:
-       the git_hooks.pre_commit BOM enables the hook, and it depends on the
-       betterleaks binary being installed. Renders empty (→ chezmoi removes the
-       file) unless both hold. */ -}}
+{{- /* Wired via snippets/hooks.gitconfig; see dot_dotfiles/git/AGENTS.md.
+       Renders empty unless git_hooks.pre_commit is enabled and betterleaks
+       is installed. */ -}}
 {{- $binOn  := ne (dig "betterleaks" "installation_method" "none" (dig "local" "bin" (dict) .)) "none" -}}
 {{- $hookOn := eq (dig "pre_commit"  "installation_method" "none" (dig "git_hooks" (dict) .)) "chezmoi" -}}
 {{- if and $binOn $hookOn -}}

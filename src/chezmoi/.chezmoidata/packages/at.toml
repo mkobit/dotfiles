@@ -1,0 +1,6 @@
+[packages.at.package.apt]
+name = "at"
+
+# atd must be enabled + running for `at`/`atq`/`atrm` to actually execute queued jobs.
+[packages.at.systemd]
+service = "atd"

@@ -70,6 +70,18 @@ installation_method = "github_releases"
 [data.local.bin.betterleaks]
 installation_method = "github_releases"
 
+# Git hooks backend (config vs hookspath) — see dot_dotfiles/git/AGENTS.md.
+{{- $gitHooksBackend := "hookspath" -}}
+{{- if lookPath "git" -}}
+{{-   $gitVersion := output "git" "--version" | trim | trimPrefix "git version " | splitList " " | first -}}
+{{-   if semverCompare ">=2.54.0" $gitVersion -}}
+{{-     $gitHooksBackend = "config" -}}
+{{-   end -}}
+{{- end }}
+
+[data.git_hooks]
+backend = {{ $gitHooksBackend | quote }}
+
 # Git hooks, gated on the betterleaks binary above ("chezmoi" / "none").
 [data.git_hooks.pre_commit]
 installation_method = "chezmoi"
@@ -137,6 +149,16 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end
 [data.packages.socat]
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 
+# git-core PPA (see .chezmoidata/packages/git.toml) tracks current upstream
+# stable; macOS keeps its Xcode/Homebrew git untouched — overlay never sets
+# this, so it stays "none" there.
+[data.packages.git]
+installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
+
+# `at`/`atq`/`atrm` job scheduling — Linux only, no macOS equivalent.
+[data.packages.at]
+installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
+
 # Local Python Tools (via uv) Installation Methods
 [data.local_bin_tools.termstatus]
 installation_method = "dotfiles.uv"
@@ -173,12 +195,14 @@ installation_method = "chezmoi"
 # Secrets — prompted once at chezmoi init, exported to the shell (see
 # .chezmoitemplates/shell/secrets.sh via zsh.config_fragments."15-secrets" in
 # .chezmoidata/zsh.toml), never written into any git-tracked file. Blank
-# answer = not exported, harmless no-op. Skipped entirely in CI —
-# promptStringOnce has long-standing upstream bugs falling back to its
-# default under --promptString/non-interactive use, so CI never calls it.
+# answer = not exported, harmless no-op. Skipped in CI (no TTY, no cached
+# answer on ephemeral runners).
+#
+# promptStringOnce's path arg is a dotted lookup into nested data, not a flat
+# key — must match where the value lands below ("secrets.stitch_api_key").
 {{- $stitchApiKey := "" -}}
 {{- if not (env "CI") -}}
-{{-   $stitchApiKey = promptStringOnce . "stitch_api_key" "Stitch API key, exported as $STITCH_API_KEY for use in any project's .mcp.json (blank to skip — stitch.withgoogle.com → Settings → API key)" "" -}}
+{{-   $stitchApiKey = promptStringOnce . "secrets.stitch_api_key" "Stitch API key, exported as $STITCH_API_KEY for use in any project's .mcp.json (blank to skip — stitch.withgoogle.com → Settings → API key)" "" -}}
 {{- end }}
 [data.secrets]
 stitch_api_key = {{ $stitchApiKey | quote }}

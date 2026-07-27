@@ -1,0 +1,6 @@
+# Ubuntu's archive git lags upstream stable by a year or more. git-core PPA
+# is maintained by the Git project's own Debian/Ubuntu packagers and tracks
+# current stable: https://launchpad.net/~git-core/+archive/ubuntu/ppa
+[packages.git.package.apt]
+name = "git"
+ppa  = "ppa:git-core/ppa"
