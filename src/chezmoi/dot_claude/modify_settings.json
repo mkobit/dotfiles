@@ -24,10 +24,11 @@
    which is what "ask" means. */ -}}
 {{- end -}}
 {{- /* permissions.allow: additive/subtractive live-merge.
-   Computed Bash entries, declared ensure entries, and live-file entries
-   are unioned; declared remove entries are subtracted.
-   Unmanaged non-Bash entries (e.g. Skill permissions added by plugin
-   installers) survive untouched unless explicitly listed in remove. */ -}}
+   Final = (computed Bash ∪ declared ensure ∪ live file) \ declared remove.
+   "remove" applies to all entries including computed Bash ones — it is a
+   force-exclude, not scoped only to live-file survivors.
+   Live-file entries not present in ensure or remove survive untouched,
+   so non-Bash permissions added by plugin installers persist across applies. */ -}}
 {{- $liveAllow   := dig "permissions" "allow"  (list) $config -}}
 {{- $ensureAllow := dig "permissions" "allow"  (list) .claude_code.settings -}}
 {{- $removeAllow := dig "permissions" "remove" (list) .claude_code.settings -}}
@@ -43,4 +44,8 @@
 {{-   $permissions = set $permissions "deny" ($deny | uniq | sortAlpha) -}}
 {{- end -}}
 {{- $settings := mergeOverwrite (deepCopy .claude_code.settings) (dict "permissions" $permissions) -}}
+{{- /* Strip the input-only "remove" control key — mergeOverwrite above deep-merges
+   permissions maps, so claude_code.settings.permissions.remove would otherwise
+   leak into the output settings.json. */ -}}
+{{- $settings = set $settings "permissions" (omit (dig "permissions" (dict) $settings) "remove") -}}
 {{- mergeOverwrite $config $settings | toPrettyJson | trimSuffix "\n" -}}
