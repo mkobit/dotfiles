@@ -14,7 +14,8 @@
    allow and deny falls back to Claude Code's normal per-use prompt,
    which is what "ask" means. */ -}}
 {{- end -}}
-{{- $permissions := dict "allow" ($allow | uniq | sortAlpha) -}}
+{{- $declaredAllow := dig "permissions" "allow" (list) .claude_code.settings -}}
+{{- $permissions := dict "allow" (concat $allow $declaredAllow | uniq | sortAlpha) -}}
 {{- if gt (len $deny) 0 -}}
 {{-   $permissions = set $permissions "deny" ($deny | uniq | sortAlpha) -}}
 {{- end -}}
