@@ -2,6 +2,15 @@
 {{- /* Manages ~/.claude/settings.json — deployment config only.
    ~/.claude.json (OAuth session, MCP config, trust state, caches) is
    not managed by chezmoi at all; see dot_claude/AGENTS.md. */ -}}
+{{- $config := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $config = fromJson .chezmoi.stdin -}}
+{{- end -}}
+{{- /* tools/files under permissions were never a real Claude Code
+   settings key (silent no-op) — drop explicitly since a merge alone
+   wouldn't remove stale keys already in the live file. */ -}}
+{{- $existingPermissions := dig "permissions" (dict) $config -}}
+{{- $config = set $config "permissions" (omit $existingPermissions "tools" "files") -}}
 {{- $allow := list -}}
 {{- $deny := list -}}
 {{- range $cmd, $mode := dig "ai" "command_policy" "commands" (dict) . -}}
@@ -14,18 +23,29 @@
    allow and deny falls back to Claude Code's normal per-use prompt,
    which is what "ask" means. */ -}}
 {{- end -}}
-{{- $permissions := dict "allow" ($allow | uniq | sortAlpha) -}}
+{{- /* permissions.allow: additive/subtractive live-merge.
+   Final = (computed Bash ∪ declared ensure ∪ live file) \ declared remove.
+   "remove" applies to all entries including computed Bash ones — it is a
+   force-exclude, not scoped only to live-file survivors.
+   Live-file entries not present in ensure or remove survive untouched,
+   so non-Bash permissions added by plugin installers persist across applies. */ -}}
+{{- $liveAllow   := dig "permissions" "allow"  (list) $config -}}
+{{- $ensureAllow := dig "permissions" "allow"  (list) .claude_code.settings -}}
+{{- $removeAllow := dig "permissions" "remove" (list) .claude_code.settings -}}
+{{- $merged      := concat $allow $ensureAllow $liveAllow | uniq | sortAlpha -}}
+{{- $finalAllow  := list -}}
+{{- range $entry := $merged -}}
+{{-   if not (has $entry $removeAllow) -}}
+{{-     $finalAllow = append $finalAllow $entry -}}
+{{-   end -}}
+{{- end -}}
+{{- $permissions := dict "allow" $finalAllow -}}
 {{- if gt (len $deny) 0 -}}
 {{-   $permissions = set $permissions "deny" ($deny | uniq | sortAlpha) -}}
 {{- end -}}
 {{- $settings := mergeOverwrite (deepCopy .claude_code.settings) (dict "permissions" $permissions) -}}
-{{- $config := dict -}}
-{{- if .chezmoi.stdin -}}
-{{-   $config = fromJson .chezmoi.stdin -}}
-{{- end -}}
-{{- /* tools/files under permissions were never a real Claude Code
-   settings key (silent no-op) — drop explicitly since a merge alone
-   wouldn't remove stale keys already in the live file. */ -}}
-{{- $existingPermissions := dig "permissions" (dict) $config -}}
-{{- $config = set $config "permissions" (omit $existingPermissions "tools" "files") -}}
+{{- /* Strip the input-only "remove" control key — mergeOverwrite above deep-merges
+   permissions maps, so claude_code.settings.permissions.remove would otherwise
+   leak into the output settings.json. */ -}}
+{{- $settings = set $settings "permissions" (omit (dig "permissions" (dict) $settings) "remove") -}}
 {{- mergeOverwrite $config $settings | toPrettyJson | trimSuffix "\n" -}}
