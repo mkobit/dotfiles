@@ -1,9 +1,8 @@
 # Immutability and value types
 
 Replace hand-rolled POJOs, manual defensive copies, and hand-rolled builders with immutable value types.
-Records are the default: JDK-native, finalized in JDK 16, stable at every JDK version this skill covers (17 and later).
-Guava and AutoValue are recommended only when already a project dependency — each note below states the JDK-only fallback in the same breath, so the guidance holds even when the library is absent.
-This favor-when-available framing is scoped to this file only.
+Records are the default.
+Guava and AutoValue are recommended only when already a project dependency — each note below states the JDK-only fallback, so the guidance holds when the library is absent.
 
 ## Before/after: defensive copies
 

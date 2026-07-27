@@ -1,9 +1,8 @@
 # Virtual threads and structured concurrency
 
 Replace manual `ExecutorService`/`Future`/shutdown management with virtual threads.
-Virtual threads have been stable since JDK 21 — present them as the default concurrency recommendation without caveats.
-Structured concurrency is still preview as of JDK 25 (JEP 505, fifth preview; not expected to finalize before roughly JDK 27), despite being far more battle-tested in design and scope than a withdrawn feature like string templates ever was.
-Every structured-concurrency code sample below is explicitly marked PREVIEW and kept visually separate from the stable virtual-threads material — do not present it with the same confidence.
+Virtual threads (JDK 21+) are stable — use them as the default.
+Structured concurrency (JEP 505) is still preview at JDK 25 and is not expected to finalize before roughly JDK 27; do not recommend it with the same confidence as virtual threads.
 
 ## Before/after: manual executor management
 
@@ -43,9 +42,7 @@ try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
 ### PREVIEW — structured concurrency (JDK 21–25, requires `--enable-preview`)
 
-This is not a stable recommendation.
-It is shown so the shape is recognizable, not so it gets applied by default.
-The API differs from the JDK 21 preview: JEP 505 replaced the `ShutdownOnFailure`/`ShutdownOnSuccess` subclasses with `Joiner`-based construction, so JDK 21 preview syntax does not carry over unchanged to JDK 25.
+The API differs from the JDK 21 preview: JEP 505 replaced `ShutdownOnFailure`/`ShutdownOnSuccess` with `Joiner`-based construction, so JDK 21 preview syntax does not carry over to JDK 25.
 
 ```java
 // PREVIEW: requires --enable-preview; API shape not final, JEP 505 as of JDK 25

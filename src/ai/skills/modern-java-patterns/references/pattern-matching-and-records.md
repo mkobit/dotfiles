@@ -1,8 +1,7 @@
 # Pattern matching and records
 
 Replace `instanceof`-and-cast chains and type-switch ladders with sealed types and pattern matching.
-Records and pattern matching for `instanceof` were finalized in JDK 16, stable at every JDK version this skill covers (17 and later).
-Pattern matching for `switch` and record patterns have been stable since JDK 21, including `case null` handling that replaces a leading defensive null check.
+Pattern matching for `instanceof` is stable at JDK 17+; `switch`, record patterns, and `case null` are stable at JDK 21+.
 
 ## Before/after: instanceof-and-cast chain
 
