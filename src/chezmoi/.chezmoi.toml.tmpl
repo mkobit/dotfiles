@@ -137,6 +137,16 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end
 [data.packages.socat]
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 
+# git-core PPA (see .chezmoidata/packages/git.toml) tracks current upstream
+# stable; macOS keeps its Xcode/Homebrew git untouched — overlay never sets
+# this, so it stays "none" there.
+[data.packages.git]
+installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
+
+# `at`/`atq`/`atrm` job scheduling — Linux only, no macOS equivalent.
+[data.packages.at]
+installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
+
 # Local Python Tools (via uv) Installation Methods
 [data.local_bin_tools.termstatus]
 installation_method = "dotfiles.uv"
