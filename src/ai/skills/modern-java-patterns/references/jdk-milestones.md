@@ -14,3 +14,14 @@ Status: not available, preview (`--enable-preview`, API not guaranteed stable), 
 | Scoped values (JEP 506) | Not available | Preview | Stable |
 | Structured concurrency (JEP 505, fifth preview) | Not available | Preview | Preview |
 | String templates (JEP 430, JEP 459) | Not available | Preview | Withdrawn |
+
+## Do not use: string templates
+
+String templates were previewed in JDK 21–22 and withdrawn before JDK 23 shipped.
+Do not recommend them.
+Use `String.format`, `StringBuilder`, or text blocks instead.
+
+## Preview caution: structured concurrency
+
+Structured concurrency (JEP 505) is still preview at JDK 25; its API shape changed between JDK 21 and 25 previews.
+Mark any `StructuredTaskScope` code sample as preview and do not present it with the same confidence as stable features.

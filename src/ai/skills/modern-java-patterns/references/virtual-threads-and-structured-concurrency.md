@@ -42,6 +42,7 @@ try (ExecutorService executor = Executors.newVirtualThreadPerTaskExecutor()) {
 
 ### PREVIEW — structured concurrency (JDK 21–25, requires `--enable-preview`)
 
+This is shown for recognition, not as a default recommendation.
 The API differs from the JDK 21 preview: JEP 505 replaced `ShutdownOnFailure`/`ShutdownOnSuccess` with `Joiner`-based construction, so JDK 21 preview syntax does not carry over to JDK 25.
 
 ```java
