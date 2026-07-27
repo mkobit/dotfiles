@@ -1,7 +1,6 @@
 # JDK version-safety table
 
-One row per feature area.
-Status is one of: not available, preview (requires `--enable-preview`, API not guaranteed stable), stable.
+Status: not available, preview (`--enable-preview`, API not guaranteed stable), stable, withdrawn (never use).
 
 | Feature | JDK 17 | JDK 21 | JDK 25 |
 |---|---|---|---|
@@ -18,16 +17,11 @@ Status is one of: not available, preview (requires `--enable-preview`, API not g
 
 ## Do not use: string templates
 
-String templates were previewed in JDK 21 (JEP 430) and JDK 22 (JEP 459).
-A third preview was planned for JDK 23 and then withdrawn before shipping.
-The feature never reached general availability and has not returned.
-Do not recommend string templates anywhere in this skill.
+String templates were previewed in JDK 21–22 and withdrawn before JDK 23 shipped.
+Do not recommend them.
 Use `String.format`, `StringBuilder`, or text blocks instead.
 
 ## Preview caution: structured concurrency
 
-Structured concurrency is still preview as of JDK 25 (JEP 505, its fifth preview).
-OpenJDK does not expect it to finalize before roughly JDK 27.
-Its API shape has already changed across previews — the JDK 21 preview's `ShutdownOnFailure`/`ShutdownOnSuccess` subclasses were replaced by `Joiner`-based construction in JEP 505.
-Any code sample using `StructuredTaskScope` must be marked preview and must not be presented with the same confidence as stable features like virtual threads.
-See `virtual-threads-and-structured-concurrency.md` for how this distinction is drawn in practice.
+Structured concurrency (JEP 505) is still preview at JDK 25; its API shape changed between JDK 21 and 25 previews.
+Mark any `StructuredTaskScope` code sample as preview and do not present it with the same confidence as stable features.
