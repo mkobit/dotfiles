@@ -75,7 +75,7 @@ def format_context_usage(cw: ContextWindowInfo) -> list[SegmentGenerationResult]
     return [
         SegmentGenerationResult(
             line=_CONTEXT_LINE,
-            index=0,
+            index=30,
             column=0,
             generator="internal.claude",
             segment=Segment(text="  ".join(parts)),
@@ -116,9 +116,9 @@ def format_session_info(payload: StatusLineStdIn) -> list[SegmentGenerationResul
     timer = f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours > 0 else f"{minutes:02d}:{seconds:02d}"
     return [
         SegmentGenerationResult(
-            line=0,
-            index=40,
-            column=4,
+            line=_CONTEXT_LINE,
+            index=10,
+            column=0,
             generator="internal.claude",
             segment=Segment(text=f"{DIM}{get_icon('timer')} {timer}{RESET}"),
         )
@@ -130,9 +130,9 @@ def format_cost(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
         return []
     return [
         SegmentGenerationResult(
-            line=0,
-            index=30,
-            column=3,
+            line=_CONTEXT_LINE,
+            index=0,
+            column=0,
             generator="internal.claude",
             segment=Segment(text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"),
         )
@@ -153,9 +153,9 @@ def format_lines_impact(payload: StatusLineStdIn) -> list[SegmentGenerationResul
 
     return [
         SegmentGenerationResult(
-            line=1,
-            index=50,
-            column=4,
+            line=_CONTEXT_LINE,
+            index=20,
+            column=0,
             generator="internal.claude",
             segment=Segment(text=" ".join(p for p in parts if p)),
         )

@@ -27,8 +27,9 @@ BRIGHT_RED = "\033[91m"
 BRIGHT_GREEN = "\033[92m"
 ORANGE = "\033[38;5;208m"
 
-BG_DIM = "\033[48;5;236m"
-BG_RESET = "\033[49m"
+# Rich style string (not raw ANSI) — applied via Text.stylize() so the chip
+# background hugs rendered content instead of a table cell's full column width.
+CHIP_STYLE = "on grey19"
 
 
 @functools.cache

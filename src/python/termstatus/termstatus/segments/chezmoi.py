@@ -60,6 +60,16 @@ async def _fetch_repo_info(repo_path: Path) -> GitInfo | None:
     )
 
 
+_LABEL_WIDTH = 7
+_MAX_BRANCH_LEN = 24
+
+
+def _truncate(text: str, max_len: int) -> str:
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 1] + "…"
+
+
 def _build_branch_url(remote: str, branch: str) -> str:
     if branch == "HEAD":
         return remote
@@ -73,8 +83,11 @@ def _format_repo(
     info: GitInfo,
     line: int,
 ) -> Sequence[SegmentGenerationResult]:
+    # Label padded and branch truncated as plain text before any ANSI wrapping, so
+    # rows line up via simple string alignment instead of a shared Rich Table column.
     branch_url = _build_branch_url(info.remote, info.branch) if info.remote else None
-    branch_display = f"\033]8;;{branch_url}\033\\{info.branch}\033]8;;\033\\" if branch_url else info.branch
+    branch_label = _truncate(info.branch, _MAX_BRANCH_LEN)
+    branch_display = f"\033]8;;{branch_url}\033\\{branch_label}\033]8;;\033\\" if branch_url else branch_label
 
     status_parts = [
         f"{RED}{get_icon('dirty')}{RESET}" if info.dirty else None,
@@ -85,9 +98,11 @@ def _format_repo(
     if not filled:
         filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
 
-    label_text = f"{DIM}{label}{RESET}"
-    branch_text = f"{MAGENTA}{get_icon('branch')} {branch_display}{RESET}"
-    status_text = f"[{''.join(filled)}]"
+    left_text = (
+        f"{DIM}{label.ljust(_LABEL_WIDTH)}{RESET}  "
+        f"{MAGENTA}{get_icon('branch')} {branch_display}{RESET}  "
+        f"[{''.join(filled)}]"
+    )
 
     right_parts = [
         f"{GREEN}↑{info.ahead}{RESET}" if info.ahead > 0 else None,
@@ -115,23 +130,7 @@ def _format_repo(
             line=line,
             index=0,
             column=0,
-            segment=Segment(text=label_text),
-            generator="internal.chezmoi",
-            cache_duration=TimeDelta(seconds=5),
-        ),
-        SegmentGenerationResult(
-            line=line,
-            index=5,
-            column=1,
-            segment=Segment(text=branch_text),
-            generator="internal.chezmoi",
-            cache_duration=TimeDelta(seconds=5),
-        ),
-        SegmentGenerationResult(
-            line=line,
-            index=6,
-            column=2,
-            segment=Segment(text=status_text),
+            segment=Segment(text=left_text),
             generator="internal.chezmoi",
             cache_duration=TimeDelta(seconds=5),
         ),
@@ -143,7 +142,7 @@ def _format_repo(
             SegmentGenerationResult(
                 line=line,
                 index=10,
-                column=3,
+                column=4,
                 segment=Segment(text=" ".join(right_filled)),
                 generator="internal.chezmoi",
                 cache_duration=TimeDelta(seconds=5),

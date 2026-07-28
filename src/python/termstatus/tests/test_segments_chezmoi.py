@@ -61,14 +61,12 @@ class TestFormatRepo:
             stash_count=0,
         )
         results = _format_repo("ovl", info, line=2)
-        assert len(results) == 4
+        assert len(results) == 2
         assert results[0].line == 2
         assert results[0].column == 0
         assert "ovl" in results[0].segment.text
-        assert results[1].column == 1
-        assert "main" in results[1].segment.text
-        assert results[2].column == 2
-        assert results[3].column == 3
+        assert "main" in results[0].segment.text
+        assert results[1].column == 4
 
     def test_dirty_repo_with_ahead_behind(self):
         info = GitInfo(
@@ -83,16 +81,14 @@ class TestFormatRepo:
             stash_count=0,
         )
         results = _format_repo("base", info, line=3)
-        assert len(results) == 4
+        assert len(results) == 2
         assert results[0].line == 3
         assert results[0].column == 0
         assert "base" in results[0].segment.text
-        assert results[1].column == 1
-        assert "feature" in results[1].segment.text
-        assert results[2].column == 2
-        assert results[3].column == 3
-        assert "↑2" in results[3].segment.text
-        assert "↓1" in results[3].segment.text
+        assert "feature" in results[0].segment.text
+        assert results[1].column == 4
+        assert "↑2" in results[1].segment.text
+        assert "↓1" in results[1].segment.text
 
     def test_clean_no_remote_no_right_segment(self):
         info = GitInfo(
@@ -107,10 +103,42 @@ class TestFormatRepo:
             stash_count=0,
         )
         results = _format_repo("ovl", info, line=2)
-        assert len(results) == 3
+        assert len(results) == 1
         assert results[0].column == 0
-        assert results[1].column == 1
-        assert results[2].column == 2
+
+    def test_label_is_padded_for_alignment(self):
+        info = GitInfo(
+            branch="main",
+            remote=None,
+            dirty=False,
+            staged=False,
+            untracked=False,
+            ahead=0,
+            behind=0,
+            is_repo=True,
+            stash_count=0,
+        )
+        overlay = _format_repo("overlay", info, line=2)
+        base = _format_repo("base", info, line=3)
+        overlay_prefix_len = overlay[0].segment.text.index("main")
+        base_prefix_len = base[0].segment.text.index("main")
+        assert overlay_prefix_len == base_prefix_len
+
+    def test_long_branch_name_truncated(self):
+        info = GitInfo(
+            branch="feature/a-very-long-branch-name-that-should-be-truncated",
+            remote=None,
+            dirty=False,
+            staged=False,
+            untracked=False,
+            ahead=0,
+            behind=0,
+            is_repo=True,
+            stash_count=0,
+        )
+        results = _format_repo("ovl", info, line=2)
+        assert "…" in results[0].segment.text
+        assert "feature/a-very-long-branch-name-that-should-be-truncated" not in results[0].segment.text
 
 
 @pytest.mark.asyncio

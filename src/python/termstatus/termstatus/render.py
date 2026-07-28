@@ -12,7 +12,7 @@ from rich.text import Text
 
 from termstatus.layout import SegmentGenerationResult
 from termstatus.payload import StatusLineStdIn
-from termstatus.segments.constants import CYAN, DIM, RESET, get_icon
+from termstatus.segments.constants import CHIP_STYLE, CYAN, DIM, RESET, get_icon
 from termstatus.segments.git import GitInfo
 
 
@@ -132,47 +132,6 @@ def _group_segments_by_line(
 
 
 _RIGHT_COLUMN_THRESHOLD = 3
-_GIT_GENERATORS = frozenset({"internal.git", "internal.chezmoi"})
-
-
-def _is_git_section(line_segs: Sequence[SegmentGenerationResult]) -> bool:
-    return all(s.generator in _GIT_GENERATORS for s in line_segs) and any((s.column or 0) == 1 for s in line_segs)
-
-
-def _build_git_subtable(
-    lines: Sequence[Sequence[SegmentGenerationResult]],
-) -> Table:
-    table = Table(
-        show_header=False,
-        show_edge=False,
-        box=None,
-        padding=(0, 1),
-        expand=True,
-    )
-    table.add_column("label", justify="left", no_wrap=True, min_width=7)
-    table.add_column("branch", justify="left", no_wrap=True, ratio=1)
-    table.add_column("status", justify="left", no_wrap=True)
-    table.add_column("right", justify="right", no_wrap=True)
-
-    for line_segs in lines:
-        col0 = [s for s in line_segs if (s.column or 0) == 0]
-        col1 = [s for s in line_segs if (s.column or 0) == 1]
-        col2 = [s for s in line_segs if (s.column or 0) == 2]
-        col_right = [s for s in line_segs if (s.column or 0) >= _RIGHT_COLUMN_THRESHOLD]
-
-        label_text = " ".join(s.segment.text for s in col0) if col0 else ""
-        branch_text = " ".join(s.segment.text for s in col1) if col1 else ""
-        status_text = " ".join(s.segment.text for s in col2) if col2 else ""
-        right_text = " ".join(s.segment.text for s in col_right) if col_right else ""
-
-        table.add_row(
-            Text.from_ansi(label_text, no_wrap=True) if label_text else Text(""),
-            Text.from_ansi(branch_text, no_wrap=True) if branch_text else Text(""),
-            Text.from_ansi(status_text, no_wrap=True) if status_text else Text(""),
-            Text.from_ansi(right_text, no_wrap=True) if right_text else Text(""),
-        )
-
-    return table
 
 
 def _build_standard_row(
@@ -196,7 +155,7 @@ def render_lines(
     *,
     terminal_width: int | None = None,
 ) -> list[str]:
-    """Renders segments as a panel with subtables for aligned git sections."""
+    """Renders segments as a panel, one chip-styled full-width block per line."""
     left_sep = f" {DIM}{get_icon('dot')}{RESET} "
 
     segments_list = list(segments)
@@ -206,34 +165,23 @@ def render_lines(
     effective_width = _effective_width(terminal_width)
     lines_map = _group_segments_by_line(segments_list)
 
-    outer = Table(
-        show_header=False,
-        show_edge=False,
-        box=None,
-        padding=(0, 1),
-        expand=True,
-    )
-    outer.add_column("left", justify="left", ratio=1, overflow="ellipsis", no_wrap=True)
-    outer.add_column("right", justify="right", no_wrap=True)
-
-    git_line_buffer: list[Sequence[SegmentGenerationResult]] = []
-
-    def flush_git_buffer() -> None:
-        if not git_line_buffer:
-            return
-        subtable = _build_git_subtable(git_line_buffer)
-        outer.add_row(subtable, Text(""))
-        git_line_buffer.clear()
-
+    # Each line becomes its own full-width chip block: its right-aligned column
+    # never shares (and gets shrunk by) another line's right column, and label
+    # padding/truncation happens as plain text upstream instead of via nested
+    # Rich Table columns, so chip backgrounds hug content instead of stretching.
+    blocks: list[Table] = []
     for line_segs in lines_map.values():
-        if _is_git_section(line_segs):
-            git_line_buffer.append(line_segs)
-        else:
-            flush_git_buffer()
-            left_cell, right_cell = _build_standard_row(line_segs, left_sep)
-            outer.add_row(left_cell, right_cell)
+        table = Table(show_header=False, show_edge=False, box=None, padding=(0, 1), expand=True)
+        table.add_column("left", justify="left", ratio=1, overflow="ellipsis", no_wrap=True)
+        table.add_column("right", justify="right", no_wrap=True)
 
-    flush_git_buffer()
+        left_cell, right_cell = _build_standard_row(line_segs, left_sep)
+        if left_cell.plain:
+            left_cell.stylize(CHIP_STYLE)
+        if right_cell.plain:
+            right_cell.stylize(CHIP_STYLE)
+        table.add_row(left_cell, right_cell)
+        blocks.append(table)
 
     console = Console(
         width=effective_width,
@@ -245,9 +193,9 @@ def render_lines(
     if payload is not None and payload.session_name:
         session_text = Text.from_ansi(f"{CYAN}#{payload.session_name}{RESET}", no_wrap=True)
         session_text.overflow = "ellipsis"
-        renderable = Group(session_text, outer)
+        renderable = Group(session_text, *blocks)
     else:
-        renderable = outer
+        renderable = Group(*blocks)
 
     with console.capture() as capture:
         console.print(Panel(renderable, border_style="dim", expand=True))
