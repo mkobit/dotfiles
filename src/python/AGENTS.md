@@ -2,58 +2,31 @@
 
 ## Creating a new tool
 
-1. **Create Python package**: `mkdir -p src/python/my_tool`
-   - `src/python/my_tool/main.py`: Entry point.
-   - `src/python/my_tool/pyproject.toml`:
-     ```toml
-     [project]
-     name = "my-tool"
-     version = "0.0.0"
-     requires-python = ">=3.14"
-     dependencies = ["typer>=0.15.1"]
+A new tool needs three registrations, or it won't build or deploy.
+Copy an existing package (e.g. `sandboxr/`) as a template for the shape.
 
-     [project.scripts]
-     my-tool = "my_tool.main:cli"
+1. `src/python/<name>/` package with `main.py` and a `pyproject.toml` declaring `[project.scripts]`.
+2. Added to `members` under `[tool.uv.workspace]` in the root `pyproject.toml`.
+3. A catalog entry in `src/chezmoi/.chezmoidata/local_bin_tools.toml` (`source_dir`, `package_name`), and an `installation_method = "dotfiles.uv"` entry in `.chezmoi.toml.tmpl` under `[data.local_bin_tools.<name>]`.
+   The catalog entry alone is inert — `chezmoi apply` only installs tools opted in via the second file.
 
-     [build-system]
-     requires = ["hatchling"]
-     build-backend = "hatchling.build"
-     ```
-
-2. **Register in workspace**: Add to `members` in the root `pyproject.toml`:
-   ```toml
-   [tool.uv.workspace]
-   members = [
-       "src/python/my_tool",
-       ...
-   ]
-   ```
-
-3. **Add chezmoi data**: In `src/chezmoi/.chezmoidata/local_bin_tools.toml`:
-   ```toml
-   [local_bin_tools.my_tool]
-   installation_method = "dotfiles.uv"
-   source_dir = "src/python/my_tool"
-   package_name = "my-tool"
-   ```
-
-4. **Deploy**: Run `chezmoi apply`.
-   - The executable name comes from `[project.scripts]`.
-   - The bin path is `{{ .chezmoi.destDir }}/.local/bin/dotfiles/my-tool`.
-   - Installation happens via the `run_onchange` script on apply.
+The executable name comes from `[project.scripts]`.
+It lands at `{{ .chezmoi.destDir }}/.local/bin/dotfiles/<name>` via the `run_onchange` install script.
 
 ## Renaming or retiring a tool
 
 Keep the old catalog key.
-Set a non-uv `installation_method` (e.g. `"uninstall"`) with its `package_name`.
-The script's uninstall branch removes the stale uv tool and bin symlink.
-Only delete the key after all machines have applied.
+Set `installation_method = "uninstall"` with its `package_name` so the `run_onchange` script's uninstall branch removes the stale uv tool and bin symlink.
+Delete the key only after all machines have applied.
 
 ## Module imports
 
-Use the package name directly (not the full workspace path):
-- ✅ `from my_tool.lib import ...`
-- ❌ `from src.python.my_tool.lib import ...`
+Import via the package name (`from my_tool.lib import ...`), not the workspace path (`from src.python.my_tool.lib import ...`).
+
+## Module organization
+
+Don't centralize types or models into `types.py` or `models.py`.
+Namespace them into their owning domain module instead.
 
 ## Quality tools
 
@@ -64,103 +37,13 @@ Use the package name directly (not the full workspace path):
 | `uv run ty check` | Type check |
 | `uv run pytest src/python` | Tests |
 
-## Coding guidelines
+Scope pytest to `src/python`.
+Unscoped, it also collects the top-level `tests/integration/` suite, which asserts against local machine state.
 
-Prefer functional, immutable, and non-imperative code.
-Avoid mutability and reassignment wherever possible.
-Code should be declarative and heavily lean on Python's built-in functional capabilities.
+Use `pytest-asyncio` (`@pytest.mark.asyncio`) for async tests, not `unittest.IsolatedAsyncioTestCase`.
 
-### Test asyncio
-When writing async tests, prefer using `pytest-asyncio` and decorating your test functions with `@pytest.mark.asyncio` rather than using `unittest.IsolatedAsyncioTestCase`.
+## Coding style
 
-### Module separation
-Do not put types or models in central `types.py` or `models.py` files.
-Instead, namespace types and models into their corresponding canonical domain locations.
-
-
-### Avoid `list.append()` and mutation
-
-Do not initialize empty lists and conditionally append or `extend` to them.
-Instead, use list comprehensions, generators, or build a sequence and filter it.
-
-❌ **Bad:**
-```python
-results = []
-if condition_a:
-    results.append("a")
-if condition_b:
-    results.append("b")
-```
-
-✅ **Good:**
-```python
-items = [
-    "a" if condition_a else None,
-    "b" if condition_b else None,
-]
-results = [item for item in items if item is not None]
-
-def get_results() -> Iterator[str]:
-    if condition_a:
-        yield "a"
-    if condition_b:
-        yield "b"
-```
-
-### Use immutable types for parameters
-
-Prefer `typing.Sequence`, `typing.Iterable`, `typing.Mapping`, and other immutable/read-only types over mutable ones like `list`.
-
-❌ **Bad:**
-```python
-def process_data(items: list[str]) -> list[str]:
-    ...
-```
-
-✅ **Good:**
-```python
-from collections.abc import Sequence, Iterable
-
-def process_data(items: Sequence[str]) -> Sequence[str]:
-    ...
-```
-
-### Avoid variable reassignment and string concatenation
-
-Treat variables as `const`.
-Do not reassign a variable once it is defined.
-For strings, avoid using `+=` or iterative concatenation.
-
-❌ **Bad:**
-```python
-message = "Hello"
-if condition:
-    message += ", User"
-else:
-    message += ", Guest"
-```
-
-✅ **Good:**
-```python
-name = "User" if condition else "Guest"
-message = f"Hello, {name}"
-
-parts = ["Hello", ", User" if condition else ", Guest"]
-message = "".join(parts)
-```
-
-### Anti-pattern: imperative list deduplication
-Avoid using mutable sets and `list.append()` inside loops for deduplication.
-**Anti-pattern:**
-```python
-seen = set()
-ordered = []
-for item in reversed(items):
-    if item not in seen:
-        seen.add(item)
-        ordered.append(item)
-```
-**Preferred:**
-```python
-ordered = list(dict.fromkeys(reversed(items)))
-```
+Prefer functional, declarative code: comprehensions and generators over manual accumulation, `Sequence`/`Iterable`/`Mapping` over `list` for read-only parameters.
+Match the surrounding code's idiom rather than forcing this where an imperative form is genuinely clearer.
+See [functional-style.md](functional-style.md) for the patterns and anti-patterns.

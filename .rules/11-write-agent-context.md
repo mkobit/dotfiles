@@ -1,9 +1,10 @@
 ---
-description: Minimal context rules for agent configuration files
+description: Minimal context rules for agent configuration files and skills
 paths:
   - AGENTS.md
   - CLAUDE.md
   - GEMINI.md
+  - SKILL.md
   - '*.mdc'
 ---
 # Write agent context
@@ -12,3 +13,10 @@ Human-written context files must describe only minimal requirements.
 Do not include generic documentation, tutorials, or non-critical context.
 Restrict these files to repository-specific constraints and critical architecture maps.
 Excessive repository context reduces task success rates and increases inference cost.
+The same applies to skills (SKILL.md), not just AGENTS.md/CLAUDE.md/GEMINI.md.
+
+Split long context into a tree of files loaded on demand.
+Reference sub-files instead of inlining everything into one dense file.
+
+Prefer brief, judgment-guided steering over rigid blanket rules for nuanced matters.
+Reserve absolute rules for genuinely critical or safety-relevant invariants.

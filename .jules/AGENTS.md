@@ -1,20 +1,18 @@
 # Jules environment constraints
 
 Jules runs `env_setup.sh` in a fresh Ubuntu VM (`HOME=/home/jules`, `PWD=/app`).
-After the script exits, Jules runs a **post-script env-save hook** that captures the shell environment by running `bash -l -c 'env'` and parsing stdout as `KEY=VALUE` pairs.
+After the script exits, a post-script hook captures the shell environment via `bash -l -c 'env'`, parsing stdout as `KEY=VALUE` pairs.
 
 ## Critical rule: never pollute stdout of non-interactive login shells
 
-`bash -l` is a **non-interactive login shell**.
-It sources `~/.bash_profile` (and via it, any files our `modify_dot_bash_profile` injects) but does NOT set the `i` flag in `$-`.
+`bash -l` sources `~/.bash_profile` (and anything it sources) but does not set the `i` flag in `$-`.
+Any stdout output during that sourcing corrupts the hook's parser and silently breaks every subsequent Jules task.
+Route missing-tool warnings to stderr, or gate them on `[[ $- == *i* ]]`.
 
-**Any output to stdout during `~/.bash_profile` or files it sources will corrupt Jules' env-save hook.**
-The hook's parser sees non-`KEY=VALUE` lines and fails silently, breaking every subsequent Jules task.
+### Real incident (2026-05)
 
-### What went wrong (2026-05)
-
-`modify_dot_bash_profile.tmpl` creates `~/.bash_profile` where Jules never had one.
-The fallback line unconditionally sourced `config.bash` in all login shells:
+`modify_dot_bash_profile.tmpl` created `~/.bash_profile` where Jules had none.
+Its fallback unconditionally sourced `config.bash`, which printed fzf/starship/zoxide "not found" warnings to stdout:
 
 ```bash
 # BAD — runs in bash -l -c 'env', pollutes stdout
@@ -23,11 +21,7 @@ if ! type -t g &>/dev/null && [[ -f "~/.dotfiles/bash/config.bash" ]]; then
 fi
 ```
 
-`config.bash` printed fzf/starship/zoxide "not found" warnings to stdout → hook failed.
-
-### The fix
-
-Guard all `config.bash` sourcing with `[[ $- == *i* ]]`:
+Fixed by gating on interactivity:
 
 ```bash
 # GOOD — only fires in interactive shells
@@ -36,9 +30,5 @@ if [[ $- == *i* ]] && ! type -t g &>/dev/null && [[ -f "~/.dotfiles/bash/config.
 fi
 ```
 
-## General rules for modify_ scripts that touch shell RC files
-
-- **Never** print to stdout unconditionally from `~/.bash_profile`, `~/.bashrc`, or any file they source.
-- Warnings for missing tools must go to **stderr** (`>&2`) or be gated on `[[ $- == *i* ]]`.
-- `modify_dot_bash_profile.tmpl` creates `~/.bash_profile` from scratch — Jules had none. Every line in it runs in `bash -l` contexts.
-- `~/.bashrc` is safe because it guards itself: `case $- in *i*) ;; *) return;; esac`. But `~/.bash_profile` has no such guard.
+`~/.bashrc` self-guards (`case $- in *i*) ;; *) return;; esac`), so it's safe by default.
+`~/.bash_profile` has no such guard — every line in it runs in `bash -l` contexts.
