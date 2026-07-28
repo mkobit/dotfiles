@@ -7,7 +7,6 @@ from collections.abc import Iterable, Sequence
 
 from rich.console import Console, Group
 from rich.panel import Panel
-from rich.table import Table
 from rich.text import Text
 
 from termstatus.layout import SegmentGenerationResult
@@ -148,6 +147,30 @@ def _build_standard_row(
     )
 
 
+_ROW_GAP = 2  # spaces between left and right content on a line
+
+
+def _pad_row(left: Text, right: Text, target_width: int) -> Text:
+    """Pads (and truncates if needed) one row to target_width, chip-styled as a whole."""
+    has_right = bool(right.plain)
+    right_span = right.cell_len + _ROW_GAP if has_right else 0
+    left_budget = max(target_width - right_span, 0)
+    if left.cell_len > left_budget:
+        left.truncate(left_budget, overflow="ellipsis")
+
+    gap = max(target_width - left.cell_len - right_span, 0)
+    row = Text()
+    row.append(" ")
+    row.append(left)
+    row.append(" " * gap)
+    if has_right:
+        row.append(" " * _ROW_GAP)
+        row.append(right)
+    row.append(" ")
+    row.stylize(CHIP_STYLE)
+    return row
+
+
 def render_lines(
     payload: StatusLineStdIn | None,
     git_info: GitInfo | None,
@@ -155,7 +178,7 @@ def render_lines(
     *,
     terminal_width: int | None = None,
 ) -> list[str]:
-    """Renders segments as a panel, one chip-styled full-width block per line."""
+    """Renders segments as a panel of uniform-width, chip-styled lines."""
     left_sep = f" {DIM}{get_icon('dot')}{RESET} "
 
     segments_list = list(segments)
@@ -165,23 +188,15 @@ def render_lines(
     effective_width = _effective_width(terminal_width)
     lines_map = _group_segments_by_line(segments_list)
 
-    # Each line becomes its own full-width chip block: its right-aligned column
-    # never shares (and gets shrunk by) another line's right column, and label
-    # padding/truncation happens as plain text upstream instead of via nested
-    # Rich Table columns, so chip backgrounds hug content instead of stretching.
-    blocks: list[Table] = []
-    for line_segs in lines_map.values():
-        table = Table(show_header=False, show_edge=False, box=None, padding=(0, 1), expand=True)
-        table.add_column("left", justify="left", ratio=1, overflow="ellipsis", no_wrap=True)
-        table.add_column("right", justify="right", no_wrap=True)
+    rows = [_build_standard_row(line_segs, left_sep) for line_segs in lines_map.values()]
 
-        left_cell, right_cell = _build_standard_row(line_segs, left_sep)
-        if left_cell.plain:
-            left_cell.stylize(CHIP_STYLE)
-        if right_cell.plain:
-            right_cell.stylize(CHIP_STYLE)
-        table.add_row(left_cell, right_cell)
-        blocks.append(table)
+    # Every row pads to the same shared width instead of hugging only its own
+    # content, so chips form one consistent block instead of a jagged staircase.
+    available_width = max(effective_width - 2, 1)
+    natural_widths = (left.cell_len + (right.cell_len + _ROW_GAP if right.plain else 0) for left, right in rows)
+    target_width = min(max(natural_widths, default=0), available_width)
+
+    blocks = [_pad_row(left, right, target_width) for left, right in rows]
 
     console = Console(
         width=effective_width,
@@ -198,6 +213,6 @@ def render_lines(
         renderable = Group(*blocks)
 
     with console.capture() as capture:
-        console.print(Panel(renderable, border_style="dim", expand=True))
+        console.print(Panel(renderable, border_style="dim", expand=False))
 
     return [line.rstrip() for line in capture.get().splitlines() if line.strip()]

@@ -24,7 +24,6 @@ from termstatus.segments.chezmoi import detect_chezmoi_root, generate_chezmoi_se
 from termstatus.segments.claude import (
     format_context_usage,
     format_cost,
-    format_lines_impact,
     format_model_info,
     format_session_info,
 )
@@ -285,7 +284,6 @@ def claude_render(  # noqa: C901
             format_obsidian_vault(cwd),
             format_context_usage(payload.context_window),
             format_cost(payload),
-            format_lines_impact(payload),
         ]
         for result_list in internal_results_nested:
             all_segments = all_segments + result_list

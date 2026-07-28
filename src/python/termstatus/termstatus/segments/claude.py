@@ -7,7 +7,6 @@ from termstatus.segments.constants import (
     BLUE,
     BOLD,
     BRIGHT_GREEN,
-    BRIGHT_RED,
     DIM,
     GREEN,
     MAGENTA,
@@ -135,28 +134,5 @@ def format_cost(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
             column=0,
             generator="internal.claude",
             segment=Segment(text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"),
-        )
-    ]
-
-
-def format_lines_impact(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
-    added = payload.cost.total_lines_added or 0
-    removed = payload.cost.total_lines_removed or 0
-
-    if added == 0 and removed == 0:
-        return []
-
-    parts = [
-        f"{BRIGHT_GREEN}+{added}{RESET}" if added > 0 else None,
-        f"{BRIGHT_RED}-{removed}{RESET}" if removed > 0 else None,
-    ]
-
-    return [
-        SegmentGenerationResult(
-            line=_CONTEXT_LINE,
-            index=20,
-            column=0,
-            generator="internal.claude",
-            segment=Segment(text=" ".join(p for p in parts if p)),
         )
     ]
