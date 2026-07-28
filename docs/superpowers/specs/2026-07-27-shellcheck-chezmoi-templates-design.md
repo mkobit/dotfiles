@@ -41,7 +41,7 @@ Many templates gate their entire body behind `{{- if ... -}}` (for example the a
 
 For each discovered template:
 
-1. Render it with `chezmoi execute-template`.
+1. Render it with `chezmoi execute-template`, threaded through the same `--source`/`--config`/`--destination` flags `conftest.py`'s existing `_chezmoi_argv`/`_chezmoi_command` helpers already build from `CHEZMOI_CONFIG`/`CHEZMOI_DEST`. A bare `chezmoi execute-template` call (no flags) fails on most files in CI's actual layout — `chezmoi source-path` resolves relative to `$HOME`, which in CI is not where `actions/checkout` puts the repo, so `.chezmoidata/*` never loads and any template reading catalog data hard-errors (reproduced: `map has no entry for key "packages"`). This is not optional plumbing, it's required for the render step to work at all outside a real `chezmoi apply`.
 2. If the rendered output's first non-blank line is not `#!/bin/bash`, `#!/bin/sh`, `#!/usr/bin/env bash`, or `#!/usr/bin/env sh` — `pytest.skip`. This covers both conditionally-empty renders and non-shell `modify_` transforms that happen to match a glob without a shebang. Checking the first *non-blank* line (not strictly byte 0) tolerates templates that leave a stray leading blank line after rendering.
 3. Otherwise, write the rendered text to a temp file and run `shellcheck -x` against it.
 
@@ -51,11 +51,14 @@ Pass `-x` (follow sourced files).
 Several scripts `source` a shared library at a path known only at render time (for example `source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"`), which shellcheck can't resolve by default (SC1091).
 Since the harness already renders with the real `.chezmoi.sourceDir`, `-x` lets shellcheck actually resolve and check the sourced file's content too, rather than just suppressing the warning.
 
+`-x` only resolves the *direct* form above (11 of 12 call sites).
+`run_onchange_install-ollama.sh.tmpl` uses the two-statement indirection `src/chezmoi/AGENTS.md`'s "Sourcing Shared Libraries" section documents as canonical — `CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"` on one line, `source "${CHEZMOI_SOURCE_DIR}/..."` on the next — which `-x` cannot trace even though the value is fully static post-render (reproduced: still SC1091). Implementation needs one of: add a `# shellcheck source=<path>` directive to that script (and any future script using the AGENTS.md-documented indirected form), or update the AGENTS.md pattern itself to the direct form. Either is fine; leaving it unaddressed means an AGENTS.md-sanctioned script fails this gate on a shellcheck limitation, not a real defect.
+
 ## Architecture
 
 Extend the existing `tests/integration/conftest.py` fixture/parametrization idiom — no new package, no new CI job.
 
-- `conftest.py`: broaden (or add alongside) the `pytest_generate_tests` glob logic to cover the four globs above, producing a parametrized path fixture.
+- `conftest.py`: add a new parametrized fixture alongside the existing `chezmoiscript_path` one (don't broaden it in place) — `chezmoiscript_path` is already consumed by `test_lock_enforcement.py`, and coupling that test's parametrization count to this feature's scope is an unnecessary entanglement between two unrelated checks.
 - New `tests/integration/test_shellcheck.py`: one test per discovered template, implementing the render → classify → shellcheck steps above.
 - Test ID = the source template's path relative to the chezmoi source root. A failure reads as `test_shellcheck[.chezmoiscripts/run_onchange_install-apt-packages.sh.tmpl]` — file-level attribution for free, since each parametrized test corresponds to exactly one source template. No separate source-mapping logic is needed.
 
@@ -68,6 +71,7 @@ Extend the existing `tests/integration/conftest.py` fixture/parametrization idio
 
 - A template that fails to render (a genuine template error, not a conditional empty output) should fail the test loudly, not be treated as a skip — skip is reserved for "rendered, but not a shell script."
 - Shellcheck's default severity (all findings, including style/info) is used as-is; no `--severity` floor. If the initial run surfaces a high volume of low-value style findings across the ~20 files, that's a signal to revisit during implementation, not a decision to pre-empt here.
+- Single-machine rendering can produce spurious findings, not just miss coverage: a data-dependent loop (e.g. a `range` over configured extensions) that happens to iterate zero times on the rendering machine can trigger a real shellcheck finding (e.g. `SC2034` unused variable) for a variable that *is* used once the loop actually iterates elsewhere. Treat such findings case-by-case against the source template, not as an automatic script defect.
 
 ## Known consequence, not a blocker
 
