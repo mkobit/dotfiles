@@ -59,3 +59,8 @@ welcome_screen = true
 # Custom modes not yet supported: https://github.com/zellij-org/zellij/issues/248
 # https://zellij.dev/documentation/keybindings-modes
 [zellij.modes.normal.keybinds]
+# Pairs with Ghostty's "unconsumed:cmd+t=new_tab" (dot_config/ghostty/conf.d/keybinds.conf)
+# so cmd+t opens a zellij tab too. macOS-only convention; not verified on Linux.
+"cmd-t-new-tab" = """bind "Super t" {
+            NewTab
+        }"""
