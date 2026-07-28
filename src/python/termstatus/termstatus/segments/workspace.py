@@ -26,12 +26,15 @@ def format_directory(cwd: Path) -> list[SegmentGenerationResult]:
     cwd_link = f"\033]8;;file://{cwd}\033\\{display_path}\033]8;;\033\\"
     return [
         SegmentGenerationResult(
+            line=1, index=5, column=0, generator="internal.workspace", segment=Segment(text=get_icon("dir"))
+        ),
+        SegmentGenerationResult(
             line=1,
             index=5,
-            column=0,
+            column=1,
             generator="internal.workspace",
-            segment=Segment(text=f"{BLUE}{get_icon('dir')} {cwd_link}{RESET}"),
-        )
+            segment=Segment(text=f"{BLUE}{cwd_link}{RESET}"),
+        ),
     ]
 
 

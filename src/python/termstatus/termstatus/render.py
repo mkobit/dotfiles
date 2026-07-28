@@ -12,7 +12,7 @@ from rich.text import Text
 
 from termstatus.layout import SegmentGenerationResult
 from termstatus.payload import StatusLineStdIn
-from termstatus.segments.constants import CYAN, DIM, RESET, get_icon
+from termstatus.segments.constants import CYAN, RESET
 from termstatus.segments.git import GitInfo
 
 
@@ -131,61 +131,29 @@ def _group_segments_by_line(
     return {k: sorted(v, key=lambda s: s.index) for k, v in sorted(by_line.items())}
 
 
-_RIGHT_COLUMN_THRESHOLD = 3
-_GIT_GENERATORS = frozenset({"internal.git", "internal.chezmoi"})
+_LEAD_COLUMN = 0
+_BODY_COLUMN = 1
+_BADGE_COLUMN = 2
 
 
-def _is_git_section(line_segs: Sequence[SegmentGenerationResult]) -> bool:
-    return all(s.generator in _GIT_GENERATORS for s in line_segs) and any((s.column or 0) == 1 for s in line_segs)
-
-
-def _build_git_subtable(
-    lines: Sequence[Sequence[SegmentGenerationResult]],
-) -> Table:
-    table = Table(
-        show_header=False,
-        show_edge=False,
-        box=None,
-        padding=(0, 1),
-        expand=True,
-    )
-    table.add_column("label", justify="left", no_wrap=True, min_width=7)
-    table.add_column("branch", justify="left", no_wrap=True, ratio=1)
-    table.add_column("status", justify="left", no_wrap=True)
-    table.add_column("right", justify="right", no_wrap=True)
-
-    for line_segs in lines:
-        col0 = [s for s in line_segs if (s.column or 0) == 0]
-        col1 = [s for s in line_segs if (s.column or 0) == 1]
-        col2 = [s for s in line_segs if (s.column or 0) == 2]
-        col_right = [s for s in line_segs if (s.column or 0) >= _RIGHT_COLUMN_THRESHOLD]
-
-        label_text = " ".join(s.segment.text for s in col0) if col0 else ""
-        branch_text = " ".join(s.segment.text for s in col1) if col1 else ""
-        status_text = " ".join(s.segment.text for s in col2) if col2 else ""
-        right_text = " ".join(s.segment.text for s in col_right) if col_right else ""
-
-        table.add_row(
-            Text.from_ansi(label_text, no_wrap=True) if label_text else Text(""),
-            Text.from_ansi(branch_text, no_wrap=True) if branch_text else Text(""),
-            Text.from_ansi(status_text, no_wrap=True) if status_text else Text(""),
-            Text.from_ansi(right_text, no_wrap=True) if right_text else Text(""),
-        )
-
-    return table
-
-
-def _build_standard_row(
-    line_segs: Sequence[SegmentGenerationResult],
-    left_sep: str,
-) -> tuple[Text, Text]:
-    left = [s for s in line_segs if (s.column or 0) < _RIGHT_COLUMN_THRESHOLD]
-    right = [s for s in line_segs if (s.column or 0) >= _RIGHT_COLUMN_THRESHOLD]
-    left_text = left_sep.join(s.segment.text for s in left) if left else ""
-    right_text = "  ".join(s.segment.text for s in right) if right else ""
+def _build_row_cells(line_segs: Sequence[SegmentGenerationResult]) -> tuple[Text, Text, Text]:
+    lead = [s for s in line_segs if (s.column or 0) == _LEAD_COLUMN]
+    body = [s for s in line_segs if (s.column or 0) == _BODY_COLUMN]
+    trailing = [s for s in line_segs if (s.column or 0) >= _BADGE_COLUMN]
+    lead_text = " ".join(s.segment.text for s in lead)
+    body_text = "   ".join(s.segment.text for s in body)
+    trailing_text = "  ".join(s.segment.text for s in trailing)
+    # Everything from badge onward (bracket tags, trailing git icons, a token
+    # ratio, ...) shares ONE cell rather than each getting its own aligned
+    # column. A column that only one or two rows ever populate has nothing to
+    # align against, so Rich pushes it out to an isolated, disconnected
+    # position — confirmed twice now (trailing git icons, then the token
+    # ratio). One shared "whatever comes after body" cell avoids that by
+    # construction: it always sits immediately after ITS OWN row's body.
     return (
-        Text.from_ansi(left_text, no_wrap=True) if left_text else Text(""),
-        Text.from_ansi(right_text, no_wrap=True) if right_text else Text(""),
+        Text.from_ansi(lead_text, no_wrap=True) if lead_text else Text(""),
+        Text.from_ansi(body_text, no_wrap=True) if body_text else Text(""),
+        Text.from_ansi(trailing_text, no_wrap=True) if trailing_text else Text(""),
     )
 
 
@@ -196,44 +164,26 @@ def render_lines(
     *,
     terminal_width: int | None = None,
 ) -> list[str]:
-    """Renders segments as a panel with subtables for aligned git sections."""
-    left_sep = f" {DIM}{get_icon('dot')}{RESET} "
-
+    """Renders segments as one shared table: lead/body columns size to the
+    widest content across every row, so every row's cells start at the same
+    position. Everything trailing (badges, status icons, secondary values)
+    shares one cell per row instead of each being its own aligned column, so
+    it always sits right next to that row's own content.
+    """
     segments_list = list(segments)
     if not segments_list:
         return []
 
     effective_width = _effective_width(terminal_width)
     lines_map = _group_segments_by_line(segments_list)
+    rows = [_build_row_cells(line_segs) for line_segs in lines_map.values()]
 
-    outer = Table(
-        show_header=False,
-        show_edge=False,
-        box=None,
-        padding=(0, 1),
-        expand=True,
-    )
-    outer.add_column("left", justify="left", ratio=1, overflow="ellipsis", no_wrap=True)
-    outer.add_column("right", justify="right", no_wrap=True)
-
-    git_line_buffer: list[Sequence[SegmentGenerationResult]] = []
-
-    def flush_git_buffer() -> None:
-        if not git_line_buffer:
-            return
-        subtable = _build_git_subtable(git_line_buffer)
-        outer.add_row(subtable, Text(""))
-        git_line_buffer.clear()
-
-    for line_segs in lines_map.values():
-        if _is_git_section(line_segs):
-            git_line_buffer.append(line_segs)
-        else:
-            flush_git_buffer()
-            left_cell, right_cell = _build_standard_row(line_segs, left_sep)
-            outer.add_row(left_cell, right_cell)
-
-    flush_git_buffer()
+    table = Table(show_header=False, show_edge=False, box=None, padding=(0, 1))
+    table.add_column("lead", justify="left", no_wrap=True)
+    table.add_column("body", justify="left", no_wrap=True, max_width=effective_width, overflow="ellipsis")
+    table.add_column("trailing", justify="left", no_wrap=True)
+    for lead, body, trailing in rows:
+        table.add_row(lead, body, trailing)
 
     console = Console(
         width=effective_width,
@@ -245,11 +195,11 @@ def render_lines(
     if payload is not None and payload.session_name:
         session_text = Text.from_ansi(f"{CYAN}#{payload.session_name}{RESET}", no_wrap=True)
         session_text.overflow = "ellipsis"
-        renderable = Group(session_text, outer)
+        renderable = Group(session_text, table)
     else:
-        renderable = outer
+        renderable = table
 
     with console.capture() as capture:
-        console.print(Panel(renderable, border_style="dim", expand=True))
+        console.print(Panel(renderable, border_style="dim", expand=False))
 
     return [line.rstrip() for line in capture.get().splitlines() if line.strip()]

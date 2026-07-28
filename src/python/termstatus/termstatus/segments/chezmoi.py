@@ -60,6 +60,15 @@ async def _fetch_repo_info(repo_path: Path) -> GitInfo | None:
     )
 
 
+_MAX_BRANCH_LEN = 24
+
+
+def _truncate(text: str, max_len: int) -> str:
+    if len(text) <= max_len:
+        return text
+    return text[: max_len - 1] + "…"
+
+
 def _build_branch_url(remote: str, branch: str) -> str:
     if branch == "HEAD":
         return remote
@@ -73,8 +82,11 @@ def _format_repo(
     info: GitInfo,
     line: int,
 ) -> Sequence[SegmentGenerationResult]:
+    # label/body/right map to render.py's shared lead/body/right table columns —
+    # cross-row alignment is that table's job now, not this function's.
     branch_url = _build_branch_url(info.remote, info.branch) if info.remote else None
-    branch_display = f"\033]8;;{branch_url}\033\\{info.branch}\033]8;;\033\\" if branch_url else info.branch
+    branch_label = _truncate(info.branch, _MAX_BRANCH_LEN)
+    branch_display = f"\033]8;;{branch_url}\033\\{branch_label}\033]8;;\033\\" if branch_url else branch_label
 
     status_parts = [
         f"{RED}{get_icon('dirty')}{RESET}" if info.dirty else None,
@@ -85,9 +97,9 @@ def _format_repo(
     if not filled:
         filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
 
-    label_text = f"{DIM}{label}{RESET}"
-    branch_text = f"{MAGENTA}{get_icon('branch')} {branch_display}{RESET}"
-    status_text = f"[{''.join(filled)}]"
+    label_prefix = f"{DIM}{label}{RESET}  " if label else ""
+    body_text = f"{label_prefix}{MAGENTA}{branch_display}{RESET}"
+    badge_text = f"[{''.join(filled)}]"
 
     right_parts = [
         f"{GREEN}↑{info.ahead}{RESET}" if info.ahead > 0 else None,
@@ -115,23 +127,23 @@ def _format_repo(
             line=line,
             index=0,
             column=0,
-            segment=Segment(text=label_text),
+            segment=Segment(text=get_icon("branch")),
             generator="internal.chezmoi",
             cache_duration=TimeDelta(seconds=5),
         ),
         SegmentGenerationResult(
             line=line,
-            index=5,
+            index=0,
             column=1,
-            segment=Segment(text=branch_text),
+            segment=Segment(text=body_text),
             generator="internal.chezmoi",
             cache_duration=TimeDelta(seconds=5),
         ),
         SegmentGenerationResult(
             line=line,
-            index=6,
+            index=0,
             column=2,
-            segment=Segment(text=status_text),
+            segment=Segment(text=badge_text),
             generator="internal.chezmoi",
             cache_duration=TimeDelta(seconds=5),
         ),
@@ -143,7 +155,7 @@ def _format_repo(
             SegmentGenerationResult(
                 line=line,
                 index=10,
-                column=3,
+                column=4,
                 segment=Segment(text=" ".join(right_filled)),
                 generator="internal.chezmoi",
                 cache_duration=TimeDelta(seconds=5),
@@ -151,17 +163,6 @@ def _format_repo(
         ]
 
     return results
-
-
-def _chezmoi_dir_indicator() -> SegmentGenerationResult:
-    return SegmentGenerationResult(
-        line=1,
-        index=0,
-        column=0,
-        segment=Segment(text=f"{MAGENTA}{get_icon('chezmoi')} chezmoi{RESET}"),
-        generator="internal.chezmoi",
-        cache_duration=TimeDelta(seconds=5),
-    )
 
 
 async def generate_chezmoi_segment(cwd: Path, chezmoi_root: Path) -> Sequence[SegmentGenerationResult]:
@@ -176,15 +177,11 @@ async def generate_chezmoi_segment(cwd: Path, chezmoi_root: Path) -> Sequence[Se
         if overlay_info is None and base_info is None:
             return []
         return [
-            _chezmoi_dir_indicator(),
             *(_format_repo("overlay", overlay_info, line=2) if overlay_info else []),
             *(_format_repo("base", base_info, line=3) if base_info else []),
         ]
 
     repo_info = await _fetch_repo_info(chezmoi_root)
     if repo_info is None:
-        return [_chezmoi_dir_indicator()]
-    return [
-        _chezmoi_dir_indicator(),
-        *_format_repo("source", repo_info, line=2),
-    ]
+        return []
+    return [*_format_repo("", repo_info, line=2)]

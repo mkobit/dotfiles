@@ -64,11 +64,12 @@ class TestFormatRepo:
         assert len(results) == 4
         assert results[0].line == 2
         assert results[0].column == 0
-        assert "ovl" in results[0].segment.text
         assert results[1].column == 1
+        assert "ovl" in results[1].segment.text
         assert "main" in results[1].segment.text
         assert results[2].column == 2
-        assert results[3].column == 3
+        assert results[2].segment.text.startswith("[") and results[2].segment.text.endswith("]")
+        assert results[3].column == 4
 
     def test_dirty_repo_with_ahead_behind(self):
         info = GitInfo(
@@ -86,11 +87,11 @@ class TestFormatRepo:
         assert len(results) == 4
         assert results[0].line == 3
         assert results[0].column == 0
-        assert "base" in results[0].segment.text
         assert results[1].column == 1
+        assert "base" in results[1].segment.text
         assert "feature" in results[1].segment.text
         assert results[2].column == 2
-        assert results[3].column == 3
+        assert results[3].column == 4
         assert "↑2" in results[3].segment.text
         assert "↓1" in results[3].segment.text
 
@@ -111,6 +112,41 @@ class TestFormatRepo:
         assert results[0].column == 0
         assert results[1].column == 1
         assert results[2].column == 2
+
+    def test_lead_is_branch_icon_not_label(self):
+        info = GitInfo(
+            branch="main",
+            remote=None,
+            dirty=False,
+            staged=False,
+            untracked=False,
+            ahead=0,
+            behind=0,
+            is_repo=True,
+            stash_count=0,
+        )
+        with_label = _format_repo("overlay", info, line=2)
+        without_label = _format_repo("", info, line=2)
+        assert with_label[0].segment.text == without_label[0].segment.text
+        assert "overlay" not in with_label[0].segment.text
+        assert "overlay" in with_label[1].segment.text
+
+    def test_long_branch_name_truncated(self):
+        info = GitInfo(
+            branch="feature/a-very-long-branch-name-that-should-be-truncated",
+            remote=None,
+            dirty=False,
+            staged=False,
+            untracked=False,
+            ahead=0,
+            behind=0,
+            is_repo=True,
+            stash_count=0,
+        )
+        results = _format_repo("ovl", info, line=2)
+        body_text = results[1].segment.text
+        assert "…" in body_text
+        assert "feature/a-very-long-branch-name-that-should-be-truncated" not in body_text
 
 
 @pytest.mark.asyncio
