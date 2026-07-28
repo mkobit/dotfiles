@@ -17,6 +17,7 @@ from termstatus.segments.constants import (
     get_icon,
 )
 
+_USAGE_LINE = 9
 _CONTEXT_LINE = 10
 
 _BAR_WIDTH = 12
@@ -69,37 +70,63 @@ def format_context_usage(cw: ContextWindowInfo) -> list[SegmentGenerationResult]
         else ""
     )
 
-    parts = [p for p in (bar, pct_text, token_text) if p]
-
-    return [
+    results = [
+        SegmentGenerationResult(
+            line=_CONTEXT_LINE, index=0, column=0, generator="internal.claude", segment=Segment(text=get_icon("tokens"))
+        ),
         SegmentGenerationResult(
             line=_CONTEXT_LINE,
             index=30,
-            column=0,
+            column=1,
             generator="internal.claude",
-            segment=Segment(text="  ".join(parts)),
-        )
+            segment=Segment(text=f"{bar}  {pct_text}"),
+        ),
     ]
+    if token_text:
+        results = [
+            *results,
+            SegmentGenerationResult(
+                line=_CONTEXT_LINE, index=40, column=3, generator="internal.claude", segment=Segment(text=token_text)
+            ),
+        ]
+    return results
 
 
 def format_model_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
     style = payload.output_style
-    model_str = f"{get_icon('robot')} {BLUE}{BOLD}{payload.model.display_name}{RESET}"
-
-    agent_style_parts = [
-        f"{MAGENTA}@{payload.agent.name}{RESET}" if payload.agent.name else None,
-        f"{DIM}[{style.name}]{RESET}" if style and style.name else None,
-    ]
-    agent_text = " ".join(p for p in agent_style_parts if p)
-
     results = [
-        SegmentGenerationResult(line=0, index=0, column=0, generator="internal.claude", segment=Segment(text=model_str))
+        SegmentGenerationResult(
+            line=0, index=0, column=0, generator="internal.claude", segment=Segment(text=get_icon("robot"))
+        ),
+        SegmentGenerationResult(
+            line=0,
+            index=0,
+            column=1,
+            generator="internal.claude",
+            segment=Segment(text=f"{BLUE}{BOLD}{payload.model.display_name}{RESET}"),
+        ),
     ]
-    if agent_text:
+
+    if payload.agent.name:
         results = [
             *results,
             SegmentGenerationResult(
-                line=0, index=10, column=1, generator="internal.claude", segment=Segment(text=agent_text)
+                line=0,
+                index=10,
+                column=1,
+                generator="internal.claude",
+                segment=Segment(text=f"{MAGENTA}@{payload.agent.name}{RESET}"),
+            ),
+        ]
+    if style and style.name:
+        results = [
+            *results,
+            SegmentGenerationResult(
+                line=0,
+                index=0,
+                column=2,
+                generator="internal.claude",
+                segment=Segment(text=f"{DIM}[{style.name}]{RESET}"),
             ),
         ]
     return results
@@ -115,9 +142,9 @@ def format_session_info(payload: StatusLineStdIn) -> list[SegmentGenerationResul
     timer = f"{hours:02d}:{minutes:02d}:{seconds:02d}" if hours > 0 else f"{minutes:02d}:{seconds:02d}"
     return [
         SegmentGenerationResult(
-            line=_CONTEXT_LINE,
+            line=_USAGE_LINE,
             index=10,
-            column=0,
+            column=2,
             generator="internal.claude",
             segment=Segment(text=f"{DIM}{get_icon('timer')} {timer}{RESET}"),
         )
@@ -129,10 +156,13 @@ def format_cost(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
         return []
     return [
         SegmentGenerationResult(
-            line=_CONTEXT_LINE,
+            line=_USAGE_LINE, index=0, column=0, generator="internal.claude", segment=Segment(text=get_icon("cost"))
+        ),
+        SegmentGenerationResult(
+            line=_USAGE_LINE,
             index=0,
-            column=0,
+            column=1,
             generator="internal.claude",
-            segment=Segment(text=f"{GREEN}{get_icon('cost')} ${payload.cost.total_cost_usd:.2f}{RESET}"),
-        )
+            segment=Segment(text=f"{GREEN}${payload.cost.total_cost_usd:.2f}{RESET}"),
+        ),
     ]

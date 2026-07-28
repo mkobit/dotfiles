@@ -23,6 +23,7 @@ def format_agent_state(payload: AntigravityPayload) -> list[SegmentGenerationRes
         SegmentGenerationResult(
             line=3,
             index=10,
+            column=1,
             generator="internal.antigravity.agent_state",
             segment=Segment(text=f"{color}[{state}]{RESET}"),
         )
@@ -37,6 +38,7 @@ def format_model_info(payload: AntigravityPayload) -> list[SegmentGenerationResu
         SegmentGenerationResult(
             line=3,
             index=20,
+            column=1,
             generator="internal.antigravity.model_info",
             segment=Segment(text=f"{GREEN}{payload.model.display_name}{RESET}"),
         )
@@ -53,6 +55,7 @@ def format_workspace_info(payload: AntigravityPayload) -> list[SegmentGeneration
         SegmentGenerationResult(
             line=3,
             index=30,
+            column=1,
             generator="internal.antigravity.workspace",
             segment=Segment(text=f"{BLUE}{basename}{RESET}"),
         )
@@ -69,6 +72,7 @@ def format_vcs_info(payload: AntigravityPayload) -> list[SegmentGenerationResult
         SegmentGenerationResult(
             line=3,
             index=40,
+            column=1,
             generator="internal.antigravity.vcs",
             segment=Segment(text=f"{YELLOW}{branch}{dirty_marker}{RESET}"),
         )
@@ -84,6 +88,7 @@ def format_context_usage(payload: AntigravityPayload) -> list[SegmentGenerationR
         SegmentGenerationResult(
             line=3,
             index=50,
+            column=1,
             generator="internal.antigravity.context_usage",
             segment=Segment(text=f"{CYAN}{percent:.1f}% context{RESET}"),
         )

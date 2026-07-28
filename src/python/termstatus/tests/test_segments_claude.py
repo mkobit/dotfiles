@@ -150,11 +150,11 @@ class TestFormatCost(unittest.TestCase):
         res = format_cost(payload)
         self.assertEqual(res, [])
 
-    def test_placed_on_context_line(self) -> None:
+    def test_placed_on_usage_line(self) -> None:
         payload = StatusLineStdIn(cost=CostInfo(total_cost_usd=0.5))
         res = format_cost(payload)
         assert res is not None
-        self.assertEqual(res[0].line if res else None, 10)
+        self.assertEqual(res[0].line if res else None, 9)
 
 
 if __name__ == "__main__":
