@@ -1,4 +1,6 @@
 import re
+import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -47,6 +49,25 @@ def test_classify_shebang(first_line, expected):
     assert _classify_shebang(first_line) is expected
 
 
-def test_shellcheck_candidate_has_required_keys(shellcheck_candidate):
-    assert "sourceRelative" in shellcheck_candidate
-    assert "sourceAbsolute" in shellcheck_candidate
+def _first_non_blank_line(text):
+    return next((line for line in text.splitlines() if line.strip()), "")
+
+
+def test_shellcheck(shellcheck_candidate, host, chezmoi_command):
+    render = host.run(chezmoi_command("execute-template", "-f", "--with-stdin", shellcheck_candidate["sourceAbsolute"]))
+    assert render.rc == 0, f"template render failed:\n{render.stderr}"
+
+    first_line = _first_non_blank_line(render.stdout)
+    if not _classify_shebang(first_line):
+        pytest.skip("renders to non-shell content")
+
+    with tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False) as rendered_file:
+        rendered_file.write(render.stdout)
+        rendered_path = rendered_file.name
+
+    try:
+        result = subprocess.run(["shellcheck", "-x", rendered_path], capture_output=True, text=True, check=False)
+    finally:
+        Path(rendered_path).unlink()
+
+    assert result.returncode == 0, result.stdout
