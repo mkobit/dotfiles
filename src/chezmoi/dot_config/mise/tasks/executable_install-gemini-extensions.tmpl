@@ -12,8 +12,11 @@ fi
 
 GEMINI_BIN=$(mise which gemini 2>/dev/null || command -v gemini 2>/dev/null)
 BUN_BIN=$(mise which bun 2>/dev/null || echo "")
+# shellcheck disable=SC2034
+# Unused when .gemini.extensions is empty on this machine; consumed inside the range loop below
 RUN_CMD=("$GEMINI_BIN")
 if [ -n "$BUN_BIN" ]; then
+    # shellcheck disable=SC2034
     RUN_CMD=("$BUN_BIN" "--bun" "$GEMINI_BIN")
 fi
 
