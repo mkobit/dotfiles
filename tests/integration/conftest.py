@@ -57,6 +57,33 @@ def _chezmoi_command(*args):
     return " ".join(shlex.quote(part) for part in _chezmoi_argv(*args))
 
 
+def _shellcheck_candidates():
+    scripts = json.loads(
+        subprocess.run(
+            _chezmoi_argv("managed", "--include=scripts", "--format=json", "--path-style=all"),
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    )
+    files = json.loads(
+        subprocess.run(
+            _chezmoi_argv("managed", "--include=files", "--format=json", "--path-style=all"),
+            capture_output=True,
+            text=True,
+            check=True,
+        ).stdout
+    )
+
+    candidates = list(scripts.values())
+    candidates.extend(
+        entry for entry in files.values() if Path(entry["sourceRelative"]).name.startswith(("modify_", "executable_"))
+    )
+
+    on_disk = [entry for entry in candidates if Path(entry["sourceAbsolute"]).is_file()]
+    return sorted(on_disk, key=lambda entry: entry["sourceRelative"])
+
+
 def _chezmoi_source_path():
     """Ask chezmoi itself where its source root is (respects .chezmoiroot).
     Pytest always runs from the repo root, so that's the --source to resolve
@@ -103,9 +130,16 @@ def chezmoi_dest(host):
     return Path(host.user().home)
 
 
+@pytest.fixture
+def chezmoi_command():
+    return _chezmoi_command
+
+
 def pytest_generate_tests(metafunc):
     """Dynamically parameterize tests that require layout_name, chezmoiscript_path, or workflow_path."""
-    needs_source_root = {"layout_name", "chezmoiscript_path", "workflow_path"} & set(metafunc.fixturenames)
+    needs_source_root = {"layout_name", "chezmoiscript_path", "workflow_path", "shellcheck_candidate"} & set(
+        metafunc.fixturenames
+    )
     if not needs_source_root:
         return
 
@@ -126,3 +160,7 @@ def pytest_generate_tests(metafunc):
     if "workflow_path" in metafunc.fixturenames:
         workflows = sorted((repo_root / ".github" / "workflows").glob("*.yml"))
         metafunc.parametrize("workflow_path", workflows, ids=lambda p: p.name)
+
+    if "shellcheck_candidate" in metafunc.fixturenames:
+        candidates = _shellcheck_candidates()
+        metafunc.parametrize("shellcheck_candidate", candidates, ids=lambda c: c["sourceRelative"])
