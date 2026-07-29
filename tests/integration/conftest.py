@@ -40,8 +40,10 @@ def skip_unmatched_chezmoi_installation(request):
 
 
 def _chezmoi_argv(*args):
-    command = ["chezmoi"]
+    command = ["chezmoi", "--source", str(Path.cwd())]
 
+    if cache_dir := os.environ.get("CHEZMOI_CACHE_DIR"):
+        command.extend(["--cache", cache_dir])
     if config_path := os.environ.get("CHEZMOI_CONFIG"):
         command.extend(["--config", config_path])
     if dest := os.environ.get("CHEZMOI_DEST"):
