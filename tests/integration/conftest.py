@@ -136,7 +136,7 @@ def chezmoi_command():
 
 
 def pytest_generate_tests(metafunc):
-    """Dynamically parameterize tests that require layout_name, chezmoiscript_path, or workflow_path."""
+    """Dynamically parameterize tests that require layout_name, chezmoiscript_path, workflow_path, or shellcheck_candidate."""
     needs_source_root = {"layout_name", "chezmoiscript_path", "workflow_path", "shellcheck_candidate"} & set(
         metafunc.fixturenames
     )
