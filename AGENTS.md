@@ -1,16 +1,12 @@
 # Agent context for dotfiles repository
 
-This is a **personal dotfiles repository** managed by mkobit.
-It is a highly customized environment optimized for specific personal workflows.
-AI agents must prioritize consistency with established architectural patterns, naming conventions, and local configuration styles.
-Avoid imposing standard industry "best practices" if they conflict with the existing idiomatic choices made in this repository.
+This is mkobit's personal dotfiles repository.
+Prioritize consistency with this repo's existing patterns, naming, and config style over generic industry best practices when the two conflict.
 
 ## Git context
 
-This repository uses git worktrees.
-You may be operating in a worktree on a feature branch, not the main checkout.
-**Always run `git status` and `git worktree list` at the start of a session** to confirm which branch and worktree you are in before making any changes.
-Never assume you are on `main` or in the primary checkout directory.
+This repository uses git worktrees — you may be in a worktree on a feature branch, not the main checkout.
+Run `git status` and `git worktree list` before making changes to confirm which one.
 
 ## Repository structure
 
@@ -105,8 +101,7 @@ The overlay wins all file collisions, including `.chezmoi.toml.tmpl` — the ove
 
 When adding features, keep them overlay-friendly:
 
-- `installation_method` decisions belong in `.chezmoi.toml.tmpl`; overlays re-declare them in their own init template.
-- Capability data (catalog entries, structural config) belongs in `.chezmoidata/` — overlays extend by adding keys, not editing base files.
+- Follow the control-plane/capability-catalog split above; overlays extend `.chezmoidata/` by adding keys and re-declare `.chezmoi.toml.tmpl` decisions in their own init template, never editing base files.
 - Use generic key names — describe the concept, not the environment.
 - Use `dig` with a safe default for any key an overlay might omit so absence is a no-op.
 - Loop over maps (`range $k, $v := .feature.items`) for injectable content.
