@@ -32,7 +32,10 @@ write-agent-context = "present"
 
 # External sources: [ai.skills.external.<name>] with repo, ref (commit SHA), sha256 (downloaded archive).
 # Optional: host (archive host key, default "github"), skills_root (default "skills"),
-# url (full archive URL for one-off published artifacts, bypasses host construction).
+# url (full archive URL for one-off published artifacts, bypasses host construction),
+# skill_file (for a flat, single-skill repo with SKILL.md at the archive root
+# instead of a skills_root/<name>/ subdirectory — selects that bare file directly;
+# the [.skills] entry's key still names the installed skill directory).
 # Each [.skills] entry maps an upstream skill directory name to a state:
 #   "present" (all tools), "absent" (pruned everywhere), or a single tool name
 #   ("claude", "antigravity", "cursor") to deploy only to that tool.
@@ -172,3 +175,17 @@ skills_root = "plugins/developer-essentials/skills"
 
 [ai.skills.external.wshobson-developer-essentials.skills]
 bazel-build-optimization = "present"
+
+# Onboarded 2026-07-29: socrates audited (security: approve, no caveat —
+# plain-markdown teaching prompt, no scripts, no external fetches, no content
+# beyond the documented Socratic-questioning behavior). Flat single-file repo
+# (SKILL.md at archive root, no skills/ subdirectory); uses skill_file instead
+# of skills_root.
+[ai.skills.external.socrates]
+repo = "bevibing/socrates-skill"
+ref = "becb2e51fe7ed063f5f3304cccf8da03aacef6cf" # 2026-04-02
+sha256 = "f18b663b78f346a06a1705c99adbf84b46f2a76b2d9c6d1fc49dec220f9f66f0"
+skill_file = "SKILL.md"
+
+[ai.skills.external.socrates.skills]
+socrates = "present"

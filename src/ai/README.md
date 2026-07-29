@@ -24,6 +24,7 @@ brainstorming = "present"
 
 Each source downloads from an archive host (`host`, default `"github"`) declared under `[ai.skills.hosts.<name>]` with a `url_format` substituting `{repo}` and `{ref}`.
 Overlays can repoint a host at a proxy, add internal hosts (for example GitHub Enterprise), or set `url` on a source for a one-off published archive.
+A flat, single-skill repo (`SKILL.md` at the archive root, no `skills_root/<name>/` subdirectory) sets `skill_file = "SKILL.md"` instead of relying on `skills_root`; the `[.skills]` entry's key still names the installed skill directory.
 
 To compute the pin for a new ref:
 
