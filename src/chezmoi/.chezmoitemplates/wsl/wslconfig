@@ -6,6 +6,10 @@ memory={{ .wsl.wsl2.memory }}
 swap={{ .wsl.wsl2.swap }}
 processors={{ .wsl.wsl2.processors }}
 networkingMode={{ .wsl.wsl2.networkingMode }}
+# -1 disables WSL2 crash-dump capture entirely at the source (not just
+# retention count) -- see microsoft/WSL WslCoreVm.cpp/main.cpp, all
+# gated on maxCrashDumpCount >= 0. Prevents repeat multi-hundred-GB
+# dumps from orphaned WSL processes filling the Windows C: drive.
 maxCrashDumpCount={{ .wsl.wsl2.maxCrashDumpCount }}
 
 [experimental]
