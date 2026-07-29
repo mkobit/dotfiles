@@ -4,6 +4,7 @@
 set -euo pipefail
 
 CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+# shellcheck source={{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh
 source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 
 {{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) }}
