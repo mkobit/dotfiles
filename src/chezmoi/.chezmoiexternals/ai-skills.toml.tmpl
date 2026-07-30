@@ -3,6 +3,9 @@
   catalog in .chezmoidata/ai/skills.toml. Each external downloads the pinned
   upstream archive (verified against sha256, cached once per URL) and pipes it
   through skill_filter to re-root a single skill directory at the target.
+  A source with "skill_file" set (flat, single-skill repo with SKILL.md at
+  the archive root instead of a skills_root/<name>/ subdirectory) selects
+  that bare file directly rather than a subtree.
   The filter runs via system python3 and must stay stdlib-only because uv and
   mise are not installed until after apply. Target directories are fixed by
   each tool's skill discovery and are hardcoded here; overlays deselect skills
@@ -29,7 +32,11 @@
 {{-         end -}}
 {{-         $url = $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
 {{-       end -}}
-{{-       $path := printf "%s/%s" (dig "skills_root" "skills" $source) $skillName -}}
+{{-       $skillFile := dig "skill_file" "" $source -}}
+{{-       $selectArg := $skillFile -}}
+{{-       if not $skillFile -}}
+{{-         $selectArg = printf "%s/%s:." (dig "skills_root" "skills" $source) $skillName -}}
+{{-       end -}}
 {{-       range $toolName, $skillsDir := $tools -}}
 {{-         if or (eq $state "present") (eq $state $toolName) -}}
 {{-           $entry := dict
@@ -40,7 +47,7 @@
                 "format" "tar"
                 "filter" (dict
                   "command" $python
-                  "args" (list "-S" $script "--cache-key" $source.sha256 "--select" (printf "%s:." $path)))
+                  "args" (list "-S" $script "--cache-key" $source.sha256 "--select" $selectArg))
 -}}
 {{-           $_ := set $config (printf "%s/%s" $skillsDir $skillName) $entry -}}
 {{-         end -}}
