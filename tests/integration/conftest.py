@@ -1,5 +1,6 @@
 import json
 import os
+import re
 import shlex
 import subprocess
 from collections.abc import Iterable
@@ -57,6 +58,18 @@ def _chezmoi_command(*args):
     return " ".join(shlex.quote(part) for part in _chezmoi_argv(*args))
 
 
+# chezmoi's documented attribute order for regular/create files is
+# (encrypted_)?(private_)?(readonly_)?(empty_)?(executable_)?(dot_) — executable_
+# doesn't have to lead, so a plain startswith("executable_") misses e.g.
+# private_executable_*. https://www.chezmoi.io/reference/source-state-attributes/
+_EXECUTABLE_FILE_ATTRS_RE = re.compile(r"^(create_)?(encrypted_|private_|readonly_|empty_)*executable_")
+
+
+def _is_shellcheck_candidate_file(source_relative):
+    name = Path(source_relative).name
+    return name.startswith("modify_") or bool(_EXECUTABLE_FILE_ATTRS_RE.match(name))
+
+
 def _shellcheck_candidates():
     scripts = json.loads(
         subprocess.run(
@@ -76,9 +89,7 @@ def _shellcheck_candidates():
     )
 
     candidates = list(scripts.values())
-    candidates.extend(
-        entry for entry in files.values() if Path(entry["sourceRelative"]).name.startswith(("modify_", "executable_"))
-    )
+    candidates.extend(entry for entry in files.values() if _is_shellcheck_candidate_file(entry["sourceRelative"]))
 
     on_disk = [entry for entry in candidates if Path(entry["sourceAbsolute"]).is_file()]
     return sorted(on_disk, key=lambda entry: entry["sourceRelative"])
