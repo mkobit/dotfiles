@@ -3,6 +3,9 @@
 .agents/
 .directory
 
+# Local git worktrees (superpowers:using-git-worktrees convention)
+.worktrees/
+
 # Antigravity / agy editor artifacts (also in the chezmoi global gitignore)
 .antigravity/
 .antigravitycli/

@@ -4,6 +4,7 @@
 set -euo pipefail
 
 CHEZMOI_SOURCE_DIR="{{ .chezmoi.sourceDir }}"
+# shellcheck source={{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh
 source "${CHEZMOI_SOURCE_DIR}/.chezmoitemplates/shell/logging.sh"
 
 {{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) }}
@@ -55,6 +56,8 @@ WSLCONFIG="${WIN_PROFILE_UNIX}/.wslconfig"
 if grep -q "networkingMode" "${WSLCONFIG}" 2>/dev/null; then
     log_info ".wslconfig already has networkingMode configured"
 else
+    # shellcheck disable=SC2016
+    # literal PowerShell block, not bash; $path/$content are PowerShell's own variables and must not be bash-expanded
     "${POWERSHELL_EXE}" -NoProfile -Command '
         $path = "$env:USERPROFILE\.wslconfig"
         $content = if (Test-Path $path) { Get-Content $path -Raw } else { "" }
