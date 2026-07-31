@@ -81,9 +81,13 @@ def _format_repo(
     label: str,
     info: GitInfo,
     line: int,
+    label_width: int = 0,
 ) -> Sequence[SegmentGenerationResult]:
     # label/body/right map to render.py's shared lead/body/right table columns —
-    # cross-row alignment is that table's job now, not this function's.
+    # cross-row alignment is that table's job now, not this function's. It aligns
+    # column boundaries across rows, but the label and branch share one cell here,
+    # so a ragged label (e.g. "overlay" vs "base") would still offset the branch
+    # text within that cell; label_width pads the label so branches line up too.
     branch_url = _build_branch_url(info.remote, info.branch) if info.remote else None
     branch_label = _truncate(info.branch, _MAX_BRANCH_LEN)
     branch_display = f"\033]8;;{branch_url}\033\\{branch_label}\033]8;;\033\\" if branch_url else branch_label
@@ -97,7 +101,7 @@ def _format_repo(
     if not filled:
         filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
 
-    label_prefix = f"{DIM}{label}{RESET}  " if label else ""
+    label_prefix = f"{DIM}{label.ljust(label_width)}{RESET}  " if label else ""
     body_text = f"{label_prefix}{MAGENTA}{branch_display}{RESET}"
     badge_text = f"[{''.join(filled)}]"
 
@@ -176,9 +180,10 @@ async def generate_chezmoi_segment(cwd: Path, chezmoi_root: Path) -> Sequence[Se
         )
         if overlay_info is None and base_info is None:
             return []
+        label_width = max(len("overlay"), len("base"))
         return [
-            *(_format_repo("overlay", overlay_info, line=2) if overlay_info else []),
-            *(_format_repo("base", base_info, line=3) if base_info else []),
+            *(_format_repo("overlay", overlay_info, line=2, label_width=label_width) if overlay_info else []),
+            *(_format_repo("base", base_info, line=3, label_width=label_width) if base_info else []),
         ]
 
     repo_info = await _fetch_repo_info(chezmoi_root)
