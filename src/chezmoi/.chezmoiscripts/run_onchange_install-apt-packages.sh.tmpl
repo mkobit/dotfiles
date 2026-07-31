@@ -66,10 +66,17 @@ fi
 
 {{- if $service }}
 if check_command systemctl; then
-    log_info "🔒 Enabling {{ $service }} service..."
-    sudo systemctl enable --now {{ $service }} \
-        || { log_error "Failed to enable {{ $service }} service"; exit 1; }
-    log_success "{{ $service }} enabled and started"
+    if systemctl is-enabled --quiet {{ $service }} 2>/dev/null && systemctl is-active --quiet {{ $service }}; then
+        log_success "{{ $service }} already enabled and running"
+    elif sudo -n true 2>/dev/null || [ -t 0 ]; then
+        log_info "🔒 Enabling {{ $service }} service..."
+        sudo systemctl enable --now {{ $service }} \
+            || { log_error "Failed to enable {{ $service }} service"; exit 1; }
+        log_success "{{ $service }} enabled and started"
+    else
+        log_warn "No TTY and no cached sudo credentials — skipping {{ $service }} enable, will retry next apply"
+        exit 1
+    fi
 else
     log_warn "systemctl not found — skipping {{ $service }} service enable"
 fi
