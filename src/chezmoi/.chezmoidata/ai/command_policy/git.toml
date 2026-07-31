@@ -23,6 +23,7 @@
 "git pull" = "allow"
 "git rebase" = "allow"
 "git restore" = "allow"
+"git rev-parse" = "allow"
 "git show" = "allow"
 "git stash" = "allow"
 "git status" = "allow"
