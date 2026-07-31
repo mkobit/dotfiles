@@ -6,3 +6,22 @@ key = "shift+enter"
 command = "workbench.action.terminal.sendSequence"
 when = "terminalFocus"
 args = { text = "\u001b[13;2u" }
+
+# VS Code/Cursor hardcode Option+Right/Left in the integrated terminal to the
+# readline word-nav convention (ESC f / ESC b) instead of standard CSI
+# Alt+arrow sequences. Zellij's input parser can't tell ESC f apart from a
+# literal Alt+F keypress, so Option+Right fires zellij's "Alt f" binding
+# (ToggleFloatingPanes) instead of MoveFocusOrTab. Send the CSI form other
+# terminals (Ghostty, iTerm2, kitty) already send.
+[[vscode.keybindings]]
+key = "alt+right"
+command = "workbench.action.terminal.sendSequence"
+when = "terminalFocus"
+args = { text = "\u001b[1;3C" }
+
+[[vscode.keybindings]]
+key = "alt+left"
+command = "workbench.action.terminal.sendSequence"
+when = "terminalFocus"
+args = { text = "\u001b[1;3D" }
+
