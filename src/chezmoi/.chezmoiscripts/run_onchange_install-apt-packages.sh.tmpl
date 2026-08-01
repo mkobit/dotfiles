@@ -19,6 +19,12 @@ if ! check_command apt-get; then
     exit 1
 fi
 
+if sudo -n true 2>/dev/null || [ -t 0 ]; then
+    has_sudo_access=1
+else
+    has_sudo_access=0
+fi
+
 {{- $ppaPkgs := list -}}
 {{- range $aptPkgs -}}
 {{-   $tool := index $.packages . -}}
@@ -30,9 +36,14 @@ fi
 
 {{- if $ppaPkgs }}
 if ! check_command add-apt-repository; then
-    log_info "🔒 Installing software-properties-common for add-apt-repository..."
-    sudo apt-get install -y software-properties-common \
-        || { log_error "Failed to install software-properties-common"; exit 1; }
+    if [ "$has_sudo_access" -eq 1 ]; then
+        log_info "🔒 Installing software-properties-common for add-apt-repository..."
+        sudo apt-get install -y software-properties-common \
+            || { log_error "Failed to install software-properties-common"; exit 1; }
+    else
+        log_warn "No TTY and no cached sudo credentials — skipping software-properties-common install, will retry next apply"
+        exit 1
+    fi
 fi
 {{- end }}
 
@@ -44,23 +55,31 @@ fi
 {{-   $service := dig "systemd" "service" "" $tool }}
 
 {{- if $ppa }}
-log_info "🔒 Adding apt repository {{ $ppa }} for {{ $name }}..."
-sudo add-apt-repository -y --no-update {{ $ppa | quote }} \
-    || { log_error "Failed to add repository {{ $ppa }} for {{ $name }}"; exit 1; }
-sudo apt-get update
+if [ "$has_sudo_access" -eq 1 ]; then
+    log_info "🔒 Adding apt repository {{ $ppa }} for {{ $name }}..."
+    sudo add-apt-repository -y --no-update {{ $ppa | quote }} \
+        || { log_error "Failed to add repository {{ $ppa }} for {{ $name }}"; exit 1; }
+    sudo apt-get update
 
-log_info "🔒 Installing {{ $name }} via apt (from {{ $ppa }})..."
-sudo apt-get install -y {{ $name }} \
-    || { log_error "Failed to install {{ $name }} via apt"; exit 1; }
-log_success "{{ $name }} installed"
+    log_info "🔒 Installing {{ $name }} via apt (from {{ $ppa }})..."
+    sudo apt-get install -y {{ $name }} \
+        || { log_error "Failed to install {{ $name }} via apt"; exit 1; }
+    log_success "{{ $name }} installed"
+else
+    log_warn "No TTY and no cached sudo credentials — skipping {{ $name }} install, will retry next apply"
+    exit 1
+fi
 {{- else }}
 if dpkg -l {{ $name }} 2>/dev/null | grep -q "^ii"; then
     log_success "{{ $name }} already installed via apt"
-else
+elif [ "$has_sudo_access" -eq 1 ]; then
     log_info "🔒 Installing {{ $name }} via apt..."
     sudo apt-get install -y {{ $name }} \
         || { log_error "Failed to install {{ $name }} via apt"; exit 1; }
     log_success "{{ $name }} installed"
+else
+    log_warn "No TTY and no cached sudo credentials — skipping {{ $name }} install, will retry next apply"
+    exit 1
 fi
 {{- end }}
 
@@ -68,7 +87,7 @@ fi
 if check_command systemctl; then
     if systemctl is-enabled --quiet {{ $service }} 2>/dev/null && systemctl is-active --quiet {{ $service }}; then
         log_success "{{ $service }} already enabled and running"
-    elif sudo -n true 2>/dev/null || [ -t 0 ]; then
+    elif [ "$has_sudo_access" -eq 1 ]; then
         log_info "🔒 Enabling {{ $service }} service..."
         sudo systemctl enable --now {{ $service }} \
             || { log_error "Failed to enable {{ $service }} service"; exit 1; }
