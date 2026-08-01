@@ -33,6 +33,17 @@ command = "statusline claude render"
 # see dot_claude/modify_settings.json. (Previously this table set
 # tools/files = "allow" here, but neither key exists in Claude Code's
 # documented permissions schema — removed as inert.)
+[claude_code.settings.permissions]
+# Force-exclude stale live-file survivors that predate a policy tightening.
+# "remove" always wins over live-file allow entries, even ones a prior
+# apply wrote from a since-narrowed catalog key (see modify_settings.json).
+remove = [
+  # beads.toml replaced the bare "bd" catalog key with per-subcommand
+  # entries plus explicit exclusions (dolt push/pull/remote, federation,
+  # sql, migrate, upgrade) — this wildcard would otherwise still blanket-
+  # allow all of them from the live settings.json.
+  "Bash(bd:*)",
+]
 
 [claude_code.settings.env]
 DISABLE_AUTOUPDATER = "true"
