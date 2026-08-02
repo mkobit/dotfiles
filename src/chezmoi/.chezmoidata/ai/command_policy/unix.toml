@@ -1,0 +1,36 @@
+# Base-system read-only commands present on virtually any Unix/Linux
+# install (coreutils/util-linux), not tools installed via chezmoi's bin
+# catalog (.chezmoidata/bin/) — those get their own per-tool file if/when
+# they're added here. No filesystem or state mutation. cat/head/tail/env/
+# printenv can surface file or environment-variable contents from anywhere
+# reachable by the agent — same disclosure bar already accepted for "rg"
+# in search.toml.
+#
+# Deliberately excluded — do not add:
+#   - "find": -exec/-delete turn a nominal listing command into arbitrary
+#     command execution or unbounded deletion; head-matching can't separate
+#     that from a plain search, same reason git.toml excludes reset/clean.
+#   - "grep": superseded by "rg" (see search.toml) per this repo's tool
+#     preference; carries the same content-disclosure profile as
+#     cat/head/tail below without adding capability.
+[ai.command_policy.commands]
+"cat" = "allow"
+"date" = "allow"
+"df" = "allow"
+"diff" = "allow"
+"du" = "allow"
+"env" = "allow"
+"file" = "allow"
+"head" = "allow"
+"hostname" = "allow"
+"ls" = "allow"
+"printenv" = "allow"
+"pwd" = "allow"
+"sort" = "allow"
+"stat" = "allow"
+"tail" = "allow"
+"tree" = "allow"
+"uname" = "allow"
+"uniq" = "allow"
+"wc" = "allow"
+"which" = "allow"
