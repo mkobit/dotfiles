@@ -1,0 +1,46 @@
+# Base-system read-only commands present on virtually any Unix/Linux
+# install (coreutils/util-linux), not tools installed via chezmoi's bin
+# catalog (.chezmoidata/bin/) — those get their own per-tool file if/when
+# they're added here. No filesystem or state mutation. cat/head/tail/
+# printenv can surface file or environment-variable contents from anywhere
+# reachable by the agent — same disclosure bar already accepted for "rg"
+# in search.toml.
+#
+# Deliberately excluded — do not add:
+#   - "find": -exec/-delete turn a nominal listing command into arbitrary
+#     command execution or unbounded deletion; head-matching can't separate
+#     that from a plain search, same reason git.toml excludes reset/clean.
+#   - "grep": superseded by "rg" (see search.toml) per this repo's tool
+#     preference; carries the same content-disclosure profile as
+#     cat/head/tail below without adding capability.
+#   - "env": bare `env COMMAND [ARGS]` executes COMMAND as a subprocess —
+#     verified (`env cat ...` ran cat). Head-matching only sees "env", so
+#     this bypasses every deny rule in every other domain file, not just
+#     this one. "printenv" below covers the legitimate env-var-inspection
+#     use case without the exec surface.
+#   - "sort": `-o FILE` overwrites FILE and `--compress-program=PROG`
+#     executes PROG — both verified. Same file-write/exec bar as find.
+#   - "uniq": the optional second positional operand is an output file
+#     that gets overwritten (`uniq input output`) — verified, no flag
+#     needed, so head-matching can't gate it out.
+#   - "tree": GNU tree's `-o FILE` writes output to FILE instead of
+#     stdout — not verified on this machine (tree is aliased to
+#     `eza --tree` here, which has no -o), but real GNU tree ships it and
+#     this catalog is meant to hold across machines.
+[ai.command_policy.commands]
+"cat" = "allow"
+"date" = "allow"
+"df" = "allow"
+"diff" = "allow"
+"du" = "allow"
+"file" = "allow"
+"head" = "allow"
+"hostname" = "allow"
+"ls" = "allow"
+"printenv" = "allow"
+"pwd" = "allow"
+"stat" = "allow"
+"tail" = "allow"
+"uname" = "allow"
+"wc" = "allow"
+"which" = "allow"
