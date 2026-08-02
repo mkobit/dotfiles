@@ -100,6 +100,7 @@
 "bd show" = "allow"
 "bd stale" = "allow"
 "bd state" = "allow"
+"bd stats" = "allow"
 "bd status" = "allow"
 "bd statuses" = "allow"
 "bd supersede" = "allow"
