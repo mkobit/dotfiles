@@ -2,11 +2,17 @@
 # including destructive ops (delete/purge/prune/gc/compact/flatten/
 # rename-prefix/forget) — beads keeps its own recovery path (backup, vc,
 # dolt history), so these are treated like git.toml's local/reversible
-# git subcommands, not excluded on "destructive" grounds alone.
+# git subcommands, not excluded on "destructive" grounds alone. bd is
+# meant to be nearly always agent-driven — unlike git, where a push is
+# visible to other people/CI on a shared remote, bd's dolt remote isn't
+# — so "bd dolt push" is allowed despite carrying the same remote-write
+# shape as "git push". Deliberate divergence from git.toml's bar, not
+# an oversight.
 #
 # Deliberately excluded — do not add:
-#   - "bd dolt push", "bd dolt pull", "bd dolt remote": the actual
-#     remote-write risk in bd, exactly like "git push" — always prompt.
+#   - "bd dolt pull", "bd dolt remote": still prompt-gated — pulling in
+#     changes from elsewhere or reconfiguring the remote aren't the
+#     agent's own local work the way push is.
 #   - "bd federation": peer-to-peer sync with other workspaces, not in
 #     use anywhere yet — always prompt if that changes.
 #   - "bd sql": raw SQL escape hatch that bypasses bd's storage layer
@@ -36,6 +42,7 @@
 "bd dep" = "allow"
 "bd diff" = "allow"
 "bd dolt commit" = "allow"
+"bd dolt push" = "allow"
 "bd dolt set" = "allow"
 "bd dolt show" = "allow"
 "bd dolt start" = "allow"
@@ -79,6 +86,7 @@
 "bd q" = "allow"
 "bd query" = "allow"
 "bd quickstart" = "allow"
+"bd ready" = "allow"
 "bd recall" = "allow"
 "bd recompute-blocked" = "allow"
 "bd remember" = "allow"
