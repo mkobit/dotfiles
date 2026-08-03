@@ -58,6 +58,7 @@
 "bd find-duplicates" = "allow"
 "bd flatten" = "allow"
 "bd forget" = "allow"
+"bd formula" = "allow"
 "bd gate" = "allow"
 "bd gc" = "allow"
 "bd graph" = "allow"
