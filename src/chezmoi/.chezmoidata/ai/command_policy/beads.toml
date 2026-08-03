@@ -22,10 +22,26 @@
 #   - "bd upgrade": denied outright (not just ask) — bd is installed
 #     and version-pinned via mise; its own upgrade-tracking should
 #     never run under agent control.
+#   - "bd github"/"bd gitlab"/"bd notion"/"bd ado"/"bd jira"/"bd linear":
+#     push/pull/sync against third-party services using their own
+#     credentials — same remote-write shape as "git push", but unlike
+#     "bd dolt push" it's not bd's own storage, so it keeps git.toml's
+#     bar rather than the divergence above.
+#   - "bd mail": delegates to an external mail provider — sends outbound
+#     communication, always prompt.
+#   - "bd admin reset": wipes all local data *and* configuration, not
+#     just issues — more severe than any allowed destructive op, same
+#     rare/high-blast-radius bar as "bd migrate".
+#   - "bd repo sync": hydrates issues in from other local repos — not
+#     the agent's own local work, same reasoning as "bd dolt pull".
 [ai.command_policy.commands]
+"bd admin cleanup" = "allow"
+"bd admin compact" = "allow"
 "bd assign" = "allow"
+"bd audit" = "allow"
 "bd backup" = "allow"
 "bd batch" = "allow"
+"bd blocked" = "allow"
 "bd bootstrap" = "allow"
 "bd branch" = "allow"
 "bd children" = "allow"
@@ -35,13 +51,17 @@
 "bd compact" = "allow"
 "bd config" = "allow"
 "bd context" = "allow"
+"bd cook" = "allow"
 "bd count" = "allow"
 "bd create" = "allow"
 "bd create-form" = "allow"
+"bd defer" = "allow"
 "bd delete" = "allow"
 "bd dep" = "allow"
 "bd diff" = "allow"
+"bd dolt clean-databases" = "allow"
 "bd dolt commit" = "allow"
+"bd dolt killall" = "allow"
 "bd dolt push" = "allow"
 "bd dolt set" = "allow"
 "bd dolt show" = "allow"
@@ -58,6 +78,7 @@
 "bd find-duplicates" = "allow"
 "bd flatten" = "allow"
 "bd forget" = "allow"
+"bd formula" = "allow"
 "bd gate" = "allow"
 "bd gc" = "allow"
 "bd graph" = "allow"
@@ -74,8 +95,11 @@
 "bd list" = "allow"
 "bd memories" = "allow"
 "bd merge-slot" = "allow"
+"bd metrics" = "allow"
+"bd mol" = "allow"
 "bd note" = "allow"
 "bd onboard" = "allow"
+"bd orphans" = "allow"
 "bd ping" = "allow"
 "bd preflight" = "allow"
 "bd prime" = "allow"
@@ -90,13 +114,18 @@
 "bd recall" = "allow"
 "bd recompute-blocked" = "allow"
 "bd remember" = "allow"
+"bd rename" = "allow"
 "bd rename-prefix" = "allow"
 "bd reopen" = "allow"
+"bd repo add" = "allow"
+"bd repo list" = "allow"
+"bd repo remove" = "allow"
 "bd restore" = "allow"
 "bd rules" = "allow"
 "bd search" = "allow"
 "bd set-state" = "allow"
 "bd setup" = "allow"
+"bd ship" = "allow"
 "bd show" = "allow"
 "bd stale" = "allow"
 "bd state" = "allow"
@@ -108,7 +137,10 @@
 "bd tag" = "allow"
 "bd todo" = "allow"
 "bd types" = "allow"
+"bd undefer" = "allow"
 "bd update" = "allow"
 "bd upgrade" = "deny"
 "bd vc" = "allow"
+"bd version" = "allow"
 "bd where" = "allow"
+"bd worktree" = "allow"
