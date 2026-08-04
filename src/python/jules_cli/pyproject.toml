@@ -6,7 +6,7 @@ dependencies = [
     "aiohttp>=3",
     "pydantic>=2",
     "typer>=0.24.1",
-    "whenever>=0.6",
+    "whenever>=0.10.3",
 ]
 
 [project.scripts]
