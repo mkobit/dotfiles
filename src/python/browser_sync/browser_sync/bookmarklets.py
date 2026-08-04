@@ -139,6 +139,14 @@ def _build_sync_script(desired: Mapping[str, str]) -> str:
   }};
 
   const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  const urlsEqual = (actual, desired) => {{
+    if (actual === desired) return true;
+    try {{
+      return decodeURIComponent(actual) === desired;
+    }} catch {{
+      return false;
+    }}
+  }};
 
   const folders = await chrome.bookmarks.search({{ title: FOLDER_TITLE }});
   const folder = folders.find(f => !f.url);
@@ -164,7 +172,7 @@ def _build_sync_script(desired: Mapping[str, str]) -> str:
     if (match) {{
       const changes = {{}};
       if (match.title !== d.title) changes.title = d.title;
-      if (decodeURIComponent(match.url) !== d.url) changes.url = d.url;
+      if (!urlsEqual(match.url, d.url)) changes.url = d.url;
       if (Object.keys(changes).length > 0) {{
         await chrome.bookmarks.update(match.id, changes);
         console.log(`%c  ↻ ${{d.title}}`, style.update);
