@@ -4,7 +4,7 @@ version = "0.0.0"
 description = "Sync browser site search shortcuts, Vimium config, and bookmarklets via DevTools console paste"
 requires-python = ">=3.14"
 dependencies = [
-    "pydantic>=2",
+    "pydantic>=2.13.4",
 ]
 
 [project.scripts]
