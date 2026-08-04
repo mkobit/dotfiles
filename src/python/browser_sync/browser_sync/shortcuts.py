@@ -48,17 +48,21 @@ def _parse_toml(path: Path) -> Sequence[_Shortcut]:
     )
 
 
-def _build_sync_script(shortcuts: Sequence[_Shortcut], *, prune: bool = False, confirm: bool = False) -> str:
+def _build_sync_script(
+    shortcuts: Sequence[_Shortcut], *, prune: bool = False, apply_additions: bool = True, confirm_removal: bool = False
+) -> str:
     """Generate JS console script for Chrome search engine sync.
 
     Args:
         shortcuts: Desired shortcuts to sync.
         prune: If True, identify entries to remove.
-        confirm: If True (with prune), actually execute removals.
+        apply_additions: If False, only report planned additions.
+        confirm_removal: If True (with prune), actually execute removals.
     """
     desired_json = json.dumps([s.model_dump() for s in shortcuts], indent=2)
     prune_js = "true" if prune else "false"
-    confirm_js = "true" if confirm else "false"
+    apply_additions_js = "true" if apply_additions else "false"
+    confirm_removal_js = "true" if confirm_removal else "false"
     return f"""\
 (async () => {{
   const m = await import('chrome://settings/settings.js');
@@ -76,7 +80,8 @@ def _build_sync_script(shortcuts: Sequence[_Shortcut], *, prune: bool = False, c
   const toChrome = url => url.replace(/%s/g, '{{searchTerms}}');
   const toAdd = desired.filter(d => !currentByKeyword.has(d.keyword));
   const prune = {prune_js};
-  const confirmRemoval = {confirm_js};
+  const applyAdditions = {apply_additions_js};
+  const confirmRemoval = {confirm_removal_js};
   // Only prune @-prefixed keywords (managed by us), leave others alone
   const toRemove = prune ? active.filter(e => e.keyword.startsWith('@') && !desiredKeywords.has(e.keyword)) : [];
 
@@ -85,9 +90,14 @@ def _build_sync_script(shortcuts: Sequence[_Shortcut], *, prune: bool = False, c
     return;
   }}
 
-  let added = 0, removed = 0, errors = [];
+  let added = 0, removed = 0, plannedAdds = 0, plannedRemovals = 0, errors = [];
 
   for (const d of toAdd) {{
+    if (!applyAdditions) {{
+      plannedAdds++;
+      tag('#f59e0b', 'WOULD-ADD', d.keyword + ' \\u2192 ' + d.name);
+      continue;
+    }}
     try {{
       proxy.searchEngineEditStarted(0);
       proxy.searchEngineEditCompleted(d.name, d.keyword, toChrome(d.url));
@@ -102,7 +112,7 @@ def _build_sync_script(shortcuts: Sequence[_Shortcut], *, prune: bool = False, c
   for (const e of toRemove) {{
     if (!confirmRemoval) {{
       tag('#f59e0b', 'WOULD-DEL', e.keyword + ' \\u2192 ' + e.name + ' (id=' + e.id + ')');
-      removed++;
+      plannedRemovals++;
       continue;
     }}
     try {{
@@ -117,8 +127,9 @@ def _build_sync_script(shortcuts: Sequence[_Shortcut], *, prune: bool = False, c
 
   const parts = [];
   if (added) parts.push(`+${{added}} added`);
-  if (removed && confirmRemoval) parts.push(`-${{removed}} removed`);
-  if (removed && !confirmRemoval) parts.push(`${{removed}} would be removed (run with --prune --confirm to apply)`);
+  if (removed) parts.push(`-${{removed}} removed`);
+  if (plannedAdds) parts.push(`${{plannedAdds}} would be added`);
+  if (plannedRemovals) parts.push(`${{plannedRemovals}} would be removed`);
   parts.push(`${{currentByKeyword.size - (confirmRemoval ? removed : 0) + added}} total`);
 
   if (errors.length) {{
@@ -139,40 +150,33 @@ def run(toml_path: Path, *, prune: bool, confirm: bool, dry_run: bool, no_open: 
     _log.info("%d shortcuts from %s", len(shortcuts), toml_path.name)
 
     if dry_run:
-        print(_build_sync_script(shortcuts, prune=prune, confirm=confirm))
+        print(_build_sync_script(shortcuts, prune=prune, confirm_removal=confirm))
         return
 
     if prune and confirm:
-        add_script = _build_sync_script(shortcuts, prune=True, confirm=False)
-        prune_script = _build_sync_script(shortcuts, prune=True, confirm=True)
-
-        _terminal.prompt_enter("Press Enter to copy ADD + PREVIEW script (Ctrl+C to skip)...")
-        _clipboard.copy_to_clipboard(add_script)
-        _log.log(_terminal.OK, "copied — adds new entries, previews removals (WOULD-DEL)")
-
-        if not no_open:
-            _log.info("opening chrome://settings/searchEngines — paste into console (Cmd+Option+J)")
-            _browser.open_in_chrome(_CHROME_SETTINGS_URL)
-        else:
-            _log.info("paste clipboard into DevTools console on:\n  %s", _CHROME_SETTINGS_URL)
-
-        _terminal.prompt_done_or_recopy(lambda: _clipboard.copy_to_clipboard(add_script))
-        _log.log(_terminal.OK, "adds applied — check WOULD-DEL entries in console")
-        _log.warning("next step removes entries not in TOML")
-        _terminal.prompt_prune_or_skip(lambda: _clipboard.copy_to_clipboard(prune_script))
+        scripts = {
+            "prune": _build_sync_script(shortcuts, prune=True, confirm_removal=True),
+            "exclude_removals": _build_sync_script(shortcuts),
+            "dry_run": _build_sync_script(shortcuts, prune=True, apply_additions=False),
+        }
+        _log.warning("prune removes every removable @-prefixed shortcut absent from the TOML file")
+        mode = _terminal.prompt_shortcut_sync_mode()
+        script = scripts[mode]
+        _clipboard.copy_to_clipboard(script)
+        _log.log(_terminal.OK, "copied %s payload", mode.replace("_", " "))
     else:
-        script = _build_sync_script(shortcuts, prune=prune, confirm=confirm)
+        script = _build_sync_script(shortcuts, prune=prune, confirm_removal=confirm)
 
         _terminal.prompt_enter("Press Enter to copy sync script to clipboard (Ctrl+C to skip)...")
         _clipboard.copy_to_clipboard(script)
         _log.log(_terminal.OK, "sync script copied to clipboard")
 
-        if not no_open:
-            _log.info("opening chrome://settings/searchEngines — paste into console (Cmd+Option+J)")
-            _browser.open_in_chrome(_CHROME_SETTINGS_URL)
-        else:
-            _log.info("paste clipboard into DevTools console on:\n  %s", _CHROME_SETTINGS_URL)
+    if not no_open:
+        _log.info("opening chrome://settings/searchEngines — paste into console (Cmd+Option+J)")
+        _browser.open_in_chrome(_CHROME_SETTINGS_URL)
+    else:
+        _log.info("paste clipboard into DevTools console on:\n  %s", _CHROME_SETTINGS_URL)
 
-        _terminal.prompt_done_or_recopy(lambda: _clipboard.copy_to_clipboard(script))
+    _terminal.prompt_done_or_recopy(lambda: _clipboard.copy_to_clipboard(script))
 
     _log.log(_terminal.OK, "done")
