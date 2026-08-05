@@ -89,21 +89,29 @@ def prompt_done_or_recopy(copy_fn: Callable[[], None]) -> None:
             sys.exit(0)
 
 
-def prompt_prune_or_skip(copy_fn: Callable[[], None]) -> None:
-    """Wait for 'p' (copy prune script then confirm) or Enter (skip removals)."""
-    print("\033[0;33m[!]\033[0m    Press 'p' to copy PRUNE script, or Enter to skip removals ", end="", flush=True)
+def _shortcut_sync_mode_for_key(key: str) -> str | None:
+    """Return the payload mode selected by a shortcut-sync keypress."""
+    if key in ("\r", "\n"):
+        return "prune"
+    if key.lower() == "x":
+        return "exclude_removals"
+    if key.lower() == "d":
+        return "dry_run"
+    return None
+
+
+def prompt_shortcut_sync_mode() -> str:
+    """Choose the Chrome shortcuts sync payload to copy."""
+    print(
+        "\033[0;33m[!]\033[0m    Enter: sync + prune, 'x': sync without removals, 'd': dry run ",
+        end="",
+        flush=True,
+    )
     while True:
         ch = getkey()
-        if ch in ("\r", "\n"):
+        if mode := _shortcut_sync_mode_for_key(ch):
             print()
-            _log.info("skipped removals")
-            return
-        if ch.lower() == "p":
-            copy_fn()
-            print()
-            _log.log(OK, "prune script copied — paste into console to remove extras")
-            prompt_done_or_recopy(copy_fn)
-            return
+            return mode
         if ch == "\x03":
             print()
             _log.info("skipped")
