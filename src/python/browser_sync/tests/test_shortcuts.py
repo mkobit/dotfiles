@@ -1,8 +1,6 @@
 """Tests for generated Chrome site-search shortcut sync payloads."""
 
-import pytest
-
-from browser_sync import _terminal
+from browser_sync._terminal import _shortcut_sync_mode_for_key
 from browser_sync.shortcuts import _build_sync_script, _Shortcut
 
 _SHORTCUTS = (_Shortcut(keyword="@stripe", name="Stripe", url="https://go/search/%s"),)
@@ -34,8 +32,8 @@ def test_dry_run_payload_gates_all_mutations() -> None:
     assert "WOULD-DEL" in script
 
 
-@pytest.mark.parametrize(("key", "expected"), [("\r", "prune"), ("x", "exclude_removals"), ("d", "dry_run")])
-def test_shortcut_sync_mode_selects_payload(monkeypatch: pytest.MonkeyPatch, key: str, expected: str) -> None:
-    monkeypatch.setattr(_terminal, "getkey", lambda: key)
-
-    assert _terminal.prompt_shortcut_sync_mode() == expected
+def test_shortcut_sync_mode_selects_payload() -> None:
+    assert _shortcut_sync_mode_for_key("\r") == "prune"
+    assert _shortcut_sync_mode_for_key("x") == "exclude_removals"
+    assert _shortcut_sync_mode_for_key("d") == "dry_run"
+    assert _shortcut_sync_mode_for_key("q") is None

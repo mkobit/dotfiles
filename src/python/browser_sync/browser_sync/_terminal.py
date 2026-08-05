@@ -89,6 +89,17 @@ def prompt_done_or_recopy(copy_fn: Callable[[], None]) -> None:
             sys.exit(0)
 
 
+def _shortcut_sync_mode_for_key(key: str) -> str | None:
+    """Return the payload mode selected by a shortcut-sync keypress."""
+    if key in ("\r", "\n"):
+        return "prune"
+    if key.lower() == "x":
+        return "exclude_removals"
+    if key.lower() == "d":
+        return "dry_run"
+    return None
+
+
 def prompt_shortcut_sync_mode() -> str:
     """Choose the Chrome shortcuts sync payload to copy."""
     print(
@@ -98,15 +109,9 @@ def prompt_shortcut_sync_mode() -> str:
     )
     while True:
         ch = getkey()
-        if ch in ("\r", "\n"):
+        if mode := _shortcut_sync_mode_for_key(ch):
             print()
-            return "prune"
-        if ch.lower() == "x":
-            print()
-            return "exclude_removals"
-        if ch.lower() == "d":
-            print()
-            return "dry_run"
+            return mode
         if ch == "\x03":
             print()
             _log.info("skipped")
