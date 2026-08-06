@@ -17,7 +17,8 @@ content = """
 ## Approach
 - State assumptions before implementing; if multiple interpretations exist, surface them rather than picking silently.
 - Ask rather than guess.
-- Minimum code for the task; no speculative features or abstractions."""
+- Minimum code for the task; no speculative features or abstractions.
+- Minimal prose for the task; don't inflate with session length — no recapping known context, no narrating steps before doing them, no praise or hedge filler."""
 
 [[ai.guidelines.sections]]
 content = """
