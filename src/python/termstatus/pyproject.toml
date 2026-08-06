@@ -6,7 +6,7 @@ dependencies = [
     "pydantic>=2.12.5",
     "rich>=14",
     "typer>=0.15.1",
-    "whenever>=0.9.5",
+    "whenever>=0.10.3",
 ]
 
 [project.scripts]
