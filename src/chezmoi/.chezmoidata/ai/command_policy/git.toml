@@ -18,6 +18,7 @@
 "git diff" = "allow"
 "git fetch" = "allow"
 "git log" = "allow"
+"git ls-files" = "allow"
 "git merge" = "allow"
 "git mv" = "allow"
 "git pull" = "allow"
