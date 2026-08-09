@@ -24,7 +24,7 @@ env:
   CHEZMOI_CACHE_DIR: /tmp/.chezmoi-cache
   CHEZMOI_CONFIG: /tmp/.chezmoi-config.toml
   CHEZMOI_DEST: /tmp/chezmoi-test
-  CHEZMOI_VERSION: v2.71.1
+  CHEZMOI_VERSION: v2.72.0
 
 defaults:
   run:
