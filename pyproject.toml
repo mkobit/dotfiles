@@ -87,6 +87,7 @@ ignore = [
     "PLR0912", # Too many branches
     "PLR0913", # Too many arguments
     "PLR0915", # Too many statements
+    "PLR0917", # Too many positional arguments
     "D100",  # Missing docstring in public module
     "D104",  # Missing docstring in public package
     "D105",  # Missing docstring in magic method
