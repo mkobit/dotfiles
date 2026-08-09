@@ -1,5 +1,5 @@
 [bin.gh]
-version = "2.93.0"
+version = "2.97.0"
 
 # gh uses OS-capitalized platform strings (macOS vs linux) and zip on darwin
 [bin.gh.github_releases]
@@ -25,10 +25,10 @@ linux_amd64  = "tar.gz"
 linux_arm64  = "tar.gz"
 
 [bin.gh.github_releases.checksums]
-darwin_arm64 = "a86be4e0a86c26456cf71177d6572d6f1165cf1679e532b72f7f15918ee51fd2"
-darwin_amd64 = "009425b9d175c482037fe25181817fd6b1ea3ae1f51cfae0e18f29f33d3152ac"
-linux_amd64  = "02d1290eba130e0b896f3709ffff22e1c75a51475ddb70476a85abc6b5807af0"
-linux_arm64  = "c55feb33684abba57e9909737340d5b39282257c0363e1edde6785ac4a413be7"
+darwin_arm64 = "a58b8fd77b417a38f47a0b54d1370c59b0fcdb324ccc9ca002b0998f7c4c999e"
+darwin_amd64 = "63298c998cc2a924c9e254c6af6a1caad6ece281122687a91f079bc0a462700e"
+linux_amd64  = "a2c9b8497e1f85b1ad0dfcb78b5a622e098801b8e461e459e88e1ee12f018112"
+linux_arm64  = "73ea440ecad9c9e284429997ee6f93577bc6f7bc6fba357ef62c53ad8fb641a5"
 
 [bin.gh.homebrew]
 name = "gh"

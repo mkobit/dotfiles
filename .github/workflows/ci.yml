@@ -40,7 +40,7 @@ jobs:
         with:
           # Pin to match .chezmoidata/bin/mise.toml. Without this, the
           # action falls back to a default that may be yanked from upstream.
-          version: 2026.7.13
+          version: 2026.7.18
       - name: Restore uv cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
@@ -68,7 +68,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
       - uses: jdx/mise-action@v4.2.1
         with:
-          version: 2026.7.13
+          version: 2026.7.18
       - name: Restore uv Python cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
@@ -96,7 +96,7 @@ jobs:
         with:
           # Pin to match .chezmoidata/bin/mise.toml. Without this, the
           # action falls back to a default that may be yanked from upstream.
-          version: 2026.7.13
+          version: 2026.7.18
       - name: Restore uv cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:

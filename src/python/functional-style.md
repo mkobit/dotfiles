@@ -21,6 +21,7 @@ Better:
 items = ["a" if condition_a else None, "b" if condition_b else None]
 results = [item for item in items if item is not None]
 
+
 def get_results() -> Iterator[str]:
     if condition_a:
         yield "a"
@@ -37,6 +38,7 @@ It documents that the callee won't mutate the argument.
 
 ```python
 from collections.abc import Sequence
+
 
 def process_data(items: Sequence[str]) -> Sequence[str]: ...
 ```

@@ -280,7 +280,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
                     while sys.stdin.buffer.read(1024 * 1024):
                         pass
                     return 0
-                except Exception as e:
+                except Exception as e:  # noqa: BLE001  # cache read is best-effort; any failure falls back to a full rebuild
                     print(f"skill-filter cache read error: {e}", file=sys.stderr)
 
         if cache_file:
@@ -295,10 +295,10 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             output_data = output_buffer.getvalue()
             sys.stdout.buffer.write(output_data)
             try:
-                os.makedirs(os.path.dirname(cache_file), exist_ok=True)  # noqa: PTH103, PTH120
+                os.makedirs(os.path.dirname(cache_file), exist_ok=True)
                 with open(cache_file, "wb") as f:
                     f.write(output_data)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001  # cache write is best-effort; any failure just skips caching
                 print(f"skill-filter cache write error: {e}", file=sys.stderr)
         else:
             filter_archive(
