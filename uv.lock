@@ -997,7 +997,6 @@ name = "termstatus"
 version = "0.0.0"
 source = { editable = "src/python/termstatus" }
 dependencies = [
-    { name = "pydantic" },
     { name = "rich" },
     { name = "typer" },
     { name = "whenever" },
@@ -1012,7 +1011,6 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "pydantic", specifier = ">=2.13.4" },
     { name = "rich", specifier = ">=14" },
     { name = "typer", specifier = ">=0.15.1" },
     { name = "whenever", specifier = ">=0.10.3" },

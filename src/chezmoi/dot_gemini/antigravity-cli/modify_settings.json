@@ -57,17 +57,8 @@
         "experimental" (dict
           "worktrees" .gemini.experimental.worktrees
         )
-        "statusLine" (dict
-          "type" "command"
-          "command" (printf "%s/.local/bin/dotfiles/statusline antigravity render" .chezmoi.destDir)
-          "enabled" true
-        )
-        "title" (dict
-          "type" "command"
-          "command" (printf "%s/.local/bin/dotfiles/statusline antigravity title" .chezmoi.destDir)
-          "enabled" true
-        )
   -}}
 {{-   $config = mergeOverwrite $config $settings -}}
+{{-   $config = omit $config "statusLine" "title" -}}
 {{- end -}}
 {{- $config | toPrettyJson | trimSuffix "\n" -}}
