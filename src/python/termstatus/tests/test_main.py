@@ -1,6 +1,9 @@
+import asyncio
+import contextlib
 import io
 import json
 import os
+import time
 import unittest
 from pathlib import Path
 from typing import override
@@ -200,8 +203,6 @@ def test_main_with_invalid_stdin():
 
 def test_antigravity_fast_path_timing():
     """Goals: Verify that antigravity render fast path completes in under 100ms."""
-    import time
-
     t0 = time.perf_counter()
     result = runner.invoke(
         cli,
@@ -218,8 +219,6 @@ def test_antigravity_fast_path_timing():
 
 def test_antigravity_fast_path_multi_run_benchmark():
     """Goals: Assert that repeated statusline render calls average under 5ms per invocation."""
-    import time
-
     payload = '{"agent_state": "working", "model": {"display_name": "Test"}, "vcs": {"branch": "main"}}'
     iterations = 50
 
@@ -235,17 +234,12 @@ def test_antigravity_fast_path_multi_run_benchmark():
 
 def test_git_cancellation_and_p99_latency_under_slow_git():
     """Goals: Verify P99 latency stays under 200ms even when git subprocess calls hang/timeout."""
-    import asyncio
-    import time
-
     durations = []
     iterations = 20
 
     async def slow_communicate(*args, **kwargs):
-        try:
+        with contextlib.suppress(asyncio.CancelledError):
             await asyncio.sleep(5.0)
-        except asyncio.CancelledError:
-            pass
         return b"", b""
 
     with patch("asyncio.create_subprocess_exec") as mock_exec:

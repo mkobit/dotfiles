@@ -14,8 +14,10 @@ FZF_TAB_COMPLETION_DIR="{{ .chezmoi.destDir }}/.dotfiles/external/fzf-tab-comple
 if [[ -f "$FZF_TAB_COMPLETION_DIR/bash/fzf-bash-completion.sh" ]] && bash -n "$FZF_TAB_COMPLETION_DIR/bash/fzf-bash-completion.sh" 2>/dev/null; then
     source "$FZF_TAB_COMPLETION_DIR/bash/fzf-bash-completion.sh"
 
-    # Bind Tab to fzf completion
-    bind -x '"\t": fzf_bash_completion'
+    # Bind Tab to fzf completion (only when interactive; `bind` warns otherwise)
+    if [[ $- == *i* ]]; then
+        bind -x '"\t": fzf_bash_completion'
+    fi
 
     # Ensure cycling is enabled in FZF default options if not already present
     if [[ "$FZF_DEFAULT_OPTS" != *"--cycle"* ]]; then
