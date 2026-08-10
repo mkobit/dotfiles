@@ -1,12 +1,14 @@
-from pydantic import BaseModel
+from dataclasses import dataclass, field
 from whenever import TimeDelta
 
 
-class Segment(BaseModel):
+@dataclass
+class Segment:
     text: str
 
 
-class SegmentGenerationResult(BaseModel):
+@dataclass
+class SegmentGenerationResult:
     segment: Segment
     line: int = 0
     index: int = 0

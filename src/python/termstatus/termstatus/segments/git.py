@@ -2,9 +2,8 @@ import asyncio
 import logging
 from collections.abc import Sequence
 from pathlib import Path
+from dataclasses import dataclass
 from typing import NamedTuple
-
-from pydantic import BaseModel
 from whenever import TimeDelta
 
 from termstatus.layout import Segment, SegmentGenerationResult
@@ -19,15 +18,16 @@ from termstatus.segments.constants import (
 )
 
 
-class GitInfo(BaseModel):
+@dataclass
+class GitInfo:
     branch: str
-    remote: str | None
-    dirty: bool
-    staged: bool
-    untracked: bool
-    ahead: int
-    behind: int
-    is_repo: bool
+    remote: str | None = None
+    dirty: bool = False
+    staged: bool = False
+    untracked: bool = False
+    ahead: int = 0
+    behind: int = 0
+    is_repo: bool = True
     is_worktree: bool = False
     stash_count: int = 0
 
@@ -57,7 +57,7 @@ class AheadBehindInfo(NamedTuple):
     behind: int
 
 
-async def _run_git_cmd(cmd: list[str], cwd: Path) -> str | None:
+async def _run_git_cmd(cmd: list[str], cwd: Path, *, timeout: float = 0.1) -> str | None:
     try:
         proc = await asyncio.create_subprocess_exec(
             *cmd,
@@ -65,10 +65,14 @@ async def _run_git_cmd(cmd: list[str], cwd: Path) -> str | None:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
-        stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=2.0)
-        if proc.returncode == 0:
-            return stdout.decode().strip()
-    except (TimeoutError, OSError) as e:
+        try:
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
+            if proc.returncode == 0:
+                return stdout.decode().strip()
+        except TimeoutError:
+            proc.kill()
+            await proc.communicate()
+    except OSError as e:
         logger.debug(f"Git command failed: {e}")
     return None
 

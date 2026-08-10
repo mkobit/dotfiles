@@ -1,15 +1,17 @@
 import asyncio
+import json
 import logging
 from collections.abc import Sequence
+from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from pydantic import BaseModel, TypeAdapter, ValidationError
 from whenever import Instant
 
-from termstatus.layout import SegmentGenerationResult
+from termstatus.layout import Segment, SegmentGenerationResult
 
 
-class CachedSegment(BaseModel):
+@dataclass
+class CachedSegment:
     results: list[SegmentGenerationResult]
     expires_at: Instant
 
@@ -17,12 +19,13 @@ class CachedSegment(BaseModel):
 logger = logging.getLogger(__name__)
 
 
-CACHE_ADAPTER = TypeAdapter(dict[str, CachedSegment])
-
-
 class SegmentCache:
     def __init__(self, cache_file: Path) -> None:
         self.cache_file = cache_file
+        try:
+            self.cache_file.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as e:
+            logger.debug(f"Failed to create cache dir {self.cache_file.parent}: {e}")
         self._cache: dict[str, CachedSegment] = {}
 
     def load(self) -> None:
@@ -34,8 +37,24 @@ class SegmentCache:
             if not content.strip():
                 return
 
-            self._cache = CACHE_ADAPTER.validate_json(content)
-        except (OSError, ValidationError) as e:
+            raw_dict = json.loads(content)
+            parsed: dict[str, CachedSegment] = {}
+            for key, val in raw_dict.items():
+                results = [
+                    SegmentGenerationResult(
+                        segment=Segment(text=item["segment"]["text"]),
+                        line=item.get("line", 0),
+                        index=item.get("index", 0),
+                        column=item.get("column"),
+                        generator=item.get("generator", "internal"),
+                    )
+                    for item in val.get("results", [])
+                ]
+                exp_str = val.get("expires_at")
+                exp_instant = Instant.parse_iso(exp_str) if exp_str else Instant.now()
+                parsed[key] = CachedSegment(results=results, expires_at=exp_instant)
+            self._cache = parsed
+        except (OSError, Exception) as e:
             logger.warning(f"Failed to load cache from {self.cache_file}: {e}")
             self._cache = {}
 
@@ -43,8 +62,15 @@ class SegmentCache:
         def do_save(cache_data: dict[str, CachedSegment]) -> None:
             try:
                 self.cache_file.parent.mkdir(parents=True, exist_ok=True)
-                self.cache_file.write_text(CACHE_ADAPTER.dump_json(cache_data).decode("utf-8"))
-            except (OSError, ValidationError) as e:
+                serialized = {
+                    key: {
+                        "results": [asdict(r) for r in cs.results],
+                        "expires_at": str(cs.expires_at),
+                    }
+                    for key, cs in cache_data.items()
+                }
+                self.cache_file.write_text(json.dumps(serialized))
+            except (OSError, Exception) as e:
                 logger.warning(f"Failed to save cache to {self.cache_file}: {e}")
 
         await asyncio.to_thread(do_save, dict(self._cache))

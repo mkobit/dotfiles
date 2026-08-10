@@ -198,5 +198,75 @@ def test_main_with_invalid_stdin():
     assert result.exit_code == 0
 
 
+def test_antigravity_fast_path_timing():
+    """Goals: Verify that antigravity render fast path completes in under 100ms."""
+    import time
+
+    t0 = time.perf_counter()
+    result = runner.invoke(
+        cli,
+        ["antigravity", "render"],
+        input='{"agent_state": "working", "model": {"display_name": "Test"}}',
+    )
+    t1 = time.perf_counter()
+    elapsed = t1 - t0
+
+    assert result.exit_code == 0
+    assert "Test" in result.stdout
+    assert elapsed < 0.100, f"Fast path took {elapsed:.4f}s (> 0.100s)"
+
+
+def test_antigravity_fast_path_multi_run_benchmark():
+    """Goals: Assert that repeated statusline render calls average under 5ms per invocation."""
+    import time
+
+    payload = '{"agent_state": "working", "model": {"display_name": "Test"}, "vcs": {"branch": "main"}}'
+    iterations = 50
+
+    t0 = time.perf_counter()
+    for _ in range(iterations):
+        res = runner.invoke(cli, ["antigravity", "render"], input=payload)
+        assert res.exit_code == 0
+    t1 = time.perf_counter()
+
+    avg_ms = ((t1 - t0) / iterations) * 1000
+    assert avg_ms < 5.0, f"Average per-call time was {avg_ms:.3f}ms (> 5.0ms)"
+
+
+def test_git_cancellation_and_p99_latency_under_slow_git():
+    """Goals: Verify P99 latency stays under 200ms even when git subprocess calls hang/timeout."""
+    import asyncio
+    import time
+
+    durations = []
+    iterations = 20
+
+    async def slow_communicate(*args, **kwargs):
+        try:
+            await asyncio.sleep(5.0)
+        except asyncio.CancelledError:
+            pass
+        return b"", b""
+
+    with patch("asyncio.create_subprocess_exec") as mock_exec:
+        mock_proc = AsyncMock()
+        mock_proc.kill = Mock()
+        mock_proc.communicate.side_effect = slow_communicate
+        mock_exec.return_value = mock_proc
+
+        for _ in range(iterations):
+            t0 = time.perf_counter()
+            res = runner.invoke(cli, ["claude", "render"], input='{"cwd": "/tmp"}')
+            t1 = time.perf_counter()
+            assert res.exit_code == 0
+            durations.append((t1 - t0) * 1000)
+
+    durations.sort()
+    p99_idx = int(len(durations) * 0.99)
+    p99_ms = durations[min(p99_idx, len(durations) - 1)]
+
+    assert p99_ms < 200.0, f"P99 latency under slow git was {p99_ms:.2f}ms (> 200.0ms)"
+
+
 if __name__ == "__main__":
     unittest.main()

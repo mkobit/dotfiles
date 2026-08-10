@@ -3,7 +3,6 @@ name = "termstatus"
 version = "0.0.0"
 requires-python = ">=3.14"
 dependencies = [
-    "pydantic>=2.13.4",
     "rich>=14",
     "typer>=0.15.1",
     "whenever>=0.10.3",

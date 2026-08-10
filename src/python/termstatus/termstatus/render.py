@@ -46,36 +46,6 @@ async def _run_shell_cmd(cmd: str, *, timeout: float = 2.0) -> str | None:
     return None
 
 
-async def _get_parent_pid(pid: int) -> int | None:
-    output = await _run_cmd(["ps", "-o", "ppid=", "-p", str(pid)])
-    return _parse_positive_int(output) if output else None
-
-
-async def _get_tty_for_pid(pid: int) -> str | None:
-    output = await _run_cmd(["ps", "-o", "tty=", "-p", str(pid)])
-    if output and output not in ("??", "?"):
-        return output
-    return None
-
-
-async def _get_width_for_tty(tty: str) -> int | None:
-    quoted_path = shlex.quote(f"/dev/{tty}")
-    commands = [
-        f"stty -f {quoted_path} size",
-        f"stty -F {quoted_path} size",
-        f"stty size < {quoted_path}",
-    ]
-    for cmd in commands:
-        output = await _run_shell_cmd(cmd)
-        if output:
-            parts = output.split()
-            if len(parts) >= 2:
-                width = _parse_positive_int(parts[1])
-                if width is not None:
-                    return width
-    return None
-
-
 def _parse_positive_int(value: str) -> int | None:
     try:
         parsed = int(value)
@@ -84,36 +54,33 @@ def _parse_positive_int(value: str) -> int | None:
         return None
 
 
-async def probe_terminal_width() -> int | None:
+async def probe_terminal_width(payload_width: int | None = None) -> int | None:
+    if payload_width is not None and payload_width > 0:
+        return payload_width
+
     override = os.environ.get("TERMSTATUS_WIDTH")
     if override:
         parsed = _parse_positive_int(override)
         if parsed is not None:
             return parsed
 
-    size = shutil.get_terminal_size(fallback=(0, 0))
-    if size.columns > 0:
-        return size.columns
+    env_columns = os.environ.get("COLUMNS")
+    if env_columns:
+        parsed = _parse_positive_int(env_columns)
+        if parsed is not None:
+            return parsed
 
-    if sys.platform == "win32":
-        return None
+    for stream in (sys.stdout, sys.stderr, sys.stdin):
+        if stream and hasattr(stream, "isatty") and stream.isatty():
+            try:
+                size = os.get_terminal_size(stream.fileno())
+                if size.columns > 0:
+                    return size.columns
+            except (OSError, ValueError):
+                pass
 
-    # Claude Code spawns with piped stdio (no TTY).
-    # Walk up ancestors to find the shell that owns the real PTY.
-    pid = os.getpid()
-    for _ in range(8):
-        parent_pid = await _get_parent_pid(pid)
-        if parent_pid is None:
-            break
-        pid = parent_pid
-        tty = await _get_tty_for_pid(pid)
-        if tty is None:
-            continue
-        width = await _get_width_for_tty(tty)
-        if width is not None:
-            return width
-
-    return None
+    size = shutil.get_terminal_size(fallback=(80, 24))
+    return size.columns if size.columns > 0 else 80
 
 
 def _effective_width(probed: int | None) -> int:
