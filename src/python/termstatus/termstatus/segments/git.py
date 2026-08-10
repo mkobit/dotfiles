@@ -1,9 +1,10 @@
 import asyncio
 import logging
 from collections.abc import Sequence
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 from typing import NamedTuple
+
 from whenever import TimeDelta
 
 from termstatus.layout import Segment, SegmentGenerationResult

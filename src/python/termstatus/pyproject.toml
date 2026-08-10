@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.scripts]
-statusline = "termstatus.main:cli"
+statusline = "termstatus.main:main"
 
 [build-system]
 requires = [

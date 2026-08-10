@@ -99,7 +99,7 @@ class StatusLineStdIn:
     worktree: WorktreeInfo | None = field(default_factory=WorktreeInfo)
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "StatusLineStdIn":
+    def from_dict(cls, data: dict[str, Any]) -> StatusLineStdIn:
         model_raw = data.get("model")
         model = ModelInfo(**model_raw) if isinstance(model_raw, dict) else ModelInfo()
 

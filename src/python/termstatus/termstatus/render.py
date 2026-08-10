@@ -1,6 +1,5 @@
 import asyncio
 import os
-import shlex
 import shutil
 import sys
 from collections.abc import Iterable, Sequence
@@ -76,7 +75,7 @@ async def probe_terminal_width(payload_width: int | None = None) -> int | None:
                 size = os.get_terminal_size(stream.fileno())
                 if size.columns > 0:
                     return size.columns
-            except (OSError, ValueError):
+            except OSError, ValueError:
                 pass
 
     size = shutil.get_terminal_size(fallback=(80, 24))

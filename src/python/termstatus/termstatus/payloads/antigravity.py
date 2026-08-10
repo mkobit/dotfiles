@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any
 
 
@@ -63,7 +63,7 @@ class AntigravityPayload:
     terminal_width: int | None = None
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "AntigravityPayload":
+    def from_dict(cls, data: dict[str, Any]) -> AntigravityPayload:
         model_raw = data.get("model")
         model = ModelInfo(**model_raw) if isinstance(model_raw, dict) else None
 

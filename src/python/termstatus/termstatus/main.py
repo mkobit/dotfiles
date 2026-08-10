@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 from collections.abc import Sequence
+from dataclasses import replace
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -17,12 +18,8 @@ from whenever import Instant
 
 from termstatus.cache import SegmentCache
 from termstatus.layout import Segment, SegmentGenerationResult
-from termstatus.payload import CostInfo, ModelInfo, OutputStyle, StatusLineStdIn
-from termstatus.payloads.antigravity import AntigravityPayload
+from termstatus.payload import ContextWindowInfo, CostInfo, ModelInfo, OutputStyle, StatusLineStdIn
 from termstatus.render import probe_terminal_width, render_lines
-from termstatus.segments.antigravity import format_agent_state, format_vcs_info, format_workspace_info, generate_title
-from termstatus.segments.antigravity import format_context_usage as ag_format_context_usage
-from termstatus.segments.antigravity import format_model_info as ag_format_model_info
 from termstatus.segments.chezmoi import _format_repo, detect_chezmoi_root, generate_chezmoi_segment
 from termstatus.segments.claude import (
     format_context_usage,
@@ -41,10 +38,20 @@ cli = typer.Typer(add_completion=False)
 antigravity_app = typer.Typer()
 cli.add_typer(antigravity_app, name="antigravity")
 
-_original_typer_call = cli.__call__
 
+def main() -> None:
+    """Entry point (see [project.scripts] in pyproject.toml).
 
-def _fast_call(*args, **kwargs):
+    Dispatches `antigravity render`/`title` to the stdlib-only fast path
+    (see fast_antigravity_render/_title docstrings for the latency budget
+    this exists to meet) before paying for typer/click's argument parsing
+    and heavy imports. Assigning a monkeypatched `cli.__call__` here instead
+    does NOT work: Python's implicit call syntax (`cli()`, which is exactly
+    what a [project.scripts] entry point and `if __name__ == "__main__"` use)
+    resolves special methods via `type(cli).__call__`, bypassing the
+    instance's own `__dict__` entirely -- confirmed empirically, not just by
+    the data model docs.
+    """
     if len(sys.argv) >= 3 and sys.argv[1] == "antigravity":
         if sys.argv[2] == "render":
             fast_antigravity_render()
@@ -52,10 +59,7 @@ def _fast_call(*args, **kwargs):
         if sys.argv[2] == "title":
             fast_antigravity_title()
             return
-    return _original_typer_call(*args, **kwargs)
-
-
-cli.__call__ = _fast_call
+    cli()
 
 
 def fast_antigravity_render():
@@ -72,11 +76,12 @@ def fast_antigravity_render():
             content = sys.stdin.read().strip()
             if content:
                 raw_data = json.loads(content)
-        except Exception:
+        except Exception:  # noqa: S110 -- malformed/partial stdin must render blank, not crash, within the 20ms budget
             pass
 
     state = raw_data.get("agent_state")
-    model_data = raw_data.get("model") if isinstance(raw_data.get("model"), dict) else {}
+    model_raw = raw_data.get("model")
+    model_data = model_raw if isinstance(model_raw, dict) else {}
     model_name = model_data.get("display_name")
     cwd = raw_data.get("cwd")
     vcs = raw_data.get("vcs") if isinstance(raw_data.get("vcs"), dict) else {}
@@ -120,12 +125,13 @@ def fast_antigravity_title():
             content = sys.stdin.read().strip()
             if content:
                 raw_data = json.loads(content)
-        except Exception:
+        except Exception:  # noqa: S110 -- malformed/partial stdin must render blank, not crash, within the 10ms budget
             pass
 
     cwd = raw_data.get("cwd")
     basename = Path(cwd).name if cwd else None
-    model_data = raw_data.get("model") if isinstance(raw_data.get("model"), dict) else {}
+    model_raw = raw_data.get("model")
+    model_data = model_raw if isinstance(model_raw, dict) else {}
     display_name = model_data.get("display_name")
     conv_id = raw_data.get("conversation_id")
     short_id = conv_id.split("-")[0] if conv_id else None
@@ -368,29 +374,28 @@ def _mock_payload(cost_usd: float = 42.50, duration_ms: int = 3_723_000, used_pc
     return StatusLineStdIn(
         model=ModelInfo(display_name="Sonnet 5"),
         cost=CostInfo(total_cost_usd=cost_usd, total_duration_ms=duration_ms),
-        context_window={
-            "total_input_tokens": int(1_000_000 * used_pct / 100),
-            "context_window_size": 1_000_000,
-            "used_percentage": used_pct,
-        },
+        context_window=ContextWindowInfo(
+            total_input_tokens=int(1_000_000 * used_pct / 100),
+            context_window_size=1_000_000,
+            used_percentage=used_pct,
+        ),
         output_style=OutputStyle(name="concise"),
     )
 
 
 def _mock_git_info(branch: str = "main", **overrides) -> GitInfo:
-    defaults = {
-        "branch": branch,
-        "remote": "https://github.com/example/repo",
-        "dirty": False,
-        "staged": False,
-        "untracked": False,
-        "ahead": 0,
-        "behind": 0,
-        "is_repo": True,
-        "stash_count": 0,
-    }
-    defaults.update(overrides)
-    return GitInfo(**defaults)
+    info = GitInfo(
+        branch=branch,
+        remote="https://github.com/example/repo",
+        dirty=False,
+        staged=False,
+        untracked=False,
+        ahead=0,
+        behind=0,
+        is_repo=True,
+        stash_count=0,
+    )
+    return replace(info, **overrides) if overrides else info
 
 
 def _build_scenario(name: str) -> list[SegmentGenerationResult]:
@@ -465,4 +470,4 @@ def dev_preview(
 
 
 if __name__ == "__main__":
-    cli()
+    main()
