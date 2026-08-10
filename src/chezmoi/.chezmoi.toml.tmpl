@@ -63,6 +63,12 @@ installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else if and (
 [data.local.bin.opencode]
 installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
 
+# Docker Sandboxes CLI (runs AI agents in disposable microVMs). Linux only —
+# macOS needs a Homebrew tap plus a non-standard `brew trust` step, not
+# wired up yet.
+[data.local.bin.sbx]
+installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
+
 [data.local.bin.gh]
 installation_method = "github_releases"
 

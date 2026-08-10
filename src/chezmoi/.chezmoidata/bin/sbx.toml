@@ -1,0 +1,30 @@
+[bin.sbx]
+version = "0.38.0"
+
+# Docker Sandboxes CLI. The release archive bundles the CLI with its microVM
+# runtime deps (nerdbox kernel, rootfs image, containerd shims, libsailor.so)
+# — not a standalone static binary. Extracted via dot_local/.chezmoiexternals/
+# then laid out by the vendor install.sh; see
+# .chezmoiscripts/run_onchange_after_install-sbx.sh.tmpl.
+[bin.sbx.github_releases]
+repo             = "docker/sbx-releases"
+external_type    = "archive"
+checksum_type    = "sha256"
+tag_format       = "v{version}"
+filename_format  = "DockerSandboxes-{target}.tar.gz"
+path_format      = "sbx-dist"
+strip_components = 1
+url_format       = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.sbx.github_releases.platforms]
+linux_amd64 = "linux-amd64"
+linux_arm64 = "linux-arm64"
+
+[bin.sbx.github_releases.checksums]
+linux_amd64 = "9ebcea831d4d270e25ae1777bf15e24756abfbf8791ad27294754682838ed00b"
+linux_arm64 = "051fdf8349f8a66db47a990e11a30cd1d2e013ac6c8e42e48c072bfcec06a1d5"
+
+# macOS release ("DockerSandboxes-darwin.tar.gz" — no arch suffix, universal)
+# and the Homebrew tap path (`brew trust docker/tap && brew install
+# docker/tap/sbx` — `brew trust` is a non-standard Homebrew extension, not a
+# stock command) are not wired up yet.

@@ -1,0 +1,51 @@
+{{- $method := dig "local" "bin" "sbx" "installation_method" "none" . -}}
+{{- if eq $method "github_releases" -}}
+#!/usr/bin/env bash
+# sbx version: {{ .bin.sbx.version }}
+
+set -euo pipefail
+
+source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
+
+SBX_DIST="{{ .chezmoi.destDir }}/.local/sbx-dist"
+PREFIX="{{ .chezmoi.destDir }}/.local"
+
+if [[ ! -f "${SBX_DIST}/install.sh" ]]; then
+    log_error "sbx-dist not found at ${SBX_DIST} — external extraction may have failed"
+    exit 1
+fi
+
+if ! check_command mkfs.ext4; then
+    log_warn "mkfs.ext4 not found — install e2fsprogs before sbx can create sandboxes"
+fi
+
+log_info "Installing sbx to ${PREFIX}..."
+PREFIX="${PREFIX}" bash "${SBX_DIST}/install.sh" || true
+
+if [[ -x "${PREFIX}/bin/sbx" ]]; then
+    log_success "sbx installed to ${PREFIX}/bin/sbx"
+else
+    log_error "sbx binary not found at ${PREFIX}/bin/sbx after install"
+    exit 1
+fi
+
+# install.sh's own AppArmor step writes to /etc/apparmor.d and fails without
+# root — handled separately here so a missing sudo prompt doesn't mask the
+# (already-succeeded) binary install above.
+APPARMOR_PROFILE="${SBX_DIST}/apparmor-profile"
+APPARMOR_TARGET="/etc/apparmor.d/docker-sbx-nerdbox-shim"
+if [[ -f "${APPARMOR_PROFILE}" ]] && [[ -d /sys/kernel/security/apparmor ]] && check_command apparmor_parser; then
+    if cmp -s "${APPARMOR_PROFILE}" "${APPARMOR_TARGET}" 2>/dev/null; then
+        log_success "AppArmor profile already up to date"
+    elif sudo -n true 2>/dev/null || [ -t 0 ]; then
+        log_info "🔒 Installing AppArmor profile for the sandbox shim..."
+        sudo install -m 644 "${APPARMOR_PROFILE}" "${APPARMOR_TARGET}" \
+            && sudo apparmor_parser -r -W "${APPARMOR_TARGET}" \
+            || { log_error "Failed to install AppArmor profile"; exit 1; }
+        log_success "AppArmor profile installed"
+    else
+        log_warn "No TTY and no cached sudo credentials — skipping AppArmor profile install, will retry next apply"
+        exit 1
+    fi
+fi
+{{- end -}}
