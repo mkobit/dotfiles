@@ -14,3 +14,6 @@ mise.local.toml
 __pycache__/
 *.py[cod]
 .claude/settings.local.json
+# Agent git worktrees
+.worktrees/
+.worktree/
