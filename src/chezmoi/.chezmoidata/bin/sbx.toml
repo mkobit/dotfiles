@@ -1,0 +1,24 @@
+[bin.sbx]
+version = "0.38.0"
+
+[bin.sbx.github_releases]
+repo            = "docker/sbx-releases"
+external_type   = "archive-file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "v{version}"
+filename_format = "DockerSandboxes-{target}.{ext}"
+path_format     = "docker-sbx/sbx"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.sbx.github_releases.platforms]
+linux_amd64 = "linux-amd64"
+linux_arm64 = "linux-arm64"
+
+[bin.sbx.github_releases.ext]
+linux_amd64 = "tar.gz"
+linux_arm64 = "tar.gz"
+
+[bin.sbx.github_releases.checksums]
+linux_amd64 = "9ebcea831d4d270e25ae1777bf15e24756abfbf8791ad27294754682838ed00b"
+linux_arm64 = "051fdf8349f8a66db47a990e11a30cd1d2e013ac6c8e42e48c072bfcec06a1d5"
