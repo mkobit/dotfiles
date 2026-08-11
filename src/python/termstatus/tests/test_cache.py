@@ -2,7 +2,7 @@ import logging
 from pathlib import Path
 
 import pytest
-from whenever import Instant, hours
+from whenever import Instant, TimeDelta, hours
 
 from termstatus.cache import SegmentCache
 from termstatus.layout import Segment, SegmentGenerationResult
@@ -142,3 +142,26 @@ def test_cache_load_io_error(tmp_path: Path, caplog: pytest.LogCaptureFixture) -
 
     assert bad_cache._cache == {}
     assert "Failed to load cache from" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_cache_save_with_timedelta_cache_duration(cache: SegmentCache, cache_file: Path) -> None:
+    """Goals: Verify that SegmentGenerationResult containing a TimeDelta cache_duration serializes cleanly."""
+    results = [
+        SegmentGenerationResult(
+            line=1,
+            index=10,
+            column=1,
+            generator="internal.git",
+            segment=Segment(text="main"),
+            cache_duration=TimeDelta(seconds=5),
+        )
+    ]
+    expires = Instant.from_utc(2026, 1, 1, 12, 0, 0)
+    await cache.set("git_key", results, expires)
+
+    new_cache = SegmentCache(cache_file)
+    new_cache.load()
+    assert "git_key" in new_cache._cache
+    assert new_cache._cache["git_key"].results[0].segment.text == "main"
+

@@ -262,5 +262,21 @@ def test_git_cancellation_and_p99_latency_under_slow_git():
     assert p99_ms < 200.0, f"P99 latency under slow git was {p99_ms:.2f}ms (> 200.0ms)"
 
 
+def test_claude_render_with_unknown_payload_fields(tmp_path):
+    """Goals: Verify that unknown fields in payload sub-objects do not cause validation failure."""
+    raw = json.dumps(
+        {
+            "model": {"id": "claude-3-7-sonnet", "display_name": "Sonnet 3.7 Custom", "extra_vendor": "anthropic"},
+            "cost": {"total_cost_usd": 3.50, "total_duration_ms": 12000, "extra_metric": 99},
+            "workspace": {"current_dir": "/tmp", "extra_ws": True},
+        }
+    )
+    with patch.dict(os.environ, {"XDG_CACHE_HOME": str(tmp_path)}):
+        result = runner.invoke(cli, ["claude", "render"], input=raw)
+        assert result.exit_code == 0
+        assert "Sonnet 3.7 Custom" in result.stdout
+        assert "$3.50" in result.stdout
+
+
 if __name__ == "__main__":
     unittest.main()
