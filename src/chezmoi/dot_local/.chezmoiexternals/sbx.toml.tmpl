@@ -1,0 +1,6 @@
+{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
+{{- $base     := dig "github_releases" "base_url" "https://github.com" . -}}
+{{- $method   := dig "local" "bin" "sbx" "installation_method" "none" $ -}}
+{{- if eq $method "github_releases" -}}
+{{- includeTemplate "bin/github-releases-entry.tmpl" (dict "name" "sbx" "tool" .bin.sbx "platform" $platform "base" $base) -}}
+{{- end -}}
