@@ -164,4 +164,3 @@ async def test_cache_save_with_timedelta_cache_duration(cache: SegmentCache, cac
     new_cache.load()
     assert "git_key" in new_cache._cache
     assert new_cache._cache["git_key"].results[0].segment.text == "main"
-

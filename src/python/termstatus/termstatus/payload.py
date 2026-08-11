@@ -152,4 +152,3 @@ class StatusLineStdIn:
             agent=agent,
             worktree=worktree,
         )
-
