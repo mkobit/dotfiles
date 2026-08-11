@@ -1,6 +1,14 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
+
+
+def _instantiate_dataclass[T](cls: type[T], data: Any) -> T:
+    if not isinstance(data, dict):
+        return cls()
+    valid_fields = {f.name for f in fields(cast(Any, cls))}
+    filtered = {k: v for k, v in data.items() if k in valid_fields}
+    return cls(**filtered)
 
 
 @dataclass
@@ -100,51 +108,32 @@ class StatusLineStdIn:
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> StatusLineStdIn:
-        model_raw = data.get("model")
-        model = ModelInfo(**model_raw) if isinstance(model_raw, dict) else ModelInfo()
+        if not isinstance(data, dict):
+            return cls()
 
-        workspace_raw = data.get("workspace")
-        workspace = WorkspaceInfo(**workspace_raw) if isinstance(workspace_raw, dict) else WorkspaceInfo()
-
-        cost_raw = data.get("cost")
-        cost = CostInfo(**cost_raw) if isinstance(cost_raw, dict) else CostInfo()
+        model = _instantiate_dataclass(ModelInfo, data.get("model"))
+        workspace = _instantiate_dataclass(WorkspaceInfo, data.get("workspace"))
+        cost = _instantiate_dataclass(CostInfo, data.get("cost"))
 
         cw_raw = data.get("context_window")
         if isinstance(cw_raw, dict):
-            cu_raw = cw_raw.get("current_usage")
-            cu = CurrentUsageInfo(**cu_raw) if isinstance(cu_raw, dict) else CurrentUsageInfo()
-            cw = ContextWindowInfo(
-                total_input_tokens=cw_raw.get("total_input_tokens", 0),
-                total_output_tokens=cw_raw.get("total_output_tokens", 0),
-                context_window_size=cw_raw.get("context_window_size", 0),
-                used_percentage=cw_raw.get("used_percentage", 0.0),
-                remaining_percentage=cw_raw.get("remaining_percentage", 0.0),
-                current_usage=cu,
-            )
+            cw = _instantiate_dataclass(ContextWindowInfo, cw_raw)
+            cw.current_usage = _instantiate_dataclass(CurrentUsageInfo, cw_raw.get("current_usage"))
         else:
             cw = ContextWindowInfo()
 
         rl_raw = data.get("rate_limits")
         if isinstance(rl_raw, dict):
-            fh_raw = rl_raw.get("five_hour")
-            fh = RateLimitWindow(**fh_raw) if isinstance(fh_raw, dict) else RateLimitWindow()
-            sd_raw = rl_raw.get("seven_day")
-            sd = RateLimitWindow(**sd_raw) if isinstance(sd_raw, dict) else RateLimitWindow()
+            fh = _instantiate_dataclass(RateLimitWindow, rl_raw.get("five_hour"))
+            sd = _instantiate_dataclass(RateLimitWindow, rl_raw.get("seven_day"))
             rl = RateLimits(five_hour=fh, seven_day=sd)
         else:
             rl = RateLimits()
 
-        out_raw = data.get("output_style")
-        output_style = OutputStyle(**out_raw) if isinstance(out_raw, dict) else OutputStyle()
-
-        vim_raw = data.get("vim")
-        vim = VimInfo(**vim_raw) if isinstance(vim_raw, dict) else VimInfo()
-
-        agent_raw = data.get("agent")
-        agent = AgentInfo(**agent_raw) if isinstance(agent_raw, dict) else AgentInfo()
-
-        wt_raw = data.get("worktree")
-        worktree = WorktreeInfo(**wt_raw) if isinstance(wt_raw, dict) else WorktreeInfo()
+        output_style = _instantiate_dataclass(OutputStyle, data.get("output_style"))
+        vim = _instantiate_dataclass(VimInfo, data.get("vim"))
+        agent = _instantiate_dataclass(AgentInfo, data.get("agent"))
+        worktree = _instantiate_dataclass(WorktreeInfo, data.get("worktree"))
 
         return cls(
             model=model,

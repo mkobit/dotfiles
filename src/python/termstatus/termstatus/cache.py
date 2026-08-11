@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 from collections.abc import Sequence
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from pathlib import Path
 
 from whenever import Instant
@@ -64,7 +64,17 @@ class SegmentCache:
                 self.cache_file.parent.mkdir(parents=True, exist_ok=True)
                 serialized = {
                     key: {
-                        "results": [asdict(r) for r in cs.results],
+                        "results": [
+                            {
+                                "segment": {"text": r.segment.text},
+                                "line": r.line,
+                                "index": r.index,
+                                "column": r.column,
+                                "generator": r.generator,
+                                "cache_duration": str(r.cache_duration) if r.cache_duration is not None else None,
+                            }
+                            for r in cs.results
+                        ],
                         "expires_at": str(cs.expires_at),
                     }
                     for key, cs in cache_data.items()
