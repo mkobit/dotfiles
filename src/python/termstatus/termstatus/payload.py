@@ -1,12 +1,12 @@
 from dataclasses import dataclass, field, fields
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 
 def _instantiate_dataclass[T](cls: type[T], data: Any) -> T:
     if not isinstance(data, dict):
         return cls()
-    valid_fields = {f.name for f in fields(cls)}
+    valid_fields = {f.name for f in fields(cast(Any, cls))}
     filtered = {k: v for k, v in data.items() if k in valid_fields}
     return cls(**filtered)
 
