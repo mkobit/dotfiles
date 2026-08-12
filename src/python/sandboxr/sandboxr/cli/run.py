@@ -8,6 +8,7 @@ import typer
 from sandboxr.backend.bwrap import build_args, default_mask_paths
 from sandboxr.cli._common import (
     _apply_timeout,
+    _echo_command,
     _fail,
     _refuse_if_nested,
     _require_bwrap,
@@ -94,6 +95,7 @@ def run(
         spec = dataclasses.replace(spec, extra_env={**spec.extra_env, **tool_env})
     bwrap_cmd = build_args(spec, os.environ, default_mask_paths(os.getuid()))
     args = _apply_timeout([*bwrap_cmd, *adapted_cmd], timeout)
+    _echo_command(args)
     if show_command:
         typer.echo(" ".join(args))
         return

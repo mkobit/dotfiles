@@ -20,6 +20,17 @@ def _fail(message: str) -> typer.Exit:
     return typer.Exit(1)
 
 
+def _echo_command(args: Sequence[str]) -> None:
+    """Print the sandbox invocation, one token per line, so it's actually skimmable.
+
+    Always shown, not gated behind a flag: what's bound where is the whole
+    trust boundary, so it should never be a mystery.
+    """
+    typer.secho("sandboxr: sandbox invocation", fg=typer.colors.CYAN, err=True)
+    for token in args:
+        typer.echo(f"  {token}", err=True)
+
+
 def _refuse_if_nested() -> None:
     if os.environ.get("AGENT_RUN_IN_SANDBOX") == "1":
         raise _fail(
