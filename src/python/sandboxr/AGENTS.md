@@ -27,6 +27,11 @@ Bind table: `/` ro, `$HOME` tmpfs (default-deny), explicit re-binds for the tool
 
 - **No profile/config file** — every knob is an explicit CLI flag (`--project-write`, `--network`, `--ssh-agent`, `--gpg-agent`, `--ro`, `--rw`).
 A prior design read profiles from `.chezmoidata/ai/sandbox.toml` and supported a pluggable `srt` backend; both were removed as unneeded indirection over a single, always-on `bwrap` path.
+- **No domain-allowlisted egress** — `--network` is binary (`none` or full host network); bwrap has no proxy/filtering primitive of its own.
+`srt` (`@anthropic-ai/sandbox-runtime`) was tried for exactly this gap and reverted: its seccomp filter architecturally cannot forward SSH/GPG agent sockets on Linux (path-based unix-socket filtering isn't possible under seccomp-bpf), and porting bwrap's bind-table concepts into its config surface produced most of the integration bugs this project has hit.
+The gain is bounded anyway — the agent's own session credential can't be denylisted, so an allowlist stops arbitrary-domain exfil but not exfil through the one API domain a run necessarily needs.
+`sbx` (Docker Sandboxes) has stronger egress policy but requires a Docker cloud login and is closed-source — revisit only once it reaches GA with a local-auth mode.
+If scoped egress becomes a hard requirement before then, prefer a filtering proxy inside bwrap's own network namespace over re-adopting a vendor sandbox runtime.
 - **No global PreToolUse guard hook** — earlier design ripped out because the agent's own config files are agent-writable; only the OS-level boundary is real.
 - **No `--sandbox` flag passed to `agy`** — antigravity-cli#36: combining it with `--dangerously-skip-permissions` auto-approves bypassing it.
 - **No `OPENCODE_HARDENED_MODE=1`** — it would engage opencode's own bwrap inside our bwrap and create nested namespaces.
