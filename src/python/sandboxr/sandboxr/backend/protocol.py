@@ -1,8 +1,6 @@
 from collections.abc import Mapping, Sequence
 from typing import Protocol
 
-from sandboxr.backend.bwrap import BwrapBackend
-from sandboxr.backend.srt import SrtBackend
 from sandboxr.sandbox.spec import SandboxSpec
 
 
@@ -17,18 +15,3 @@ class SandboxBackend(Protocol):
     ) -> list[str]: ...
 
     def wrap_command(self, cmd: Sequence[str]) -> Sequence[str]: ...
-
-
-def select_backend(backend_name: str, *, platform: str) -> SandboxBackend:
-    """Map a profile backend field + current platform to a concrete backend."""
-    if backend_name == "auto":
-        if platform.startswith("linux"):
-            return BwrapBackend()
-        msg = f"no auto backend for platform {platform!r}"
-        raise ValueError(msg)
-    if backend_name == "bwrap":
-        return BwrapBackend()
-    if backend_name == "srt":
-        return SrtBackend()
-    msg = f"unknown backend {backend_name!r}"
-    raise ValueError(msg)
