@@ -40,10 +40,23 @@ def _chdir(tmp_path, monkeypatch):
 # ── run --show-command ──────────────────────────────────────────────────────
 
 
-def test_run_show_command_starts_with_bwrap():
+def test_run_show_command_prints_copyable_bwrap_line():
     result = runner.invoke(app, ["run", "--show-command", "--", "bash"])
     assert result.exit_code == 0
-    assert result.output.startswith("bwrap")
+    # --show-command's own output is the last line: a single, copy-pasteable
+    # command. Everything before it is the always-on per-token echo.
+    assert result.output.rstrip().splitlines()[-1].startswith("bwrap")
+
+
+def test_run_echoes_command_even_without_show_command(monkeypatch):
+    # --show-command returns before os.execvp, so it can't prove the echo
+    # survives on the real-execution path. Mock execvp instead so run()
+    # falls through normally without actually replacing this process.
+    monkeypatch.setattr("os.execvp", lambda *args, **kwargs: None)
+    result = runner.invoke(app, ["run", "--", "bash"])
+    assert result.exit_code == 0
+    assert "sandboxr: sandbox invocation" in result.output
+    assert "  bwrap" in result.output
 
 
 def test_run_show_command_project_rw_bound(tmp_path):
@@ -143,3 +156,11 @@ def test_shell_show_command_no_tty_adds_new_session():
     result = runner.invoke(app, ["shell", "--no-tty", "--show-command"])
     assert result.exit_code == 0
     assert "--new-session" in result.output
+
+
+def test_shell_echoes_command_even_without_show_command(monkeypatch):
+    monkeypatch.setattr("os.execvp", lambda *args, **kwargs: None)
+    result = runner.invoke(app, ["shell"])
+    assert result.exit_code == 0
+    assert "sandboxr: sandbox invocation" in result.output
+    assert "  bwrap" in result.output

@@ -28,6 +28,10 @@ def test_doctor_default_passes(host):
     # where the wrapped command silently never executes (exit 0, zero probe
     # output) would pass this check if we only asserted on the return code.
     assert result.stdout.count("PASS:") >= 8, f"expected several PASS lines, got:\n{result.stdout}"
+    # doctor always echoes the sandbox invocation to stderr, so the human
+    # can see what's actually bound before trusting the probe results.
+    assert "sandboxr: sandbox invocation" in result.stderr
+    assert "  bwrap" in result.stderr
 
 
 @pytest.mark.integration
