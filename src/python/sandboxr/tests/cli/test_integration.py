@@ -8,61 +8,13 @@ is faked so _require_bwrap passes on non-Linux hosts.
 
 import os
 import shutil
-import subprocess
-from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
-from sandboxr.backend import srt as srt_backend
 from sandboxr.main import app
-from sandboxr.profile import loader
-
-SANDBOX_TOML = """
-default_profile = "default"
-
-[profiles.default]
-enabled = true
-backend = "bwrap"
-project_write = true
-network = "shared"
-ssh_agent = false
-gpg_agent = false
-
-[profiles.readonly]
-enabled = true
-backend = "bwrap"
-project_write = false
-network = "shared"
-ssh_agent = false
-gpg_agent = false
-
-[profiles.airgap]
-enabled = true
-backend = "bwrap"
-project_write = false
-network = "none"
-ssh_agent = false
-gpg_agent = false
-
-[profiles.srt-allowlist]
-enabled = true
-backend = "srt"
-project_write = true
-network = "allowlist"
-allowed_domains = ["api.example.com"]
-ssh_agent = false
-gpg_agent = false
-"""
 
 runner = CliRunner()
-
-
-@pytest.fixture(autouse=True)
-def _patch_config(tmp_path, monkeypatch):
-    config = tmp_path / "sandbox.toml"
-    config.write_text(SANDBOX_TOML)
-    monkeypatch.setattr(loader, "CONFIG_PATH", config)
 
 
 @pytest.fixture(autouse=True)
@@ -100,19 +52,13 @@ def test_run_show_command_project_rw_bound(tmp_path):
     assert f"--bind {tmp_path} {tmp_path}" in result.output
 
 
-def test_run_show_command_readonly_profile_ro_binds_project(tmp_path):
-    result = runner.invoke(app, ["run", "--profile", "readonly", "--show-command", "--", "bash"])
+def test_run_show_command_no_project_write_ro_binds_project(tmp_path):
+    result = runner.invoke(app, ["run", "--no-project-write", "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert f"--ro-bind {tmp_path} {tmp_path}" in result.output
 
 
-def test_run_show_command_airgap_profile_unshares_net():
-    result = runner.invoke(app, ["run", "--profile", "airgap", "--show-command", "--", "bash"])
-    assert result.exit_code == 0
-    assert "--unshare-net" in result.output
-
-
-def test_run_show_command_network_none_override_unshares_net():
+def test_run_show_command_network_none_unshares_net():
     result = runner.invoke(app, ["run", "--network", "none", "--show-command", "--", "bash"])
     assert result.exit_code == 0
     assert "--unshare-net" in result.output
@@ -171,11 +117,6 @@ def test_run_no_command_exits_nonzero():
     assert result.exit_code != 0
 
 
-def test_run_unknown_profile_exits_nonzero():
-    result = runner.invoke(app, ["run", "--profile", "unknown", "--show-command", "--", "bash"])
-    assert result.exit_code != 0
-
-
 def test_run_nested_refused(monkeypatch):
     monkeypatch.setenv("AGENT_RUN_IN_SANDBOX", "1")
     result = runner.invoke(app, ["run", "--show-command", "--", "bash"])
@@ -202,117 +143,3 @@ def test_shell_show_command_no_tty_adds_new_session():
     result = runner.invoke(app, ["shell", "--no-tty", "--show-command"])
     assert result.exit_code == 0
     assert "--new-session" in result.output
-
-
-def test_shell_srt_backend_show_command_applies_startup_race_workaround(
-    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
-):
-    monkeypatch.setenv("SHELL", "/bin/bash")
-    monkeypatch.setattr(
-        shutil,
-        "which",
-        lambda name, **kwargs: f"/usr/bin/{name}" if name in ("node", "mise") else None,
-    )
-    install_dir = tmp_path / "mise-installs" / "npm-anthropic-ai-sandbox-runtime" / "0.0.63"
-    cli_js = install_dir / srt_backend.CLI_JS_RELATIVE_TO_INSTALL
-    cli_js.parent.mkdir(parents=True)
-    cli_js.write_text("")
-
-    def _run(args, **kwargs):
-        return subprocess.CompletedProcess(args, 0, stdout=f"{install_dir}\n", stderr="")
-
-    monkeypatch.setattr(srt_backend.subprocess, "run", _run)
-    result = runner.invoke(
-        app,
-        ["shell", "--profile", "srt-allowlist", "--show-command"],
-    )
-    assert result.exit_code == 0
-    # same startup-race workaround as `run`: srt drops positional args after
-    # `bash -c`, so the shell command must be embedded in the wrapper script.
-    assert "sleep 0.2; exec /bin/bash" in result.output
-
-
-# ── profiles subcommand ─────────────────────────────────────────────────────
-
-
-def test_profiles_lists_all_profiles():
-    result = runner.invoke(app, ["profiles"])
-    assert result.exit_code == 0
-    assert "default" in result.output
-    assert "readonly" in result.output
-    assert "airgap" in result.output
-
-
-def test_profiles_marks_default():
-    result = runner.invoke(app, ["profiles"])
-    assert result.exit_code == 0
-    assert "(default)" in result.output
-
-
-def test_profiles_shows_capability_fields():
-    result = runner.invoke(app, ["profiles"])
-    assert result.exit_code == 0
-    assert "network=" in result.output
-    assert "project_write=" in result.output
-    assert "ssh_agent=" in result.output
-    assert "gpg_agent=" in result.output
-
-
-# ── run --show-command (srt backend) ────────────────────────────────────────
-
-
-def test_run_srt_backend_fails_when_node_missing(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(shutil, "which", lambda name, **kwargs: None)
-    result = runner.invoke(
-        app,
-        ["run", "--profile", "srt-allowlist", "--show-command", "--", "bash"],
-    )
-    assert result.exit_code != 0
-
-
-def test_run_srt_backend_fails_when_not_provisioned(monkeypatch: pytest.MonkeyPatch):
-    monkeypatch.setattr(
-        shutil,
-        "which",
-        lambda name, **kwargs: f"/usr/bin/{name}" if name in ("node", "mise") else None,
-    )
-
-    def _run(args, **kwargs):
-        return subprocess.CompletedProcess(args, 1, stdout="", stderr="not installed")
-
-    monkeypatch.setattr(srt_backend.subprocess, "run", _run)
-    result = runner.invoke(
-        app,
-        ["run", "--profile", "srt-allowlist", "--show-command", "--", "bash"],
-    )
-    assert result.exit_code != 0
-
-
-def test_run_srt_backend_show_command(monkeypatch: pytest.MonkeyPatch, tmp_path: Path):
-    monkeypatch.setattr(
-        shutil,
-        "which",
-        lambda name, **kwargs: f"/usr/bin/{name}" if name in ("node", "mise") else None,
-    )
-    install_dir = tmp_path / "mise-installs" / "npm-anthropic-ai-sandbox-runtime" / "0.0.63"
-    cli_js = install_dir / srt_backend.CLI_JS_RELATIVE_TO_INSTALL
-    cli_js.parent.mkdir(parents=True)
-    cli_js.write_text("")
-
-    def _run(args, **kwargs):
-        return subprocess.CompletedProcess(args, 0, stdout=f"{install_dir}\n", stderr="")
-
-    monkeypatch.setattr(srt_backend.subprocess, "run", _run)
-    result = runner.invoke(
-        app,
-        ["run", "--profile", "srt-allowlist", "--show-command", "--", "bash"],
-    )
-    assert result.exit_code == 0
-    assert result.output.startswith("env -i ")
-    assert "AGENT_RUN_IN_SANDBOX=1" in result.output
-    assert "/usr/bin/node" in result.output
-    assert str(cli_js) in result.output
-    assert "-s" in result.output
-    # startup-race workaround: the trailing command is embedded in the
-    # wrapper script itself (srt drops positional args after `bash -c`).
-    assert "sleep 0.2; exec bash" in result.output

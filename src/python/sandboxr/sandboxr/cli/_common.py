@@ -4,17 +4,12 @@ import os
 import shutil
 import stat
 import subprocess
-import sys
 from collections.abc import Sequence
 from pathlib import Path
 
 import typer
 
 from sandboxr.backend.bwrap import CACHE_REL
-from sandboxr.backend.protocol import SandboxBackend, select_backend
-from sandboxr.backend.srt import MISE_NPM_SPEC, resolve_cli_js
-from sandboxr.profile.loader import load_config, resolve_profile
-from sandboxr.profile.schema import ConfigError, Profile, SandboxConfig
 from sandboxr.sandbox.spec import SandboxSpec
 
 TOKEN_PATH = Path.home() / ".local" / "state" / "ai-policy" / "tokens" / "readonly.token"
@@ -50,16 +45,6 @@ def _apply_timeout(args: Sequence[str], timeout_seconds: float | None) -> list[s
     if timeout_bin is None:
         raise _fail("timeout not found; required for timeout_seconds (provided by coreutils)")
     return [timeout_bin, "--foreground", str(timeout_seconds), *args]
-
-
-def _require_srt() -> None:
-    if shutil.which("node") is None:
-        raise _fail("node not found; required for the srt backend (provided by the mise toolchain)")
-    mise_path = shutil.which("mise")
-    if mise_path is None:
-        raise _fail("mise not found; required to locate the srt install")
-    if resolve_cli_js(mise_path) is None:
-        raise _fail(f"srt not provisioned via mise ({MISE_NPM_SPEC}); run `chezmoi apply`")
 
 
 def _git(cwd: Path, *args: str) -> str | None:
@@ -140,17 +125,17 @@ def _gpg_agent_sock() -> Path | None:
     return path if path.exists() else None
 
 
-def _resolve(profile_flag: str | None, cwd: Path) -> tuple[SandboxConfig, Profile, SandboxBackend]:
-    try:
-        config = load_config()
-        profile = resolve_profile(config, profile_flag, os.environ.get("AGENT_RUN_PROFILE"))
-        backend = select_backend(profile.backend, platform=sys.platform)
-    except (ConfigError, ValueError) as exc:
-        raise _fail(str(exc)) from exc
-    return config, profile, backend
-
-
-def _sandbox_spec(profile: Profile, cwd: Path, *, tty: bool) -> SandboxSpec:
+def _sandbox_spec(
+    cwd: Path,
+    *,
+    project_write: bool = True,
+    network: str = "shared",
+    ssh_agent: bool = True,
+    gpg_agent: bool = False,
+    extra_ro: Sequence[str] = (),
+    extra_rw: Sequence[str] = (),
+    tty: bool = False,
+) -> SandboxSpec:
     home = Path.home()
     project_root = _project_root(cwd)
     if project_root == home or project_root in home.parents:
@@ -163,23 +148,19 @@ def _sandbox_spec(profile: Profile, cwd: Path, *, tty: bool) -> SandboxSpec:
     token = _readonly_token()
     if token:
         extra_env["GH_TOKEN"] = token
-    ssh_sock = _ssh_agent_sock() if profile.ssh_agent else None
-    gpg_sock = _gpg_agent_sock() if profile.gpg_agent else None
+    ssh_sock = _ssh_agent_sock() if ssh_agent else None
+    gpg_sock = _gpg_agent_sock() if gpg_agent else None
     return SandboxSpec(
         home=home,
         project_root=project_root,
-        project_write=profile.project_write,
-        profile_name=profile.name,
+        project_write=project_write,
         cwd=cwd,
         git_common_dir=_git_common_dir(cwd, project_root),
         extra_env=extra_env,
         tty=tty,
-        network=profile.network,
+        network=network,
         ssh_agent_sock=ssh_sock,
         gpg_agent_sock=gpg_sock,
-        extra_ro=tuple(Path(p).expanduser() for p in profile.extra_ro),
-        extra_rw=tuple(Path(p).expanduser() for p in profile.extra_rw),
-        home_rw=profile.home_rw,
-        home_mask=profile.home_mask,
-        allowed_domains=profile.allowed_domains,
+        extra_ro=tuple(Path(p).expanduser() for p in extra_ro),
+        extra_rw=tuple(Path(p).expanduser() for p in extra_rw),
     )

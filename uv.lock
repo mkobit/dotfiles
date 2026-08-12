@@ -934,15 +934,11 @@ name = "sandboxr"
 version = "0.0.0"
 source = { editable = "src/python/sandboxr" }
 dependencies = [
-    { name = "pydantic" },
     { name = "typer" },
 ]
 
 [package.metadata]
-requires-dist = [
-    { name = "pydantic", specifier = ">=2.13.4" },
-    { name = "typer", specifier = ">=0.15.1" },
-]
+requires-dist = [{ name = "typer", specifier = ">=0.15.1" }]
 
 [[package]]
 name = "setuptools"
