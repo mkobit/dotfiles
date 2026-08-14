@@ -20,11 +20,13 @@
 
   Agent states mirror the skills vocabulary: "present" (all tools), "absent",
   or a single tool name. Archive hosts are shared with the skills catalog
-  ([ai.skills.hosts]). The filter runs via system python3 and must stay
-  stdlib-only because uv and mise are not installed until after apply.
+  ([ai.skills.hosts]). The filter must stay stdlib-only because uv and mise are
+  not installed until after apply; python/filter-interpreter resolves which
+  interpreter runs it.
 */ -}}
 {{- $cfg := .ai.agents -}}
 {{- $hosts := .ai.skills.hosts -}}
+{{- $python := includeTemplate "python/filter-interpreter" . -}}
 {{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
 {{- $skillTools := dict "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" -}}
 {{- $validStates := list "present" "absent" "claude" "antigravity" "cursor" "opencode" -}}
@@ -71,7 +73,7 @@
                   "exact" true
                   "format" "tar"
                   "filter" (dict
-                    "command" "python3"
+                    "command" $python
                     "args" (list "-S" $script "--cache-key" $source.sha256 "--select" (printf "%s:SKILL.md" $path) "--transform" "agent-skill"))
 -}}
 {{-           $_ := set $config $key $entry -}}
@@ -86,7 +88,7 @@
                 "exact" true
                 "format" "tar"
                 "filter" (dict
-                  "command" "python3"
+                  "command" $python
                   "args" (concat (list "-S" $script "--cache-key" $source.sha256) $claudeSelects))
 -}}
 {{-       $_ := set $config (printf ".claude/agents/%s" $sourceName) $entry -}}
@@ -99,7 +101,7 @@
                 "exact" true
                 "format" "tar"
                 "filter" (dict
-                  "command" "python3"
+                  "command" $python
                   "args" (concat (list "-S" $script "--cache-key" $source.sha256) $opencodeSelects (list "--transform" "agent-opencode")))
 -}}
 {{-       $_ := set $config (printf ".config/opencode/agents/%s" $sourceName) $entry -}}
