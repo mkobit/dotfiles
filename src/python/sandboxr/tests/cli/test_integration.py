@@ -125,6 +125,20 @@ def test_run_show_command_no_ssh_agent_flag_skips_sock(tmp_path, monkeypatch):
     assert f"SSH_AUTH_SOCK {sock}" not in result.output
 
 
+def test_run_show_command_skip_permissions_default_adds_flag():
+    result = runner.invoke(app, ["run", "--show-command", "--", "claude", "--print", "hi"])
+    assert result.exit_code == 0
+    assert "--dangerously-skip-permissions" in result.output
+
+
+def test_run_show_command_no_skip_permissions_omits_flag():
+    result = runner.invoke(
+        app, ["run", "--no-skip-permissions", "--show-command", "--", "claude", "--print", "hi"]
+    )
+    assert result.exit_code == 0
+    assert "--dangerously-skip-permissions" not in result.output
+
+
 def test_run_no_command_exits_nonzero():
     result = runner.invoke(app, ["run", "--show-command"])
     assert result.exit_code != 0

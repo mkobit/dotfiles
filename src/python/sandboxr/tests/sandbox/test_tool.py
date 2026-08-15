@@ -29,6 +29,24 @@ def test_agy_does_not_get_sandbox_flag():
     assert "--sandbox" not in cmd
 
 
+def test_claude_skip_permissions_false_omits_flag():
+    cmd, _env = adapt_command(["claude", "--print", "hi"], {}, skip_permissions=False)
+    assert "--dangerously-skip-permissions" not in cmd
+
+
+def test_agy_skip_permissions_false_omits_flag():
+    cmd, _env = adapt_command(["agy", "run"], {}, skip_permissions=False)
+    assert "--dangerously-skip-permissions" not in cmd
+
+
+def test_skip_permissions_false_does_not_remove_explicit_flag():
+    # Explicit opt-in via the raw command line still wins.
+    cmd, _env = adapt_command(
+        ["claude", "--dangerously-skip-permissions"], {}, skip_permissions=False
+    )
+    assert cmd.count("--dangerously-skip-permissions") == 1
+
+
 def test_opencode_sets_config_env():
     _cmd, env = adapt_command(["opencode"], {})
     assert "OPENCODE_CONFIG" in env

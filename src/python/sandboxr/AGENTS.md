@@ -12,6 +12,11 @@ Nothing in this package applies.
 `sandboxr run -- TOOL ARGS`.
 Outer bwrap (Linux/WSL) is the security boundary; each adapter flips the tool's bypass flag so the inner approval prompts don't fire.
 The tool's settings file inside the sandbox is *not* trusted — the OS-level isolation is.
+- **Sandboxed but still asking.**
+`sandboxr run --no-skip-permissions --tty -- TOOL ARGS`.
+Both boundaries active: OS sandbox underneath, tool's own prompts (driven by the existing `.chezmoidata/ai/command_policy/*.toml` allow/ask/deny catalog) still fire on top — e.g. local git ops flow through, `git push`/`gh pr create`/`gh pr merge` still ask.
+Requires `--tty` and an interactive tool invocation (not `claude -p` print mode) — a prompt has nowhere to render otherwise.
+Deliberately the minimal step here: a fuller persistent-sandbox-with-scoped-grants model was considered and deferred as unjustified complexity until this simpler version proves insufficient in practice.
 
 ## Files in the package
 
