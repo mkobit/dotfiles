@@ -58,6 +58,15 @@ def run(
         bool,
         typer.Option("--gpg-agent/--no-gpg-agent", help="Forward host GPG agent socket."),
     ] = False,
+    skip_permissions: Annotated[
+        bool,
+        typer.Option(
+            "--skip-permissions/--no-skip-permissions",
+            help="Bypass the tool's own permission prompts (default). Disable to keep them "
+            "active — e.g. staged approval on git push/gh pr create/merge — while still "
+            "sandboxed.",
+        ),
+    ] = True,
     extra_ro: Annotated[
         list[str] | None,
         typer.Option("--ro", help="Bind path read-only (repeatable)."),
@@ -90,7 +99,7 @@ def run(
         extra_rw=extra_rw or [],
         tty=tty,
     )
-    adapted_cmd, tool_env = adapt_command(command, os.environ)
+    adapted_cmd, tool_env = adapt_command(command, os.environ, skip_permissions=skip_permissions)
     if tool_env:
         spec = dataclasses.replace(spec, extra_env={**spec.extra_env, **tool_env})
     bwrap_cmd = build_args(spec, os.environ, default_mask_paths(os.getuid()))
