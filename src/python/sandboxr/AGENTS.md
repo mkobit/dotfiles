@@ -20,10 +20,11 @@ Deliberately the minimal step here: a fuller persistent-sandbox-with-scoped-gran
 
 ## Profiles
 
-`sandboxr run --profile NAME` (repeatable) selects named bundles of the granular flags below, defined in `_PROFILES` in `cli/run.py`.
+`sandboxr run --profile NAME` selects a named bundle of the granular flags below, defined in `_PROFILES` in `cli/run.py`.
 This is *not* the deleted `sandbox.toml` config file: no external file, no env var, no resolution order — just an in-code `dict[str, _Profile]`, a frozen dataclass with one field per overridable setting.
 Add an entry to `_PROFILES` to add a profile; nothing else needs to change.
-Multiple `--profile` flags compose, later wins on conflicting fields; the resolved invocation is always echoed (see Verification), so what a profile actually did is never a mystery.
+`--profile` takes a single name — a profile only overrides the fields it explicitly sets, so it still composes with the granular flags for anything it doesn't touch (`--profile push --network shared` gets push *and* web access without a second profile).
+The resolved invocation is always echoed (see Verification), so what a profile actually did is never a mystery.
 Built-in profiles:
 - `local-commit` forces `--no-ssh-agent --no-gpg-agent`: no push/sign capability, full stop.
 - `push` forces `--ssh-agent`.

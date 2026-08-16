@@ -1,6 +1,5 @@
 import dataclasses
 import os
-from collections.abc import Sequence
 from pathlib import Path
 from typing import Annotated
 
@@ -36,10 +35,13 @@ class _Profile:
 
 # Named bundles of the flags below -- pure in-code sugar, not a config file.
 # No resolution order, no env var, nothing to go read elsewhere: --profile
-# just pre-sets fields on top of the granular flags' own defaults, applied
-# in list order (later wins on conflicting keys). Add an entry here to add
-# a profile; nothing else needs to change. gh_config triggers the
-# read-only ~/.config/gh bind below, since it isn't a plain SandboxSpec field.
+# just pre-sets fields on top of the granular flags' own defaults. A profile
+# only overrides the fields it sets -- anything it leaves None still falls
+# through to the granular flag, so e.g. `--profile push --network shared`
+# already composes push with web access without needing two profiles. Add
+# an entry here to add a profile; nothing else needs to change. gh_config
+# triggers the read-only ~/.config/gh bind below, since it isn't a plain
+# SandboxSpec field.
 _PROFILES: dict[str, _Profile] = {
     "local-commit": _Profile(ssh_agent=False, gpg_agent=False),
     "push": _Profile(ssh_agent=True),
@@ -48,20 +50,12 @@ _PROFILES: dict[str, _Profile] = {
 }
 
 
-def _merge_profiles(names: Sequence[str]) -> _Profile:
-    merged = _Profile()
-    for name in names:
-        if name not in _PROFILES:
-            raise _fail(f"unknown profile {name!r}; available: {', '.join(sorted(_PROFILES))}")
-        wanted = _PROFILES[name]
-        merged = dataclasses.replace(
-            merged,
-            ssh_agent=wanted.ssh_agent if wanted.ssh_agent is not None else merged.ssh_agent,
-            gpg_agent=wanted.gpg_agent if wanted.gpg_agent is not None else merged.gpg_agent,
-            network=wanted.network if wanted.network is not None else merged.network,
-            gh_config=wanted.gh_config if wanted.gh_config is not None else merged.gh_config,
-        )
-    return merged
+def _resolve_profile(name: str | None) -> _Profile:
+    if name is None:
+        return _Profile()
+    if name not in _PROFILES:
+        raise _fail(f"unknown profile {name!r}; available: {', '.join(sorted(_PROFILES))}")
+    return _PROFILES[name]
 
 
 app = typer.Typer()
@@ -110,11 +104,11 @@ def run(
         ),
     ] = True,
     profile: Annotated[
-        list[str] | None,
+        str | None,
         typer.Option(
             "--profile",
-            help=f"Named flag bundle, repeatable, later wins on conflicts. "
-            f"Available: {', '.join(sorted(_PROFILES))}.",
+            help=f"Named flag bundle. Composes with granular flags for any field it "
+            f"doesn't set. Available: {', '.join(sorted(_PROFILES))}.",
         ),
     ] = None,
     extra_ro: Annotated[
@@ -139,7 +133,7 @@ def run(
         raise _fail("no command given; usage: sandboxr run [FLAGS] -- COMMAND [ARGS...]")
     cwd = Path.cwd()
     _require_bwrap()
-    overrides = _merge_profiles(profile or [])
+    overrides = _resolve_profile(profile)
     ssh_agent = overrides.ssh_agent if overrides.ssh_agent is not None else ssh_agent
     gpg_agent = overrides.gpg_agent if overrides.gpg_agent is not None else gpg_agent
     network = overrides.network if overrides.network is not None else network
