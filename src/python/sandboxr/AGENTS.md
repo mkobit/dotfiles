@@ -18,17 +18,26 @@ Both boundaries active: OS sandbox underneath, tool's own prompts (driven by the
 Requires `--tty` and an interactive tool invocation (not `claude -p` print mode) — a prompt has nowhere to render otherwise.
 Deliberately the minimal step here: a fuller persistent-sandbox-with-scoped-grants model was considered and deferred as unjustified complexity until this simpler version proves insufficient in practice.
 
-## Intent flags
+## Profiles
 
-`sandboxr run` also has `--local-commit`, `--web-access`, `--push`, and `--pr` — pure shorthand over the granular flags below, not a config layer.
-Each just sets `ssh_agent`/`gpg_agent`/`network`/`extra_ro` directly in code; nothing is hidden, and the resolved invocation is always echoed (see Verification), so what a flag actually did is never a mystery.
-- `--local-commit` forces `--no-ssh-agent --no-gpg-agent`: no push/sign capability, full stop.
-- `--web-access`/`--no-web-access` is `--network shared`/`none`, applied after `--network` so it always wins if both are given.
-- `--push`/`--no-push` is `--ssh-agent`/`--no-ssh-agent`.
-- `--pr` implies `--push` and additionally read-only-binds your real `~/.config/gh`.
+`sandboxr run --profile NAME` (repeatable) selects named bundles of the granular flags below, defined in `_PROFILES` in `cli/run.py`.
+This is *not* the deleted `sandbox.toml` config file: no external file, no env var, no resolution order — just an in-code `dict[str, _Profile]`, a frozen dataclass with one field per overridable setting.
+Add an entry to `_PROFILES` to add a profile; nothing else needs to change.
+Multiple `--profile` flags compose, later wins on conflicting fields; the resolved invocation is always echoed (see Verification), so what a profile actually did is never a mystery.
+Built-in profiles:
+- `local-commit` forces `--no-ssh-agent --no-gpg-agent`: no push/sign capability, full stop.
+- `push` forces `--ssh-agent`.
+- `web-access` forces `--network shared`.
+- `pr` implies `push` and additionally read-only-binds the real `~/.config/gh`.
 This is *not* a scoped credential — there's no short-lived or per-usage token issuance, so the agent gets whatever access your actual `gh auth login` session has, not just this repo.
 Read-only only stops the sandbox from tampering with the credential file; it does not limit what the token itself can do once `gh` reads it.
 Chose this over a second hand-scoped PAT file because a hand-scoped token is still just another standing secret to create and remember to rotate, for a security property achievable another way if it ever matters (see the deferred broker idea, not built).
+
+## Isolated concurrent sessions
+
+Already works today, no sandboxr-specific support needed: create a git worktree (`git worktree add ../feature-x`, or the `using-git-worktrees` skill), `cd` into it, then `sandboxr run`/`shell` from there.
+`_git_common_dir()` (`cli/_common.py`) detects you're in a linked worktree and binds both the worktree's own directory (isolated, per-session) and the main checkout's `.git` (shared object store, so commits/refs are visible across sessions) — verified live, not assumed.
+Home-tools binds (`RO_HOME_PATHS`/`RW_HOME_PATHS`) are independent of cwd, so they're identical across every concurrent session regardless.
 
 ## Files in the package
 
@@ -42,7 +51,7 @@ Bind table: `/` ro, `$HOME` tmpfs (default-deny), explicit re-binds for the tool
 
 ## Deliberate omissions
 
-- **No profile/config file** — every knob is an explicit CLI flag (`--project-write`, `--network`, `--ssh-agent`, `--gpg-agent`, `--ro`, `--rw`).
+- **No external profile/config file** — every knob is an explicit CLI flag (`--project-write`, `--network`, `--ssh-agent`, `--gpg-agent`, `--ro`, `--rw`), or a named bundle of them via `--profile` (see Profiles — an in-code registry, not a file).
 A prior design read profiles from `.chezmoidata/ai/sandbox.toml` and supported a pluggable `srt` backend; both were removed as unneeded indirection over a single, always-on `bwrap` path.
 - **No domain-allowlisted egress** — `--network` is binary (`none` or full host network); bwrap has no proxy/filtering primitive of its own.
 `srt` (`@anthropic-ai/sandbox-runtime`) was tried for exactly this gap and reverted: its seccomp filter architecturally cannot forward SSH/GPG agent sockets on Linux (path-based unix-socket filtering isn't possible under seccomp-bpf), and porting bwrap's bind-table concepts into its config surface produced most of the integration bugs this project has hit.
@@ -69,3 +78,4 @@ A read-only `gh` PAT at `~/.local/state/ai-policy/tokens/readonly.token` (chmod 
 - Add new RW or RO home paths in `bwrap.py` (`RW_HOME_PATHS` / `RO_HOME_PATHS`) when a tool needs persistent state inside the sandbox.
 Bind defensively — if the path doesn't exist on the host, the bwrap step is skipped, so adding speculative candidate paths is cheap.
 - New sandbox knobs are CLI flags threaded through `_sandbox_spec` (`cli/_common.py`) into `SandboxSpec`, not config file keys.
+- New profiles are entries in `_PROFILES` (`cli/run.py`) — add a field to `_Profile` first if the knob doesn't exist yet.

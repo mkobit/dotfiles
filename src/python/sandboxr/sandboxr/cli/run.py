@@ -1,5 +1,6 @@
 import dataclasses
 import os
+from collections.abc import Sequence
 from pathlib import Path
 from typing import Annotated
 
@@ -21,6 +22,47 @@ _CTX = {
     "ignore_unknown_options": True,
     "allow_interspersed_args": False,
 }
+
+
+@dataclasses.dataclass(frozen=True)
+class _Profile:
+    """One field per overridable flag; None means "this profile doesn't touch it"."""
+
+    ssh_agent: bool | None = None
+    gpg_agent: bool | None = None
+    network: str | None = None
+    gh_config: bool | None = None
+
+
+# Named bundles of the flags below -- pure in-code sugar, not a config file.
+# No resolution order, no env var, nothing to go read elsewhere: --profile
+# just pre-sets fields on top of the granular flags' own defaults, applied
+# in list order (later wins on conflicting keys). Add an entry here to add
+# a profile; nothing else needs to change. gh_config triggers the
+# read-only ~/.config/gh bind below, since it isn't a plain SandboxSpec field.
+_PROFILES: dict[str, _Profile] = {
+    "local-commit": _Profile(ssh_agent=False, gpg_agent=False),
+    "push": _Profile(ssh_agent=True),
+    "web-access": _Profile(network="shared"),
+    "pr": _Profile(ssh_agent=True, gh_config=True),
+}
+
+
+def _merge_profiles(names: Sequence[str]) -> _Profile:
+    merged = _Profile()
+    for name in names:
+        if name not in _PROFILES:
+            raise _fail(f"unknown profile {name!r}; available: {', '.join(sorted(_PROFILES))}")
+        wanted = _PROFILES[name]
+        merged = dataclasses.replace(
+            merged,
+            ssh_agent=wanted.ssh_agent if wanted.ssh_agent is not None else merged.ssh_agent,
+            gpg_agent=wanted.gpg_agent if wanted.gpg_agent is not None else merged.gpg_agent,
+            network=wanted.network if wanted.network is not None else merged.network,
+            gh_config=wanted.gh_config if wanted.gh_config is not None else merged.gh_config,
+        )
+    return merged
+
 
 app = typer.Typer()
 
@@ -67,31 +109,14 @@ def run(
             "sandboxed.",
         ),
     ] = True,
-    local_commit: Annotated[
-        bool | None,
+    profile: Annotated[
+        list[str] | None,
         typer.Option(
-            "--local-commit/--no-local-commit",
-            help="Shorthand: no push/sign capability at all "
-            "(forces --no-ssh-agent --no-gpg-agent).",
+            "--profile",
+            help=f"Named flag bundle, repeatable, later wins on conflicts. "
+            f"Available: {', '.join(sorted(_PROFILES))}.",
         ),
     ] = None,
-    web_access: Annotated[
-        bool | None,
-        typer.Option("--web-access/--no-web-access", help="Shorthand for --network shared/none."),
-    ] = None,
-    push: Annotated[
-        bool | None,
-        typer.Option("--push/--no-push", help="Shorthand for --ssh-agent/--no-ssh-agent."),
-    ] = None,
-    pr: Annotated[
-        bool,
-        typer.Option(
-            "--pr/--no-pr",
-            help="Push capability plus read-only access to your real gh credentials "
-            "(~/.config/gh), so `gh pr create` works. Not a scoped credential — the agent "
-            "gets whatever access your own `gh auth login` session has.",
-        ),
-    ] = False,
     extra_ro: Annotated[
         list[str] | None,
         typer.Option("--ro", help="Bind path read-only (repeatable)."),
@@ -114,17 +139,12 @@ def run(
         raise _fail("no command given; usage: sandboxr run [FLAGS] -- COMMAND [ARGS...]")
     cwd = Path.cwd()
     _require_bwrap()
-    if local_commit:
-        ssh_agent = False
-        gpg_agent = False
-    if push is not None:
-        ssh_agent = push
-    if pr:
-        ssh_agent = True
-    if web_access is not None:
-        network = "shared" if web_access else "none"
+    overrides = _merge_profiles(profile or [])
+    ssh_agent = overrides.ssh_agent if overrides.ssh_agent is not None else ssh_agent
+    gpg_agent = overrides.gpg_agent if overrides.gpg_agent is not None else gpg_agent
+    network = overrides.network if overrides.network is not None else network
     resolved_extra_ro = list(extra_ro or [])
-    if pr:
+    if overrides.gh_config:
         # Real gh session, not a scoped credential: no short-lived or
         # per-usage token issuance exists yet. Read-only only protects the
         # file from tampering inside the sandbox -- it does not limit what
