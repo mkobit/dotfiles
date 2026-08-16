@@ -67,6 +67,31 @@ def run(
             "sandboxed.",
         ),
     ] = True,
+    local_commit: Annotated[
+        bool | None,
+        typer.Option(
+            "--local-commit/--no-local-commit",
+            help="Shorthand: no push/sign capability at all "
+            "(forces --no-ssh-agent --no-gpg-agent).",
+        ),
+    ] = None,
+    web_access: Annotated[
+        bool | None,
+        typer.Option("--web-access/--no-web-access", help="Shorthand for --network shared/none."),
+    ] = None,
+    push: Annotated[
+        bool | None,
+        typer.Option("--push/--no-push", help="Shorthand for --ssh-agent/--no-ssh-agent."),
+    ] = None,
+    pr: Annotated[
+        bool,
+        typer.Option(
+            "--pr/--no-pr",
+            help="Push capability plus read-only access to your real gh credentials "
+            "(~/.config/gh), so `gh pr create` works. Not a scoped credential — the agent "
+            "gets whatever access your own `gh auth login` session has.",
+        ),
+    ] = False,
     extra_ro: Annotated[
         list[str] | None,
         typer.Option("--ro", help="Bind path read-only (repeatable)."),
@@ -89,13 +114,29 @@ def run(
         raise _fail("no command given; usage: sandboxr run [FLAGS] -- COMMAND [ARGS...]")
     cwd = Path.cwd()
     _require_bwrap()
+    if local_commit:
+        ssh_agent = False
+        gpg_agent = False
+    if push is not None:
+        ssh_agent = push
+    if pr:
+        ssh_agent = True
+    if web_access is not None:
+        network = "shared" if web_access else "none"
+    resolved_extra_ro = list(extra_ro or [])
+    if pr:
+        # Real gh session, not a scoped credential: no short-lived or
+        # per-usage token issuance exists yet. Read-only only protects the
+        # file from tampering inside the sandbox -- it does not limit what
+        # the token itself can do once `gh` reads it.
+        resolved_extra_ro.append(str(Path.home() / ".config" / "gh"))
     spec = _sandbox_spec(
         cwd,
         project_write=project_write,
         network=network,
         ssh_agent=ssh_agent,
         gpg_agent=gpg_agent,
-        extra_ro=extra_ro or [],
+        extra_ro=resolved_extra_ro,
         extra_rw=extra_rw or [],
         tty=tty,
     )

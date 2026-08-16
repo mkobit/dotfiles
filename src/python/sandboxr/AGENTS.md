@@ -18,6 +18,18 @@ Both boundaries active: OS sandbox underneath, tool's own prompts (driven by the
 Requires `--tty` and an interactive tool invocation (not `claude -p` print mode) — a prompt has nowhere to render otherwise.
 Deliberately the minimal step here: a fuller persistent-sandbox-with-scoped-grants model was considered and deferred as unjustified complexity until this simpler version proves insufficient in practice.
 
+## Intent flags
+
+`sandboxr run` also has `--local-commit`, `--web-access`, `--push`, and `--pr` — pure shorthand over the granular flags below, not a config layer.
+Each just sets `ssh_agent`/`gpg_agent`/`network`/`extra_ro` directly in code; nothing is hidden, and the resolved invocation is always echoed (see Verification), so what a flag actually did is never a mystery.
+- `--local-commit` forces `--no-ssh-agent --no-gpg-agent`: no push/sign capability, full stop.
+- `--web-access`/`--no-web-access` is `--network shared`/`none`, applied after `--network` so it always wins if both are given.
+- `--push`/`--no-push` is `--ssh-agent`/`--no-ssh-agent`.
+- `--pr` implies `--push` and additionally read-only-binds your real `~/.config/gh`.
+This is *not* a scoped credential — there's no short-lived or per-usage token issuance, so the agent gets whatever access your actual `gh auth login` session has, not just this repo.
+Read-only only stops the sandbox from tampering with the credential file; it does not limit what the token itself can do once `gh` reads it.
+Chose this over a second hand-scoped PAT file because a hand-scoped token is still just another standing secret to create and remember to rotate, for a security property achievable another way if it ever matters (see the deferred broker idea, not built).
+
 ## Files in the package
 
 - `sandboxr/backend/protocol.py` — `SandboxBackend` `Protocol`.
