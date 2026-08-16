@@ -8,6 +8,7 @@ is faked so _require_bwrap passes on non-Linux hosts.
 
 import os
 import shutil
+from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
@@ -137,6 +138,69 @@ def test_run_show_command_no_skip_permissions_omits_flag():
     )
     assert result.exit_code == 0
     assert "--dangerously-skip-permissions" not in result.output
+
+
+# ── run intent flags (--local-commit / --web-access / --push / --pr) ──────
+
+
+def test_run_local_commit_forces_no_ssh_agent(tmp_path, monkeypatch):
+    sock = tmp_path / "agent.sock"
+    sock.touch()
+    monkeypatch.setenv("SSH_AUTH_SOCK", str(sock))
+    result = runner.invoke(app, ["run", "--local-commit", "--show-command", "--", "bash"])
+    assert result.exit_code == 0
+    assert f"SSH_AUTH_SOCK {sock}" not in result.output
+
+
+def test_run_push_true_binds_ssh_agent_sock(tmp_path, monkeypatch):
+    sock = tmp_path / "agent.sock"
+    sock.touch()
+    monkeypatch.setenv("SSH_AUTH_SOCK", str(sock))
+    result = runner.invoke(app, ["run", "--no-ssh-agent", "--push", "--show-command", "--", "bash"])
+    assert result.exit_code == 0
+    assert f"SSH_AUTH_SOCK {sock}" in result.output
+
+
+def test_run_push_false_omits_ssh_agent_sock(tmp_path, monkeypatch):
+    sock = tmp_path / "agent.sock"
+    sock.touch()
+    monkeypatch.setenv("SSH_AUTH_SOCK", str(sock))
+    result = runner.invoke(app, ["run", "--no-push", "--show-command", "--", "bash"])
+    assert result.exit_code == 0
+    assert f"SSH_AUTH_SOCK {sock}" not in result.output
+
+
+def test_run_web_access_false_unshares_net():
+    result = runner.invoke(app, ["run", "--no-web-access", "--show-command", "--", "bash"])
+    assert result.exit_code == 0
+    assert "--unshare-net" in result.output
+
+
+def test_run_web_access_true_overrides_network_none():
+    result = runner.invoke(
+        app, ["run", "--network", "none", "--web-access", "--show-command", "--", "bash"]
+    )
+    assert result.exit_code == 0
+    assert "--unshare-net" not in result.output
+
+
+def test_run_pr_binds_gh_config_read_only(tmp_path, tmp_path_factory, monkeypatch):
+    fake_home = tmp_path_factory.mktemp("home")
+    monkeypatch.setattr(Path, "home", lambda: fake_home)
+    gh_dir = fake_home / ".config" / "gh"
+    gh_dir.mkdir(parents=True)
+    result = runner.invoke(app, ["run", "--pr", "--show-command", "--", "bash"])
+    assert result.exit_code == 0
+    assert f"--ro-bind {gh_dir} {gh_dir}" in result.output
+
+
+def test_run_pr_forces_ssh_agent_on(tmp_path, monkeypatch):
+    sock = tmp_path / "agent.sock"
+    sock.touch()
+    monkeypatch.setenv("SSH_AUTH_SOCK", str(sock))
+    result = runner.invoke(app, ["run", "--no-ssh-agent", "--pr", "--show-command", "--", "bash"])
+    assert result.exit_code == 0
+    assert f"SSH_AUTH_SOCK {sock}" in result.output
 
 
 def test_run_no_command_exits_nonzero():
