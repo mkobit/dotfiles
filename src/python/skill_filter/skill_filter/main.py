@@ -6,9 +6,13 @@ chezmoi downloads a pinned upstream repository archive, pipes it through this
 tool to select and re-root individual skill directories, and extracts the
 result to the target directory.
 
-This module must remain self-contained and stdlib-only.
-It runs via system ``python3`` at chezmoi apply time, before uv or mise are
-installed, and is invoked by file path rather than as an installed package.
+This module must remain self-contained and stdlib-only, and must keep working on
+the system ``python3``, since uv and mise are not installed yet on a fresh
+machine. It is invoked by file path rather than as an installed package, by
+whichever interpreter resolve-interpreter.sh picks: a uv- or mise-managed 3.11+
+when one exists, because those start faster, and the system interpreter
+otherwise. Holding the 3.8 floor is what makes that choice safe, since every
+interpreter it can pick then behaves identically.
 
 Example:
     python3 main.py --strip-components 1 --select skills/brainstorming:. < repo.tar.gz > skill.tar

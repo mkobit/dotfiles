@@ -35,6 +35,17 @@ def _interpreter_version(command):
     return (int(match.group(1)), int(match.group(2))) if match else None
 
 
+def _argument_problems(template_name, target, args):
+    """Yield a description for each way this filter's argv gives up startup cost."""
+    where = f"{template_name}: external {target!r} filter.args = {args!r}"
+
+    # -S skips site-packages scanning. The saving depends on how much is installed
+    # in the interpreter being used, so it is insurance against the bad case rather
+    # than a fixed win; dropping it silently regresses every one of these spawns.
+    if "-S" not in args:
+        yield f"{where} is missing -S; see src/python/skill_filter/README.md"
+
+
 def _problems(template_name, target, command):
     """Yield a description for each way this filter.command is unsafe."""
     where = f"{template_name}: external {target!r} filter.command = {command!r}"
@@ -82,11 +93,13 @@ def test_external_filter_commands_are_pinned_real_interpreters(chezmoi_source_ro
         for target, entry in tomllib.loads(render.stdout).items():
             if not isinstance(entry, dict):
                 continue
-            command = entry.get("filter", {}).get("command")
+            filter_spec = entry.get("filter", {})
+            command = filter_spec.get("command")
             if command is None:
                 continue
             filters_checked += 1
             problems.extend(_problems(template.name, target, command))
+            problems.extend(_argument_problems(template.name, target, filter_spec.get("args", [])))
 
     assert filters_checked, "no externals declared a filter.command; this guard would silently pass"
     assert not problems, "unsafe external filter interpreters:\n" + "\n".join(problems)
