@@ -14,7 +14,9 @@ python3 skill_filter/main.py --strip-components 1 --select skills/brainstorming:
 ## Constraints
 
 This module is stdlib-only and self-contained on purpose.
-It runs via system `python3` at chezmoi apply time, before uv or mise are installed, and is invoked by file path from `{{ .chezmoi.workingTree }}/src/python/skill_filter/skill_filter/main.py`.
+It must run on the system `python3` at chezmoi apply time, since uv and mise are not installed yet on a fresh machine, and it is invoked by file path from `{{ .chezmoi.workingTree }}/src/python/skill_filter/skill_filter/main.py`.
+That is a floor, not the interpreter actually used: `resolve-interpreter.sh` prefers a uv- or mise-managed 3.11+ when one exists because those start faster, and falls back to the system interpreter otherwise.
+Keeping the 3.8 contract is what makes that fallback safe — every interpreter it can pick behaves identically, so the choice never changes output.
 Overlay environments that rsync this repo into a combined chezmoi source tree must include `src/python/skill_filter/` for skill externals to work.
 Do not add runtime dependencies or intra-package imports.
 
@@ -47,6 +49,13 @@ uv run ruff check src/python/skill_filter
 
 ## Performance
 
-To minimize process spawning overhead during `chezmoi apply` (which runs this filter command 60+ times), always invoke the script with the Python `-S` flag.
-This flag bypasses Python's default `site` module initialization (skipping scanning for site-packages).
-Bypassing this module drops the startup latency of each Python filter run from ~100ms down to ~12ms.
+`chezmoi apply` runs this filter command once per external — 309 times as of this writing — so per-spawn cost dominates, and the two things that matter are which interpreter runs it and what it imports.
+
+Always invoke the script with the Python `-S` flag, which bypasses `site` module initialization and its scan for site-packages.
+The saving depends entirely on how much is installed in the interpreter being used: on a uv-managed interpreter with a near-empty site-packages it is only ~2ms per spawn (26.3ms against 28.5ms, measured over 60 spawns), while an interpreter with a large site-packages loses far more.
+Treat `-S` as cheap insurance against the bad case rather than a guaranteed win, and never remove it on the evidence of one machine.
+
+Startup and imports, not the work itself, are most of a run.
+Measured on a uv-managed 3.14, per spawn: bare interpreter 11.8ms, `os`/`sys`/`hashlib` 13.8ms, and all nine module-level imports 22.7ms, against ~38ms for a full cache-hit run.
+Precompiling to `.pyc` was measured and does not help — compiling this file is ~1ms, below the run-to-run noise.
+The unexploited saving is that a cache hit needs neither `tarfile` nor `gzip`.

@@ -6,15 +6,16 @@
   A source with "skill_file" set (flat, single-skill repo with SKILL.md at
   the archive root instead of a skills_root/<name>/ subdirectory) selects
   that bare file directly rather than a subtree.
-  The filter runs via system python3 and must stay stdlib-only because uv and
-  mise are not installed until after apply. Target directories are fixed by
-  each tool's skill discovery and are hardcoded here; overlays deselect skills
+  The filter must stay stdlib-only because uv and mise are not installed until
+  after apply; python/filter-interpreter resolves which interpreter runs it.
+  Target directories are fixed by each tool's skill discovery and are
+  hardcoded here; overlays deselect skills
   via "absent" states rather than disabling a target. A skill state may also
   name a single tool ("claude", "antigravity", "cursor", "codex") to deploy only there.
 */ -}}
 {{- $cfg := .ai.skills -}}
 {{- $tools := dict "claude" ".claude/skills" "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" "codex" ".codex/skills" -}}
-{{- $python := "/usr/bin/python3" -}}
+{{- $python := includeTemplate "python/filter-interpreter" . -}}
 {{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
 {{- $config := dict -}}
 {{- range $sourceName, $source := $cfg.external -}}

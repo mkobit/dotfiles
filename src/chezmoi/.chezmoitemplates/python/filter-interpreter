@@ -1,0 +1,17 @@
+{{- /*
+  Renders the absolute path to the python interpreter that chezmoi externals use
+  as "filter.command".
+
+  Include with includeTemplate, once per template, never per external:
+
+    {{- $python := includeTemplate "python/filter-interpreter" . -}}
+
+  The resolution itself lives in src/python/skill_filter/resolve-interpreter.sh,
+  next to the filter it resolves an interpreter for, and that script carries the
+  rationale. It is shell rather than template logic so it can be run and tested
+  standalone, and so the version-preference loop reads as a loop; this template
+  is only the render-time call site. output aborts the render if the script
+  exits non-zero, which is the wanted behaviour when no interpreter is found.
+*/ -}}
+{{- $resolver := joinPath .chezmoi.workingTree "src/python/skill_filter/resolve-interpreter.sh" -}}
+{{- output "sh" $resolver .chezmoi.destDir | trim -}}

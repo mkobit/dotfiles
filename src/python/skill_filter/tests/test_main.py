@@ -18,6 +18,17 @@ from skill_filter.main import (
     parse_selection,
 )
 
+if sys.version_info >= (3, 11):
+    import tomllib
+
+# skill_filter itself must keep running on python 3.8 (see README.md), and CI
+# exercises the whole suite there. tomllib arrived in 3.11, so the tests that
+# validate emitted TOML against the real parser skip on older interpreters
+# rather than breaking collection for every other test in the file.
+requires_tomllib = pytest.mark.skipif(
+    sys.version_info < (3, 11), reason="tomllib requires python 3.11+"
+)
+
 SCRIPT = Path(__file__).parent.parent / "skill_filter" / "main.py"
 
 
@@ -47,6 +58,13 @@ def read_archive(buffer: io.BytesIO) -> dict[str, bytes | None]:
             else None
             for member in archive.getmembers()
         }
+
+
+def read_text(result: dict[str, bytes | None], name: str) -> str:
+    """Return a file entry's decoded contents, asserting it is not a directory."""
+    content = result[name]
+    assert content is not None, f"{name} is a directory entry, not a file"
+    return content.decode()
 
 
 def run_filter(
@@ -249,6 +267,94 @@ class TestAgentSkillTransform:
             )
         )
         assert result == {"engineering-sre.md": AGENT_AS_OPENCODE_MD}
+
+    @requires_tomllib
+    def test_codex_transform_emits_toml_parseable_by_the_real_parser(self):
+        source = make_archive({"engineering/engineering-sre.md": AGENT_MD})
+        result = read_archive(
+            run_filter(
+                source,
+                [
+                    parse_selection(
+                        "engineering/engineering-sre.md:engineering-sre.toml"
+                    )
+                ],
+                transform_name="agent-codex",
+            )
+        )
+        parsed = tomllib.loads(read_text(result, "engineering-sre.toml"))
+        assert set(parsed) == {"name", "description", "developer_instructions"}
+        assert parsed["name"] == "engineering-sre"
+        assert "\n" in parsed["developer_instructions"], "body newlines must survive"
+
+    @requires_tomllib
+    @pytest.mark.parametrize(
+        "body",
+        [
+            pytest.param(
+                'Use """triple quotes""" inline.', id="toml-multiline-delimiter"
+            ),
+            pytest.param(r"A path like C:\Users\x and a regex \d+\.", id="backslashes"),
+            pytest.param('Ends with a quote"', id="trailing-quote"),
+            pytest.param("Tabs\tand\rcarriage returns", id="control-chars"),
+            pytest.param("Unicode: emoji 🎨 and accents é", id="unicode"),
+        ],
+    )
+    def test_codex_transform_round_trips_hostile_bodies(self, body):
+        """The hand-rolled TOML writer must survive what real agent bodies contain."""
+        agent = f"---\nname: X\ndescription: A test agent\n---\n{body}\n".encode()
+        source = make_archive({"engineering/agent.md": agent})
+        result = read_archive(
+            run_filter(
+                source,
+                [parse_selection("engineering/agent.md:agent.toml")],
+                transform_name="agent-codex",
+            )
+        )
+        parsed = tomllib.loads(read_text(result, "agent.toml"))
+        assert parsed["developer_instructions"] == body
+
+    def test_codex_transform_output_shape_without_a_toml_parser(self):
+        """Assert the emitted shape literally, so the 3.8 runtime still covers this path.
+
+        The parser-backed tests above are the real check, but they need tomllib and
+        so skip on the interpreter this transform actually runs on during apply.
+        """
+        agent = b'---\nname: X\ndescription: Does things\n---\nLine one\nsays "hi"\n'
+        source = make_archive({"engineering/agent.md": agent})
+        result = read_archive(
+            run_filter(
+                source,
+                [parse_selection("engineering/agent.md:agent.toml")],
+                transform_name="agent-codex",
+            )
+        )
+        emitted = read_text(result, "agent.toml")
+        assert emitted == (
+            'name = "agent"\n'
+            'description = "Does things"\n'
+            'developer_instructions = "Line one\\nsays \\"hi\\""\n'
+        )
+
+    def test_codex_transform_rejects_oversized_description(self):
+        agent = f"---\nname: X\ndescription: {'x' * 1025}\n---\nBody\n".encode()
+        source = make_archive({"engineering/agent.md": agent})
+        with pytest.raises(FilterError, match="over Codex's 1024"):
+            run_filter(
+                source,
+                [parse_selection("engineering/agent.md:agent.toml")],
+                transform_name="agent-codex",
+            )
+
+    def test_codex_transform_rejects_empty_description(self):
+        agent = b"---\nname: X\ndescription:\n---\nBody\n"
+        source = make_archive({"engineering/agent.md": agent})
+        with pytest.raises(FilterError, match="empty description"):
+            run_filter(
+                source,
+                [parse_selection("engineering/agent.md:agent.toml")],
+                transform_name="agent-codex",
+            )
 
     def test_missing_frontmatter_raises(self):
         source = make_archive({"engineering/agent.md": b"# Just a heading\n"})
