@@ -8,7 +8,6 @@ import tarfile
 from pathlib import Path
 
 import pytest
-import tomllib
 
 from skill_filter.main import (
     TRANSFORMS,
@@ -17,6 +16,17 @@ from skill_filter.main import (
     filter_archive,
     main,
     parse_selection,
+)
+
+if sys.version_info >= (3, 11):
+    import tomllib
+
+# skill_filter itself must keep running on python 3.8 (see README.md), and CI
+# exercises the whole suite there. tomllib arrived in 3.11, so the tests that
+# validate emitted TOML against the real parser skip on older interpreters
+# rather than breaking collection for every other test in the file.
+requires_tomllib = pytest.mark.skipif(
+    sys.version_info < (3, 11), reason="tomllib requires python 3.11+"
 )
 
 SCRIPT = Path(__file__).parent.parent / "skill_filter" / "main.py"
@@ -258,6 +268,7 @@ class TestAgentSkillTransform:
         )
         assert result == {"engineering-sre.md": AGENT_AS_OPENCODE_MD}
 
+    @requires_tomllib
     def test_codex_transform_emits_toml_parseable_by_the_real_parser(self):
         source = make_archive({"engineering/engineering-sre.md": AGENT_MD})
         result = read_archive(
@@ -276,6 +287,7 @@ class TestAgentSkillTransform:
         assert parsed["name"] == "engineering-sre"
         assert "\n" in parsed["developer_instructions"], "body newlines must survive"
 
+    @requires_tomllib
     @pytest.mark.parametrize(
         "body",
         [
@@ -301,6 +313,28 @@ class TestAgentSkillTransform:
         )
         parsed = tomllib.loads(read_text(result, "agent.toml"))
         assert parsed["developer_instructions"] == body
+
+    def test_codex_transform_output_shape_without_a_toml_parser(self):
+        """Assert the emitted shape literally, so the 3.8 runtime still covers this path.
+
+        The parser-backed tests above are the real check, but they need tomllib and
+        so skip on the interpreter this transform actually runs on during apply.
+        """
+        agent = b'---\nname: X\ndescription: Does things\n---\nLine one\nsays "hi"\n'
+        source = make_archive({"engineering/agent.md": agent})
+        result = read_archive(
+            run_filter(
+                source,
+                [parse_selection("engineering/agent.md:agent.toml")],
+                transform_name="agent-codex",
+            )
+        )
+        emitted = read_text(result, "agent.toml")
+        assert emitted == (
+            'name = "agent"\n'
+            'description = "Does things"\n'
+            'developer_instructions = "Line one\\nsays \\"hi\\""\n'
+        )
 
     def test_codex_transform_rejects_oversized_description(self):
         agent = f"---\nname: X\ndescription: {'x' * 1025}\n---\nBody\n".encode()
