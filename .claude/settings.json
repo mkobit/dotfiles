@@ -13,7 +13,21 @@
       "Bash(chezmoi status:*)",
       "Bash(chezmoi data:*)"
     ],
-    "deny": [],
+    "deny": [
+      "Edit(~/.claude/skills/**)",
+      "Edit(~/.claude/agents/**)",
+      "Edit(~/.claude/hooks/**)",
+      "Edit(~/.claude/commands/**)",
+      "Edit(~/.claude/settings.json)",
+      "Edit(~/.claude/CLAUDE.md)",
+      "Edit(~/.cursor/skills/**)",
+      "Edit(~/.cursor/agents/**)",
+      "Edit(~/.codex/skills/**)",
+      "Edit(~/.codex/agents/**)",
+      "Edit(~/.gemini/antigravity-cli/skills/**)",
+      "Edit(~/.gemini/antigravity-cli/agents/**)",
+      "Edit(~/.config/opencode/agents/**)"
+    ],
     "additionalDirectories": []
   },
   "hooks": {
