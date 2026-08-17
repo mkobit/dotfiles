@@ -35,7 +35,7 @@ Run `git status` and `git worktree list` before making changes to confirm which 
 When a request in this repo mentions editing Claude settings, `CLAUDE.md`, agent definitions, skills, or other AI-tool config, it means editing the chezmoi source and running `chezmoi apply` — **never** editing the deployed file directly.
 Deployed copies under `~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.cursor/`, etc. (or the equivalent under `.chezmoi.destDir` during testing) are chezmoi-managed targets; direct edits there are silently overwritten on the next `chezmoi apply`.
 This applies to every dotfile-managed target, not just Claude's — the same mistake applies to any tool whose config chezmoi owns.
-This repo's `.claude/settings.json` runs a `PreToolUse` hook (`.claude/hooks/deployed-dotfile-edit-guard.py`) that blocks Edit/Write to known deployed paths for this reason; an overlay composing this repo should register the equivalent guard in its own project `.claude/settings.json`.
+This repo's `.claude/settings.json` denies `Edit(...)` on known deployed paths for this reason (`Edit` deny rules also cover Write and NotebookEdit — see [permission docs](https://code.claude.com/docs/en/permissions)); Read stays allowed since chezmoi's own tooling still needs to inspect deployed files. An overlay composing this repo should register the equivalent deny rules in its own project `.claude/settings.json`.
 
 - Global Claude Code prompt: `src/chezmoi/dot_claude/CLAUDE.md.tmpl` → `~/.claude/CLAUDE.md`.
 - Claude Code settings: `src/chezmoi/dot_claude/modify_settings.json` → `~/.claude/settings.json`.
