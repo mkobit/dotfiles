@@ -122,9 +122,75 @@ def _transform_agent_opencode(src: str, content: bytes) -> bytes:
     return "\n".join((*header, *parts.body)).encode("utf-8")
 
 
+# Codex enforces these when loading an agent role and skips the file with a
+# startup warning if either is exceeded. Failing here instead surfaces the
+# problem at apply time rather than as a silently missing agent.
+_CODEX_NAME_LIMIT = 64
+_CODEX_DESCRIPTION_LIMIT = 1024
+
+_TOML_ESCAPES = {
+    "\\": "\\\\",
+    '"': '\\"',
+    "\b": "\\b",
+    "\t": "\\t",
+    "\n": "\\n",
+    "\f": "\\f",
+    "\r": "\\r",
+}
+
+
+def _toml_basic_string(value: str) -> str:
+    """Quote a str as a TOML basic string.
+
+    Single-line form with escaped newlines, deliberately, rather than the more
+    readable multi-line \"\"\" form: agent bodies are arbitrary prose that
+    already contains \"\"\" and trailing quotes in practice, and every one of
+    those is a delimiter edge case. A basic string has exactly one escaping
+    rule, so this stays correct without special cases.
+    """
+    out = []
+    for char in value:
+        if char in _TOML_ESCAPES:
+            out.append(_TOML_ESCAPES[char])
+        elif char < " " or char == "\x7f":
+            out.append(f"\\u{ord(char):04X}")
+        else:
+            out.append(char)
+    return '"{}"'.format("".join(out))
+
+
+def _transform_agent_codex(src: str, content: bytes) -> bytes:
+    """Rewrite a Claude Code agent .md into a Codex agent role .toml.
+
+    Codex discovers <config>/agents/**/*.toml and requires name, description,
+    and developer_instructions; the markdown body becomes the instructions.
+    """
+    parts = _parse_agent(src, content)
+    _, _, description = parts.description.partition(":")
+    description = description.strip()
+    if not description:
+        raise FilterError(f"agent file {src!r} has an empty description")
+    if len(parts.name) > _CODEX_NAME_LIMIT:
+        raise FilterError(
+            f"agent file {src!r} name is {len(parts.name)} chars, over Codex's {_CODEX_NAME_LIMIT}"
+        )
+    if len(description) > _CODEX_DESCRIPTION_LIMIT:
+        raise FilterError(
+            f"agent file {src!r} description is {len(description)} chars, over Codex's {_CODEX_DESCRIPTION_LIMIT}"
+        )
+    body = "\n".join(parts.body).strip()
+    fields = (
+        f"name = {_toml_basic_string(parts.name)}",
+        f"description = {_toml_basic_string(description)}",
+        f"developer_instructions = {_toml_basic_string(body)}",
+    )
+    return "{}\n".format("\n".join(fields)).encode("utf-8")
+
+
 TRANSFORMS: dict[str, Transform] = {
     "agent-skill": _transform_agent_skill,
     "agent-opencode": _transform_agent_opencode,
+    "agent-codex": _transform_agent_codex,
 }
 
 

@@ -1,3 +1,5 @@
+import shutil
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -53,3 +55,47 @@ def test_agents_dir_deployed_and_valid(chezmoi_dest, relative_dir):
         for agent_file in agent_files:
             assert agent_file.suffix == ".md", f"{agent_file} is not an .md agent file"
             assert agent_file.stat().st_size > 0, f"{agent_file} is empty"
+
+
+@pytest.mark.integration
+def test_codex_agent_roles_deployed_and_loadable(chezmoi_dest):
+    """Codex agents are TOML roles, not markdown, and every required key must be present.
+
+    Codex silently skips a role file it cannot parse — it only says so as a startup
+    warning — so a malformed one would otherwise look like a working deployment
+    with a missing agent. See test_codex_reports_no_agent_role_warnings.
+    """
+    agents_dir = chezmoi_dest / ".codex/agents"
+    assert agents_dir.is_dir(), f"{agents_dir} does not exist after chezmoi apply"
+
+    role_files = sorted(agents_dir.rglob("*.toml"))
+    assert role_files, f"{agents_dir} contains no .toml agent roles"
+
+    for role_file in role_files:
+        assert role_file.stat().st_size > 0, f"{role_file} is empty"
+        parsed = tomllib.loads(role_file.read_text())
+        for key in ("name", "description", "developer_instructions"):
+            assert parsed.get(key), f"{role_file} is missing required key {key!r}"
+
+    stray = [entry for entry in agents_dir.rglob("*") if entry.is_file() and entry.suffix != ".toml"]
+    assert not stray, f"non-TOML files under {agents_dir}: {stray}"
+
+
+@pytest.mark.integration
+def test_codex_reports_no_agent_role_warnings(host):
+    """Ask Codex itself whether it loaded the roles, rather than trusting the file layout.
+
+    `codex doctor` emits "Ignoring malformed agent role definition" per bad file and
+    counts it under startup warnings. Verified to fire for a role missing
+    developer_instructions, including one nested in a subdirectory, so silence here
+    is meaningful rather than vacuous.
+    """
+    if not shutil.which("codex"):
+        pytest.skip("codex is not installed")
+
+    result = host.run("codex doctor")
+    assert result.rc == 0, f"codex doctor failed:\n{result.stderr}"
+    offenders = [
+        line.strip() for line in f"{result.stdout}\n{result.stderr}".splitlines() if "malformed agent role" in line
+    ]
+    assert not offenders, "codex rejected deployed agent roles:\n" + "\n".join(offenders)
