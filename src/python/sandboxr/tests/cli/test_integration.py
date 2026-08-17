@@ -196,25 +196,19 @@ def test_run_profile_pr_forces_ssh_agent_on(tmp_path, monkeypatch):
     assert f"SSH_AUTH_SOCK {sock}" in result.output
 
 
-def test_run_profile_repeatable_later_wins_on_conflict(tmp_path, monkeypatch):
+def test_run_profile_composes_with_granular_flag_for_untouched_field(tmp_path, monkeypatch):
+    # --profile push doesn't touch network, so --network none still applies
+    # on top of it -- no second --profile needed to combine the two.
     sock = tmp_path / "agent.sock"
     sock.touch()
     monkeypatch.setenv("SSH_AUTH_SOCK", str(sock))
     result = runner.invoke(
         app,
-        [
-            "run",
-            "--profile",
-            "push",
-            "--profile",
-            "local-commit",
-            "--show-command",
-            "--",
-            "bash",
-        ],
+        ["run", "--profile", "push", "--network", "none", "--show-command", "--", "bash"],
     )
     assert result.exit_code == 0
-    assert f"SSH_AUTH_SOCK {sock}" not in result.output
+    assert f"SSH_AUTH_SOCK {sock}" in result.output
+    assert "--unshare-net" in result.output
 
 
 def test_run_unknown_profile_fails_with_available_list():
