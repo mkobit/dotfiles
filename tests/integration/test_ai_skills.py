@@ -12,15 +12,39 @@ ACTIVE_SKILL_DIRS = [
 ]
 
 
+def _entries(directory: Path) -> list[Path]:
+    return [entry for entry in sorted(directory.iterdir()) if entry.name != ".DS_Store"]
+
+
+def assert_is_skill(entry: Path) -> None:
+    """Assert a directory is a skill: it holds a non-empty SKILL.md."""
+    skill_md = entry / "SKILL.md"
+    assert skill_md.is_file(), f"{entry} is missing SKILL.md"
+    assert skill_md.stat().st_size > 0, f"{skill_md} is empty"
+
+
 def assert_entries_are_valid_skills(skills_dir: Path) -> None:
-    """Assert every entry in a skills directory is a directory with a non-empty SKILL.md."""
-    for entry in sorted(skills_dir.iterdir()):
-        if entry.name == ".DS_Store":
-            continue
+    """Assert every entry is a skill, or a namespace whose children are skills.
+
+    Claude Code discovers one level of nesting, so slack/format-message/SKILL.md is
+    a real skill rather than a broken deployment — plugin-provided and
+    overlay-authored skills both arrive this way. An entry with no SKILL.md of its
+    own is therefore treated as a namespace and its children are checked instead,
+    which is why a flat-only assertion reported healthy deployments as failures.
+    """
+    for entry in _entries(skills_dir):
         assert entry.is_dir(), f"{entry} is not a directory; deployed skills must be directories"
-        skill_md = entry / "SKILL.md"
-        assert skill_md.is_file(), f"{entry} is missing SKILL.md"
-        assert skill_md.stat().st_size > 0, f"{skill_md} is empty"
+        if (entry / "SKILL.md").is_file():
+            assert_is_skill(entry)
+            continue
+
+        nested = _entries(entry)
+        assert nested, f"{entry} has neither a SKILL.md nor any nested skills"
+        for child in nested:
+            assert child.is_dir(), (
+                f"{child} is not a directory, but {entry} has no SKILL.md so it must be a namespace of skills"
+            )
+            assert_is_skill(child)
 
 
 @pytest.mark.integration
