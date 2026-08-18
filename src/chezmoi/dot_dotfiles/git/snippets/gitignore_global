@@ -7,6 +7,8 @@
 /bazel-*
 .scratch/
 docs/superpowers/plans/*
+# Documentation: https://mise.jdx.dev/configuration/environments.html
+mise.*.local.toml
 mise.local.toml
 .antigravity/
 .antigravitycli/
