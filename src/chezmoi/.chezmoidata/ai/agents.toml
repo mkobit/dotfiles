@@ -64,46 +64,40 @@ sha256 = "cc7e99ab1f744f2a97960d1a1953e0bdf951e7f64a1044f89e0180079835ec2d"
 # analytics/support-ticket infra this agent won't have access to — ignore them.
 "engineering/engineering-technical-writer" = "present"
 "engineering/engineering-webassembly-engineer" = "present"
-"product/product-feedback-synthesizer" = "present"
-"product/product-manager" = "present"
-"product/product-sprint-prioritizer" = "present"
-"product/product-trend-researcher" = "present"
-"project-management/project-management-experiment-tracker" = "present"
-"project-management/project-management-meeting-notes-specialist" = "present"
-"project-management/project-management-project-shepherd" = "present"
+# Rejected 2026-08-18: context-footprint trim; no product/PM workflow in this repo.
+"product/product-feedback-synthesizer" = "absent"
+"product/product-manager" = "absent"
+"product/product-sprint-prioritizer" = "absent"
+"product/product-trend-researcher" = "absent"
+# Rejected 2026-08-18: context-footprint trim; no experiment-tracking workflow here.
+"project-management/project-management-experiment-tracker" = "absent"
+# Rejected 2026-08-18: context-footprint trim; meeting transcription/summarization
+# is already covered by Zoom and other tools in the actual meeting pipeline.
+"project-management/project-management-meeting-notes-specialist" = "absent"
+# Rejected 2026-08-18: context-footprint trim; cross-team coordination scope
+# doesn't fit solo dotfiles/personal work.
+"project-management/project-management-project-shepherd" = "absent"
 # Rejected 2026-06-12: prompt embeds the author's own project layout (runs
 # ./qa-playwright-capture.sh, writes ai/memory-bank/ paths); adapt or replace.
 "project-management/project-manager-senior" = "absent"
-"design/design-ui-designer" = "present"
-"design/design-ux-architect" = "present"
-# Audit caveat 2026-07-15: core workflow assumes recruiting and interviewing
-# real human research participants — verify consent/privacy handling before
-# treating its protocols as ready to run.
-"design/design-ux-researcher" = "present"
-# Audit caveat 2026-07-15: directs manual penetration testing/DAST against
-# staging environments — scope to authorized, non-production targets only.
-"security/security-appsec-engineer" = "present"
-# Audit caveat 2026-07-15: workflow generates working exploit/PoC code (SQLi,
-# SSRF, auth-bypass) — confirm target is local/non-production before running.
-"security/security-architect" = "present"
+# Rejected 2026-08-18: context-footprint trim; no UI/visual-design workflow here.
+"design/design-ui-designer" = "absent"
+# Rejected 2026-08-18: context-footprint trim; CSS/design-system slice is
+# already covered by modern-web-guidance (GoogleChrome-maintained), and its
+# architecture-ownership slice duplicates software-architect/backend-architect.
+"design/design-ux-architect" = "absent"
+"design/design-ux-researcher" = "absent"
+# Rejected 2026-08-18: context-footprint trim; keeping only
+# ai-generated-code-auditor (matches this catalog's own supply-chain /
+# prompt-injection review practice) as the grounded pick of the security cluster.
+"security/security-appsec-engineer" = "absent"
+"security/security-architect" = "absent"
 "security/security-ai-generated-code-auditor" = "present"
-# Audit caveat 2026-07-15: directs live penetration tests/red-team exercises
-# against cloud environments — require explicit written authorization and a
-# non-prod scoped target.
-"security/security-cloud-security-architect" = "present"
-"security/security-compliance-auditor" = "present"
-# Audit caveat 2026-07-15: forensic scripts run as root/admin and collect
-# credentials, logs, and process state — only run against systems you're
-# authorized to investigate.
-"security/security-incident-responder" = "present"
-# Audit caveat 2026-07-15: directs real offensive techniques (credential
-# exfiltration, AD compromise, physical/social engineering) — verify written
-# authorization before executing against any real target.
-"security/security-penetration-tester" = "present"
-# Audit caveat 2026-07-15: leak-response runbook rotates/revokes real
-# provider credentials and rewrites git history — confirm target account/repo
-# and team coordination first.
-"security/security-secrets-credential-engineer" = "present"
+"security/security-cloud-security-architect" = "absent"
+"security/security-compliance-auditor" = "absent"
+"security/security-incident-responder" = "absent"
+"security/security-penetration-tester" = "absent"
+"security/security-secrets-credential-engineer" = "absent"
 # Rejected 2026-07-15: prompt is built around a fictional internal doc
 # (security/17-security-pattern.md, cited ~30 times) and assumes IdP-backed
 # role sync as ground truth; would need authoring before use.
@@ -125,11 +119,13 @@ sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
 agents_root = "plugins"
 
 [ai.agents.external.wshobson-agents.agents]
-"content-marketing/agents/content-marketer" = "present"
-"content-marketing/agents/search-specialist" = "present"
-"seo-content-creation/agents/seo-content-auditor" = "present"
-"seo-content-creation/agents/seo-content-planner" = "present"
-"seo-content-creation/agents/seo-content-writer" = "present"
+# Rejected 2026-08-18: context-footprint trim; no content-marketing/SEO
+# workflow in this repo.
+"content-marketing/agents/content-marketer" = "absent"
+"content-marketing/agents/search-specialist" = "absent"
+"seo-content-creation/agents/seo-content-auditor" = "absent"
+"seo-content-creation/agents/seo-content-planner" = "absent"
+"seo-content-creation/agents/seo-content-writer" = "absent"
 "llm-application-dev/agents/vector-database-engineer" = "present"
 # Rejected 2026-07-20: duplicates existing engineering-ai-engineer pick.
 "llm-application-dev/agents/ai-engineer" = "absent"
@@ -144,15 +140,17 @@ agents_root = "plugins"
 # and /spark-preflight command not selected here — degrades to a generic
 # fallback, but the reference will point at nothing.
 "llm-finetuning/agents/llm-finetuning-training-engineer" = "present"
-"julia-development/agents/julia-pro" = "present"
-"jvm-languages/agents/csharp-pro" = "present"
-"jvm-languages/agents/java-pro" = "present"
-"jvm-languages/agents/scala-pro" = "present"
-"dotnet-contribution/agents/dotnet-architect" = "present"
-"functional-programming/agents/elixir-pro" = "present"
-"functional-programming/agents/haskell-pro" = "present"
-"systems-programming/agents/c-pro" = "present"
-"systems-programming/agents/cpp-pro" = "present"
+# Rejected 2026-08-18: context-footprint trim; none of Julia/JVM/.NET/
+# functional/systems languages appear in this repo or base dotfiles.
+"julia-development/agents/julia-pro" = "absent"
+"jvm-languages/agents/csharp-pro" = "absent"
+"jvm-languages/agents/java-pro" = "absent"
+"jvm-languages/agents/scala-pro" = "absent"
+"dotnet-contribution/agents/dotnet-architect" = "absent"
+"functional-programming/agents/elixir-pro" = "absent"
+"functional-programming/agents/haskell-pro" = "absent"
+"systems-programming/agents/c-pro" = "absent"
+"systems-programming/agents/cpp-pro" = "absent"
 # Rejected 2026-07-20: generic keyword-list style, weaker than c-pro/cpp-pro siblings.
 "systems-programming/agents/golang-pro" = "absent"
 # Rejected 2026-07-20: same generic-list issue as golang-pro.
