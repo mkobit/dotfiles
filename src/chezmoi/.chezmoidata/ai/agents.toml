@@ -64,15 +64,16 @@ sha256 = "cc7e99ab1f744f2a97960d1a1953e0bdf951e7f64a1044f89e0180079835ec2d"
 # analytics/support-ticket infra this agent won't have access to — ignore them.
 "engineering/engineering-technical-writer" = "present"
 "engineering/engineering-webassembly-engineer" = "present"
-# Rejected 2026-08-18: context-footprint trim; no product/PM workflow in this
-# repo — keeping only meeting-notes-specialist as the grounded pick of the cluster.
+# Rejected 2026-08-18: context-footprint trim; no product/PM workflow in this repo.
 "product/product-feedback-synthesizer" = "absent"
 "product/product-manager" = "absent"
 "product/product-sprint-prioritizer" = "absent"
 "product/product-trend-researcher" = "absent"
 # Rejected 2026-08-18: context-footprint trim; no experiment-tracking workflow here.
 "project-management/project-management-experiment-tracker" = "absent"
-"project-management/project-management-meeting-notes-specialist" = "present"
+# Rejected 2026-08-18: context-footprint trim; meeting transcription/summarization
+# is already covered by Zoom and other tools in the actual meeting pipeline.
+"project-management/project-management-meeting-notes-specialist" = "absent"
 # Rejected 2026-08-18: context-footprint trim; cross-team coordination scope
 # doesn't fit solo dotfiles/personal work.
 "project-management/project-management-project-shepherd" = "absent"
