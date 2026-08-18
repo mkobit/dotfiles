@@ -1,4 +1,5 @@
 from collections.abc import Generator
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -22,7 +23,7 @@ def test_main_help() -> None:
     assert "Transcribe audio files" in result.output
 
 
-def test_main_default(mock_transcriber: MagicMock) -> None:
+def test_main_default(mock_transcriber: MagicMock, tmp_path: Path) -> None:
     instance = mock_transcriber.return_value
 
     segment = TranscriptionSegment(start=0.0, end=1.0, text="Hello")
@@ -33,18 +34,17 @@ def test_main_default(mock_transcriber: MagicMock) -> None:
 
     instance.transcribe.return_value = (segment_gen(), info)
 
+    audio_file = tmp_path / "test.wav"
+    audio_file.write_text("dummy")
+
     runner = CliRunner()
-    with runner.isolated_filesystem():
-        with open("test.wav", "w") as f:
-            f.write("dummy")
+    result = runner.invoke(cli, [str(audio_file)])
 
-        result = runner.invoke(cli, ["test.wav"])
-
-        assert result.exit_code == 0
-        assert "Hello" in result.output
+    assert result.exit_code == 0
+    assert "Hello" in result.output
 
 
-def test_main_template_string(mock_transcriber: MagicMock) -> None:
+def test_main_template_string(mock_transcriber: MagicMock, tmp_path: Path) -> None:
     instance = mock_transcriber.return_value
 
     segment = TranscriptionSegment(start=0.0, end=1.0, text="Hello")
@@ -55,15 +55,14 @@ def test_main_template_string(mock_transcriber: MagicMock) -> None:
 
     instance.transcribe.return_value = (segment_gen(), info)
 
+    audio_file = tmp_path / "test.wav"
+    audio_file.write_text("dummy")
+
     runner = CliRunner()
-    with runner.isolated_filesystem():
-        with open("test.wav", "w") as f:
-            f.write("dummy")
+    result = runner.invoke(cli, [str(audio_file), "--template", "custom: {{ segments[0].text }}"])
 
-        result = runner.invoke(cli, ["test.wav", "--template", "custom: {{ segments[0].text }}"])
-
-        assert result.exit_code == 0
-        assert "custom: Hello" in result.output
+    assert result.exit_code == 0
+    assert "custom: Hello" in result.output
 
 
 def test_faster_whisper_transcriber_init() -> None:
