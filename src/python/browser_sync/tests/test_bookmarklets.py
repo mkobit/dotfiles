@@ -1,6 +1,10 @@
 """Tests for bookmarklet JS-to-URL conversion."""
 
-from browser_sync.bookmarklets import _js_to_bookmarklet_url
+from pathlib import Path
+
+import pytest
+
+from browser_sync.bookmarklets import _get_desired, _js_to_bookmarklet_url
 
 
 def test_strips_title_directive() -> None:
@@ -37,3 +41,18 @@ def test_source_without_comments_is_unchanged_from_prior_collapsing_behavior() -
     source = "// title: Example\nconst a = 1;\nconst b = 2;\n"
 
     assert _js_to_bookmarklet_url(source) == "javascript:const a = 1; const b = 2;"
+
+
+def test_get_desired_rejects_a_bookmarklet_that_is_not_valid_javascript(tmp_path: Path) -> None:
+    # A backstop for the whole class of encoding bugs: whatever produced a broken
+    # bookmarklet, catch it here instead of a SyntaxError in the browser.
+    (tmp_path / "broken.js").write_text("// title: Broken\nconst a = (1;\n")
+
+    with pytest.raises(SystemExit):
+        _get_desired(tmp_path)
+
+
+def test_get_desired_accepts_valid_javascript(tmp_path: Path) -> None:
+    (tmp_path / "fine.js").write_text("// title: Fine\nconst a = 1;\n")
+
+    assert _get_desired(tmp_path) == {"Fine": "javascript:const a = 1;"}
