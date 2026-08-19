@@ -4,11 +4,8 @@
 set -euo pipefail
 
 if command -v agy &>/dev/null; then
-    current=$(agy --version 2>/dev/null | awk '{print $NF}' || echo "unknown")
-    if [[ "$current" == "{{ .agy.version }}" ]]; then
-        echo "agy {{ .agy.version }} already installed"
-        exit 0
-    fi
+    echo "agy already installed at $(command -v agy); self-updates automatically"
+    exit 0
 fi
 
 echo "Installing Antigravity CLI {{ .agy.version }}..."
