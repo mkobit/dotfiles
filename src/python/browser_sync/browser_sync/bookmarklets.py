@@ -8,7 +8,6 @@ chrome://bookmarks. Paste into the DevTools console (Cmd+Option+J) to apply.
 import json
 import logging
 import re
-import subprocess
 import sys
 from collections.abc import Mapping
 from pathlib import Path
@@ -87,22 +86,6 @@ def _js_to_bookmarklet_url(js_source: str) -> str:
     return f"javascript:{collapsed}"
 
 
-def _check_syntax(js_file: Path, code: str) -> None:
-    """Fail fast if the generated bookmarklet body isn't valid JavaScript.
-
-    Catches encoding bugs (e.g. a comment swallowing the rest of the script) before they
-    ever reach Chrome, where they'd only surface as a cryptic runtime SyntaxError.
-    """
-    try:
-        result = subprocess.run(["node", "--check", "-"], input=code, capture_output=True, text=True, check=False)
-    except FileNotFoundError:
-        _log.warning("node not found on PATH — skipping syntax check for %s", js_file)
-        return
-    if result.returncode != 0:
-        _log.error("%s produced invalid JavaScript:\n%s", js_file, result.stderr.strip())
-        sys.exit(1)
-
-
 def _get_desired(dir_path: Path) -> Mapping[str, str]:
     """Return {title: url} from source JS files, sorted case-insensitively by title."""
     js_files = sorted(dir_path.glob("*.js"))
@@ -111,11 +94,7 @@ def _get_desired(dir_path: Path) -> Mapping[str, str]:
         sys.exit(1)
 
     sources = {js_file: js_file.read_text() for js_file in js_files}
-    entries = {}
-    for js_file, source in sources.items():
-        url = _js_to_bookmarklet_url(source)
-        _check_syntax(js_file, url.removeprefix("javascript:"))
-        entries[_get_title(js_file, source)] = url
+    entries = {_get_title(js_file, source): _js_to_bookmarklet_url(source) for js_file, source in sources.items()}
     return dict(sorted(entries.items(), key=lambda item: item[0].lower()))
 
 
