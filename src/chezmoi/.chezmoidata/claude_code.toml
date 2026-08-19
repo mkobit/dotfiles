@@ -49,3 +49,8 @@ remove = [
 DISABLE_AUTOUPDATER = "true"
 DISABLE_TELEMETRY = "true"
 ENABLE_TOOL_SEARCH = "true"
+# CLAUDE_CODE_DISABLE_MOUSE_CLICKS deliberately left unset: it also kills
+# clicking OSC-8 links and text selection, not just permission-prompt/menu
+# clicks, so it trades away more than it fixes. Revisit if upstream splits
+# this into a click-vs-cmd/ctrl-click distinction for interactive elements
+# only (anthropics/claude-code#70622).
