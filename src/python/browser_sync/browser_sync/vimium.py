@@ -2,7 +2,7 @@
 
 Compiles a search-engines TOML file plus a key-mappings text file into
 Vimium's storage format and generates a console script. Paste into the
-DevTools console on the Vimium options page (Cmd+Option+I).
+DevTools console on the Vimium options page (Cmd+Option+J).
 """
 
 import json
@@ -111,7 +111,7 @@ def run(toml_path: Path, keymappings_path: Path, *, dry_run: bool, no_open: bool
     _log.log(_terminal.OK, "Vimium sync script copied to clipboard")
 
     if not no_open:
-        _log.info("opening Vimium options — paste into DevTools console (Cmd+Option+I)")
+        _log.info("opening Vimium options — paste into DevTools console (Cmd+Option+J)")
         _browser.open_in_chrome(_VIMIUM_OPTIONS_URL)
     else:
         _log.info("paste clipboard into DevTools console on:\n  %s", _VIMIUM_OPTIONS_URL)

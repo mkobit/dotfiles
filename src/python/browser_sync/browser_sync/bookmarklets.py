@@ -2,7 +2,7 @@
 
 Compares source JS files against Chrome's current Bookmarks file. If they
 differ, generates a console script, copies it to clipboard, and opens
-chrome://bookmarks. Paste into the DevTools console (Cmd+Option+I) to apply.
+chrome://bookmarks. Paste into the DevTools console (Cmd+Option+J) to apply.
 """
 
 import json
@@ -242,10 +242,10 @@ def run(dir_path: Path, *, dry_run: bool, no_open: bool, force: bool) -> None:
     _log.log(_terminal.OK, "sync script copied to clipboard")
 
     if not no_open:
-        _log.info("opening chrome://bookmarks — paste into DevTools console (Cmd+Option+I)")
+        _log.info("opening chrome://bookmarks — paste into DevTools console (Cmd+Option+J)")
         _browser.open_in_chrome("chrome://bookmarks")
     else:
-        _log.info("paste clipboard into DevTools console on chrome://bookmarks (Cmd+Option+I)")
+        _log.info("paste clipboard into DevTools console on chrome://bookmarks (Cmd+Option+J)")
 
     _terminal.prompt_done_or_recopy(lambda: _clipboard.copy_to_clipboard(script))
     _log.log(_terminal.OK, "done")
