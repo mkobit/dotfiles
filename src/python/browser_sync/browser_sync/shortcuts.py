@@ -153,6 +153,7 @@ def run(toml_path: Path, *, prune: bool, confirm: bool, dry_run: bool, no_open: 
         print(_build_sync_script(shortcuts, prune=prune, confirm_removal=confirm))
         return
 
+    scripts = None
     if prune and confirm:
         scripts = {
             "prune": _build_sync_script(shortcuts, prune=True, confirm_removal=True),
@@ -177,6 +178,10 @@ def run(toml_path: Path, *, prune: bool, confirm: bool, dry_run: bool, no_open: 
     else:
         _log.info("paste clipboard into DevTools console on:\n  %s", _CHROME_SETTINGS_URL)
 
-    _terminal.prompt_done_or_recopy(lambda: _clipboard.copy_to_clipboard(script))
+    if scripts is not None:
+        copy_fns = {mode_name: (lambda s=s: _clipboard.copy_to_clipboard(s)) for mode_name, s in scripts.items()}
+        _terminal.prompt_shortcut_done_or_recopy(copy_fns)
+    else:
+        _terminal.prompt_done_or_recopy(lambda: _clipboard.copy_to_clipboard(script))
 
     _log.log(_terminal.OK, "done")

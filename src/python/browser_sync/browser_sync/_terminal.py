@@ -6,7 +6,7 @@ import termios
 import time
 import tty
 import typing
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 
 OK = 25
 logging.addLevelName(OK, "OK")
@@ -79,8 +79,8 @@ def prompt_done_or_recopy(copy_fn: Callable[[], None]) -> None:
             print()
             return
         if ch.lower() == "r":
+            print(ch)
             copy_fn()
-            print()
             _log.log(OK, "recopied to clipboard")
             print("\033[0;36m[?]\033[0m    Press Enter when done, or 'r' to recopy ", end="", flush=True)
         if ch == "\x03":
@@ -110,8 +110,43 @@ def prompt_shortcut_sync_mode() -> str:
     while True:
         ch = getkey()
         if mode := _shortcut_sync_mode_for_key(ch):
-            print()
+            print(ch if ch not in ("\r", "\n") else "")
             return mode
+        if ch == "\x03":
+            print()
+            _log.info("skipped")
+            sys.exit(0)
+
+
+def _shortcut_recopy_mode_for_key(key: str) -> str | None:
+    """Return the payload mode selected by a shortcut-sync recopy keypress."""
+    if key.lower() == "p":
+        return "prune"
+    if key.lower() == "x":
+        return "exclude_removals"
+    if key.lower() == "d":
+        return "dry_run"
+    return None
+
+
+_SHORTCUT_RECOPY_PROMPT = (
+    "\033[0;36m[?]\033[0m    Press Enter when done, or 'p'/'x'/'d' to recopy the prune/no-removals/dry-run payload "
+)
+
+
+def prompt_shortcut_done_or_recopy(copy_fns: Mapping[str, Callable[[], None]]) -> None:
+    """Wait for Enter (done) or a mode letter (recopy that payload instead)."""
+    print(_SHORTCUT_RECOPY_PROMPT, end="", flush=True)
+    while True:
+        ch = getkey()
+        if ch in ("\r", "\n"):
+            print()
+            return
+        if mode := _shortcut_recopy_mode_for_key(ch):
+            print(ch)
+            copy_fns[mode]()
+            _log.log(OK, "recopied %s payload", mode.replace("_", " "))
+            print(_SHORTCUT_RECOPY_PROMPT, end="", flush=True)
         if ch == "\x03":
             print()
             _log.info("skipped")
