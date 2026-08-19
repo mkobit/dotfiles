@@ -61,8 +61,8 @@ def _js_to_bookmarklet_url(js_source: str) -> str:
     """Convert JS source to a javascript: bookmarklet URL."""
     lines = js_source.strip().splitlines()
     body = lines[1:] if lines and re.match(r"^//\s*title:", lines[0]) else lines
-    collapsed = re.sub(r"\s*\n\s*", " ", "\n".join(body).strip())
-    return f"javascript:{collapsed}"
+    code = "\n".join(body).strip()
+    return f"javascript:{code}"
 
 
 def _get_desired(dir_path: Path) -> Mapping[str, str]:
