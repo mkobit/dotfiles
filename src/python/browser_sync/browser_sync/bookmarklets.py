@@ -57,12 +57,33 @@ def _get_title(js_file: Path, js_source: str) -> str:
     return " ".join(word.capitalize() for word in js_file.stem.split("-"))
 
 
+def _strip_line_comment(line: str) -> str:
+    """Strip a trailing `//` comment from a line, ignoring `//` inside string literals."""
+    in_string = None
+    i = 0
+    n = len(line)
+    while i < n:
+        ch = line[i]
+        if in_string:
+            if ch == "\\":
+                i += 1
+            elif ch == in_string:
+                in_string = None
+        elif ch in "\"'":
+            in_string = ch
+        elif ch == "/" and i + 1 < n and line[i + 1] == "/":
+            return line[:i]
+        i += 1
+    return line
+
+
 def _js_to_bookmarklet_url(js_source: str) -> str:
     """Convert JS source to a javascript: bookmarklet URL."""
     lines = js_source.strip().splitlines()
     body = lines[1:] if lines and re.match(r"^//\s*title:", lines[0]) else lines
-    code = "\n".join(body).strip()
-    return f"javascript:{code}"
+    uncommented = "\n".join(_strip_line_comment(line) for line in body)
+    collapsed = re.sub(r"\s*\n\s*", " ", uncommented.strip())
+    return f"javascript:{collapsed}"
 
 
 def _get_desired(dir_path: Path) -> Mapping[str, str]:
