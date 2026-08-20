@@ -1,0 +1,25 @@
+[bin.codex]
+version = "0.148.0"
+
+[bin.codex.github_releases]
+repo            = "openai/codex"
+bin_name        = "codex"
+external_type   = "archive-file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "rust-v{version}"
+filename_format = "codex-{target}.tar.gz"
+path_format     = "codex-{target}"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.codex.github_releases.platforms]
+darwin_arm64 = "aarch64-apple-darwin"
+darwin_amd64 = "x86_64-apple-darwin"
+linux_amd64  = "x86_64-unknown-linux-musl"
+linux_arm64  = "aarch64-unknown-linux-musl"
+
+[bin.codex.github_releases.checksums]
+darwin_arm64 = "758916aa38efa7ad076a050830fcbef1a7ed6f41efae9c1cceaeef63e428fc2b"
+darwin_amd64 = "54591772f242271f802f17b4dda6cecab29229ba71593e962e208549e0da1a3a"
+linux_amd64  = "1a36f762f6b3bef533bb86345ad9517661c2d84d53996a250cf2ca89d2cfee5a"
+linux_arm64  = "410c6ae0c763eb39c6da17665e63f9aa4a98e6ee663d81f8e8b779c97cb175ac"
