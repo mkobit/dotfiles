@@ -23,9 +23,12 @@
 {{- $url      := $gr.url_format      | replace "{base}" $base | replace "{repo}" $gr.repo | replace "{tag}" $tag | replace "{filename}" $filename -}}
 {{- $checksum := dig "checksums" $platform "" $gr -}}
 
-{{- $binName := dig "path_format" "" $gr -}}
-{{- if eq $gr.external_type "archive-file" -}}
-{{-   $binName = $binName | splitList "/" | last -}}
+{{- $binName := dig "bin_name" "" $gr -}}
+{{- if not $binName -}}
+{{-   $binName = dig "path_format" "" $gr -}}
+{{-   if eq $gr.external_type "archive-file" -}}
+{{-     $binName = $binName | splitList "/" | last -}}
+{{-   end -}}
 {{- end -}}
 {{- if not $binName -}}{{- $binName = $name -}}{{- end -}}
 

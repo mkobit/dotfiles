@@ -12,6 +12,7 @@ import pytest
         "bat",
         "zoxide",
         pytest.param("btop", marks=pytest.mark.chezmoi_installation("local.bin.btop", methods={"github_releases"})),
+        pytest.param("codex", marks=pytest.mark.chezmoi_installation("local.bin.codex", methods={"github_releases"})),
         pytest.param("pi", marks=pytest.mark.chezmoi_installation("local.bin.pi", methods={"github_releases"})),
     ],
 )
