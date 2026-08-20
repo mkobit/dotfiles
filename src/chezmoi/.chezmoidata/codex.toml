@@ -1,2 +1,17 @@
 [codex.tui]
 vim_mode_default = true
+
+# Observed Codex TUI components; no stable upstream configuration reference is
+# currently available. Keep the ordering deliberate.
+status_line = [
+  "model-with-reasoning",
+  "current-dir",
+  "project-name",
+  "git-branch",
+  "run-state",
+  "permissions",
+  "context-remaining",
+  "workspace-headline",
+  "task-progress",
+]
+status_line_use_colors = true
