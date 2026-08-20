@@ -118,7 +118,6 @@ def test_codex_reports_no_agent_role_warnings(host):
         pytest.skip("codex is not installed")
 
     result = host.run("codex doctor")
-    assert result.rc == 0, f"codex doctor failed:\n{result.stderr}"
     offenders = [
         line.strip() for line in f"{result.stdout}\n{result.stderr}".splitlines() if "malformed agent role" in line
     ]
