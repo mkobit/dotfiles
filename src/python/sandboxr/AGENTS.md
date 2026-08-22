@@ -2,6 +2,7 @@
 
 `sandboxr` is currently placed on hold while investing in Docker Sandboxes (`sbx`) as the container and microVM isolation layer.
 The CLI entrypoint fails closed with an error on any command invocation (`run`, `shell`, `doctor`) to prevent accidental execution.
+See [src/sbx/AGENTS.md](../../sbx/AGENTS.md) for the active Docker Sandboxes implementation and architecture.
 
 ## Purpose
 

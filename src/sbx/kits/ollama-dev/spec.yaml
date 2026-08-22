@@ -1,0 +1,15 @@
+schemaVersion: "2"
+kind: mixin
+name: ollama-dev
+description: Local development with host Ollama instances
+
+environment:
+  variables:
+    OLLAMA_HOST: "http://host.docker.internal:11434"
+
+permissions:
+  network:
+    allow:
+      - host.docker.internal:11434
+      - 127.0.0.1:11434
+      - localhost:11434
