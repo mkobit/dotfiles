@@ -23,6 +23,7 @@ url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"
 # Authored skills: full directory trees under src/ai/skills/<name>/ in this repo,
 # deployed via file:// externals (see .chezmoiexternals/ai-authored-skills.toml.tmpl).
 [ai.skills.authored]
+docker-sandboxes = "present"
 example_skill = "absent"
 modern-java-patterns = "present"
 pr-reviewer = "absent" # source deleted 2026-06-11; replaced by superpowers requesting/receiving-code-review
