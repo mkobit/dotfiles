@@ -8,8 +8,8 @@ import typer
 from sandboxr.backend.bwrap import build_args, default_mask_paths
 from sandboxr.cli._common import (
     _apply_timeout,
-    _echo_command,
     _fail,
+    _log_invocation,
     _refuse_if_nested,
     _require_bwrap,
     _sandbox_spec,
@@ -71,7 +71,7 @@ def run(
             "-t",
             help="Allocate a pseudo-TTY (weakens isolation: enables TIOCSTI injection).",
         ),
-    ] = False,
+    ] = True,
     show_command: Annotated[
         bool,
         typer.Option("--show-command", help="Print bwrap invocation instead of running."),
@@ -94,15 +94,6 @@ def run(
         bool,
         typer.Option("--gpg-agent/--no-gpg-agent", help="Forward host GPG agent socket."),
     ] = False,
-    skip_permissions: Annotated[
-        bool,
-        typer.Option(
-            "--skip-permissions/--no-skip-permissions",
-            help="Bypass the tool's own permission prompts (default). Disable to keep them "
-            "active — e.g. staged approval on git push/gh pr create/merge — while still "
-            "sandboxed.",
-        ),
-    ] = True,
     profile: Annotated[
         str | None,
         typer.Option(
@@ -154,12 +145,12 @@ def run(
         extra_rw=extra_rw or [],
         tty=tty,
     )
-    adapted_cmd, tool_env = adapt_command(command, os.environ, skip_permissions=skip_permissions)
+    adapted_cmd, tool_env = adapt_command(command, os.environ)
     if tool_env:
         spec = dataclasses.replace(spec, extra_env={**spec.extra_env, **tool_env})
     bwrap_cmd = build_args(spec, os.environ, default_mask_paths(os.getuid()))
     args = _apply_timeout([*bwrap_cmd, *adapted_cmd], timeout)
-    _echo_command(args)
+    _log_invocation(args, action="run")
     if show_command:
         typer.echo(" ".join(args))
         return

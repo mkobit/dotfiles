@@ -49,15 +49,15 @@ def test_run_show_command_prints_copyable_bwrap_line():
     assert result.output.rstrip().splitlines()[-1].startswith("bwrap")
 
 
-def test_run_echoes_command_even_without_show_command(monkeypatch):
-    # --show-command returns before os.execvp, so it can't prove the echo
-    # survives on the real-execution path. Mock execvp instead so run()
-    # falls through normally without actually replacing this process.
+def test_run_logs_invocation_to_state_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
     monkeypatch.setattr("os.execvp", lambda *args, **kwargs: None)
     result = runner.invoke(app, ["run", "--", "bash"])
     assert result.exit_code == 0
-    assert "sandboxr: sandbox invocation" in result.output
-    assert "  bwrap" in result.output
+    assert "sandboxr: sandbox invocation" not in result.output
+    log_file = tmp_path / "sandboxr" / "invocations.log"
+    assert log_file.exists()
+    assert "action=run" in log_file.read_text()
 
 
 def test_run_show_command_project_rw_bound(tmp_path):
@@ -126,18 +126,27 @@ def test_run_show_command_no_ssh_agent_flag_skips_sock(tmp_path, monkeypatch):
     assert f"SSH_AUTH_SOCK {sock}" not in result.output
 
 
-def test_run_show_command_skip_permissions_default_adds_flag():
+def test_run_show_command_does_not_auto_add_skip_permissions():
     result = runner.invoke(app, ["run", "--show-command", "--", "claude", "--print", "hi"])
     assert result.exit_code == 0
-    assert "--dangerously-skip-permissions" in result.output
+    assert "--dangerously-skip-permissions" not in result.output
 
 
-def test_run_show_command_no_skip_permissions_omits_flag():
+def test_run_show_command_preserves_explicit_skip_permissions():
     result = runner.invoke(
-        app, ["run", "--no-skip-permissions", "--show-command", "--", "claude", "--print", "hi"]
+        app,
+        [
+            "run",
+            "--show-command",
+            "--",
+            "claude",
+            "--dangerously-skip-permissions",
+            "--print",
+            "hi",
+        ],
     )
     assert result.exit_code == 0
-    assert "--dangerously-skip-permissions" not in result.output
+    assert "--dangerously-skip-permissions" in result.output
 
 
 # ── run --profile ───────────────────────────────────────────────────────────
@@ -229,6 +238,18 @@ def test_run_nested_refused(monkeypatch):
     assert result.exit_code != 0
 
 
+def test_run_show_command_tty_default_does_not_add_new_session():
+    result = runner.invoke(app, ["run", "--show-command", "--", "bash"])
+    assert result.exit_code == 0
+    assert "--new-session" not in result.output
+
+
+def test_run_show_command_no_tty_adds_new_session():
+    result = runner.invoke(app, ["run", "--no-tty", "--show-command", "--", "bash"])
+    assert result.exit_code == 0
+    assert "--new-session" in result.output
+
+
 # ── shell --show-command ────────────────────────────────────────────────────
 
 
@@ -251,9 +272,12 @@ def test_shell_show_command_no_tty_adds_new_session():
     assert "--new-session" in result.output
 
 
-def test_shell_echoes_command_even_without_show_command(monkeypatch):
+def test_shell_logs_invocation_to_state_dir(tmp_path, monkeypatch):
+    monkeypatch.setenv("XDG_STATE_HOME", str(tmp_path))
     monkeypatch.setattr("os.execvp", lambda *args, **kwargs: None)
     result = runner.invoke(app, ["shell"])
     assert result.exit_code == 0
-    assert "sandboxr: sandbox invocation" in result.output
-    assert "  bwrap" in result.output
+    assert "sandboxr: sandbox invocation" not in result.output
+    log_file = tmp_path / "sandboxr" / "invocations.log"
+    assert log_file.exists()
+    assert "action=shell" in log_file.read_text()
