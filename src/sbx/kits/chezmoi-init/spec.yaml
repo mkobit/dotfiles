@@ -1,0 +1,28 @@
+schemaVersion: "2"
+kind: mixin
+name: chezmoi-init
+description: Initialize chezmoi dotfiles management in sandbox environments
+
+environment:
+  variables:
+    CHEZMOI_DESTDIR: "/home/agent"
+
+setup:
+  install:
+    - command: "sh -c '$(curl -fsLS https://get.chezmoi.io)' -- -b /usr/local/bin"
+  startup:
+    - command:
+        - chezmoi
+        - init
+        - --apply
+        - --source=/workspace/src/chezmoi
+        - --destination=/home/agent
+
+permissions:
+  network:
+    allow:
+      - get.chezmoi.io:443
+      - github.com:443
+      - api.github.com:443
+      - objects.githubusercontent.com:443
+      - raw.githubusercontent.com:443
