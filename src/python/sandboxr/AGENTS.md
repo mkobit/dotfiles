@@ -23,7 +23,7 @@ Uses interactive tool invocation (not `claude -p` print mode) — a prompt has n
 This is *not* the deleted `sandbox.toml` config file: no external file, no env var, no resolution order — just an in-code `dict[str, _Profile]`, a frozen dataclass with one field per overridable setting.
 Add an entry to `_PROFILES` to add a profile; nothing else needs to change.
 `--profile` takes a single name — a profile only overrides the fields it explicitly sets, so it still composes with the granular flags for anything it doesn't touch (`--profile push --network shared` gets push *and* web access without a second profile).
-The resolved invocation is always echoed (see Verification), so what a profile actually did is never a mystery.
+The resolved invocation is logged to `$XDG_STATE_HOME/sandboxr/invocations.log` (rolling log files) and can be printed directly using `--show-command`.
 Built-in profiles:
 - `local-commit` forces `--no-ssh-agent --no-gpg-agent`: no push/sign capability, full stop.
 - `push` forces `--ssh-agent`.
