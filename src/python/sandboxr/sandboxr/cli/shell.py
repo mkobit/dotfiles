@@ -66,7 +66,7 @@ def shell(
 ) -> None:
     """Drop into a sandboxed interactive shell.
 
-    Defaults to --tty on (unlike `run`). Uses $SHELL or /bin/bash.
+    Defaults to --tty on. Uses $SHELL or /bin/bash.
     """
     _refuse_if_nested()
     if timeout is not None and timeout <= 0:

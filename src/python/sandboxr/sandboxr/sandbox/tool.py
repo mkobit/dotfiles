@@ -1,10 +1,8 @@
 """Per-tool CLI adaptation for sandboxed runs.
 
-Autonomous (no-human-in-the-loop) runs bypass each tool's own permission
-prompts by default; the outer sandbox is the security boundary instead.
-Passing skip_permissions=False keeps a tool's own prompts active — e.g. to
-still get asked before `git push`/`gh pr create`/`gh pr merge` per the
-existing command-policy catalog — while staying sandboxed underneath.
+Injects ai-policy settings files when they exist.
+Callers must explicitly supply permission-bypass flags (such as
+`--dangerously-skip-permissions`) if desired.
 """
 
 from collections.abc import Mapping
@@ -16,14 +14,11 @@ _DEFAULT_CLAUDE_SETTINGS = (
 _DEFAULT_AGY_SETTINGS = Path.home() / ".config" / "ai-policy" / "agy" / "autonomous-settings.json"
 _DEFAULT_OPENCODE_CONFIG = Path.home() / ".config" / "ai-policy" / "opencode" / "autonomous.json"
 
-_SKIP_PERMS = "--dangerously-skip-permissions"
-
 
 def adapt_command(
     command: list[str],
     base_env: Mapping[str, str],
     *,
-    skip_permissions: bool = True,
     claude_settings: Path | None = None,
     agy_settings: Path | None = None,
     opencode_config: Path | None = None,
@@ -43,7 +38,6 @@ def adapt_command(
                 if "--settings" not in command and settings_path.exists()
                 else []
             ),
-            *([] if not skip_permissions or _SKIP_PERMS in command else [_SKIP_PERMS]),
         ]
         return adapted, {}
     agy_path = agy_settings or _DEFAULT_AGY_SETTINGS
@@ -55,9 +49,6 @@ def adapt_command(
                 if "--settings" not in command and agy_path.exists()
                 else []
             ),
-            *([] if not skip_permissions or _SKIP_PERMS in command else [_SKIP_PERMS]),
-            # Do NOT pass --sandbox: combining with --dangerously-skip-permissions
-            # auto-approves bypassing the sandbox itself (antigravity-cli #36).
         ]
         return adapted, {}
     oc_path = opencode_config or _DEFAULT_OPENCODE_CONFIG

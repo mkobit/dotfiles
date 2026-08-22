@@ -9,14 +9,13 @@ Run the tool directly (`claude`, `agy`, `opencode`).
 Each tool's own approval prompts are the UX boundary.
 Nothing in this package applies.
 - **Autonomous.**
-`sandboxr run -- TOOL ARGS`.
-Outer bwrap (Linux/WSL) is the security boundary; each adapter flips the tool's bypass flag so the inner approval prompts don't fire.
+`sandboxr run -- TOOL ARGS --dangerously-skip-permissions`.
+Outer bwrap (Linux/WSL) is the security boundary; callers supply the tool's bypass flag so inner approval prompts don't fire.
 The tool's settings file inside the sandbox is *not* trusted — the OS-level isolation is.
-- **Sandboxed but still asking.**
-`sandboxr run --no-skip-permissions --tty -- TOOL ARGS`.
+- **Sandboxed with interactive prompts.**
+`sandboxr run -- TOOL ARGS`.
 Both boundaries active: OS sandbox underneath, tool's own prompts (driven by the existing `.chezmoidata/ai/command_policy/*.toml` allow/ask/deny catalog) still fire on top — e.g. local git ops flow through, `git push`/`gh pr create`/`gh pr merge` still ask.
-Requires `--tty` and an interactive tool invocation (not `claude -p` print mode) — a prompt has nowhere to render otherwise.
-Deliberately the minimal step here: a fuller persistent-sandbox-with-scoped-grants model was considered and deferred as unjustified complexity until this simpler version proves insufficient in practice.
+Uses interactive tool invocation (not `claude -p` print mode) — a prompt has nowhere to render otherwise (tty is enabled by default; use `--no-tty` to disable).
 
 ## Profiles
 
@@ -46,7 +45,7 @@ Home-tools binds (`RO_HOME_PATHS`/`RW_HOME_PATHS`) are independent of cwd, so th
 - `sandboxr/backend/bwrap.py` — `BwrapBackend`, the only implementation (Linux/WSL only).
 Bind table: `/` ro, `$HOME` tmpfs (default-deny), explicit re-binds for the toolchain, agent state dirs, and the project worktree.
 - `sandboxr/sandbox/spec.py` — `SandboxSpec` dataclass, the argument surface between CLI flags and the bwrap builder.
-- `sandboxr/sandbox/tool.py` — per-tool adapters (`adapt_command`) that flip each agent CLI's own permission-bypass flag.
+- `sandboxr/sandbox/tool.py` — per-tool adapters (`adapt_command`) that inject ai-policy settings files.
 - `sandboxr/cli/` — typer commands `run`, `shell`, `doctor`; `_common.py` holds shared spec-building and guard helpers.
 - `sandboxr/main.py` — typer `app` wiring the three commands.
 

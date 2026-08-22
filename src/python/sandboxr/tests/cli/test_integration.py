@@ -126,18 +126,27 @@ def test_run_show_command_no_ssh_agent_flag_skips_sock(tmp_path, monkeypatch):
     assert f"SSH_AUTH_SOCK {sock}" not in result.output
 
 
-def test_run_show_command_skip_permissions_default_adds_flag():
+def test_run_show_command_does_not_auto_add_skip_permissions():
     result = runner.invoke(app, ["run", "--show-command", "--", "claude", "--print", "hi"])
     assert result.exit_code == 0
-    assert "--dangerously-skip-permissions" in result.output
+    assert "--dangerously-skip-permissions" not in result.output
 
 
-def test_run_show_command_no_skip_permissions_omits_flag():
+def test_run_show_command_preserves_explicit_skip_permissions():
     result = runner.invoke(
-        app, ["run", "--no-skip-permissions", "--show-command", "--", "claude", "--print", "hi"]
+        app,
+        [
+            "run",
+            "--show-command",
+            "--",
+            "claude",
+            "--dangerously-skip-permissions",
+            "--print",
+            "hi",
+        ],
     )
     assert result.exit_code == 0
-    assert "--dangerously-skip-permissions" not in result.output
+    assert "--dangerously-skip-permissions" in result.output
 
 
 # ── run --profile ───────────────────────────────────────────────────────────
@@ -227,6 +236,18 @@ def test_run_nested_refused(monkeypatch):
     monkeypatch.setenv("AGENT_RUN_IN_SANDBOX", "1")
     result = runner.invoke(app, ["run", "--show-command", "--", "bash"])
     assert result.exit_code != 0
+
+
+def test_run_show_command_tty_default_does_not_add_new_session():
+    result = runner.invoke(app, ["run", "--show-command", "--", "bash"])
+    assert result.exit_code == 0
+    assert "--new-session" not in result.output
+
+
+def test_run_show_command_no_tty_adds_new_session():
+    result = runner.invoke(app, ["run", "--no-tty", "--show-command", "--", "bash"])
+    assert result.exit_code == 0
+    assert "--new-session" in result.output
 
 
 # ── shell --show-command ────────────────────────────────────────────────────
