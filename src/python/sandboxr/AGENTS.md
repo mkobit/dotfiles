@@ -1,3 +1,8 @@
+# Status: on hold
+
+`sandboxr` is currently placed on hold while investing in Docker Sandboxes (`sbx`) as the container and microVM isolation layer.
+The CLI entrypoint fails closed with an error on any command invocation (`run`, `shell`, `doctor`) to prevent accidental execution.
+
 ## Purpose
 
 `sandboxr` wraps AI agent CLIs (claude, agy, opencode) in an outer sandbox so no-human-in-the-loop runs can use each tool's `--dangerously-skip-permissions`-equivalent without risking credential exfiltration, signed-commit forgery, or destruction of the home directory.
