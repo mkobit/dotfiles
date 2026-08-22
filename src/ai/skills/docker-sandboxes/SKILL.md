@@ -85,16 +85,17 @@ Kits provide declarative, shareable bundles (`spec.yaml`) defining environment s
 ### Applying kits to sandboxes
 
 Pass a kit directory, archive, or git repository to `sbx run` or `sbx create` using `--kit`.
+Stack multiple mixins onto any sandbox run:
 
 ```bash
-# Apply a local kit directory
-sbx run --kit ./src/sbx/kits/agy agy .
+# Apply a standalone sandbox kit
+sbx run --kit ./src/sbx/sandboxes/agy agy .
 
-# Apply a mixin kit for host Ollama integration
-sbx run --kit ./src/sbx/kits/ollama-dev claude .
+# Apply a mixin kit for developer tooling (mise)
+sbx run --kit ./src/sbx/mixins/mise claude .
 
-# Combine multiple kits (sandbox + mixin)
-sbx run --kit ./src/sbx/kits/agy --kit ./src/sbx/kits/ollama-dev agy .
+# Stack multiple mixins (mise dev toolchain + host Ollama bridge) onto a sandbox
+sbx run --kit ./src/sbx/mixins/mise --kit ./src/sbx/mixins/ollama-dev claude .
 ```
 
 ### Inspecting and packaging kits

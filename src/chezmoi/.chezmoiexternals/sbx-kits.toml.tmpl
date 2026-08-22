@@ -1,0 +1,34 @@
+{{- /*
+  Generates archive externals for Docker Sandboxes (sbx) kits from .chezmoidata/sbx/kits.toml.
+  Deploys external sandboxes to .local/share/sbx/sandboxes/<name> and mixins to .local/share/sbx/mixins/<name>.
+*/ -}}
+{{- $cfg := dig "sbx" "kits" (dict) . -}}
+{{- $config := dict -}}
+{{- range $kitName, $source := dig "external" (dict) $cfg -}}
+{{-   $state := dig "state" "present" $source -}}
+{{-   if eq $state "present" -}}
+{{-     if or (not (dig "ref" "" $source)) (not (dig "sha256" "" $source)) -}}
+{{-       fail (printf "sbx.kits.external.%s: ref and sha256 are required (versions are always pinned)" $kitName) -}}
+{{-     end -}}
+{{-     $hostName := dig "host" "github" $source -}}
+{{-     $host := dig $hostName (dict) $cfg.hosts -}}
+{{-     if not $host -}}
+{{-       fail (printf "sbx.kits.external.%s: unknown host %q" $kitName $hostName) -}}
+{{-     end -}}
+{{-     $url := $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
+{{-     $kind := dig "kind" "sandbox" $source -}}
+{{-     $targetDir := printf ".local/share/sbx/sandboxes/%s" $kitName -}}
+{{-     if eq $kind "mixin" -}}
+{{-       $targetDir = printf ".local/share/sbx/mixins/%s" $kitName -}}
+{{-     end -}}
+{{-     $entry := dict
+          "type" "archive"
+          "url" $url
+          "checksum" (dict "sha256" $source.sha256)
+          "exact" true
+          "stripComponents" 1
+-}}
+{{-     $_ := set $config $targetDir $entry -}}
+{{-   end -}}
+{{- end -}}
+{{- toToml $config -}}

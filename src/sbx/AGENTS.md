@@ -47,16 +47,45 @@ Pass tool-specific bypass flags following the `--` separator:
 
 ## Kit architecture
 
-Kits are declarative YAML packages that configure sandbox capabilities, dependencies, and environment state.
+Kits are declarative YAML packages (`spec.yaml`) that configure sandbox capabilities, dependencies, and environment state.
 Kit packages contain a `spec.yaml` manifest and an optional `files/` directory containing overlay assets.
+
+### Sandboxes vs mixins (`kind`)
+
+Docker Sandboxes distinguishes between two fundamental kit kinds:
+
+- **`kind: sandbox` (Base environment)**
+  Defines a standalone agent microVM environment.
+  Specifies the container image (`sandbox.image`), agent entrypoint (`sandbox.entrypoint`), and default invocation command (`sandbox.command.default`).
+  Only one base sandbox definition can be used when launching or creating a sandbox instance.
+  Authored sandbox kits live under `src/sbx/sandboxes/<name>/`.
+
+- **`kind: mixin` (Capability overlay)**
+  Defines a reusable, composable add-on that can attach to *any* base sandbox or agent.
+  Does not define a container image or base entrypoint.
+  Injects environment variables (`environment.variables`), setup commands (`setup.install` run once at creation, `setup.startup` run on every boot), network egress rules (`permissions.network.allow`), required host credentials (`credentials`), and filesystem assets (`files/`).
+  Multiple mixins can be composed and stacked onto a single sandbox run via repeated `--kit` flags:
+  ```bash
+  sbx run --kit ./src/sbx/mixins/mise --kit ./src/sbx/mixins/ollama-dev claude .
+  ```
+  Authored mixin kits live under `src/sbx/mixins/<name>/`.
+
+### Repository layout and external kits
+
+- `src/sbx/sandboxes/`: authored standalone sandbox kits (e.g. `agy`).
+- `src/sbx/mixins/`: authored capability mixins (e.g. `mise` dev toolchain, `ollama-dev` local LLM bridge, `chezmoi-init` dotfiles bootstrap).
+- `.chezmoidata/sbx/kits.toml`: catalog of pinned upstream external kits (e.g. `shelajev/agy-sbx-kit`).
+- `.chezmoiexternals/sbx-kits.toml.tmpl`: manages downloading and deploying pinned external kits to `~/.local/share/sbx/`.
+- `tests/integration/test_sbx_kits.py`: automated pytest suite validating kit YAML schemas and executing `sbx kit validate` across all kits in CI.
 
 ### Manifest schema (spec.yaml)
 
 Kits use `schemaVersion: "2"` with modular configuration blocks:
-- `kind`: defines whether the artifact is a full `sandbox` specification or a reusable `mixin`.
-- `setup`: declares setup commands, system packages, and runtime initialization steps.
-- `permissions`: configures file system, tool, and execution constraints.
-- `credentials`: declares required service secrets (e.g. GitHub, Anthropic, OpenAI) resolved via host proxy.
+- `kind`: defines whether the artifact is a `sandbox` specification or a reusable `mixin`.
+- `setup`: declares setup commands (`install` for creation-time, `startup` for boot-time).
+- `permissions`: configures network egress allowlists and tool constraints.
+- `credentials`: declares required service secrets resolved dynamically via the host proxy.
+- `environment`: sets environment variables in the guest sandbox.
 - `files/`: bundles local configuration files and scripts copied into the sandbox root filesystem.
 
 ### Packaging and validation
