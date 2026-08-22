@@ -1,21 +1,24 @@
-# Docker Sandboxes (sbx) CLI: safe inspection and sandbox management.
-# Execution commands (sbx run, sbx create, sbx exec) are auto-approved
-# because the container/microVM boundary provides isolation from the host.
+# Docker Sandboxes (sbx) CLI: safe read-only inspection and artifact validation.
 #
 # Deliberately excluded — do not add:
-#   - "sbx rm", "sbx reset", "sbx stop": lifecycle teardown / state destruction
+#   - "sbx run", "sbx create", "sbx exec": provisioning, starting, or executing
+#     sandboxes from the host requires human confirmation because it spawns
+#     host microVMs/containers, mounts workspaces, and allocates host resources.
+#   - "sbx rm", "sbx reset", "sbx stop": lifecycle teardown and state destruction
 #     of existing sandboxes; always prompt to avoid accidental container deletion.
 #   - "sbx login", "sbx logout": authenticates or wipes Docker cloud auth state;
 #     always prompt.
 #   - "sbx daemon": manages host-level sandbox daemon process; always prompt.
 #   - "sbx secret set", "sbx secret rm": mutates host-managed secrets store;
 #     always prompt.
+#   - "sbx policy allow", "sbx policy deny", "sbx policy rm", "sbx policy init",
+#     "sbx policy reset": mutates persistent access policies; always prompt.
+#   - "sbx mcp add", "sbx mcp auth", "sbx mcp rm", "sbx mcp load": registers,
+#     authorizes, or mutates MCP servers; always prompt.
 [ai.command_policy.commands]
 "sbx --help" = "allow"
 "sbx completion" = "allow"
-"sbx create" = "allow"
 "sbx diagnose" = "allow"
-"sbx exec" = "allow"
 "sbx kit inspect" = "allow"
 "sbx kit pack" = "allow"
 "sbx kit validate" = "allow"
@@ -24,6 +27,5 @@
 "sbx mcp ls" = "allow"
 "sbx policy check" = "allow"
 "sbx policy ls" = "allow"
-"sbx run" = "allow"
 "sbx template ls" = "allow"
 "sbx version" = "allow"
