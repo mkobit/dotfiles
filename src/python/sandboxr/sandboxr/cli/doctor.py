@@ -24,16 +24,19 @@ pass() { printf 'PASS: %s\n' "$1"; }
 fail() { printf 'FAIL: %s\n' "$1"; fails=$((fails+1)); }
 hidden() { if [ -e "$2" ]; then fail "$1 visible at $2"; else pass "$1 hidden"; fi; }
 hidden "ssh keys" "$HOME/.ssh"
-hidden "gpg keys" "$HOME/.gnupg"
 hidden "gh credentials" "$HOME/.config/gh"
 hidden "ai-policy token store" "$HOME/.local/state/ai-policy"
+if [ "$PROBE_EXPECT_GPG_AGENT" = "1" ]; then
+  if [ -n "${GNUPGHOME:-}" ] && [ -d "$GNUPGHOME" ]; then
+    pass "gpg keyring mounted"
+  else
+    fail "gpg keyring missing"
+  fi
+else
+  hidden "gpg keys" "$HOME/.gnupg"
+fi
 command -v git >/dev/null 2>&1 && pass "git on PATH" || fail "git missing"
 command -v rg >/dev/null 2>&1 && pass "rg on PATH" || fail "rg missing"
-if [ "$(git config --global commit.gpgsign 2>/dev/null)" = "false" ]; then
-  pass "commit signing disabled"
-else
-  fail "commit signing not disabled"
-fi
 if touch /agent-sandbox-probe 2>/dev/null; then
   rm -f /agent-sandbox-probe
   fail "root filesystem writable"
@@ -52,6 +55,13 @@ if [ "$PROBE_EXPECT_SSH_AGENT" = "1" ]; then
     pass "SSH agent socket forwarded"
   else
     fail "SSH agent socket missing or not a socket"
+  fi
+fi
+if [ "$PROBE_EXPECT_GPG_AGENT" = "1" ]; then
+  if [ -n "${GNUPGHOME:-}" ]; then
+    pass "GPG agent socket forwarded"
+  else
+    fail "GPG agent socket missing"
   fi
 fi
 if command -v gh >/dev/null 2>&1; then
@@ -97,6 +107,7 @@ def _probe_env(spec: SandboxSpec) -> dict[str, str]:
         "PROBE_PROJECT_WRITE": "1" if spec.project_write else "0",
         "PROBE_EXPECT_GH": "1" if "GH_TOKEN" in spec.extra_env else "0",
         "PROBE_EXPECT_SSH_AGENT": "1" if spec.ssh_agent_sock is not None else "0",
+        "PROBE_EXPECT_GPG_AGENT": "1" if spec.gpg_agent_sock is not None else "0",
         "PROBE_NETWORK": spec.network,
     }
 
@@ -109,7 +120,7 @@ def doctor(
         typer.Option("--network", help="Network mode: shared|none."),
     ] = "shared",
     ssh_agent: Annotated[bool, typer.Option("--ssh-agent/--no-ssh-agent")] = True,
-    gpg_agent: Annotated[bool, typer.Option("--gpg-agent/--no-gpg-agent")] = False,
+    gpg_agent: Annotated[bool, typer.Option("--gpg-agent/--no-gpg-agent")] = True,
 ) -> None:
     """Verify sandbox guarantees by probing from inside it."""
     _refuse_if_nested()

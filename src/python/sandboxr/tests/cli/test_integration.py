@@ -205,6 +205,24 @@ def test_run_profile_pr_forces_ssh_agent_on(tmp_path, monkeypatch):
     assert f"SSH_AUTH_SOCK {sock}" in result.output
 
 
+def test_run_profile_pr_forces_gpg_agent_on(tmp_path, monkeypatch):
+    sock = tmp_path / "gpg-agent.sock"
+    sock.touch()
+    monkeypatch.setattr(
+        "subprocess.run",
+        lambda *args, **kwargs: type("Result", (), {"returncode": 0, "stdout": str(sock)})(),
+    )
+    monkeypatch.setattr(
+        "shutil.which",
+        lambda name, **kwargs: "/usr/bin/gpgconf" if name == "gpgconf" else "/usr/bin/bwrap",
+    )
+    result = runner.invoke(
+        app, ["run", "--no-gpg-agent", "--profile", "pr", "--show-command", "--", "bash"]
+    )
+    assert result.exit_code == 0
+    assert f"--bind {sock} {sock}" in result.output
+
+
 def test_run_profile_composes_with_granular_flag_for_untouched_field(tmp_path, monkeypatch):
     # --profile push doesn't touch network, so --network none still applies
     # on top of it -- no second --profile needed to combine the two.

@@ -50,7 +50,7 @@ def shell(
     gpg_agent: Annotated[
         bool,
         typer.Option("--gpg-agent/--no-gpg-agent", help="Forward host GPG agent socket."),
-    ] = False,
+    ] = True,
     extra_ro: Annotated[
         list[str] | None,
         typer.Option("--ro", help="Bind path read-only (repeatable)."),

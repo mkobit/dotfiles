@@ -26,9 +26,9 @@ Add an entry to `_PROFILES` to add a profile; nothing else needs to change.
 The resolved invocation is logged to `$XDG_STATE_HOME/sandboxr/invocations.log` (rolling log files) and can be printed directly using `--show-command`.
 Built-in profiles:
 - `local-commit` forces `--no-ssh-agent --no-gpg-agent`: no push/sign capability, full stop.
-- `push` forces `--ssh-agent`.
+- `push` forces `--ssh-agent --gpg-agent`.
 - `web-access` forces `--network shared`.
-- `pr` implies `push` and additionally read-only-binds the real `~/.config/gh`.
+- `pr` implies `push` (ssh + gpg agent) and additionally read-only-binds the real `~/.config/gh`.
 This is *not* a scoped credential — there's no short-lived or per-usage token issuance, so the agent gets whatever access your actual `gh auth login` session has, not just this repo.
 Read-only only stops the sandbox from tampering with the credential file; it does not limit what the token itself can do once `gh` reads it.
 Chose this over a second hand-scoped PAT file because a hand-scoped token is still just another standing secret to create and remember to rotate, for a security property achievable another way if it ever matters (see the deferred broker idea, not built).

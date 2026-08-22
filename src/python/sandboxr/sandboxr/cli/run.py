@@ -44,9 +44,9 @@ class _Profile:
 # SandboxSpec field.
 _PROFILES: dict[str, _Profile] = {
     "local-commit": _Profile(ssh_agent=False, gpg_agent=False),
-    "push": _Profile(ssh_agent=True),
+    "push": _Profile(ssh_agent=True, gpg_agent=True),
     "web-access": _Profile(network="shared"),
-    "pr": _Profile(ssh_agent=True, gh_config=True),
+    "pr": _Profile(ssh_agent=True, gpg_agent=True, gh_config=True),
 }
 
 
@@ -93,7 +93,7 @@ def run(
     gpg_agent: Annotated[
         bool,
         typer.Option("--gpg-agent/--no-gpg-agent", help="Forward host GPG agent socket."),
-    ] = False,
+    ] = True,
     profile: Annotated[
         str | None,
         typer.Option(
