@@ -1,0 +1,15 @@
+[user]
+	name = mkobit
+	email = mkobit@users.noreply.github.com
+
+[safe]
+	directory = *
+
+[commit]
+	gpgsign = false
+
+[tag]
+	gpgSign = false
+
+[init]
+	defaultBranch = main

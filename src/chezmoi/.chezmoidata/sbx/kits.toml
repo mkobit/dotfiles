@@ -11,6 +11,7 @@ url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"
 
 [sbx.kits.authored.mixins]
 chezmoi-init = "present"
+git-config = "present"
 mise = "present"
 ollama-dev = "present"
 

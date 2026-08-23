@@ -125,14 +125,31 @@ sbx run --clone claude .
 The sandbox clones the host Git repository into isolated container storage with the host repo set as the remote.
 Host working copy files remain untouched while the agent runs, branches, and tests in container-local storage.
 
-## Local LLM integration
+## SSH, GPG, and Git commit signing policy
 
-Sandboxes can bridge to local inference servers running on the host machine.
-Local Ollama instances on host port 11434 are accessible through host network routing or published ports.
-Configure host proxy policy to allow loopback routing to local model endpoints without exposing external network egress:
-```bash
-sbx policy allow network --sandbox <name> --resource host.docker.internal:11434
-```
+Key isolation is a primary security boundary for AI agent sandboxes.
+
+### Private key isolation
+
+Raw private keys (`~/.ssh/id_*`, `~/.gnupg/private-keys-v1.d`) must never be copied into or mounted inside the sandbox microVM.
+Sandboxes run untrusted agent code that could exfiltrate or corrupt static private key material.
+
+### Commit signing strategies
+
+1. **Default: unsigned sandbox commits (`commit.gpgsign = false`)**
+   The [`src/sbx/mixins/git-config`](mixins/git-config/) mixin sets `commit.gpgsign = false` by default.
+   Unsigned commits distinguish agent-generated history from human-verified commits.
+   The human reviews, merges, and signs the resulting branch or PR on the host machine.
+
+2. **Host-side signing via `--clone` Git Daemon mode**
+   When creating sandboxes with `sbx run --clone claude .`, the agent commits to its in-container clone.
+   The host pulls commits via the host remote (`sandbox-<name>`).
+   The human signs merge or squash commits on the host using their host GPG or SSH signing key.
+
+3. **SSH agent forwarding for in-sandbox signing**
+   When in-sandbox signing is required, Git uses SSH signing format (`gpg.format = ssh`).
+   Signing requests flow through the forwarded SSH agent socket (`SSH_AUTH_SOCK`).
+   The private key remains on the host's `ssh-agent`; the guest only sends signing payloads over the socket.
 
 ## Living documentation links
 
