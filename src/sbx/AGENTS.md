@@ -66,14 +66,14 @@ Docker Sandboxes distinguishes between two fundamental kit kinds:
   Injects environment variables (`environment.variables`), setup commands (`setup.install` run once at creation, `setup.startup` run on every boot), network egress rules (`permissions.network.allow`), required host credentials (`credentials`), and filesystem assets (`files/`).
   Multiple mixins can be composed and stacked onto a single sandbox run via repeated `--kit` flags:
   ```bash
-  sbx run --kit ./src/sbx/mixins/mise --kit ./src/sbx/mixins/ollama-dev claude .
+  sbx run --kit ./src/sbx/mixins/mise --kit ./src/sbx/mixins/git-config claude .
   ```
   Authored mixin kits live under `src/sbx/mixins/<name>/`.
 
 ### Repository layout and external kits
 
 - `src/sbx/sandboxes/`: authored standalone sandbox kits (e.g. `agy`).
-- `src/sbx/mixins/`: authored capability mixins (e.g. `mise` dev toolchain, `ollama-dev` local LLM bridge, `chezmoi-init` dotfiles bootstrap).
+- `src/sbx/mixins/`: authored capability mixins (e.g. `mise` dev toolchain, `git-config` git identity, `chezmoi-init` dotfiles bootstrap).
 - `.chezmoidata/sbx/kits.toml`: catalog of pinned upstream external kits (e.g. `shelajev/agy-sbx-kit`).
 - `.chezmoiexternals/sbx-kits.toml.tmpl`: manages downloading and deploying pinned external kits to `~/.local/share/sbx/`.
 - `tests/integration/test_sbx_kits.py`: automated pytest suite validating kit YAML schemas and executing `sbx kit validate` across all kits in CI.

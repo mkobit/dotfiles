@@ -1,6 +1,6 @@
 ---
 name: docker-sandboxes
-description: Guide for creating, running, and managing isolated Docker Sandboxes (sbx) for autonomous agent execution, multi-repo workspace mounts, kit packaging, network egress policies, secret management, and local Ollama model integration.
+description: Guide for creating, running, and managing isolated Docker Sandboxes (sbx) for autonomous agent execution, multi-repo workspace mounts, kit packaging, network egress policies, and secret management.
 ---
 
 # Docker sandboxes
@@ -94,8 +94,8 @@ sbx run --kit ./src/sbx/sandboxes/agy agy .
 # Apply a mixin kit for developer tooling (mise)
 sbx run --kit ./src/sbx/mixins/mise claude .
 
-# Stack multiple mixins (mise dev toolchain + host Ollama bridge) onto a sandbox
-sbx run --kit ./src/sbx/mixins/mise --kit ./src/sbx/mixins/ollama-dev claude .
+# Stack multiple mixins (mise dev toolchain + git identity) onto a sandbox
+sbx run --kit ./src/sbx/mixins/mise --kit ./src/sbx/mixins/git-config claude .
 ```
 
 ### Inspecting and packaging kits
@@ -138,28 +138,6 @@ The host credential proxy handles upstream authentication without leaking root c
 # Run sandbox with specific secrets exposed to the container environment
 sbx run --secret GITHUB_TOKEN --secret NPM_TOKEN node:20 npm publish --dry-run
 ```
-
-## Local Ollama integration for offline and hybrid workflows
-
-Integrate local Ollama models with sandboxed agents to support offline execution or hybrid multi-agent routing.
-
-### Network routing to host Ollama
-
-Expose the host's Ollama instance to the container using `host.docker.internal`.
-
-```bash
-# Set Ollama host environment variable pointing to the host machine
-sbx run \
-  -e OLLAMA_HOST="http://host.docker.internal:11434" \
-  -v "$(pwd)":/workspace \
-  -w /workspace \
-  python:3.12 python run_local_agent.py
-```
-
-### Hybrid agent architectures
-
-Direct fast, cost-effective inference tasks to local Ollama models while routing complex reasoning to cloud providers.
-Ensure firewall and network policy rules allow outbound traffic to `host.docker.internal:11434`.
 
 ## Network governance and egress policies
 

@@ -13,7 +13,6 @@ url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"
 chezmoi-init = "present"
 git-config = "present"
 mise = "present"
-ollama-dev = "present"
 
 [sbx.kits.authored.sandboxes]
 agy = "present"
