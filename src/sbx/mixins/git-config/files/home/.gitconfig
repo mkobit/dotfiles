@@ -9,7 +9,7 @@
 	gpgsign = false
 
 [tag]
-	gpgSign = false
+	gpgsign = false
 
 [init]
 	defaultBranch = main

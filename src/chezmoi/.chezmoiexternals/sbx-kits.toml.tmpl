@@ -10,8 +10,10 @@
 {{- range $kitName, $state := dig "authored" "mixins" (dict) $cfg -}}
 {{-   if eq $state "present" -}}
 {{-     $kitDir := joinPath $root "mixins" $kitName -}}
+{{-     $found := false -}}
 {{-     range $path := glob (joinPath $kitDir "**/*") -}}
 {{-       if eq (lstat $path).type "file" -}}
+{{-         $found = true -}}
 {{-         $rel := trimPrefix (printf "%s/" $kitDir) $path -}}
 {{-         $entry := dict
               "type" "file"
@@ -21,14 +23,21 @@
 {{-         $_ := set $config (printf ".local/share/sbx/mixins/%s/%s" $kitName $rel) $entry -}}
 {{-       end -}}
 {{-     end -}}
+{{-     if not $found -}}
+{{-       fail (printf "sbx.kits.authored.mixins.%s: no files found under %s" $kitName $kitDir) -}}
+{{-     end -}}
+{{-   else if ne $state "absent" -}}
+{{-     fail (printf "sbx.kits.authored.mixins.%s: state must be \"present\" or \"absent\", got %q" $kitName $state) -}}
 {{-   end -}}
 {{- end -}}
 {{- /* Authored sandboxes */ -}}
 {{- range $kitName, $state := dig "authored" "sandboxes" (dict) $cfg -}}
 {{-   if eq $state "present" -}}
 {{-     $kitDir := joinPath $root "sandboxes" $kitName -}}
+{{-     $found := false -}}
 {{-     range $path := glob (joinPath $kitDir "**/*") -}}
 {{-       if eq (lstat $path).type "file" -}}
+{{-         $found = true -}}
 {{-         $rel := trimPrefix (printf "%s/" $kitDir) $path -}}
 {{-         $entry := dict
               "type" "file"
@@ -38,6 +47,11 @@
 {{-         $_ := set $config (printf ".local/share/sbx/sandboxes/%s/%s" $kitName $rel) $entry -}}
 {{-       end -}}
 {{-     end -}}
+{{-     if not $found -}}
+{{-       fail (printf "sbx.kits.authored.sandboxes.%s: no files found under %s" $kitName $kitDir) -}}
+{{-     end -}}
+{{-   else if ne $state "absent" -}}
+{{-     fail (printf "sbx.kits.authored.sandboxes.%s: state must be \"present\" or \"absent\", got %q" $kitName $state) -}}
 {{-   end -}}
 {{- end -}}
 {{- /* External kits */ -}}
@@ -66,6 +80,8 @@
           "stripComponents" 1
 -}}
 {{-     $_ := set $config $targetDir $entry -}}
+{{-   else if ne $state "absent" -}}
+{{-     fail (printf "sbx.kits.external.%s: state must be \"present\" or \"absent\", got %q" $kitName $state) -}}
 {{-   end -}}
 {{- end -}}
 {{- if $config -}}{{- toToml $config -}}{{- end -}}

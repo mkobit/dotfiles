@@ -1,15 +1,18 @@
 schemaVersion: "2"
 kind: mixin
 name: chezmoi-init
-description: Initialize chezmoi dotfiles management in sandbox environments
+displayName: Chezmoi Dotfiles Bootstrap
+description: Installs pinned chezmoi v2.72.0 and initializes dotfiles management in sandbox environments
 
 environment:
   variables:
+    CHEZMOI_VERSION: "v2.72.0"
     CHEZMOI_DESTDIR: "/home/agent"
+    PATH: "/home/agent/.local/bin:/usr/local/bin:/usr/bin:/bin"
 
 setup:
   install:
-    - command: "sh -c '$(curl -fsLS https://get.chezmoi.io)' -- -b /usr/local/bin"
+    - command: "sh -c 'curl -fsLS https://get.chezmoi.io | sh -s -- -b /home/agent/.local/bin -t v2.72.0'"
   startup:
     - command:
         - chezmoi

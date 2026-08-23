@@ -1,3 +1,4 @@
+import re
 import shutil
 import subprocess
 import tomllib
@@ -89,6 +90,29 @@ def test_mise_mixin_version_parity():
         assert canonical_global_tools[tool_name]["version"] == version, (
             f"Version mismatch for {tool_name}: mixin has {version}, canonical has {canonical_global_tools[tool_name]['version']}"
         )
+
+
+def test_chezmoi_mixin_version_parity():
+    """Verify chezmoi-init mixin version matches canonical CI/Jules workflow definitions."""
+    ci_file = REPO_ROOT / ".github" / "workflows" / "ci.yml"
+    assert ci_file.is_file(), f"Missing {ci_file}"
+
+    with open(ci_file, "r", encoding="utf-8") as f:
+        ci_content = f.read()
+
+    match = re.search(r'CHEZMOI_VERSION:\s*["\']?([^"\'\s]+)', ci_content)
+    assert match, f"Could not find CHEZMOI_VERSION in {ci_file}"
+    canonical_chezmoi_version = match.group(1)
+
+    spec_file = MIXINS_DIR / "chezmoi-init" / "spec.yaml"
+    with open(spec_file, "r", encoding="utf-8") as f:
+        spec = yaml.safe_load(f)
+
+    spec_env = spec.get("environment", {}).get("variables", {})
+    assert spec_env.get("CHEZMOI_VERSION") == canonical_chezmoi_version, (
+        f"CHEZMOI_VERSION in {spec_file} ({spec_env.get('CHEZMOI_VERSION')}) "
+        f"does not match CI workflow ({canonical_chezmoi_version})"
+    )
 
 
 @pytest.mark.parametrize("kit_dir", ALL_KITS, ids=lambda p: f"validate-{p.name}")

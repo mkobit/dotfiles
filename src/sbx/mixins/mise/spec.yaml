@@ -13,7 +13,7 @@ environment:
 
 setup:
   install:
-    - command: "sh -c 'MISE_VERSION=v2026.8.0 curl -fsSL https://mise.run | sh'"
+    - command: "sh -c 'curl -fsSL https://mise.run | MISE_VERSION=v2026.8.0 sh'"
   startup:
     - command:
         - mise
