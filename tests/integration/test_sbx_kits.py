@@ -1,5 +1,6 @@
 import shutil
 import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -9,6 +10,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SBX_DIR = REPO_ROOT / "src" / "sbx"
 MIXINS_DIR = SBX_DIR / "mixins"
 SANDBOXES_DIR = SBX_DIR / "sandboxes"
+CHEZMOI_DATA_DIR = REPO_ROOT / "src" / "chezmoi" / ".chezmoidata"
 
 
 def _find_kits(base_dir: Path) -> list[Path]:
@@ -51,6 +53,42 @@ def test_sandbox_kit_structure_and_schema(kit_dir: Path):
     assert spec.get("kind") == "sandbox", f"Expected kind: sandbox in {kit_dir}, got {spec.get('kind')}"
     assert spec.get("name") == kit_dir.name, f"Kit name mismatch in {kit_dir}"
     assert "sandbox" in spec, f"sandbox configuration block required in {kit_dir}"
+
+
+def test_mise_mixin_version_parity():
+    """Verify mise mixin version and tools match canonical chezmoidata definitions."""
+    chezmoi_mise_file = CHEZMOI_DATA_DIR / "bin" / "mise.toml"
+    assert chezmoi_mise_file.is_file(), f"Missing {chezmoi_mise_file}"
+
+    with open(chezmoi_mise_file, "rb") as f:
+        chezmoi_mise = tomllib.load(f)
+
+    canonical_mise_version = chezmoi_mise["bin"]["mise"]["version"]
+    canonical_global_tools = chezmoi_mise["mise"]["global_tools"]
+
+    # Verify spec.yaml version
+    spec_file = MIXINS_DIR / "mise" / "spec.yaml"
+    with open(spec_file, "r", encoding="utf-8") as f:
+        spec = yaml.safe_load(f)
+
+    spec_env = spec.get("environment", {}).get("variables", {})
+    assert spec_env.get("MISE_VERSION") == canonical_mise_version, (
+        f"MISE_VERSION in {spec_file} ({spec_env.get('MISE_VERSION')}) "
+        f"does not match canonical {chezmoi_mise_file} ({canonical_mise_version})"
+    )
+
+    # Verify config.toml tools
+    config_file = MIXINS_DIR / "mise" / "files" / "home" / ".config" / "mise" / "config.toml"
+    assert config_file.is_file(), f"Missing {config_file}"
+
+    with open(config_file, "rb") as f:
+        mixin_config = tomllib.load(f)
+
+    for tool_name, version in mixin_config.get("tools", {}).items():
+        assert tool_name in canonical_global_tools, f"Tool {tool_name} in mixin not found in canonical catalog"
+        assert canonical_global_tools[tool_name]["version"] == version, (
+            f"Version mismatch for {tool_name}: mixin has {version}, canonical has {canonical_global_tools[tool_name]['version']}"
+        )
 
 
 @pytest.mark.parametrize("kit_dir", ALL_KITS, ids=lambda p: f"validate-{p.name}")
