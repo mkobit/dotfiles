@@ -31,7 +31,7 @@ def test_mixin_kit_structure_and_schema(kit_dir: Path):
     spec_path = kit_dir / "spec.yaml"
     assert spec_path.is_file(), f"Missing spec.yaml in {kit_dir}"
 
-    with open(spec_path, "r", encoding="utf-8") as f:
+    with open(spec_path, encoding="utf-8") as f:
         spec = yaml.safe_load(f)
 
     assert isinstance(spec, dict), f"spec.yaml in {kit_dir} must be a valid mapping"
@@ -46,7 +46,7 @@ def test_sandbox_kit_structure_and_schema(kit_dir: Path):
     spec_path = kit_dir / "spec.yaml"
     assert spec_path.is_file(), f"Missing spec.yaml in {kit_dir}"
 
-    with open(spec_path, "r", encoding="utf-8") as f:
+    with open(spec_path, encoding="utf-8") as f:
         spec = yaml.safe_load(f)
 
     assert isinstance(spec, dict), f"spec.yaml in {kit_dir} must be a valid mapping"
@@ -69,7 +69,7 @@ def test_mise_mixin_version_parity():
 
     # Verify spec.yaml version
     spec_file = MIXINS_DIR / "mise" / "spec.yaml"
-    with open(spec_file, "r", encoding="utf-8") as f:
+    with open(spec_file, encoding="utf-8") as f:
         spec = yaml.safe_load(f)
 
     spec_env = spec.get("environment", {}).get("variables", {})
@@ -97,7 +97,7 @@ def test_chezmoi_mixin_version_parity():
     ci_file = REPO_ROOT / ".github" / "workflows" / "ci.yml"
     assert ci_file.is_file(), f"Missing {ci_file}"
 
-    with open(ci_file, "r", encoding="utf-8") as f:
+    with open(ci_file, encoding="utf-8") as f:
         ci_content = f.read()
 
     match = re.search(r'CHEZMOI_VERSION:\s*["\']?([^"\'\s]+)', ci_content)
@@ -105,7 +105,7 @@ def test_chezmoi_mixin_version_parity():
     canonical_chezmoi_version = match.group(1)
 
     spec_file = MIXINS_DIR / "chezmoi-init" / "spec.yaml"
-    with open(spec_file, "r", encoding="utf-8") as f:
+    with open(spec_file, encoding="utf-8") as f:
         spec = yaml.safe_load(f)
 
     spec_env = spec.get("environment", {}).get("variables", {})
