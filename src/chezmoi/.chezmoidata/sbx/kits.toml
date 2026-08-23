@@ -9,6 +9,14 @@
 [sbx.kits.hosts.github]
 url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"
 
+[sbx.kits.authored.mixins]
+chezmoi-init = "present"
+mise = "present"
+ollama-dev = "present"
+
+[sbx.kits.authored.sandboxes]
+agy = "present"
+
 [sbx.kits.external.agy]
 repo = "shelajev/agy-sbx-kit"
 ref = "3e7016f108f3cf09922cf351b55a49e38d97f9f2"
