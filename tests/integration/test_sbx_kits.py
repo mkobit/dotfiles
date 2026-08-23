@@ -1,4 +1,3 @@
-import re
 import shutil
 import subprocess
 import tomllib
@@ -25,6 +24,24 @@ SANDBOX_KITS = _find_kits(SANDBOXES_DIR)
 ALL_KITS = MIXIN_KITS + SANDBOX_KITS
 
 
+def _validate_common_spec(spec: dict, kit_dir: Path):
+    assert isinstance(spec, dict), f"spec.yaml in {kit_dir} must be a valid mapping"
+    assert spec.get("schemaVersion") in ("1", "2"), f"Invalid schemaVersion in {kit_dir}"
+    assert spec.get("name") == kit_dir.name, f"Kit name mismatch in {kit_dir}"
+
+    if "environment" in spec and "variables" in spec["environment"]:
+        vars_dict = spec["environment"]["variables"]
+        assert isinstance(vars_dict, dict), f"environment.variables must be a dict in {kit_dir}"
+        for k, v in vars_dict.items():
+            assert isinstance(k, str) and isinstance(v, str), f"Variable {k} in {kit_dir} must be str:str"
+
+    if "permissions" in spec and "network" in spec["permissions"]:
+        allow_list = spec["permissions"]["network"].get("allow", [])
+        assert isinstance(allow_list, list), f"permissions.network.allow must be a list in {kit_dir}"
+        for endpoint in allow_list:
+            assert isinstance(endpoint, str) and ":" in endpoint, f"Endpoint {endpoint} in {kit_dir} must be host:port"
+
+
 @pytest.mark.parametrize("kit_dir", MIXIN_KITS, ids=lambda p: f"mixin-{p.name}")
 def test_mixin_kit_structure_and_schema(kit_dir: Path):
     """Verify mixin kits contain valid spec.yaml manifests configured as mixins."""
@@ -34,10 +51,8 @@ def test_mixin_kit_structure_and_schema(kit_dir: Path):
     with open(spec_path, encoding="utf-8") as f:
         spec = yaml.safe_load(f)
 
-    assert isinstance(spec, dict), f"spec.yaml in {kit_dir} must be a valid mapping"
-    assert spec.get("schemaVersion") in ("1", "2"), f"Invalid schemaVersion in {kit_dir}"
+    _validate_common_spec(spec, kit_dir)
     assert spec.get("kind") == "mixin", f"Expected kind: mixin in {kit_dir}, got {spec.get('kind')}"
-    assert spec.get("name") == kit_dir.name, f"Kit name mismatch in {kit_dir}"
 
 
 @pytest.mark.parametrize("kit_dir", SANDBOX_KITS, ids=lambda p: f"sandbox-{p.name}")
@@ -49,10 +64,8 @@ def test_sandbox_kit_structure_and_schema(kit_dir: Path):
     with open(spec_path, encoding="utf-8") as f:
         spec = yaml.safe_load(f)
 
-    assert isinstance(spec, dict), f"spec.yaml in {kit_dir} must be a valid mapping"
-    assert spec.get("schemaVersion") in ("1", "2"), f"Invalid schemaVersion in {kit_dir}"
+    _validate_common_spec(spec, kit_dir)
     assert spec.get("kind") == "sandbox", f"Expected kind: sandbox in {kit_dir}, got {spec.get('kind')}"
-    assert spec.get("name") == kit_dir.name, f"Kit name mismatch in {kit_dir}"
     assert "sandbox" in spec, f"sandbox configuration block required in {kit_dir}"
 
 
@@ -98,11 +111,10 @@ def test_chezmoi_mixin_version_parity():
     assert ci_file.is_file(), f"Missing {ci_file}"
 
     with open(ci_file, encoding="utf-8") as f:
-        ci_content = f.read()
+        ci_yaml = yaml.safe_load(f)
 
-    match = re.search(r'CHEZMOI_VERSION:\s*["\']?([^"\'\s]+)', ci_content)
-    assert match, f"Could not find CHEZMOI_VERSION in {ci_file}"
-    canonical_chezmoi_version = match.group(1)
+    canonical_chezmoi_version = ci_yaml.get("env", {}).get("CHEZMOI_VERSION")
+    assert canonical_chezmoi_version, f"Missing env.CHEZMOI_VERSION in {ci_file}"
 
     spec_file = MIXINS_DIR / "chezmoi-init" / "spec.yaml"
     with open(spec_file, encoding="utf-8") as f:

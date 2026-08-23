@@ -29,21 +29,24 @@ Local deny rules (`--deny-network`) can only narrow sandbox egress, preventing u
 
 ## Agent execution modes
 
-Sandboxes support both attended and unattended agent workflows across supported tools (`claude`, `codex`, `copilot`, `cursor`, `docker-agent`, `droid`, `gemini`, `kiro`, `opencode`, `shell`).
+Sandboxes support both attended and unattended agent workflows across supported agents (`agy`, `codex`, `claude`, `shell`).
 
 ### Attended (HITL)
 
 Interactive sessions permit human approval for sensitive commands within the sandbox.
-Run the agent directly via `sbx run <agent> [path]`.
+Run the agent directly via `sbx run <agent> [path]` or apply custom sandbox kits:
+- Built-in Codex: `sbx run codex .`
+- Built-in Claude: `sbx run claude .`
+- Authored Antigravity: `sbx run --kit ~/.local/share/sbx/sandboxes/agy agy .`
 Interactive prompts and terminal UI render normally inside the attached session.
 
 ### Autonomous
 
 Unattended execution disables approval prompts within the sandbox while relying on the microVM boundary for safety.
 Pass tool-specific bypass flags following the `--` separator:
-- Claude Code: `sbx run claude -- --dangerously-skip-permissions`
-- Antigravity / Gemini: `sbx run gemini -- --mode=accept-edits`
-- OpenCode: `sbx run opencode -- --dangerously-skip-permissions`
+- Codex: `sbx run codex -- -y`
+- Claude: `sbx run claude -- --dangerously-skip-permissions`
+- Antigravity: `sbx run --kit ~/.local/share/sbx/sandboxes/agy agy -- --dangerously-skip-permissions --mode=accept-edits`
 
 ## Kit architecture
 

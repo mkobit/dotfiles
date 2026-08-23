@@ -3,7 +3,8 @@
 	email = mkobit@users.noreply.github.com
 
 [safe]
-	directory = *
+	directory = /workspace
+	directory = /home/agent
 
 [commit]
 	gpgsign = false

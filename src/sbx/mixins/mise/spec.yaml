@@ -2,7 +2,7 @@ schemaVersion: "2"
 kind: mixin
 name: mise
 displayName: Mise Developer Toolchain
-description: Installs pinned mise v2026.8.10, configures dev toolchain shims, and proxies GitHub authentication in sandbox environments
+description: Installs pinned mise v2026.8.10 and configures dev toolchain shims in sandbox environments
 
 environment:
   variables:
@@ -19,10 +19,6 @@ setup:
         - mise
         - trust
         - --all
-
-credentials:
-  - service: github
-    description: Host GitHub credentials for authenticated git operations and API rate limits
 
 permissions:
   network:

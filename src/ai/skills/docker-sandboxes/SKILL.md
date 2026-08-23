@@ -13,15 +13,19 @@ Manage sandboxes through explicit CLI subcommands.
 
 ### Running an ephemeral or persistent agent
 
-Run an agent directly inside an isolated sandbox with `sbx run`.
-`sbx` supports built-in agents including `claude`, `codex`, `copilot`, `cursor`, `docker-agent`, `droid`, `gemini`, `kiro`, `opencode`, and `shell`.
+Run an agent directly inside an isolated sandbox with `sbx run` (built-in `codex`, `claude`, `shell`) or with custom kits (authored `agy`).
 
 ```bash
-# Run an interactive agent session in the current directory
+# Run built-in Codex or Claude agent session
+sbx run codex .
 sbx run claude .
 
 # Run autonomous agent with arguments passed after --
+sbx run codex . -- -y
 sbx run claude . -- --dangerously-skip-permissions
+
+# Run custom Antigravity (agy) sandbox kit
+sbx run --kit ~/.local/share/sbx/sandboxes/agy agy .
 
 # Run an interactive shell sandbox
 sbx run shell .

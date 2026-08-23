@@ -1,57 +1,35 @@
 {{- /*
   Generates externals for Docker Sandboxes (sbx) kits from .chezmoidata/sbx/kits.toml.
-  Deploys external sandboxes to .local/share/sbx/sandboxes/<name> and mixins to .local/share/sbx/mixins/<name>.
+  Deploys external sandboxes to .local/share/sbx/external/sandboxes/<name> and mixins to .local/share/sbx/external/mixins/<name>.
   Deploys authored kits from src/sbx/ to .local/share/sbx/ using file:// externals.
 */ -}}
 {{- $cfg := dig "sbx" "kits" (dict) . -}}
 {{- $root := joinPath .chezmoi.workingTree "src/sbx" -}}
 {{- $config := dict -}}
-{{- /* Authored mixins */ -}}
-{{- range $kitName, $state := dig "authored" "mixins" (dict) $cfg -}}
-{{-   if eq $state "present" -}}
-{{-     $kitDir := joinPath $root "mixins" $kitName -}}
-{{-     $found := false -}}
-{{-     range $path := glob (joinPath $kitDir "**/*") -}}
-{{-       if eq (lstat $path).type "file" -}}
-{{-         $found = true -}}
-{{-         $rel := trimPrefix (printf "%s/" $kitDir) $path -}}
-{{-         $entry := dict
-              "type" "file"
-              "url" (printf "file://%s" $path)
-              "refreshPeriod" "1s"
+{{- /* Authored kits (mixins and sandboxes) */ -}}
+{{- range $category := tuple "mixins" "sandboxes" -}}
+{{-   range $kitName, $state := dig "authored" $category (dict) $cfg -}}
+{{-     if eq $state "present" -}}
+{{-       $kitDir := joinPath $root $category $kitName -}}
+{{-       $found := false -}}
+{{-       range $path := glob (joinPath $kitDir "**/*") -}}
+{{-         if eq (lstat $path).type "file" -}}
+{{-           $found = true -}}
+{{-           $rel := trimPrefix (printf "%s/" $kitDir) $path -}}
+{{-           $entry := dict
+                "type" "file"
+                "url" (printf "file://%s" $path)
+                "refreshPeriod" "1s"
 -}}
-{{-         $_ := set $config (printf ".local/share/sbx/mixins/%s/%s" $kitName $rel) $entry -}}
+{{-           $_ := set $config (printf ".local/share/sbx/%s/%s/%s" $category $kitName $rel) $entry -}}
+{{-         end -}}
 {{-       end -}}
-{{-     end -}}
-{{-     if not $found -}}
-{{-       fail (printf "sbx.kits.authored.mixins.%s: no files found under %s" $kitName $kitDir) -}}
-{{-     end -}}
-{{-   else if ne $state "absent" -}}
-{{-     fail (printf "sbx.kits.authored.mixins.%s: state must be \"present\" or \"absent\", got %q" $kitName $state) -}}
-{{-   end -}}
-{{- end -}}
-{{- /* Authored sandboxes */ -}}
-{{- range $kitName, $state := dig "authored" "sandboxes" (dict) $cfg -}}
-{{-   if eq $state "present" -}}
-{{-     $kitDir := joinPath $root "sandboxes" $kitName -}}
-{{-     $found := false -}}
-{{-     range $path := glob (joinPath $kitDir "**/*") -}}
-{{-       if eq (lstat $path).type "file" -}}
-{{-         $found = true -}}
-{{-         $rel := trimPrefix (printf "%s/" $kitDir) $path -}}
-{{-         $entry := dict
-              "type" "file"
-              "url" (printf "file://%s" $path)
-              "refreshPeriod" "1s"
--}}
-{{-         $_ := set $config (printf ".local/share/sbx/sandboxes/%s/%s" $kitName $rel) $entry -}}
+{{-       if not $found -}}
+{{-         fail (printf "sbx.kits.authored.%s.%s: no files found under %s" $category $kitName $kitDir) -}}
 {{-       end -}}
+{{-     else if ne $state "absent" -}}
+{{-       fail (printf "sbx.kits.authored.%s.%s: state must be \"present\" or \"absent\", got %q" $category $kitName $state) -}}
 {{-     end -}}
-{{-     if not $found -}}
-{{-       fail (printf "sbx.kits.authored.sandboxes.%s: no files found under %s" $kitName $kitDir) -}}
-{{-     end -}}
-{{-   else if ne $state "absent" -}}
-{{-     fail (printf "sbx.kits.authored.sandboxes.%s: state must be \"present\" or \"absent\", got %q" $kitName $state) -}}
 {{-   end -}}
 {{- end -}}
 {{- /* External kits */ -}}
@@ -68,10 +46,10 @@
 {{-     end -}}
 {{-     $url := $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
 {{-     $kind := dig "kind" "sandbox" $source -}}
-{{-     $targetDir := printf ".local/share/sbx/external/sandboxes/%s" $kitName -}}
-{{-     if eq $kind "mixin" -}}
-{{-       $targetDir = printf ".local/share/sbx/external/mixins/%s" $kitName -}}
+{{-     if and (ne $kind "sandbox") (ne $kind "mixin") -}}
+{{-       fail (printf "sbx.kits.external.%s: kind must be \"sandbox\" or \"mixin\", got %q" $kitName $kind) -}}
 {{-     end -}}
+{{-     $targetDir := printf ".local/share/sbx/external/%ses/%s" $kind $kitName -}}
 {{-     $entry := dict
           "type" "archive"
           "url" $url

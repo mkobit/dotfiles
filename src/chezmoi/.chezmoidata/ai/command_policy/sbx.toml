@@ -29,7 +29,6 @@
 "sbx kit inspect --help" = "allow"
 "sbx kit inspect" = "allow"
 "sbx kit pack --help" = "allow"
-"sbx kit pack" = "allow"
 "sbx kit validate --help" = "allow"
 "sbx kit validate" = "allow"
 "sbx ls --help" = "allow"

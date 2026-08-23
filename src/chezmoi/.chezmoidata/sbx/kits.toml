@@ -1,8 +1,7 @@
 # Docker Sandboxes (sbx) kit deployment catalog.
 #
 # External kits are downloaded from pinned upstream archives via chezmoi externals
-# (see .chezmoiexternals/sbx-kits.toml.tmpl) and deployed to ~/.local/share/sbx/sandboxes/<name>/
-# or ~/.local/share/sbx/mixins/<name>/.
+# (see .chezmoiexternals/sbx-kits.toml.tmpl) and deployed to ~/.local/share/sbx/external/<kind>/<name>/.
 #
 # Authored kits live under src/sbx/sandboxes/<name>/ and src/sbx/mixins/<name>/.
 
@@ -16,10 +15,3 @@ mise = "present"
 
 [sbx.kits.authored.sandboxes]
 agy = "present"
-
-[sbx.kits.external.agy]
-repo = "shelajev/agy-sbx-kit"
-ref = "3e7016f108f3cf09922cf351b55a49e38d97f9f2"
-sha256 = "cd2fec52b532a9136550ba0051bde6eb5ea17cb8f86ad9c0cb1475c54dc17d1a"
-kind = "sandbox"
-state = "present"
