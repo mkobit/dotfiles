@@ -2,6 +2,8 @@
 {{- if ne $geminiMethod "none" -}}
 #!/usr/bin/env bash
 # mise description="Installs Gemini CLI extensions"
+# mise sources=["{{ (.chezmoi.sourceDir | toString) }}/.chezmoidata/gemini.toml"]
+# mise outputs=["{{ (.chezmoi.destDir | toString) }}/.gemini/extensions/.installed"]
 
 set -euo pipefail
 
@@ -34,5 +36,7 @@ yes | "${RUN_CMD[@]}" extensions install "{{ $ext.url }}" --ref "{{ $ext.ref }}"
 
 {{- end }}
 
+mkdir -p "{{ (.chezmoi.destDir | toString) }}/.gemini/extensions"
+touch "{{ (.chezmoi.destDir | toString) }}/.gemini/extensions/.installed"
 echo "Gemini extensions installation complete."
 {{- end -}}
