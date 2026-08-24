@@ -1,39 +1,14 @@
 {{- /*
   Generates externals for Docker Sandboxes (sbx) kits from .chezmoidata/sbx/kits.toml.
   Deploys external sandboxes to .local/share/sbx/external/sandboxes/<name> and mixins to .local/share/sbx/external/mixins/<name>.
-  Deploys authored kits from src/sbx/ to .local/share/sbx/ using file:// externals.
 */ -}}
 {{- $cfg := dig "sbx" "kits" (dict) . -}}
-{{- $root := joinPath .chezmoi.workingTree "src/sbx" -}}
 {{- $config := dict -}}
-{{- /* Authored kits (mixins and sandboxes) */ -}}
-{{- range $category := tuple "mixins" "sandboxes" -}}
-{{-   range $kitName, $state := dig "authored" $category (dict) $cfg -}}
-{{-     if eq $state "present" -}}
-{{-       $kitDir := joinPath $root $category $kitName -}}
-{{-       $found := false -}}
-{{-       range $path := glob (joinPath $kitDir "**/*") -}}
-{{-         if eq (lstat $path).type "file" -}}
-{{-           $found = true -}}
-{{-           $rel := trimPrefix (printf "%s/" $kitDir) $path -}}
-{{-           $entry := dict
-                "type" "file"
-                "url" (printf "file://%s" $path)
-                "refreshPeriod" "1s"
--}}
-{{-           $_ := set $config (printf ".local/share/sbx/%s/%s/%s" $category $kitName $rel) $entry -}}
-{{-         end -}}
-{{-       end -}}
-{{-       if not $found -}}
-{{-         fail (printf "sbx.kits.authored.%s.%s: no files found under %s" $category $kitName $kitDir) -}}
-{{-       end -}}
-{{-     else if ne $state "absent" -}}
-{{-       fail (printf "sbx.kits.authored.%s.%s: state must be \"present\" or \"absent\", got %q" $category $kitName $state) -}}
-{{-     end -}}
-{{-   end -}}
-{{- end -}}
 {{- /* External kits */ -}}
 {{- range $kitName, $source := dig "external" (dict) $cfg -}}
+{{-   if or (contains "/" $kitName) (contains "\\" $kitName) (contains ".." $kitName) -}}
+{{-     fail (printf "sbx.kits.external.%s: kit name must not contain path separators or \"..\"" $kitName) -}}
+{{-   end -}}
 {{-   $state := dig "state" "present" $source -}}
 {{-   if eq $state "present" -}}
 {{-     if or (not (dig "ref" "" $source)) (not (dig "sha256" "" $source)) -}}

@@ -93,13 +93,13 @@ Stack multiple mixins onto any sandbox run:
 
 ```bash
 # Apply a standalone sandbox kit
-sbx run --kit ./src/sbx/sandboxes/agy agy .
+sbx run --kit ~/.local/share/sbx/sandboxes/agy agy .
 
 # Apply a mixin kit for developer tooling (mise)
-sbx run --kit ./src/sbx/mixins/mise claude .
+sbx run --kit ~/.local/share/sbx/mixins/mise claude .
 
 # Stack multiple mixins (mise dev toolchain + git identity) onto a sandbox
-sbx run --kit ./src/sbx/mixins/mise --kit ./src/sbx/mixins/git-config claude .
+sbx run --kit ~/.local/share/sbx/mixins/mise --kit ~/.local/share/sbx/mixins/git-config claude .
 ```
 
 ### Inspecting and packaging kits

@@ -1,4 +1,4 @@
-# Docker Sandboxes (sbx)
+# Docker sandboxes (sbx)
 
 Docker Sandboxes (`sbx`) provides microVM-isolated execution environments for AI coding agents.
 It replaces host-level sandboxing tools like `sandboxr` / `bwrap` with container and virtualization boundaries.
@@ -20,6 +20,13 @@ API keys and authentication tokens are held on the host machine by `sandboxd` an
 The host proxy intercepts guest requests and injects actual credentials dynamically at runtime.
 Sandboxes receive sentinel token strings that only the host proxy recognizes and resolves.
 Exfiltration of in-sandbox environment variables or files yields inert sentinel values rather than actual secrets.
+
+### Docker daemon and container virtualization
+
+Each sandbox microVM contains its own private, isolated Docker daemon.
+The agent can build images (`docker build`), run test containers (`docker run`), and orchestrate multi-container services (`docker compose`) entirely within the microVM.
+The host Docker daemon and `/var/run/docker.sock` are never mounted or exposed to the sandbox.
+Container escapes or root privileges inside the guest container remain trapped inside the microVM boundary and cannot affect the host Docker runtime.
 
 ### Network governance profiles
 
@@ -61,7 +68,7 @@ Docker Sandboxes distinguishes between two fundamental kit kinds:
   Defines a standalone agent microVM environment.
   Specifies the container image (`sandbox.image`), agent entrypoint (`sandbox.entrypoint`), and default invocation command (`sandbox.command.default`).
   Only one base sandbox definition can be used when launching or creating a sandbox instance.
-  Authored sandbox kits live under `src/sbx/sandboxes/<name>/`.
+  Authored sandbox kits live under `src/chezmoi/dot_local/share/sbx/sandboxes/<name>/`.
 
 - **`kind: mixin` (Capability overlay)**
   Defines a reusable, composable add-on that can attach to *any* base sandbox or agent.
@@ -69,14 +76,14 @@ Docker Sandboxes distinguishes between two fundamental kit kinds:
   Injects environment variables (`environment.variables`), setup commands (`setup.install` run once at creation, `setup.startup` run on every boot), network egress rules (`permissions.network.allow`), required host credentials (`credentials`), and filesystem assets (`files/`).
   Multiple mixins can be composed and stacked onto a single sandbox run via repeated `--kit` flags:
   ```bash
-  sbx run --kit ./src/sbx/mixins/mise --kit ./src/sbx/mixins/git-config claude .
+  sbx run --kit ~/.local/share/sbx/mixins/mise --kit ~/.local/share/sbx/mixins/git-config claude .
   ```
-  Authored mixin kits live under `src/sbx/mixins/<name>/`.
+  Authored mixin kits live under `src/chezmoi/dot_local/share/sbx/mixins/<name>/`.
 
 ### Repository layout and external kits
 
-- `src/sbx/sandboxes/`: authored standalone sandbox kits (e.g. `agy`).
-- `src/sbx/mixins/`: authored capability mixins (e.g. `mise` dev toolchain, `git-config` git identity, `chezmoi-init` dotfiles bootstrap).
+- `src/chezmoi/dot_local/share/sbx/sandboxes/`: authored standalone sandbox kits (e.g. `agy`).
+- `src/chezmoi/dot_local/share/sbx/mixins/`: authored capability mixins (e.g. `mise` dev toolchain, `git-config` git identity, `chezmoi-init` dotfiles bootstrap).
 - `.chezmoidata/sbx/kits.toml`: catalog of pinned upstream external kits (e.g. `shelajev/agy-sbx-kit`).
 - `.chezmoiexternals/sbx-kits.toml.tmpl`: manages downloading and deploying pinned external kits to `~/.local/share/sbx/`.
 - `tests/integration/test_sbx_kits.py`: automated pytest suite validating kit YAML schemas and executing `sbx kit validate` across all kits in CI.
@@ -140,7 +147,7 @@ Sandboxes run untrusted agent code that could exfiltrate or corrupt static priva
 ### Commit signing strategies
 
 1. **Default: unsigned sandbox commits (`commit.gpgsign = false`)**
-   The [`src/sbx/mixins/git-config`](mixins/git-config/) mixin sets `commit.gpgsign = false` by default.
+   The [`mixins/git-config`](mixins/git-config/) mixin sets `commit.gpgsign = false` by default.
    Unsigned commits distinguish agent-generated history from human-verified commits.
    The human reviews, merges, and signs the resulting branch or PR on the host machine.
 
@@ -172,6 +179,7 @@ Reference the upstream documentation and repositories for official specification
 - Skills management: [sbx skills reference](https://docs.docker.com/reference/cli/sbx/skills/)
 - Daemon management: [sbx daemon reference](https://docs.docker.com/reference/cli/sbx/daemon/)
 - Autocompletion: [sbx completion reference](https://docs.docker.com/reference/cli/sbx/completion/)
+- VS Code integration: [Docker Sandboxes VS Code integration](https://docs.docker.com/ai/sandboxes/integrations/vscode/)
 
 ### Upstream repositories and community kits
 

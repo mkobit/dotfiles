@@ -2,18 +2,18 @@ schemaVersion: "2"
 kind: mixin
 name: mise
 displayName: Mise Developer Toolchain
-description: Installs pinned mise v2026.8.10 and configures dev toolchain shims in sandbox environments
+description: Installs pinned mise {{ .bin.mise.version }} and configures dev toolchain shims in sandbox environments
 
 environment:
   variables:
-    MISE_VERSION: "v2026.8.10"
+    MISE_VERSION: {{ .bin.mise.version | quote }}
     MISE_DATA_DIR: "/home/agent/.local/share/mise"
     MISE_CONFIG_DIR: "/home/agent/.config/mise"
     PATH: "/home/agent/.local/share/mise/shims:/home/agent/.local/bin:/usr/local/bin:/usr/bin:/bin"
 
 setup:
   install:
-    - command: "sh -c 'curl -fsSL https://mise.run | MISE_VERSION=v2026.8.10 sh'"
+    - command: "sh -c 'curl -fsSL https://mise.run | MISE_VERSION={{ .bin.mise.version }} sh'"
   startup:
     - command:
         - mise

@@ -2,7 +2,7 @@
 
 ## Notable cross-cutting features
 
-- **AI agent sandbox** (Docker Sandboxes / `sbx`, see [src/sbx/AGENTS.md](../sbx/AGENTS.md)): isolated execution environments for AI agent CLIs powered by microVMs; legacy `sandboxr` bwrap implementation is documented in [src/python/sandboxr/AGENTS.md](../python/sandboxr/AGENTS.md).
+- **AI agent sandbox** (Docker Sandboxes / `sbx`, see [dot_local/share/sbx/AGENTS.md](dot_local/share/sbx/AGENTS.md)): isolated execution environments for AI agent CLIs powered by microVMs; legacy `sandboxr` bwrap implementation is documented in [src/python/sandboxr/AGENTS.md](../python/sandboxr/AGENTS.md).
 - **Command approval policy** (see below): global command-approval allowlist for attended (HITL) agent sessions, rendered into each tool's native permission syntax.
 - **Secrets** (`[data.secrets]` in `.chezmoi.toml.tmpl`): rendered to a private (`0600`) file sourced by shell rc fragments, never inlined into a fragment itself.
 
