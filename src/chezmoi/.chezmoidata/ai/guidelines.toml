@@ -34,9 +34,14 @@ content = """
 [[ai.guidelines.sections]]
 content = """
 ## Delegation
-- Delegate specific units of work to subagents to keep the main thread focused and context lean.
-- Prefer pre-installed named skills and agents (superpowers, agency-agents) over ad-hoc subagent prompts — they carry tested workflows and better instructions.
-- Match an unnamed subagent request to the best-fitting agent type; use a generic one only if none fits."""
+- Root owns decomposition, architecture, unresolved ambiguity and risk, integration, and final judgment.
+- Inspect available skills and agent roles; apply the narrowest relevant skill and prefer the narrowest capable specialist over a general agent.
+- Choose the least costly capable specialist; use a general agent only as fallback.
+- If isolation is uncertain, delegate a bounded, read-only scout, even for an apparently small edit.
+- For coupled, expanding, or multi-step work, prefer scout or planner → implementer → test and lint repair → independent reviewer → root integration.
+- Give every delegate explicit scope, file ownership, constraints, acceptance criteria, and a concise handoff.
+- Delegation never broadens user authorization; avoid duplicate work and escalate capability only when needed.
+- Implement directly only after isolation is established; root verifies evidence before finalizing."""
 
 [[ai.guidelines.sections]]
 content = """
