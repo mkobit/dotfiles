@@ -210,4 +210,6 @@ sha256 = "a731ab781eb107fa56400079e19aeb0ba874688461dab8ac0e3d154999d4ca67"
 skills_root = "skills"
 
 [ai.skills.external.agent-lightning.skills]
+# Disabled 2026-08-25: assumes a dedicated agent-evaluation harness and is not
+# suitable for automatic use in general coding-agent sessions.
 agent-lightning = "absent"
