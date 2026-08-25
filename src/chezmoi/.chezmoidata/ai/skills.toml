@@ -210,4 +210,4 @@ sha256 = "a731ab781eb107fa56400079e19aeb0ba874688461dab8ac0e3d154999d4ca67"
 skills_root = "skills"
 
 [ai.skills.external.agent-lightning.skills]
-agent-lightning = "present"
+agent-lightning = "absent"
