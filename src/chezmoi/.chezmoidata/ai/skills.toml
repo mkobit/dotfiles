@@ -202,3 +202,12 @@ skill_file = "SKILL.md"
 
 [ai.skills.external.socrates.skills]
 socrates = "present"
+
+[ai.skills.external.agent-lightning]
+repo = "microsoft/agent-lightning"
+ref = "8435586d147b4cf7bff33e687d7317149e79cbb8" # 2026-08-24
+sha256 = "a731ab781eb107fa56400079e19aeb0ba874688461dab8ac0e3d154999d4ca67"
+skills_root = "skills"
+
+[ai.skills.external.agent-lightning.skills]
+agent-lightning = "present"
