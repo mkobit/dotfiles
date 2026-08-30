@@ -7,6 +7,7 @@
 /bazel-*
 .scratch/
 docs/superpowers/plans/*
+docs/superpowers/specs/*
 # Documentation: https://mise.jdx.dev/configuration/environments.html
 mise.*.local.toml
 mise.local.toml

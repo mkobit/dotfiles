@@ -15,7 +15,7 @@ CPU and memory limits are enforced at the virtualization boundary (`--cpus`, `--
 
 ### Host credential proxy and sentinel injection
 
-Zero raw credentials exist inside the guest sandbox environment.
+No raw credentials exist inside the guest sandbox environment.
 API keys and authentication tokens are held on the host machine by `sandboxd` and managed via `sbx secret`.
 The host proxy intercepts guest requests and injects actual credentials dynamically at runtime.
 Sandboxes receive sentinel token strings that only the host proxy recognizes and resolves.
@@ -41,10 +41,11 @@ Sandboxes support both attended and unattended agent workflows across supported 
 ### Attended (HITL)
 
 Interactive sessions permit human approval for sensitive commands within the sandbox.
-Run the agent directly via `sbx run <agent> [path]` or apply custom sandbox kits:
+Run built-in agents directly via `sbx run <agent> [path]`.
+Run AGY project work through the managed `sbx-agy` launcher:
 - Built-in Codex: `sbx run codex .`
 - Built-in Claude: `sbx run claude .`
-- Authored Antigravity: `sbx run --kit ~/.local/share/sbx/sandboxes/agy agy .`
+- Managed Antigravity: `sbx-agy .`
 Interactive prompts and terminal UI render normally inside the attached session.
 
 ### Autonomous
@@ -53,7 +54,29 @@ Unattended execution disables approval prompts within the sandbox while relying 
 Pass tool-specific bypass flags following the `--` separator:
 - Codex: `sbx run codex -- -y`
 - Claude: `sbx run claude -- --dangerously-skip-permissions`
-- Antigravity: `sbx run --kit ~/.local/share/sbx/sandboxes/agy agy -- --dangerously-skip-permissions --mode=accept-edits`
+- Antigravity: `sbx-agy . -- --print "complete the requested task and commit the result"`
+
+### Managed AGY project workflow
+
+`sbx-agy` always creates a private `--clone` sandbox.
+It copies the authored AGY base kit to a disposable kit, composes the managed `mise` and `git-config` mixins, and deletes the generated kit after the run unless `--keep-kit` is supplied.
+It refuses to reuse an existing sandbox name, because `--clone` only applies at sandbox creation.
+
+Host-managed AGY skills are copied into the sandbox global discovery directory.
+The cloned project `.agents/skills` directory remains unchanged and takes precedence over those global skills.
+
+An optional tracked `.sbx/sbx-agy/` directory can supply one project mixin kit.
+It must validate as `kind: mixin`, cannot request credentials, and cannot replace the generated AGY base kit.
+
+The managed AGY base kit uses Docker's host-mediated Google OAuth credential for AGY authentication.
+It does not expose a raw OAuth token, GitHub credential, SSH key, or GPG key to the sandbox.
+
+Use `sbx-agy fetch --name <name> <project>` to fetch the sandbox remote into the host repository.
+Fetching updates remote refs only and never merges or signs a commit.
+
+The supported profile is `work`.
+It permits sandbox-local edits, checks, and unsigned commits.
+`publish` and `land` require separate future credential, egress, GitHub, CI, and merge proofs.
 
 ## Kit architecture
 
@@ -156,10 +179,12 @@ Sandboxes run untrusted agent code that could exfiltrate or corrupt static priva
    The host pulls commits via the host remote (`sandbox-<name>`).
    The human signs merge or squash commits on the host using their host GPG or SSH signing key.
 
-3. **SSH agent forwarding for in-sandbox signing**
-   When in-sandbox signing is required, Git uses SSH signing format (`gpg.format = ssh`).
-   Signing requests flow through the forwarded SSH agent socket (`SSH_AUTH_SOCK`).
-   The private key remains on the host's `ssh-agent`; the guest only sends signing payloads over the socket.
+3. **No in-sandbox signing**
+   The current `sbx` CLI does not expose host SSH-agent or GPG-agent forwarding.
+   Do not copy or mount key material into a sandbox.
+   Keep sandbox commits unsigned and sign a reviewed host-side squash or merge commit when needed.
+
+The AGY launcher is validated structurally, but its first live launch must confirm that the installed `sbx` version accepts the custom AGY kit and that AGY discovers injected global skills.
 
 ## Living documentation links
 

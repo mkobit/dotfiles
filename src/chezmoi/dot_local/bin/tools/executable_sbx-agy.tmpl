@@ -1,0 +1,195 @@
+{{- $method := dig "local" "bin" "sbx" "installation_method" "none" . -}}
+{{- if eq $method "github_releases" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+sbx_bin="{{ .chezmoi.destDir }}/.local/bin/sbx"
+sbx_root="{{ .chezmoi.destDir }}/.local/share/sbx"
+host_skills="{{ .chezmoi.destDir }}/.gemini/antigravity-cli/skills"
+
+usage() {
+    cat <<'EOF'
+usage:
+  sbx-agy [--name NAME] [--keep-kit] [PROJECT] [-- AGY_ARGS...]
+  sbx-agy fetch --name NAME [PROJECT]
+
+Runs AGY in an isolated sbx clone with managed skills and default mise/git mixins.
+PROJECT defaults to the current directory.
+EOF
+}
+
+fail() {
+    printf 'error: %s\n' "$*" >&2
+    exit 2
+}
+
+project_root() {
+    git -C "$1" rev-parse --show-toplevel 2>/dev/null || fail "not a Git repository: $1"
+}
+
+copy_host_skills() {
+    local destination="$1"
+    local candidate
+
+    [[ -d "$host_skills" ]] || return 0
+    mkdir -p "$destination"
+    for candidate in "$host_skills"/*; do
+        [[ -d "$candidate" && ! -L "$candidate" && -f "$candidate/SKILL.md" ]] || continue
+        if find "$candidate" -type l -print -quit | grep -q .; then
+            printf 'warning: skipping skill with symlinks: %s\n' "${candidate##*/}" >&2
+            continue
+        fi
+        cp -R -- "$candidate" "$destination/${candidate##*/}"
+    done
+}
+
+cleanup_staged_kit() {
+    [[ -n "${SBX_AGY_STAGED_KIT:-}" ]] || return 0
+    if [[ "${SBX_AGY_KEEP_KIT:-false}" == true ]]; then
+        printf 'kept generated kit: %s\n' "$SBX_AGY_STAGED_KIT" >&2
+    else
+        rm -rf -- "$SBX_AGY_STAGED_KIT"
+    fi
+}
+
+require_unused_sandbox_name() {
+    local sandbox_name="$1"
+    local sandbox_names
+
+    if ! sandbox_names="$("$sbx_bin" ls --quiet)"; then
+        fail 'unable to list sandboxes; run sbx diagnose before retrying'
+    fi
+    if grep -Fqx -- "$sandbox_name" <<<"$sandbox_names"; then
+        fail "sandbox name is already in use: $sandbox_name; fetch or remove it, then choose a new name"
+    fi
+}
+
+validate_project_kit() {
+    local project_kit="$1"
+    local inspection
+
+    "$sbx_bin" kit validate "$project_kit" >/dev/null || fail "invalid project kit: $project_kit"
+    if ! inspection="$("$sbx_bin" kit inspect "$project_kit" --json)"; then
+        fail "unable to inspect project kit: $project_kit"
+    fi
+    grep -Eq '"kind"[[:space:]]*:[[:space:]]*"mixin"' <<<"$inspection" || fail "project kit must be a mixin: $project_kit"
+    if grep -Eq '"credentials"[[:space:]]*:' <<<"$inspection"; then
+        fail "project kit must not request credentials: $project_kit"
+    fi
+}
+
+run_fetch() {
+    local sandbox_name=""
+    local project_input="$PWD"
+
+    while (($#)); do
+        case "$1" in
+            --name)
+                (($# >= 2)) || fail '--name requires a value'
+                sandbox_name="$2"
+                shift 2
+                ;;
+            -h|--help)
+                usage
+                return 0
+                ;;
+            -*)
+                fail "unknown fetch option: $1"
+                ;;
+            *)
+                project_input="$1"
+                shift
+                (($# == 0)) || fail 'fetch accepts at most one project path'
+                ;;
+        esac
+    done
+
+    [[ -n "$sandbox_name" ]] || fail 'fetch requires --name NAME'
+    git -C "$(project_root "$project_input")" fetch "sandbox-$sandbox_name"
+}
+
+run_agy() {
+    local sandbox_name=""
+    local keep_kit=false
+    local project_input="$PWD"
+    local project
+    local staged_kit
+    local project_kit
+    local -a agy_args=()
+    local -a command
+
+    while (($#)); do
+        case "$1" in
+            --name)
+                (($# >= 2)) || fail '--name requires a value'
+                sandbox_name="$2"
+                shift 2
+                ;;
+            --keep-kit)
+                keep_kit=true
+                shift
+                ;;
+            --)
+                shift
+                agy_args=("$@")
+                break
+                ;;
+            -h|--help)
+                usage
+                return 0
+                ;;
+            -*)
+                fail "unknown option: $1"
+                ;;
+            *)
+                project_input="$1"
+                shift
+                (($# == 0)) || fail 'only one project path is allowed before --'
+                ;;
+        esac
+    done
+
+    project="$(project_root "$project_input")"
+    [[ -n "$sandbox_name" ]] || sandbox_name="agy-$(basename "$project")"
+    [[ "$sandbox_name" =~ ^[A-Za-z0-9][A-Za-z0-9.+-]*$ ]] || fail "invalid sandbox name: $sandbox_name"
+    [[ -x "$sbx_bin" ]] || fail "sbx is unavailable: $sbx_bin"
+    [[ -d "$sbx_root/sandboxes/agy" ]] || fail "missing managed AGY kit: $sbx_root/sandboxes/agy"
+    require_unused_sandbox_name "$sandbox_name"
+
+    staged_kit="$(mktemp -d)"
+    SBX_AGY_STAGED_KIT="$staged_kit"
+    SBX_AGY_KEEP_KIT="$keep_kit"
+    trap cleanup_staged_kit EXIT
+
+    cp -R -- "$sbx_root/sandboxes/agy/." "$staged_kit/"
+    copy_host_skills "$staged_kit/files/home/.gemini/config/skills"
+
+    command=(
+        "$sbx_bin" run --clone --name "$sandbox_name"
+        --kit "$staged_kit"
+        --kit "$sbx_root/mixins/mise"
+        --kit "$sbx_root/mixins/git-config"
+    )
+    project_kit="$project/.sbx/sbx-agy"
+    if [[ -e "$project_kit" ]]; then
+        [[ -d "$project_kit" && ! -L "$project_kit" && -f "$project_kit/spec.yaml" ]] || fail "invalid project kit: $project_kit"
+        validate_project_kit "$project_kit"
+        command+=(--kit "$project_kit")
+    fi
+    command+=(agy "$project")
+    if ((${#agy_args[@]})); then
+        command+=(-- "${agy_args[@]}")
+    fi
+    "${command[@]}"
+}
+
+case "${1:-}" in
+    fetch)
+        shift
+        run_fetch "$@"
+        ;;
+    *)
+        run_agy "$@"
+        ;;
+esac
+{{- end -}}

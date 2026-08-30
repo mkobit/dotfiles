@@ -1,181 +1,61 @@
 ---
 name: docker-sandboxes
-description: Guide for creating, running, and managing isolated Docker Sandboxes (sbx) for autonomous agent execution, multi-repo workspace mounts, kit packaging, network egress policies, and secret management.
+description: Use when setting up, running, or troubleshooting an sbx sandbox for a Git repository, especially unattended AGY work in an isolated clone.
 ---
 
-# Docker sandboxes
+# Docker Sandboxes
 
-Docker Sandboxes (`sbx`) provides isolated execution environments for AI agents and developer workflows using microVM and container boundaries.
+Use the managed `sbx-agy` launcher for repository work.
+It creates an `sbx --clone` sandbox, so the agent never writes the host checkout.
 
-## Sandbox lifecycle and execution
+## Project workflow
 
-Manage sandboxes through explicit CLI subcommands.
+1. Read the repository’s `AGENTS.md`, agent configuration, and `mise` tasks.
+2. Check for an optional tracked `.sbx/sbx-agy/` mixin kit.
+3. State the project, the requested task, the default `work` authority, the selected checks, and the mixin before starting a sandbox.
+4. Obtain confirmation before running `sbx-agy`, because it creates a host microVM and mounts a repository read-only for cloning.
+5. Run AGY with an explicit non-interactive prompt when the user requested unattended work.
+6. Obtain separate confirmation before `sbx-agy fetch --name NAME PROJECT`, which updates host Git remote refs but never merges them.
 
-### Running an ephemeral or persistent agent
-
-Run an agent directly inside an isolated sandbox with `sbx run` (built-in `codex`, `claude`, `shell`) or with custom kits (authored `agy`).
-
-```bash
-# Run built-in Codex or Claude agent session
-sbx run codex .
-sbx run claude .
-
-# Run autonomous agent with arguments passed after --
-sbx run codex . -- -y
-sbx run claude . -- --dangerously-skip-permissions
-
-# Run custom Antigravity (agy) sandbox kit
-sbx run --kit ~/.local/share/sbx/sandboxes/agy agy .
-
-# Run an interactive shell sandbox
-sbx run shell .
-```
-
-### Creating persistent sandboxes
-
-Use `sbx create` to prepare an environment before dispatching commands.
+Example:
 
 ```bash
-# Create a named persistent sandbox
-sbx create --name dev-sandbox claude /path/to/project
-
-# Execute commands inside the running sandbox
-sbx exec dev-sandbox cargo test
-
-# List running and stopped sandboxes
-sbx ls
-
-# Stop a running sandbox
-sbx stop dev-sandbox
-
-# Remove sandboxes after completion
-sbx rm dev-sandbox
+sbx-agy /path/to/project -- --print "run mise checks, fix the reported failure, and commit the change"
 ```
 
-## Cross-repository workflows and workspace mounts
+## Context composition
 
-Mount workspaces into the sandbox to enable cross-repo development while preserving host safety.
+`sbx-agy` copies the host-managed AGY skill packages into the sandbox’s global discovery location.
+It never mounts host agent settings, GitHub credentials, SSH material, or GPG material.
+The managed AGY base kit uses Docker's mediated Google OAuth credential for AGY authentication, not a raw token in the sandbox.
 
-### Mounting multiple workspaces
+The cloned repository keeps its own `.agents/skills` unchanged.
+AGY gives project `.agents/skills` higher precedence than the injected global baseline.
 
-Pass additional paths as positional arguments to `sbx run` or `sbx create`.
-Use `:ro` suffixes on dependency or reference repositories to prevent unexpected mutations.
+The optional `.sbx/sbx-agy/` directory must validate as an `sbx` mixin kit without credentials.
+Use it for project-local, versioned setup only.
+Do not use it to add credentials, a writable host mount, or a second base sandbox.
 
-```bash
-# Mount current directory as primary workspace and reference docs/libraries as read-only
-sbx run claude . /path/to/shared-lib:ro /path/to/docs:ro
+## Authority boundaries
 
-# Create a named sandbox with multiple workspace paths
-sbx create --name multi-repo-box gemini ./app ../core-lib:ro
-```
+`work` is supported now.
+It permits sandbox-local edits, project checks, and unsigned sandbox commits.
 
-### Private git clone mode
+`publish` and `land` are design names, not implemented commands.
+Do not infer GitHub API access, `git push`, pull-request creation, CI polling, or merging from a `work` request.
+Each requires an explicit future capability and a real-host credential and egress proof.
 
-Use `--clone` during sandbox creation to run the agent on an in-container clone of the host Git repository.
-The host repository is mounted read-only and wired back via a host git remote (`sandbox-<name>`).
+## Troubleshooting
 
-```bash
-# Run agent on a private in-container clone of the current repository
-sbx run --clone claude .
+Use `sbx diagnose` and `sbx daemon status` before creating a sandbox.
+Use `sbx kit validate` to validate an optional repository mixin without starting a sandbox.
+Use `sbx ls` and `sbx policy check` only for read-only inspection.
+Choose a new sandbox name for every `sbx-agy` run, because the launcher refuses to reattach to preserve clone-only isolation.
 
-# Create a clone-mode sandbox with custom name
-sbx create --clone --name review-box claude .
-```
+The first live launch must verify custom AGY-kit support and injected global-skill discovery for the installed `sbx` version.
 
-## Applying and packaging kits
+`sbx skills import` does not provision AGY skills.
+It supports a separate shared store for other built-in agents.
 
-Kits provide declarative, shareable bundles (`spec.yaml`) defining environment setup, network policies, and credentials.
-
-### Applying kits to sandboxes
-
-Pass a kit directory, archive, or git repository to `sbx run` or `sbx create` using `--kit`.
-Stack multiple mixins onto any sandbox run:
-
-```bash
-# Apply a standalone sandbox kit
-sbx run --kit ~/.local/share/sbx/sandboxes/agy agy .
-
-# Apply a mixin kit for developer tooling (mise)
-sbx run --kit ~/.local/share/sbx/mixins/mise claude .
-
-# Stack multiple mixins (mise dev toolchain + git identity) onto a sandbox
-sbx run --kit ~/.local/share/sbx/mixins/mise --kit ~/.local/share/sbx/mixins/git-config claude .
-```
-
-### Inspecting and packaging kits
-
-Validate and package custom kits before deployment.
-
-```bash
-# Inspect kit metadata and manifest
-sbx kit inspect ./kits/rust-dev
-
-# Validate kit structure and declarations
-sbx kit validate ./kits/rust-dev
-
-# Package kit into a distributable archive
-sbx kit pack ./kits/rust-dev -o ./dist/rust-dev.kit.tar.gz
-```
-
-## Secrets management and credential proxy
-
-Inject secrets into sandboxes without baking credentials into container layers or history.
-
-### Managing stored secrets
-
-Store and manage sensitive tokens via `sbx secret`.
-
-```bash
-# Set a secret in the sbx secret store
-sbx secret set GITHUB_TOKEN
-
-# List configured secrets
-sbx secret ls
-```
-
-### Passing secrets and using credential proxying
-
-Inject configured secrets into running sandboxes.
-The host credential proxy handles upstream authentication without leaking root credentials to the sandbox.
-
-```bash
-# Run sandbox with specific secrets exposed to the container environment
-sbx run --secret GITHUB_TOKEN --secret NPM_TOKEN node:20 npm publish --dry-run
-```
-
-## Network governance and egress policies
-
-Enforce network access controls on agent containers to prevent unauthorized outbound traffic or data leakage.
-
-### Inspecting and checking policies
-
-List and verify network governance policies.
-
-```bash
-# List active network policies
-sbx policy ls
-
-# Check policy enforcement and compliance
-sbx policy check
-```
-
-### Restricting egress destinations
-
-Apply explicit network restriction flags to prevent external network access or permit only allowed domains.
-
-```bash
-# Run with egress restricted to allowed hosts
-sbx run --policy restricted-egress node:20 npm test
-```
-
-## Diagnostics and verification
-
-Verify system prerequisites, virtualization status, and daemon connectivity before launching sandboxes.
-
-```bash
-# Run diagnostic checks on Docker Sandboxes installation and daemon
-sbx diagnose
-
-# Check sbx CLI and daemon version
-sbx version
-```
+The current `sbx` CLI does not expose host SSH-agent or GPG-agent forwarding.
+Keep sandbox commits unsigned and sign a reviewed host-side result if required.

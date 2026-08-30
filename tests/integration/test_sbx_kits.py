@@ -1,3 +1,4 @@
+import json
 import shutil
 import subprocess
 import tempfile
@@ -12,6 +13,8 @@ SBX_DIR = REPO_ROOT / "src" / "chezmoi" / "dot_local" / "share" / "sbx"
 MIXINS_DIR = SBX_DIR / "mixins"
 SANDBOXES_DIR = SBX_DIR / "sandboxes"
 CHEZMOI_DATA_DIR = REPO_ROOT / "src" / "chezmoi" / ".chezmoidata"
+SBX_GUIDE = SBX_DIR / "AGENTS.md"
+SBX_SKILL = REPO_ROOT / "src" / "ai" / "skills" / "docker-sandboxes" / "SKILL.md"
 
 
 def _render_template(template_path: Path) -> str:
@@ -178,6 +181,52 @@ def test_chezmoi_mixin_version_parity():
         f"CHEZMOI_VERSION in chezmoi-init ({spec_env.get('CHEZMOI_VERSION')}) "
         f"does not match CI workflow ({canonical_chezmoi_version})"
     )
+
+
+def test_project_sandbox_workflow_is_documented():
+    """Keep the host skill and deployed guide aligned on the supported workflow."""
+    for path in (SBX_GUIDE, SBX_SKILL):
+        text = path.read_text(encoding="utf-8")
+        for required in (
+            "sbx-agy",
+            "--clone",
+            ".sbx/sbx-agy",
+            ".agents/skills",
+            "Google OAuth",
+            "publish",
+        ):
+            assert required in text, f"Missing {required!r} in {path}"
+
+
+def test_sbx_guide_is_managed():
+    """Deploy the SBX guide alongside the kits it documents."""
+    result = subprocess.run(
+        ["chezmoi", "--source", str(REPO_ROOT), "managed", "--include=files", "--format=json"],
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+
+    assert ".local/share/sbx/AGENTS.md" in result.stdout
+
+
+def test_agy_sandbox_kit_resolves_the_agy_entrypoint():
+    """Keep the custom AGY kit structurally compatible with the installed sbx CLI."""
+    sbx_bin = shutil.which("sbx")
+    if not sbx_bin:
+        pytest.skip("sbx CLI not installed on host PATH")
+
+    result = subprocess.run(
+        [sbx_bin, "kit", "inspect", str(SANDBOXES_DIR / "agy"), "--json"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    inspection = json.loads(result.stdout)
+    assert inspection["manifest"]["binary"] == "agy"
+    assert len(inspection["credentials"]) == 1
+    assert inspection["credentials"][0]["service"] == "google"
+    assert "oauth" in inspection["credentials"][0]
 
 
 @pytest.mark.parametrize("kit_dir", ALL_KITS, ids=lambda p: f"validate-{p.name}")

@@ -1,0 +1,4 @@
+{{- $method := dig "local" "bin" "sbx" "installation_method" "none" . -}}
+{{- if eq $method "github_releases" -}}
+{{ .chezmoi.destDir }}/.local/bin/tools/sbx-agy
+{{- end -}}
