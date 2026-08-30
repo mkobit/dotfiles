@@ -20,6 +20,7 @@
 "git log" = "allow"
 "git ls-files" = "allow"
 "git merge" = "allow"
+"git merge-base" = "allow"
 "git mv" = "allow"
 "git pull" = "allow"
 "git rebase" = "allow"
