@@ -104,3 +104,44 @@ def test_codex_modifier_adds_optional_auto_compaction_limit() -> None:
         "runtime": {"value": "preserve"},
         "model_auto_compact_token_limit": 176700,
     }
+
+
+def test_codex_modifier_preserves_matching_optional_limit_without_tui_byte_for_byte() -> None:
+    template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
+    existing = "# preserve this comment\nmodel_auto_compact_token_limit = 176700\n\n[runtime]\nvalue='preserve'\n"
+
+    result = _render_codex_config(
+        template,
+        existing,
+        '{"ai":{"context_management":{"codex":{"auto_compact_token_limit":176700}}}}',
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == existing
+    assert result.stderr == ""
+
+
+def test_codex_modifier_manages_preferences_in_explicit_empty_tui_table() -> None:
+    template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
+    existing = "[tui]\n\n[runtime]\nvalue = \"preserve\"\n"
+
+    result = _render_codex_config(template, existing)
+
+    assert result.returncode == 0, result.stderr
+    rendered = tomllib.loads(result.stdout)
+    assert rendered["tui"] == {
+        "vim_mode_default": True,
+        "status_line": [
+            "model-with-reasoning",
+            "current-dir",
+            "project-name",
+            "git-branch",
+            "run-state",
+            "permissions",
+            "context-remaining",
+            "workspace-headline",
+            "task-progress",
+        ],
+        "status_line_use_colors": True,
+    }
+    assert rendered["runtime"] == {"value": "preserve"}
