@@ -7,12 +7,16 @@
 {{- $statusLine := dig "codex" "tui" "status_line" (list) . -}}
 {{- $statusLineUseColors := dig "codex" "tui" "status_line_use_colors" true . -}}
 {{- $autoCompactTokenLimit := dig "ai" "context_management" "codex" "auto_compact_token_limit" nil . -}}
+{{- $hasAutoCompactTokenLimit := ne $autoCompactTokenLimit nil -}}
 {{- $hasTui := dig "tui" nil $config -}}
-{{- $matches := and
-      (eq (dig "tui" "vim_mode_default" nil $config) $vimModeDefault)
-      (deepEqual (dig "tui" "status_line" nil $config) $statusLine)
-      (eq (dig "tui" "status_line_use_colors" nil $config) $statusLineUseColors)
-      (or (not $autoCompactTokenLimit) (eq (dig "model_auto_compact_token_limit" nil $config) $autoCompactTokenLimit))
+{{- $matches := or
+      (and (not $hasTui) (not $hasAutoCompactTokenLimit))
+      (and
+        (eq (dig "tui" "vim_mode_default" nil $config) $vimModeDefault)
+        (deepEqual (dig "tui" "status_line" nil $config) $statusLine)
+        (eq (dig "tui" "status_line_use_colors" nil $config) $statusLineUseColors)
+        (or (not $hasAutoCompactTokenLimit) (eq (dig "model_auto_compact_token_limit" nil $config) $autoCompactTokenLimit))
+      )
   -}}
 {{- if $matches -}}
 {{-   .chezmoi.stdin -}}
@@ -23,7 +27,7 @@
 {{-     $config = $config | setValueAtPath "tui.status_line" $statusLine -}}
 {{-     $config = $config | setValueAtPath "tui.status_line_use_colors" $statusLineUseColors -}}
 {{-   end -}}
-{{-   if $autoCompactTokenLimit -}}
+{{-   if $hasAutoCompactTokenLimit -}}
 {{-     $config = $config | setValueAtPath "model_auto_compact_token_limit" $autoCompactTokenLimit -}}
 {{-   end -}}
 {{-   $config | toToml -}}

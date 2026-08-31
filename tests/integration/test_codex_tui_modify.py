@@ -80,6 +80,17 @@ value = "preserve"
     assert "Codex TUI settings changed" in result.stderr
 
 
+def test_codex_tui_modifier_preserves_base_only_config_byte_for_byte() -> None:
+    template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
+    base_only = "# preserve this comment\n[runtime]\nvalue='preserve'\n"
+
+    result = _render_codex_config(template, base_only)
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == base_only
+    assert result.stderr == ""
+
+
 def test_codex_modifier_adds_optional_auto_compaction_limit() -> None:
     template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
     existing = """[runtime]\nvalue = \"preserve\"\n"""
