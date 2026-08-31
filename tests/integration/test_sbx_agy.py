@@ -6,11 +6,22 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CHEZMOI_SOURCE = REPO_ROOT / "src" / "chezmoi"
 SBX_AGY_SOURCE = CHEZMOI_SOURCE / "dot_local" / "bin" / "tools" / "executable_sbx-agy.tmpl"
+SBX_AGY_TEMPLATE_DATA = '{"local":{"bin":{"sbx":{"installation_method":"github_releases"}}}}'
 
 
 def _render() -> str:
     result = subprocess.run(
-        ["chezmoi", "--source", str(CHEZMOI_SOURCE), "execute-template", "-f", str(SBX_AGY_SOURCE)],
+        [
+            "chezmoi",
+            "--source",
+            str(CHEZMOI_SOURCE),
+            "--refresh-externals=never",
+            "--override-data",
+            SBX_AGY_TEMPLATE_DATA,
+            "execute-template",
+            "-f",
+            str(SBX_AGY_SOURCE),
+        ],
         capture_output=True,
         check=True,
         text=True,
