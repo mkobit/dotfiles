@@ -35,6 +35,7 @@
 #   - "bd repo sync": hydrates issues in from other local repos — not
 #     the agent's own local work, same reasoning as "bd dolt pull".
 [ai.command_policy.commands]
+"bd --help" = "allow"
 "bd admin cleanup" = "allow"
 "bd admin compact" = "allow"
 "bd assign" = "allow"
