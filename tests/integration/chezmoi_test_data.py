@@ -6,6 +6,7 @@ AGY_INSTALLATION_METHODS = frozenset({"dotfiles.script", "preinstalled", "none",
 MARKER_GATED_INSTALLATION_METHODS = {
     "agy": AGY_INSTALLATION_METHODS,
     "local.bin.btop": frozenset({"github_releases", "homebrew", "none"}),
+    "local.bin.codex": frozenset({"github_releases", "none"}),
     "local.bin.opencode": frozenset({"github_releases", "none"}),
     "local.bin.pi": frozenset({"github_releases", "none"}),
     "packages.bubblewrap": frozenset({"apt", "none"}),

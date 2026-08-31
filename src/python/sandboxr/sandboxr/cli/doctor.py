@@ -8,7 +8,7 @@ import typer
 
 from sandboxr.backend.bwrap import build_args, default_mask_paths
 from sandboxr.cli._common import (
-    _echo_command,
+    _log_invocation,
     _refuse_if_nested,
     _require_bwrap,
     _sandbox_spec,
@@ -125,7 +125,7 @@ def doctor(
     )
     spec = dataclasses.replace(spec, extra_env={**spec.extra_env, **_probe_env(spec)})
     bwrap_cmd = build_args(spec, os.environ, default_mask_paths(os.getuid()))
-    _echo_command(bwrap_cmd)
+    _log_invocation(bwrap_cmd, action="doctor")
     args = [*bwrap_cmd, "bash", "-c", PROBE_SCRIPT]
     result = subprocess.run(args, check=False)
     if result.returncode == 0:

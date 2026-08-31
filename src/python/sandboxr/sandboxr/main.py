@@ -31,6 +31,17 @@ app.command(context_settings=_RUN_CTX)(shell)
 app.command()(doctor)
 
 
+@app.callback(invoke_without_command=False)
+def guard_on_hold() -> None:
+    """Fail closed while sandboxr is on hold."""
+    typer.secho(
+        "error: sandboxr is currently on hold (investigating Docker Sandboxes / sbx instead).",
+        fg=typer.colors.RED,
+        err=True,
+    )
+    raise typer.Exit(1)
+
+
 def main() -> None:
     app()
 

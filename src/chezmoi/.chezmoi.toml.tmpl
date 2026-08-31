@@ -13,6 +13,9 @@ MISE_STATE_DIR  = "{{ .chezmoi.destDir }}/.local/state/mise"
 installation_method = "github_releases"
 
 # Static binaries available on all supported platforms
+[data.local.bin.codex]
+installation_method = "github_releases"
+
 [data.local.bin.pi]
 installation_method = "github_releases"
 
@@ -204,7 +207,7 @@ installation_method = "chezmoi"
 # promptStringOnce's path arg is a dotted lookup into nested data, not a flat
 # key — must match where the value lands below ("secrets.stitch_api_key").
 {{- $stitchApiKey := "" -}}
-{{- if not (env "CI") -}}
+{{- if and (not (env "CI")) (not (env "JULES_SESSION_ID")) stdinIsATTY -}}
 {{-   $stitchApiKey = promptStringOnce . "secrets.stitch_api_key" "Stitch API key, exported as $STITCH_API_KEY for use in any project's .mcp.json (blank to skip — stitch.withgoogle.com → Settings → API key)" "" -}}
 {{- end }}
 [data.secrets]

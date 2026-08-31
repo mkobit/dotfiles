@@ -1,10 +1,10 @@
-"""Shared CLI helpers: spec building, socket resolution, guard checks."""
-
+import logging
 import os
 import shutil
 import stat
 import subprocess
 from collections.abc import Sequence
+from logging.handlers import RotatingFileHandler
 from pathlib import Path
 
 import typer
@@ -15,20 +15,50 @@ from sandboxr.sandbox.spec import SandboxSpec
 TOKEN_PATH = Path.home() / ".local" / "state" / "ai-policy" / "tokens" / "readonly.token"
 
 
+def _state_dir() -> Path:
+    xdg_state = os.environ.get("XDG_STATE_HOME")
+    base = Path(xdg_state) if xdg_state else Path.home() / ".local" / "state"
+    return base / "sandboxr"
+
+
+def _log_invocation(args: Sequence[str], action: str = "run") -> None:
+    """Log the sandbox invocation to a rolling log file under the state directory."""
+    log_dir = _state_dir()
+    try:
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "invocations.log"
+        logger = logging.getLogger("sandboxr.invocations")
+        logger.setLevel(logging.INFO)
+        expected_path = str(log_file.resolve())
+        matching_handlers = [
+            h
+            for h in logger.handlers
+            if isinstance(h, RotatingFileHandler)
+            and getattr(h, "baseFilename", None) == expected_path
+        ]
+        if not matching_handlers:
+            for h in list(logger.handlers):
+                h.close()
+                logger.removeHandler(h)
+            handler = RotatingFileHandler(
+                log_file, maxBytes=2 * 1024 * 1024, backupCount=5, encoding="utf-8"
+            )
+            formatter = logging.Formatter(
+                "[%(asctime)s] [%(levelname)s] %(message)s", datefmt="%Y-%m-%dT%H:%M:%S%z"
+            )
+            handler.setFormatter(formatter)
+            logger.addHandler(handler)
+        cmd_str = " ".join(args)
+        logger.info("action=%s cwd=%s\n  command=%s", action, Path.cwd(), cmd_str)
+        for h in logger.handlers:
+            h.flush()
+    except OSError:
+        pass
+
+
 def _fail(message: str) -> typer.Exit:
     typer.secho(f"sandboxr: {message}", fg=typer.colors.RED, err=True)
     return typer.Exit(1)
-
-
-def _echo_command(args: Sequence[str]) -> None:
-    """Print the sandbox invocation, one token per line, so it's actually skimmable.
-
-    Always shown, not gated behind a flag: what's bound where is the whole
-    trust boundary, so it should never be a mystery.
-    """
-    typer.secho("sandboxr: sandbox invocation", fg=typer.colors.CYAN, err=True)
-    for token in args:
-        typer.echo(f"  {token}", err=True)
 
 
 def _refuse_if_nested() -> None:

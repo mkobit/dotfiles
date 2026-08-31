@@ -1,9 +1,9 @@
 from sandboxr.sandbox.tool import adapt_command
 
 
-def test_claude_gets_dangerously_skip_permissions():
+def test_claude_does_not_auto_inject_dangerously_skip_permissions():
     cmd, _env = adapt_command(["claude", "--print", "hi"], {})
-    assert "--dangerously-skip-permissions" in cmd
+    assert "--dangerously-skip-permissions" not in cmd
 
 
 def test_claude_injects_settings_when_file_exists(tmp_path):
@@ -19,31 +19,21 @@ def test_claude_does_not_duplicate_settings_flag():
     assert cmd.count("--settings") == 1
 
 
-def test_agy_gets_dangerously_skip_permissions():
+def test_agy_does_not_auto_inject_dangerously_skip_permissions():
     cmd, _env = adapt_command(["agy", "run"], {})
-    assert "--dangerously-skip-permissions" in cmd
-
-
-def test_agy_does_not_get_sandbox_flag():
-    cmd, _env = adapt_command(["agy", "run"], {})
-    assert "--sandbox" not in cmd
-
-
-def test_claude_skip_permissions_false_omits_flag():
-    cmd, _env = adapt_command(["claude", "--print", "hi"], {}, skip_permissions=False)
     assert "--dangerously-skip-permissions" not in cmd
 
 
-def test_agy_skip_permissions_false_omits_flag():
-    cmd, _env = adapt_command(["agy", "run"], {}, skip_permissions=False)
-    assert "--dangerously-skip-permissions" not in cmd
+def test_agy_injects_settings_when_file_exists(tmp_path):
+    settings = tmp_path / "autonomous-settings.json"
+    settings.write_text("{}")
+    cmd, _env = adapt_command(["agy", "run"], {}, agy_settings=settings)
+    assert "--settings" in cmd
+    assert str(settings) in cmd
 
 
-def test_skip_permissions_false_does_not_remove_explicit_flag():
-    # Explicit opt-in via the raw command line still wins.
-    cmd, _env = adapt_command(
-        ["claude", "--dangerously-skip-permissions"], {}, skip_permissions=False
-    )
+def test_explicit_dangerously_skip_permissions_preserved():
+    cmd, _env = adapt_command(["claude", "--dangerously-skip-permissions"], {})
     assert cmd.count("--dangerously-skip-permissions") == 1
 
 

@@ -1,0 +1,28 @@
+# Required by openai/codex for Code Mode host execution
+# Reference: https://github.com/openai/codex/issues/31831
+[bin.codex-code-mode-host]
+bom_key = "codex"
+version = "0.148.0"
+
+[bin.codex-code-mode-host.github_releases]
+repo            = "openai/codex"
+bin_name        = "codex-code-mode-host"
+external_type   = "archive-file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "rust-v{version}"
+filename_format = "codex-code-mode-host-{target}.tar.gz"
+path_format     = "codex-code-mode-host-{target}"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.codex-code-mode-host.github_releases.platforms]
+darwin_arm64 = "aarch64-apple-darwin"
+darwin_amd64 = "x86_64-apple-darwin"
+linux_amd64  = "x86_64-unknown-linux-musl"
+linux_arm64  = "aarch64-unknown-linux-musl"
+
+[bin.codex-code-mode-host.github_releases.checksums]
+darwin_arm64 = "10eaf562ecefee1b9f17fb609cd8f32b6f01876674555abd2ddb81962f3b5e34"
+darwin_amd64 = "a2ad5c6e8654c60b63aed172cb0e36cd0dead563cf2a0aec88cdcb5af484da50"
+linux_amd64  = "8e6e559b228fa61b18fb2c28c31ec02068751025bcce3f00cf63c79499d59829"
+linux_arm64  = "1c410fe4bb174949649efe05c150b1512fb4775d5874eb54b2edb624cf7513a4"

@@ -7,8 +7,8 @@ import typer
 from sandboxr.backend.bwrap import build_args, default_mask_paths
 from sandboxr.cli._common import (
     _apply_timeout,
-    _echo_command,
     _fail,
+    _log_invocation,
     _refuse_if_nested,
     _require_bwrap,
     _sandbox_spec,
@@ -66,7 +66,7 @@ def shell(
 ) -> None:
     """Drop into a sandboxed interactive shell.
 
-    Defaults to --tty on (unlike `run`). Uses $SHELL or /bin/bash.
+    Defaults to --tty on. Uses $SHELL or /bin/bash.
     """
     _refuse_if_nested()
     if timeout is not None and timeout <= 0:
@@ -86,7 +86,7 @@ def shell(
     )
     bwrap_cmd = build_args(spec, os.environ, default_mask_paths(os.getuid()))
     args = _apply_timeout([*bwrap_cmd, shell_cmd], timeout)
-    _echo_command(args)
+    _log_invocation(args, action="shell")
     if show_command:
         typer.echo(" ".join(args))
         return
