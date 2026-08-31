@@ -10,6 +10,10 @@ def _render_codex_config(
 ) -> subprocess.CompletedProcess[str]:
     command = [
         "chezmoi",
+        "--config",
+        "/dev/null",
+        "--config-format",
+        "toml",
         "--source",
         str(Path.cwd()),
         "execute-template",
@@ -176,7 +180,7 @@ value = "preserve"
 
 def test_codex_modifier_manages_preferences_in_explicit_empty_tui_table() -> None:
     template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
-    existing = "[tui]\n\n[runtime]\nvalue = \"preserve\"\n"
+    existing = '[tui]\n\n[runtime]\nvalue = "preserve"\n'
 
     result = _render_codex_config(template, existing)
 
