@@ -3,17 +3,24 @@ import tomllib
 from pathlib import Path
 
 
-def _render_codex_config(template: Path, stdin: str) -> subprocess.CompletedProcess[str]:
+def _render_codex_config(
+    template: Path,
+    stdin: str,
+    override_data: str | None = None,
+) -> subprocess.CompletedProcess[str]:
+    command = [
+        "chezmoi",
+        "--source",
+        str(Path.cwd()),
+        "execute-template",
+        "-f",
+        "--with-stdin",
+    ]
+    if override_data is not None:
+        command.extend(["--override-data", override_data])
+    command.append(str(template))
     return subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(Path.cwd()),
-            "execute-template",
-            "-f",
-            "--with-stdin",
-            str(template),
-        ],
+        command,
         input=stdin,
         capture_output=True,
         check=False,
@@ -71,3 +78,18 @@ value = "preserve"
     }
     assert rendered["runtime"] == {"value": "preserve"}
     assert "Codex TUI settings changed" in result.stderr
+
+
+def test_codex_modifier_adds_optional_auto_compaction_limit() -> None:
+    template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
+    existing = """[runtime]\nvalue = \"preserve\"\n"""
+    result = _render_codex_config(
+        template,
+        existing,
+        '{"ai":{"context_management":{"codex":{"auto_compact_token_limit":176700}}}}',
+    )
+    assert result.returncode == 0, result.stderr
+    assert tomllib.loads(result.stdout) == {
+        "runtime": {"value": "preserve"},
+        "model_auto_compact_token_limit": 176700,
+    }
