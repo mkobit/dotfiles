@@ -94,6 +94,7 @@
 "bd link" = "allow"
 "bd list" = "allow"
 "bd memories" = "allow"
+"bd memory" = "allow"
 "bd merge-slot" = "allow"
 "bd metrics" = "allow"
 "bd mol" = "allow"
