@@ -1,9 +1,0 @@
-# Docker Sandboxes (sbx) kit deployment catalog.
-#
-# External kits are downloaded from pinned upstream archives via chezmoi externals
-# (see .chezmoiexternals/sbx-kits.toml.tmpl) and deployed to ~/.local/share/sbx/external/<kind>/<name>/.
-#
-# Authored kits live natively under src/chezmoi/dot_local/share/sbx/.
-
-[sbx.kits.hosts.github]
-url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"

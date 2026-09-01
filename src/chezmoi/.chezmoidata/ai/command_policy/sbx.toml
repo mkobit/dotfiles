@@ -24,6 +24,7 @@
 "sbx daemon --help" = "allow"
 "sbx diagnose --help" = "allow"
 "sbx diagnose" = "allow"
+"sbx env --help" = "allow"
 "sbx exec --help" = "allow"
 "sbx kit --help" = "allow"
 "sbx kit inspect --help" = "allow"
