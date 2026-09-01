@@ -2,6 +2,7 @@ import asyncio
 import hashlib
 import inspect
 import json
+import math
 import os
 import re
 import sys
@@ -133,9 +134,10 @@ def cache_path(cwd: str) -> Path:
 def read_vcs_cache(cwd: str, *, now: float | None = None) -> VcsState | None:
     try:
         record = json.loads(cache_path(cwd).read_text())
-        if not isinstance(record, dict) or not isinstance(record.get("expires_at"), (int, float)):
+        expires_at = record.get("expires_at") if isinstance(record, dict) else None
+        if not isinstance(expires_at, (int, float)) or isinstance(expires_at, bool) or not math.isfinite(expires_at):
             return None
-        if record["expires_at"] <= (time.time() if now is None else now):
+        if expires_at <= (time.time() if now is None else now):
             return None
         branch = record.get("branch")
         dirty = record.get("dirty")

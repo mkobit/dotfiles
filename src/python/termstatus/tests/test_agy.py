@@ -190,6 +190,21 @@ async def test_resolve_vcs_ignores_malformed_cache(tmp_path: Path, monkeypatch: 
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("expires_at", ["NaN", "Infinity"])
+async def test_resolve_vcs_ignores_non_finite_cache_expiry(
+    expires_at: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    cache_file = tmp_path / "cache.json"
+    cache_file.write_text(f'{{"expires_at": {expires_at}, "branch": "stale", "dirty": false, "is_repo": true}}')
+    with patch("termstatus.agy.cache_path", return_value=cache_file), patch(
+        "termstatus.agy.probe_git", new=AsyncMock(return_value=VcsState("fresh", False, True))
+    ) as probe:
+        assert await resolve_vcs(decode_payload({"cwd": "/work/repo"})) == VcsState("fresh", False, True)
+        probe.assert_awaited_once_with("/work/repo")
+
+
+@pytest.mark.asyncio
 async def test_resolve_vcs_caches_non_repository_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
     payload = decode_payload({"cwd": "/work/not-a-repo"})
