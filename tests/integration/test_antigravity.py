@@ -47,7 +47,10 @@ def _render_antigravity_settings(stdin: str, agy_method: str) -> subprocess.Comp
 
 @pytest.mark.integration
 def test_antigravity_statusline_template_is_configured() -> None:
-    result = _render_antigravity_settings('{"title":"stale"}', "preinstalled")
+    result = _render_antigravity_settings(
+        '{"title":"stale","statusLine":{"type":"command","command":"stale","enabled":false}}',
+        "preinstalled",
+    )
     assert result.returncode == 0, result.stderr
     rendered = json.loads(result.stdout)
     assert rendered["statusLine"] == {
@@ -59,11 +62,15 @@ def test_antigravity_statusline_template_is_configured() -> None:
 
 
 @pytest.mark.integration
-def test_antigravity_statusline_template_has_no_statusline_when_disabled() -> None:
-    result = _render_antigravity_settings("{}", "none")
+def test_antigravity_statusline_template_removes_stale_settings_when_disabled() -> None:
+    result = _render_antigravity_settings(
+        '{"title":"stale","statusLine":{"type":"command","command":"stale","enabled":false}}',
+        "none",
+    )
     assert result.returncode == 0, result.stderr
     rendered = json.loads(result.stdout)
     assert "statusLine" not in rendered
+    assert "title" not in rendered
 
 
 @pytest.mark.integration
