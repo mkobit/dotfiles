@@ -1,6 +1,8 @@
 import re
 import unicodedata
 from collections.abc import Sequence
+from re import Pattern
+from typing import Final
 
 from termstatus.agy.constants import _ANSI_ESCAPE_PATTERN, _STATE_COLORS
 from termstatus.agy.decode import normalized_text
@@ -8,7 +10,7 @@ from termstatus.agy.models.payload import AgyPayload
 from termstatus.agy.models.slot import Slot
 from termstatus.agy.models.vcs import VcsState
 
-_ANSI_ESCAPE = re.compile(_ANSI_ESCAPE_PATTERN)
+_ANSI_ESCAPE: Final[Pattern[str]] = re.compile(_ANSI_ESCAPE_PATTERN)
 
 
 def strip_ansi(value: str) -> str:

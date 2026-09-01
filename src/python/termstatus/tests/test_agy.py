@@ -12,7 +12,7 @@ import pytest
 from whenever import TimeDelta
 
 from termstatus.agy.cli import render_from_stdin
-from termstatus.agy.constants import _GIT_TIMEOUT, _STATE_COLORS
+from termstatus.agy.constants import _GIT_STATUS_MAX_BYTES, _GIT_TIMEOUT, _STATE_COLORS
 from termstatus.agy.decode import decode_payload
 from termstatus.agy.git import parse_git_status, probe_git, resolve_vcs
 from termstatus.agy.models.quota import Quota
@@ -47,6 +47,15 @@ FULL_PAYLOAD = {
     "artifacts": [{"id": "one"}],
     "terminal_width": 160,
 }
+
+
+class AsyncBytesReader:
+    def __init__(self, value: bytes) -> None:
+        self.value = value
+
+    async def read(self, size: int) -> bytes:
+        chunk, self.value = self.value[:size], self.value[size:]
+        return chunk
 
 
 def rendered(raw: Mapping[str, object], vcs: VcsState | None = None) -> list[str]:
@@ -279,10 +288,7 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
     class FinishedProcess:
         def __init__(self, stdout: bytes) -> None:
             self.returncode = 0
-            self.stdout = stdout
-
-        async def communicate(self) -> tuple[bytes, bytes]:
-            return self.stdout, b""
+            self.stdout = AsyncBytesReader(stdout)
 
     processes = [
         FinishedProcess(b"# branch.oid abc123\n# branch.head enriched\n"),
@@ -331,10 +337,7 @@ async def test_git_probe_falls_back_when_porcelain_parsing_crosses_shared_deadli
     class FinishedProcess:
         def __init__(self, stdout: bytes) -> None:
             self.returncode = 0
-            self.stdout = stdout
-
-        async def communicate(self) -> tuple[bytes, bytes]:
-            return self.stdout, b""
+            self.stdout = AsyncBytesReader(stdout)
 
     processes = [
         FinishedProcess(b"# branch.oid abc123\n# branch.head enriched\n"),
@@ -367,21 +370,22 @@ async def test_git_probe_falls_back_when_porcelain_parsing_crosses_shared_deadli
 
 
 @pytest.mark.asyncio
-async def test_git_probe_cancels_communicates_and_reaps_processes_within_deadline() -> None:
+async def test_git_probe_cancels_stdout_reads_and_reaps_processes_within_deadline() -> None:
     class SlowProcess:
         def __init__(self) -> None:
             self.returncode: int | None = None
             self.killed = False
-            self.communicate_cancelled = False
+            self.stdout_read_cancelled = False
             self.wait_started = False
+            self.stdout = self
 
-        async def communicate(self) -> tuple[bytes, bytes]:
+        async def read(self, _size: int) -> bytes:
             try:
                 await asyncio.Event().wait()
             except asyncio.CancelledError:
-                self.communicate_cancelled = True
+                self.stdout_read_cancelled = True
                 raise
-            return b"", b""
+            return b""
 
         def kill(self) -> None:
             self.killed = True
@@ -403,7 +407,88 @@ async def test_git_probe_cancels_communicates_and_reaps_processes_within_deadlin
 
     assert time.perf_counter() - started < _GIT_TIMEOUT.total("seconds")
     assert create_process.await_count == 2
-    assert all(process.killed and process.communicate_cancelled and process.wait_started for process in processes)
+    assert all(process.killed and process.stdout_read_cancelled and process.wait_started for process in processes)
+
+
+@pytest.mark.asyncio
+async def test_git_probe_reaps_a_process_when_the_other_launch_times_out() -> None:
+    class StartedProcess:
+        def __init__(self) -> None:
+            self.returncode: int | None = None
+            self.killed = False
+            self.waited = False
+
+        def kill(self) -> None:
+            self.killed = True
+
+        async def wait(self) -> int:
+            self.waited = True
+            self.returncode = -9
+            return self.returncode
+
+    process = StartedProcess()
+
+    async def start(*args: object, **_kwargs: object) -> StartedProcess:
+        if args[-3:] == ("remote", "get-url", "origin"):
+            await asyncio.Event().wait()
+        return process
+
+    with patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start):
+        assert await probe_git("/work/repo") is None
+
+    assert process.killed and process.waited
+
+
+@pytest.mark.asyncio
+async def test_git_probe_keeps_status_when_origin_lookup_fails() -> None:
+    class FinishedProcess:
+        def __init__(self, stdout: bytes, returncode: int) -> None:
+            self.returncode = returncode
+            self.stdout = AsyncBytesReader(stdout)
+
+    processes = [
+        FinishedProcess(b"# branch.oid abc123\n# branch.head enriched\n", 0),
+        FinishedProcess(b"", 1),
+    ]
+
+    async def start(*_args: object, **_kwargs: object) -> FinishedProcess:
+        return processes.pop(0)
+
+    with patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start):
+        assert await probe_git("/work/repo") == VcsState("enriched", False, True)
+
+
+@pytest.mark.asyncio
+async def test_git_probe_reads_stdout_in_bounded_chunks() -> None:
+    class BoundedStdout:
+        def __init__(self, value: bytes) -> None:
+            self.value = value
+            self.read_sizes: list[int] = []
+
+        async def read(self, size: int) -> bytes:
+            self.read_sizes.append(size)
+            chunk, self.value = self.value[:size], self.value[size:]
+            return chunk
+
+    class FinishedProcess:
+        def __init__(self, stdout: bytes) -> None:
+            self.returncode = 0
+            self.stdout = BoundedStdout(stdout)
+
+    started_processes = [
+        FinishedProcess(b"# branch.head enriched\n" + b"x" * (_GIT_STATUS_MAX_BYTES + 1)),
+        FinishedProcess(b"git@github.com:stripe/example.git\n"),
+    ]
+    processes = started_processes.copy()
+
+    async def start(*_args: object, **_kwargs: object) -> FinishedProcess:
+        return processes.pop(0)
+
+    with patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start):
+        assert await probe_git("/work/repo") is None
+
+    assert all(process.stdout.read_sizes for process in started_processes)
+    assert all(max(process.stdout.read_sizes) <= _GIT_STATUS_MAX_BYTES + 1 for process in started_processes)
 
 
 @pytest.mark.asyncio

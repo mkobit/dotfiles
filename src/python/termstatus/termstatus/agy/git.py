@@ -2,7 +2,7 @@ import asyncio
 import re
 from collections.abc import Sequence
 from contextlib import suppress
-from typing import cast
+from typing import Final, cast
 
 from termstatus.agy.constants import (
     _GIT_CLEANUP_RESERVE,
@@ -13,6 +13,8 @@ from termstatus.agy.constants import (
 from termstatus.agy.decode import normalized_text
 from termstatus.agy.models.payload import AgyPayload
 from termstatus.agy.models.vcs import VcsState
+
+_GIT_STDOUT_READ_BYTES: Final[int] = 4_096
 
 
 def _deadline_expired(deadline: float | None) -> bool:
@@ -46,10 +48,10 @@ def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState |
     )
 
 
-def _build_vcs(vcs: VcsState, origin_stdout: bytes, deadline: float) -> VcsState | None:
+def _build_vcs(vcs: VcsState, origin_stdout: bytes | None, deadline: float) -> VcsState | None:
     if _deadline_expired(deadline):
         return None
-    origin_url = normalized_text(origin_stdout[:_GIT_STATUS_MAX_BYTES].decode(errors="replace"))
+    origin_url = normalized_text(origin_stdout.decode(errors="replace")) if origin_stdout is not None else None
     return (
         VcsState(vcs.branch, vcs.dirty, vcs.is_repo, vcs.upstream, vcs.ahead, vcs.behind, origin_url)
         if not _deadline_expired(deadline)
@@ -57,9 +59,52 @@ def _build_vcs(vcs: VcsState, origin_stdout: bytes, deadline: float) -> VcsState
     )
 
 
+def _completed_processes(
+    launches: Sequence[asyncio.Task[asyncio.subprocess.Process]],
+) -> list[asyncio.subprocess.Process]:
+    processes: list[asyncio.subprocess.Process] = []
+    for launch in launches:
+        if not launch.done() or launch.cancelled():
+            continue
+        with suppress(Exception):
+            processes.append(launch.result())
+    return processes
+
+
+async def _read_git_stdout(process: asyncio.subprocess.Process) -> bytes | None:
+    if process.stdout is None:
+        return None
+    stdout = bytearray()
+    while len(stdout) <= _GIT_STATUS_MAX_BYTES:
+        chunk = await process.stdout.read(min(_GIT_STDOUT_READ_BYTES, _GIT_STATUS_MAX_BYTES + 1 - len(stdout)))
+        if not chunk:
+            return bytes(stdout)
+        stdout.extend(chunk)
+    if process.returncode is None:
+        with suppress(ProcessLookupError):
+            process.kill()
+    while await process.stdout.read(_GIT_STDOUT_READ_BYTES):
+        pass
+    return None
+
+
+async def _probe_git_status(process: asyncio.subprocess.Process, deadline: float) -> VcsState | None:
+    stdout = await _read_git_stdout(process)
+    if stdout is not None and process.returncode is None:
+        await process.wait()
+    return parse_git_status(stdout, deadline) if stdout is not None and process.returncode == 0 else None
+
+
+async def _probe_git_origin(process: asyncio.subprocess.Process) -> bytes | None:
+    stdout = await _read_git_stdout(process)
+    if stdout is not None and process.returncode is None:
+        await process.wait()
+    return stdout if process.returncode == 0 else None
+
+
 async def _cancel_git_work(
     launches: Sequence[asyncio.Task[asyncio.subprocess.Process]],
-    communications: Sequence[asyncio.Task[tuple[bytes, bytes]]],
+    communications: Sequence[asyncio.Task[object]],
     processes: Sequence[asyncio.subprocess.Process],
     deadline: float,
 ) -> None:
@@ -80,8 +125,8 @@ async def _cancel_git_work(
 async def probe_git(cwd: str) -> VcsState | None:
     deadline = asyncio.get_running_loop().time() + _GIT_TIMEOUT.total("seconds")
     processes: list[asyncio.subprocess.Process] = []
-    communications: list[asyncio.Task[tuple[bytes, bytes]]] = []
-    completed = False
+    communications: list[asyncio.Task[object]] = []
+    vcs: VcsState | None = None
     launches = [
         asyncio.create_task(
             asyncio.create_subprocess_exec(
@@ -115,22 +160,29 @@ async def probe_git(cwd: str) -> VcsState | None:
                 results = await asyncio.gather(*launches, return_exceptions=True)
                 processes = [result for result in results if not isinstance(result, BaseException)]
                 if len(processes) == len(launches):
-                    communications = [asyncio.create_task(process.communicate()) for process in processes]
+                    communications = [
+                        asyncio.create_task(_probe_git_status(processes[0], deadline)),
+                        asyncio.create_task(_probe_git_origin(processes[1])),
+                    ]
                     results = await asyncio.gather(*communications, return_exceptions=True)
-                    if not any(isinstance(result, BaseException) for result in results) and all(
-                        process.returncode == 0 for process in processes
-                    ):
-                        responses = [cast(tuple[bytes, bytes], result) for result in results]
-                        vcs = parse_git_status(responses[0][0], deadline)
-                        if vcs and (enriched_vcs := _build_vcs(vcs, responses[1][0], deadline)):
-                            completed = True
+                    if not isinstance(results[0], BaseException):
+                        vcs = cast(VcsState | None, results[0])
+                        origin_stdout = (
+                            cast(bytes, results[1])
+                            if not isinstance(results[1], BaseException) and results[1] is not None
+                            else None
+                        )
+                        if vcs and (enriched_vcs := _build_vcs(vcs, origin_stdout, deadline)):
                             return enriched_vcs
     except TimeoutError:
         pass
     finally:
-        if not completed:
-            await _cancel_git_work(launches, communications, processes, deadline)
-    return None
+        processes = _completed_processes(launches)
+        if communications and communications[0].done() and not communications[0].cancelled():
+            with suppress(Exception):
+                vcs = cast(VcsState | None, communications[0].result()) or vcs
+        await _cancel_git_work(launches, communications, processes, deadline)
+    return vcs
 
 
 def fallback_vcs(payload: AgyPayload) -> VcsState | None:
