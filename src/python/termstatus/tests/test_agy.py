@@ -67,13 +67,23 @@ def test_display_width_ignores_ansi_sequences() -> None:
 
 def test_gemini_timer_requires_ninety_width_when_cost_is_present() -> None:
     payload = decode_payload({**FULL_PAYLOAD, "terminal_width": 80})
-    assert "5h" not in strip_ansi(render_statusline(payload, None))
+    line = strip_ansi(render_statusline(payload, None))
+    assert "g:" in line and "wk:2h" not in line
+
+
+def test_gemini_timer_is_shown_at_width_eighty_without_cost() -> None:
+    raw = {key: value for key, value in FULL_PAYLOAD.items() if key != "cost"}
+    payload = decode_payload({**raw, "terminal_width": 80})
+    assert "wk:2h" in strip_ansi(render_statusline(payload, None))
 
 
 def test_three_p_timer_requires_one_ten_width() -> None:
-    payload = decode_payload({**FULL_PAYLOAD, "terminal_width": 110})
-    assert "3p:" in strip_ansi(render_statusline(payload, None))
-    assert "3p:◕75% wk:2h" in strip_ansi(render_statusline(payload, None))
+    for width in (100, 109):
+        line = strip_ansi(render_statusline(decode_payload({**FULL_PAYLOAD, "terminal_width": width}), None))
+        assert "3p:◕75%" in line
+        assert "3p:◕75% wk:2h" not in line
+    line = strip_ansi(render_statusline(decode_payload({**FULL_PAYLOAD, "terminal_width": 110}), None))
+    assert "3p:◕75% wk:2h" in line
 
 
 def test_narrow_render_does_not_duplicate_vcs_branch() -> None:

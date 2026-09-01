@@ -186,7 +186,7 @@ def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
             third_weekly = payload.quotas.get("3p-weekly")
             if third and third_weekly:
                 third_timer = limiting_timer(third, third_weekly)
-                timer_text = f" {third_timer}" if third_timer else ""
+                timer_text = f" {third_timer}" if third_timer and payload.terminal_width >= 110 else ""
                 left.append(f"3p:{format_meter(third.remaining)}" + timer_text)
     if payload.terminal_width >= 110:
         if model:
