@@ -3,24 +3,21 @@ import io
 import json
 import sys
 import time
-from collections.abc import Mapping
+from collections.abc import Mapping, MutableMapping
+from dataclasses import FrozenInstanceError
+from typing import cast
 from unittest.mock import AsyncMock, patch
 
 import pytest
+from whenever import TimeDelta
 
-from termstatus.agy import (
-    GIT_TIMEOUT_SECONDS,
-    VcsState,
-    decode_payload,
-    display_width,
-    git_branch,
-    parse_git_status,
-    probe_git,
-    render_from_stdin,
-    render_statusline,
-    resolve_vcs,
-    strip_ansi,
-)
+from termstatus.agy.cli import render_from_stdin
+from termstatus.agy.constants import GIT_TIMEOUT
+from termstatus.agy.decode import decode_payload
+from termstatus.agy.git import parse_git_status, probe_git, resolve_vcs
+from termstatus.agy.models.quota import Quota
+from termstatus.agy.models.vcs import VcsState
+from termstatus.agy.render import display_width, git_branch, render_statusline, strip_ansi
 from termstatus.main import main
 
 FULL_PAYLOAD = {
@@ -126,6 +123,19 @@ def test_quota_without_reset_is_rendered() -> None:
     assert "quota:50%" in "\n".join(rendered({"quota": {"quota": {"remaining_percentage": 50}}}))
 
 
+def test_decoded_quotas_are_immutable_and_use_time_delta_resets() -> None:
+    quota = decode_payload({"quota": {"five-hour": {"remaining_percentage": 50, "reset_in_seconds": 1800}}}).quotas[
+        "five-hour"
+    ]
+
+    assert quota == Quota(remaining=50, reset_in=TimeDelta(minutes=30))
+    with pytest.raises(TypeError):
+        cast(MutableMapping[str, Quota], decode_payload({}).quotas)["new"] = quota
+    with pytest.raises(FrozenInstanceError):
+        field = "remaining"
+        setattr(quota, field, 0)
+
+
 def test_missing_optional_fields_omit_empty_rows_and_sensitive_fields() -> None:
     lines = rendered(
         {
@@ -170,7 +180,7 @@ def test_main_dispatches_antigravity_render_without_subprocess(
     monkeypatch.setattr(sys, "argv", ["statusline", "antigravity", "render"])
     monkeypatch.setattr(sys, "stdin", io.StringIO("not json"))
 
-    with patch("termstatus.agy.asyncio.create_subprocess_exec") as create_process:
+    with patch("termstatus.agy.git.asyncio.create_subprocess_exec") as create_process:
         main()
 
     assert strip_ansi(capsys.readouterr().out) == "[idle]\n"
@@ -208,7 +218,7 @@ def test_resolution_error_uses_payload_branch_and_dirty_fallback_only(
         "stdin",
         io.StringIO('{"cwd":"/work/repo","vcs":{"branch":"payload","dirty":true,"upstream":"stale","ahead":2}}'),
     )
-    with patch("termstatus.agy.resolve_vcs", new=AsyncMock(side_effect=RuntimeError)):
+    with patch("termstatus.agy.cli.resolve_vcs", new=AsyncMock(side_effect=RuntimeError)):
         render_from_stdin()
 
     output = strip_ansi(capsys.readouterr().out)
@@ -238,12 +248,12 @@ async def test_parse_git_status_stops_when_deadline_expires_while_scanning() -> 
         def time(self) -> float:
             return next(self.times)
 
-    deadline = asyncio.get_running_loop().time() + GIT_TIMEOUT_SECONDS
+    deadline = asyncio.get_running_loop().time() + GIT_TIMEOUT.total("seconds")
     started = time.perf_counter()
-    with patch("termstatus.agy.asyncio.get_running_loop", return_value=DelayedClock(deadline)):
+    with patch("termstatus.agy.git.asyncio.get_running_loop", return_value=DelayedClock(deadline)):
         assert parse_git_status(b"# branch.oid abc123\n# branch.head enriched\n", deadline) is None
 
-    assert time.perf_counter() - started < GIT_TIMEOUT_SECONDS
+    assert time.perf_counter() - started < GIT_TIMEOUT.total("seconds")
 
 
 def test_parse_git_status_rejects_oversized_stdout() -> None:
@@ -275,7 +285,7 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
     ]
 
     async def delayed_start(*_args: object, **_kwargs: object) -> FinishedProcess:
-        await asyncio.sleep(GIT_TIMEOUT_SECONDS + 0.005)
+        await asyncio.sleep(GIT_TIMEOUT.total("seconds") + 0.005)
         return processes.pop(0)
 
     loop = asyncio.get_running_loop()
@@ -288,8 +298,8 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
         return timeout_at(deadline)
 
     with (
-        patch("termstatus.agy.asyncio.create_subprocess_exec", side_effect=delayed_start) as create_process,
-        patch("termstatus.agy.asyncio.timeout_at", side_effect=track_timeout_at),
+        patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=delayed_start) as create_process,
+        patch("termstatus.agy.git.asyncio.timeout_at", side_effect=track_timeout_at),
     ):
         payload = decode_payload(
             {
@@ -300,15 +310,15 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
         started_loop = loop.time()
         assert await resolve_vcs(payload) == VcsState("payload", True, True)
 
-    assert time.perf_counter() - started < GIT_TIMEOUT_SECONDS
+    assert time.perf_counter() - started < GIT_TIMEOUT.total("seconds")
     assert create_process.await_count == 2
     assert [call.args for call in create_process.await_args_list] == [
         ("git", "-C", "/work/repo", "status", "--porcelain=v2", "--branch", "-uno"),
         ("git", "-C", "/work/repo", "remote", "get-url", "origin"),
     ]
     assert timeout_deadlines
-    assert GIT_TIMEOUT_SECONDS == 0.125
-    assert abs(max(timeout_deadlines) - started_loop - GIT_TIMEOUT_SECONDS) < 0.01
+    assert TimeDelta(milliseconds=125) == GIT_TIMEOUT
+    assert abs(max(timeout_deadlines) - started_loop - GIT_TIMEOUT.total("seconds")) < 0.01
 
 
 @pytest.mark.asyncio
@@ -337,18 +347,18 @@ async def test_git_probe_falls_back_when_porcelain_parsing_crosses_shared_deadli
             return next(self.times)
 
     def delayed_parse(stdout: bytes, deadline: float) -> VcsState | None:
-        with patch("termstatus.agy.asyncio.get_running_loop", return_value=DelayedClock(deadline)):
+        with patch("termstatus.agy.git.asyncio.get_running_loop", return_value=DelayedClock(deadline)):
             return parse_git_status(stdout, deadline)
 
     payload = decode_payload({"cwd": "/work/repo", "vcs": {"branch": "payload", "dirty": True}})
     started = time.perf_counter()
     with (
-        patch("termstatus.agy.asyncio.create_subprocess_exec", side_effect=start),
-        patch("termstatus.agy.parse_git_status", side_effect=delayed_parse),
+        patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start),
+        patch("termstatus.agy.git.parse_git_status", side_effect=delayed_parse),
     ):
         assert await resolve_vcs(payload) == VcsState("payload", True, True)
 
-    assert time.perf_counter() - started < GIT_TIMEOUT_SECONDS
+    assert time.perf_counter() - started < GIT_TIMEOUT.total("seconds")
 
 
 @pytest.mark.asyncio
@@ -383,17 +393,17 @@ async def test_git_probe_cancels_communicates_and_reaps_processes_within_deadlin
         return launches.pop(0)
 
     started = time.perf_counter()
-    with patch("termstatus.agy.asyncio.create_subprocess_exec", side_effect=start) as create_process:
+    with patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start) as create_process:
         assert await probe_git("/work/repo") is None
 
-    assert time.perf_counter() - started < GIT_TIMEOUT_SECONDS
+    assert time.perf_counter() - started < GIT_TIMEOUT.total("seconds")
     assert create_process.await_count == 2
     assert all(process.killed and process.communicate_cancelled and process.wait_started for process in processes)
 
 
 @pytest.mark.asyncio
 async def test_git_probe_is_not_started_without_a_cwd() -> None:
-    with patch("termstatus.agy.asyncio.create_subprocess_exec") as create_process:
+    with patch("termstatus.agy.git.asyncio.create_subprocess_exec") as create_process:
         assert await resolve_vcs(decode_payload({"vcs": {"branch": "payload", "dirty": True}})) == VcsState(
             "payload", True, True
         )

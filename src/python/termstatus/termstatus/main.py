@@ -38,7 +38,7 @@ cli = typer.Typer(add_completion=False)
 
 def main() -> None:
     if sys.argv[1:3] == ["antigravity", "render"]:
-        from termstatus.agy import render_from_stdin  # noqa: PLC0415
+        from termstatus.agy.cli import render_from_stdin  # noqa: PLC0415
 
         render_from_stdin()
         return
