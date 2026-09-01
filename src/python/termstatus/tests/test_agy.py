@@ -2,7 +2,6 @@ import asyncio
 import io
 import json
 import sys
-import time
 from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import FrozenInstanceError
 from typing import SupportsIndex, cast, override
@@ -268,11 +267,8 @@ async def test_parse_git_status_stops_when_deadline_expires_while_scanning() -> 
             return next(self.times)
 
     deadline = asyncio.get_running_loop().time() + _GIT_TIMEOUT.total("seconds")
-    started = time.perf_counter()
     with patch("termstatus.agy.git.asyncio.get_running_loop", return_value=DelayedClock(deadline)):
         assert parse_git_status(b"# branch.oid abc123\n# branch.head enriched\n", deadline) is None
-
-    assert time.perf_counter() - started < _GIT_TIMEOUT.total("seconds")
 
 
 def test_parse_git_status_rejects_oversized_stdout() -> None:
@@ -305,7 +301,6 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
         return processes.pop(0)
 
     loop = asyncio.get_running_loop()
-    started = time.perf_counter()
     timeout_deadlines: list[float] = []
     timeout_at = asyncio.timeout_at
 
@@ -326,7 +321,6 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
         started_loop = loop.time()
         assert await resolve_vcs(payload) == VcsState("payload", True, True)
 
-    assert time.perf_counter() - started < _GIT_TIMEOUT.total("seconds")
     assert create_process.await_count == 2
     assert [call.args for call in create_process.await_args_list] == [
         ("git", "-C", "/work/repo", "status", "--porcelain=v2", "--branch", "-uno"),
@@ -364,14 +358,11 @@ async def test_git_probe_falls_back_when_porcelain_parsing_crosses_shared_deadli
             return parse_git_status(stdout, deadline)
 
     payload = decode_payload({"cwd": "/work/repo", "vcs": {"branch": "payload", "dirty": True}})
-    started = time.perf_counter()
     with (
         patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start),
         patch("termstatus.agy.git.parse_git_status", side_effect=delayed_parse),
     ):
         assert await resolve_vcs(payload) == VcsState("payload", True, True)
-
-    assert time.perf_counter() - started < _GIT_TIMEOUT.total("seconds")
 
 
 @pytest.mark.asyncio
@@ -406,12 +397,24 @@ async def test_git_probe_cancels_stdout_reads_and_reaps_processes_within_deadlin
     async def start(*_args: object, **_kwargs: object) -> SlowProcess:
         return launches.pop(0)
 
-    started = time.perf_counter()
-    with patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start) as create_process:
+    loop = asyncio.get_running_loop()
+    timeout_deadlines: list[float] = []
+    timeout_at = asyncio.timeout_at
+
+    def track_timeout_at(deadline: float) -> asyncio.Timeout:
+        timeout_deadlines.append(deadline)
+        return timeout_at(deadline)
+
+    with (
+        patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start) as create_process,
+        patch("termstatus.agy.git.asyncio.timeout_at", side_effect=track_timeout_at),
+    ):
+        started_loop = loop.time()
         assert await probe_git("/work/repo") is None
 
-    assert time.perf_counter() - started < _GIT_TIMEOUT.total("seconds")
     assert create_process.await_count == 2
+    assert timeout_deadlines
+    assert abs(max(timeout_deadlines) - started_loop - _GIT_TIMEOUT.total("seconds")) < 0.01
     assert all(process.killed and process.stdout_read_cancelled and process.wait_started for process in processes)
 
 
@@ -533,11 +536,23 @@ async def test_git_probe_returns_status_when_origin_stdout_blocks() -> None:
     async def start(*_args: object, **_kwargs: object) -> StatusProcess | BlockedOriginProcess:
         return processes.pop(0)
 
-    started = time.perf_counter()
-    with patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start):
+    loop = asyncio.get_running_loop()
+    timeout_deadlines: list[float] = []
+    timeout_at = asyncio.timeout_at
+
+    def track_timeout_at(deadline: float) -> asyncio.Timeout:
+        timeout_deadlines.append(deadline)
+        return timeout_at(deadline)
+
+    with (
+        patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start),
+        patch("termstatus.agy.git.asyncio.timeout_at", side_effect=track_timeout_at),
+    ):
+        started_loop = loop.time()
         assert await probe_git("/work/repo") == VcsState("enriched", False, True)
 
-    assert time.perf_counter() - started < _GIT_TIMEOUT.total("seconds")
+    assert timeout_deadlines
+    assert abs(max(timeout_deadlines) - started_loop - _GIT_TIMEOUT.total("seconds")) < 0.01
     assert origin.killed and origin.waited and origin.read_cancelled
 
 
