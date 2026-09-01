@@ -3,7 +3,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -14,9 +14,13 @@ from termstatus.agy import (
     display_width,
     format_meter,
     limiting_timer,
+    parse_git_status,
+    probe_git,
     render_from_stdin,
     render_statusline,
+    resolve_vcs,
     strip_ansi,
+    write_vcs_cache,
 )
 
 FULL_PAYLOAD = {
@@ -132,3 +136,73 @@ def test_console_script_renders_from_a_fresh_process() -> None:
         assert result.returncode == 0
         assert "working" in result.stdout
     assert max(durations) < 0.75
+
+
+@pytest.mark.asyncio
+async def test_resolve_vcs_uses_fresh_cache_without_launching_git(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    write_vcs_cache("/work/repo", VcsState("main", True, True), now=time.time())
+    with patch("termstatus.agy.asyncio.create_subprocess_exec") as create_process:
+        assert await resolve_vcs(decode_payload({"cwd": "/work/repo"})) == VcsState("main", True, True)
+        create_process.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_resolve_vcs_kills_git_after_75_ms() -> None:
+    process = AsyncMock()
+    process.communicate.side_effect = TimeoutError
+    with patch("termstatus.agy.asyncio.create_subprocess_exec", return_value=process):
+        assert await resolve_vcs(decode_payload({"cwd": "/work/repo"})) is None
+    process.kill.assert_called_once()
+
+
+def test_parse_git_status_marks_dirty_when_porcelain_has_changes() -> None:
+    assert parse_git_status(b"## feature/demo...origin/feature/demo\n M file.py\n") == VcsState("feature/demo", True, True)
+
+
+@pytest.mark.asyncio
+async def test_payload_branch_bypasses_cache_and_git() -> None:
+    payload = decode_payload({"cwd": "/work/repo", "vcs": {"branch": "payload", "dirty": False}})
+    with patch("termstatus.agy.probe_git") as probe:
+        assert await resolve_vcs(payload) == VcsState("payload", False, True)
+        probe.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_resolve_vcs_ignores_expired_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    write_vcs_cache("/work/repo", VcsState("stale", False, True), now=time.time() - 3)
+    with patch("termstatus.agy.probe_git", new=AsyncMock(return_value=VcsState("fresh", False, True))) as probe:
+        assert await resolve_vcs(decode_payload({"cwd": "/work/repo"})) == VcsState("fresh", False, True)
+        probe.assert_awaited_once_with("/work/repo")
+
+
+@pytest.mark.asyncio
+async def test_resolve_vcs_ignores_malformed_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    cache_file = tmp_path / "cache.json"
+    cache_file.write_text("not json")
+    with patch("termstatus.agy.cache_path", return_value=cache_file), patch(
+        "termstatus.agy.probe_git", new=AsyncMock(return_value=VcsState("fresh", False, True))
+    ) as probe:
+        assert await resolve_vcs(decode_payload({"cwd": "/work/repo"})) == VcsState("fresh", False, True)
+        probe.assert_awaited_once_with("/work/repo")
+
+
+@pytest.mark.asyncio
+async def test_resolve_vcs_caches_non_repository_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("XDG_CACHE_HOME", str(tmp_path))
+    payload = decode_payload({"cwd": "/work/not-a-repo"})
+    with patch("termstatus.agy.probe_git", new=AsyncMock(return_value=VcsState(None, False, False))) as probe:
+        assert await resolve_vcs(payload) == VcsState(None, False, False)
+        assert await resolve_vcs(payload) == VcsState(None, False, False)
+        probe.assert_awaited_once_with("/work/not-a-repo")
+
+
+@pytest.mark.asyncio
+async def test_probe_git_returns_non_repository_state_for_nonzero_exit() -> None:
+    process = AsyncMock()
+    process.communicate.return_value = (b"", b"")
+    process.returncode = 128
+    with patch("termstatus.agy.asyncio.create_subprocess_exec", return_value=process):
+        assert await probe_git("/work/not-a-repo") == VcsState(None, False, False)

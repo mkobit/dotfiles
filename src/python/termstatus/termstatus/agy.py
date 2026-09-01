@@ -1,7 +1,12 @@
+import asyncio
+import hashlib
+import inspect
 import json
 import os
 import re
 import sys
+import tempfile
+import time
 import unicodedata
 from collections.abc import Mapping
 from contextlib import suppress
@@ -10,6 +15,8 @@ from pathlib import Path
 
 ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
 STATE_COLORS = {"idle": "\033[2m", "thinking": "\033[36m", "working": "\033[34m", "tool_use": "\033[35m", "initializing": "\033[33m"}
+VCS_CACHE_TTL_SECONDS = 2.0
+GIT_TIMEOUT_SECONDS = 0.075
 
 
 @dataclass(frozen=True)
@@ -117,6 +124,116 @@ def decode_payload(raw: Mapping[str, object]) -> AgyPayload:
     )
 
 
+def cache_path(cwd: str) -> Path:
+    cache_home = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+    key = hashlib.sha256(cwd.encode()).hexdigest()
+    return cache_home / "termstatus" / "agy-vcs" / key
+
+
+def read_vcs_cache(cwd: str, *, now: float | None = None) -> VcsState | None:
+    try:
+        record = json.loads(cache_path(cwd).read_text())
+        if not isinstance(record, dict) or not isinstance(record.get("expires_at"), (int, float)):
+            return None
+        if record["expires_at"] <= (time.time() if now is None else now):
+            return None
+        branch = record.get("branch")
+        dirty = record.get("dirty")
+        is_repo = record.get("is_repo")
+        if branch is not None and not isinstance(branch, str):
+            return None
+        if not isinstance(dirty, bool) or not isinstance(is_repo, bool):
+            return None
+        return VcsState(branch, dirty, is_repo)
+    except (OSError, TypeError, ValueError):
+        return None
+
+
+def write_vcs_cache(cwd: str, vcs: VcsState, *, now: float | None = None) -> None:
+    destination = cache_path(cwd)
+    temporary: str | None = None
+    try:
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        fd, temporary = tempfile.mkstemp(dir=destination.parent, prefix=f".{destination.name}.")
+        with os.fdopen(fd, "w") as handle:
+            json.dump(
+                {
+                    "branch": vcs.branch,
+                    "dirty": vcs.dirty,
+                    "is_repo": vcs.is_repo,
+                    "expires_at": (time.time() if now is None else now) + VCS_CACHE_TTL_SECONDS,
+                },
+                handle,
+            )
+        Path(temporary).replace(destination)
+        temporary = None
+    except OSError:
+        pass
+    finally:
+        if temporary:
+            with suppress(OSError):
+                Path(temporary).unlink()
+
+
+def parse_git_status(stdout: bytes) -> VcsState | None:
+    lines = stdout.decode(errors="replace").splitlines()
+    if not lines or not lines[0].startswith("## "):
+        return None
+    header = lines[0][3:]
+    if header.startswith("No commits yet on "):
+        branch = header.removeprefix("No commits yet on ").strip()
+    elif header.startswith("HEAD (no branch)"):
+        branch = None
+    else:
+        branch = header.split("...", 1)[0].strip()
+    if branch == "":
+        return None
+    return VcsState(branch, len(lines) > 1, True)
+
+
+async def probe_git(cwd: str) -> VcsState | None:
+    try:
+        process = await asyncio.create_subprocess_exec(
+            "git",
+            "-C",
+            cwd,
+            "status",
+            "--porcelain=v1",
+            "--branch",
+            "-uno",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.DEVNULL,
+        )
+    except OSError:
+        return None
+    try:
+        stdout, _ = await asyncio.wait_for(process.communicate(), timeout=GIT_TIMEOUT_SECONDS)
+    except TimeoutError:
+        killed = process.kill()
+        if inspect.isawaitable(killed):
+            await killed
+        with suppress(TimeoutError):
+            await process.communicate()
+        return None
+    if process.returncode != 0:
+        return VcsState(branch=None, dirty=False, is_repo=False)
+    return parse_git_status(stdout)
+
+
+async def resolve_vcs(payload: AgyPayload) -> VcsState | None:
+    if payload.vcs and payload.vcs.branch:
+        return payload.vcs
+    if not payload.cwd:
+        return payload.vcs
+    cached = read_vcs_cache(payload.cwd)
+    if cached is not None:
+        return cached
+    vcs = await probe_git(payload.cwd)
+    if vcs is not None:
+        write_vcs_cache(payload.cwd, vcs)
+    return vcs
+
+
 def strip_ansi(value: str) -> str:
     return ANSI_SGR.sub("", value)
 
@@ -213,4 +330,9 @@ def render_from_stdin() -> None:
         destination = "/tmp/agy-statusline-debug.json" if debug.lower() in {"1", "true"} else debug  # noqa: S108
         with suppress(Exception):
             Path(destination).write_text(raw_text)
-    print(render_statusline(decode_payload(raw), None))
+    payload = decode_payload(raw)
+    vcs = payload.vcs
+    if not vcs or not vcs.branch:
+        with suppress(Exception):
+            vcs = asyncio.run(resolve_vcs(payload))
+    print(render_statusline(payload, vcs))
