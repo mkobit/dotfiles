@@ -19,6 +19,8 @@ STATE_COLORS = {
 }
 GIT_TIMEOUT_SECONDS = 0.125
 GIT_CLEANUP_RESERVE_SECONDS = 0.01
+GIT_CLEANUP_SCHEDULING_MARGIN_SECONDS = 0.005
+GIT_STATUS_MAX_BYTES = 64 * 1024
 
 
 @dataclass(frozen=True)
@@ -207,13 +209,21 @@ def decode_payload(raw: Mapping[str, object]) -> AgyPayload:
     )
 
 
-def parse_git_status(stdout: bytes) -> VcsState | None:
+def deadline_expired(deadline: float | None) -> bool:
+    return deadline is not None and asyncio.get_running_loop().time() >= deadline
+
+
+def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState | None:
+    if len(stdout) > GIT_STATUS_MAX_BYTES:
+        return None
     branch: str | None = None
     upstream: str | None = None
     ahead = behind = 0
     dirty = False
     saw_header = False
     for line in stdout.decode(errors="replace").splitlines():
+        if deadline_expired(deadline):
+            return None
         if line.startswith("# branch.head "):
             saw_header = True
             value = line.removeprefix("# branch.head ").strip()
@@ -224,9 +234,18 @@ def parse_git_status(stdout: bytes) -> VcsState | None:
             ahead, behind = (int(value) for value in match.groups())
         elif not line.startswith("# "):
             dirty = True
-    if not saw_header:
+    if not saw_header or deadline_expired(deadline):
         return None
     return VcsState(branch, dirty, True, upstream, ahead, behind)
+
+
+def build_vcs(vcs: VcsState, origin_stdout: bytes, deadline: float) -> VcsState | None:
+    if deadline_expired(deadline):
+        return None
+    origin_url = normalized_text(origin_stdout[:GIT_STATUS_MAX_BYTES].decode(errors="replace"))
+    if deadline_expired(deadline):
+        return None
+    return VcsState(vcs.branch, vcs.dirty, vcs.is_repo, vcs.upstream, vcs.ahead, vcs.behind, origin_url)
 
 
 def github_url(remote: str | None) -> str | None:
@@ -256,7 +275,7 @@ async def cancel_git_work(
     if not pending and not waiters:
         return
     with suppress(TimeoutError):
-        async with asyncio.timeout_at(deadline):
+        async with asyncio.timeout_at(deadline - GIT_CLEANUP_SCHEDULING_MARGIN_SECONDS):
             await asyncio.gather(*pending, *waiters, return_exceptions=True)
 
 
@@ -304,19 +323,10 @@ async def probe_git(cwd: str) -> VcsState | None:
                     if not any(isinstance(result, BaseException) for result in results):
                         responses = [cast(tuple[bytes, bytes], result) for result in results]
                         if all(process.returncode == 0 for process in processes):
-                            vcs = parse_git_status(responses[0][0])
-                            origin_url = normalized_text(responses[1][0].decode(errors="replace"))
-                            if vcs is not None and loop.time() < deadline:
+                            vcs = parse_git_status(responses[0][0], deadline)
+                            if vcs and (enriched_vcs := build_vcs(vcs, responses[1][0], deadline)):
                                 completed = True
-                                return VcsState(
-                                    vcs.branch,
-                                    vcs.dirty,
-                                    vcs.is_repo,
-                                    vcs.upstream,
-                                    vcs.ahead,
-                                    vcs.behind,
-                                    origin_url,
-                                )
+                                return enriched_vcs
     except TimeoutError:
         pass
     finally:

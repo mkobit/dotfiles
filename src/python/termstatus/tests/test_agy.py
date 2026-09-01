@@ -228,6 +228,29 @@ def test_parse_porcelain_v2_and_renders_github_origin_as_osc8_link() -> None:
     assert "\033]8;;https://github.com/stripe/example\033\\feature/demo\033]8;;\033\\" in line
 
 
+@pytest.mark.asyncio
+async def test_parse_git_status_stops_when_deadline_expires_while_scanning() -> None:
+    class DelayedClock:
+        def __init__(self, deadline: float) -> None:
+            self.times = iter((deadline - 0.001, deadline + 0.001))
+
+        def time(self) -> float:
+            return next(self.times)
+
+    deadline = asyncio.get_running_loop().time() + GIT_TIMEOUT_SECONDS
+    started = time.perf_counter()
+    with patch("termstatus.agy.asyncio.get_running_loop", return_value=DelayedClock(deadline)):
+        assert parse_git_status(b"# branch.oid abc123\n# branch.head enriched\n", deadline) is None
+
+    assert time.perf_counter() - started < GIT_TIMEOUT_SECONDS
+
+
+def test_parse_git_status_rejects_oversized_stdout() -> None:
+    stdout = b"# branch.head enriched\n" * 3_000
+
+    assert parse_git_status(stdout) is None
+
+
 def test_osc8_git_branch_uses_only_visible_width_when_fitting_slots() -> None:
     vcs = VcsState("界界", False, True, origin_url="git@github.com:stripe/example.git")
 
@@ -276,7 +299,7 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
         started_loop = loop.time()
         assert await resolve_vcs(payload) == VcsState("payload", True, True)
 
-    assert time.perf_counter() - started < GIT_TIMEOUT_SECONDS + 0.01
+    assert time.perf_counter() - started < GIT_TIMEOUT_SECONDS
     assert create_process.await_count == 2
     assert [call.args for call in create_process.await_args_list] == [
         ("git", "-C", "/work/repo", "status", "--porcelain=v2", "--branch", "-uno"),
@@ -305,16 +328,26 @@ async def test_git_probe_falls_back_when_porcelain_parsing_crosses_shared_deadli
     async def start(*_args: object, **_kwargs: object) -> FinishedProcess:
         return processes.pop(0)
 
-    def delayed_parse(_stdout: bytes) -> VcsState:
-        time.sleep(GIT_TIMEOUT_SECONDS + 0.005)
-        return VcsState("enriched", False, True)
+    class DelayedClock:
+        def __init__(self, deadline: float) -> None:
+            self.times = iter((deadline - 0.001, deadline + 0.001))
+
+        def time(self) -> float:
+            return next(self.times)
+
+    def delayed_parse(stdout: bytes, deadline: float) -> VcsState | None:
+        with patch("termstatus.agy.asyncio.get_running_loop", return_value=DelayedClock(deadline)):
+            return parse_git_status(stdout, deadline)
 
     payload = decode_payload({"cwd": "/work/repo", "vcs": {"branch": "payload", "dirty": True}})
+    started = time.perf_counter()
     with (
         patch("termstatus.agy.asyncio.create_subprocess_exec", side_effect=start),
         patch("termstatus.agy.parse_git_status", side_effect=delayed_parse),
     ):
         assert await resolve_vcs(payload) == VcsState("payload", True, True)
+
+    assert time.perf_counter() - started < GIT_TIMEOUT_SECONDS
 
 
 @pytest.mark.asyncio
@@ -352,7 +385,7 @@ async def test_git_probe_cancels_communicates_and_reaps_processes_within_deadlin
     with patch("termstatus.agy.asyncio.create_subprocess_exec", side_effect=start) as create_process:
         assert await probe_git("/work/repo") is None
 
-    assert time.perf_counter() - started < GIT_TIMEOUT_SECONDS + 0.01
+    assert time.perf_counter() - started < GIT_TIMEOUT_SECONDS
     assert create_process.await_count == 2
     assert all(process.killed and process.communicate_cancelled and process.wait_started for process in processes)
 
