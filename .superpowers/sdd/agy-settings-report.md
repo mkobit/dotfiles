@@ -32,7 +32,7 @@ Direct `chezmoi execute-template` renders for `preinstalled` and `none` matched 
 
 ## Commit
 
-Commit: recorded after verification.
+Implementation commit: `458b728` (`fix agy disabled settings cleanup`).
 
 ## Concerns
 
