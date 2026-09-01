@@ -261,7 +261,8 @@ async def cancel_git_work(
 
 
 async def probe_git(cwd: str) -> VcsState | None:
-    deadline = asyncio.get_running_loop().time() + GIT_TIMEOUT_SECONDS
+    loop = asyncio.get_running_loop()
+    deadline = loop.time() + GIT_TIMEOUT_SECONDS
     processes: list[asyncio.subprocess.Process] = []
     communications: list[asyncio.Task[tuple[bytes, bytes]]] = []
     completed = False
@@ -293,36 +294,35 @@ async def probe_git(cwd: str) -> VcsState | None:
         ),
     ]
     try:
-        async with asyncio.timeout_at(deadline - GIT_CLEANUP_RESERVE_SECONDS):
-            results = await asyncio.gather(*launches, return_exceptions=True)
-            processes = [result for result in results if not isinstance(result, BaseException)]
-            if len(processes) != len(launches):
-                return None
-            communications = [asyncio.create_task(process.communicate()) for process in processes]
-            results = await asyncio.gather(*communications, return_exceptions=True)
-            if any(isinstance(result, BaseException) for result in results):
-                return None
-            responses = [cast(tuple[bytes, bytes], result) for result in results]
-            completed = True
+        async with asyncio.timeout_at(deadline):
+            async with asyncio.timeout_at(deadline - GIT_CLEANUP_RESERVE_SECONDS):
+                results = await asyncio.gather(*launches, return_exceptions=True)
+                processes = [result for result in results if not isinstance(result, BaseException)]
+                if len(processes) == len(launches):
+                    communications = [asyncio.create_task(process.communicate()) for process in processes]
+                    results = await asyncio.gather(*communications, return_exceptions=True)
+                    if not any(isinstance(result, BaseException) for result in results):
+                        responses = [cast(tuple[bytes, bytes], result) for result in results]
+                        if all(process.returncode == 0 for process in processes):
+                            vcs = parse_git_status(responses[0][0])
+                            origin_url = normalized_text(responses[1][0].decode(errors="replace"))
+                            if vcs is not None and loop.time() < deadline:
+                                completed = True
+                                return VcsState(
+                                    vcs.branch,
+                                    vcs.dirty,
+                                    vcs.is_repo,
+                                    vcs.upstream,
+                                    vcs.ahead,
+                                    vcs.behind,
+                                    origin_url,
+                                )
     except TimeoutError:
-        return None
+        pass
     finally:
         if not completed:
             await cancel_git_work(launches, communications, processes, deadline)
-    if any(process.returncode != 0 for process in processes):
-        return None
-    vcs = parse_git_status(responses[0][0])
-    if vcs is None:
-        return None
-    return VcsState(
-        vcs.branch,
-        vcs.dirty,
-        vcs.is_repo,
-        vcs.upstream,
-        vcs.ahead,
-        vcs.behind,
-        normalized_text(responses[1][0].decode(errors="replace")),
-    )
+    return None
 
 
 async def resolve_vcs(payload: AgyPayload) -> VcsState | None:
