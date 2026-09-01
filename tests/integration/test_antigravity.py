@@ -17,6 +17,16 @@ def test_antigravity_settings_deployed(host, chezmoi_dest):
 
 
 @pytest.mark.integration
+def test_antigravity_statusline_is_configured(host, chezmoi_dest) -> None:
+    path = chezmoi_dest / ".gemini" / "antigravity-cli" / "settings.json"
+    result = host.run(
+        f"python3 -c \"import json, pathlib; print(json.loads(pathlib.Path({str(path)!r}).read_text())['statusLine']['command'])\""
+    )
+    assert result.rc == 0, result.stderr
+    assert result.stdout.strip() == "statusline antigravity render"
+
+
+@pytest.mark.integration
 def test_legacy_gemini_settings_removed(host, chezmoi_dest):
     """Verify ~/.gemini/settings.json does not exist after chezmoi apply."""
     legacy_file = host.file(str(chezmoi_dest / ".gemini" / "settings.json"))
