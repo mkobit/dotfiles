@@ -7,8 +7,8 @@ from typing import cast
 from termstatus.agy.constants import (
     _GIT_CLEANUP_RESERVE,
     _GIT_CLEANUP_SCHEDULING_MARGIN,
-    GIT_STATUS_MAX_BYTES,
-    GIT_TIMEOUT,
+    _GIT_STATUS_MAX_BYTES,
+    _GIT_TIMEOUT,
 )
 from termstatus.agy.decode import normalized_text
 from termstatus.agy.models.payload import AgyPayload
@@ -20,7 +20,7 @@ def _deadline_expired(deadline: float | None) -> bool:
 
 
 def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState | None:
-    if len(stdout) > GIT_STATUS_MAX_BYTES:
+    if len(stdout) > _GIT_STATUS_MAX_BYTES:
         return None
     branch: str | None = None
     upstream: str | None = None
@@ -49,7 +49,7 @@ def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState |
 def _build_vcs(vcs: VcsState, origin_stdout: bytes, deadline: float) -> VcsState | None:
     if _deadline_expired(deadline):
         return None
-    origin_url = normalized_text(origin_stdout[:GIT_STATUS_MAX_BYTES].decode(errors="replace"))
+    origin_url = normalized_text(origin_stdout[:_GIT_STATUS_MAX_BYTES].decode(errors="replace"))
     return (
         VcsState(vcs.branch, vcs.dirty, vcs.is_repo, vcs.upstream, vcs.ahead, vcs.behind, origin_url)
         if not _deadline_expired(deadline)
@@ -78,7 +78,7 @@ async def _cancel_git_work(
 
 
 async def probe_git(cwd: str) -> VcsState | None:
-    deadline = asyncio.get_running_loop().time() + GIT_TIMEOUT.total("seconds")
+    deadline = asyncio.get_running_loop().time() + _GIT_TIMEOUT.total("seconds")
     processes: list[asyncio.subprocess.Process] = []
     communications: list[asyncio.Task[tuple[bytes, bytes]]] = []
     completed = False

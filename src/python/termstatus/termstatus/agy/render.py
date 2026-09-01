@@ -2,7 +2,7 @@ import re
 import unicodedata
 from collections.abc import Sequence
 
-from termstatus.agy.constants import _ANSI_ESCAPE_PATTERN, STATE_COLORS
+from termstatus.agy.constants import _ANSI_ESCAPE_PATTERN, _STATE_COLORS
 from termstatus.agy.decode import normalized_text
 from termstatus.agy.models.payload import AgyPayload
 from termstatus.agy.models.slot import Slot
@@ -62,7 +62,7 @@ def _fit_slots(slots: Sequence[Slot], width: int) -> str | None:
 
 
 def _identity_slots(payload: AgyPayload) -> list[Slot]:
-    state = f"{STATE_COLORS.get(payload.state, '\033[37m')}[{payload.state}]\033[0m"
+    state = f"{_STATE_COLORS.get(payload.state, '\033[37m')}[{payload.state}]\033[0m"
     slots = [Slot(0, 0, 1, state)]
     values = (
         (1, 30, _model_name(payload.model, payload.effort)),
