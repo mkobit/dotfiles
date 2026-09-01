@@ -1,12 +1,14 @@
 import asyncio
 import io
+import json
 import sys
 import time
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
 from termstatus.agy import (
+    GIT_TIMEOUT_SECONDS,
     VcsState,
     decode_payload,
     display_width,
@@ -89,6 +91,39 @@ def test_narrow_render_omits_lower_priority_slots_without_overflowing() -> None:
     assert all(display_width(line) <= 40 for line in lines)
 
 
+def test_payload_display_text_cannot_inject_terminal_controls_or_rows() -> None:
+    output = render_statusline(
+        decode_payload(
+            {
+                "agent_state": "working\x1b[31m",
+                "cwd": "/work\nrepo",
+                "model": {"display_name": "model\x1b]8;;bad\x1b\\"},
+                "quota": {"quota\nname\x1b[31m": {"remaining_percentage": 50}},
+                "terminal_width": 160,
+            }
+        ),
+        VcsState("branch\nname\x1b[31m", True, True),
+    )
+
+    assert output.count("\n") == 2
+    assert "\x1b[31m" not in output
+    assert "\r" not in output
+
+
+def test_disabled_sandbox_is_rendered() -> None:
+    assert "sandbox:off" in "\n".join(rendered({"sandbox": {"enabled": False}, "terminal_width": 160}))
+
+
+def test_detached_dirty_repository_still_shows_dirty_state() -> None:
+    line = render_statusline(decode_payload({"terminal_width": 80}), VcsState(None, True, True))
+
+    assert "dirty" in strip_ansi(line)
+
+
+def test_quota_without_reset_is_rendered() -> None:
+    assert "quota:50%" in "\n".join(rendered({"quota": {"quota": {"remaining_percentage": 50}}}))
+
+
 def test_missing_optional_fields_omit_empty_rows_and_sensitive_fields() -> None:
     lines = rendered(
         {
@@ -127,6 +162,45 @@ def test_malformed_json_renders_without_throwing(
     assert strip_ansi(capsys.readouterr().out) == "[idle]\n"
 
 
+def test_huge_valid_json_numbers_render_without_throwing(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    huge = 10**1000
+    monkeypatch.setattr(
+        sys,
+        "stdin",
+        io.StringIO(
+            json.dumps(
+                {
+                    "terminal_width": huge,
+                    "context_window": {"remaining_percentage": huge},
+                    "quota": {"quota": {"remaining_percentage": huge}},
+                }
+            )
+        ),
+    )
+
+    render_from_stdin()
+
+    assert "[idle]" in strip_ansi(capsys.readouterr().out)
+
+
+def test_resolution_error_uses_payload_branch_and_dirty_fallback_only(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(
+        sys,
+        "stdin",
+        io.StringIO('{"cwd":"/work/repo","vcs":{"branch":"payload","dirty":true,"upstream":"stale","ahead":2}}'),
+    )
+    with patch("termstatus.agy.resolve_vcs", new=AsyncMock(side_effect=RuntimeError)):
+        render_from_stdin()
+
+    output = strip_ansi(capsys.readouterr().out)
+    assert "payload*" in output
+    assert "stale" not in output and "ahead:2" not in output
+
+
 def test_parse_porcelain_v2_and_renders_github_origin_as_osc8_link() -> None:
     vcs = parse_git_status(
         b"# branch.oid abc123\n# branch.head feature/demo\n# branch.upstream origin/feature/demo\n# branch.ab +2 -1\n1 .M N... 100644 100644 100644 abc abc file.py\n"
@@ -153,18 +227,37 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
         await asyncio.sleep(1)
         raise AssertionError("unreachable")
 
+    loop = asyncio.get_running_loop()
     started = time.perf_counter()
-    with patch("termstatus.agy.asyncio.create_subprocess_exec", side_effect=slow_start) as create_process:
+    timeout_deadlines: list[float] = []
+    timeout_at = asyncio.timeout_at
+
+    def track_timeout_at(deadline: float) -> asyncio.Timeout:
+        timeout_deadlines.append(deadline)
+        return timeout_at(deadline)
+
+    with (
+        patch("termstatus.agy.asyncio.create_subprocess_exec", side_effect=slow_start) as create_process,
+        patch("termstatus.agy.asyncio.timeout_at", side_effect=track_timeout_at),
+    ):
         payload = decode_payload(
             {
                 "cwd": "/work/repo",
                 "vcs": {"branch": "payload", "dirty": True, "upstream": "stale", "ahead": 2, "behind": 1},
             }
         )
+        started_loop = loop.time()
         assert await resolve_vcs(payload) == VcsState("payload", True, True)
 
-    assert time.perf_counter() - started < 0.2
+    assert time.perf_counter() - started < 0.16
     assert create_process.await_count == 2
+    assert [call.args for call in create_process.await_args_list] == [
+        ("git", "-C", "/work/repo", "status", "--porcelain=v2", "--branch", "-uno"),
+        ("git", "-C", "/work/repo", "remote", "get-url", "origin"),
+    ]
+    assert timeout_deadlines
+    assert GIT_TIMEOUT_SECONDS == 0.125
+    assert abs(max(timeout_deadlines) - started_loop - GIT_TIMEOUT_SECONDS) < 0.01
 
 
 @pytest.mark.asyncio
@@ -202,7 +295,7 @@ async def test_git_probe_cancels_communicates_and_reaps_processes_within_deadlin
     with patch("termstatus.agy.asyncio.create_subprocess_exec", side_effect=start) as create_process:
         assert await probe_git("/work/repo") is None
 
-    assert time.perf_counter() - started < 0.2
+    assert time.perf_counter() - started < 0.16
     assert create_process.await_count == 2
     assert all(process.killed and process.communicate_cancelled and process.wait_started for process in processes)
 

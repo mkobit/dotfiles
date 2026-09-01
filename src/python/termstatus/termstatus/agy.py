@@ -7,7 +7,7 @@ import unicodedata
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
-from typing import cast
+from typing import TypeGuard, cast
 
 ANSI_ESCAPE = re.compile(r"(?:\x1b\[[0-9;]*m|\x1b]8;;.*?(?:\x1b\\|\x07))")
 STATE_COLORS = {
@@ -35,7 +35,7 @@ class VcsState:
 @dataclass(frozen=True)
 class Quota:
     remaining: int
-    reset_in_seconds: int
+    reset_in_seconds: int | None
 
 
 @dataclass(frozen=True)
@@ -80,17 +80,29 @@ def mapping(value: object) -> Mapping[str, object]:
 
 
 def normalized_text(value: object) -> str | None:
-    return value.strip() if isinstance(value, str) and value.strip() else None
+    if not isinstance(value, str):
+        return None
+    text = "".join(char for char in value if not unicodedata.category(char).startswith("C")).strip()
+    return text or None
+
+
+def finite_number(value: object) -> TypeGuard[int | float]:
+    if not isinstance(value, (int, float)) or isinstance(value, bool):
+        return False
+    try:
+        return math.isfinite(value)
+    except OverflowError:
+        return False
 
 
 def percent(value: object) -> int | None:
-    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+    if finite_number(value):
         return round(value)
     return None
 
 
 def integer(value: object) -> int | None:
-    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
+    if finite_number(value):
         return int(value)
     return None
 
@@ -116,7 +128,7 @@ def cost_value(value: object) -> float | None:
     cost = mapping(value)
     candidates = (cost.get("estimated"), cost.get("total"), cost.get("total_cost_usd")) if cost else (value,)
     for candidate in candidates:
-        if isinstance(candidate, (int, float)) and not isinstance(candidate, bool) and math.isfinite(candidate):
+        if finite_number(candidate):
             return float(candidate)
     return None
 
@@ -124,19 +136,17 @@ def cost_value(value: object) -> float | None:
 def decode_quotas(raw: Mapping[str, object]) -> dict[str, Quota]:
     quotas = {}
     for name, value in raw.items():
+        label = normalized_text(name)
+        if not label:
+            continue
         item = mapping(value)
         remaining = percent(item.get("remaining_percentage"))
         fraction = item.get("remaining_fraction")
-        if (
-            remaining is None
-            and isinstance(fraction, (int, float))
-            and not isinstance(fraction, bool)
-            and math.isfinite(fraction)
-        ):
+        if remaining is None and finite_number(fraction):
             remaining = round(fraction * 100)
         reset = integer(item.get("reset_in_seconds"))
-        if remaining is not None and reset is not None:
-            quotas[name] = Quota(max(0, min(100, remaining)), max(0, reset))
+        if remaining is not None:
+            quotas[label] = Quota(max(0, min(100, remaining)), max(0, reset) if reset is not None else None)
     return quotas
 
 
@@ -320,9 +330,13 @@ async def resolve_vcs(payload: AgyPayload) -> VcsState | None:
         return payload.vcs
     if vcs := await probe_git(payload.cwd):
         return vcs
-    if payload.vcs:
-        return VcsState(payload.vcs.branch, payload.vcs.dirty, payload.vcs.is_repo)
-    return None
+    return fallback_vcs(payload)
+
+
+def fallback_vcs(payload: AgyPayload) -> VcsState | None:
+    if not payload.vcs:
+        return None
+    return VcsState(payload.vcs.branch, payload.vcs.dirty, payload.vcs.is_repo)
 
 
 def strip_ansi(value: str) -> str:
@@ -356,9 +370,9 @@ def model_name(model: str | None, effort: str | None) -> str | None:
 
 
 def git_branch(vcs: VcsState) -> str | None:
-    if not vcs.branch:
+    if not (branch := normalized_text(vcs.branch)):
         return None
-    branch = vcs.branch + ("*" if vcs.dirty else "")
+    branch += "*" if vcs.dirty else ""
     return f"\033]8;;{url}\033\\{branch}\033]8;;\033\\" if (url := github_url(vcs.origin_url)) else branch
 
 
@@ -385,8 +399,12 @@ def identity_slots(payload: AgyPayload) -> list[Slot]:
         (
             5,
             105,
-            f"sandbox:{'net' if payload.sandbox.allow_network else 'no-net'}"
-            if payload.sandbox and payload.sandbox.enabled
+            (
+                f"sandbox:{'net' if payload.sandbox.allow_network else 'no-net'}"
+                if payload.sandbox.enabled
+                else "sandbox:off"
+            )
+            if payload.sandbox
             else None,
         ),
         (6, 125, f"vim:{payload.vim_mode}" if payload.vim_mode else None),
@@ -414,8 +432,10 @@ def vcs_slots(vcs: VcsState | None) -> list[Slot]:
     if vcs:
         if branch := git_branch(vcs):
             slots.append(Slot(2, 0, 10, branch))
-        if vcs.upstream:
-            slots.append(Slot(2, 1, 55, vcs.upstream))
+        elif vcs.dirty:
+            slots.append(Slot(2, 0, 10, "dirty"))
+        if upstream := normalized_text(vcs.upstream):
+            slots.append(Slot(2, 1, 55, upstream))
         if vcs.ahead:
             slots.append(Slot(2, 2, 75, f"ahead:{vcs.ahead}"))
         if vcs.behind:
@@ -445,11 +465,12 @@ def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
 def render_from_stdin() -> None:
     try:
         raw = json.loads(sys.stdin.read())
+        payload = decode_payload(mapping(raw))
+        try:
+            vcs = asyncio.run(resolve_vcs(payload))
+        except Exception:
+            vcs = fallback_vcs(payload)
+        output = render_statusline(payload, vcs)
     except Exception:
-        raw = {}
-    payload = decode_payload(mapping(raw))
-    try:
-        vcs = asyncio.run(resolve_vcs(payload))
-    except Exception:
-        vcs = payload.vcs
-    print(render_statusline(payload, vcs))
+        output = "[idle]"
+    print(output)
