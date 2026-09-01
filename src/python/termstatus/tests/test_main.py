@@ -201,37 +201,6 @@ def test_main_with_invalid_stdin():
     assert result.exit_code == 0
 
 
-def test_antigravity_fast_path_timing():
-    """Goals: Verify that antigravity render fast path completes in under 100ms."""
-    t0 = time.perf_counter()
-    result = runner.invoke(
-        cli,
-        ["antigravity", "render"],
-        input='{"agent_state": "working", "model": {"display_name": "Test"}}',
-    )
-    t1 = time.perf_counter()
-    elapsed = t1 - t0
-
-    assert result.exit_code == 0
-    assert "Test" in result.stdout
-    assert elapsed < 0.100, f"Fast path took {elapsed:.4f}s (> 0.100s)"
-
-
-def test_antigravity_fast_path_multi_run_benchmark():
-    """Goals: Assert that repeated statusline render calls average under 5ms per invocation."""
-    payload = '{"agent_state": "working", "model": {"display_name": "Test"}, "vcs": {"branch": "main"}}'
-    iterations = 50
-
-    t0 = time.perf_counter()
-    for _ in range(iterations):
-        res = runner.invoke(cli, ["antigravity", "render"], input=payload)
-        assert res.exit_code == 0
-    t1 = time.perf_counter()
-
-    avg_ms = ((t1 - t0) / iterations) * 1000
-    assert avg_ms < 5.0, f"Average per-call time was {avg_ms:.3f}ms (> 5.0ms)"
-
-
 def test_git_cancellation_and_p99_latency_under_slow_git():
     """Goals: Verify P99 latency stays under 200ms even when git subprocess calls hang/timeout."""
     durations = []

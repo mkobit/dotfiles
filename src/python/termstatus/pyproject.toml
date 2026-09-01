@@ -9,7 +9,7 @@ dependencies = [
 ]
 
 [project.scripts]
-statusline = "termstatus.main:main"
+statusline = "termstatus.entrypoint:main"
 
 [build-system]
 requires = [
