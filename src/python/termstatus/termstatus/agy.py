@@ -1,20 +1,14 @@
 import asyncio
-import hashlib
-import inspect
 import json
 import math
-import os
 import re
 import sys
-import tempfile
-import time
 import unicodedata
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
-from pathlib import Path
 
-ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
+ANSI_ESCAPE = re.compile(r"(?:\x1b\[[0-9;]*m|\x1b]8;;.*?(?:\x1b\\\\|\x07))")
 STATE_COLORS = {
     "idle": "\033[2m",
     "thinking": "\033[36m",
@@ -22,9 +16,7 @@ STATE_COLORS = {
     "tool_use": "\033[35m",
     "initializing": "\033[33m",
 }
-STATE_LABEL_WIDTH = max(map(len, STATE_COLORS))
-VCS_CACHE_TTL_SECONDS = 2.0
-GIT_TIMEOUT_SECONDS = 0.075
+GIT_TIMEOUT_SECONDS = 0.125
 
 
 @dataclass(frozen=True)
@@ -32,6 +24,10 @@ class VcsState:
     branch: str | None
     dirty: bool
     is_repo: bool
+    upstream: str | None = None
+    ahead: int = 0
+    behind: int = 0
+    origin_url: str | None = None
 
 
 @dataclass(frozen=True)
@@ -49,15 +45,30 @@ class SandboxState:
 @dataclass(frozen=True)
 class AgyPayload:
     state: str
-    remaining_context: int
+    remaining_context: int | None
     cwd: str | None
     model: str | None
     effort: str | None
+    execution_mode: str | None
+    plan_tier: str | None
+    vim_mode: str | None
     cost: float | None
     terminal_width: int
     quotas: dict[str, Quota]
     vcs: VcsState | None
     sandbox: SandboxState | None
+    task_count: int | None
+    pending_input_count: int | None
+    confirmation_pending: bool
+    artifact_count: int | None
+
+
+@dataclass(frozen=True)
+class Slot:
+    line: int
+    index: int
+    minimum_width: int
+    text: str
 
 
 def mapping(value: object) -> Mapping[str, object]:
@@ -79,6 +90,23 @@ def percent(value: object) -> int | None:
 def integer(value: object) -> int | None:
     if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
         return int(value)
+    return None
+
+
+def count(value: object) -> int | None:
+    number = integer(value)
+    if number is not None:
+        return max(0, number)
+    if isinstance(value, Sequence) and not isinstance(value, (str, bytes, bytearray)):
+        return len(value)
+    return None
+
+
+def first_count(*values: object) -> int | None:
+    for value in values:
+        result = count(value)
+        if result is not None:
+            return result
     return None
 
 
@@ -112,9 +140,17 @@ def decode_quotas(raw: Mapping[str, object]) -> dict[str, Quota]:
 
 def decode_vcs(raw: Mapping[str, object]) -> VcsState | None:
     branch = normalized_text(raw.get("branch"))
+    upstream = normalized_text(raw.get("upstream"))
     if not raw and not branch:
         return None
-    return VcsState(branch, bool(raw.get("dirty")), bool(raw.get("is_repo", branch)))
+    return VcsState(
+        branch,
+        bool(raw.get("dirty")),
+        bool(raw.get("is_repo", branch)),
+        upstream,
+        max(0, integer(raw.get("ahead")) or 0),
+        max(0, integer(raw.get("behind")) or 0),
+    )
 
 
 def decode_sandbox(raw: Mapping[str, object]) -> SandboxState | None:
@@ -126,149 +162,136 @@ def decode_sandbox(raw: Mapping[str, object]) -> SandboxState | None:
 def decode_payload(raw: Mapping[str, object]) -> AgyPayload:
     context = mapping(raw.get("context_window"))
     remaining = percent(context.get("remaining_percentage"))
-    if remaining is None:
-        remaining = 100 - (percent(context.get("used_percentage")) or 0)
+    if remaining is None and (used := percent(context.get("used_percentage"))) is not None:
+        remaining = 100 - used
     model = mapping(raw.get("model"))
     effort = (
         normalized_text(model.get("effort"))
         or normalized_text(model.get("reasoning_effort"))
         or normalized_text(raw.get("effort"))
     )
+    plan = mapping(raw.get("plan"))
+    confirmation = raw.get("confirmation_pending")
+    if confirmation is None:
+        confirmation = mapping(raw.get("confirmation")).get("pending")
     return AgyPayload(
         state=normalized_text(raw.get("agent_state")) or "idle",
-        remaining_context=max(0, min(100, remaining)),
-        cwd=normalized_text(raw.get("cwd")),
+        remaining_context=max(0, min(100, remaining)) if remaining is not None else None,
+        cwd=normalized_text(raw.get("cwd")) or normalized_text(raw.get("workspace_directory")),
         model=normalized_text(model.get("display_name")),
         effort=effort,
+        execution_mode=normalized_text(raw.get("execution_mode")) or normalized_text(raw.get("mode")),
+        plan_tier=normalized_text(plan.get("tier")) or normalized_text(raw.get("plan_tier")),
+        vim_mode=normalized_text(raw.get("vim_mode")),
         cost=cost_value(raw.get("cost")),
         terminal_width=max(1, integer(raw.get("terminal_width")) or 80),
         quotas=decode_quotas(mapping(raw.get("quota"))),
         vcs=decode_vcs(mapping(raw.get("vcs"))),
         sandbox=decode_sandbox(mapping(raw.get("sandbox"))),
+        task_count=first_count(raw.get("task_count"), raw.get("tasks")),
+        pending_input_count=first_count(raw.get("pending_input_count"), raw.get("pending_inputs")),
+        confirmation_pending=bool(confirmation),
+        artifact_count=first_count(raw.get("artifact_count"), raw.get("artifacts")),
     )
 
 
-def cache_path(cwd: str) -> Path:
-    cache_home = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
-    key = hashlib.sha256(cwd.encode()).hexdigest()
-    return cache_home / "termstatus" / "agy-vcs" / key
-
-
-def read_vcs_cache(cwd: str, *, now: float | None = None) -> VcsState | None:
-    try:
-        record = json.loads(cache_path(cwd).read_text())
-        expires_at = record.get("expires_at") if isinstance(record, dict) else None
-        if not isinstance(expires_at, (int, float)) or isinstance(expires_at, bool) or not math.isfinite(expires_at):
-            return None
-        if expires_at <= (time.time() if now is None else now):
-            return None
-        branch = record.get("branch")
-        dirty = record.get("dirty")
-        is_repo = record.get("is_repo")
-        if branch is not None and not isinstance(branch, str):
-            return None
-        if not isinstance(dirty, bool) or not isinstance(is_repo, bool):
-            return None
-        return VcsState(branch, dirty, is_repo)
-    except OSError, TypeError, ValueError:
-        return None
-
-
-def write_vcs_cache(cwd: str, vcs: VcsState, *, now: float | None = None) -> None:
-    destination = cache_path(cwd)
-    temporary: str | None = None
-    try:
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        fd, temporary = tempfile.mkstemp(dir=destination.parent, prefix=f".{destination.name}.")
-        with os.fdopen(fd, "w") as handle:
-            json.dump(
-                {
-                    "branch": vcs.branch,
-                    "dirty": vcs.dirty,
-                    "is_repo": vcs.is_repo,
-                    "expires_at": (time.time() if now is None else now) + VCS_CACHE_TTL_SECONDS,
-                },
-                handle,
-            )
-        Path(temporary).replace(destination)
-        temporary = None
-    except OSError:
-        pass
-    finally:
-        if temporary:
-            with suppress(OSError):
-                Path(temporary).unlink()
-
-
 def parse_git_status(stdout: bytes) -> VcsState | None:
-    lines = stdout.decode(errors="replace").splitlines()
-    if not lines or not lines[0].startswith("## "):
+    branch: str | None = None
+    upstream: str | None = None
+    ahead = behind = 0
+    dirty = False
+    saw_header = False
+    for line in stdout.decode(errors="replace").splitlines():
+        if line.startswith("# branch.head "):
+            saw_header = True
+            value = line.removeprefix("# branch.head ").strip()
+            branch = None if value.startswith("(") else normalized_text(value)
+        elif line.startswith("# branch.upstream "):
+            upstream = normalized_text(line.removeprefix("# branch.upstream "))
+        elif match := re.fullmatch(r"# branch\.ab \+(\d+) -(\d+)", line):
+            ahead, behind = (int(value) for value in match.groups())
+        elif not line.startswith("# "):
+            dirty = True
+    if not saw_header:
         return None
-    header = lines[0][3:]
-    if header.startswith("No commits yet on "):
-        branch = header.removeprefix("No commits yet on ").strip()
-    elif header.startswith("HEAD (no branch)"):
-        branch = None
-    else:
-        branch = header.split("...", 1)[0].strip()
-    if branch == "":
+    return VcsState(branch, dirty, True, upstream, ahead, behind)
+
+
+def github_url(remote: str | None) -> str | None:
+    if not remote:
         return None
-    return VcsState(branch, len(lines) > 1, True)
+    match = re.fullmatch(
+        r"(?:git@github\.com:|ssh://git@github\.com/|https?://github\.com/|git://github\.com/)([^/:\s]+/[^/\s]+?)(?:\.git)?/?",
+        remote.strip(),
+    )
+    return f"https://github.com/{match.group(1)}" if match else None
 
 
 async def probe_git(cwd: str) -> VcsState | None:
-    process: asyncio.subprocess.Process | None = None
-    try:
-        async with asyncio.timeout(GIT_TIMEOUT_SECONDS):
-            process = await asyncio.create_subprocess_exec(
+    processes: list[asyncio.subprocess.Process] = []
+    launches = [
+        asyncio.create_task(
+            asyncio.create_subprocess_exec(
                 "git",
                 "-C",
                 cwd,
                 "status",
-                "--porcelain=v1",
+                "--porcelain=v2",
                 "--branch",
                 "-uno",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
             )
-            stdout, _ = await process.communicate()
-    except TimeoutError:
-        if process is not None:
+        ),
+        asyncio.create_task(
+            asyncio.create_subprocess_exec(
+                "git",
+                "-C",
+                cwd,
+                "remote",
+                "get-url",
+                "origin",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+        ),
+    ]
+    try:
+        async with asyncio.timeout(GIT_TIMEOUT_SECONDS):
+            processes = list(await asyncio.gather(*launches))
+            results = await asyncio.gather(*(process.communicate() for process in processes))
+    except TimeoutError, OSError:
+        for launch in launches:
+            if not launch.done():
+                launch.cancel()
+        for process in processes:
             with suppress(ProcessLookupError):
-                killed = process.kill()
-                if inspect.iscoroutine(killed):
-                    killed.close()
+                process.kill()
         return None
-    except OSError:
+    if any(process.returncode != 0 for process in processes):
         return None
-    if process.returncode != 0:
-        return VcsState(branch=None, dirty=False, is_repo=False)
-    return parse_git_status(stdout)
+    vcs = parse_git_status(results[0][0])
+    if vcs is None:
+        return None
+    return VcsState(
+        vcs.branch,
+        vcs.dirty,
+        vcs.is_repo,
+        vcs.upstream,
+        vcs.ahead,
+        vcs.behind,
+        normalized_text(results[1][0].decode(errors="replace")),
+    )
 
 
 async def resolve_vcs(payload: AgyPayload) -> VcsState | None:
-    if payload.vcs and payload.vcs.branch:
-        return payload.vcs
     if not payload.cwd:
         return payload.vcs
-    cached = read_vcs_cache(payload.cwd)
-    if cached is not None:
-        return cached
-    vcs = await probe_git(payload.cwd)
-    if vcs is not None:
-        write_vcs_cache(payload.cwd, vcs)
-    return vcs
-
-
-async def probe_and_cache_vcs(cwd: str) -> VcsState | None:
-    vcs = await probe_git(cwd)
-    if vcs is not None:
-        write_vcs_cache(cwd, vcs)
-    return vcs
+    return await probe_git(payload.cwd) or payload.vcs
 
 
 def strip_ansi(value: str) -> str:
-    return ANSI_SGR.sub("", value)
+    return ANSI_ESCAPE.sub("", value)
 
 
 def display_width(value: str) -> int:
@@ -280,110 +303,118 @@ def display_width(value: str) -> int:
 
 
 def format_meter(remaining: int) -> str:
-    glyph = (
-        "●"
-        if remaining >= 85
-        else "◕"
-        if remaining >= 65
-        else "◑"
-        if remaining >= 40
-        else "◔"
-        if remaining >= 15
-        else "○"
-    )
-    color = "\033[32m" if remaining > 40 else "\033[33m" if remaining >= 20 else "\033[31m"
-    return f"{color}{glyph}{remaining}%\033[0m"
+    return f"{remaining}%"
 
 
-def duration(seconds: int) -> str:
-    if seconds >= 3600:
-        return f"{seconds // 3600}h"
-    return f"{max(1, seconds // 60)}m"
-
-
-def limiting_timer(gemini: Quota | None, weekly: Quota | None) -> str | None:
-    if not gemini and not weekly:
-        return None
-    if gemini and weekly and gemini.remaining >= 85 and weekly.remaining >= 85:
-        return None
-    if weekly and weekly.remaining <= 20:
-        return f"wk:{duration(weekly.reset_in_seconds)}"
-    chosen = min((quota for quota in (gemini, weekly) if quota), key=lambda q: q.remaining)
-    label = "5h" if chosen is gemini else "wk"
-    return f"{label}:{duration(chosen.reset_in_seconds)}"
-
-
-def _cost(cost: float | None) -> str:
-    if cost is None:
-        return ""
+def format_cost(cost: float) -> str:
     if cost < 0.001:
-        text = "<$0.001" if cost > 0 else "$0.00"
-    elif cost < 0.0095:
-        text = f"${cost:.3f}"
-    else:
-        text = f"${cost:.2f}"
-    return f"\033[2m{text}\033[0m"
+        return "<$0.001" if cost > 0 else "$0.00"
+    if cost < 0.0095:
+        return f"${cost:.3f}"
+    return f"${cost:.2f}"
+
+
+def model_name(model: str | None, effort: str | None) -> str | None:
+    if not model or not effort:
+        return model
+    return re.sub(rf"\s*\({re.escape(effort)}\)$", "", model)
+
+
+def git_branch(vcs: VcsState) -> str | None:
+    if not vcs.branch:
+        return None
+    branch = vcs.branch + ("*" if vcs.dirty else "")
+    return f"\033]8;;{url}\033\\{branch}\033]8;;\033\\" if (url := github_url(vcs.origin_url)) else branch
+
+
+def fit_slots(slots: list[Slot], width: int) -> str | None:
+    chosen: list[str] = []
+    for slot in sorted(slots, key=lambda item: item.index):
+        if width < slot.minimum_width:
+            continue
+        candidate = " ".join((*chosen, slot.text))
+        if display_width(candidate) <= width:
+            chosen.append(slot.text)
+    return " ".join(chosen) or None
+
+
+def identity_slots(payload: AgyPayload) -> list[Slot]:
+    state = f"{STATE_COLORS.get(payload.state, '\033[37m')}[{payload.state}]\033[0m"
+    model = model_name(payload.model, payload.effort)
+    slots = [Slot(0, 0, 1, state)]
+    for index, minimum_width, text in (
+        (1, 30, model),
+        (2, 45, payload.effort),
+        (3, 65, payload.execution_mode),
+        (4, 85, f"plan:{payload.plan_tier}" if payload.plan_tier else None),
+        (
+            5,
+            105,
+            f"sandbox:{'net' if payload.sandbox.allow_network else 'no-net'}"
+            if payload.sandbox and payload.sandbox.enabled
+            else None,
+        ),
+        (6, 125, f"vim:{payload.vim_mode}" if payload.vim_mode else None),
+    ):
+        if text:
+            slots.append(Slot(0, index, minimum_width, text))
+    return slots
+
+
+def resource_slots(payload: AgyPayload) -> list[Slot]:
+    slots: list[Slot] = []
+    if payload.cwd:
+        slots.append(Slot(1, 0, 10, payload.cwd))
+    if payload.remaining_context is not None:
+        slots.append(Slot(1, 1, 20, f"{format_meter(payload.remaining_context)} ctx"))
+    for index, (name, quota) in enumerate(payload.quotas.items(), start=2):
+        slots.append(Slot(1, index, 45, f"{name}:{format_meter(quota.remaining)}"))
+    if payload.cost is not None:
+        slots.append(Slot(1, len(payload.quotas) + 2, 90, format_cost(payload.cost)))
+    return slots
+
+
+def vcs_slots(vcs: VcsState | None) -> list[Slot]:
+    slots: list[Slot] = []
+    if vcs:
+        if branch := git_branch(vcs):
+            slots.append(Slot(2, 0, 10, branch))
+        if vcs.upstream:
+            slots.append(Slot(2, 1, 55, vcs.upstream))
+        if vcs.ahead:
+            slots.append(Slot(2, 2, 75, f"ahead:{vcs.ahead}"))
+        if vcs.behind:
+            slots.append(Slot(2, 3, 90, f"behind:{vcs.behind}"))
+    return slots
+
+
+def activity_slots(payload: AgyPayload) -> list[Slot]:
+    slots: list[Slot] = []
+    if payload.task_count is not None:
+        slots.append(Slot(3, 0, 10, f"tasks:{payload.task_count}"))
+    if payload.pending_input_count is not None:
+        slots.append(Slot(3, 1, 30, f"input:{payload.pending_input_count}"))
+    if payload.confirmation_pending:
+        slots.append(Slot(3, 2, 50, "confirm"))
+    if payload.artifact_count is not None:
+        slots.append(Slot(3, 3, 65, f"artifacts:{payload.artifact_count}"))
+    return slots
 
 
 def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
-    vcs = vcs or payload.vcs
-    model = payload.model
-    if model and payload.effort:
-        model = re.sub(rf"\s*\({re.escape(payload.effort)}\)$", "", model)
-    state = f"{STATE_COLORS.get(payload.state, '\033[37m')}[{payload.state:<{STATE_LABEL_WIDTH}}]\033[0m"
-    left = [state, f"{format_meter(payload.remaining_context)} ctx", payload.cwd and Path(payload.cwd).name]
-    if payload.cost is not None:
-        left.append(_cost(payload.cost))
-    left = [str(value) for value in left if value]
-    if payload.terminal_width >= 80:
-        gemini = payload.quotas.get("gemini-5h")
-        weekly = payload.quotas.get("gemini-weekly")
-        gemini_quota = gemini or weekly
-        if gemini_quota:
-            timer = limiting_timer(gemini, weekly)
-            timer_text = f" {timer}" if timer and (payload.terminal_width >= 90 or payload.cost is None) else ""
-            left.append(f"g:{format_meter(gemini_quota.remaining)}" + timer_text)
-        if payload.terminal_width >= 100:
-            third = payload.quotas.get("3p-5h")
-            third_weekly = payload.quotas.get("3p-weekly")
-            third_quota = third or third_weekly
-            if third_quota:
-                third_timer = limiting_timer(third, third_weekly)
-                timer_text = f" {third_timer}" if third_timer and payload.terminal_width >= 110 else ""
-                left.append(f"3p:{format_meter(third_quota.remaining)}" + timer_text)
-    if payload.terminal_width >= 110:
-        if model:
-            left.append(model)
-        if payload.sandbox and payload.sandbox.enabled:
-            left.append("sandbox net" if payload.sandbox.allow_network else "sandbox no-net")
-        if payload.effort:
-            left.append(payload.effort)
-    vcs_text = vcs.branch + ("*" if vcs and vcs.dirty else "") if vcs and vcs.branch else ""
-    right = model if payload.terminal_width < 75 and model else vcs_text
-    text = " ".join(left)
-    padding = payload.terminal_width - display_width(text) - display_width(right)
-    return f"{text}{' ' * padding}{right}" if padding > 1 else " ".join(part for part in (text, right) if part)
+    slots = identity_slots(payload) + resource_slots(payload) + vcs_slots(vcs or payload.vcs) + activity_slots(payload)
+    rows = [fit_slots([slot for slot in slots if slot.line == line], payload.terminal_width) for line in range(4)]
+    return "\n".join(row for row in rows if row)
 
 
 def render_from_stdin() -> None:
-    raw_text = sys.stdin.read()
     try:
-        raw = json.loads(raw_text) if raw_text.strip() else {}
-        raw = raw if isinstance(raw, dict) else {}
+        raw = json.loads(sys.stdin.read())
     except Exception:
         raw = {}
-    debug = os.environ.get("AGY_STATUSLINE_DEBUG")
-    if debug:
-        destination = "/tmp/agy-statusline-debug.json" if debug.lower() in {"1", "true"} else debug  # noqa: S108
-        with suppress(Exception):
-            Path(destination).write_text(raw_text)
-    payload = decode_payload(raw)
-    vcs = payload.vcs if payload.vcs and payload.vcs.branch else None
-    if vcs is None and payload.cwd:
-        vcs = read_vcs_cache(payload.cwd)
-        if vcs is None:
-            with suppress(Exception):
-                vcs = asyncio.run(probe_and_cache_vcs(payload.cwd))
-    if vcs is None:
+    payload = decode_payload(mapping(raw))
+    try:
+        vcs = asyncio.run(resolve_vcs(payload))
+    except Exception:
         vcs = payload.vcs
     print(render_statusline(payload, vcs))
