@@ -75,11 +75,13 @@ async def _read_git_stdout(process: asyncio.subprocess.Process) -> bytes | None:
     if process.stdout is None:
         return None
     stdout = bytearray()
-    while len(stdout) <= _GIT_STATUS_MAX_BYTES:
-        chunk = await process.stdout.read(min(_GIT_STDOUT_READ_BYTES, _GIT_STATUS_MAX_BYTES + 1 - len(stdout)))
+    while len(stdout) < _GIT_STATUS_MAX_BYTES:
+        chunk = await process.stdout.read(min(_GIT_STDOUT_READ_BYTES, _GIT_STATUS_MAX_BYTES - len(stdout)))
         if not chunk:
             return bytes(stdout)
         stdout.extend(chunk)
+    if not await process.stdout.read(1):
+        return bytes(stdout)
     if process.returncode is None:
         with suppress(ProcessLookupError):
             process.kill()
@@ -111,15 +113,19 @@ async def _cancel_git_work(
     pending = [task for task in (*launches, *communications) if not task.done()]
     for task in pending:
         task.cancel()
+    if pending:
+        with suppress(TimeoutError):
+            async with asyncio.timeout_at(deadline - _GIT_CLEANUP_SCHEDULING_MARGIN.total("seconds")):
+                await asyncio.gather(*pending, return_exceptions=True)
     for process in processes:
         if process.returncode is None:
             with suppress(ProcessLookupError):
                 process.kill()
     waiters = [process.wait() for process in processes if process.returncode is None]
-    if pending or waiters:
+    if waiters:
         with suppress(TimeoutError):
             async with asyncio.timeout_at(deadline - _GIT_CLEANUP_SCHEDULING_MARGIN.total("seconds")):
-                await asyncio.gather(*pending, *waiters, return_exceptions=True)
+                await asyncio.gather(*waiters, return_exceptions=True)
 
 
 async def probe_git(cwd: str) -> VcsState | None:

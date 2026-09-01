@@ -3,9 +3,9 @@ import io
 import json
 import sys
 import time
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import FrozenInstanceError
-from typing import cast
+from typing import SupportsIndex, cast, override
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -14,7 +14,7 @@ from whenever import TimeDelta
 from termstatus.agy.cli import render_from_stdin
 from termstatus.agy.constants import _GIT_STATUS_MAX_BYTES, _GIT_TIMEOUT, _STATE_COLORS
 from termstatus.agy.decode import decode_payload
-from termstatus.agy.git import parse_git_status, probe_git, resolve_vcs
+from termstatus.agy.git import _read_git_stdout, parse_git_status, probe_git, resolve_vcs
 from termstatus.agy.models.quota import Quota
 from termstatus.agy.models.vcs import VcsState
 from termstatus.agy.render import display_width, git_branch, render_statusline, strip_ansi
@@ -459,7 +459,7 @@ async def test_git_probe_keeps_status_when_origin_lookup_fails() -> None:
 
 
 @pytest.mark.asyncio
-async def test_git_probe_reads_stdout_in_bounded_chunks() -> None:
+async def test_git_stdout_rejects_content_beyond_the_retained_buffer_limit() -> None:
     class BoundedStdout:
         def __init__(self, value: bytes) -> None:
             self.value = value
@@ -475,20 +475,65 @@ async def test_git_probe_reads_stdout_in_bounded_chunks() -> None:
             self.returncode = 0
             self.stdout = BoundedStdout(stdout)
 
-    started_processes = [
-        FinishedProcess(b"# branch.head enriched\n" + b"x" * (_GIT_STATUS_MAX_BYTES + 1)),
-        FinishedProcess(b"git@github.com:stripe/example.git\n"),
-    ]
-    processes = started_processes.copy()
+    process = FinishedProcess(b"x" * (_GIT_STATUS_MAX_BYTES + 1))
+    retained_sizes: list[int] = []
 
-    async def start(*_args: object, **_kwargs: object) -> FinishedProcess:
+    class TrackingBytearray(bytearray):
+        @override
+        def extend(self, value: Iterable[SupportsIndex], /) -> None:
+            super().extend(value)
+            retained_sizes.append(len(self))
+
+    with patch("termstatus.agy.git.bytearray", TrackingBytearray, create=True):
+        assert await _read_git_stdout(cast(asyncio.subprocess.Process, process)) is None
+
+    assert max(retained_sizes) == _GIT_STATUS_MAX_BYTES
+    assert max(process.stdout.read_sizes) <= _GIT_STATUS_MAX_BYTES
+
+
+@pytest.mark.asyncio
+async def test_git_probe_returns_status_when_origin_stdout_blocks() -> None:
+    class StatusProcess:
+        def __init__(self) -> None:
+            self.returncode = 0
+            self.stdout = AsyncBytesReader(b"# branch.oid abc123\n# branch.head enriched\n")
+
+    class BlockedOriginProcess:
+        def __init__(self) -> None:
+            self.returncode: int | None = None
+            self.killed = False
+            self.waited = False
+            self.read_cancelled = False
+            self.stdout = self
+
+        async def read(self, _size: int) -> bytes:
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.read_cancelled = True
+                raise
+            return b""
+
+        def kill(self) -> None:
+            self.killed = True
+
+        async def wait(self) -> int:
+            self.waited = True
+            self.returncode = -9
+            return self.returncode
+
+    origin = BlockedOriginProcess()
+    processes = [StatusProcess(), origin]
+
+    async def start(*_args: object, **_kwargs: object) -> StatusProcess | BlockedOriginProcess:
         return processes.pop(0)
 
+    started = time.perf_counter()
     with patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start):
-        assert await probe_git("/work/repo") is None
+        assert await probe_git("/work/repo") == VcsState("enriched", False, True)
 
-    assert all(process.stdout.read_sizes for process in started_processes)
-    assert all(max(process.stdout.read_sizes) <= _GIT_STATUS_MAX_BYTES + 1 for process in started_processes)
+    assert time.perf_counter() - started < _GIT_TIMEOUT.total("seconds")
+    assert origin.killed and origin.waited and origin.read_cancelled
 
 
 @pytest.mark.asyncio
