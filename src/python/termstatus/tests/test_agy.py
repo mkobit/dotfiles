@@ -3,6 +3,7 @@ import io
 import json
 import sys
 import time
+from collections.abc import Mapping
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -51,7 +52,7 @@ FULL_PAYLOAD = {
 }
 
 
-def rendered(raw: dict[str, object], vcs: VcsState | None = None) -> list[str]:
+def rendered(raw: Mapping[str, object], vcs: VcsState | None = None) -> list[str]:
     return strip_ansi(render_statusline(decode_payload(raw), vcs)).splitlines()
 
 
