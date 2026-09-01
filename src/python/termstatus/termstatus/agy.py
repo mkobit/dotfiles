@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
+STATE_COLORS = {"idle": "\033[2m", "thinking": "\033[36m", "working": "\033[34m", "tool_use": "\033[35m", "initializing": "\033[33m"}
 
 
 @dataclass(frozen=True)
@@ -166,8 +167,9 @@ def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
     model = payload.model
     if model and payload.effort:
         model = re.sub(rf"\s*\({re.escape(payload.effort)}\)$", "", model)
-    left = [f"[{payload.state}]", f"{format_meter(payload.remaining_context)} ctx", payload.cwd and Path(payload.cwd).name]
-    if vcs and vcs.branch:
+    state = f"{STATE_COLORS.get(payload.state, '\033[37m')}[{payload.state}]\033[0m"
+    left = [state, f"{format_meter(payload.remaining_context)} ctx", payload.cwd and Path(payload.cwd).name]
+    if payload.terminal_width >= 75 and vcs and vcs.branch:
         left.append(vcs.branch + ("*" if vcs.dirty else ""))
     if payload.cost is not None:
         left.append(_cost(payload.cost))
@@ -177,12 +179,15 @@ def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
         weekly = payload.quotas.get("gemini-weekly")
         if gemini and weekly:
             timer = limiting_timer(gemini, weekly)
-            left.append(f"g:{format_meter(gemini.remaining)}" + (f" {timer}" if timer else ""))
+            timer_text = f" {timer}" if timer and (payload.terminal_width >= 90 or payload.cost is None) else ""
+            left.append(f"g:{format_meter(gemini.remaining)}" + timer_text)
         if payload.terminal_width >= 100:
             third = payload.quotas.get("3p-5h")
             third_weekly = payload.quotas.get("3p-weekly")
             if third and third_weekly:
-                left.append(f"3p:{format_meter(third.remaining)}")
+                third_timer = limiting_timer(third, third_weekly)
+                timer_text = f" {third_timer}" if third_timer else ""
+                left.append(f"3p:{format_meter(third.remaining)}" + timer_text)
     if payload.terminal_width >= 110:
         if model:
             left.append(model)
@@ -206,6 +211,6 @@ def render_from_stdin() -> None:
     debug = os.environ.get("AGY_STATUSLINE_DEBUG")
     if debug:
         destination = "/tmp/agy-statusline-debug.json" if debug.lower() in {"1", "true"} else debug  # noqa: S108
-        with suppress(OSError):
+        with suppress(Exception):
             Path(destination).write_text(raw_text)
     print(render_statusline(decode_payload(raw), None))

@@ -1,7 +1,9 @@
+import io
 import subprocess
 import sys
 import time
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 
@@ -12,6 +14,7 @@ from termstatus.agy import (
     display_width,
     format_meter,
     limiting_timer,
+    render_from_stdin,
     render_statusline,
     strip_ansi,
 )
@@ -60,6 +63,41 @@ def test_limiting_timer_prioritizes_a_critical_weekly_quota() -> None:
 
 def test_display_width_ignores_ansi_sequences() -> None:
     assert display_width("\033[32m●\033[0m") == 1
+
+
+def test_gemini_timer_requires_ninety_width_when_cost_is_present() -> None:
+    payload = decode_payload({**FULL_PAYLOAD, "terminal_width": 80})
+    assert "5h" not in strip_ansi(render_statusline(payload, None))
+
+
+def test_three_p_timer_requires_one_ten_width() -> None:
+    payload = decode_payload({**FULL_PAYLOAD, "terminal_width": 110})
+    assert "3p:" in strip_ansi(render_statusline(payload, None))
+    assert "3p:◕75% wk:2h" in strip_ansi(render_statusline(payload, None))
+
+
+def test_narrow_render_does_not_duplicate_vcs_branch() -> None:
+    payload = decode_payload({"terminal_width": 60, "cwd": "/work/repo"})
+    assert strip_ansi(render_statusline(payload, VcsState("main", True, True))).count("main*") == 0
+    assert strip_ansi(render_statusline(payload, VcsState("main", False, True))).count("main") == 1
+
+
+def test_malformed_json_and_missing_fields_render_default(capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(sys, "stdin", io.StringIO("not json"))
+    render_from_stdin()
+    assert "[idle]" in capsys.readouterr().out
+
+
+def test_debug_write_failure_preserves_render(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
+    with patch("termstatus.agy.os.environ.get", return_value="bad\x00path"):
+        monkeypatch.setattr(sys, "stdin", io.StringIO('{"agent_state":"working"}'))
+        render_from_stdin()
+    assert "working" in capsys.readouterr().out
+
+
+def test_state_render_uses_state_colour() -> None:
+    line = render_statusline(decode_payload({"agent_state": "working"}), None)
+    assert "\033[34m" in line
 
 
 def test_entrypoint_does_not_import_typer_for_agy_render() -> None:
