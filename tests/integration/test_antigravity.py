@@ -1,3 +1,7 @@
+import json
+import subprocess
+from pathlib import Path
+
 import pytest
 
 
@@ -14,6 +18,59 @@ def test_antigravity_settings_deployed(host, chezmoi_dest):
     """Verify ~/.gemini/antigravity-cli/settings.json exists after chezmoi apply."""
     settings_file = host.file(str(chezmoi_dest / ".gemini" / "antigravity-cli" / "settings.json"))
     assert settings_file.exists, "~/.gemini/antigravity-cli/settings.json does not exist"
+
+
+def _render_antigravity_settings(stdin: str, agy_method: str) -> subprocess.CompletedProcess[str]:
+    template = Path.cwd() / "src/chezmoi/dot_gemini/antigravity-cli/modify_settings.json"
+    return subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            "/dev/null",
+            "--config-format",
+            "toml",
+            "--source",
+            str(Path.cwd()),
+            "execute-template",
+            "-f",
+            "--with-stdin",
+            "--override-data",
+            json.dumps({"agy": {"installation_method": agy_method}}),
+            str(template),
+        ],
+        input=stdin,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+@pytest.mark.integration
+def test_antigravity_statusline_template_is_configured() -> None:
+    result = _render_antigravity_settings(
+        '{"title":"stale","statusLine":{"type":"command","command":"stale","enabled":false}}',
+        "preinstalled",
+    )
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert rendered["statusLine"] == {
+        "type": "command",
+        "command": "statusline antigravity render",
+        "enabled": True,
+    }
+    assert "title" not in rendered
+
+
+@pytest.mark.integration
+def test_antigravity_statusline_template_removes_stale_settings_when_disabled() -> None:
+    result = _render_antigravity_settings(
+        '{"title":"stale","statusLine":{"type":"command","command":"stale","enabled":false}}',
+        "none",
+    )
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert "statusLine" not in rendered
+    assert "title" not in rendered
 
 
 @pytest.mark.integration

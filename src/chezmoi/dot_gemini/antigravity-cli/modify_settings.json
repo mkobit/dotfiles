@@ -61,6 +61,9 @@
 {{-     $settings = set $settings "editorMode" "vim" -}}
 {{-   end -}}
 {{-   $config = mergeOverwrite $config $settings -}}
+{{-   $config = set $config "statusLine" (dict "type" "command" "command" "statusline antigravity render" "enabled" true) -}}
+{{-   $config = omit $config "title" -}}
+{{- else -}}
 {{-   $config = omit $config "statusLine" "title" -}}
 {{- end -}}
 {{- $config | toPrettyJson | trimSuffix "\n" -}}
