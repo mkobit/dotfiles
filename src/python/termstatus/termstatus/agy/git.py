@@ -9,7 +9,7 @@ from whenever import TimeDelta
 from termstatus.agy.protocol import AgyPayload, VcsState, normalized_text
 
 _GIT_TIMEOUT: Final[TimeDelta] = TimeDelta(milliseconds=125)
-_GIT_CLEANUP_RESERVE: Final[TimeDelta] = TimeDelta(milliseconds=10)
+_GIT_CLEANUP_RESERVE: Final[TimeDelta] = TimeDelta(milliseconds=25)
 _GIT_CLEANUP_SCHEDULING_MARGIN: Final[TimeDelta] = TimeDelta(milliseconds=5)
 _GIT_STATUS_MAX_BYTES: Final[int] = 64 * 1024
 _GIT_STDOUT_READ_BYTES: Final[int] = 4_096
@@ -119,11 +119,15 @@ async def _cancel_git_work(
         if process.returncode is None:
             with suppress(ProcessLookupError):
                 process.kill()
-    waiters = [process.wait() for process in processes if process.returncode is None]
+    waiters = [asyncio.create_task(process.wait()) for process in processes if process.returncode is None]
     if waiters:
+        await asyncio.sleep(0)
         with suppress(TimeoutError):
             async with asyncio.timeout_at(deadline - _GIT_CLEANUP_SCHEDULING_MARGIN.total("seconds")):
                 await asyncio.gather(*waiters, return_exceptions=True)
+        for waiter in waiters:
+            waiter.cancel()
+        await asyncio.gather(*waiters, return_exceptions=True)
 
 
 async def probe_git(cwd: str) -> VcsState | None:
