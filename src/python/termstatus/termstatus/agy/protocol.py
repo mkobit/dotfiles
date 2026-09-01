@@ -1,15 +1,57 @@
+"""Agy's statusline JSON contract."""
+
 import math
 import unicodedata
 from collections.abc import Mapping, Sequence
+from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TypeGuard
 
 from whenever import TimeDelta
 
-from termstatus.agy.models.payload import AgyPayload
-from termstatus.agy.models.quota import Quota
-from termstatus.agy.models.sandbox import SandboxState
-from termstatus.agy.models.vcs import VcsState
+
+@dataclass(frozen=True, slots=True)
+class Quota:
+    remaining: int
+    reset_in: TimeDelta | None
+
+
+@dataclass(frozen=True, slots=True)
+class SandboxState:
+    enabled: bool
+    allow_network: bool
+
+
+@dataclass(frozen=True, slots=True)
+class VcsState:
+    branch: str | None
+    dirty: bool
+    is_repo: bool
+    upstream: str | None = None
+    ahead: int = 0
+    behind: int = 0
+    origin_url: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
+class AgyPayload:
+    state: str
+    remaining_context: int | None
+    cwd: str | None
+    model: str | None
+    effort: str | None
+    execution_mode: str | None
+    plan_tier: str | None
+    vim_mode: str | None
+    cost: float | None
+    terminal_width: int
+    quotas: Mapping[str, Quota]
+    vcs: VcsState | None
+    sandbox: SandboxState | None
+    task_count: int | None
+    pending_input_count: int | None
+    confirmation_pending: bool
+    artifact_count: int | None
 
 
 def mapping(value: object) -> Mapping[str, object]:

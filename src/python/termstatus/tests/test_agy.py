@@ -12,12 +12,17 @@ import pytest
 from whenever import TimeDelta
 
 from termstatus.agy.cli import render_from_stdin
-from termstatus.agy.constants import _GIT_STATUS_MAX_BYTES, _GIT_TIMEOUT, _STATE_COLORS
-from termstatus.agy.decode import decode_payload
-from termstatus.agy.git import _read_git_stdout, parse_git_status, probe_git, resolve_vcs
-from termstatus.agy.models.quota import Quota
-from termstatus.agy.models.vcs import VcsState
-from termstatus.agy.render import display_width, git_branch, render_statusline, strip_ansi
+from termstatus.agy.git import (
+    _GIT_STATUS_MAX_BYTES,
+    _GIT_TIMEOUT,
+    _read_git_stdout,
+    parse_git_status,
+    probe_git,
+    resolve_vcs,
+)
+from termstatus.agy.protocol import Quota, VcsState, decode_payload
+from termstatus.agy.statusline import display_width, git_branch, render_statusline, strip_ansi
+from termstatus.agy.term_colors import _STATE_COLORS
 from termstatus.main import main
 
 FULL_PAYLOAD = {

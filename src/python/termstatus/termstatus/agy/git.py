@@ -4,16 +4,14 @@ from collections.abc import Sequence
 from contextlib import suppress
 from typing import Final, cast
 
-from termstatus.agy.constants import (
-    _GIT_CLEANUP_RESERVE,
-    _GIT_CLEANUP_SCHEDULING_MARGIN,
-    _GIT_STATUS_MAX_BYTES,
-    _GIT_TIMEOUT,
-)
-from termstatus.agy.decode import normalized_text
-from termstatus.agy.models.payload import AgyPayload
-from termstatus.agy.models.vcs import VcsState
+from whenever import TimeDelta
 
+from termstatus.agy.protocol import AgyPayload, VcsState, normalized_text
+
+_GIT_TIMEOUT: Final[TimeDelta] = TimeDelta(milliseconds=125)
+_GIT_CLEANUP_RESERVE: Final[TimeDelta] = TimeDelta(milliseconds=10)
+_GIT_CLEANUP_SCHEDULING_MARGIN: Final[TimeDelta] = TimeDelta(milliseconds=5)
+_GIT_STATUS_MAX_BYTES: Final[int] = 64 * 1024
 _GIT_STDOUT_READ_BYTES: Final[int] = 4_096
 
 

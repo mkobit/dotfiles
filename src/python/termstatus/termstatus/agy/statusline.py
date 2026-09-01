@@ -1,16 +1,22 @@
 import re
 import unicodedata
 from collections.abc import Sequence
+from dataclasses import dataclass
 from re import Pattern
 from typing import Final
 
-from termstatus.agy.constants import _ANSI_ESCAPE_PATTERN, _STATE_COLORS
-from termstatus.agy.decode import normalized_text
-from termstatus.agy.models.payload import AgyPayload
-from termstatus.agy.models.slot import Slot
-from termstatus.agy.models.vcs import VcsState
+from termstatus.agy.protocol import AgyPayload, VcsState, normalized_text
+from termstatus.agy.term_colors import _STATE_COLORS
 
-_ANSI_ESCAPE: Final[Pattern[str]] = re.compile(_ANSI_ESCAPE_PATTERN)
+_ANSI_ESCAPE: Final[Pattern[str]] = re.compile(r"(?:\x1b\[[0-9;]*m|\x1b]8;;.*?(?:\x1b\\|\x07))")
+
+
+@dataclass(frozen=True, slots=True)
+class _Slot:
+    line: int
+    index: int
+    minimum_width: int
+    text: str
 
 
 def strip_ansi(value: str) -> str:
@@ -55,7 +61,7 @@ def git_branch(vcs: VcsState) -> str | None:
     return f"\033]8;;{url}\033\\{branch}\033]8;;\033\\" if (url := _github_url(vcs.origin_url)) else branch
 
 
-def _fit_slots(slots: Sequence[Slot], width: int) -> str | None:
+def _fit_slots(slots: Sequence[_Slot], width: int) -> str | None:
     chosen: list[str] = []
     for slot in sorted(slots, key=lambda item: item.index):
         if width >= slot.minimum_width and display_width(" ".join((*chosen, slot.text))) <= width:
@@ -63,9 +69,9 @@ def _fit_slots(slots: Sequence[Slot], width: int) -> str | None:
     return " ".join(chosen) or None
 
 
-def _identity_slots(payload: AgyPayload) -> list[Slot]:
+def _identity_slots(payload: AgyPayload) -> list[_Slot]:
     state = f"{_STATE_COLORS.get(payload.state, '\033[37m')}[{payload.state}]\033[0m"
-    slots = [Slot(0, 0, 1, state)]
+    slots = [_Slot(0, 0, 1, state)]
     values = (
         (1, 30, _model_name(payload.model, payload.effort)),
         (2, 45, payload.effort),
@@ -82,29 +88,31 @@ def _identity_slots(payload: AgyPayload) -> list[Slot]:
         ),
         (6, 125, f"vim:{payload.vim_mode}" if payload.vim_mode else None),
     )
-    slots.extend(Slot(0, index, minimum_width, text) for index, minimum_width, text in values if text)
+    slots.extend(_Slot(0, index, minimum_width, text) for index, minimum_width, text in values if text)
     return slots
 
 
-def _resource_slots(payload: AgyPayload) -> list[Slot]:
-    slots = [Slot(1, 0, 10, payload.cwd)] if payload.cwd else []
+def _resource_slots(payload: AgyPayload) -> list[_Slot]:
+    slots = [_Slot(1, 0, 10, payload.cwd)] if payload.cwd else []
     if payload.remaining_context is not None:
-        slots.append(Slot(1, 1, 20, f"{_format_meter(payload.remaining_context)} ctx"))
+        slots.append(_Slot(1, 1, 20, f"{_format_meter(payload.remaining_context)} ctx"))
     slots.extend(
-        Slot(1, index, 45, f"{name}:{_format_meter(quota.remaining)}")
+        _Slot(1, index, 45, f"{name}:{_format_meter(quota.remaining)}")
         for index, (name, quota) in enumerate(payload.quotas.items(), start=2)
     )
     if payload.cost is not None:
-        slots.append(Slot(1, len(payload.quotas) + 2, 90, _format_cost(payload.cost)))
+        slots.append(_Slot(1, len(payload.quotas) + 2, 90, _format_cost(payload.cost)))
     return slots
 
 
-def _vcs_slots(vcs: VcsState | None) -> list[Slot]:
+def _vcs_slots(vcs: VcsState | None) -> list[_Slot]:
     if not vcs:
         return []
-    slots = [Slot(2, 0, 10, branch)] if (branch := git_branch(vcs)) else [Slot(2, 0, 10, "dirty")] if vcs.dirty else []
+    slots = (
+        [_Slot(2, 0, 10, branch)] if (branch := git_branch(vcs)) else [_Slot(2, 0, 10, "dirty")] if vcs.dirty else []
+    )
     slots.extend(
-        Slot(2, index, minimum_width, text)
+        _Slot(2, index, minimum_width, text)
         for index, minimum_width, text in (
             (1, 55, normalized_text(vcs.upstream)),
             (2, 75, f"ahead:{vcs.ahead}" if vcs.ahead else None),
@@ -115,14 +123,14 @@ def _vcs_slots(vcs: VcsState | None) -> list[Slot]:
     return slots
 
 
-def _activity_slots(payload: AgyPayload) -> list[Slot]:
+def _activity_slots(payload: AgyPayload) -> list[_Slot]:
     values = (
         (0, 10, f"tasks:{payload.task_count}" if payload.task_count is not None else None),
         (1, 30, f"input:{payload.pending_input_count}" if payload.pending_input_count is not None else None),
         (2, 50, "confirm" if payload.confirmation_pending else None),
         (3, 65, f"artifacts:{payload.artifact_count}" if payload.artifact_count is not None else None),
     )
-    return [Slot(3, index, minimum_width, text) for index, minimum_width, text in values if text]
+    return [_Slot(3, index, minimum_width, text) for index, minimum_width, text in values if text]
 
 
 def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:

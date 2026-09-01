@@ -2,9 +2,9 @@ import asyncio
 import json
 import sys
 
-from termstatus.agy.decode import decode_payload, mapping
 from termstatus.agy.git import fallback_vcs, resolve_vcs
-from termstatus.agy.render import render_statusline
+from termstatus.agy.protocol import decode_payload, mapping
+from termstatus.agy.statusline import render_statusline
 
 
 def render_from_stdin() -> None:
