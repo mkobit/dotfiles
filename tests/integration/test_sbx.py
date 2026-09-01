@@ -1,12 +1,18 @@
 import json
+import shutil
 import subprocess
 import tomllib
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CHEZMOI_SOURCE = REPO_ROOT / "src" / "chezmoi"
 SBX_CATALOG = CHEZMOI_SOURCE / ".chezmoidata" / "bin" / "sbx.toml"
+CHEZMOI_REMOVE = CHEZMOI_SOURCE / ".chezmoiremove"
+LEGACY_TARGETS = (
+    ".local/bin/sbx-agy",
+    ".local/bin/tools/sbx-agy",
+    ".local/share/sbx",
+)
 
 
 def test_sbx_release_catalog_pins_v0_39_0_with_verified_linux_checksums():
@@ -40,9 +46,57 @@ def test_sbx_does_not_manage_legacy_host_integration_targets():
     )
     managed_targets = json.loads(result.stdout)
 
-    for target in (
-        ".local/bin/sbx-agy",
-        ".local/bin/tools/sbx-agy",
-        ".local/share/sbx/AGENTS.md",
-    ):
+    for target in (*LEGACY_TARGETS[:2], ".local/share/sbx/AGENTS.md"):
         assert target not in managed_targets
+
+
+def test_sbx_legacy_targets_are_registered_for_chezmoi_removal():
+    """Prune host files that were managed before the repository-local redesign."""
+    remove_targets = CHEZMOI_REMOVE.read_text(encoding="utf-8")
+
+    for target in LEGACY_TARGETS:
+        assert target in remove_targets
+
+
+def test_sbx_legacy_targets_are_pruned_on_apply(tmp_path):
+    """Ensure an upgrade removes the launcher and managed kit tree from a host."""
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    source = tmp_path / "source"
+    source.mkdir()
+    shutil.copy2(CHEZMOI_REMOVE, source / ".chezmoiremove")
+    (source / ".chezmoi.toml").write_text("[data.zsh]\nprompt = \"none\"\n", encoding="utf-8")
+
+    for target in LEGACY_TARGETS[:2]:
+        path = destination / target
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()
+
+    legacy_kit_file = destination / ".local/share/sbx/sandboxes/agy/spec.yaml"
+    legacy_kit_file.parent.mkdir(parents=True)
+    legacy_kit_file.touch()
+
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--source",
+            str(source),
+            "--config",
+            str(source / ".chezmoi.toml"),
+            "--destination",
+            str(destination),
+            "--cache",
+            str(tmp_path / "cache"),
+            "--persistent-state",
+            str(tmp_path / "chezmoistate.boltdb"),
+            "apply",
+            "--force",
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    assert result.returncode == 0, f"chezmoi apply failed.\\nstderr: {result.stderr}\\nstdout: {result.stdout}"
+
+    for target in LEGACY_TARGETS:
+        assert not (destination / target).exists(), f"legacy target remains after apply: {target}"

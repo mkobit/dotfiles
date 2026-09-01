@@ -60,3 +60,8 @@ install-asdf.sh
 .dotfiles/bash/snippets
 .dotfiles/external/eza-completions
 .dotfiles/external/eza-completions/**
+
+# Docker Sandboxes host integration replaced by repository-local `.sbx/` files.
+.local/bin/sbx-agy
+.local/bin/tools/sbx-agy
+.local/share/sbx
