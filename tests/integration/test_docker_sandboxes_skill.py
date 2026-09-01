@@ -57,3 +57,11 @@ def test_skill_references_record_the_pinned_agy_supply_chain_and_safety_boundary
     assert "cd2fec52b532a9136550ba0051bde6eb5ea17cb8f86ad9c0cb1475c54dc17d1a" in pin
     for prohibited in ("secrets", "bindings", "registries", "local-command MCP", "direct mount"):
         assert prohibited in environment_files
+
+
+def test_skill_documents_the_confirmation_gated_agy_kit_allowlist_prerequisite():
+    """Keep the Git-pinned AGY kit usable without silently broadening host policy."""
+    agents = (REFERENCES_DIR / "agents.md").read_text(encoding="utf-8")
+
+    for required in ("kit.allowedSources", "github.com/shelajev/", "confirmation", "preserv"):
+        assert required in agents
