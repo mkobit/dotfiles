@@ -145,7 +145,12 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
 
     started = time.perf_counter()
     with patch("termstatus.agy.asyncio.create_subprocess_exec", side_effect=slow_start) as create_process:
-        payload = decode_payload({"cwd": "/work/repo", "vcs": {"branch": "payload", "dirty": True}})
+        payload = decode_payload(
+            {
+                "cwd": "/work/repo",
+                "vcs": {"branch": "payload", "dirty": True, "upstream": "stale", "ahead": 2, "behind": 1},
+            }
+        )
         assert await resolve_vcs(payload) == VcsState("payload", True, True)
 
     assert time.perf_counter() - started < 0.2

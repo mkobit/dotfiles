@@ -287,7 +287,11 @@ async def probe_git(cwd: str) -> VcsState | None:
 async def resolve_vcs(payload: AgyPayload) -> VcsState | None:
     if not payload.cwd:
         return payload.vcs
-    return await probe_git(payload.cwd) or payload.vcs
+    if vcs := await probe_git(payload.cwd):
+        return vcs
+    if payload.vcs:
+        return VcsState(payload.vcs.branch, payload.vcs.dirty, payload.vcs.is_repo)
+    return None
 
 
 def strip_ansi(value: str) -> str:
