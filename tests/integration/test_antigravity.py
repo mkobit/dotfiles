@@ -17,6 +17,7 @@ def test_antigravity_settings_deployed(host, chezmoi_dest):
 
 
 @pytest.mark.integration
+@pytest.mark.chezmoi_installation("agy", methods={"dotfiles.script", "preinstalled"})
 def test_antigravity_statusline_is_configured(host, chezmoi_dest) -> None:
     path = chezmoi_dest / ".gemini" / "antigravity-cli" / "settings.json"
     result = host.run(
