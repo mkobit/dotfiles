@@ -2,7 +2,6 @@ from pathlib import Path
 
 import yaml
 
-
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SKILL_DIR = REPO_ROOT / "src" / "ai" / "skills" / "docker-sandboxes"
 SKILL_FILE = SKILL_DIR / "SKILL.md"
