@@ -21,7 +21,7 @@ from termstatus.agy import (
     resolve_vcs,
     strip_ansi,
 )
-from termstatus.entrypoint import main as entrypoint_main
+from termstatus.main import main
 
 FULL_PAYLOAD = {
     "agent_state": "working",
@@ -164,14 +164,14 @@ def test_malformed_json_renders_without_throwing(
     assert strip_ansi(capsys.readouterr().out) == "[idle]\n"
 
 
-def test_entrypoint_dispatches_antigravity_render_without_subprocess(
+def test_main_dispatches_antigravity_render_without_subprocess(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(sys, "argv", ["statusline", "antigravity", "render"])
     monkeypatch.setattr(sys, "stdin", io.StringIO("not json"))
 
     with patch("termstatus.agy.asyncio.create_subprocess_exec") as create_process:
-        entrypoint_main()
+        main()
 
     assert strip_ansi(capsys.readouterr().out) == "[idle]\n"
     create_process.assert_not_called()
