@@ -15,7 +15,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 ANSI_SGR = re.compile(r"\x1b\[[0-9;]*m")
-STATE_COLORS = {"idle": "\033[2m", "thinking": "\033[36m", "working": "\033[34m", "tool_use": "\033[35m", "initializing": "\033[33m"}
+STATE_COLORS = {
+    "idle": "\033[2m",
+    "thinking": "\033[36m",
+    "working": "\033[34m",
+    "tool_use": "\033[35m",
+    "initializing": "\033[33m",
+}
+STATE_LABEL_WIDTH = max(map(len, STATE_COLORS))
 VCS_CACHE_TTL_SECONDS = 2.0
 GIT_TIMEOUT_SECONDS = 0.075
 
@@ -54,7 +61,9 @@ class AgyPayload:
 
 
 def mapping(value: object) -> Mapping[str, object]:
-    return value if isinstance(value, Mapping) else {}
+    if not isinstance(value, Mapping):
+        return {}
+    return {key: item for key, item in value.items() if isinstance(key, str)}
 
 
 def normalized_text(value: object) -> str | None:
@@ -62,20 +71,24 @@ def normalized_text(value: object) -> str | None:
 
 
 def percent(value: object) -> int | None:
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
         return round(value)
     return None
 
 
 def integer(value: object) -> int | None:
-    if isinstance(value, (int, float)) and not isinstance(value, bool):
+    if isinstance(value, (int, float)) and not isinstance(value, bool) and math.isfinite(value):
         return int(value)
     return None
 
 
 def cost_value(value: object) -> float | None:
-    value = mapping(value).get("estimated", mapping(value).get("total_cost_usd", value))
-    return float(value) if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+    cost = mapping(value)
+    candidates = (cost.get("estimated"), cost.get("total"), cost.get("total_cost_usd")) if cost else (value,)
+    for candidate in candidates:
+        if isinstance(candidate, (int, float)) and not isinstance(candidate, bool) and math.isfinite(candidate):
+            return float(candidate)
+    return None
 
 
 def decode_quotas(raw: Mapping[str, object]) -> dict[str, Quota]:
@@ -83,8 +96,14 @@ def decode_quotas(raw: Mapping[str, object]) -> dict[str, Quota]:
     for name, value in raw.items():
         item = mapping(value)
         remaining = percent(item.get("remaining_percentage"))
-        if remaining is None and isinstance(item.get("remaining_fraction"), (int, float)):
-            remaining = round(float(item["remaining_fraction"]) * 100)
+        fraction = item.get("remaining_fraction")
+        if (
+            remaining is None
+            and isinstance(fraction, (int, float))
+            and not isinstance(fraction, bool)
+            and math.isfinite(fraction)
+        ):
+            remaining = round(fraction * 100)
         reset = integer(item.get("reset_in_seconds"))
         if remaining is not None and reset is not None:
             quotas[name] = Quota(max(0, min(100, remaining)), max(0, reset))
@@ -110,7 +129,11 @@ def decode_payload(raw: Mapping[str, object]) -> AgyPayload:
     if remaining is None:
         remaining = 100 - (percent(context.get("used_percentage")) or 0)
     model = mapping(raw.get("model"))
-    effort = normalized_text(model.get("effort")) or normalized_text(model.get("reasoning_effort")) or normalized_text(raw.get("effort"))
+    effort = (
+        normalized_text(model.get("effort"))
+        or normalized_text(model.get("reasoning_effort"))
+        or normalized_text(raw.get("effort"))
+    )
     return AgyPayload(
         state=normalized_text(raw.get("agent_state")) or "idle",
         remaining_context=max(0, min(100, remaining)),
@@ -147,7 +170,7 @@ def read_vcs_cache(cwd: str, *, now: float | None = None) -> VcsState | None:
         if not isinstance(dirty, bool) or not isinstance(is_repo, bool):
             return None
         return VcsState(branch, dirty, is_repo)
-    except (OSError, TypeError, ValueError):
+    except OSError, TypeError, ValueError:
         return None
 
 
@@ -194,28 +217,29 @@ def parse_git_status(stdout: bytes) -> VcsState | None:
 
 
 async def probe_git(cwd: str) -> VcsState | None:
+    process: asyncio.subprocess.Process | None = None
     try:
-        process = await asyncio.create_subprocess_exec(
-            "git",
-            "-C",
-            cwd,
-            "status",
-            "--porcelain=v1",
-            "--branch",
-            "-uno",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL,
-        )
-    except OSError:
-        return None
-    try:
-        stdout, _ = await asyncio.wait_for(process.communicate(), timeout=GIT_TIMEOUT_SECONDS)
+        async with asyncio.timeout(GIT_TIMEOUT_SECONDS):
+            process = await asyncio.create_subprocess_exec(
+                "git",
+                "-C",
+                cwd,
+                "status",
+                "--porcelain=v1",
+                "--branch",
+                "-uno",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+            stdout, _ = await process.communicate()
     except TimeoutError:
-        killed = process.kill()
-        if inspect.isawaitable(killed):
-            await killed
-        with suppress(TimeoutError):
-            await process.communicate()
+        if process is not None:
+            with suppress(ProcessLookupError):
+                killed = process.kill()
+                if inspect.iscoroutine(killed):
+                    killed.close()
+        return None
+    except OSError:
         return None
     if process.returncode != 0:
         return VcsState(branch=None, dirty=False, is_repo=False)
@@ -236,17 +260,37 @@ async def resolve_vcs(payload: AgyPayload) -> VcsState | None:
     return vcs
 
 
+async def probe_and_cache_vcs(cwd: str) -> VcsState | None:
+    vcs = await probe_git(cwd)
+    if vcs is not None:
+        write_vcs_cache(cwd, vcs)
+    return vcs
+
+
 def strip_ansi(value: str) -> str:
     return ANSI_SGR.sub("", value)
 
 
 def display_width(value: str) -> int:
     plain = strip_ansi(value)
-    return sum(0 if unicodedata.combining(char) else 2 if unicodedata.east_asian_width(char) in {"W", "F"} else 1 for char in plain)
+    return sum(
+        0 if unicodedata.combining(char) else 2 if unicodedata.east_asian_width(char) in {"W", "F"} else 1
+        for char in plain
+    )
 
 
 def format_meter(remaining: int) -> str:
-    glyph = "●" if remaining >= 85 else "◕" if remaining >= 65 else "◑" if remaining >= 40 else "◔" if remaining >= 15 else "○"
+    glyph = (
+        "●"
+        if remaining >= 85
+        else "◕"
+        if remaining >= 65
+        else "◑"
+        if remaining >= 40
+        else "◔"
+        if remaining >= 15
+        else "○"
+    )
     color = "\033[32m" if remaining > 40 else "\033[33m" if remaining >= 20 else "\033[31m"
     return f"{color}{glyph}{remaining}%\033[0m"
 
@@ -286,35 +330,36 @@ def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
     model = payload.model
     if model and payload.effort:
         model = re.sub(rf"\s*\({re.escape(payload.effort)}\)$", "", model)
-    state = f"{STATE_COLORS.get(payload.state, '\033[37m')}[{payload.state}]\033[0m"
+    state = f"{STATE_COLORS.get(payload.state, '\033[37m')}[{payload.state:<{STATE_LABEL_WIDTH}}]\033[0m"
     left = [state, f"{format_meter(payload.remaining_context)} ctx", payload.cwd and Path(payload.cwd).name]
-    if payload.terminal_width >= 75 and vcs and vcs.branch:
-        left.append(vcs.branch + ("*" if vcs.dirty else ""))
     if payload.cost is not None:
         left.append(_cost(payload.cost))
     left = [str(value) for value in left if value]
     if payload.terminal_width >= 80:
         gemini = payload.quotas.get("gemini-5h")
         weekly = payload.quotas.get("gemini-weekly")
-        if gemini and weekly:
+        gemini_quota = gemini or weekly
+        if gemini_quota:
             timer = limiting_timer(gemini, weekly)
             timer_text = f" {timer}" if timer and (payload.terminal_width >= 90 or payload.cost is None) else ""
-            left.append(f"g:{format_meter(gemini.remaining)}" + timer_text)
+            left.append(f"g:{format_meter(gemini_quota.remaining)}" + timer_text)
         if payload.terminal_width >= 100:
             third = payload.quotas.get("3p-5h")
             third_weekly = payload.quotas.get("3p-weekly")
-            if third and third_weekly:
+            third_quota = third or third_weekly
+            if third_quota:
                 third_timer = limiting_timer(third, third_weekly)
                 timer_text = f" {third_timer}" if third_timer and payload.terminal_width >= 110 else ""
-                left.append(f"3p:{format_meter(third.remaining)}" + timer_text)
+                left.append(f"3p:{format_meter(third_quota.remaining)}" + timer_text)
     if payload.terminal_width >= 110:
         if model:
             left.append(model)
         if payload.sandbox and payload.sandbox.enabled:
-            left.append("sandbox")
+            left.append("sandbox net" if payload.sandbox.allow_network else "sandbox no-net")
         if payload.effort:
             left.append(payload.effort)
-    right = model if payload.terminal_width < 75 and model else (vcs.branch if vcs and vcs.branch else "")
+    vcs_text = vcs.branch + ("*" if vcs and vcs.dirty else "") if vcs and vcs.branch else ""
+    right = model if payload.terminal_width < 75 and model else vcs_text
     text = " ".join(left)
     padding = payload.terminal_width - display_width(text) - display_width(right)
     return f"{text}{' ' * padding}{right}" if padding > 1 else " ".join(part for part in (text, right) if part)
@@ -333,8 +378,12 @@ def render_from_stdin() -> None:
         with suppress(Exception):
             Path(destination).write_text(raw_text)
     payload = decode_payload(raw)
-    vcs = payload.vcs
-    if not vcs or not vcs.branch:
-        with suppress(Exception):
-            vcs = asyncio.run(resolve_vcs(payload))
+    vcs = payload.vcs if payload.vcs and payload.vcs.branch else None
+    if vcs is None and payload.cwd:
+        vcs = read_vcs_cache(payload.cwd)
+        if vcs is None:
+            with suppress(Exception):
+                vcs = asyncio.run(probe_and_cache_vcs(payload.cwd))
+    if vcs is None:
+        vcs = payload.vcs
     print(render_statusline(payload, vcs))

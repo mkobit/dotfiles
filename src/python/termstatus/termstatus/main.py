@@ -35,6 +35,7 @@ logger = logging.getLogger(__name__)
 
 cli = typer.Typer(add_completion=False)
 
+
 def main() -> None:
     """Invoke the Typer CLI for non-Antigravity commands."""
     cli()

@@ -1,3 +1,7 @@
+import json
+import subprocess
+from pathlib import Path
+
 import pytest
 
 
@@ -16,15 +20,50 @@ def test_antigravity_settings_deployed(host, chezmoi_dest):
     assert settings_file.exists, "~/.gemini/antigravity-cli/settings.json does not exist"
 
 
-@pytest.mark.integration
-@pytest.mark.chezmoi_installation("agy", methods={"dotfiles.script", "preinstalled"})
-def test_antigravity_statusline_is_configured(host, chezmoi_dest) -> None:
-    path = chezmoi_dest / ".gemini" / "antigravity-cli" / "settings.json"
-    result = host.run(
-        f"python3 -c \"import json, pathlib; print(json.loads(pathlib.Path({str(path)!r}).read_text())['statusLine']['command'])\""
+def _render_antigravity_settings(stdin: str, agy_method: str) -> subprocess.CompletedProcess[str]:
+    template = Path.cwd() / "src/chezmoi/dot_gemini/antigravity-cli/modify_settings.json"
+    return subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            "/dev/null",
+            "--config-format",
+            "toml",
+            "--source",
+            str(Path.cwd()),
+            "execute-template",
+            "-f",
+            "--with-stdin",
+            "--override-data",
+            json.dumps({"agy": {"installation_method": agy_method}}),
+            str(template),
+        ],
+        input=stdin,
+        capture_output=True,
+        check=False,
+        text=True,
     )
-    assert result.rc == 0, result.stderr
-    assert result.stdout.strip() == "statusline antigravity render"
+
+
+@pytest.mark.integration
+def test_antigravity_statusline_template_is_configured() -> None:
+    result = _render_antigravity_settings('{"title":"stale"}', "preinstalled")
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert rendered["statusLine"] == {
+        "type": "command",
+        "command": "statusline antigravity render",
+        "enabled": True,
+    }
+    assert "title" not in rendered
+
+
+@pytest.mark.integration
+def test_antigravity_statusline_template_has_no_statusline_when_disabled() -> None:
+    result = _render_antigravity_settings("{}", "none")
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert "statusLine" not in rendered
 
 
 @pytest.mark.integration
