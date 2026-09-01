@@ -7,8 +7,9 @@ import unicodedata
 from collections.abc import Mapping, Sequence
 from contextlib import suppress
 from dataclasses import dataclass
+from typing import cast
 
-ANSI_ESCAPE = re.compile(r"(?:\x1b\[[0-9;]*m|\x1b]8;;.*?(?:\x1b\\\\|\x07))")
+ANSI_ESCAPE = re.compile(r"(?:\x1b\[[0-9;]*m|\x1b]8;;.*?(?:\x1b\\|\x07))")
 STATE_COLORS = {
     "idle": "\033[2m",
     "thinking": "\033[36m",
@@ -17,6 +18,7 @@ STATE_COLORS = {
     "initializing": "\033[33m",
 }
 GIT_TIMEOUT_SECONDS = 0.125
+GIT_CLEANUP_RESERVE_SECONDS = 0.01
 
 
 @dataclass(frozen=True)
@@ -227,8 +229,32 @@ def github_url(remote: str | None) -> str | None:
     return f"https://github.com/{match.group(1)}" if match else None
 
 
+async def cancel_git_work(
+    launches: list[asyncio.Task[asyncio.subprocess.Process]],
+    communications: list[asyncio.Task[tuple[bytes, bytes]]],
+    processes: list[asyncio.subprocess.Process],
+    deadline: float,
+) -> None:
+    pending = [task for task in (*launches, *communications) if not task.done()]
+    for task in pending:
+        task.cancel()
+    for process in processes:
+        if process.returncode is None:
+            with suppress(ProcessLookupError):
+                process.kill()
+    waiters = [process.wait() for process in processes if process.returncode is None]
+    if not pending and not waiters:
+        return
+    with suppress(TimeoutError):
+        async with asyncio.timeout_at(deadline):
+            await asyncio.gather(*pending, *waiters, return_exceptions=True)
+
+
 async def probe_git(cwd: str) -> VcsState | None:
+    deadline = asyncio.get_running_loop().time() + GIT_TIMEOUT_SECONDS
     processes: list[asyncio.subprocess.Process] = []
+    communications: list[asyncio.Task[tuple[bytes, bytes]]] = []
+    completed = False
     launches = [
         asyncio.create_task(
             asyncio.create_subprocess_exec(
@@ -257,20 +283,25 @@ async def probe_git(cwd: str) -> VcsState | None:
         ),
     ]
     try:
-        async with asyncio.timeout(GIT_TIMEOUT_SECONDS):
-            processes = list(await asyncio.gather(*launches))
-            results = await asyncio.gather(*(process.communicate() for process in processes))
-    except TimeoutError, OSError:
-        for launch in launches:
-            if not launch.done():
-                launch.cancel()
-        for process in processes:
-            with suppress(ProcessLookupError):
-                process.kill()
+        async with asyncio.timeout_at(deadline - GIT_CLEANUP_RESERVE_SECONDS):
+            results = await asyncio.gather(*launches, return_exceptions=True)
+            processes = [result for result in results if not isinstance(result, BaseException)]
+            if len(processes) != len(launches):
+                return None
+            communications = [asyncio.create_task(process.communicate()) for process in processes]
+            results = await asyncio.gather(*communications, return_exceptions=True)
+            if any(isinstance(result, BaseException) for result in results):
+                return None
+            responses = [cast(tuple[bytes, bytes], result) for result in results]
+            completed = True
+    except TimeoutError:
         return None
+    finally:
+        if not completed:
+            await cancel_git_work(launches, communications, processes, deadline)
     if any(process.returncode != 0 for process in processes):
         return None
-    vcs = parse_git_status(results[0][0])
+    vcs = parse_git_status(responses[0][0])
     if vcs is None:
         return None
     return VcsState(
@@ -280,7 +311,7 @@ async def probe_git(cwd: str) -> VcsState | None:
         vcs.upstream,
         vcs.ahead,
         vcs.behind,
-        normalized_text(results[1][0].decode(errors="replace")),
+        normalized_text(responses[1][0].decode(errors="replace")),
     )
 
 

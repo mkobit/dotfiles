@@ -9,7 +9,10 @@ import pytest
 from termstatus.agy import (
     VcsState,
     decode_payload,
+    display_width,
+    git_branch,
     parse_git_status,
+    probe_git,
     render_from_stdin,
     render_statusline,
     resolve_vcs,
@@ -83,7 +86,7 @@ def test_narrow_render_omits_lower_priority_slots_without_overflowing() -> None:
 
     assert "working" in lines[0]
     assert "plan:full" not in lines[0] and "vim:insert" not in lines[0]
-    assert all(len(line) <= 40 for line in lines)
+    assert all(display_width(line) <= 40 for line in lines)
 
 
 def test_missing_optional_fields_omit_empty_rows_and_sensitive_fields() -> None:
@@ -137,6 +140,13 @@ def test_parse_porcelain_v2_and_renders_github_origin_as_osc8_link() -> None:
     assert "\033]8;;https://github.com/stripe/example\033\\feature/demo\033]8;;\033\\" in line
 
 
+def test_osc8_git_branch_uses_only_visible_width_when_fitting_slots() -> None:
+    vcs = VcsState("界界", False, True, origin_url="git@github.com:stripe/example.git")
+
+    assert display_width(git_branch(vcs) or "") == 4
+    assert "界界" in render_statusline(decode_payload({"terminal_width": 10}), vcs)
+
+
 @pytest.mark.asyncio
 async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shared_deadline() -> None:
     async def slow_start(*_args: object, **_kwargs: object) -> object:
@@ -155,6 +165,46 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
 
     assert time.perf_counter() - started < 0.2
     assert create_process.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_git_probe_cancels_communicates_and_reaps_processes_within_deadline() -> None:
+    class SlowProcess:
+        def __init__(self) -> None:
+            self.returncode: int | None = None
+            self.killed = False
+            self.communicate_cancelled = False
+            self.wait_started = False
+
+        async def communicate(self) -> tuple[bytes, bytes]:
+            try:
+                await asyncio.Event().wait()
+            except asyncio.CancelledError:
+                self.communicate_cancelled = True
+                raise
+            return b"", b""
+
+        def kill(self) -> None:
+            self.killed = True
+
+        async def wait(self) -> int:
+            self.wait_started = True
+            await asyncio.Event().wait()
+            return 0
+
+    processes = [SlowProcess(), SlowProcess()]
+    launches = processes.copy()
+
+    async def start(*_args: object, **_kwargs: object) -> SlowProcess:
+        return launches.pop(0)
+
+    started = time.perf_counter()
+    with patch("termstatus.agy.asyncio.create_subprocess_exec", side_effect=start) as create_process:
+        assert await probe_git("/work/repo") is None
+
+    assert time.perf_counter() - started < 0.2
+    assert create_process.await_count == 2
+    assert all(process.killed and process.communicate_cancelled and process.wait_started for process in processes)
 
 
 @pytest.mark.asyncio
