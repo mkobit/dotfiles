@@ -1,61 +1,19 @@
 ---
 name: docker-sandboxes
-description: Use when setting up, running, or troubleshooting an sbx sandbox for a Git repository, especially unattended AGY work in an isolated clone.
+description: Use when setting up, running, or troubleshooting Docker Sandboxes (`sbx`) for a Git repository, including isolated Codex or AGY work.
 ---
 
 # Docker Sandboxes
 
-Use the managed `sbx-agy` launcher for repository work.
-It creates an `sbx --clone` sandbox, so the agent never writes the host checkout.
+Use this skill when the user asks to set up, run, or repair an SBX environment for a repository.
 
-## Project workflow
+1. Run `sbx version` and require `0.39.0` or later before using environment files.
+2. Read the repository’s `AGENTS.md`, agent configuration, `.agents/skills`, CI workflows, build manifests, Docker files, and mise configuration.
+3. State the selected agent, clone-mode workspace, required checks, requested authority, and any optional kit before changing files or creating a sandbox.
+4. Obtain confirmation before any host-side sandbox lifecycle, credential, network-policy, publishing, Git push, PR, CI, or merge action.
+5. For repository setup, read [repository setup](references/repository-setup.md) and [environment files](references/environment-files.md).
+6. For agent selection, read [agents](references/agents.md), and read [upstream pins](references/upstream-pins.md) before creating an AGY environment.
+7. Read [optional host overlays](references/optional-host-overlays.md) only when the user asks to compose host-managed skills or capabilities.
 
-1. Read the repository’s `AGENTS.md`, agent configuration, and `mise` tasks.
-2. Check for an optional tracked `.sbx/sbx-agy/` mixin kit.
-3. State the project, the requested task, the default `work` authority, the selected checks, and the mixin before starting a sandbox.
-4. Obtain confirmation before running `sbx-agy`, because it creates a host microVM and mounts a repository read-only for cloning.
-5. Run AGY with an explicit non-interactive prompt when the user requested unattended work.
-6. Obtain separate confirmation before `sbx-agy fetch --name NAME PROJECT`, which updates host Git remote refs but never merges them.
-
-Example:
-
-```bash
-sbx-agy /path/to/project -- --print "run mise checks, fix the reported failure, and commit the change"
-```
-
-## Context composition
-
-`sbx-agy` copies the host-managed AGY skill packages into the sandbox’s global discovery location.
-It never mounts host agent settings, GitHub credentials, SSH material, or GPG material.
-The managed AGY base kit uses Docker's mediated Google OAuth credential for AGY authentication, not a raw token in the sandbox.
-
-The cloned repository keeps its own `.agents/skills` unchanged.
-AGY gives project `.agents/skills` higher precedence than the injected global baseline.
-
-The optional `.sbx/sbx-agy/` directory must validate as an `sbx` mixin kit without credentials.
-Use it for project-local, versioned setup only.
-Do not use it to add credentials, a writable host mount, or a second base sandbox.
-
-## Authority boundaries
-
-`work` is supported now.
-It permits sandbox-local edits, project checks, and unsigned sandbox commits.
-
-`publish` and `land` are design names, not implemented commands.
-Do not infer GitHub API access, `git push`, pull-request creation, CI polling, or merging from a `work` request.
-Each requires an explicit future capability and a real-host credential and egress proof.
-
-## Troubleshooting
-
-Use `sbx diagnose` and `sbx daemon status` before creating a sandbox.
-Use `sbx kit validate` to validate an optional repository mixin without starting a sandbox.
-Use `sbx ls` and `sbx policy check` only for read-only inspection.
-Choose a new sandbox name for every `sbx-agy` run, because the launcher refuses to reattach to preserve clone-only isolation.
-
-The first live launch must verify custom AGY-kit support and injected global-skill discovery for the installed `sbx` version.
-
-`sbx skills import` does not provision AGY skills.
-It supports a separate shared store for other built-in agents.
-
-The current `sbx` CLI does not expose host SSH-agent or GPG-agent forwarding.
-Keep sandbox commits unsigned and sign a reviewed host-side result if required.
+Do not use direct workspace mounts for autonomous work.
+Do not place secrets, bindings, registries, local-command MCP servers, or writable additional workspaces in tracked project environments.
