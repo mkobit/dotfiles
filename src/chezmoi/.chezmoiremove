@@ -64,4 +64,10 @@ install-asdf.sh
 # Docker Sandboxes host integration replaced by repository-local `.sbx/` files.
 .local/bin/sbx-agy
 .local/bin/tools/sbx-agy
-.local/share/sbx
+.local/share/sbx/AGENTS.md
+.local/share/sbx/mixins/chezmoi-init/spec.yaml
+.local/share/sbx/mixins/git-config/files/home/.gitconfig
+.local/share/sbx/mixins/git-config/spec.yaml
+.local/share/sbx/mixins/mise/files/home/.config/mise/config.toml
+.local/share/sbx/mixins/mise/spec.yaml
+.local/share/sbx/sandboxes/agy/spec.yaml

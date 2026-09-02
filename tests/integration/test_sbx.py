@@ -11,7 +11,13 @@ CHEZMOI_REMOVE = CHEZMOI_SOURCE / ".chezmoiremove"
 LEGACY_TARGETS = (
     ".local/bin/sbx-agy",
     ".local/bin/tools/sbx-agy",
-    ".local/share/sbx",
+    ".local/share/sbx/AGENTS.md",
+    ".local/share/sbx/mixins/chezmoi-init/spec.yaml",
+    ".local/share/sbx/mixins/git-config/files/home/.gitconfig",
+    ".local/share/sbx/mixins/git-config/spec.yaml",
+    ".local/share/sbx/mixins/mise/files/home/.config/mise/config.toml",
+    ".local/share/sbx/mixins/mise/spec.yaml",
+    ".local/share/sbx/sandboxes/agy/spec.yaml",
 )
 
 
@@ -46,7 +52,7 @@ def test_sbx_does_not_manage_legacy_host_integration_targets():
     )
     managed_targets = json.loads(result.stdout)
 
-    for target in (*LEGACY_TARGETS[:2], ".local/share/sbx/AGENTS.md"):
+    for target in LEGACY_TARGETS:
         assert target not in managed_targets
 
 
@@ -58,8 +64,8 @@ def test_sbx_legacy_targets_are_registered_for_chezmoi_removal():
         assert target in remove_targets
 
 
-def test_sbx_legacy_targets_are_pruned_on_apply(tmp_path):
-    """Ensure an upgrade removes the launcher and managed kit tree from a host."""
+def test_sbx_legacy_targets_are_pruned_without_deleting_user_sbx_data(tmp_path):
+    """Ensure upgrades prune former managed files but retain user SBX data."""
     destination = tmp_path / "destination"
     destination.mkdir()
     source = tmp_path / "source"
@@ -67,14 +73,14 @@ def test_sbx_legacy_targets_are_pruned_on_apply(tmp_path):
     shutil.copy2(CHEZMOI_REMOVE, source / ".chezmoiremove")
     (source / ".chezmoi.toml").write_text('[data.zsh]\nprompt = "none"\n', encoding="utf-8")
 
-    for target in LEGACY_TARGETS[:2]:
+    for target in LEGACY_TARGETS:
         path = destination / target
         path.parent.mkdir(parents=True, exist_ok=True)
         path.touch()
 
-    legacy_kit_file = destination / ".local/share/sbx/sandboxes/agy/spec.yaml"
-    legacy_kit_file.parent.mkdir(parents=True)
-    legacy_kit_file.touch()
+    user_sbx_file = destination / ".local/share/sbx/user/keep.txt"
+    user_sbx_file.parent.mkdir(parents=True)
+    user_sbx_file.touch()
 
     result = subprocess.run(
         [
@@ -100,3 +106,4 @@ def test_sbx_legacy_targets_are_pruned_on_apply(tmp_path):
 
     for target in LEGACY_TARGETS:
         assert not (destination / target).exists(), f"legacy target remains after apply: {target}"
+    assert user_sbx_file.exists(), "migration removed unrelated user SBX data"
