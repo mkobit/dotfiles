@@ -45,7 +45,10 @@ import posixpath
 import sys
 import tarfile
 from collections.abc import Iterable, Sequence
-from typing import BinaryIO, Callable, NamedTuple, Optional
+from typing import TYPE_CHECKING, BinaryIO, Callable, NamedTuple, Optional
+
+if TYPE_CHECKING:
+    from pathlib import Path
 
 
 class Selection(NamedTuple):
@@ -55,6 +58,133 @@ class Selection(NamedTuple):
 
 class FilterError(Exception):
     """Raised when the archive or arguments are invalid."""
+
+
+ALLOWED_SKILL_ROOTS = (
+    ".claude/skills",
+    ".codex/skills",
+    ".cursor/skills",
+    ".gemini/antigravity-cli/skills",
+)
+
+
+def parse_skill_root_manifest(
+    content: str, *, allow_duplicates: bool = False
+) -> tuple[str, ...]:
+    """Parse a strict newline-delimited list of destination-relative paths."""
+    if not content:
+        return ()
+    if not content.endswith("\n"):
+        raise FilterError("skill root manifest must end with a newline")
+    entries = tuple(content.split("\n")[:-1])
+    for entry in entries:
+        if not entry or entry != entry.strip() or "\r" in entry or "\0" in entry:
+            raise FilterError(f"malformed skill root manifest entry {entry!r}")
+    if not allow_duplicates and len(entries) != len(set(entries)):
+        raise FilterError("persisted skill root manifest contains a duplicate entry")
+    return entries
+
+
+def _skill_root_parent(entry: str) -> str:
+    if posixpath.isabs(entry) or posixpath.normpath(entry) != entry or "\\" in entry:
+        raise FilterError(f"skill root {entry!r} must be a normalized relative path")
+    for parent in ALLOWED_SKILL_ROOTS:
+        prefix = f"{parent}/"
+        if entry.startswith(prefix):
+            skill_name = entry[len(prefix) :]
+            if not skill_name or "/" in skill_name or skill_name in (".", ".."):
+                raise FilterError(
+                    f"skill root {entry!r} must be a direct child of {parent!r}"
+                )
+            return parent
+    raise FilterError(f"skill root {entry!r} is not under an allowed skills directory")
+
+
+def _is_within(parent: Path, child: Path) -> bool:
+    try:
+        return os.path.commonpath((str(parent), str(child))) == str(parent)
+    except ValueError:
+        return False
+
+
+def validate_skill_root_manifest(
+    dest_dir: Path, entries: Iterable[str]
+) -> tuple[Path, ...]:
+    """Resolve manifest entries without permitting traversal or symlink escapes."""
+    from pathlib import Path
+
+    destination = Path(dest_dir)
+    if not destination.is_absolute():
+        raise FilterError("destination directory must be absolute")
+    resolved_destination = destination.resolve()
+    validated = []
+    for entry in entries:
+        parent = _skill_root_parent(entry)
+        resolved_parent = (destination / parent).resolve()
+        resolved_entry = (destination / entry).resolve()
+        if not _is_within(resolved_destination, resolved_parent):
+            raise FilterError(f"allowed skill root {parent!r} escapes the destination")
+        if resolved_entry.parent != resolved_parent:
+            raise FilterError(
+                f"skill root {entry!r} escapes its allowed skills directory"
+            )
+        validated.append(destination / entry)
+    return tuple(validated)
+
+
+def _replace_manifest_atomically(state_manifest: Path, content: str) -> None:
+    import tempfile
+
+    state_manifest.parent.mkdir(parents=True, exist_ok=True)
+    file_descriptor, temporary_name = tempfile.mkstemp(
+        dir=str(state_manifest.parent), prefix=f".{state_manifest.name}."
+    )
+    try:
+        with os.fdopen(file_descriptor, "w", encoding="utf-8", newline="\n") as file:
+            file.write(content)
+            file.flush()
+            os.fsync(file.fileno())
+        os.replace(temporary_name, state_manifest)
+    except BaseException:
+        try:
+            os.unlink(temporary_name)
+        except FileNotFoundError:
+            pass
+        raise
+
+
+def reconcile_skill_roots(
+    dest_dir: Path, state_manifest: Path, desired_manifest: str
+) -> tuple[str, ...]:
+    """Delete stale managed skill roots and atomically record desired roots."""
+    import shutil
+    from pathlib import Path
+
+    destination = Path(dest_dir)
+    manifest = Path(state_manifest)
+    desired_entries = parse_skill_root_manifest(desired_manifest, allow_duplicates=True)
+    desired = tuple(sorted(set(desired_entries)))
+    validate_skill_root_manifest(destination, desired)
+
+    prior = ()
+    if manifest.exists():
+        prior = parse_skill_root_manifest(manifest.read_text(encoding="utf-8"))
+        prior_paths = validate_skill_root_manifest(destination, prior)
+        prior_by_entry = dict(zip(prior, prior_paths))
+        for stale in sorted(set(prior) - set(desired)):
+            stale_path = prior_by_entry[stale]
+            if stale_path.is_symlink():
+                raise FilterError(f"refusing to delete symlink skill root {stale!r}")
+            if stale_path.exists():
+                if not stale_path.is_dir():
+                    raise FilterError(
+                        f"refusing to delete non-directory skill root {stale!r}"
+                    )
+                shutil.rmtree(stale_path)
+
+    rendered = "".join(f"{entry}\n" for entry in desired)
+    _replace_manifest_atomically(manifest, rendered)
+    return desired
 
 
 def parse_selection(raw: str) -> Selection:
@@ -322,8 +452,44 @@ def _parse_args(argv: Iterable[str]) -> argparse.Namespace:
     return parser.parse_args(list(argv))
 
 
+def _parse_cleanup_args(argv: Iterable[str]) -> argparse.Namespace:
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(
+        prog="skill-filter cleanup-skill-roots",
+        description="prune stale managed AI skill directories from a destination",
+    )
+    parser.add_argument(
+        "--dest-dir",
+        required=True,
+        type=Path,
+        help="chezmoi destination directory",
+    )
+    parser.add_argument(
+        "--state-manifest",
+        required=True,
+        type=Path,
+        help="persisted manifest of roots managed by the previous run",
+    )
+    return parser.parse_args(list(argv))
+
+
 def main(argv: Optional[Sequence[str]] = None) -> int:
-    args = _parse_args(sys.argv[1:] if argv is None else argv)
+    raw_argv = list(sys.argv[1:] if argv is None else argv)
+    if raw_argv[:1] == ["cleanup-skill-roots"]:
+        args = _parse_cleanup_args(raw_argv[1:])
+        try:
+            reconcile_skill_roots(
+                args.dest_dir,
+                args.state_manifest,
+                sys.stdin.read(),
+            )
+        except (FilterError, OSError, UnicodeError) as error:
+            print(f"skill-filter: {error}", file=sys.stderr)
+            return 1
+        return 0
+
+    args = _parse_args(raw_argv)
     try:
         selections = [parse_selection(raw) for raw in args.select]
         if len(selections) > 1 and any(

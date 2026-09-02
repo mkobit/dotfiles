@@ -33,6 +33,18 @@ Symlink, hardlink, and special members are skipped with a warning on stderr.
 File ownership is normalized to root in the output.
 Output entries are sorted by name for deterministic results.
 
+The same executable can reconcile managed AI skill roots from a strict newline manifest on stdin.
+Entries are destination-relative direct children of `.claude/skills`, `.codex/skills`, `.cursor/skills`, or `.gemini/antigravity-cli/skills`.
+It validates both the desired and prior state before deleting stale recorded directories, then atomically replaces the state manifest.
+
+```sh
+/usr/bin/python3 -S skill_filter/main.py cleanup-skill-roots \
+  --dest-dir /target \
+  --state-manifest /target/.local/state/chezmoi/ai-skill-roots.manifest <<'EOF'
+.codex/skills/brainstorming
+EOF
+```
+
 ## Extension point
 
 The archive-in/archive-out contract is the seam for future per-tool content transformation (the rulette idea).

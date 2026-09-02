@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import gzip
+import importlib
 import io
+import os
 import subprocess
 import sys
 import tarfile
@@ -30,6 +32,13 @@ requires_tomllib = pytest.mark.skipif(
 )
 
 SCRIPT = Path(__file__).parent.parent / "skill_filter" / "main.py"
+MAIN_MODULE = importlib.import_module("skill_filter.main")
+
+
+def manifest_helper(name: str):
+    helper = getattr(MAIN_MODULE, name, None)
+    assert helper is not None, f"{name} is not implemented"
+    return helper
 
 
 def make_archive(
@@ -514,3 +523,140 @@ class TestSubprocess:
         )
         assert result2.returncode == 0
         assert read_archive(io.BytesIO(result2.stdout)) == {"SKILL.md": b"hello"}
+
+
+class TestSkillRootManifest:
+    @pytest.mark.parametrize(
+        "content",
+        [
+            "\n",
+            ".codex/skills/example",
+            ".codex/skills/example\n\n",
+            ".codex/skills/example \n",
+            "/tmp/example\n",
+            "../.codex/skills/example\n",
+            ".codex/skills/group/example\n",
+            ".config/opencode/skills/example\n",
+        ],
+    )
+    def test_rejects_malformed_or_unsupported_entries(self, tmp_path, content):
+        parse_manifest = manifest_helper("parse_skill_root_manifest")
+        validate_manifest = manifest_helper("validate_skill_root_manifest")
+
+        with pytest.raises(FilterError):
+            entries = parse_manifest(content, allow_duplicates=True)
+            validate_manifest(tmp_path, entries)
+
+    def test_rejects_duplicate_entries_in_persisted_manifest(self, tmp_path):
+        reconcile = manifest_helper("reconcile_skill_roots")
+        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest.parent.mkdir(parents=True)
+        state_manifest.write_text(
+            ".codex/skills/example\n.codex/skills/example\n", encoding="utf-8"
+        )
+
+        with pytest.raises(FilterError, match="duplicate"):
+            reconcile(tmp_path, state_manifest, ".codex/skills/example\n")
+
+    def test_deduplicates_desired_roots(self, tmp_path):
+        reconcile = manifest_helper("reconcile_skill_roots")
+        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+
+        desired = reconcile(
+            tmp_path,
+            state_manifest,
+            ".codex/skills/example\n.claude/skills/example\n.codex/skills/example\n",
+        )
+
+        assert desired == (
+            ".claude/skills/example",
+            ".codex/skills/example",
+        )
+        assert state_manifest.read_text(encoding="utf-8") == (
+            ".claude/skills/example\n.codex/skills/example\n"
+        )
+
+    def test_deletes_only_stale_recorded_roots(self, tmp_path):
+        reconcile = manifest_helper("reconcile_skill_roots")
+        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest.parent.mkdir(parents=True)
+        state_manifest.write_text(
+            ".codex/skills/keep\n.codex/skills/stale\n", encoding="utf-8"
+        )
+        keep = tmp_path / ".codex/skills/keep"
+        stale = tmp_path / ".codex/skills/stale"
+        unmanaged = tmp_path / ".codex/skills/unmanaged"
+        for root in (keep, stale, unmanaged):
+            root.mkdir(parents=True)
+            (root / "SKILL.md").write_text(root.name, encoding="utf-8")
+
+        reconcile(tmp_path, state_manifest, ".codex/skills/keep\n")
+
+        assert keep.is_dir()
+        assert not stale.exists()
+        assert unmanaged.is_dir()
+
+    def test_rejects_symlink_escape_without_deleting_target(self, tmp_path):
+        reconcile = manifest_helper("reconcile_skill_roots")
+        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest.parent.mkdir(parents=True)
+        state_manifest.write_text(".codex/skills/stale\n", encoding="utf-8")
+        outside = tmp_path.parent / f"{tmp_path.name}-outside"
+        outside.mkdir()
+        marker = outside / "marker"
+        marker.write_text("keep", encoding="utf-8")
+        link = tmp_path / ".codex/skills/stale"
+        link.parent.mkdir(parents=True)
+        link.symlink_to(outside, target_is_directory=True)
+
+        with pytest.raises(FilterError, match="escape|symlink"):
+            reconcile(tmp_path, state_manifest, "")
+
+        assert marker.read_text(encoding="utf-8") == "keep"
+
+    def test_failed_atomic_replace_preserves_prior_manifest(
+        self, tmp_path, monkeypatch
+    ):
+        reconcile = manifest_helper("reconcile_skill_roots")
+        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest.parent.mkdir(parents=True)
+        prior = ".codex/skills/prior\n"
+        state_manifest.write_text(prior, encoding="utf-8")
+
+        def fail_replace(src, dst):
+            raise OSError("replace failed")
+
+        monkeypatch.setattr(os, "replace", fail_replace)
+
+        with pytest.raises(OSError, match="replace failed"):
+            reconcile(tmp_path, state_manifest, ".codex/skills/desired\n")
+
+        assert state_manifest.read_text(encoding="utf-8") == prior
+        assert [path.name for path in state_manifest.parent.iterdir()] == [
+            state_manifest.name
+        ]
+
+    def test_cleanup_cli_reads_desired_manifest_from_stdin(self, tmp_path):
+        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-S",
+                str(SCRIPT),
+                "cleanup-skill-roots",
+                "--dest-dir",
+                str(tmp_path),
+                "--state-manifest",
+                str(state_manifest),
+            ],
+            input=b".cursor/skills/example\n",
+            capture_output=True,
+            timeout=30,
+            check=False,
+        )
+
+        assert result.returncode == 0, result.stderr.decode()
+        assert state_manifest.read_text(encoding="utf-8") == (
+            ".cursor/skills/example\n"
+        )
