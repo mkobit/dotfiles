@@ -1,0 +1,12 @@
+# Onboarded 2026-08-05: diataxis audited (security: approve, no caveat —
+# plain-markdown documentation-governance skill, no scripts, no external
+# fetches). Flat repo with the skill directory at the archive root (no
+# skills/ subdirectory); uses skills_root = "." instead of the default.
+[ai.skills.external.diataxis]
+repo = "keithpatton/diataxis-agent-skill"
+ref = "5b095a5e7aebe77ce4af855809123e12d92b9efd" # 2026-08-05
+sha256 = "eff8b85a38e5c7a03cf9ce48ec9972217b86def7e6647709fbe86e1a423c0634"
+skills_root = "."
+
+[ai.skills.external.diataxis.skills]
+diataxis = "present"

@@ -3,7 +3,7 @@
 Skills are deployed as static files into each tool's discovery directory (`~/.claude/skills/`, `~/.gemini/antigravity-cli/skills/`, `~/.cursor/skills/`).
 There is no marketplace, plugin CLI, or symlinking — chezmoi owns the full lifecycle.
 
-Two kinds of skills share one catalog: `src/chezmoi/.chezmoidata/ai/skills.toml`.
+Two kinds of skills share one catalog namespace: `src/chezmoi/.chezmoidata/ai/skills/*.toml` contains authored-skill and provider-specific external-source settings, while `src/chezmoi/.chezmoidata/ai/hosts.toml` contains archive hosts.
 
 ## Upstream skills
 
