@@ -1,0 +1,6 @@
+schemaVersion: "1"
+name: "{{PROJECT_SLUG}}-codex"
+agent: codex
+workspace:
+  path: ..
+  clone: true

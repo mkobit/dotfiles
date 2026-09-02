@@ -1,0 +1,8 @@
+schemaVersion: "1"
+name: "{{PROJECT_SLUG}}-agy"
+agent: agy
+workspace:
+  path: ..
+  clone: true
+kits:
+  - "git+https://github.com/shelajev/agy-sbx-kit.git#ref=3e7016f108f3cf09922cf351b55a49e38d97f9f2"

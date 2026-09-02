@@ -61,6 +61,14 @@ def test_sbx_help(host):
 
 
 @pytest.mark.integration
+@pytest.mark.chezmoi_installation("local.bin.sbx", methods={"github_releases"})
+def test_sbx_env_help(host):
+    """Verify sbx env --help runs successfully on supported platforms."""
+    result = host.run("sbx env --help")
+    assert result.rc == 0, f"'sbx env --help' failed.\nstderr: {result.stderr}\nstdout: {result.stdout}"
+
+
+@pytest.mark.integration
 @pytest.mark.chezmoi_installation("agy", methods={"dotfiles.script", "preinstalled"})
 @pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
 def test_agy_available(host, shell_cmd):
