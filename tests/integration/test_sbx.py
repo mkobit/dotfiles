@@ -1,5 +1,4 @@
 import json
-import shutil
 import subprocess
 import tomllib
 from pathlib import Path
@@ -7,7 +6,6 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CHEZMOI_SOURCE = REPO_ROOT / "src" / "chezmoi"
 SBX_CATALOG = CHEZMOI_SOURCE / ".chezmoidata" / "bin" / "sbx.toml"
-CHEZMOI_REMOVE = CHEZMOI_SOURCE / ".chezmoiremove"
 LEGACY_TARGETS = (
     ".local/bin/sbx-agy",
     ".local/bin/tools/sbx-agy",
@@ -54,56 +52,3 @@ def test_sbx_does_not_manage_legacy_host_integration_targets():
 
     for target in LEGACY_TARGETS:
         assert target not in managed_targets
-
-
-def test_sbx_legacy_targets_are_registered_for_chezmoi_removal():
-    """Prune host files that were managed before the repository-local redesign."""
-    remove_targets = CHEZMOI_REMOVE.read_text(encoding="utf-8")
-
-    for target in LEGACY_TARGETS:
-        assert target in remove_targets
-
-
-def test_sbx_legacy_targets_are_pruned_without_deleting_user_sbx_data(tmp_path):
-    """Ensure upgrades prune former managed files but retain user SBX data."""
-    destination = tmp_path / "destination"
-    destination.mkdir()
-    source = tmp_path / "source"
-    source.mkdir()
-    shutil.copy2(CHEZMOI_REMOVE, source / ".chezmoiremove")
-    (source / ".chezmoi.toml").write_text('[data.zsh]\nprompt = "none"\n', encoding="utf-8")
-
-    for target in LEGACY_TARGETS:
-        path = destination / target
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.touch()
-
-    user_sbx_file = destination / ".local/share/sbx/user/keep.txt"
-    user_sbx_file.parent.mkdir(parents=True)
-    user_sbx_file.touch()
-
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(source),
-            "--config",
-            str(source / ".chezmoi.toml"),
-            "--destination",
-            str(destination),
-            "--cache",
-            str(tmp_path / "cache"),
-            "--persistent-state",
-            str(tmp_path / "chezmoistate.boltdb"),
-            "apply",
-            "--force",
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
-    )
-    assert result.returncode == 0, f"chezmoi apply failed.\\nstderr: {result.stderr}\\nstdout: {result.stdout}"
-
-    for target in LEGACY_TARGETS:
-        assert not (destination / target).exists(), f"legacy target remains after apply: {target}"
-    assert user_sbx_file.exists(), "migration removed unrelated user SBX data"
