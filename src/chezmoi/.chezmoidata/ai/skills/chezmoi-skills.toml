@@ -1,0 +1,16 @@
+# Onboarded 2026-09-02: chezmoi reference skills, audited at the pinned commit.
+[ai.skills.external.chezmoi-skills]
+repo = "mkobit/chezmoi-skills"
+ref = "3b5708c9e7eaf5d8c8df498a856baa33cf56c861"
+sha256 = "cb29b99895952c50152864c008a0010b4514bc63f28871f523029d0404e8d255"
+
+[ai.skills.external.chezmoi-skills.skills]
+cli-commands = "present"
+configuration = "present"
+externals = "present"
+file-attributes = "present"
+init = "present"
+machine-config = "present"
+scripts = "present"
+secrets-management = "present"
+templating = "present"
