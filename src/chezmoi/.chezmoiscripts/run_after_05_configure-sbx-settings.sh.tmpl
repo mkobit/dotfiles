@@ -1,0 +1,38 @@
+{{- $enabled := dig "sbx" "settings" "manage_kit_allowed_sources" false . -}}
+{{- $method := dig "local" "bin" "sbx" "installation_method" "none" . -}}
+{{- $sourceMap := dig "sbx" "settings" "kit_allowed_sources" dict . -}}
+{{- if and $enabled (ne $method "none") $sourceMap -}}
+#!/usr/bin/env bash
+{{- $sources := list -}}
+{{- range $_, $source := $sourceMap -}}
+{{-   $sources = append $sources $source -}}
+{{- end }}
+{{- $desiredSources := $sources | toJson }}
+# sbx kit.allowedSources hash: {{ $desiredSources | sha256sum }}
+
+set -euo pipefail
+
+source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
+
+if ! SBX="$(command -v sbx)"; then
+    log_warn "sbx is unavailable. Skipping SBX settings configuration."
+    exit 0
+fi
+
+if ! current_sources="$("$SBX" settings get kit.allowedSources)"; then
+    log_warn "Unable to read kit.allowedSources. Skipping SBX settings configuration."
+    exit 0
+fi
+
+desired_sources='{{ $desiredSources }}'
+if [[ "${current_sources//[[:space:]]/}" == "$desired_sources" ]]; then
+    exit 0
+fi
+
+if ! "$SBX" settings set kit.allowedSources "$desired_sources"; then
+    log_warn "Unable to configure kit.allowedSources. Skipping SBX settings configuration."
+    exit 0
+fi
+
+log_success "Configured SBX kit.allowedSources."
+{{- end -}}
