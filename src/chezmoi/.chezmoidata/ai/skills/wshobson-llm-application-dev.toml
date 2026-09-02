@@ -1,0 +1,18 @@
+# Onboarded 2026-07-20: skills from wshobson/agents (see agents.toml
+# wshobson-agents source comment for scope/exclusions). One source per plugin
+# since skills_root is per-source.
+[ai.skills.external.wshobson-llm-application-dev]
+repo = "wshobson/agents"
+ref = "c4b82b0ad771190355eb8e204b1329732a18449a" # 2026-07-18
+sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
+skills_root = "plugins/llm-application-dev/skills"
+
+[ai.skills.external.wshobson-llm-application-dev.skills]
+embedding-strategies = "present"
+hybrid-search-implementation = "present"
+langchain-architecture = "present"
+llm-evaluation = "present"
+prompt-engineering-patterns = "present"
+rag-implementation = "present"
+similarity-search-patterns = "present"
+vector-index-tuning = "present"

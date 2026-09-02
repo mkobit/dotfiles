@@ -1,0 +1,17 @@
+[ai.skills.external.wshobson-llm-finetuning]
+repo = "wshobson/agents"
+ref = "c4b82b0ad771190355eb8e204b1329732a18449a" # 2026-07-18
+sha256 = "ada3f8e177be3b522e63b77f14fac4bc95b0b1e6e73e9342028dba55004a2bb3"
+skills_root = "plugins/llm-finetuning/skills"
+
+[ai.skills.external.wshobson-llm-finetuning.skills]
+checkpoint-promotion = "present"
+dataset-curation = "present"
+eval-harness-first = "present"
+finetuning-method-selection = "present"
+grpo-rlvr-training = "present"
+lora-qlora-recipes = "present"
+preference-optimization = "present"
+quantized-export = "present"
+trace-to-training-data = "present"
+vision-sft = "present"
