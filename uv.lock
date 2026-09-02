@@ -2,10 +2,6 @@ version = 1
 revision = 3
 requires-python = ">=3.14"
 
-[options]
-exclude-newer = "2026-08-26T13:49:17.45683212Z"
-exclude-newer-span = "P7D"
-
 [manifest]
 members = [
     "browser-sync",
