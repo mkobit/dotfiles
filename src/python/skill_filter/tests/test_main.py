@@ -614,6 +614,23 @@ class TestSkillRootManifest:
 
         assert marker.read_text(encoding="utf-8") == "keep"
 
+    def test_validates_every_stale_root_before_deleting_any(self, tmp_path):
+        reconcile = manifest_helper("reconcile_skill_roots")
+        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest.parent.mkdir(parents=True)
+        state_manifest.write_text(
+            ".codex/skills/a-directory\n.codex/skills/z-file\n", encoding="utf-8"
+        )
+        directory = tmp_path / ".codex/skills/a-directory"
+        directory.mkdir(parents=True)
+        invalid_file = tmp_path / ".codex/skills/z-file"
+        invalid_file.write_text("not a directory", encoding="utf-8")
+
+        with pytest.raises(FilterError, match="non-directory"):
+            reconcile(tmp_path, state_manifest, "")
+
+        assert directory.is_dir()
+
     def test_failed_atomic_replace_preserves_prior_manifest(
         self, tmp_path, monkeypatch
     ):

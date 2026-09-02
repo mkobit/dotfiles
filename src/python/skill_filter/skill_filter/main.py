@@ -171,15 +171,19 @@ def reconcile_skill_roots(
         prior = parse_skill_root_manifest(manifest.read_text(encoding="utf-8"))
         prior_paths = validate_skill_root_manifest(destination, prior)
         prior_by_entry = dict(zip(prior, prior_paths))
-        for stale in sorted(set(prior) - set(desired)):
-            stale_path = prior_by_entry[stale]
+        stale_roots = tuple(
+            (stale, prior_by_entry[stale])
+            for stale in sorted(set(prior) - set(desired))
+        )
+        for stale, stale_path in stale_roots:
             if stale_path.is_symlink():
                 raise FilterError(f"refusing to delete symlink skill root {stale!r}")
+            if stale_path.exists() and not stale_path.is_dir():
+                raise FilterError(
+                    f"refusing to delete non-directory skill root {stale!r}"
+                )
+        for _stale, stale_path in stale_roots:
             if stale_path.exists():
-                if not stale_path.is_dir():
-                    raise FilterError(
-                        f"refusing to delete non-directory skill root {stale!r}"
-                    )
                 shutil.rmtree(stale_path)
 
     rendered = "".join(f"{entry}\n" for entry in desired)
