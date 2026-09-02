@@ -65,7 +65,7 @@ def test_sbx_legacy_targets_are_pruned_on_apply(tmp_path):
     source = tmp_path / "source"
     source.mkdir()
     shutil.copy2(CHEZMOI_REMOVE, source / ".chezmoiremove")
-    (source / ".chezmoi.toml").write_text("[data.zsh]\nprompt = \"none\"\n", encoding="utf-8")
+    (source / ".chezmoi.toml").write_text('[data.zsh]\nprompt = "none"\n', encoding="utf-8")
 
     for target in LEGACY_TARGETS[:2]:
         path = destination / target
