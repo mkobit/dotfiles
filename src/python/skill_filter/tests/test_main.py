@@ -614,6 +614,25 @@ class TestSkillRootManifest:
 
         assert marker.read_text(encoding="utf-8") == "keep"
 
+    def test_rejects_symlinked_allowed_parent_without_deleting_target(self, tmp_path):
+        reconcile = manifest_helper("reconcile_skill_roots")
+        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest.parent.mkdir(parents=True)
+        state_manifest.write_text(".codex/skills/stale\n", encoding="utf-8")
+        redirected_skills = tmp_path / "redirected-skills"
+        stale = redirected_skills / "stale"
+        stale.mkdir(parents=True)
+        marker = stale / "marker"
+        marker.write_text("keep", encoding="utf-8")
+        allowed_parent = tmp_path / ".codex/skills"
+        allowed_parent.parent.mkdir(parents=True)
+        allowed_parent.symlink_to(redirected_skills, target_is_directory=True)
+
+        with pytest.raises(FilterError, match="allowed skill root"):
+            reconcile(tmp_path, state_manifest, "")
+
+        assert marker.read_text(encoding="utf-8") == "keep"
+
     def test_validates_every_stale_root_before_deleting_any(self, tmp_path):
         reconcile = manifest_helper("reconcile_skill_roots")
         state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"

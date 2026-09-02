@@ -100,13 +100,6 @@ def _skill_root_parent(entry: str) -> str:
     raise FilterError(f"skill root {entry!r} is not under an allowed skills directory")
 
 
-def _is_within(parent: Path, child: Path) -> bool:
-    try:
-        return os.path.commonpath((str(parent), str(child))) == str(parent)
-    except ValueError:
-        return False
-
-
 def validate_skill_root_manifest(
     dest_dir: Path, entries: Iterable[str]
 ) -> tuple[Path, ...]:
@@ -121,9 +114,12 @@ def validate_skill_root_manifest(
     for entry in entries:
         parent = _skill_root_parent(entry)
         resolved_parent = (destination / parent).resolve()
+        expected_parent = resolved_destination / parent
         resolved_entry = (destination / entry).resolve()
-        if not _is_within(resolved_destination, resolved_parent):
-            raise FilterError(f"allowed skill root {parent!r} escapes the destination")
+        if resolved_parent != expected_parent:
+            raise FilterError(
+                f"allowed skill root {parent!r} is a symlink or resolves outside its destination-relative path"
+            )
         if resolved_entry.parent != resolved_parent:
             raise FilterError(
                 f"skill root {entry!r} escapes its allowed skills directory"
@@ -182,7 +178,14 @@ def reconcile_skill_roots(
                 raise FilterError(
                     f"refusing to delete non-directory skill root {stale!r}"
                 )
-        for _stale, stale_path in stale_roots:
+        for stale, _stale_path in stale_roots:
+            (stale_path,) = validate_skill_root_manifest(destination, (stale,))
+            if stale_path.is_symlink():
+                raise FilterError(f"refusing to delete symlink skill root {stale!r}")
+            if stale_path.exists() and not stale_path.is_dir():
+                raise FilterError(
+                    f"refusing to delete non-directory skill root {stale!r}"
+                )
             if stale_path.exists():
                 shutil.rmtree(stale_path)
 
