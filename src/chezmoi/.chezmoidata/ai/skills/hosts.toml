@@ -9,7 +9,7 @@
 # Every present skill installs to every tool's skill directory; the target
 # directories are hardcoded in the externals and removal templates above.
 #
-# Overlay and per-machine composition (config data takes key-path precedence over this file):
+# Overlay and per-machine composition (config data takes key-path precedence over these files):
 # - Proxy GitHub downloads:   [data.ai.skills.hosts.github] url_format = "https://artifacts.corp/github/{repo}/tar.gz/{ref}"
 # - Add an internal host:     [ai.skills.hosts.ghe] url_format = "https://ghe.corp/api/v3/repos/{repo}/tarball/{ref}"
 #   in an overlay .chezmoidata file, then set host = "ghe" on overlay sources.
@@ -20,23 +20,13 @@
 [ai.skills.hosts.github]
 url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"
 
-# Authored skills: full directory trees under src/ai/skills/<name>/ in this repo,
-# deployed via file:// externals (see .chezmoiexternals/ai-authored-skills.toml.tmpl).
-[ai.skills.authored]
-docker-sandboxes = "present"
-example_skill = "absent"
-modern-java-patterns = "present"
-pr-reviewer = "absent" # source deleted 2026-06-11; replaced by superpowers requesting/receiving-code-review
-technical-writing = "present"
-typescript-expert = "absent" # source deleted 2026-06-11; find a publicly maintained replacement
-write-agent-context = "present"
-
-# External source files in ai/skills/: [ai.skills.external.<name>] with repo, ref (commit SHA), sha256 (downloaded archive).
+# External sources in this directory use [ai.skills.external.<name>] with repo,
+# ref (commit SHA), and sha256 (downloaded archive).
 # Optional: host (archive host key, default "github"), skills_root (default "skills"),
 # url (full archive URL for one-off published artifacts, bypasses host construction),
 # skill_file (for a flat, single-skill repo with SKILL.md at the archive root
 # instead of a skills_root/<name>/ subdirectory — selects that bare file directly;
 # the [.skills] entry's key still names the installed skill directory).
 # Each [.skills] entry maps an upstream skill directory name to a state:
-#   "present" (all tools), "absent" (pruned everywhere), or a single tool name
-#   ("claude", "antigravity", "cursor") to deploy only to that tool.
+# "present" (all tools), "absent" (pruned everywhere), or a single tool name
+# ("claude", "antigravity", "cursor") to deploy only to that tool.

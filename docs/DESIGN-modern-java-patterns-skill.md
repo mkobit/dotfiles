@@ -76,7 +76,7 @@ One before/after example: manual `ExecutorService` plus `Future` plus `try`/`fin
 One before/after example: index-based first/last element access rewritten using the sequenced-collection methods.
 
 ## Deployment
-Add one entry to `src/chezmoi/.chezmoidata/ai/skills.toml` under `[ai.skills.authored]`:
+Add one entry to `src/chezmoi/.chezmoidata/ai/skills/authored.toml` under `[ai.skills.authored]`:
 ```toml
 modern-java-patterns = "present"
 ```
