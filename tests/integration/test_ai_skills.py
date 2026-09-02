@@ -6,9 +6,14 @@ import pytest
 
 # Tool skill directories actively deployed to by .chezmoiexternals/ai-skills.toml.tmpl.
 ACTIVE_SKILL_DIRS = [
-    pytest.param(Path(".claude/skills"), id="claude"),
-    pytest.param(Path(".gemini/antigravity-cli/skills"), id="antigravity"),
-    pytest.param(Path(".cursor/skills"), id="cursor"),
+    pytest.param(Path(".claude/skills"), frozenset(), id="claude"),
+    pytest.param(Path(".gemini/antigravity-cli/skills"), frozenset(), id="antigravity"),
+    pytest.param(Path(".cursor/skills"), frozenset(), id="cursor"),
+    pytest.param(
+        Path(".codex/skills"),
+        frozenset({Path(".system/.codex-system-skills.marker")}),
+        id="codex",
+    ),
 ]
 
 
@@ -23,7 +28,7 @@ def assert_is_skill(entry: Path) -> None:
     assert skill_md.stat().st_size > 0, f"{skill_md} is empty"
 
 
-def assert_entries_are_valid_skills(skills_dir: Path) -> None:
+def assert_entries_are_valid_skills(skills_dir: Path, allowed_marker_files: frozenset[Path] = frozenset()) -> None:
     """Assert every entry is a skill, or a namespace whose children are skills.
 
     Claude Code discovers one level of nesting, so slack/format-message/SKILL.md is
@@ -41,6 +46,10 @@ def assert_entries_are_valid_skills(skills_dir: Path) -> None:
         nested = _entries(entry)
         assert nested, f"{entry} has neither a SKILL.md nor any nested skills"
         for child in nested:
+            relative_child = child.relative_to(skills_dir)
+            if relative_child in allowed_marker_files:
+                assert child.is_file(), f"allowed marker {child} is not a file"
+                continue
             assert child.is_dir(), (
                 f"{child} is not a directory, but {entry} has no SKILL.md so it must be a namespace of skills"
             )
@@ -48,13 +57,13 @@ def assert_entries_are_valid_skills(skills_dir: Path) -> None:
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize("relative_dir", ACTIVE_SKILL_DIRS)
-def test_tool_skill_dir_deployed_and_valid(chezmoi_dest, relative_dir):
+@pytest.mark.parametrize(("relative_dir", "allowed_marker_files"), ACTIVE_SKILL_DIRS)
+def test_tool_skill_dir_deployed_and_valid(chezmoi_dest, relative_dir, allowed_marker_files):
     """Verify each active tool's skills directory exists and every skill in it is valid."""
     skills_dir = chezmoi_dest / relative_dir
     assert skills_dir.is_dir(), f"{skills_dir} does not exist after chezmoi apply"
     assert any(skills_dir.iterdir()), f"{skills_dir} contains no skills"
-    assert_entries_are_valid_skills(skills_dir)
+    assert_entries_are_valid_skills(skills_dir, allowed_marker_files)
 
 
 # Tool agent directories actively deployed to by .chezmoiexternals/ai-agents.toml.tmpl.
