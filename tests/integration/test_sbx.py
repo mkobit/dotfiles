@@ -233,7 +233,7 @@ def test_sbx_settings_script_skips_when_sbx_is_unavailable(tmp_path):
     env = os.environ.copy()
     env["PATH"] = str(tmp_path)
     result = subprocess.run(
-        ["/usr/bin/bash"],
+        ["/bin/bash"],
         input=rendered.stdout,
         capture_output=True,
         check=False,
