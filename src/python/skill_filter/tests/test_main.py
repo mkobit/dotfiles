@@ -549,7 +549,7 @@ class TestSkillRootManifest:
 
     def test_rejects_duplicate_entries_in_persisted_manifest(self, tmp_path):
         reconcile = manifest_helper("reconcile_skill_roots")
-        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
         state_manifest.parent.mkdir(parents=True)
         state_manifest.write_text(
             ".codex/skills/example\n.codex/skills/example\n", encoding="utf-8"
@@ -558,9 +558,35 @@ class TestSkillRootManifest:
         with pytest.raises(FilterError, match="duplicate"):
             reconcile(tmp_path, state_manifest, ".codex/skills/example\n")
 
+    def test_rejects_state_manifest_outside_destination_before_deleting(self, tmp_path):
+        reconcile = manifest_helper("reconcile_skill_roots")
+        state_manifest = tmp_path.parent / f"{tmp_path.name}-outside.manifest"
+        state_manifest.write_text(".codex/skills/stale\n", encoding="utf-8")
+        stale = tmp_path / ".codex/skills/stale"
+        stale.mkdir(parents=True)
+
+        with pytest.raises(FilterError, match="state manifest"):
+            reconcile(tmp_path, state_manifest, "")
+
+        assert stale.is_dir()
+
+    def test_rejects_symlinked_state_manifest_path(self, tmp_path):
+        reconcile = manifest_helper("reconcile_skill_roots")
+        redirected_state = tmp_path / "redirected-state"
+        redirected_state.mkdir()
+        state_root = tmp_path / ".local/state/dotfiles"
+        state_root.parent.mkdir(parents=True)
+        state_root.symlink_to(redirected_state, target_is_directory=True)
+        state_manifest = state_root / "skill-roots.manifest"
+
+        with pytest.raises(FilterError, match="state manifest"):
+            reconcile(tmp_path, state_manifest, "")
+
+        assert not (redirected_state / state_manifest.name).exists()
+
     def test_deduplicates_desired_roots(self, tmp_path):
         reconcile = manifest_helper("reconcile_skill_roots")
-        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
 
         desired = reconcile(
             tmp_path,
@@ -578,7 +604,7 @@ class TestSkillRootManifest:
 
     def test_deletes_only_stale_recorded_roots(self, tmp_path):
         reconcile = manifest_helper("reconcile_skill_roots")
-        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
         state_manifest.parent.mkdir(parents=True)
         state_manifest.write_text(
             ".codex/skills/keep\n.codex/skills/stale\n", encoding="utf-8"
@@ -598,7 +624,7 @@ class TestSkillRootManifest:
 
     def test_rejects_symlink_escape_without_deleting_target(self, tmp_path):
         reconcile = manifest_helper("reconcile_skill_roots")
-        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
         state_manifest.parent.mkdir(parents=True)
         state_manifest.write_text(".codex/skills/stale\n", encoding="utf-8")
         outside = tmp_path.parent / f"{tmp_path.name}-outside"
@@ -616,7 +642,7 @@ class TestSkillRootManifest:
 
     def test_rejects_symlinked_allowed_parent_without_deleting_target(self, tmp_path):
         reconcile = manifest_helper("reconcile_skill_roots")
-        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
         state_manifest.parent.mkdir(parents=True)
         state_manifest.write_text(".codex/skills/stale\n", encoding="utf-8")
         redirected_skills = tmp_path / "redirected-skills"
@@ -635,7 +661,7 @@ class TestSkillRootManifest:
 
     def test_validates_every_stale_root_before_deleting_any(self, tmp_path):
         reconcile = manifest_helper("reconcile_skill_roots")
-        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
         state_manifest.parent.mkdir(parents=True)
         state_manifest.write_text(
             ".codex/skills/a-directory\n.codex/skills/z-file\n", encoding="utf-8"
@@ -654,7 +680,7 @@ class TestSkillRootManifest:
         self, tmp_path, monkeypatch
     ):
         reconcile = manifest_helper("reconcile_skill_roots")
-        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
         state_manifest.parent.mkdir(parents=True)
         prior = ".codex/skills/prior\n"
         state_manifest.write_text(prior, encoding="utf-8")
@@ -673,7 +699,7 @@ class TestSkillRootManifest:
         ]
 
     def test_cleanup_cli_reads_desired_manifest_from_stdin(self, tmp_path):
-        state_manifest = tmp_path / ".local/state/chezmoi/skill-roots.manifest"
+        state_manifest = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
 
         result = subprocess.run(
             [

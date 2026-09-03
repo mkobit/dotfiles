@@ -40,7 +40,7 @@ It validates both the desired and prior state before deleting stale recorded dir
 ```sh
 /usr/bin/python3 -S skill_filter/main.py cleanup-skill-roots \
   --dest-dir /target \
-  --state-manifest /target/.local/state/chezmoi/ai-skill-roots.manifest <<'EOF'
+  --state-manifest /target/.local/state/dotfiles/ai-skill-roots.manifest <<'EOF'
 .codex/skills/brainstorming
 EOF
 ```

@@ -128,6 +128,42 @@ def validate_skill_root_manifest(
     return tuple(validated)
 
 
+def validate_state_manifest_path(dest_dir: Path, state_manifest: Path) -> Path:
+    """Reject state manifests outside their canonical destination state path."""
+    from pathlib import Path
+
+    destination = Path(dest_dir)
+    manifest = Path(state_manifest)
+    if not destination.is_absolute():
+        raise FilterError("destination directory must be absolute")
+    if not manifest.is_absolute():
+        raise FilterError("state manifest path must be absolute")
+    resolved_destination = destination.resolve()
+    state_root = destination / ".local/state/dotfiles"
+    expected_state_root = resolved_destination / ".local/state/dotfiles"
+    try:
+        relative_manifest = manifest.relative_to(state_root)
+    except ValueError as error:
+        raise FilterError(
+            f"state manifest must be strictly beneath {expected_state_root}"
+        ) from error
+    if not relative_manifest.parts:
+        raise FilterError(
+            f"state manifest must be strictly beneath {expected_state_root}"
+        )
+    resolved_state_root = state_root.resolve()
+    resolved_manifest = manifest.resolve()
+    expected_manifest = expected_state_root / relative_manifest
+    if (
+        resolved_state_root != expected_state_root
+        or resolved_manifest != expected_manifest
+    ):
+        raise FilterError(
+            "state manifest path must not contain symlinks or redirected ancestors"
+        )
+    return manifest
+
+
 def _replace_manifest_atomically(state_manifest: Path, content: str) -> None:
     import tempfile
 
@@ -157,7 +193,7 @@ def reconcile_skill_roots(
     from pathlib import Path
 
     destination = Path(dest_dir)
-    manifest = Path(state_manifest)
+    manifest = validate_state_manifest_path(destination, state_manifest)
     desired_entries = parse_skill_root_manifest(desired_manifest, allow_duplicates=True)
     desired = tuple(sorted(set(desired_entries)))
     validate_skill_root_manifest(destination, desired)
@@ -190,6 +226,7 @@ def reconcile_skill_roots(
                 shutil.rmtree(stale_path)
 
     rendered = "".join(f"{entry}\n" for entry in desired)
+    validate_state_manifest_path(destination, manifest)
     _replace_manifest_atomically(manifest, rendered)
     return desired
 
