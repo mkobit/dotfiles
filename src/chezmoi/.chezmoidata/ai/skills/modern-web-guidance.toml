@@ -1,0 +1,10 @@
+# Built distribution repo (GoogleChrome/modern-web-guidance-src is the source repo;
+# its skills-src content is bundled into the modern-web-guidance skill's guides here).
+[ai.skills.external.modern-web-guidance]
+repo = "GoogleChrome/modern-web-guidance"
+ref = "684ab9d7c6b78fc2cd5677912d874397cb2e5dfa" # v0.0.179, 2026-08-05
+sha256 = "a5d5eee96da84fbcfb9450fef5611bcfd40caa95a355d80763035712df51c454"
+
+[ai.skills.external.modern-web-guidance.skills]
+chrome-extensions = "present"
+modern-web-guidance = "present"

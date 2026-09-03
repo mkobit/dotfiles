@@ -1,0 +1,5 @@
+[sbx.settings.kit_allowed_sources]
+docker_hub = "docker.io/"
+# Allow AGY's pinned shelajev/agy-sbx-kit.
+github_shelajev = "github.com/shelajev/"
+# Track native SBX AGY support at https://github.com/docker/sbx-releases/issues/197.

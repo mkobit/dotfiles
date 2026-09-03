@@ -1,0 +1,4 @@
+# Archive hosts for external AI skills.
+# Each url_format substitutes {repo} and {ref} from the source entry.
+[ai.skills.hosts.github]
+url_format = "https://codeload.github.com/{repo}/tar.gz/{ref}"

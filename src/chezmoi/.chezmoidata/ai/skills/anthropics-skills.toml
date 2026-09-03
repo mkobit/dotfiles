@@ -1,0 +1,8 @@
+[ai.skills.external.anthropics-skills]
+repo = "anthropics/skills"
+ref = "fa0fa64bdc967915dc8399e803be67759e1e62b8" # 2026-07-20
+sha256 = "3fa5cb4472fc79626be4ebc3bf997b1ef57e413b8801a7ccac874860b287317f"
+
+[ai.skills.external.anthropics-skills.skills]
+skill-creator = "claude" # authoring tooling is only useful inside Claude Code
+webapp-testing = "absent"
