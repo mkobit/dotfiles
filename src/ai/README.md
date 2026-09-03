@@ -36,6 +36,13 @@ A skill state is `"present"` (deploy to every tool), `"absent"`, or a single too
 To remove a skill, set it to `"absent"` — never delete the key, which would orphan the installed copy.
 The `.chezmoiremove.tmpl` files in `dot_claude/`, `dot_gemini/`, and `dot_cursor/` prune any skill that does not target their tool on apply.
 
+## Superpowers compatibility policy
+
+The selected upstream Superpowers skills retain their per-plan SDD state and safer review/fix loop.
+Repository `AGENTS.md` instructions and the harness's Plan Mode govern wherever upstream wording differs.
+Pass `PLAN_FILE` as the first argument to every SDD helper call: `sdd-workspace`, `task-brief`, and `review-package`.
+Retain upstream's stricter worktree and destructive-action safeguards.
+
 ## Upstream agents
 
 Agents follow the same pin-and-select model via `src/chezmoi/.chezmoidata/ai/agents.toml` and `src/chezmoi/.chezmoiexternals/ai-agents.toml.tmpl`.

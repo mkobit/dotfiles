@@ -4,10 +4,13 @@
   directory trees under src/ai/skills/<skill>/; nested paths are preserved, so
   the overlay rsync union must include src/ai/skills/. file:// URLs read
   straight from the working tree and refreshPeriod re-reads them on every
-  apply, keeping deployed copies in sync with local edits. Skills marked
-  "absent" are pruned by the .chezmoiremove templates; a file deleted from a
-  present skill leaves an orphan in the target until removed manually (file
-  externals are not exact). A skill state may also name a single tool
+  apply, keeping deployed copies in sync with local edits. The .chezmoiremove
+  templates immediately prune skills marked "absent" or retargeted to another
+  tool. The state-manifest cleanup hook handles history-aware deleted or
+  renamed skill keys and removed sources.
+  Because file externals are not exact, deleting an individual file from a
+  still-present skill does not prune that file.
+  A skill state may also name a single tool
   ("claude", "antigravity", "cursor", "codex") to deploy only there.
 */ -}}
 {{- $tools := dict "claude" ".claude/skills" "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" "codex" ".codex/skills" -}}
