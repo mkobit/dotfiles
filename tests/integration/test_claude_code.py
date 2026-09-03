@@ -1,9 +1,12 @@
 import pytest
+from chezmoi_test_data import installation_method
 
 
 @pytest.mark.integration
-def test_claude_version(host):
+def test_claude_version(host, chezmoi_data):
     """Verify that the claude CLI is accessible and operational."""
+    if installation_method(chezmoi_data, "claude_code") == "none":
+        pytest.skip("Claude Code installation method is set to 'none'")
     result = host.run("claude --version")
     assert result.rc == 0, f"claude --version failed.\nstderr: {result.stderr}\nstdout: {result.stdout}"
 
