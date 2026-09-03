@@ -206,9 +206,9 @@ installation_method = "chezmoi"
 #
 # promptStringOnce's path arg is a dotted lookup into nested data, not a flat
 # key — must match where the value lands below ("secrets.stitch_api_key").
-{{- $stitchApiKey := "" -}}
+{{- $stitchApiKey := dig "secrets" "stitch_api_key" "" . -}}
 {{- if and (not (env "CI")) (not (env "JULES_SESSION_ID")) stdinIsATTY -}}
-{{-   $stitchApiKey = promptStringOnce . "secrets.stitch_api_key" "Stitch API key, exported as $STITCH_API_KEY for use in any project's .mcp.json (blank to skip — stitch.withgoogle.com → Settings → API key)" "" -}}
+{{-   $stitchApiKey = promptStringOnce . "secrets.stitch_api_key" "Stitch API key, exported as $STITCH_API_KEY for use in any project's .mcp.json (blank to skip — stitch.withgoogle.com → Settings → API key)" $stitchApiKey -}}
 {{- end }}
 [data.secrets]
 stitch_api_key = {{ $stitchApiKey | quote }}
