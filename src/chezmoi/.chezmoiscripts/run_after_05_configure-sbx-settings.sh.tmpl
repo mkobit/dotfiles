@@ -1,7 +1,6 @@
-{{- $enabled := dig "sbx" "settings" "manage_kit_allowed_sources" false . -}}
 {{- $method := dig "local" "bin" "sbx" "installation_method" "none" . -}}
 {{- $sourceMap := dig "sbx" "settings" "kit_allowed_sources" dict . -}}
-{{- if and $enabled (ne $method "none") $sourceMap -}}
+{{- if and (ne $method "none") $sourceMap -}}
 #!/usr/bin/env bash
 {{- $sources := list -}}
 {{- range $_, $source := $sourceMap -}}

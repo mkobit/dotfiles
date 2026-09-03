@@ -85,10 +85,9 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
             "local": {"bin": {"sbx": {"installation_method": "github_releases"}}},
             "sbx": {
                 "settings": {
-                    "manage_kit_allowed_sources": True,
                     "kit_allowed_sources": {
                         "docker_hub": "docker.io/",
-                        "agy_kit": "github.com/shelajev/",
+                        "github_shelajev": "github.com/shelajev/",
                     },
                 }
             },
@@ -140,17 +139,16 @@ def test_sbx_settings_catalog_declares_complete_approved_kit_source_list():
 
     assert catalog["sbx"]["settings"]["kit_allowed_sources"] == {
         "docker_hub": "docker.io/",
-        "agy_kit": "github.com/shelajev/",
+        "github_shelajev": "github.com/shelajev/",
     }
 
 
 def test_sbx_settings_script_renders_only_when_enabled():
     disabled = _render_sbx_settings_script(
         {
-            "local": {"bin": {"sbx": {"installation_method": "github_releases"}}},
+            "local": {"bin": {"sbx": {"installation_method": "none"}}},
             "sbx": {
                 "settings": {
-                    "manage_kit_allowed_sources": False,
                     "kit_allowed_sources": {"docker_hub": "docker.io/"},
                 }
             },
@@ -161,20 +159,39 @@ def test_sbx_settings_script_renders_only_when_enabled():
     assert disabled.stdout == ""
 
 
+def test_sbx_settings_script_uses_existing_sbx_installation_opt_in():
+    rendered = _render_sbx_settings_script(
+        {
+            "local": {"bin": {"sbx": {"installation_method": "github_releases"}}},
+            "sbx": {
+                "settings": {
+                    "kit_allowed_sources": {
+                        "docker_hub": "docker.io/",
+                        "github_shelajev": "github.com/shelajev/",
+                    },
+                }
+            },
+        }
+    )
+
+    assert rendered.returncode == 0, rendered.stderr
+    assert "settings get kit.allowedSources" in rendered.stdout
+
+
 def test_sbx_settings_script_preserves_every_declared_source_when_updating(tmp_path):
     result, calls = _run_rendered_sbx_settings_script(tmp_path, '["docker.io/"]')
 
     assert result.returncode == 0, result.stderr
     assert calls == [
         "settings get kit.allowedSources",
-        'settings set kit.allowedSources ["github.com/shelajev/","docker.io/"]',
+        'settings set kit.allowedSources ["docker.io/","github.com/shelajev/"]',
     ]
 
 
 def test_sbx_settings_script_is_idempotent_for_matching_sources(tmp_path):
     result, calls = _run_rendered_sbx_settings_script(
         tmp_path,
-        '["github.com/shelajev/", "docker.io/"]',
+        '["docker.io/", "github.com/shelajev/"]',
     )
 
     assert result.returncode == 0, result.stderr
@@ -195,7 +212,7 @@ def test_sbx_settings_script_skips_when_daemon_fails_during_update(tmp_path):
     assert result.returncode == 0, result.stderr
     assert calls == [
         "settings get kit.allowedSources",
-        'settings set kit.allowedSources ["github.com/shelajev/","docker.io/"]',
+        'settings set kit.allowedSources ["docker.io/","github.com/shelajev/"]',
     ]
     assert "Unable to configure kit.allowedSources" in result.stdout
 
@@ -206,7 +223,6 @@ def test_sbx_settings_script_skips_when_sbx_is_unavailable(tmp_path):
             "local": {"bin": {"sbx": {"installation_method": "github_releases"}}},
             "sbx": {
                 "settings": {
-                    "manage_kit_allowed_sources": True,
                     "kit_allowed_sources": {"docker_hub": "docker.io/"},
                 }
             },

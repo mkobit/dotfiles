@@ -69,9 +69,6 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 [data.local.bin.sbx]
 installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
 
-[data.sbx.settings]
-manage_kit_allowed_sources = true
-
 [data.local.bin.gh]
 installation_method = "github_releases"
 
