@@ -1,7 +1,5 @@
-# Base-system read-only commands present on virtually any Unix/Linux
-# install (coreutils/util-linux), not tools installed via chezmoi's bin
-# catalog (.chezmoidata/bin/) — those get their own per-tool file if/when
-# they're added here. No filesystem or state mutation. cat/head/tail/
+# Base-system and dotfile read-only commands present on Unix/Linux
+# installs or chezmoi management. No filesystem or state mutation. cat/head/tail/
 # printenv can surface file or environment-variable contents from anywhere
 # reachable by the agent — same disclosure bar already accepted for "rg"
 # in search.toml.
@@ -29,6 +27,7 @@
 #     this catalog is meant to hold across machines.
 [ai.command_policy.commands]
 "cat" = "allow"
+"chezmoi diff" = "allow"
 "date" = "allow"
 "df" = "allow"
 "diff" = "allow"
