@@ -99,13 +99,13 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
     fake_sbx = tmp_path / "sbx"
     fake_sbx.write_text(
         "#!/bin/sh\n"
-        "printf '%s\\n' \"$*\" >> \"$SBX_TEST_CALLS\"\n"
+        'printf \'%s\\n\' "$*" >> "$SBX_TEST_CALLS"\n'
         "if [ \"$1 $2\" = 'settings get' ]; then\n"
         "  printf '%s\\n' \"$SBX_TEST_CURRENT\"\n"
-        "  exit \"$SBX_TEST_GET_RC\"\n"
+        '  exit "$SBX_TEST_GET_RC"\n'
         "fi\n"
         "if [ \"$1 $2\" = 'settings set' ]; then\n"
-        "  exit \"$SBX_TEST_SET_RC\"\n"
+        '  exit "$SBX_TEST_SET_RC"\n'
         "fi\n",
         encoding="utf-8",
     )
