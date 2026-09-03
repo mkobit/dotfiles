@@ -5,6 +5,7 @@
 memory={{ .wsl.wsl2.memory }}
 swap={{ .wsl.wsl2.swap }}
 processors={{ .wsl.wsl2.processors }}
+nestedVirtualization={{ .wsl.wsl2.nestedVirtualization }}
 networkingMode={{ .wsl.wsl2.networkingMode }}
 # -1 disables WSL2 crash-dump capture entirely at the source (not just
 # retention count) -- see microsoft/WSL WslCoreVm.cpp/main.cpp, all
