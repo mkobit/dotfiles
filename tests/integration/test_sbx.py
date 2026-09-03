@@ -9,6 +9,7 @@ CHEZMOI_SOURCE = REPO_ROOT / "src" / "chezmoi"
 SBX_CATALOG = CHEZMOI_SOURCE / ".chezmoidata" / "bin" / "sbx.toml"
 SBX_SETTINGS_CATALOG = CHEZMOI_SOURCE / ".chezmoidata" / "sbx" / "settings.toml"
 SBX_SETTINGS_SCRIPT = CHEZMOI_SOURCE / ".chezmoiscripts" / "run_after_05_configure-sbx-settings.sh.tmpl"
+SBX_KVM_SCRIPT = CHEZMOI_SOURCE / ".chezmoiscripts" / "run_after_04_configure-kvm-group.sh.tmpl"
 LEGACY_TARGETS = (
     ".local/bin/sbx-agy",
     ".local/bin/tools/sbx-agy",
@@ -243,3 +244,156 @@ def test_sbx_settings_script_skips_when_sbx_is_unavailable(tmp_path):
 
     assert result.returncode == 0, result.stderr
     assert "sbx is unavailable" in result.stdout
+
+
+def _render_sbx_kvm_script(override_data: dict) -> subprocess.CompletedProcess[str]:
+    data = {
+        "chezmoi": {"os": "linux", "username": "mkobit"},
+        "local": {"bin": {"sbx": {"installation_method": "github_releases"}}},
+    }
+    for key, val in override_data.items():
+        if isinstance(val, dict) and key in data and isinstance(data[key], dict):
+            data[key] = {**data[key], **val}
+        else:
+            data[key] = val
+
+    return subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            "/dev/null",
+            "--config-format",
+            "toml",
+            "--source",
+            str(REPO_ROOT),
+            "execute-template",
+            "--file",
+            "--override-data",
+            json.dumps(data),
+            str(SBX_KVM_SCRIPT),
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+def test_sbx_kvm_script_renders_only_when_enabled_on_linux():
+    enabled = _render_sbx_kvm_script({})
+    assert enabled.returncode == 0, enabled.stderr
+    assert "target_user=" in enabled.stdout
+    assert "usermod -aG kvm" in enabled.stdout
+
+    disabled = _render_sbx_kvm_script({"local": {"bin": {"sbx": {"installation_method": "none"}}}})
+    assert disabled.returncode == 0, disabled.stderr
+    assert disabled.stdout == ""
+
+    darwin = _render_sbx_kvm_script({"chezmoi": {"os": "darwin"}})
+    assert darwin.returncode == 0, darwin.stderr
+    assert darwin.stdout == ""
+
+
+def test_sbx_kvm_script_is_noop_when_user_already_in_kvm_group(tmp_path):
+    rendered = _render_sbx_kvm_script({})
+    assert rendered.returncode == 0, rendered.stderr
+
+    # Create mock `id` that includes `kvm`
+    fake_id = tmp_path / "id"
+    fake_id.write_text("#!/bin/sh\necho 'mkobit adm kvm'\n", encoding="utf-8")
+    fake_id.chmod(0o755)
+
+    # Create fake `sudo` that records calls
+    calls = tmp_path / "calls"
+    fake_sudo = tmp_path / "sudo"
+    fake_sudo.write_text(f'#!/bin/sh\necho "$*" >> {calls}\n', encoding="utf-8")
+    fake_sudo.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{tmp_path}:{env['PATH']}"
+    result = subprocess.run(
+        ["/bin/bash"],
+        input=rendered.stdout,
+        capture_output=True,
+        check=False,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert not calls.exists()
+
+
+def test_sbx_kvm_script_skips_when_no_sudo_access(tmp_path):
+    rendered = _render_sbx_kvm_script({})
+    assert rendered.returncode == 0, rendered.stderr
+
+    # Create mock `id` that does NOT include `kvm`
+    fake_id = tmp_path / "id"
+    fake_id.write_text("#!/bin/sh\necho 'mkobit adm'\n", encoding="utf-8")
+    fake_id.chmod(0o755)
+
+    # Create fake `sudo` that fails for `-n true`
+    fake_sudo = tmp_path / "sudo"
+    fake_sudo.write_text("#!/bin/sh\nexit 1\n", encoding="utf-8")
+    fake_sudo.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{tmp_path}:{env['PATH']}"
+    result = subprocess.run(
+        ["/bin/bash"],
+        input=rendered.stdout,
+        capture_output=True,
+        check=False,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert "skipping kvm group" in result.stdout
+
+
+def test_sbx_kvm_script_adds_user_to_kvm_when_missing(tmp_path):
+    rendered = _render_sbx_kvm_script({})
+    assert rendered.returncode == 0, rendered.stderr
+
+    # Create mock `id` that does NOT include `kvm`
+    fake_id = tmp_path / "id"
+    fake_id.write_text("#!/bin/sh\necho 'mkobit adm'\n", encoding="utf-8")
+    fake_id.chmod(0o755)
+
+    # Create fake `sudo` that succeeds and records calls
+    calls = tmp_path / "calls"
+    fake_sudo = tmp_path / "sudo"
+    fake_sudo.write_text(
+        f'#!/bin/sh\nif [ "$1" = \'-n\' ]; then exit 0; fi\necho "$*" >> {calls}\n',
+        encoding="utf-8",
+    )
+    fake_sudo.chmod(0o755)
+
+    # Create fake `getent`
+    fake_getent = tmp_path / "getent"
+    fake_getent.write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")
+    fake_getent.chmod(0o755)
+
+    # Create fake `stat` reporting kvm:660
+    fake_stat = tmp_path / "stat"
+    fake_stat.write_text(
+        "#!/bin/sh\nif [ \"$2\" = '%G' ]; then echo 'kvm'; elif [ \"$2\" = '%a' ]; then echo '660'; fi\n",
+        encoding="utf-8",
+    )
+    fake_stat.chmod(0o755)
+
+    env = os.environ.copy()
+    env["PATH"] = f"{tmp_path}:{env['PATH']}"
+    result = subprocess.run(
+        ["/bin/bash"],
+        input=rendered.stdout,
+        capture_output=True,
+        check=False,
+        env=env,
+        text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    recorded_calls = calls.read_text(encoding="utf-8").splitlines() if calls.exists() else []
+    assert any("usermod -aG kvm" in call for call in recorded_calls)

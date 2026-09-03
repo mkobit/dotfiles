@@ -1,0 +1,62 @@
+{{- $method := dig "local" "bin" "sbx" "installation_method" "none" . -}}
+{{- if and (eq .chezmoi.os "linux") (ne $method "none") -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
+
+target_user="{{ .chezmoi.username }}"
+needs_group=0
+if ! id -nG "$target_user" 2>/dev/null | grep -qw kvm; then
+    needs_group=1
+fi
+
+needs_dev_fix=0
+if [ -e /dev/kvm ]; then
+    kvm_group="$(stat -c '%G' /dev/kvm 2>/dev/null || true)"
+    kvm_mode="$(stat -c '%a' /dev/kvm 2>/dev/null || true)"
+    if [ "$kvm_group" != "kvm" ] || { [ "$kvm_mode" != "660" ] && [ "$kvm_mode" != "666" ]; }; then
+        needs_dev_fix=1
+    fi
+fi
+
+if [ "$needs_group" -eq 0 ] && [ "$needs_dev_fix" -eq 0 ]; then
+    exit 0
+fi
+
+if sudo -n true 2>/dev/null || [ -t 0 ]; then
+    has_sudo_access=1
+else
+    has_sudo_access=0
+fi
+
+if [ "$has_sudo_access" -ne 1 ]; then
+    log_warn "No TTY and no cached sudo credentials — skipping kvm group and permission configuration, will retry next apply"
+    exit 0
+fi
+
+if ! getent group kvm >/dev/null 2>&1; then
+    log_info "Creating kvm system group..."
+    sudo groupadd -r kvm
+fi
+
+if [ "$needs_group" -eq 1 ]; then
+    log_info "Adding $target_user to kvm group..."
+    sudo usermod -aG kvm "$target_user"
+    log_success "Added $target_user to kvm group."
+
+    if [ -e /proc/sys/fs/binfmt_misc/WSLInterop ] || grep -qi microsoft /proc/version 2>/dev/null; then
+        log_info "WSL restart ('wsl.exe --shutdown' from Windows) or 'newgrp kvm' is required to activate kvm group access."
+        log_info "After restarting, bounce sbx daemon if running: 'sbx daemon stop && sbx daemon start'."
+    else
+        log_info "Re-login or 'newgrp kvm' is required to activate kvm group access."
+    fi
+fi
+
+if [ "$needs_dev_fix" -eq 1 ] && [ -e /dev/kvm ]; then
+    log_info "Adjusting /dev/kvm ownership and permissions..."
+    sudo chown root:kvm /dev/kvm 2>/dev/null || true
+    sudo chmod 660 /dev/kvm 2>/dev/null || true
+    log_success "Configured /dev/kvm ownership to root:kvm (0660)."
+fi
+{{- end -}}
