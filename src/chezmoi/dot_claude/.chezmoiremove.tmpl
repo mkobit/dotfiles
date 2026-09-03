@@ -1,8 +1,8 @@
 {{- /*
-  Prunes catalog skills (.chezmoidata/ai/skills.toml) that do not target
-  ~/.claude/skills: state "absent", or a tool-name state for another tool.
-  Only known catalog keys are removed; deleting a catalog key outright
-  orphans any installed copy.
+  Emits tombstones that immediately prune known catalog skills
+  (.chezmoidata/ai/skills.toml) that do not target ~/.claude/skills: state
+  "absent", or a tool-name state for another tool. The state-manifest cleanup
+  hook handles history-aware deleted or renamed skill keys and removed sources.
 */ -}}
 {{- range $sourceName, $source := .ai.skills.external -}}
 {{-   range $skillName, $state := dig "skills" (dict) $source -}}
