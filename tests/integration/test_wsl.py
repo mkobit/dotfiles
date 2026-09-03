@@ -42,4 +42,3 @@ def test_wslconfig_template_renders_nested_virtualization():
     )
     assert result.returncode == 0, result.stderr
     assert "nestedVirtualization=true" in result.stdout
-

@@ -269,24 +269,18 @@ def _render_sbx_kvm_script(override_data: dict) -> subprocess.CompletedProcess[s
 
 
 def test_sbx_kvm_script_renders_only_when_enabled_on_linux():
-    enabled = _render_sbx_kvm_script(
-        {"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}}
-    )
+    enabled = _render_sbx_kvm_script({"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}})
     assert enabled.returncode == 0, enabled.stderr
     assert "target_user=" in enabled.stdout
     assert "usermod -aG kvm" in enabled.stdout
 
-    disabled = _render_sbx_kvm_script(
-        {"local": {"bin": {"sbx": {"installation_method": "none"}}}}
-    )
+    disabled = _render_sbx_kvm_script({"local": {"bin": {"sbx": {"installation_method": "none"}}}})
     assert disabled.returncode == 0, disabled.stderr
     assert disabled.stdout == ""
 
 
 def test_sbx_kvm_script_is_noop_when_user_already_in_kvm_group(tmp_path):
-    rendered = _render_sbx_kvm_script(
-        {"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}}
-    )
+    rendered = _render_sbx_kvm_script({"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}})
     assert rendered.returncode == 0, rendered.stderr
 
     # Create mock `id` that includes `kvm`
@@ -297,7 +291,7 @@ def test_sbx_kvm_script_is_noop_when_user_already_in_kvm_group(tmp_path):
     # Create fake `sudo` that records calls
     calls = tmp_path / "calls"
     fake_sudo = tmp_path / "sudo"
-    fake_sudo.write_text(f"#!/bin/sh\necho \"$*\" >> {calls}\n", encoding="utf-8")
+    fake_sudo.write_text(f'#!/bin/sh\necho "$*" >> {calls}\n', encoding="utf-8")
     fake_sudo.chmod(0o755)
 
     env = os.environ.copy()
@@ -316,9 +310,7 @@ def test_sbx_kvm_script_is_noop_when_user_already_in_kvm_group(tmp_path):
 
 
 def test_sbx_kvm_script_skips_when_no_sudo_access(tmp_path):
-    rendered = _render_sbx_kvm_script(
-        {"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}}
-    )
+    rendered = _render_sbx_kvm_script({"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}})
     assert rendered.returncode == 0, rendered.stderr
 
     # Create mock `id` that does NOT include `kvm`
@@ -347,9 +339,7 @@ def test_sbx_kvm_script_skips_when_no_sudo_access(tmp_path):
 
 
 def test_sbx_kvm_script_adds_user_to_kvm_when_missing(tmp_path):
-    rendered = _render_sbx_kvm_script(
-        {"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}}
-    )
+    rendered = _render_sbx_kvm_script({"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}})
     assert rendered.returncode == 0, rendered.stderr
 
     # Create mock `id` that does NOT include `kvm`
@@ -361,7 +351,7 @@ def test_sbx_kvm_script_adds_user_to_kvm_when_missing(tmp_path):
     calls = tmp_path / "calls"
     fake_sudo = tmp_path / "sudo"
     fake_sudo.write_text(
-        f"#!/bin/sh\nif [ \"$1\" = '-n' ]; then exit 0; fi\necho \"$*\" >> {calls}\n",
+        f'#!/bin/sh\nif [ "$1" = \'-n\' ]; then exit 0; fi\necho "$*" >> {calls}\n',
         encoding="utf-8",
     )
     fake_sudo.chmod(0o755)
@@ -393,4 +383,3 @@ def test_sbx_kvm_script_adds_user_to_kvm_when_missing(tmp_path):
     assert result.returncode == 0, result.stderr
     recorded_calls = calls.read_text(encoding="utf-8").splitlines() if calls.exists() else []
     assert any("usermod -aG kvm" in call for call in recorded_calls)
-
