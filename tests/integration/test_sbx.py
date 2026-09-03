@@ -247,6 +247,16 @@ def test_sbx_settings_script_skips_when_sbx_is_unavailable(tmp_path):
 
 
 def _render_sbx_kvm_script(override_data: dict) -> subprocess.CompletedProcess[str]:
+    data = {
+        "chezmoi": {"os": "linux", "username": "mkobit"},
+        "local": {"bin": {"sbx": {"installation_method": "github_releases"}}},
+    }
+    for key, val in override_data.items():
+        if isinstance(val, dict) and key in data and isinstance(data[key], dict):
+            data[key] = {**data[key], **val}
+        else:
+            data[key] = val
+
     return subprocess.run(
         [
             "chezmoi",
@@ -259,7 +269,7 @@ def _render_sbx_kvm_script(override_data: dict) -> subprocess.CompletedProcess[s
             "execute-template",
             "--file",
             "--override-data",
-            json.dumps(override_data),
+            json.dumps(data),
             str(SBX_KVM_SCRIPT),
         ],
         capture_output=True,
@@ -269,7 +279,7 @@ def _render_sbx_kvm_script(override_data: dict) -> subprocess.CompletedProcess[s
 
 
 def test_sbx_kvm_script_renders_only_when_enabled_on_linux():
-    enabled = _render_sbx_kvm_script({"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}})
+    enabled = _render_sbx_kvm_script({})
     assert enabled.returncode == 0, enabled.stderr
     assert "target_user=" in enabled.stdout
     assert "usermod -aG kvm" in enabled.stdout
@@ -278,9 +288,13 @@ def test_sbx_kvm_script_renders_only_when_enabled_on_linux():
     assert disabled.returncode == 0, disabled.stderr
     assert disabled.stdout == ""
 
+    darwin = _render_sbx_kvm_script({"chezmoi": {"os": "darwin"}})
+    assert darwin.returncode == 0, darwin.stderr
+    assert darwin.stdout == ""
+
 
 def test_sbx_kvm_script_is_noop_when_user_already_in_kvm_group(tmp_path):
-    rendered = _render_sbx_kvm_script({"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}})
+    rendered = _render_sbx_kvm_script({})
     assert rendered.returncode == 0, rendered.stderr
 
     # Create mock `id` that includes `kvm`
@@ -310,7 +324,7 @@ def test_sbx_kvm_script_is_noop_when_user_already_in_kvm_group(tmp_path):
 
 
 def test_sbx_kvm_script_skips_when_no_sudo_access(tmp_path):
-    rendered = _render_sbx_kvm_script({"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}})
+    rendered = _render_sbx_kvm_script({})
     assert rendered.returncode == 0, rendered.stderr
 
     # Create mock `id` that does NOT include `kvm`
@@ -339,7 +353,7 @@ def test_sbx_kvm_script_skips_when_no_sudo_access(tmp_path):
 
 
 def test_sbx_kvm_script_adds_user_to_kvm_when_missing(tmp_path):
-    rendered = _render_sbx_kvm_script({"local": {"bin": {"sbx": {"installation_method": "github_releases"}}}})
+    rendered = _render_sbx_kvm_script({})
     assert rendered.returncode == 0, rendered.stderr
 
     # Create mock `id` that does NOT include `kvm`

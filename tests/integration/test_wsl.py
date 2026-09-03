@@ -1,9 +1,11 @@
 import os
 import platform
 import subprocess
+from pathlib import Path
 
 import pytest
 
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 _is_wsl = "microsoft" in platform.release().lower()
 
 
@@ -33,6 +35,8 @@ def test_wslconfig_template_renders_nested_virtualization():
             "/dev/null",
             "--config-format",
             "toml",
+            "--source",
+            str(REPO_ROOT),
             "execute-template",
             '{{ template "wsl/wslconfig" . }}',
         ],
