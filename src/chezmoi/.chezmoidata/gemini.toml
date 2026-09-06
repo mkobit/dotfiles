@@ -20,6 +20,7 @@ enable_auto_update = false
 preview_features = true
 show_feedback_survey = false
 vim_mode = true
+vim_insert_first = true
 
 # Session Management: https://developers.googleblog.com/pick-up-exactly-where-you-left-off-with-session-management-in-gemini-cli/
 [gemini.general.sessionRetention]

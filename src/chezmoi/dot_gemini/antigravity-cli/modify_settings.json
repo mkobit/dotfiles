@@ -60,6 +60,8 @@
   -}}
 {{-   if .gemini.general.vim_mode -}}
 {{-     $settings = set $settings "editorMode" "vim" -}}
+{{-     $vimInsertFirst := dig "gemini" "general" "vim_insert_first" true . -}}
+{{-     $settings = set $settings "vimInsertFirst" $vimInsertFirst -}}
 {{-   end -}}
 {{-   $config = mergeOverwrite $config $settings -}}
 {{-   $config = set $config "statusLine" (dict "type" "command" "command" "statusline antigravity render" "enabled" true) -}}

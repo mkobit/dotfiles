@@ -86,3 +86,12 @@ def test_antigravity_show_feedback_survey_disabled() -> None:
     assert result.returncode == 0, result.stderr
     rendered = json.loads(result.stdout)
     assert rendered.get("general", {}).get("showFeedbackSurvey") is False
+
+
+@pytest.mark.integration
+def test_antigravity_vim_mode_settings() -> None:
+    result = _render_antigravity_settings("{}", "preinstalled")
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert rendered.get("editorMode") == "vim"
+    assert rendered.get("vimInsertFirst") is True
