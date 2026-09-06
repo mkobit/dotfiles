@@ -147,7 +147,7 @@ def _identity_slots(payload: AgyPayload) -> list[_Slot]:
     icon = state_icon(payload.state)
     icon_prefix = f"{icon} " if icon else ""
     color = _STATE_COLORS.get(payload.state, "\033[37m")
-    state = f"{color}{icon_prefix}[{payload.state}]{RESET}"
+    state = f"{color}[{icon_prefix}{payload.state}]{RESET}"
     slots = [_Slot(0, 0, 1, state)]
     model = _model_name(payload.model, payload.effort)
     model_text = f"{BOLD}{model}{RESET}" if model else None

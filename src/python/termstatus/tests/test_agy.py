@@ -193,6 +193,14 @@ def test_missing_optional_fields_omit_empty_rows_and_sensitive_fields() -> None:
     assert "person@example.com" not in "\n".join(lines)
 
 
+def test_state_icon_inside_brackets() -> None:
+    lines = rendered({"agent_state": "working"})
+    assert "[🔄 working]" in lines[0]
+
+    thinking = rendered({"agent_state": "thinking"})
+    assert "[🧠 thinking]" in thinking[0]
+
+
 def test_reasoning_precedence_is_model_effort_then_reasoning_then_top_level() -> None:
     assert decode_payload({"model": {"effort": "high", "reasoning_effort": "medium"}, "effort": "low"}).effort == "high"
     assert decode_payload({"model": {"reasoning_effort": "medium"}, "effort": "low"}).effort == "medium"
