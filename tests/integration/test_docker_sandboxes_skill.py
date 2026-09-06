@@ -22,6 +22,7 @@ def test_skill_routes_repository_setup_through_progressive_references():
         "references/repository-setup.md",
         "references/environment-files.md",
         "references/agents.md",
+        "references/nested-execution.md",
         "references/optional-host-overlays.md",
     ):
         assert required in skill, f"Missing {required!r} in {SKILL_FILE}"
