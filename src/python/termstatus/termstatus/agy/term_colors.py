@@ -17,6 +17,7 @@ CYAN: Final[str] = "\033[36m"
 WHITE: Final[str] = "\033[37m"
 
 BRIGHT_GREEN: Final[str] = "\033[92m"
+DARK_GREY: Final[str] = "\033[90m"
 ORANGE: Final[str] = "\033[38;5;208m"
 AMBER: Final[str] = "\033[38;5;214m"
 SKY_BLUE: Final[str] = "\033[38;5;75m"

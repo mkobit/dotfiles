@@ -13,6 +13,7 @@ from termstatus.agy.term_colors import (
     BLUE,
     BOLD,
     CYAN,
+    DARK_GREY,
     DIM,
     GREEN,
     MAGENTA,
@@ -111,7 +112,7 @@ def git_branch(vcs: VcsState) -> str | None:
 
     if upstream := normalized_text(vcs.upstream):
         remote_link = f"\033]8;;{url}\033\\{upstream}\033]8;;\033\\" if url else upstream
-        pair_text = f"{DIM}<{RESET}{MAGENTA}{branch_link}{RESET} {DIM}=>{RESET} {CYAN}{remote_link}{RESET}{DIM}>{RESET}"
+        pair_text = f"{DIM}<{RESET}{MAGENTA}{branch_link}{RESET} {DIM}→{RESET} {CYAN}{remote_link}{RESET}{DIM}>{RESET}"
     else:
         pair_text = f"{MAGENTA}{branch_link}{RESET}"
 
@@ -154,7 +155,6 @@ _THINK_LEVELS: Final[dict[str, int]] = {
 }
 
 _CELL_BARS: Final[tuple[str, ...]] = ("▂", "▄", "█")
-_CELL_EMPTY: Final[str] = " "
 
 
 def _thinking_cellular_graph(effort: str | None) -> str:
@@ -167,7 +167,7 @@ def _thinking_cellular_graph(effort: str | None) -> str:
         lvl = max(0, min(3, int(low)))
     else:
         return ""
-    bars = [f"{CYAN}{_CELL_BARS[i]}{RESET}" if i < lvl else f"{DIM}{_CELL_EMPTY}{RESET}" for i in range(3)]
+    bars = [f"{CYAN}{_CELL_BARS[i]}{RESET}" if i < lvl else f"{DARK_GREY}{_CELL_BARS[i]}{RESET}" for i in range(3)]
     return "".join(bars)
 
 

@@ -107,7 +107,7 @@ def test_wide_render_uses_four_conditional_rows() -> None:
     assert "82% ctx" in lines[1] and "5h ◕ 50%" in lines[1] and "7d ◔ 10%" in lines[1]
     assert "$0.01" in lines[1]
     assert " • " in lines[1]
-    assert "<feature/renderer => origin/feature/renderer>" in lines[2]
+    assert "<feature/renderer → origin/feature/renderer>" in lines[2]
     assert "!" in lines[2]
     assert "↑2" in lines[2] and "↓1" in lines[2]
     assert "tasks:3" in lines[3] and "input:2" in lines[3]
@@ -349,14 +349,14 @@ def test_branch_status_icons() -> None:
 def test_branch_pairing_format() -> None:
     paired = git_branch(VcsState("main", False, True, upstream="origin/main"))
     assert paired is not None
-    assert "<main => origin/main>" in strip_ansi(paired)
+    assert "<main → origin/main>" in strip_ansi(paired)
     assert "\x1b[35m" in paired  # Magenta local branch
     assert "\x1b[36m" in paired  # Cyan remote branch
     assert "[✓]" in strip_ansi(paired)
 
     unpaired = git_branch(VcsState("feature/local", True, True))
     assert unpaired is not None
-    assert "<" not in strip_ansi(unpaired) and "=>" not in strip_ansi(unpaired)
+    assert "<" not in strip_ansi(unpaired) and "→" not in strip_ansi(unpaired)
     assert "feature/local [!]" in strip_ansi(unpaired)
 
 
@@ -429,9 +429,31 @@ def test_meter_color_tiers() -> None:
 
 
 def test_thinking_cellular_graph() -> None:
-    assert strip_ansi(_thinking_cellular_graph("low")) == "▂  "
-    assert strip_ansi(_thinking_cellular_graph("medium")) == "▂▄ "
+    assert strip_ansi(_thinking_cellular_graph("low")) == "▂▄█"
+    assert strip_ansi(_thinking_cellular_graph("medium")) == "▂▄█"
     assert strip_ansi(_thinking_cellular_graph("high")) == "▂▄█"
+    assert strip_ansi(_thinking_cellular_graph("off")) == "▂▄█"
+
+    # Off: all 3 bars in dark grey, no cyan
+    off = _thinking_cellular_graph("off")
+    assert "\x1b[36m" not in off
+    assert "\x1b[90m" in off
+
+    # Low: 1st bar cyan, remaining dark grey
+    low = _thinking_cellular_graph("low")
+    assert low.count("\x1b[36m") == 1
+    assert low.count("\x1b[90m") == 2
+
+    # Medium: 2 bars cyan, 1 dark grey
+    med = _thinking_cellular_graph("medium")
+    assert med.count("\x1b[36m") == 2
+    assert med.count("\x1b[90m") == 1
+
+    # High: all 3 cyan, no dark grey
+    high = _thinking_cellular_graph("high")
+    assert high.count("\x1b[36m") == 3
+    assert "\x1b[90m" not in high
+
     assert _thinking_cellular_graph(None) == ""
     assert _thinking_cellular_graph("unknown") == ""
 
