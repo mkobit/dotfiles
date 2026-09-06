@@ -109,6 +109,12 @@ def git_branch(vcs: VcsState) -> str | None:
     branch_icon = get_icon("branch")
     icon_prefix = f"{branch_icon} " if branch_icon else ""
 
+    if upstream := normalized_text(vcs.upstream):
+        remote_link = f"\033]8;;{url}\033\\{upstream}\033]8;;\033\\" if url else upstream
+        pair_text = f"{DIM}<{RESET}{MAGENTA}{branch_link}{RESET} {DIM}=>{RESET} {CYAN}{remote_link}{RESET}{DIM}>{RESET}"
+    else:
+        pair_text = f"{MAGENTA}{branch_link}{RESET}"
+
     status_items: list[str] = []
     if vcs.rebase:
         status_items.append(f"{YELLOW}rebase{RESET}")
@@ -125,7 +131,7 @@ def git_branch(vcs: VcsState) -> str | None:
         status_items.append(f"{GREEN}{clean_icon}{RESET}")
 
     bracketed = f" {DIM}[{RESET}{' '.join(status_items)}{DIM}]{RESET}"
-    return f"{MAGENTA}{icon_prefix}{branch_link}{RESET}{bracketed}"
+    return f"{icon_prefix}{pair_text}{bracketed}"
 
 
 def _fit_slots(slots: Sequence[_Slot], width: int) -> str | None:
@@ -209,8 +215,7 @@ def _resource_slots(payload: AgyPayload) -> list[_Slot]:
         quota_parts.append(f"{DIM}[{RESET}{color}{label}{icon_text} {meter}{RESET}{DIM}]{RESET}")
 
     if quota_parts:
-        capacity_text = f"{DIM}capacity:{RESET} {' '.join(quota_parts)}"
-        slots.append(_Slot(1, 2, 45, capacity_text))
+        slots.append(_Slot(1, 2, 45, " ".join(quota_parts)))
 
     if payload.cost is not None:
         slots.append(_Slot(1, 3, 90, f"{DIM}{_format_cost(payload.cost)}{RESET}"))
@@ -220,21 +225,12 @@ def _resource_slots(payload: AgyPayload) -> list[_Slot]:
 def _vcs_slots(vcs: VcsState | None) -> list[_Slot]:
     if not vcs:
         return []
-    slots: list[_Slot] = []
     if branch := git_branch(vcs):
-        slots.append(_Slot(2, 0, 10, branch))
-    elif vcs.dirty:
+        return [_Slot(2, 0, 10, branch)]
+    if vcs.dirty:
         dirty_icon = get_icon("dirty") or "!"
-        slots.append(_Slot(2, 0, 10, f"{YELLOW}{dirty_icon} dirty{RESET}"))
-
-    if upstream := normalized_text(vcs.upstream):
-        remote_icon = get_icon("github") if vcs.origin_url and "github.com" in vcs.origin_url else get_icon("remote")
-        icon_prefix = f"{remote_icon} " if remote_icon else ""
-        url = _github_url(vcs.origin_url)
-        upstream_link = f"\033]8;;{url}\033\\{upstream}\033]8;;\033\\" if url else upstream
-        slots.append(_Slot(2, 1, 55, f"{DIM}{icon_prefix}{upstream_link}{RESET}"))
-
-    return slots
+        return [_Slot(2, 0, 10, f"{YELLOW}{dirty_icon} dirty{RESET}")]
+    return []
 
 
 def _activity_slots(payload: AgyPayload) -> list[_Slot]:

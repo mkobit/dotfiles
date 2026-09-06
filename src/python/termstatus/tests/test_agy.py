@@ -102,10 +102,9 @@ def test_wide_render_uses_four_conditional_rows() -> None:
     assert "82% ctx" in lines[1] and "5h ◑ 50%" in lines[1] and "7d ○ 10%" in lines[1]
     assert "$0.01" in lines[1]
     assert " • " in lines[1]
-    assert "feature/renderer" in lines[2] and "origin/feature/renderer" in lines[2]
+    assert "<feature/renderer => origin/feature/renderer>" in lines[2]
     assert "!" in lines[2]
     assert "↑2" in lines[2] and "↓1" in lines[2]
-    assert " • " in lines[2]
     assert "tasks:3" in lines[3] and "input:2" in lines[3]
     assert "confirm" in lines[3] and "artifacts:1" in lines[3]
     assert " • " in lines[3]
@@ -334,6 +333,20 @@ def test_branch_status_icons() -> None:
     assert "↓1" in complex_vcs
 
 
+def test_branch_pairing_format() -> None:
+    paired = git_branch(VcsState("main", False, True, upstream="origin/main"))
+    assert paired is not None
+    assert "<main => origin/main>" in strip_ansi(paired)
+    assert "\x1b[35m" in paired  # Magenta local branch
+    assert "\x1b[36m" in paired  # Cyan remote branch
+    assert "[✓]" in strip_ansi(paired)
+
+    unpaired = git_branch(VcsState("feature/local", True, True))
+    assert unpaired is not None
+    assert "<" not in strip_ansi(unpaired) and "=>" not in strip_ansi(unpaired)
+    assert "feature/local [!]" in strip_ansi(unpaired)
+
+
 def test_3p_quotas_filtered_and_quota_meters_formatted() -> None:
     lines = rendered(
         {
@@ -349,8 +362,8 @@ def test_3p_quotas_filtered_and_quota_meters_formatted() -> None:
     plain = "\n".join(lines)
     assert "3p-5h" not in plain
     assert "3p-weekly" not in plain
-    assert "5h ● 97%" in plain
-    assert "7d ● 84%" in plain
+    assert "capacity:" not in plain
+    assert "[5h ● 97%] [7d ● 84%]" in plain
 
 
 def test_model_name_strips_effort_case_insensitively() -> None:
