@@ -22,7 +22,17 @@ from termstatus.agy.git import (
 )
 from termstatus.agy.protocol import Quota, VcsState, decode_payload
 from termstatus.agy.statusline import display_width, git_branch, render_statusline, strip_ansi
-from termstatus.agy.term_colors import _STATE_COLORS, fullness_icon, meter_color, moon_icon
+from termstatus.agy.term_colors import (
+    _STATE_COLORS,
+    GREEN,
+    ORANGE,
+    RED,
+    SKY_BLUE,
+    YELLOW,
+    fullness_icon,
+    meter_color,
+    moon_icon,
+)
 from termstatus.main import main
 
 FULL_PAYLOAD = {
@@ -89,7 +99,7 @@ def test_wide_render_uses_four_conditional_rows() -> None:
     )
     assert " • " in lines[0]
     assert "/work/repo" in lines[1]
-    assert "82% ctx" in lines[1] and "5h:50%" in lines[1] and "7d:10%" in lines[1]
+    assert "82% ctx" in lines[1] and "5h ◑ 50%" in lines[1] and "7d ○ 10%" in lines[1]
     assert "$0.01" in lines[1]
     assert " • " in lines[1]
     assert "feature/renderer" in lines[2] and "origin/feature/renderer" in lines[2]
@@ -148,7 +158,7 @@ def test_detached_dirty_repository_still_shows_dirty_state() -> None:
 
 
 def test_quota_without_reset_is_rendered() -> None:
-    assert "quota:50%" in "\n".join(rendered({"quota": {"quota": {"remaining_percentage": 50}}}))
+    assert "quota ◑ 50%" in "\n".join(rendered({"quota": {"quota": {"remaining_percentage": 50}}}))
 
 
 def test_decoded_quotas_are_immutable_and_use_time_delta_resets() -> None:
@@ -339,8 +349,8 @@ def test_3p_quotas_filtered_and_quota_meters_formatted() -> None:
     plain = "\n".join(lines)
     assert "3p-5h" not in plain
     assert "3p-weekly" not in plain
-    assert "5h:97%" in plain
-    assert "7d:84%" in plain
+    assert "5h ● 97%" in plain
+    assert "7d ● 84%" in plain
 
 
 def test_model_name_strips_effort_case_insensitively() -> None:
@@ -370,6 +380,19 @@ def test_fullness_icon() -> None:
     assert fullness_icon(0) == "○"
     # Backwards-compatibility alias
     assert moon_icon(100) == "●"
+
+
+def test_meter_color_fifths() -> None:
+    assert meter_color(95) == GREEN
+    assert meter_color(80) == GREEN
+    assert meter_color(75) == SKY_BLUE
+    assert meter_color(60) == SKY_BLUE
+    assert meter_color(50) == YELLOW
+    assert meter_color(40) == YELLOW
+    assert meter_color(30) == ORANGE
+    assert meter_color(20) == ORANGE
+    assert meter_color(10) == RED
+    assert meter_color(0) == RED
 
 
 def test_resilience_against_malformed_and_extreme_inputs() -> None:

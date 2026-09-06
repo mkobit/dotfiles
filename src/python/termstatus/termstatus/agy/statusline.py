@@ -25,6 +25,7 @@ from termstatus.agy.term_colors import (
     get_icon,
     meter_color,
     state_icon,
+    use_icons,
 )
 
 _ANSI_ESCAPE: Final[Pattern[str]] = re.compile(r"(?:\x1b\[[0-9;]*m|\x1b]8;;.*?(?:\x1b\\|\x07))")
@@ -144,7 +145,8 @@ def _identity_slots(payload: AgyPayload) -> list[_Slot]:
     slots = [_Slot(0, 0, 1, state)]
     model = _model_name(payload.model, payload.effort)
     model_text = f"{BOLD}{model}{RESET}" if model else None
-    think_text = f"{DIM}think:{RESET}{payload.effort}" if payload.effort else None
+    brain = "🧠 " if use_icons() else ""
+    think_text = f"{brain}{DIM}think:{RESET}{payload.effort}" if payload.effort else None
     mode_text = f"{DIM}{payload.execution_mode}{RESET}" if payload.execution_mode else None
     plan_text = f"{DIM}plan:{RESET}{payload.plan_tier}" if payload.plan_tier else None
 
@@ -194,16 +196,24 @@ def _resource_slots(payload: AgyPayload) -> list[_Slot]:
         color = meter_color(payload.remaining_context)
         icon = fullness_icon(payload.remaining_context)
         slots.append(_Slot(1, 1, 20, f"{color}{icon} {_format_meter(payload.remaining_context)} ctx{RESET}"))
-    index = 2
+
+    quota_parts: list[str] = []
     for name, quota in payload.quotas.items():
         label = _format_quota_label(name)
         if not label:
             continue
         color = meter_color(quota.remaining)
-        slots.append(_Slot(1, index, 45, f"{color}{label}:{_format_meter(quota.remaining)}{RESET}"))
-        index += 1
+        icon = fullness_icon(quota.remaining)
+        meter = _format_meter(quota.remaining)
+        icon_text = f" {icon}" if use_icons() else ""
+        quota_parts.append(f"{DIM}[{RESET}{color}{label}{icon_text} {meter}{RESET}{DIM}]{RESET}")
+
+    if quota_parts:
+        capacity_text = f"{DIM}capacity:{RESET} {' '.join(quota_parts)}"
+        slots.append(_Slot(1, 2, 45, capacity_text))
+
     if payload.cost is not None:
-        slots.append(_Slot(1, index, 90, f"{DIM}{_format_cost(payload.cost)}{RESET}"))
+        slots.append(_Slot(1, 3, 90, f"{DIM}{_format_cost(payload.cost)}{RESET}"))
     return slots
 
 

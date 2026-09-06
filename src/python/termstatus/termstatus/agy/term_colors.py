@@ -36,11 +36,20 @@ _STATE_COLORS: Final[Mapping[str, str]] = MappingProxyType(
 _STATE_ICONS: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(
     {
         "idle": ("", ""),
-        "thinking": ("💭", "💭"),
-        "working": ("⚡", "⚡"),
+        "thinking": ("🧠", "🧠"),
+        "working": ("🔄", "🔄"),
         "tool_use": ("🔧", "🔧"),
         "initializing": ("⏳", "⏳"),
     }
+)
+
+
+_METER_COLORS_FIFTHS: Final[tuple[str, ...]] = (
+    RED,
+    ORANGE,
+    YELLOW,
+    SKY_BLUE,
+    GREEN,
 )
 
 
@@ -48,11 +57,9 @@ def meter_color(remaining_pct: float) -> str:
     try:
         if not math.isfinite(remaining_pct):
             return RED
-        if remaining_pct >= 70:
-            return GREEN
-        if remaining_pct >= 30:
-            return YELLOW
-        return RED
+        clamped = max(0.0, min(100.0, remaining_pct))
+        index = min(4, max(0, int(clamped // 20)))
+        return _METER_COLORS_FIFTHS[index]
     except TypeError, ValueError:
         return RED
 
@@ -90,7 +97,7 @@ def fullness_icon(remaining_pct: float) -> str:
         if not math.isfinite(remaining_pct):
             return _FULLNESS_ICONS_UTF8[0]
         clamped = max(0.0, min(100.0, remaining_pct))
-        index = round(clamped / 100 * 4)
+        index = min(4, max(0, int(clamped // 20)))
         return _FULLNESS_ICONS_UTF8[index]
     except TypeError, ValueError:
         return _FULLNESS_ICONS_UTF8[0]
