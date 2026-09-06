@@ -25,22 +25,38 @@ def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState |
     branch: str | None = None
     upstream: str | None = None
     ahead = behind = 0
-    dirty = saw_header = False
+    dirty = saw_header = untracked = rebase = False
     for line in stdout.decode(errors="replace").splitlines():
         if _deadline_expired(deadline):
             return None
         if line.startswith("# branch.head "):
             saw_header = True
             value = line.removeprefix("# branch.head ").strip()
-            branch = None if value.startswith("(") else normalized_text(value)
+            if value.startswith("("):
+                branch = None
+                if "rebase" in value:
+                    rebase = True
+            else:
+                branch = normalized_text(value)
         elif line.startswith("# branch.upstream "):
             upstream = normalized_text(line.removeprefix("# branch.upstream "))
         elif match := re.fullmatch(r"# branch\.ab \+(\d+) -(\d+)", line):
             ahead, behind = (int(value) for value in match.groups())
+        elif line.startswith("? "):
+            untracked = True
         elif not line.startswith("# "):
             dirty = True
     return (
-        VcsState(branch, dirty, True, upstream, ahead, behind)
+        VcsState(
+            branch,
+            dirty,
+            True,
+            upstream,
+            ahead,
+            behind,
+            untracked=untracked,
+            rebase=rebase,
+        )
         if saw_header and not _deadline_expired(deadline)
         else None
     )
@@ -51,7 +67,17 @@ def _build_vcs(vcs: VcsState, origin_stdout: bytes | None, deadline: float) -> V
         return None
     origin_url = normalized_text(origin_stdout.decode(errors="replace")) if origin_stdout is not None else None
     return (
-        VcsState(vcs.branch, vcs.dirty, vcs.is_repo, vcs.upstream, vcs.ahead, vcs.behind, origin_url)
+        VcsState(
+            vcs.branch,
+            vcs.dirty,
+            vcs.is_repo,
+            vcs.upstream,
+            vcs.ahead,
+            vcs.behind,
+            origin_url,
+            vcs.untracked,
+            vcs.rebase,
+        )
         if not _deadline_expired(deadline)
         else None
     )
