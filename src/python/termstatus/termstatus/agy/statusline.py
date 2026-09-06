@@ -154,7 +154,7 @@ _THINK_LEVELS: Final[dict[str, int]] = {
     "max": 3,
 }
 
-_CELL_BARS: Final[tuple[str, ...]] = ("▂", "▄", "█")
+_CELL_BARS: Final[tuple[str, ...]] = ("▂", "▅", "█")
 
 
 def _thinking_cellular_graph(effort: str | None) -> str:

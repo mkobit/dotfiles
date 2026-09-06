@@ -429,10 +429,10 @@ def test_meter_color_tiers() -> None:
 
 
 def test_thinking_cellular_graph() -> None:
-    assert strip_ansi(_thinking_cellular_graph("low")) == "▂▄█"
-    assert strip_ansi(_thinking_cellular_graph("medium")) == "▂▄█"
-    assert strip_ansi(_thinking_cellular_graph("high")) == "▂▄█"
-    assert strip_ansi(_thinking_cellular_graph("off")) == "▂▄█"
+    assert strip_ansi(_thinking_cellular_graph("low")) == "▂▅█"
+    assert strip_ansi(_thinking_cellular_graph("medium")) == "▂▅█"
+    assert strip_ansi(_thinking_cellular_graph("high")) == "▂▅█"
+    assert strip_ansi(_thinking_cellular_graph("off")) == "▂▅█"
 
     # Off: all 3 bars in dark grey, no cyan
     off = _thinking_cellular_graph("off")
