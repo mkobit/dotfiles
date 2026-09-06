@@ -14,4 +14,6 @@ Keep host-specific settings in ignored `.sbx/local.sbxenv.yaml` and merge it onl
 
 Run `sbx env rm` and recreate after changing kits, workspace mounts, ports, credentials, or sandbox options because `sbx env run` does not reprovision those fields on an existing environment.
 
+Resolve toolchain or package updates in-place inside an existing sandbox using `sbx exec <name> -- <command>`, or tear down the environment with `sbx env rm` for a clean rebuild.
+
 Read Docker’s [environment-file reference](https://docs.docker.com/ai/sandboxes/configuration/environment-files/) before using a field not present in the templates.

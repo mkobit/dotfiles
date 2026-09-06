@@ -13,7 +13,8 @@ Use this skill when the user asks to set up, run, or repair an SBX environment f
 4. Obtain confirmation before any host-side sandbox lifecycle, credential, network-policy, publishing, Git push, PR, CI, or merge action.
 5. For repository setup, read [repository setup](references/repository-setup.md) and [environment files](references/environment-files.md).
 6. For agent selection, read [agents](references/agents.md), and read [upstream pins](references/upstream-pins.md) before creating an AGY environment.
-7. Read [optional host overlays](references/optional-host-overlays.md) only when the user asks to compose host-managed skills or capabilities.
+7. For nested coordinator patterns and workload dispatch, read [nested execution](references/nested-execution.md).
+8. Read [optional host overlays](references/optional-host-overlays.md) only when the user asks to compose host-managed skills or capabilities.
 
 Do not use direct workspace mounts for autonomous work.
 Do not place secrets, bindings, registries, local-command MCP servers, or writable additional workspaces in tracked project environments.
