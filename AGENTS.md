@@ -23,7 +23,7 @@ The root coordinator owns overall architecture, branch management, credential-be
 
 - **Code research**: delegate codebase discovery, cross-file searches, documentation exploration, and dependency audits to read-only research subagents.
 - **Directed implementation**: delegate bounded modifications and refactors to subagents that execute iterative build and evaluation cycles (such as linting, formatting, and unit tests) before handing off clean diffs.
-- **Agentically executed sandboxes**: treat Docker Sandbox microVMs as agentic execution targets, dispatching unvetted dependencies, package installs, builds, and autonomous subagent workloads (`sbx env exec` or `sbx exec`) to protect host secrets and environments.
+- **Agentically executed sandboxes**: delegate tasks to run end-to-end inside Docker Sandbox microVMs (`sbx env exec` or `sbx exec`), probe execution with a subagent if needed, and verify completion on the host before committing or pushing.
 
 Keep delegation bounded with clear file ownership, constraints, and acceptance criteria.
 Favor general architectural principles and reusable patterns over hyper-specific, brittle rules that do not generalize to new development, other tools, or different repositories.

@@ -36,6 +36,7 @@ content = """
 ## Delegation
 - Root owns decomposition, architecture, unresolved ambiguity and risk, integration, and final judgment.
 - Delegate aggressively to keep root context clean: use read-only research subagents for discovery, and directed subagents for implementation tasks that run build and evaluation cycles (e.g. linters, tests).
+- Delegate tasks to run end-to-end in sandboxes; probe progress if needed, and inspect outputs on the host before committing or publishing.
 - Favor general architectural principles over hyper-specific, brittle constraints that fail to generalize across repositories and contexts.
 - Inspect available skills and agent roles; apply the narrowest relevant skill and prefer the narrowest capable specialist over a general agent.
 - Choose the least costly capable specialist; use a general agent only as fallback.

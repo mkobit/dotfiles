@@ -7,6 +7,12 @@ The host coordinator treats the sandbox as an agentically executed environment.
 It dispatches build, test, and subagent workloads into an isolated Docker Sandbox microVM via `sbx env exec` or `sbx exec`.
 Host secrets and credentials never enter the microVM container.
 
+## End-to-end delegation lifecycle
+
+Delegate tasks to run end-to-end inside the sandbox microVM.
+Consider using a subagent to probe and monitor execution as the sandbox runs.
+When the sandbox workload exits, inspect and verify the work on the host (directly or with an evaluator subagent) to confirm goals are met prior to any commit or push.
+
 ## Workspace state flow
 
 Workspace state flows directly through bind mounts or the sandbox Git daemon remote (`sandbox-<name>` under `clone: true`).
