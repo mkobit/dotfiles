@@ -21,13 +21,18 @@ from termstatus.agy.git import (
     resolve_vcs,
 )
 from termstatus.agy.protocol import Quota, VcsState, decode_payload
-from termstatus.agy.statusline import display_width, git_branch, render_statusline, strip_ansi
+from termstatus.agy.statusline import (
+    _thinking_cellular_graph,
+    display_width,
+    git_branch,
+    render_statusline,
+    strip_ansi,
+)
 from termstatus.agy.term_colors import (
     _STATE_COLORS,
     GREEN,
     ORANGE,
     RED,
-    SKY_BLUE,
     YELLOW,
     fullness_icon,
     meter_color,
@@ -99,7 +104,7 @@ def test_wide_render_uses_four_conditional_rows() -> None:
     )
     assert " • " in lines[0]
     assert "/work/repo" in lines[1]
-    assert "82% ctx" in lines[1] and "5h ◑ 50%" in lines[1] and "7d ○ 10%" in lines[1]
+    assert "82% ctx" in lines[1] and "5h ◕ 50%" in lines[1] and "7d ◔ 10%" in lines[1]
     assert "$0.01" in lines[1]
     assert " • " in lines[1]
     assert "<feature/renderer => origin/feature/renderer>" in lines[2]
@@ -157,7 +162,7 @@ def test_detached_dirty_repository_still_shows_dirty_state() -> None:
 
 
 def test_quota_without_reset_is_rendered() -> None:
-    assert "quota ◑ 50%" in "\n".join(rendered({"quota": {"quota": {"remaining_percentage": 50}}}))
+    assert "quota ◕ 50%" in "\n".join(rendered({"quota": {"quota": {"remaining_percentage": 50}}}))
 
 
 def test_decoded_quotas_are_immutable_and_use_time_delta_resets() -> None:
@@ -395,25 +400,40 @@ def test_directory_shortening_and_link() -> None:
 
 def test_fullness_icon() -> None:
     assert fullness_icon(100) == "●"
-    assert fullness_icon(75) == "◕"
-    assert fullness_icon(50) == "◑"
-    assert fullness_icon(25) == "◔"
+    assert fullness_icon(78) == "●"
+    assert fullness_icon(75) == "●"
+    assert fullness_icon(70) == "◕"
+    assert fullness_icon(50) == "◕"
+    assert fullness_icon(45) == "◑"
+    assert fullness_icon(25) == "◑"
+    assert fullness_icon(18) == "◔"
+    assert fullness_icon(5) == "◔"
+    assert fullness_icon(4) == "○"
     assert fullness_icon(0) == "○"
     # Backwards-compatibility alias
     assert moon_icon(100) == "●"
 
 
-def test_meter_color_fifths() -> None:
+def test_meter_color_tiers() -> None:
     assert meter_color(95) == GREEN
-    assert meter_color(80) == GREEN
-    assert meter_color(75) == SKY_BLUE
-    assert meter_color(60) == SKY_BLUE
-    assert meter_color(50) == YELLOW
+    assert meter_color(78) == GREEN
+    assert meter_color(70) == GREEN
+    assert meter_color(60) == YELLOW
     assert meter_color(40) == YELLOW
     assert meter_color(30) == ORANGE
-    assert meter_color(20) == ORANGE
+    assert meter_color(18) == ORANGE
+    assert meter_color(15) == ORANGE
+    assert meter_color(14) == RED
     assert meter_color(10) == RED
     assert meter_color(0) == RED
+
+
+def test_thinking_cellular_graph() -> None:
+    assert strip_ansi(_thinking_cellular_graph("low")) == "▂  "
+    assert strip_ansi(_thinking_cellular_graph("medium")) == "▂▄ "
+    assert strip_ansi(_thinking_cellular_graph("high")) == "▂▄█"
+    assert _thinking_cellular_graph(None) == ""
+    assert _thinking_cellular_graph("unknown") == ""
 
 
 def test_resilience_against_malformed_and_extreme_inputs() -> None:

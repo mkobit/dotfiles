@@ -143,6 +143,34 @@ def _fit_slots(slots: Sequence[_Slot], width: int) -> str | None:
     return SEPARATOR.join(chosen) or None
 
 
+_THINK_LEVELS: Final[dict[str, int]] = {
+    "off": 0,
+    "none": 0,
+    "low": 1,
+    "medium": 2,
+    "med": 2,
+    "high": 3,
+    "max": 3,
+}
+
+_CELL_BARS: Final[tuple[str, ...]] = ("▂", "▄", "█")
+_CELL_EMPTY: Final[str] = " "
+
+
+def _thinking_cellular_graph(effort: str | None) -> str:
+    if not effort:
+        return ""
+    low = effort.lower().strip()
+    if low in _THINK_LEVELS:
+        lvl = _THINK_LEVELS[low]
+    elif low.isdigit():
+        lvl = max(0, min(3, int(low)))
+    else:
+        return ""
+    bars = [f"{CYAN}{_CELL_BARS[i]}{RESET}" if i < lvl else f"{DIM}{_CELL_EMPTY}{RESET}" for i in range(3)]
+    return "".join(bars)
+
+
 def _identity_slots(payload: AgyPayload) -> list[_Slot]:
     icon = state_icon(payload.state)
     icon_prefix = f"{icon} " if icon else ""
@@ -152,7 +180,12 @@ def _identity_slots(payload: AgyPayload) -> list[_Slot]:
     model = _model_name(payload.model, payload.effort)
     model_text = f"{BOLD}{model}{RESET}" if model else None
     brain = "🧠 " if use_icons() else ""
-    think_text = f"{brain}{DIM}think:{RESET}{payload.effort}" if payload.effort else None
+    graph = (
+        f"{_thinking_cellular_graph(payload.effort)} "
+        if use_icons() and _thinking_cellular_graph(payload.effort)
+        else ""
+    )
+    think_text = f"{brain}{graph}{DIM}think:{RESET}{payload.effort}" if payload.effort else None
     mode_text = f"{DIM}{payload.execution_mode}{RESET}" if payload.execution_mode else None
     plan_text = f"{DIM}plan:{RESET}{payload.plan_tier}" if payload.plan_tier else None
 
