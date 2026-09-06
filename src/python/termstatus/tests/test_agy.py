@@ -4,6 +4,7 @@ import json
 import sys
 from collections.abc import Iterable, Mapping, MutableMapping
 from dataclasses import FrozenInstanceError
+from pathlib import Path
 from typing import SupportsIndex, cast, override
 from unittest.mock import AsyncMock, patch
 
@@ -20,8 +21,23 @@ from termstatus.agy.git import (
     resolve_vcs,
 )
 from termstatus.agy.protocol import Quota, VcsState, decode_payload
-from termstatus.agy.statusline import display_width, git_branch, render_statusline, strip_ansi
-from termstatus.agy.term_colors import _STATE_COLORS
+from termstatus.agy.statusline import (
+    _thinking_cellular_graph,
+    display_width,
+    git_branch,
+    render_statusline,
+    strip_ansi,
+)
+from termstatus.agy.term_colors import (
+    _STATE_COLORS,
+    GREEN,
+    ORANGE,
+    RED,
+    YELLOW,
+    fullness_icon,
+    meter_color,
+    moon_icon,
+)
 from termstatus.main import main
 
 FULL_PAYLOAD = {
@@ -76,7 +92,7 @@ def test_wide_render_uses_four_conditional_rows() -> None:
             (
                 "working",
                 "GPT-5.6",
-                "high",
+                "think:high",
                 "autonomous",
                 "plan:full",
                 "sandbox:no-net",
@@ -86,13 +102,17 @@ def test_wide_render_uses_four_conditional_rows() -> None:
             strict=True,
         )
     )
+    assert " • " in lines[0]
     assert "/work/repo" in lines[1]
-    assert "82% ctx" in lines[1] and "codex-5h:50%" in lines[1] and "codex-weekly:10%" in lines[1]
+    assert "82% ctx" in lines[1] and "5h ◕ 50%" in lines[1] and "7d ◔ 10%" in lines[1]
     assert "$0.01" in lines[1]
-    assert "feature/renderer*" in lines[2] and "origin/feature/renderer" in lines[2]
-    assert "ahead:2" in lines[2] and "behind:1" in lines[2]
+    assert " • " in lines[1]
+    assert "<feature/renderer → origin/feature/renderer>" in lines[2]
+    assert "!" in lines[2]
+    assert "↑2" in lines[2] and "↓1" in lines[2]
     assert "tasks:3" in lines[3] and "input:2" in lines[3]
     assert "confirm" in lines[3] and "artifacts:1" in lines[3]
+    assert " • " in lines[3]
 
 
 def test_narrow_render_omits_lower_priority_slots_without_overflowing() -> None:
@@ -107,23 +127,32 @@ def test_payload_display_text_cannot_inject_terminal_controls_or_rows() -> None:
     output = render_statusline(
         decode_payload(
             {
-                "agent_state": "working\x1b[31m",
+                "agent_state": "working\x1b[41m",
                 "cwd": "/work\nrepo",
                 "model": {"display_name": "model\x1b]8;;bad\x1b\\"},
-                "quota": {"quota\nname\x1b[31m": {"remaining_percentage": 50}},
+                "quota": {"quota\nname\x1b[41m": {"remaining_percentage": 50}},
                 "terminal_width": 160,
             }
         ),
-        VcsState("branch\nname\x1b[31m", True, True),
+        VcsState("branch\nname\x1b[41m", True, True),
     )
 
     assert output.count("\n") == 2
-    assert "\x1b[31m" not in output
+    assert "\x1b[41m" not in output
     assert "\r" not in output
 
 
-def test_disabled_sandbox_is_rendered() -> None:
-    assert "sandbox:off" in "\n".join(rendered({"sandbox": {"enabled": False}, "terminal_width": 160}))
+def test_disabled_sandbox_is_hidden() -> None:
+    assert "sandbox:off" not in "\n".join(rendered({"sandbox": {"enabled": False}, "terminal_width": 160}))
+
+
+def test_enabled_sandbox_is_rendered() -> None:
+    assert "sandbox:net" in "\n".join(
+        rendered({"sandbox": {"enabled": True, "allow_network": True}, "terminal_width": 160})
+    )
+    assert "sandbox:no-net" in "\n".join(
+        rendered({"sandbox": {"enabled": True, "allow_network": False}, "terminal_width": 160})
+    )
 
 
 def test_detached_dirty_repository_still_shows_dirty_state() -> None:
@@ -133,7 +162,7 @@ def test_detached_dirty_repository_still_shows_dirty_state() -> None:
 
 
 def test_quota_without_reset_is_rendered() -> None:
-    assert "quota:50%" in "\n".join(rendered({"quota": {"quota": {"remaining_percentage": 50}}}))
+    assert "quota ◕ 50%" in "\n".join(rendered({"quota": {"quota": {"remaining_percentage": 50}}}))
 
 
 def test_decoded_quotas_are_immutable_and_use_time_delta_resets() -> None:
@@ -167,6 +196,14 @@ def test_missing_optional_fields_omit_empty_rows_and_sensitive_fields() -> None:
 
     assert lines == ["[idle]"]
     assert "person@example.com" not in "\n".join(lines)
+
+
+def test_state_icon_inside_brackets() -> None:
+    lines = rendered({"agent_state": "working"})
+    assert "[🔄 working]" in lines[0]
+
+    thinking = rendered({"agent_state": "thinking"})
+    assert "[🧠 thinking]" in thinking[0]
 
 
 def test_reasoning_precedence_is_model_effort_then_reasoning_then_top_level() -> None:
@@ -240,7 +277,8 @@ def test_resolution_error_uses_payload_branch_and_dirty_fallback_only(
         render_from_stdin()
 
     output = strip_ansi(capsys.readouterr().out)
-    assert "payload*" in output
+    assert "payload" in output
+    assert "\uf06a" in output or "!" in output
     assert "stale" not in output and "ahead:2" not in output
 
 
@@ -280,8 +318,160 @@ def test_parse_git_status_rejects_oversized_stdout() -> None:
 def test_osc8_git_branch_uses_only_visible_width_when_fitting_slots() -> None:
     vcs = VcsState("界界", False, True, origin_url="git@github.com:stripe/example.git")
 
-    assert display_width(git_branch(vcs) or "") == 4
+    assert display_width(git_branch(vcs) or "") == 10
     assert "界界" in render_statusline(decode_payload({"terminal_width": 10}), vcs)
+
+
+def test_branch_status_icons() -> None:
+    clean = git_branch(VcsState("main", False, True))
+    assert clean is not None
+    assert "\x1b[35m" in clean  # Magenta branch
+    assert "\x1b[32m" in clean  # Green clean icon
+    assert "✓" in clean
+    assert "[" in clean and "]" in clean
+
+    dirty = git_branch(VcsState("main", True, True))
+    assert dirty is not None
+    assert "\x1b[35m" in dirty  # Magenta branch
+    assert "\x1b[33m" in dirty  # Yellow dirty icon
+    assert "!" in dirty
+    assert "[" in dirty and "]" in dirty
+
+    complex_vcs = git_branch(VcsState("feature", True, True, ahead=3, behind=1, rebase=True, untracked=True))
+    assert complex_vcs is not None
+    assert "rebase" in complex_vcs
+    assert "!" in complex_vcs
+    assert "?" in complex_vcs
+    assert "↑3" in complex_vcs
+    assert "↓1" in complex_vcs
+
+
+def test_branch_pairing_format() -> None:
+    paired = git_branch(VcsState("main", False, True, upstream="origin/main"))
+    assert paired is not None
+    assert "<main → origin/main>" in strip_ansi(paired)
+    assert "\x1b[35m" in paired  # Magenta local branch
+    assert "\x1b[36m" in paired  # Cyan remote branch
+    assert "[✓]" in strip_ansi(paired)
+
+    unpaired = git_branch(VcsState("feature/local", True, True))
+    assert unpaired is not None
+    assert "<" not in strip_ansi(unpaired) and "→" not in strip_ansi(unpaired)
+    assert "feature/local [!]" in strip_ansi(unpaired)
+
+
+def test_3p_quotas_filtered_and_quota_meters_formatted() -> None:
+    lines = rendered(
+        {
+            "quota": {
+                "3p-5h": {"remaining_percentage": 100},
+                "3p-weekly": {"remaining_percentage": 100},
+                "gemini-5h": {"remaining_percentage": 97},
+                "gemini-weekly": {"remaining_percentage": 84},
+            },
+            "terminal_width": 160,
+        }
+    )
+    plain = "\n".join(lines)
+    assert "3p-5h" not in plain
+    assert "3p-weekly" not in plain
+    assert "capacity:" not in plain
+    assert "[5h ● 97%] [7d ● 84%]" in plain
+
+
+def test_model_name_strips_effort_case_insensitively() -> None:
+    lines = rendered(
+        {
+            "model": {"display_name": "Gemini 3.8 Flash (Medium)"},
+            "effort": "medium",
+            "terminal_width": 160,
+        }
+    )
+    assert "Gemini 3.8 Flash" in lines[0]
+    assert "think:medium" in lines[0]
+    assert "Gemini 3.8 Flash (Medium)" not in lines[0]
+
+
+def test_directory_shortening_and_link() -> None:
+    home = str(Path.home())
+    lines = rendered({"cwd": f"{home}/.local/share/chezmoi", "terminal_width": 160})
+    assert "~/.local/share/chezmoi" in lines[1]
+
+
+def test_fullness_icon() -> None:
+    assert fullness_icon(100) == "●"
+    assert fullness_icon(78) == "●"
+    assert fullness_icon(75) == "●"
+    assert fullness_icon(70) == "◕"
+    assert fullness_icon(50) == "◕"
+    assert fullness_icon(45) == "◑"
+    assert fullness_icon(25) == "◑"
+    assert fullness_icon(18) == "◔"
+    assert fullness_icon(5) == "◔"
+    assert fullness_icon(4) == "○"
+    assert fullness_icon(0) == "○"
+    # Backwards-compatibility alias
+    assert moon_icon(100) == "●"
+
+
+def test_meter_color_tiers() -> None:
+    assert meter_color(95) == GREEN
+    assert meter_color(78) == GREEN
+    assert meter_color(70) == GREEN
+    assert meter_color(60) == YELLOW
+    assert meter_color(40) == YELLOW
+    assert meter_color(30) == ORANGE
+    assert meter_color(18) == ORANGE
+    assert meter_color(15) == ORANGE
+    assert meter_color(14) == RED
+    assert meter_color(10) == RED
+    assert meter_color(0) == RED
+
+
+def test_thinking_cellular_graph() -> None:
+    assert strip_ansi(_thinking_cellular_graph("low")) == "▂▅█"
+    assert strip_ansi(_thinking_cellular_graph("medium")) == "▂▅█"
+    assert strip_ansi(_thinking_cellular_graph("high")) == "▂▅█"
+    assert strip_ansi(_thinking_cellular_graph("off")) == "▂▅█"
+
+    # Off: all 3 bars in dark grey, no cyan
+    off = _thinking_cellular_graph("off")
+    assert "\x1b[36m" not in off
+    assert "\x1b[90m" in off
+
+    # Low: 1st bar cyan, remaining dark grey
+    low = _thinking_cellular_graph("low")
+    assert low.count("\x1b[36m") == 1
+    assert low.count("\x1b[90m") == 2
+
+    # Medium: 2 bars cyan, 1 dark grey
+    med = _thinking_cellular_graph("medium")
+    assert med.count("\x1b[36m") == 2
+    assert med.count("\x1b[90m") == 1
+
+    # High: all 3 cyan, no dark grey
+    high = _thinking_cellular_graph("high")
+    assert high.count("\x1b[36m") == 3
+    assert "\x1b[90m" not in high
+
+    assert _thinking_cellular_graph(None) == ""
+    assert _thinking_cellular_graph("unknown") == ""
+
+
+def test_resilience_against_malformed_and_extreme_inputs() -> None:
+    for bad in (float("nan"), float("inf"), float("-inf")):
+        assert meter_color(bad) is not None
+        assert fullness_icon(bad) is not None
+
+    raw = {
+        "cwd": "///invalid/path/\\//",
+        "context_window": {"remaining_percentage": -50},
+        "cost": {"estimated": float("inf")},
+        "terminal_width": -1,
+        "quota": {"": {"remaining_percentage": 999}},
+    }
+    output = render_statusline(decode_payload(raw), VcsState(None, False, False))
+    assert isinstance(output, str)
 
 
 @pytest.mark.asyncio

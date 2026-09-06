@@ -31,6 +31,8 @@ class VcsState:
     ahead: int = 0
     behind: int = 0
     origin_url: str | None = None
+    untracked: bool = False
+    rebase: bool = False
 
 
 @dataclass(frozen=True, slots=True)
@@ -131,6 +133,9 @@ def decode_vcs(raw: Mapping[str, object]) -> VcsState | None:
         normalized_text(raw.get("upstream")),
         max(0, integer(raw.get("ahead")) or 0),
         max(0, integer(raw.get("behind")) or 0),
+        normalized_text(raw.get("origin_url")),
+        bool(raw.get("untracked", False)),
+        bool(raw.get("rebase", False)),
     )
 
 
