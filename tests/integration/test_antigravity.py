@@ -78,3 +78,11 @@ def test_legacy_gemini_settings_removed(host, chezmoi_dest):
     """Verify ~/.gemini/settings.json does not exist after chezmoi apply."""
     legacy_file = host.file(str(chezmoi_dest / ".gemini" / "settings.json"))
     assert not legacy_file.exists, "~/.gemini/settings.json still exists"
+
+
+@pytest.mark.integration
+def test_antigravity_show_feedback_survey_disabled() -> None:
+    result = _render_antigravity_settings("{}", "preinstalled")
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert rendered.get("general", {}).get("showFeedbackSurvey") is False
