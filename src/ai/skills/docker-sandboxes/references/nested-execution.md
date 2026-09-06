@@ -2,7 +2,7 @@
 
 ## Coordinator and sandbox roles
 
-The host agent acts as the root coordinator holding host credentials (SSH keys, GitHub tokens, Dolt remotes) to manage branching, quality gates, and PR delivery.
+The host agent acts as the root coordinator holding host credentials (SSH keys, forge tokens, database remotes) to manage branching, quality gates, and PR delivery.
 The host coordinator treats the sandbox as an agentically executed environment.
 It dispatches build, test, and subagent workloads into an isolated Docker Sandbox microVM via `sbx env exec` or `sbx exec`.
 Host secrets and credentials never enter the microVM container.
@@ -15,5 +15,5 @@ Autonomous subagent tasks use `clone: true` so the agent works in an isolated in
 
 ## Toolchain updates
 
-Toolchain bumps (e.g. Bun or Node via mise) are resolved in-place inside an existing sandbox using `sbx exec <name> -- mise install -y`.
+Resolve toolchain or package updates in-place inside an existing sandbox using `sbx exec <name> -- <command>`.
 Alternatively, resolve toolchain updates by tearing down the environment with `sbx env rm` for a clean kit rebuild.
