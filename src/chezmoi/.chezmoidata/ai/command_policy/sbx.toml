@@ -17,6 +17,7 @@
 #     authorizes, or mutates MCP servers; always prompt.
 [ai.command_policy.commands]
 "sbx --help" = "allow"
+"sbx --version" = "allow"
 "sbx completion --help" = "allow"
 "sbx completion bash --help" = "allow"
 "sbx completion fish --help" = "allow"
@@ -45,6 +46,7 @@
 "sbx env run --help" = "allow"
 "sbx exec --help" = "allow"
 "sbx help" = "allow"
+"sbx kit" = "allow"
 "sbx kit --help" = "allow"
 "sbx kit add --help" = "allow"
 "sbx kit inspect --help" = "allow"
