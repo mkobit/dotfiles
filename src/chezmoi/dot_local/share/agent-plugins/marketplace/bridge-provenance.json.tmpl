@@ -1,0 +1,20 @@
+{{- $marketplace := .ai.plugin_bridge.marketplace -}}
+{{- $capabilities := list -}}
+{{- range $capabilityName := keys .ai.plugin_bridge.capabilities | sortAlpha -}}
+{{-   $capability := index $.ai.plugin_bridge.capabilities $capabilityName -}}
+{{-   $upstreamSources := list -}}
+{{-   if eq $capabilityName "mkobit-dotfiles" -}}
+{{-     range $sourceName := keys (dig "external" (dict) $.ai.skills) | sortAlpha -}}
+{{-       $source := index $.ai.skills.external $sourceName -}}
+{{-       $url := dig "url" "" $source -}}
+{{-       if not $url -}}
+{{-         $hostName := dig "host" "github" $source -}}
+{{-         $host := dig $hostName (dict) $.ai.skills.hosts -}}
+{{-         $url = $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
+{{-       end -}}
+{{-       $upstreamSources = append $upstreamSources (dict "name" $sourceName "url" $url "ref" $source.ref "sha256" $source.sha256) -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $capabilities = append $capabilities (dict "name" $capabilityName "description" $capability.description "source" $marketplace.source "trust_class" $marketplace.trust_class "upstream_sources" $upstreamSources) -}}
+{{- end -}}
+{{- dict "marketplace" (dict "name" $marketplace.name "owner" $marketplace.owner "source" $marketplace.source "trust_class" $marketplace.trust_class) "capabilities" $capabilities | toPrettyJson -}}

@@ -23,6 +23,17 @@
 {{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
 {{- $config := dict -}}
 {{- $selectedSkills := dict -}}
+{{- $authoredPackagePaths := dict -}}
+{{- range $skillName, $state := dig "authored" (dict) $cfg -}}
+{{-   if eq $state "present" -}}
+{{-     $_ := set $authoredPackagePaths (printf "%s/%s" $portable $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     range $_, $skillsDir := $tools -}}
+{{-       $_ := set $authoredPackagePaths (printf "%s/%s" $skillsDir $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     end -}}
+{{-   else if hasKey $tools $state -}}
+{{-     $_ := set $authoredPackagePaths (printf "%s/%s" (index $tools $state) $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-   end -}}
+{{- end -}}
 {{- range $sourceName, $source := $cfg.external -}}
 {{-   range $skillName, $state := dig "skills" (dict) $source -}}
 {{-     if or (eq $state "present") (hasKey $tools $state) -}}
@@ -30,6 +41,20 @@
 {{-         fail (printf "duplicate capability skill %q from ai.skills.external.%s and ai.skills.external.%s" $skillName (index $selectedSkills $skillName) $sourceName) -}}
 {{-       end -}}
 {{-       $_ := set $selectedSkills $skillName $sourceName -}}
+{{-       $externalPackagePaths := list -}}
+{{-       if eq $state "present" -}}
+{{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $portable $skillName) -}}
+{{-         range $_, $skillsDir := $tools -}}
+{{-           $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $skillsDir $skillName) -}}
+{{-         end -}}
+{{-       else -}}
+{{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" (index $tools $state) $skillName) -}}
+{{-       end -}}
+{{-       range $path := $externalPackagePaths -}}
+{{-         if hasKey $authoredPackagePaths $path -}}
+{{-           fail (printf "duplicate capability package path %q from ai.skills.external.%s.skills.%s and %s" $path $sourceName $skillName (index $authoredPackagePaths $path)) -}}
+{{-         end -}}
+{{-       end -}}
 {{-       if or (not (dig "ref" "" $source)) (not (dig "sha256" "" $source)) -}}
 {{-         fail (printf "ai.skills.external.%s: ref and sha256 are required (versions are always pinned)" $sourceName) -}}
 {{-       end -}}
