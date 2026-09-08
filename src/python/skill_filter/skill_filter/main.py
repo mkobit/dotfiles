@@ -434,25 +434,18 @@ def reconcile_plugins(
     verified_identities = set()
     for operation in operations:
         if operation.action in ("install", "adopt"):
-            try:
-                output = tuple(execute(operation))
-                if operation.action == "adopt":
-                    resource = desired_by_identity[
-                        (operation.kind, operation.host, operation.resource_id)
-                    ]
-                    if tuple(sorted(output)) != tuple(sorted(resource.expected_skills)):
-                        raise FilterError(
-                            f"plugin {resource.resource_id!r} on {resource.host!r} "
-                            f"has skills {output!r}, expected "
-                            f"{resource.expected_skills!r}"
-                        )
-                    verified_identities.add(identity(resource))
-            except Exception:
-                _replace_manifest_atomically(
-                    ownership_path,
-                    _render_plugin_ownership(managed_by_identity.values()),
-                )
-                raise
+            output = tuple(execute(operation))
+            if operation.action == "adopt":
+                resource = desired_by_identity[
+                    (operation.kind, operation.host, operation.resource_id)
+                ]
+                if tuple(sorted(output)) != tuple(sorted(resource.expected_skills)):
+                    raise FilterError(
+                        f"plugin {resource.resource_id!r} on {resource.host!r} "
+                        f"has skills {output!r}, expected "
+                        f"{resource.expected_skills!r}"
+                    )
+                verified_identities.add(identity(resource))
             managed_by_identity[
                 (operation.kind, operation.host, operation.resource_id)
             ] = desired_by_identity[

@@ -379,10 +379,7 @@ class TestPluginReconciliation:
                 lambda _: None,
             )
 
-        assert json.loads(ownership_file.read_text(encoding="utf-8")) == {
-            "resources": [],
-            "version": 1,
-        }
+        assert not ownership_file.exists()
 
     @pytest.mark.parametrize(
         "mapping",
@@ -575,9 +572,8 @@ class TestPluginReconciliation:
         assert cleaned == []
         assert ownership_file.read_text(encoding="utf-8") == prior
 
-    def test_install_failure_records_only_prior_successes(self, tmp_path):
+    def test_install_failure_does_not_record_partial_ownership(self, tmp_path):
         parse_plan = bridge_helper("parse_plugin_plan")
-        parse_ownership = bridge_helper("parse_plugin_ownership")
         reconcile = bridge_helper("reconcile_plugins")
         ownership_file = tmp_path / ".local/state/dotfiles/agent-plugin-ownership.json"
         plan = parse_plan(
@@ -606,10 +602,7 @@ class TestPluginReconciliation:
             )
 
         assert cleaned == []
-        assert [
-            (resource.kind, resource.host, resource.resource_id)
-            for resource in parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        ] == [("marketplace", "claude", "dotfiles")]
+        assert not ownership_file.exists()
 
     def test_cleanup_failure_records_successfully_verified_installs(self, tmp_path):
         parse_plan = bridge_helper("parse_plugin_plan")
