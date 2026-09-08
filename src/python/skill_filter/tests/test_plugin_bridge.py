@@ -393,6 +393,31 @@ class TestPluginReconciliation:
 
         assert executed == []
 
+    def test_allows_direct_antigravity_cleanup_without_a_plugin_mapping(self, tmp_path):
+        parse_plan = bridge_helper("parse_plugin_plan")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        legacy_root = ".gemini/antigravity-cli/skills/retired"
+        stale_skill = tmp_path / legacy_root
+        stale_skill.mkdir(parents=True)
+        (stale_skill / "SKILL.md").write_text("# retired\n", encoding="utf-8")
+        cleanup_plan = legacy_cleanup(tmp_path, prior=(legacy_root,))
+        cleanup_plan["direct_roots"] = [legacy_root]
+        plan = parse_plan(rendered_plan([], legacy_cleanup=cleanup_plan))
+
+        reconcile(
+            tmp_path,
+            ownership_file,
+            plan,
+            lambda _: (),
+            MAIN_MODULE._cleanup_legacy_skill_roots,
+        )
+
+        assert not stale_skill.exists()
+        assert (
+            tmp_path / ".local/state/dotfiles/skill-roots.manifest"
+        ).read_text(encoding="utf-8") == ""
+
     def test_verifies_before_cleanup_and_preserves_unmanaged_plugins(self, tmp_path):
         parse_plan = bridge_helper("parse_plugin_plan")
         reconcile = bridge_helper("reconcile_plugins")

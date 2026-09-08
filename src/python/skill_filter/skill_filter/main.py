@@ -334,8 +334,23 @@ def _validate_legacy_cleanup_plan(dest_dir: Path, desired: PluginPlan) -> None:
         prior_roots = parse_skill_root_manifest(manifest.read_text(encoding="utf-8"))
         validate_skill_root_manifest(destination, prior_roots)
     cleanup_roots = set(prior_roots) - set(desired_roots)
+    direct_roots = cleanup.get("direct_roots", [])
+    if not isinstance(direct_roots, list) or not all(
+        isinstance(root, str) for root in direct_roots
+    ):
+        raise FilterError("legacy direct cleanup roots must be a list of paths")
+    direct_root_set = set(direct_roots)
+    if len(direct_root_set) != len(direct_roots):
+        raise FilterError("legacy direct cleanup roots contain a duplicate entry")
+    expected_direct_roots = {
+        root
+        for root in cleanup_roots
+        if _skill_root_parent(root) == ".gemini/antigravity-cli/skills"
+    }
+    if direct_root_set != expected_direct_roots:
+        raise FilterError("legacy direct cleanup roots do not match Antigravity cleanup roots")
     mappings_by_root = {mapping[0]: mapping[1:] for mapping in desired.skill_mappings}
-    if set(mappings_by_root) != cleanup_roots:
+    if set(mappings_by_root) != cleanup_roots - direct_root_set:
         raise FilterError("legacy cleanup mapping does not match cleanup roots")
     plugins = {
         (resource.host, resource.resource_id): set(resource.expected_skills)
