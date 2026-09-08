@@ -22,6 +22,12 @@ show_feedback_survey = false
 vim_mode = true
 vim_insert_first = true
 
+# Default keybindings reference: https://antigravity.google/docs/cli/reference/#default-keybindings
+# Vim keybindings customization: https://antigravity.google/docs/cli/vim-editor-mode/#customize-the-submit-and-newline-keys
+[gemini.keybindings]
+"vim.insert.insert_newline" = ["alt+enter", "ctrl+j", "shift+enter"]
+"vim.insert.submit" = ["ctrl+enter", "ctrl+s", "enter"]
+
 # Session Management: https://developers.googleblog.com/pick-up-exactly-where-you-left-off-with-session-management-in-gemini-cli/
 [gemini.general.sessionRetention]
 enabled = true
