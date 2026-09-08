@@ -1,6 +1,6 @@
 {{- $marketplace := .ai.plugin_bridge.marketplace -}}
 {{- $plugins := list -}}
 {{- range $name, $capability := .ai.plugin_bridge.capabilities -}}
-{{-   $plugins = append $plugins (dict "name" $name "source" (dict "source" $marketplace.source "path" (printf "./plugins/%s" $name)) "policy" (dict "installation" "AVAILABLE" "authentication" "ON_INSTALL") "category" "Productivity") -}}
+{{-   $plugins = append $plugins (dict "name" $name "source" (dict "source" $marketplace.source "path" (printf "./plugins/%s/codex" $name)) "policy" (dict "installation" "AVAILABLE" "authentication" "ON_INSTALL") "category" "Productivity") -}}
 {{- end -}}
 {{- dict "name" $marketplace.name "interface" (dict "displayName" "Dotfiles") "plugins" $plugins | toPrettyJson -}}

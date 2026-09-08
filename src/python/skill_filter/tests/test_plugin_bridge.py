@@ -41,6 +41,7 @@ def marketplace(host: str, resource_id: str, fingerprint: str = "market-v1"):
         "id": resource_id,
         "fingerprint": fingerprint,
         "install": [host, "marketplace", "add", resource_id],
+        "update": [host, "marketplace", "update", resource_id],
         "uninstall": [host, "marketplace", "remove", resource_id],
     }
 
@@ -57,7 +58,9 @@ def plugin(
         "id": resource_id,
         "fingerprint": fingerprint,
         "install": [host, "plugin", "install", resource_id],
+        "update": [host, "plugin", "update", resource_id],
         "uninstall": [host, "plugin", "uninstall", resource_id],
+        "status": [host, "plugin", "status", resource_id, "--json"],
         "verify": [host, "plugin", "skills", resource_id, "--json"],
         "expected_skills": skills,
     }
@@ -151,7 +154,9 @@ class TestPluginPlanning:
         expected = [
             ("install", "marketplace", "claude", "dotfiles"),
             ("install", "marketplace", "cursor", "dotfiles"),
+            ("preflight", "plugin", "claude", "bridge@dotfiles"),
             ("install", "plugin", "claude", "bridge@dotfiles"),
+            ("preflight", "plugin", "cursor", "bridge"),
             ("install", "plugin", "cursor", "bridge"),
         ]
         assert operation_keys(forward) == expected
@@ -197,11 +202,35 @@ class TestPluginPlanning:
         operations = plan_operations(desired, owned)
 
         assert operation_keys(operations) == [
-            ("install", "plugin", "claude", "bridge@dotfiles"),
+            ("update", "plugin", "claude", "bridge@dotfiles"),
+            ("preflight", "plugin", "cursor", "bridge"),
             ("install", "plugin", "cursor", "bridge"),
             ("uninstall", "plugin", "claude", "obsolete@dotfiles"),
             ("uninstall", "marketplace", "claude", "obsolete-market"),
         ]
+
+    def test_plans_documented_marketplace_update_for_changed_fingerprint(self):
+        parse_plan = bridge_helper("parse_plugin_plan")
+        parse_ownership = bridge_helper("parse_plugin_ownership")
+        plan_operations = bridge_helper("plan_plugin_operations")
+        desired = parse_plan(
+            rendered_plan([marketplace("codex", "dotfiles", "market-v2")])
+        )
+        owned = parse_ownership(
+            json.dumps(
+                {
+                    "version": 1,
+                    "resources": [marketplace("codex", "dotfiles", "market-v1")],
+                }
+            )
+        )
+
+        (operation,) = plan_operations(desired, owned)
+
+        assert (operation.action, operation.argv) == (
+            "update",
+            ("codex", "marketplace", "update", "dotfiles"),
+        )
 
     @pytest.mark.parametrize(
         "mappings",
@@ -520,6 +549,7 @@ class TestPluginReconciliation:
 
         assert events == [
             ("install", "marketplace", "claude", "dotfiles"),
+            ("preflight", "plugin", "claude", "bridge@dotfiles"),
             ("install", "plugin", "claude", "bridge@dotfiles"),
             ("verify", "plugin", "claude", "bridge@dotfiles"),
             (
@@ -694,4 +724,4 @@ class TestPluginReconciliation:
         )
 
         assert result == 0
-        assert actions == ["install", "verify"]
+        assert actions == ["preflight", "install", "verify"]

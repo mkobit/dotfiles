@@ -9,14 +9,14 @@
   that bare file directly rather than a subtree.
   The filter must stay stdlib-only because uv and mise are not installed until
   after apply; python/filter-interpreter resolves which interpreter runs it.
-  Portable, Claude, Codex, and Cursor snapshots retain the existing state
+  Portable, Claude, Codex, and Cursor package roots retain the existing state
   targeting under the stable mkobit-dotfiles capability identity. Antigravity
   remains on its existing flattened global skill lifecycle. Overlays deselect
   skills via "absent" states rather than disabling a target.
 */ -}}
 {{- $cfg := .ai.skills -}}
 {{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
-{{- $tools := dict "claude" (printf "%s/.claude-plugin/skills" $bundle) "codex" (printf "%s/.codex-plugin/skills" $bundle) "cursor" (printf "%s/.cursor-plugin/skills" $bundle) -}}
+{{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}
 {{- $portable := printf "%s/skills" $bundle -}}
 {{- $antigravity := ".gemini/antigravity-cli/skills" -}}
 {{- $python := includeTemplate "python/filter-interpreter" . -}}

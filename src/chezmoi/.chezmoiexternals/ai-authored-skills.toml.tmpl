@@ -6,11 +6,11 @@
   straight from the working tree and refreshPeriod re-reads them on every
   apply, keeping package snapshots in sync with local edits. The state-manifest
   cleanup hook continues to manage Antigravity's flattened global skill roots.
-  Because file externals are not exact, deleting an individual file from a
-  still-present skill does not prune that file.
+  The after-phase package-root cleanup script removes stale package skill
+  directories and ancillary files after these externals render current content.
 */ -}}
 {{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
-{{- $tools := dict "claude" (printf "%s/.claude-plugin/skills" $bundle) "codex" (printf "%s/.codex-plugin/skills" $bundle) "cursor" (printf "%s/.cursor-plugin/skills" $bundle) -}}
+{{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}
 {{- $portable := printf "%s/skills" $bundle -}}
 {{- $antigravity := ".gemini/antigravity-cli/skills" -}}
 {{- $root := joinPath .chezmoi.workingTree "src/ai/skills" -}}
