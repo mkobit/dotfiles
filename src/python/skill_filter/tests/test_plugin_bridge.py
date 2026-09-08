@@ -4,6 +4,7 @@ import importlib
 import io
 import json
 import os
+import subprocess
 
 import pytest
 
@@ -98,6 +99,25 @@ def legacy_cleanup(tmp_path, *, prior=(), desired=()):
 
 
 class TestPluginPlanning:
+    def test_empty_preflight_output_means_no_occupying_plugin(self, monkeypatch):
+        operation = MAIN_MODULE.PluginOperation(
+            "preflight",
+            "plugin",
+            "claude",
+            "bridge@dotfiles",
+            ("claude", "plugin", "status", "bridge@dotfiles"),
+        )
+
+        monkeypatch.setattr(
+            subprocess,
+            "run",
+            lambda *args, **kwargs: subprocess.CompletedProcess(
+                args[0], 0, stdout="", stderr=""
+            ),
+        )
+
+        assert MAIN_MODULE._execute_plugin_command(operation) == ()
+
     def test_rejects_duplicate_desired_resource_identities(self):
         parse_plan = bridge_helper("parse_plugin_plan")
         resources = [

@@ -1038,6 +1038,8 @@ def _execute_plugin_command(operation: PluginOperation) -> tuple[str, ...]:
     )
     if operation.action not in ("verify", "adopt", "preflight"):
         return ()
+    if operation.action == "preflight" and not completed.stdout:
+        return ()
     try:
         output = json.loads(completed.stdout)
         if operation.action == "preflight":
