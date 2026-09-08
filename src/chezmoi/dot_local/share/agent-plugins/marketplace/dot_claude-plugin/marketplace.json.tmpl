@@ -1,0 +1,6 @@
+{{- $marketplace := .ai.plugin_bridge.marketplace -}}
+{{- $plugins := list -}}
+{{- range $name, $capability := .ai.plugin_bridge.capabilities -}}
+{{-   $plugins = append $plugins (dict "name" $name "source" (printf "./plugins/%s" $name)) -}}
+{{- end -}}
+{{- dict "name" $marketplace.name "owner" (dict "name" $marketplace.owner) "plugins" $plugins | toPrettyJson -}}

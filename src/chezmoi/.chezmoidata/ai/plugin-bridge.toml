@@ -1,0 +1,8 @@
+[ai.plugin_bridge.marketplace]
+name = "dotfiles"
+owner = "mkobit"
+source = "local"
+trust_class = "owned"
+
+[ai.plugin_bridge.capabilities.mkobit-dotfiles]
+description = "Base dotfiles capability bundle."
