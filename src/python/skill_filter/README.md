@@ -50,6 +50,9 @@ The ownership file must be strictly beneath `<dest-dir>/.local/state/dotfiles/`.
 Each resource provides stable identity and fingerprint fields plus exact install and uninstall argv arrays.
 Plugin resources also provide verification argv and expected skill identities.
 Verification commands must emit either a JSON skill array or an object with a `skills` array.
+An unowned plugin resource may set `"adopt": true` to verify an existing installation and record ownership without running its install command.
+Adoption is limited to plugins and succeeds only when verification returns exactly `expected_skills`.
+Every stale root removed by `legacy_cleanup` must have one `skill_mappings` entry naming a desired plugin and one of that plugin's expected skills.
 
 ```sh
 /usr/bin/python3 -S skill_filter/main.py reconcile-plugins \
@@ -66,7 +69,8 @@ Verification commands must emit either a JSON skill array or an object with a `s
       "install": ["claude", "plugin", "install", "bridge@dotfiles"],
       "uninstall": ["claude", "plugin", "uninstall", "bridge@dotfiles"],
       "verify": ["plugin-skill-adapter", "claude", "bridge@dotfiles"],
-      "expected_skills": ["brainstorming"]
+      "expected_skills": ["brainstorming"],
+      "adopt": true
     }
   ],
   "skill_mappings": [

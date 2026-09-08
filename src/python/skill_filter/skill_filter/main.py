@@ -69,6 +69,7 @@ class ManagedPluginResource(NamedTuple):
     uninstall: tuple[str, ...]
     verify: tuple[str, ...]
     expected_skills: tuple[str, ...]
+    adopt: bool
 
 
 class PluginPlan(NamedTuple):
@@ -97,10 +98,17 @@ def _plugin_resource(raw: object) -> ManagedPluginResource:
         uninstall = tuple(raw["uninstall"])
         verify = tuple(raw.get("verify", ()))
         expected_skills = tuple(raw.get("expected_skills", ()))
+        adopt = raw.get("adopt", False)
     except (KeyError, TypeError) as error:
         raise FilterError(f"invalid plugin plan resource: {error}") from error
     if kind not in ("marketplace", "plugin"):
         raise FilterError(f"unsupported plugin resource kind {kind!r}")
+    if not isinstance(adopt, bool):
+        raise FilterError("plugin resource adopt marker must be a boolean")
+    if adopt and kind != "plugin":
+        raise FilterError("only plugin resources can be adopted")
+    if adopt and not verify:
+        raise FilterError("adopted plugin resource must provide verification argv")
     return ManagedPluginResource(
         kind,
         host,
@@ -110,6 +118,7 @@ def _plugin_resource(raw: object) -> ManagedPluginResource:
         uninstall,
         verify,
         expected_skills,
+        adopt,
     )
 
 
@@ -124,6 +133,11 @@ def parse_plugin_plan(content: str) -> PluginPlan:
     if not isinstance(raw, dict) or raw.get("version") != 1:
         raise FilterError("plugin plan must be a version 1 object")
     resources = tuple(_plugin_resource(item) for item in raw.get("resources", ()))
+    resource_identities = [
+        (resource.kind, resource.host, resource.resource_id) for resource in resources
+    ]
+    if len(resource_identities) != len(set(resource_identities)):
+        raise FilterError("duplicate desired resource identity")
     mappings = []
     for item in raw.get("skill_mappings", ()):
         if not isinstance(item, dict):
@@ -145,6 +159,16 @@ def parse_plugin_plan(content: str) -> PluginPlan:
         set(replacements)
     ):
         raise FilterError("ambiguous skill mapping")
+    plugin_skills = {
+        (resource.host, resource.resource_id): set(resource.expected_skills)
+        for resource in resources
+        if resource.kind == "plugin"
+    }
+    for legacy_root, host, plugin_id, skill in mappings:
+        if skill not in plugin_skills.get((host, plugin_id), set()):
+            raise FilterError(
+                f"legacy cleanup mapping for {legacy_root!r} has no desired plugin skill"
+            )
     return PluginPlan(resources, tuple(sorted(mappings)), raw.get("legacy_cleanup"))
 
 
@@ -176,6 +200,7 @@ def parse_plugin_ownership(content: str) -> tuple[ManagedPluginResource, ...]:
                     tuple(item["uninstall"]),
                     (),
                     (),
+                    False,
                 )
             )
         except (KeyError, TypeError) as error:
@@ -210,11 +235,11 @@ def plan_plugin_operations(
     )
     installs = tuple(
         PluginOperation(
-            "install",
+            "adopt" if resource.adopt else "install",
             resource.kind,
             resource.host,
             resource.resource_id,
-            resource.install,
+            resource.verify if resource.adopt else resource.install,
         )
         for resource in sorted(
             pending,
@@ -281,6 +306,49 @@ def _render_plugin_ownership(resources: Iterable[ManagedPluginResource]) -> str:
     )
 
 
+def _validate_legacy_cleanup_plan(dest_dir: Path, desired: PluginPlan) -> None:
+    """Require every deferred legacy removal to name a verified replacement."""
+    from pathlib import Path
+
+    cleanup = desired.legacy_cleanup
+    if cleanup is None:
+        if desired.skill_mappings:
+            raise FilterError("legacy cleanup mapping has no cleanup root")
+        return
+    if not isinstance(cleanup, dict):
+        raise FilterError("legacy_cleanup must be an object")
+    try:
+        cleanup_destination = Path(cleanup["dest_dir"])
+        state_manifest = Path(cleanup["state_manifest"])
+        desired_manifest = cleanup["desired_manifest"]
+    except (KeyError, TypeError) as error:
+        raise FilterError(f"invalid legacy_cleanup plan: {error}") from error
+    destination = Path(dest_dir)
+    if cleanup_destination != destination:
+        raise FilterError("legacy cleanup destination does not match reconciliation")
+    manifest = validate_state_manifest_path(destination, state_manifest)
+    desired_roots = parse_skill_root_manifest(desired_manifest, allow_duplicates=True)
+    validate_skill_root_manifest(destination, desired_roots)
+    prior_roots = ()
+    if manifest.exists():
+        prior_roots = parse_skill_root_manifest(manifest.read_text(encoding="utf-8"))
+        validate_skill_root_manifest(destination, prior_roots)
+    cleanup_roots = set(prior_roots) - set(desired_roots)
+    mappings_by_root = {mapping[0]: mapping[1:] for mapping in desired.skill_mappings}
+    if set(mappings_by_root) != cleanup_roots:
+        raise FilterError("legacy cleanup mapping does not match cleanup roots")
+    plugins = {
+        (resource.host, resource.resource_id): set(resource.expected_skills)
+        for resource in desired.resources
+        if resource.kind == "plugin"
+    }
+    for root, (host, plugin_id, skill) in mappings_by_root.items():
+        if skill not in plugins.get((host, plugin_id), set()):
+            raise FilterError(
+                f"legacy cleanup mapping for {root!r} has no desired plugin skill"
+            )
+
+
 def reconcile_plugins(
     dest_dir: Path,
     ownership_file: Path,
@@ -293,6 +361,7 @@ def reconcile_plugins(
 
     destination = Path(dest_dir)
     ownership_path = validate_state_manifest_path(destination, ownership_file)
+    _validate_legacy_cleanup_plan(destination, desired)
     owned = ()
     if ownership_path.exists():
         owned = parse_plugin_ownership(ownership_path.read_text(encoding="utf-8"))
@@ -307,10 +376,22 @@ def reconcile_plugins(
         identity(resource): resource for resource in desired.resources
     }
 
+    verified_identities = set()
     for operation in operations:
-        if operation.action == "install":
+        if operation.action in ("install", "adopt"):
             try:
-                execute(operation)
+                output = tuple(execute(operation))
+                if operation.action == "adopt":
+                    resource = desired_by_identity[
+                        (operation.kind, operation.host, operation.resource_id)
+                    ]
+                    if tuple(sorted(output)) != tuple(sorted(resource.expected_skills)):
+                        raise FilterError(
+                            f"plugin {resource.resource_id!r} on {resource.host!r} "
+                            f"has skills {output!r}, expected "
+                            f"{resource.expected_skills!r}"
+                        )
+                    verified_identities.add(identity(resource))
             except Exception:
                 _replace_manifest_atomically(
                     ownership_path,
@@ -324,7 +405,11 @@ def reconcile_plugins(
             ]
 
     for resource in sorted(
-        (item for item in desired.resources if item.kind == "plugin"),
+        (
+            item
+            for item in desired.resources
+            if item.kind == "plugin" and identity(item) not in verified_identities
+        ),
         key=lambda item: (item.host, item.resource_id),
     ):
         actual_skills = tuple(
@@ -344,12 +429,23 @@ def reconcile_plugins(
                 f"skills {actual_skills!r}, expected {resource.expected_skills!r}"
             )
 
+    _replace_manifest_atomically(
+        ownership_path, _render_plugin_ownership(managed_by_identity.values())
+    )
+
     if desired.legacy_cleanup is not None:
         cleanup_legacy(desired.legacy_cleanup)
 
     for operation in operations:
         if operation.action == "uninstall":
             execute(operation)
+            managed_by_identity.pop(
+                (operation.kind, operation.host, operation.resource_id)
+            )
+            _replace_manifest_atomically(
+                ownership_path,
+                _render_plugin_ownership(managed_by_identity.values()),
+            )
 
     managed = tuple(desired.resources)
     _replace_manifest_atomically(ownership_path, _render_plugin_ownership(managed))
@@ -847,10 +943,10 @@ def _execute_plugin_command(operation: PluginOperation) -> tuple[str, ...]:
     completed = subprocess.run(
         operation.argv,
         check=True,
-        capture_output=operation.action == "verify",
+        capture_output=operation.action in ("verify", "adopt"),
         text=True,
     )
-    if operation.action != "verify":
+    if operation.action not in ("verify", "adopt"):
         return ()
     try:
         output = json.loads(completed.stdout)

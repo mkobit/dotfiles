@@ -63,7 +63,61 @@ def operation_keys(operations):
     ]
 
 
+def legacy_cleanup(tmp_path, *, prior=(), desired=()):
+    state_manifest = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
+    if prior:
+        state_manifest.parent.mkdir(parents=True, exist_ok=True)
+        state_manifest.write_text(
+            "".join(f"{root}\n" for root in prior), encoding="utf-8"
+        )
+    return {
+        "dest_dir": str(tmp_path),
+        "state_manifest": str(state_manifest),
+        "desired_manifest": "".join(f"{root}\n" for root in desired),
+    }
+
+
 class TestPluginPlanning:
+    def test_rejects_duplicate_desired_resource_identities(self):
+        parse_plan = bridge_helper("parse_plugin_plan")
+        resources = [
+            plugin("claude", "bridge@dotfiles", ["brainstorming"]),
+            plugin(
+                "claude",
+                "bridge@dotfiles",
+                ["writing"],
+                fingerprint="plugin-v2",
+            ),
+        ]
+
+        with pytest.raises(
+            MAIN_MODULE.FilterError, match="duplicate desired resource identity"
+        ):
+            parse_plan(rendered_plan(resources))
+
+    @pytest.mark.parametrize(
+        ("resource", "message"),
+        [
+            (
+                {
+                    **plugin("claude", "bridge@dotfiles", ["brainstorming"]),
+                    "adopt": "yes",
+                },
+                "adopt marker must be a boolean",
+            ),
+            (
+                {**marketplace("claude", "dotfiles"), "adopt": True},
+                "only plugin resources can be adopted",
+            ),
+        ],
+        ids=["non-boolean", "unverifiable-marketplace"],
+    )
+    def test_rejects_invalid_adoption_markers(self, resource, message):
+        parse_plan = bridge_helper("parse_plugin_plan")
+
+        with pytest.raises(MAIN_MODULE.FilterError, match=message):
+            parse_plan(rendered_plan([resource]))
+
     def test_desired_resources_have_deterministic_install_order(self):
         parse_plan = bridge_helper("parse_plugin_plan")
         plan_operations = bridge_helper("plan_plugin_operations")
@@ -239,6 +293,106 @@ class TestPluginOwnership:
 
 
 class TestPluginReconciliation:
+    def test_adopts_verified_existing_plugin_without_installing(self, tmp_path):
+        parse_plan = bridge_helper("parse_plugin_plan")
+        parse_ownership = bridge_helper("parse_plugin_ownership")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        resource = plugin("claude", "bridge@dotfiles", ["brainstorming"])
+        resource["adopt"] = True
+        plan = parse_plan(rendered_plan([resource]))
+        actions = []
+
+        def execute(operation):
+            actions.append(operation.action)
+            return ("brainstorming",) if operation.action == "adopt" else ()
+
+        reconcile(tmp_path, ownership_file, plan, execute, lambda _: None)
+
+        assert actions == ["adopt"]
+        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        assert (owned.kind, owned.host, owned.resource_id) == (
+            "plugin",
+            "claude",
+            "bridge@dotfiles",
+        )
+
+    def test_failed_adoption_verification_does_not_record_ownership(self, tmp_path):
+        parse_plan = bridge_helper("parse_plugin_plan")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        resource = plugin("claude", "bridge@dotfiles", ["brainstorming"])
+        resource["adopt"] = True
+        plan = parse_plan(rendered_plan([resource]))
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="expected"):
+            reconcile(
+                tmp_path,
+                ownership_file,
+                plan,
+                lambda operation: ("unexpected",),
+                lambda _: None,
+            )
+
+        assert json.loads(ownership_file.read_text(encoding="utf-8")) == {
+            "resources": [],
+            "version": 1,
+        }
+
+    @pytest.mark.parametrize(
+        "mapping",
+        [
+            None,
+            {
+                "legacy_root": ".claude/skills/brainstorming",
+                "host": "claude",
+                "plugin": "other@dotfiles",
+                "skill": "brainstorming",
+            },
+            {
+                "legacy_root": ".claude/skills/brainstorming",
+                "host": "claude",
+                "plugin": "bridge@dotfiles",
+                "skill": "missing",
+            },
+        ],
+        ids=["missing", "wrong-plugin", "missing-expected-skill"],
+    )
+    def test_rejects_unmapped_legacy_cleanup_before_host_execution(
+        self, tmp_path, mapping
+    ):
+        parse_plan = bridge_helper("parse_plugin_plan")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        cleanup_state = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
+        cleanup_state.parent.mkdir(parents=True)
+        cleanup_state.write_text(".claude/skills/brainstorming\n", encoding="utf-8")
+        cleanup_plan = {
+            "dest_dir": str(tmp_path),
+            "state_manifest": str(cleanup_state),
+            "desired_manifest": "",
+        }
+        mappings = [] if mapping is None else [mapping]
+        executed = []
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="legacy cleanup mapping"):
+            plan = parse_plan(
+                rendered_plan(
+                    [plugin("claude", "bridge@dotfiles", ["brainstorming"])],
+                    skill_mappings=mappings,
+                    legacy_cleanup=cleanup_plan,
+                )
+            )
+            reconcile(
+                tmp_path,
+                ownership_file,
+                plan,
+                lambda operation: executed.append(operation),
+                lambda _: None,
+            )
+
+        assert executed == []
+
     def test_verifies_before_cleanup_and_preserves_unmanaged_plugins(self, tmp_path):
         parse_plan = bridge_helper("parse_plugin_plan")
         reconcile = bridge_helper("reconcile_plugins")
@@ -259,7 +413,17 @@ class TestPluginReconciliation:
                     marketplace("claude", "dotfiles"),
                     plugin("claude", "bridge@dotfiles", ["brainstorming"]),
                 ],
-                legacy_cleanup={"manifest": "legacy-roots"},
+                skill_mappings=[
+                    {
+                        "legacy_root": ".claude/skills/brainstorming",
+                        "host": "claude",
+                        "plugin": "bridge@dotfiles",
+                        "skill": "brainstorming",
+                    }
+                ],
+                legacy_cleanup=legacy_cleanup(
+                    tmp_path, prior=(".claude/skills/brainstorming",)
+                ),
             )
         )
         events = []
@@ -283,7 +447,7 @@ class TestPluginReconciliation:
             return ()
 
         def cleanup(cleanup_plan):
-            events.append(("cleanup", cleanup_plan["manifest"]))
+            events.append(("cleanup", cleanup_plan["state_manifest"]))
 
         reconcile(tmp_path, ownership_file, plan, execute, cleanup)
 
@@ -291,7 +455,10 @@ class TestPluginReconciliation:
             ("install", "marketplace", "claude", "dotfiles"),
             ("install", "plugin", "claude", "bridge@dotfiles"),
             ("verify", "plugin", "claude", "bridge@dotfiles"),
-            ("cleanup", "legacy-roots"),
+            (
+                "cleanup",
+                str(tmp_path / ".local/state/dotfiles/skill-roots.manifest"),
+            ),
             ("uninstall", "plugin", "claude", "obsolete@dotfiles"),
         ]
         assert installed_plugins == {"unmanaged@personal", "bridge@dotfiles"}
@@ -306,7 +473,17 @@ class TestPluginReconciliation:
         plan = parse_plan(
             rendered_plan(
                 [plugin("claude", "bridge@dotfiles", ["brainstorming"])],
-                legacy_cleanup={"manifest": "legacy-roots"},
+                skill_mappings=[
+                    {
+                        "legacy_root": ".claude/skills/brainstorming",
+                        "host": "claude",
+                        "plugin": "bridge@dotfiles",
+                        "skill": "brainstorming",
+                    }
+                ],
+                legacy_cleanup=legacy_cleanup(
+                    tmp_path, prior=(".claude/skills/brainstorming",)
+                ),
             )
         )
         cleaned = []
@@ -339,7 +516,7 @@ class TestPluginReconciliation:
                     marketplace("claude", "dotfiles"),
                     plugin("claude", "bridge@dotfiles", ["brainstorming"]),
                 ],
-                legacy_cleanup={"manifest": "legacy-roots"},
+                legacy_cleanup=legacy_cleanup(tmp_path),
             )
         )
         cleaned = []
@@ -363,6 +540,71 @@ class TestPluginReconciliation:
             (resource.kind, resource.host, resource.resource_id)
             for resource in parse_ownership(ownership_file.read_text(encoding="utf-8"))
         ] == [("marketplace", "claude", "dotfiles")]
+
+    def test_cleanup_failure_records_successfully_verified_installs(self, tmp_path):
+        parse_plan = bridge_helper("parse_plugin_plan")
+        parse_ownership = bridge_helper("parse_plugin_ownership")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        cleanup_state = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
+        cleanup_plan = {
+            "dest_dir": str(tmp_path),
+            "state_manifest": str(cleanup_state),
+            "desired_manifest": "",
+        }
+        plan = parse_plan(
+            rendered_plan(
+                [plugin("claude", "bridge@dotfiles", ["brainstorming"])],
+                legacy_cleanup=cleanup_plan,
+            )
+        )
+
+        def execute(operation):
+            return ("brainstorming",) if operation.action == "verify" else ()
+
+        def fail_cleanup(_cleanup_plan):
+            raise OSError("cleanup failed")
+
+        with pytest.raises(OSError, match="cleanup failed"):
+            reconcile(tmp_path, ownership_file, plan, execute, fail_cleanup)
+
+        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        assert (owned.kind, owned.host, owned.resource_id) == (
+            "plugin",
+            "claude",
+            "bridge@dotfiles",
+        )
+
+    def test_uninstall_failure_records_prior_successful_removals(self, tmp_path):
+        parse_plan = bridge_helper("parse_plugin_plan")
+        parse_ownership = bridge_helper("parse_plugin_ownership")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        ownership_file.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "resources": [
+                        plugin("claude", "first@dotfiles", ["first"]),
+                        plugin("claude", "second@dotfiles", ["second"]),
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        plan = parse_plan(rendered_plan([]))
+
+        def execute(operation):
+            if operation.resource_id == "second@dotfiles":
+                raise OSError("uninstall failed")
+            return ()
+
+        with pytest.raises(OSError, match="uninstall failed"):
+            reconcile(tmp_path, ownership_file, plan, execute, lambda _: None)
+
+        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        assert owned.resource_id == "second@dotfiles"
 
     def test_reconcile_plugins_command_accepts_injected_host_executor(
         self, tmp_path, monkeypatch
