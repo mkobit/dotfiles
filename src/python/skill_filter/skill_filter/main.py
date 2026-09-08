@@ -76,6 +76,7 @@ class PluginPlan(NamedTuple):
     resources: tuple[ManagedPluginResource, ...]
     skill_mappings: tuple[tuple[str, str, str, str], ...]
     legacy_cleanup: object
+    owned_removals: tuple[PluginOperation, ...] | None
 
 
 class PluginOperation(NamedTuple):
@@ -120,6 +121,26 @@ def _plugin_resource(raw: object) -> ManagedPluginResource:
         expected_skills,
         adopt,
     )
+
+
+def _owned_removal_preview(raw: object) -> PluginOperation:
+    if not isinstance(raw, dict):
+        raise FilterError("owned removal previews must be objects")
+    try:
+        action = raw["action"]
+        kind = raw["kind"]
+        host = raw["host"]
+        resource_id = raw["id"]
+        argv = tuple(raw["argv"])
+    except (KeyError, TypeError) as error:
+        raise FilterError(f"invalid owned removal preview: {error}") from error
+    if action != "uninstall":
+        raise FilterError("owned removal preview action must be uninstall")
+    if not all(isinstance(value, str) for value in (kind, host, resource_id)) or not all(
+        isinstance(value, str) for value in argv
+    ):
+        raise FilterError("owned removal preview fields must be strings")
+    return PluginOperation(action, kind, host, resource_id, argv)
 
 
 def parse_plugin_plan(content: str) -> PluginPlan:
@@ -169,7 +190,21 @@ def parse_plugin_plan(content: str) -> PluginPlan:
             raise FilterError(
                 f"legacy cleanup mapping for {legacy_root!r} has no desired plugin skill"
             )
-    return PluginPlan(resources, tuple(sorted(mappings)), raw.get("legacy_cleanup"))
+    raw_owned_removals = raw.get("owned_removals")
+    if raw_owned_removals is None:
+        owned_removals = None
+    elif not isinstance(raw_owned_removals, list):
+        raise FilterError("owned removal previews must be a list")
+    else:
+        owned_removals = tuple(
+            _owned_removal_preview(item) for item in raw_owned_removals
+        )
+    return PluginPlan(
+        resources,
+        tuple(sorted(mappings)),
+        raw.get("legacy_cleanup"),
+        owned_removals,
+    )
 
 
 def parse_plugin_ownership(content: str) -> tuple[ManagedPluginResource, ...]:
@@ -381,6 +416,11 @@ def reconcile_plugins(
     if ownership_path.exists():
         owned = parse_plugin_ownership(ownership_path.read_text(encoding="utf-8"))
     operations = plan_plugin_operations(desired, owned)
+    owned_removals = tuple(
+        operation for operation in operations if operation.action == "uninstall"
+    )
+    if desired.owned_removals is not None and desired.owned_removals != owned_removals:
+        raise FilterError("owned removal preview does not match current ownership")
     identity = lambda resource: (
         resource.kind,
         resource.host,

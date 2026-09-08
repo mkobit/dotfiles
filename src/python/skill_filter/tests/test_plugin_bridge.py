@@ -16,15 +16,22 @@ def bridge_helper(name: str):
     return helper
 
 
-def rendered_plan(resources, *, skill_mappings=(), legacy_cleanup=None):
-    return json.dumps(
-        {
-            "version": 1,
-            "resources": list(resources),
-            "skill_mappings": list(skill_mappings),
-            "legacy_cleanup": legacy_cleanup,
-        }
-    )
+def rendered_plan(
+    resources,
+    *,
+    skill_mappings=(),
+    legacy_cleanup=None,
+    owned_removals=None,
+):
+    plan = {
+        "version": 1,
+        "resources": list(resources),
+        "skill_mappings": list(skill_mappings),
+        "legacy_cleanup": legacy_cleanup,
+    }
+    if owned_removals is not None:
+        plan["owned_removals"] = list(owned_removals)
+    return json.dumps(plan)
 
 
 def marketplace(host: str, resource_id: str, fingerprint: str = "market-v1"):
@@ -61,6 +68,16 @@ def operation_keys(operations):
         (operation.action, operation.kind, operation.host, operation.resource_id)
         for operation in operations
     ]
+
+
+def removal_preview(resource):
+    return {
+        "action": "uninstall",
+        "kind": resource["kind"],
+        "host": resource["host"],
+        "id": resource["id"],
+        "argv": resource["uninstall"],
+    }
 
 
 def legacy_cleanup(tmp_path, *, prior=(), desired=()):
@@ -293,6 +310,34 @@ class TestPluginOwnership:
 
 
 class TestPluginReconciliation:
+    def test_rejects_mismatched_owned_removal_preview_before_host_execution(self, tmp_path):
+        parse_plan = bridge_helper("parse_plugin_plan")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        owned_resource = plugin("claude", "obsolete@dotfiles", ["old"])
+        ownership_file.write_text(
+            json.dumps({"version": 1, "resources": [owned_resource]}),
+            encoding="utf-8",
+        )
+        plan = parse_plan(
+            rendered_plan(
+                [],
+                owned_removals=[
+                    {
+                        **removal_preview(owned_resource),
+                        "argv": ["claude", "plugin", "uninstall", "wrong@dotfiles"],
+                    }
+                ],
+            )
+        )
+        executed = []
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="owned removal preview"):
+            reconcile(tmp_path, ownership_file, plan, executed.append, lambda _: None)
+
+        assert executed == []
+
     def test_adopts_verified_existing_plugin_without_installing(self, tmp_path):
         parse_plan = bridge_helper("parse_plugin_plan")
         parse_ownership = bridge_helper("parse_plugin_ownership")
