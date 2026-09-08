@@ -45,6 +45,46 @@ It validates both the desired and prior state before deleting stale recorded dir
 EOF
 ```
 
+The `reconcile-plugins` command reads a versioned JSON desired-state plan from stdin.
+The ownership file must be strictly beneath `<dest-dir>/.local/state/dotfiles/`.
+Each resource provides stable identity and fingerprint fields plus exact install and uninstall argv arrays.
+Plugin resources also provide verification argv and expected skill identities.
+Verification commands must emit either a JSON skill array or an object with a `skills` array.
+
+```sh
+/usr/bin/python3 -S skill_filter/main.py reconcile-plugins \
+  --dest-dir /target \
+  --ownership-file /target/.local/state/dotfiles/agent-plugin-ownership.json <<'EOF'
+{
+  "version": 1,
+  "resources": [
+    {
+      "kind": "plugin",
+      "host": "claude",
+      "id": "bridge@dotfiles",
+      "fingerprint": "sha256:0123456789abcdef",
+      "install": ["claude", "plugin", "install", "bridge@dotfiles"],
+      "uninstall": ["claude", "plugin", "uninstall", "bridge@dotfiles"],
+      "verify": ["plugin-skill-adapter", "claude", "bridge@dotfiles"],
+      "expected_skills": ["brainstorming"]
+    }
+  ],
+  "skill_mappings": [
+    {
+      "legacy_root": ".claude/skills/brainstorming",
+      "host": "claude",
+      "plugin": "bridge@dotfiles",
+      "skill": "brainstorming"
+    }
+  ],
+  "legacy_cleanup": null
+}
+EOF
+```
+
+The converger installs marketplaces before plugins, verifies every desired plugin, performs deferred legacy cleanup, uninstalls obsolete owned plugins before marketplaces, and atomically replaces ownership state.
+Resources absent from ownership state are unmanaged and are never removed.
+
 ## Extension point
 
 The archive-in/archive-out contract is the seam for future per-tool content transformation (the rulette idea).
