@@ -95,3 +95,45 @@ def test_antigravity_vim_mode_settings() -> None:
     rendered = json.loads(result.stdout)
     assert rendered.get("editorMode") == "vim"
     assert rendered.get("vimInsertFirst") is True
+
+
+def _render_antigravity_keybindings(
+    override_data: dict | None = None,
+) -> subprocess.CompletedProcess[str]:
+    template = Path.cwd() / "src/chezmoi/dot_gemini/antigravity-cli/keybindings.json.tmpl"
+    command = [
+        "chezmoi",
+        "--config",
+        "/dev/null",
+        "--config-format",
+        "toml",
+        "--source",
+        str(Path.cwd()),
+        "execute-template",
+        "-f",
+    ]
+    if override_data is not None:
+        command.extend(["--override-data", json.dumps(override_data)])
+    command.append(str(template))
+    return subprocess.run(
+        command,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+@pytest.mark.integration
+def test_antigravity_keybindings_renders_configured_mappings() -> None:
+    result = _render_antigravity_keybindings()
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert rendered["vim.insert.insert_newline"] == ["alt+enter", "ctrl+j", "shift+enter"]
+    assert rendered["vim.insert.submit"] == ["ctrl+enter", "ctrl+s", "enter"]
+
+
+@pytest.mark.integration
+def test_antigravity_keybindings_empty_when_no_keybindings_configured() -> None:
+    result = _render_antigravity_keybindings(override_data={"gemini": {"keybindings": None}})
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == ""
