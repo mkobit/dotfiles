@@ -151,6 +151,63 @@ value='preserve'
     assert result.stderr == ""
 
 
+def test_codex_modifier_adds_telemetry_settings() -> None:
+    template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
+    existing = """[runtime]\nvalue = "preserve"\n"""
+    result = _render_codex_config(
+        template,
+        existing,
+        '{"codex":{"telemetry":{"enabled":false,"log_user_prompt":false}}}',
+    )
+    assert result.returncode == 0, result.stderr
+    rendered = tomllib.loads(result.stdout)
+    assert rendered["analytics"] == {"enabled": False}
+    assert rendered["feedback"] == {"enabled": False}
+    assert rendered["otel"] == {"log_user_prompt": False}
+    assert rendered["runtime"] == {"value": "preserve"}
+    assert rendered["tui"]["vim_mode_default"] is True
+
+
+def test_codex_modifier_preserves_matching_telemetry_settings_byte_for_byte() -> None:
+    template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
+    existing = """[analytics]
+enabled = false
+
+[feedback]
+enabled = false
+
+[otel]
+log_user_prompt = false
+
+[tui]
+vim_mode_default = true
+status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "workspace-headline", "task-progress"]
+status_line_use_colors = true
+
+[runtime]
+value = "preserve"
+"""
+    result = _render_codex_config(
+        template,
+        existing,
+        '{"codex":{"telemetry":{"enabled":false,"log_user_prompt":false}}}',
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == existing
+    assert result.stderr == ""
+
+
+def test_codex_modifier_does_not_add_telemetry_when_unspecified() -> None:
+    template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
+    existing = """[runtime]\nvalue = "preserve"\n"""
+    result = _render_codex_config(template, existing)
+    assert result.returncode == 0, result.stderr
+    rendered = tomllib.loads(result.stdout)
+    assert "analytics" not in rendered
+    assert "feedback" not in rendered
+    assert "otel" not in rendered
+
+
 def test_codex_modifier_replaces_stale_optional_limit_and_preserves_unrelated_settings() -> None:
     template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
     existing = """model_auto_compact_token_limit = 100000
