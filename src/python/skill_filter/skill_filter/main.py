@@ -462,6 +462,7 @@ def reconcile_plugins(
         resource.resource_id,
     )
     managed_by_identity = {identity(resource): resource for resource in owned}
+    durable_by_identity = dict(managed_by_identity)
     initially_owned_identities = set(managed_by_identity)
     desired_by_identity = {
         identity(resource): resource for resource in desired.resources
@@ -481,6 +482,15 @@ def reconcile_plugins(
                 (operation.kind, operation.host, operation.resource_id)
             ]
             output = tuple(execute(operation))
+            if (
+                operation.action == "install"
+                and identity(resource) not in initially_owned_identities
+            ):
+                durable_by_identity[identity(resource)] = resource
+                _replace_manifest_atomically(
+                    ownership_path,
+                    _render_plugin_ownership(durable_by_identity.values()),
+                )
             if resource.kind == "plugin":
                 actual_skills = output
                 if operation.action != "adopt":
@@ -505,15 +515,6 @@ def reconcile_plugins(
                     )
                 verified_identities.add(identity(resource))
             managed_by_identity[identity(resource)] = resource
-            if (
-                resource.kind == "plugin"
-                and operation.action == "install"
-                and identity(resource) not in initially_owned_identities
-            ):
-                _replace_manifest_atomically(
-                    ownership_path,
-                    _render_plugin_ownership(managed_by_identity.values()),
-                )
 
     for resource in sorted(
         (

@@ -580,7 +580,10 @@ class TestPluginReconciliation:
         ]
         assert installed_plugins == {"unmanaged@personal", "bridge@dotfiles"}
 
-    def test_skill_verification_failure_preserves_legacy_and_ownership(self, tmp_path):
+    def test_skill_verification_failure_preserves_legacy_and_records_install(
+        self, tmp_path
+    ):
+        parse_ownership = bridge_helper("parse_plugin_ownership")
         parse_plan = bridge_helper("parse_plugin_plan")
         reconcile = bridge_helper("reconcile_plugins")
         ownership_file = tmp_path / ".local/state/dotfiles/agent-plugin-ownership.json"
@@ -620,9 +623,11 @@ class TestPluginReconciliation:
             )
 
         assert cleaned == []
-        assert ownership_file.read_text(encoding="utf-8") == prior
+        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        assert owned.resource_id == "bridge@dotfiles"
 
-    def test_install_failure_does_not_record_partial_ownership(self, tmp_path):
+    def test_plugin_install_failure_records_prior_marketplace_install(self, tmp_path):
+        parse_ownership = bridge_helper("parse_plugin_ownership")
         parse_plan = bridge_helper("parse_plugin_plan")
         reconcile = bridge_helper("reconcile_plugins")
         ownership_file = tmp_path / ".local/state/dotfiles/agent-plugin-ownership.json"
@@ -652,7 +657,8 @@ class TestPluginReconciliation:
             )
 
         assert cleaned == []
-        assert not ownership_file.exists()
+        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        assert (owned.kind, owned.resource_id) == ("marketplace", "dotfiles")
 
     def test_retry_recovers_ownership_after_a_later_install_failure(self, tmp_path):
         parse_ownership = bridge_helper("parse_plugin_ownership")
@@ -705,6 +711,109 @@ class TestPluginReconciliation:
             resource.resource_id
             for resource in parse_ownership(ownership_file.read_text(encoding="utf-8"))
         } == {"first@dotfiles", "second@dotfiles"}
+
+    def test_retry_recovers_marketplace_after_plugin_install_failure(self, tmp_path):
+        parse_ownership = bridge_helper("parse_plugin_ownership")
+        parse_plan = bridge_helper("parse_plugin_plan")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        plan = parse_plan(
+            rendered_plan(
+                [
+                    marketplace("claude", "dotfiles"),
+                    plugin("claude", "bridge@dotfiles", ["brainstorming"]),
+                ]
+            )
+        )
+
+        def fail_plugin_install(operation):
+            if operation.action == "install" and operation.kind == "plugin":
+                raise OSError("plugin install failed")
+            return ()
+
+        with pytest.raises(OSError, match="plugin install failed"):
+            reconcile(tmp_path, ownership_file, plan, fail_plugin_install, lambda _: None)
+
+        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        assert (owned.kind, owned.resource_id) == ("marketplace", "dotfiles")
+
+        actions = []
+
+        def complete_retry(operation):
+            actions.append((operation.action, operation.kind))
+            return ("brainstorming",) if operation.action == "verify" else ()
+
+        reconcile(tmp_path, ownership_file, plan, complete_retry, lambda _: None)
+
+        assert ("install", "marketplace") not in actions
+
+    def test_retry_owns_plugin_when_initial_verification_fails(self, tmp_path):
+        parse_ownership = bridge_helper("parse_plugin_ownership")
+        parse_plan = bridge_helper("parse_plugin_plan")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        plan = parse_plan(
+            rendered_plan([plugin("claude", "bridge@dotfiles", ["brainstorming"])])
+        )
+
+        def fail_verification(operation):
+            return ("unexpected",) if operation.action == "verify" else ()
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="expected"):
+            reconcile(tmp_path, ownership_file, plan, fail_verification, lambda _: None)
+
+        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        assert owned.resource_id == "bridge@dotfiles"
+
+        actions = []
+
+        def complete_retry(operation):
+            actions.append(operation.action)
+            return ("brainstorming",) if operation.action == "verify" else ()
+
+        reconcile(tmp_path, ownership_file, plan, complete_retry, lambda _: None)
+
+        assert actions == ["verify"]
+
+    def test_partial_checkpoint_preserves_prior_update_fingerprint(self, tmp_path):
+        parse_ownership = bridge_helper("parse_plugin_ownership")
+        parse_plan = bridge_helper("parse_plugin_plan")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        prior_first = plugin("claude", "first@dotfiles", ["first"], "plugin-v1")
+        prior_third = plugin("claude", "third@dotfiles", ["third"], "plugin-v1")
+        ownership_file.write_text(
+            json.dumps({"version": 1, "resources": [prior_first, prior_third]}),
+            encoding="utf-8",
+        )
+        plan = parse_plan(
+            rendered_plan(
+                [
+                    plugin("claude", "first@dotfiles", ["first"], "plugin-v2"),
+                    plugin("claude", "second@dotfiles", ["second"]),
+                    plugin("claude", "third@dotfiles", ["third"], "plugin-v2"),
+                ]
+            )
+        )
+
+        def fail_last_update(operation):
+            if operation.action == "update" and operation.resource_id == "third@dotfiles":
+                raise OSError("last update failed")
+            if operation.action == "verify":
+                return (operation.resource_id.removesuffix("@dotfiles"),)
+            return ()
+
+        with pytest.raises(OSError, match="last update failed"):
+            reconcile(tmp_path, ownership_file, plan, fail_last_update, lambda _: None)
+
+        owned = {
+            resource.resource_id: resource
+            for resource in parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        }
+        assert owned["first@dotfiles"].fingerprint == "plugin-v1"
+        assert owned["second@dotfiles"].fingerprint == "plugin-v1"
+        assert owned["third@dotfiles"].fingerprint == "plugin-v1"
 
     def test_cleanup_failure_records_successfully_verified_installs(self, tmp_path):
         parse_plan = bridge_helper("parse_plugin_plan")
