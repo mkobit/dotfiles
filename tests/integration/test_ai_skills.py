@@ -12,15 +12,21 @@ DIRECT_SKILL_DIRS = [
 
 # Claude, Codex, and Cursor consume host-specific views of the capability bundle.
 CAPABILITY_PLUGIN_DIRS = [
-    pytest.param(Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude"), "claude", id="claude"),
-    pytest.param(Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex"), "codex", id="codex"),
-    pytest.param(Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/cursor"), "cursor", id="cursor"),
-]
-
-RETIRED_DIRECT_SKILL_DIRS = [
-    pytest.param(Path(".claude/skills"), id="claude"),
-    pytest.param(Path(".codex/skills"), id="codex"),
-    pytest.param(Path(".cursor/skills"), id="cursor"),
+    pytest.param(
+        Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude"),
+        "claude",
+        id="claude",
+    ),
+    pytest.param(
+        Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex"),
+        "codex",
+        id="codex",
+    ),
+    pytest.param(
+        Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/cursor"),
+        "cursor",
+        id="cursor",
+    ),
 ]
 
 
@@ -74,11 +80,11 @@ def test_direct_skill_dir_deployed_and_valid(chezmoi_dest, relative_dir, allowed
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize(("relative_dir", "host"), CAPABILITY_PLUGIN_DIRS)
-def test_capability_plugin_deployed_and_valid(chezmoi_dest, relative_dir, host):
-    """Verify every host plugin has a valid manifest and non-empty skill tree."""
+@pytest.mark.parametrize(("relative_dir", "plugin_host"), CAPABILITY_PLUGIN_DIRS)
+def test_capability_plugin_deployed_and_valid(chezmoi_dest, relative_dir, plugin_host):
+    """Verify every host plugin replaces its matching direct skill roots."""
     plugin_dir = chezmoi_dest / relative_dir
-    manifest_path = plugin_dir / f".{host}-plugin" / "plugin.json"
+    manifest_path = plugin_dir / f".{plugin_host}-plugin" / "plugin.json"
     skills_dir = plugin_dir / "skills"
 
     assert manifest_path.is_file(), f"{manifest_path} does not exist after chezmoi apply"
@@ -88,14 +94,10 @@ def test_capability_plugin_deployed_and_valid(chezmoi_dest, relative_dir, host):
     assert skills_dir.is_dir(), f"{skills_dir} does not exist after chezmoi apply"
     assert any(skills_dir.iterdir()), f"{skills_dir} contains no skills"
     assert_entries_are_valid_skills(skills_dir)
-
-
-@pytest.mark.integration
-@pytest.mark.parametrize("relative_dir", RETIRED_DIRECT_SKILL_DIRS)
-def test_retired_direct_skill_dir_is_pruned(chezmoi_dest, relative_dir):
-    """Verify chezmoi removes direct roots replaced by the capability plugins."""
-    skills_dir = chezmoi_dest / relative_dir
-    assert not skills_dir.exists(), f"{skills_dir} remains after capability-plugin cutover"
+    direct_skills_dir = chezmoi_dest / f".{plugin_host}" / "skills"
+    for plugin_skill in _entries(skills_dir):
+        direct_skill = direct_skills_dir / plugin_skill.name
+        assert not direct_skill.exists(), f"{direct_skill} remains after capability-plugin cutover"
 
 
 # Tool agent directories actively deployed to by .chezmoiexternals/ai-agents.toml.tmpl.
