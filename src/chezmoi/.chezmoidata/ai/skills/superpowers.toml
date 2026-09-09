@@ -1,8 +1,8 @@
 [ai.skills.external.superpowers]
 repo = "obra/superpowers"
 # Content reviewed at v6.3.0; see src/ai/README.md's Superpowers compatibility policy.
-ref = "b36e082"
-sha256 = "1b2ec2bee4183482ac293985452d2597b74fa5db9302855fcacd80b40781c2a4"
+ref = "b36e0829c6d0140e93cfef2ca599b1b07d4a7797"
+sha256 = "7c3ae7db406f8d92cf55329aa9e9a41e53f6cef00bdb68e1325713be97ef5d7c"
 
 [ai.skills.external.superpowers.skills]
 brainstorming = "present"
