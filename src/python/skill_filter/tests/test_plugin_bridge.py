@@ -654,6 +654,58 @@ class TestPluginReconciliation:
         assert cleaned == []
         assert not ownership_file.exists()
 
+    def test_retry_recovers_ownership_after_a_later_install_failure(self, tmp_path):
+        parse_ownership = bridge_helper("parse_plugin_ownership")
+        parse_plan = bridge_helper("parse_plugin_plan")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/agent-plugin-ownership.json"
+        first = plugin("claude", "first@dotfiles", ["first"])
+        second = plugin("codex", "second@dotfiles", ["second"])
+        plan = parse_plan(rendered_plan([first, second]))
+        first_attempts = []
+
+        def fail_second_install(operation):
+            first_attempts.append((operation.action, operation.resource_id))
+            if operation.action == "install" and operation.resource_id == "second@dotfiles":
+                raise OSError("second install failed")
+            if operation.action == "verify":
+                return (operation.resource_id.removesuffix("@dotfiles"),)
+            return ()
+
+        with pytest.raises(OSError, match="second install failed"):
+            reconcile(tmp_path, ownership_file, plan, fail_second_install, lambda _: None)
+
+        assert first_attempts == [
+            ("preflight", "first@dotfiles"),
+            ("install", "first@dotfiles"),
+            ("verify", "first@dotfiles"),
+            ("preflight", "second@dotfiles"),
+            ("install", "second@dotfiles"),
+        ]
+        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        assert owned.resource_id == "first@dotfiles"
+
+        retry_attempts = []
+
+        def complete_retry(operation):
+            retry_attempts.append((operation.action, operation.resource_id))
+            if operation.action == "verify":
+                return (operation.resource_id.removesuffix("@dotfiles"),)
+            return ()
+
+        reconcile(tmp_path, ownership_file, plan, complete_retry, lambda _: None)
+
+        assert retry_attempts == [
+            ("preflight", "second@dotfiles"),
+            ("install", "second@dotfiles"),
+            ("verify", "second@dotfiles"),
+            ("verify", "first@dotfiles"),
+        ]
+        assert {
+            resource.resource_id
+            for resource in parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        } == {"first@dotfiles", "second@dotfiles"}
+
     def test_cleanup_failure_records_successfully_verified_installs(self, tmp_path):
         parse_plan = bridge_helper("parse_plugin_plan")
         parse_ownership = bridge_helper("parse_plugin_ownership")

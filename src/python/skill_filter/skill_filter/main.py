@@ -462,6 +462,7 @@ def reconcile_plugins(
         resource.resource_id,
     )
     managed_by_identity = {identity(resource): resource for resource in owned}
+    initially_owned_identities = set(managed_by_identity)
     desired_by_identity = {
         identity(resource): resource for resource in desired.resources
     }
@@ -476,23 +477,43 @@ def reconcile_plugins(
                     "is already installed but is not bridge-owned; use explicit adoption after verifying its complete content"
                 )
         elif operation.action in ("install", "update", "adopt"):
+            resource = desired_by_identity[
+                (operation.kind, operation.host, operation.resource_id)
+            ]
             output = tuple(execute(operation))
-            if operation.action == "adopt":
-                resource = desired_by_identity[
-                    (operation.kind, operation.host, operation.resource_id)
-                ]
-                if tuple(sorted(output)) != tuple(sorted(resource.expected_skills)):
+            if resource.kind == "plugin":
+                actual_skills = output
+                if operation.action != "adopt":
+                    actual_skills = tuple(
+                        execute(
+                            PluginOperation(
+                                "verify",
+                                resource.kind,
+                                resource.host,
+                                resource.resource_id,
+                                resource.verify,
+                            )
+                        )
+                    )
+                if tuple(sorted(actual_skills)) != tuple(
+                    sorted(resource.expected_skills)
+                ):
                     raise FilterError(
                         f"plugin {resource.resource_id!r} on {resource.host!r} "
-                        f"has skills {output!r}, expected "
+                        f"has skills {actual_skills!r}, expected "
                         f"{resource.expected_skills!r}"
                     )
                 verified_identities.add(identity(resource))
-            managed_by_identity[
-                (operation.kind, operation.host, operation.resource_id)
-            ] = desired_by_identity[
-                (operation.kind, operation.host, operation.resource_id)
-            ]
+            managed_by_identity[identity(resource)] = resource
+            if (
+                resource.kind == "plugin"
+                and operation.action == "install"
+                and identity(resource) not in initially_owned_identities
+            ):
+                _replace_manifest_atomically(
+                    ownership_path,
+                    _render_plugin_ownership(managed_by_identity.values()),
+                )
 
     for resource in sorted(
         (
