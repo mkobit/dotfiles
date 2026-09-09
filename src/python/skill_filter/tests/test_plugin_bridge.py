@@ -359,7 +359,9 @@ class TestPluginOwnership:
 
 
 class TestPluginReconciliation:
-    def test_rejects_mismatched_owned_removal_preview_before_host_execution(self, tmp_path):
+    def test_rejects_mismatched_owned_removal_preview_before_host_execution(
+        self, tmp_path
+    ):
         parse_plan = bridge_helper("parse_plugin_plan")
         reconcile = bridge_helper("reconcile_plugins")
         ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
@@ -505,9 +507,9 @@ class TestPluginReconciliation:
         )
 
         assert not stale_skill.exists()
-        assert (
-            tmp_path / ".local/state/dotfiles/skill-roots.manifest"
-        ).read_text(encoding="utf-8") == ""
+        assert (tmp_path / ".local/state/dotfiles/skill-roots.manifest").read_text(
+            encoding="utf-8"
+        ) == ""
 
     def test_verifies_before_cleanup_and_preserves_unmanaged_plugins(self, tmp_path):
         parse_plan = bridge_helper("parse_plugin_plan")
@@ -672,14 +674,19 @@ class TestPluginReconciliation:
 
         def fail_second_install(operation):
             first_attempts.append((operation.action, operation.resource_id))
-            if operation.action == "install" and operation.resource_id == "second@dotfiles":
+            if (
+                operation.action == "install"
+                and operation.resource_id == "second@dotfiles"
+            ):
                 raise OSError("second install failed")
             if operation.action == "verify":
-                return (operation.resource_id.removesuffix("@dotfiles"),)
+                return (operation.resource_id[: -len("@dotfiles")],)
             return ()
 
         with pytest.raises(OSError, match="second install failed"):
-            reconcile(tmp_path, ownership_file, plan, fail_second_install, lambda _: None)
+            reconcile(
+                tmp_path, ownership_file, plan, fail_second_install, lambda _: None
+            )
 
         assert first_attempts == [
             ("preflight", "first@dotfiles"),
@@ -696,7 +703,7 @@ class TestPluginReconciliation:
         def complete_retry(operation):
             retry_attempts.append((operation.action, operation.resource_id))
             if operation.action == "verify":
-                return (operation.resource_id.removesuffix("@dotfiles"),)
+                return (operation.resource_id[: -len("@dotfiles")],)
             return ()
 
         reconcile(tmp_path, ownership_file, plan, complete_retry, lambda _: None)
@@ -732,7 +739,9 @@ class TestPluginReconciliation:
             return ()
 
         with pytest.raises(OSError, match="plugin install failed"):
-            reconcile(tmp_path, ownership_file, plan, fail_plugin_install, lambda _: None)
+            reconcile(
+                tmp_path, ownership_file, plan, fail_plugin_install, lambda _: None
+            )
 
         (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
         assert (owned.kind, owned.resource_id) == ("marketplace", "dotfiles")
@@ -798,10 +807,13 @@ class TestPluginReconciliation:
         )
 
         def fail_last_update(operation):
-            if operation.action == "update" and operation.resource_id == "third@dotfiles":
+            if (
+                operation.action == "update"
+                and operation.resource_id == "third@dotfiles"
+            ):
                 raise OSError("last update failed")
             if operation.action == "verify":
-                return (operation.resource_id.removesuffix("@dotfiles"),)
+                return (operation.resource_id[: -len("@dotfiles")],)
             return ()
 
         with pytest.raises(OSError, match="last update failed"):

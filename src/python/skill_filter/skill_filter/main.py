@@ -144,9 +144,9 @@ def _owned_removal_preview(raw: object) -> PluginOperation:
         raise FilterError(f"invalid owned removal preview: {error}") from error
     if action != "uninstall":
         raise FilterError("owned removal preview action must be uninstall")
-    if not all(isinstance(value, str) for value in (kind, host, resource_id)) or not all(
-        isinstance(value, str) for value in argv
-    ):
+    if not all(
+        isinstance(value, str) for value in (kind, host, resource_id)
+    ) or not all(isinstance(value, str) for value in argv):
         raise FilterError("owned removal preview fields must be strings")
     return PluginOperation(action, kind, host, resource_id, argv)
 
@@ -418,7 +418,9 @@ def _validate_legacy_cleanup_plan(dest_dir: Path, desired: PluginPlan) -> None:
         if _skill_root_parent(root) == ".gemini/antigravity-cli/skills"
     }
     if direct_root_set != expected_direct_roots:
-        raise FilterError("legacy direct cleanup roots do not match Antigravity cleanup roots")
+        raise FilterError(
+            "legacy direct cleanup roots do not match Antigravity cleanup roots"
+        )
     mappings_by_root = {mapping[0]: mapping[1:] for mapping in desired.skill_mappings}
     if set(mappings_by_root) != cleanup_roots - direct_root_set:
         raise FilterError("legacy cleanup mapping does not match cleanup roots")
