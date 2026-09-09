@@ -1,0 +1,30 @@
+{{- /*
+  Emits tombstones for direct Codex skill roots. A selected capability-bundle
+  skill has a native tombstone so chezmoi status and diff show its cutover from
+  ~/.codex/skills/<name> to the plugin package. The state-manifest cleanup
+  hook still handles history-aware deleted or renamed skill keys and sources.
+*/ -}}
+{{- $capabilities := dig "capabilities" (dict) (dig "plugin_bridge" (dict) .ai) -}}
+{{- $baseBridge := hasKey $capabilities "mkobit-dotfiles" -}}
+{{- $overlayBridge := hasKey $capabilities "stripe-dotfiles" -}}
+{{- range $sourceName, $source := .ai.skills.external -}}
+{{-   range $skillName, $state := dig "skills" (dict) $source -}}
+{{-     if or $baseBridge (not (or (eq $state "present") (eq $state "codex"))) }}
+skills/{{ $skillName }}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
+{{-   if or $baseBridge (not (or (eq $state "present") (eq $state "codex"))) }}
+skills/{{ $skillName }}
+{{-   end -}}
+{{- end -}}
+{{- $isLocal := stat "/Applications/Santa.app" -}}
+{{- if $overlayBridge -}}
+{{-   range $skillName, $state := dig "overlay_skills" "authored" (dict) .ai -}}
+{{-     $active := or (eq $state "present") (eq $state "codex") (and (eq $state "local") $isLocal) -}}
+{{-     if $active }}
+skills/{{ $skillName }}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}

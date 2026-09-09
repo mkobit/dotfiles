@@ -1,0 +1,8 @@
+{{- $inputs := dict "external" .ai.skills.external "authored" (dig "authored" (dict) .ai.skills) -}}
+{{- range $path := glob (joinPath .chezmoi.workingTree "src/ai/skills/**/*") | sortAlpha -}}
+{{-   if eq (lstat $path).type "file" -}}
+{{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
+{{-   end -}}
+{{- end -}}
+{{- $version := printf "1.0.0+%s" (trunc 12 (sha256sum (toJson $inputs))) -}}
+{{- dict "name" "mkobit-dotfiles" "version" $version "description" "Base dotfiles capability bundle." "skills" "./skills" | toPrettyJson -}}

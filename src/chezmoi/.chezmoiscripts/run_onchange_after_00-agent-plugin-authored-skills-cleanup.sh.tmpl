@@ -1,0 +1,94 @@
+{{- $inputs := dict "external" .ai.skills.external "authored" (dig "authored" (dict) .ai.skills) -}}
+{{- range $path := glob (joinPath .chezmoi.workingTree "src/ai/skills/**/*") | sortAlpha -}}
+{{-   if eq (lstat $path).type "file" -}}
+{{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
+{{-   end -}}
+{{- end -}}
+{{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
+{{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}
+{{- $portable := printf "%s/skills" $bundle -}}
+{{- $desired := dict $portable (dict) -}}
+{{- range $tool, $root := $tools }}{{ $_ := set $desired $root (dict) }}{{ end -}}
+{{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
+{{-   if eq $state "present" -}}
+{{-     $_ := set (index $desired $portable) $skillName true -}}
+{{-     range $tool, $root := $tools }}{{ $_ := set (index $desired $root) $skillName true }}{{ end -}}
+{{-   else if hasKey $tools $state -}}
+{{-     $_ := set (index $desired (index $tools $state)) $skillName true -}}
+{{-   end -}}
+{{- end -}}
+{{- range $sourceName, $source := .ai.skills.external -}}
+{{-   range $skillName, $state := dig "skills" (dict) $source -}}
+{{-     if eq $state "present" -}}
+{{-       $_ := set (index $desired $portable) $skillName true -}}
+{{-       range $tool, $root := $tools }}{{ $_ := set (index $desired $root) $skillName true }}{{ end -}}
+{{-     else if hasKey $tools $state -}}
+{{-       $_ := set (index $desired (index $tools $state)) $skillName true -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+#!/bin/sh
+set -eu
+
+# This rendered value makes run_onchange track every base package input.
+# package-input-fingerprint: {{ sha256sum (toJson $inputs) }}
+
+destination={{ .chezmoi.destDir | quote }}
+bundle="$destination/.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles"
+
+clean_root() {
+    skill_root="$1"
+    shift
+    case "$skill_root" in
+        "$bundle"/skills|"$bundle"/claude/skills|"$bundle"/codex/skills|"$bundle"/cursor/skills) ;;
+        *)
+            printf '%s\n' "agent-plugin-authored-skills-cleanup: refusing unsafe path: $skill_root" >&2
+            exit 1
+            ;;
+    esac
+    [ -d "$skill_root" ] || return 0
+    for skill_path in "$skill_root"/*; do
+        [ -e "$skill_path" ] || continue
+        skill_name="${skill_path##*/}"
+        keep=false
+        for expected_skill in "$@"; do
+            [ "$skill_name" = "$expected_skill" ] && keep=true && break
+        done
+        "$keep" || rm -rf -- "$skill_path"
+    done
+}
+
+clean_skill() {
+    skill_path="$1"
+    shift
+    python3 - "$skill_path" "$@" <<'PY'
+from pathlib import Path
+import sys
+
+root = Path(sys.argv[1])
+expected = set(sys.argv[2:])
+if root.exists():
+    for path in sorted(root.rglob("*"), reverse=True):
+        relative = path.relative_to(root).as_posix()
+        if path.is_file() and relative not in expected:
+            path.unlink()
+        elif path.is_dir() and not any(path.iterdir()):
+            path.rmdir()
+PY
+}
+
+{{- range $root := keys $desired | sortAlpha }}
+clean_root "$destination/{{ $root }}"{{ range $skillName := keys (index $desired $root) | sortAlpha }} {{ $skillName | quote }}{{ end }}
+{{- end }}
+{{- $root := joinPath .chezmoi.workingTree "src/ai/skills" -}}
+{{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
+{{-   if eq $state "present" }}
+{{- $skillDir := joinPath $root $skillName }}
+{{- range $target := list $portable (index $tools "claude") (index $tools "codex") (index $tools "cursor") }}
+clean_skill "$destination/{{ $target }}/{{ $skillName }}"{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | quote }}{{ end }}{{ end }}
+{{- end }}
+{{-   else if hasKey $tools $state }}
+{{- $skillDir := joinPath $root $skillName }}
+clean_skill "$destination/{{ index $tools $state }}/{{ $skillName }}"{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | quote }}{{ end }}{{ end }}
+{{-   end }}
+{{- end }}

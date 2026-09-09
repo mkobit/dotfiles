@@ -4,16 +4,15 @@
   directory trees under src/ai/skills/<skill>/; nested paths are preserved, so
   the overlay rsync union must include src/ai/skills/. file:// URLs read
   straight from the working tree and refreshPeriod re-reads them on every
-  apply, keeping deployed copies in sync with local edits. The .chezmoiremove
-  templates immediately prune skills marked "absent" or retargeted to another
-  tool. The state-manifest cleanup hook handles history-aware deleted or
-  renamed skill keys and removed sources.
-  Because file externals are not exact, deleting an individual file from a
-  still-present skill does not prune that file.
-  A skill state may also name a single tool
-  ("claude", "antigravity", "cursor", "codex") to deploy only there.
+  apply, keeping package snapshots in sync with local edits. The state-manifest
+  cleanup hook continues to manage Antigravity's flattened global skill roots.
+  The after-phase package-root cleanup script removes stale package skill
+  directories and ancillary files after these externals render current content.
 */ -}}
-{{- $tools := dict "claude" ".claude/skills" "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" "codex" ".codex/skills" -}}
+{{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
+{{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}
+{{- $portable := printf "%s/skills" $bundle -}}
+{{- $antigravity := ".gemini/antigravity-cli/skills" -}}
 {{- $root := joinPath .chezmoi.workingTree "src/ai/skills" -}}
 {{- $config := dict -}}
 {{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
@@ -24,13 +23,17 @@
 {{-       if eq (lstat $path).type "file" -}}
 {{-         $found = true -}}
 {{-         $rel := trimPrefix (printf "%s/" $skillDir) $path -}}
-{{-         range $toolName, $dir := $tools -}}
-{{-           if or (eq $state "present") (eq $state $toolName) -}}
-{{-             $entry := dict
+{{-         $entry := dict
                   "type" "file"
                   "url" (printf "file://%s" $path)
                   "refreshPeriod" "1s"
 -}}
+{{-         if eq $state "present" -}}
+{{-           $_ := set $config (printf "%s/%s/%s" $portable $skillName $rel) $entry -}}
+{{-           $_ := set $config (printf "%s/%s/%s" $antigravity $skillName $rel) $entry -}}
+{{-         end -}}
+{{-         range $toolName, $dir := $tools -}}
+{{-           if or (eq $state "present") (eq $state $toolName) -}}
 {{-             $_ := set $config (printf "%s/%s/%s" $dir $skillName $rel) $entry -}}
 {{-           end -}}
 {{-         end -}}

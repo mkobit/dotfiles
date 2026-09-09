@@ -1,18 +1,31 @@
+import json
 import shutil
 import tomllib
 from pathlib import Path
 
 import pytest
 
-# Tool skill directories actively deployed to by .chezmoiexternals/ai-skills.toml.tmpl.
-ACTIVE_SKILL_DIRS = [
-    pytest.param(Path(".claude/skills"), frozenset(), id="claude"),
+# Antigravity remains a direct skill consumer.
+DIRECT_SKILL_DIRS = [
     pytest.param(Path(".gemini/antigravity-cli/skills"), frozenset(), id="antigravity"),
-    pytest.param(Path(".cursor/skills"), frozenset(), id="cursor"),
+]
+
+# Claude, Codex, and Cursor consume host-specific views of the capability bundle.
+CAPABILITY_PLUGIN_DIRS = [
     pytest.param(
-        Path(".codex/skills"),
-        frozenset({Path(".system/.codex-system-skills.marker")}),
+        Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude"),
+        "claude",
+        id="claude",
+    ),
+    pytest.param(
+        Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex"),
+        "codex",
         id="codex",
+    ),
+    pytest.param(
+        Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/cursor"),
+        "cursor",
+        id="cursor",
     ),
 ]
 
@@ -57,13 +70,34 @@ def assert_entries_are_valid_skills(skills_dir: Path, allowed_marker_files: froz
 
 
 @pytest.mark.integration
-@pytest.mark.parametrize(("relative_dir", "allowed_marker_files"), ACTIVE_SKILL_DIRS)
-def test_tool_skill_dir_deployed_and_valid(chezmoi_dest, relative_dir, allowed_marker_files):
-    """Verify each active tool's skills directory exists and every skill in it is valid."""
+@pytest.mark.parametrize(("relative_dir", "allowed_marker_files"), DIRECT_SKILL_DIRS)
+def test_direct_skill_dir_deployed_and_valid(chezmoi_dest, relative_dir, allowed_marker_files):
+    """Verify each direct skill consumer receives a non-empty valid skill tree."""
     skills_dir = chezmoi_dest / relative_dir
     assert skills_dir.is_dir(), f"{skills_dir} does not exist after chezmoi apply"
     assert any(skills_dir.iterdir()), f"{skills_dir} contains no skills"
     assert_entries_are_valid_skills(skills_dir, allowed_marker_files)
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize(("relative_dir", "plugin_host"), CAPABILITY_PLUGIN_DIRS)
+def test_capability_plugin_deployed_and_valid(chezmoi_dest, relative_dir, plugin_host):
+    """Verify every host plugin replaces its matching direct skill roots."""
+    plugin_dir = chezmoi_dest / relative_dir
+    manifest_path = plugin_dir / f".{plugin_host}-plugin" / "plugin.json"
+    skills_dir = plugin_dir / "skills"
+
+    assert manifest_path.is_file(), f"{manifest_path} does not exist after chezmoi apply"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["name"] == "mkobit-dotfiles"
+    assert manifest["skills"] == "./skills"
+    assert skills_dir.is_dir(), f"{skills_dir} does not exist after chezmoi apply"
+    assert any(skills_dir.iterdir()), f"{skills_dir} contains no skills"
+    assert_entries_are_valid_skills(skills_dir)
+    direct_skills_dir = chezmoi_dest / f".{plugin_host}" / "skills"
+    for plugin_skill in _entries(skills_dir):
+        direct_skill = direct_skills_dir / plugin_skill.name
+        assert not direct_skill.exists(), f"{direct_skill} remains after capability-plugin cutover"
 
 
 # Tool agent directories actively deployed to by .chezmoiexternals/ai-agents.toml.tmpl.

@@ -45,7 +45,7 @@ import posixpath
 import sys
 import tarfile
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, BinaryIO, Callable, NamedTuple, Optional
+from typing import TYPE_CHECKING, BinaryIO, Callable, Dict, NamedTuple, Optional, cast
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -58,6 +58,558 @@ class Selection(NamedTuple):
 
 class FilterError(Exception):
     """Raised when the archive or arguments are invalid."""
+
+
+class ManagedPluginResource(NamedTuple):
+    kind: str
+    host: str
+    resource_id: str
+    fingerprint: str
+    install: tuple[str, ...]
+    update: tuple[str, ...]
+    uninstall: tuple[str, ...]
+    status: tuple[str, ...]
+    verify: tuple[str, ...]
+    expected_skills: tuple[str, ...]
+    adopt: bool
+
+
+class PluginPlan(NamedTuple):
+    resources: tuple[ManagedPluginResource, ...]
+    skill_mappings: tuple[tuple[str, str, str, str], ...]
+    legacy_cleanup: object
+    owned_removals: tuple[PluginOperation, ...] | None
+
+
+class PluginOperation(NamedTuple):
+    action: str
+    kind: str
+    host: str
+    resource_id: str
+    argv: tuple[str, ...]
+
+
+def _string_tuple(value: object, field: str) -> tuple[str, ...]:
+    if not isinstance(value, (list, tuple)) or not all(
+        isinstance(item, str) for item in value
+    ):
+        raise FilterError(f"{field} must be a list of strings")
+    return tuple(item for item in value if isinstance(item, str))
+
+
+def _plugin_resource(raw: object) -> ManagedPluginResource:
+    if not isinstance(raw, dict):
+        raise FilterError("plugin plan resources must be objects")
+    resource = cast(Dict[str, object], raw)
+    try:
+        kind = resource["kind"]
+        host = resource["host"]
+        resource_id = resource["id"]
+        fingerprint = resource["fingerprint"]
+        install = _string_tuple(resource["install"], "plugin resource install argv")
+        update = _string_tuple(
+            resource.get("update", install), "plugin resource update argv"
+        )
+        uninstall = _string_tuple(
+            resource["uninstall"], "plugin resource uninstall argv"
+        )
+        status = _string_tuple(
+            resource.get("status", ()), "plugin resource status argv"
+        )
+        verify = _string_tuple(
+            resource.get("verify", ()), "plugin resource verify argv"
+        )
+        expected_skills = _string_tuple(
+            resource.get("expected_skills", ()), "plugin resource expected skills"
+        )
+        adopt = resource.get("adopt", False)
+    except (KeyError, TypeError) as error:
+        raise FilterError(f"invalid plugin plan resource: {error}") from error
+    if not (
+        isinstance(kind, str)
+        and isinstance(host, str)
+        and isinstance(resource_id, str)
+        and isinstance(fingerprint, str)
+    ):
+        raise FilterError("plugin resource fields must be strings")
+    if kind not in ("marketplace", "plugin"):
+        raise FilterError(f"unsupported plugin resource kind {kind!r}")
+    if not isinstance(adopt, bool):
+        raise FilterError("plugin resource adopt marker must be a boolean")
+    if adopt and kind != "plugin":
+        raise FilterError("only plugin resources can be adopted")
+    if adopt and not verify:
+        raise FilterError("adopted plugin resource must provide verification argv")
+    if kind == "plugin" and not adopt and not status:
+        raise FilterError("plugin resource must provide status argv")
+    return ManagedPluginResource(
+        kind,
+        host,
+        resource_id,
+        fingerprint,
+        install,
+        update,
+        uninstall,
+        status,
+        verify,
+        expected_skills,
+        adopt,
+    )
+
+
+def _owned_removal_preview(raw: object) -> PluginOperation:
+    if not isinstance(raw, dict):
+        raise FilterError("owned removal previews must be objects")
+    removal = cast(Dict[str, object], raw)
+    try:
+        action = removal["action"]
+        kind = removal["kind"]
+        host = removal["host"]
+        resource_id = removal["id"]
+        argv = _string_tuple(removal["argv"], "owned removal preview argv")
+    except (KeyError, TypeError) as error:
+        raise FilterError(f"invalid owned removal preview: {error}") from error
+    if action != "uninstall":
+        raise FilterError("owned removal preview action must be uninstall")
+    if not (
+        isinstance(action, str)
+        and isinstance(kind, str)
+        and isinstance(host, str)
+        and isinstance(resource_id, str)
+    ):
+        raise FilterError("owned removal preview fields must be strings")
+    return PluginOperation(action, kind, host, resource_id, argv)
+
+
+def parse_plugin_plan(content: str) -> PluginPlan:
+    """Parse the rendered plugin desired-state plan."""
+    import json
+
+    try:
+        raw = json.loads(content)
+    except (TypeError, ValueError) as error:
+        raise FilterError(f"invalid plugin plan JSON: {error}") from error
+    if not isinstance(raw, dict) or raw.get("version") != 1:
+        raise FilterError("plugin plan must be a version 1 object")
+    resources = tuple(_plugin_resource(item) for item in raw.get("resources", ()))
+    resource_identities = [
+        (resource.kind, resource.host, resource.resource_id) for resource in resources
+    ]
+    if len(resource_identities) != len(set(resource_identities)):
+        raise FilterError("duplicate desired resource identity")
+    mappings = []
+    for item in raw.get("skill_mappings", ()):
+        if not isinstance(item, dict):
+            raise FilterError("skill mappings must be objects")
+        try:
+            mappings.append(
+                (
+                    item["legacy_root"],
+                    item["host"],
+                    item["plugin"],
+                    item["skill"],
+                )
+            )
+        except KeyError as error:
+            raise FilterError(f"invalid skill mapping: {error}") from error
+    legacy_roots = [mapping[0] for mapping in mappings]
+    replacements = [mapping[1:] for mapping in mappings]
+    if len(legacy_roots) != len(set(legacy_roots)) or len(replacements) != len(
+        set(replacements)
+    ):
+        raise FilterError("ambiguous skill mapping")
+    plugin_skills = {
+        (resource.host, resource.resource_id): set(resource.expected_skills)
+        for resource in resources
+        if resource.kind == "plugin"
+    }
+    for legacy_root, host, plugin_id, skill in mappings:
+        if skill not in plugin_skills.get((host, plugin_id), set()):
+            raise FilterError(
+                f"legacy cleanup mapping for {legacy_root!r} has no desired plugin skill"
+            )
+    raw_owned_removals = raw.get("owned_removals")
+    if raw_owned_removals is None:
+        owned_removals = None
+    elif not isinstance(raw_owned_removals, list):
+        raise FilterError("owned removal previews must be a list")
+    else:
+        owned_removals = tuple(
+            _owned_removal_preview(item) for item in raw_owned_removals
+        )
+    return PluginPlan(
+        resources,
+        tuple(sorted(mappings)),
+        raw.get("legacy_cleanup"),
+        owned_removals,
+    )
+
+
+def parse_plugin_ownership(content: str) -> tuple[ManagedPluginResource, ...]:
+    """Parse resources recorded by an earlier successful reconciliation."""
+    import json
+
+    if not content:
+        return ()
+    try:
+        raw = json.loads(content)
+        raw_resources = raw["resources"]
+    except (KeyError, TypeError, ValueError) as error:
+        raise FilterError(f"invalid plugin ownership JSON: {error}") from error
+    if not isinstance(raw, dict) or raw.get("version") != 1:
+        raise FilterError("plugin ownership must be a version 1 object")
+    resources = []
+    for item in raw_resources:
+        if not isinstance(item, dict):
+            raise FilterError("plugin ownership resources must be objects")
+        try:
+            resources.append(
+                ManagedPluginResource(
+                    item["kind"],
+                    item["host"],
+                    item["id"],
+                    item["fingerprint"],
+                    (),
+                    (),
+                    tuple(item["uninstall"]),
+                    (),
+                    (),
+                    (),
+                    False,
+                )
+            )
+        except (KeyError, TypeError) as error:
+            raise FilterError(f"invalid plugin ownership resource: {error}") from error
+    return tuple(resources)
+
+
+def plan_plugin_operations(
+    desired: PluginPlan, owned: Iterable[ManagedPluginResource]
+) -> tuple[PluginOperation, ...]:
+    """Return stable install and owned-resource uninstall operations."""
+    owned_resources = tuple(owned)
+    owned_by_identity = {
+        (resource.kind, resource.host, resource.resource_id): resource
+        for resource in owned_resources
+    }
+    desired_identities = {
+        (resource.kind, resource.host, resource.resource_id)
+        for resource in desired.resources
+    }
+    kind_order = {"marketplace": 0, "plugin": 1}
+    installs = []
+    for resource in sorted(
+        desired.resources,
+        key=lambda resource: (
+            kind_order[resource.kind],
+            resource.host,
+            resource.resource_id,
+        ),
+    ):
+        prior = owned_by_identity.get(
+            (resource.kind, resource.host, resource.resource_id)
+        )
+        if prior is not None and prior.fingerprint != resource.fingerprint:
+            installs.append(
+                PluginOperation(
+                    "update",
+                    resource.kind,
+                    resource.host,
+                    resource.resource_id,
+                    resource.update,
+                )
+            )
+        elif prior is None:
+            if resource.adopt:
+                installs.append(
+                    PluginOperation(
+                        "adopt",
+                        resource.kind,
+                        resource.host,
+                        resource.resource_id,
+                        resource.verify,
+                    )
+                )
+            else:
+                if resource.kind == "plugin":
+                    installs.append(
+                        PluginOperation(
+                            "preflight",
+                            resource.kind,
+                            resource.host,
+                            resource.resource_id,
+                            resource.status,
+                        )
+                    )
+                installs.append(
+                    PluginOperation(
+                        "install",
+                        resource.kind,
+                        resource.host,
+                        resource.resource_id,
+                        resource.install,
+                    )
+                )
+    obsolete = (
+        resource
+        for resource in owned_resources
+        if (resource.kind, resource.host, resource.resource_id)
+        not in desired_identities
+    )
+    uninstalls = tuple(
+        PluginOperation(
+            "uninstall",
+            resource.kind,
+            resource.host,
+            resource.resource_id,
+            resource.uninstall,
+        )
+        for resource in sorted(
+            obsolete,
+            key=lambda resource: (
+                -kind_order[resource.kind],
+                resource.host,
+                resource.resource_id,
+            ),
+        )
+    )
+    return tuple(installs) + uninstalls
+
+
+def _render_plugin_ownership(resources: Iterable[ManagedPluginResource]) -> str:
+    import json
+
+    records = [
+        {
+            "kind": resource.kind,
+            "host": resource.host,
+            "id": resource.resource_id,
+            "fingerprint": resource.fingerprint,
+            "uninstall": list(resource.uninstall),
+        }
+        for resource in sorted(
+            resources,
+            key=lambda resource: (
+                resource.kind,
+                resource.host,
+                resource.resource_id,
+            ),
+        )
+    ]
+    return (
+        json.dumps(
+            {"version": 1, "resources": records},
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n"
+    )
+
+
+def _legacy_cleanup_fields(
+    raw: object,
+) -> tuple[dict[str, object], str, str, str]:
+    if not isinstance(raw, dict):
+        raise FilterError("legacy_cleanup must be an object")
+    cleanup = cast(Dict[str, object], raw)
+    try:
+        destination = cleanup["dest_dir"]
+        state_manifest = cleanup["state_manifest"]
+        desired_manifest = cleanup["desired_manifest"]
+    except KeyError as error:
+        raise FilterError(f"invalid legacy_cleanup plan: {error}") from error
+    if not (
+        isinstance(destination, str)
+        and isinstance(state_manifest, str)
+        and isinstance(desired_manifest, str)
+    ):
+        raise FilterError("legacy_cleanup paths and manifest must be strings")
+    return cleanup, destination, state_manifest, desired_manifest
+
+
+def _validate_legacy_cleanup_plan(dest_dir: Path, desired: PluginPlan) -> None:
+    """Require every deferred legacy removal to name a verified replacement."""
+    from pathlib import Path
+
+    cleanup = desired.legacy_cleanup
+    if cleanup is None:
+        if desired.skill_mappings:
+            raise FilterError("legacy cleanup mapping has no cleanup root")
+        return
+    cleanup, cleanup_destination, state_manifest, desired_manifest = (
+        _legacy_cleanup_fields(cleanup)
+    )
+    destination = Path(dest_dir)
+    if Path(cleanup_destination) != destination:
+        raise FilterError("legacy cleanup destination does not match reconciliation")
+    manifest = validate_state_manifest_path(destination, Path(state_manifest))
+    desired_roots = parse_skill_root_manifest(desired_manifest, allow_duplicates=True)
+    validate_skill_root_manifest(destination, desired_roots)
+    prior_roots = ()
+    if manifest.exists():
+        prior_roots = parse_skill_root_manifest(manifest.read_text(encoding="utf-8"))
+        validate_skill_root_manifest(destination, prior_roots)
+    cleanup_roots = set(prior_roots) - set(desired_roots)
+    direct_roots = cleanup.get("direct_roots", [])
+    if not isinstance(direct_roots, list) or not all(
+        isinstance(root, str) for root in direct_roots
+    ):
+        raise FilterError("legacy direct cleanup roots must be a list of paths")
+    direct_root_set = set(direct_roots)
+    if len(direct_root_set) != len(direct_roots):
+        raise FilterError("legacy direct cleanup roots contain a duplicate entry")
+    expected_direct_roots = {
+        root
+        for root in cleanup_roots
+        if _skill_root_parent(root) == ".gemini/antigravity-cli/skills"
+    }
+    if direct_root_set != expected_direct_roots:
+        raise FilterError(
+            "legacy direct cleanup roots do not match Antigravity cleanup roots"
+        )
+    mappings_by_root = {mapping[0]: mapping[1:] for mapping in desired.skill_mappings}
+    if set(mappings_by_root) != cleanup_roots - direct_root_set:
+        raise FilterError("legacy cleanup mapping does not match cleanup roots")
+    plugins = {
+        (resource.host, resource.resource_id): set(resource.expected_skills)
+        for resource in desired.resources
+        if resource.kind == "plugin"
+    }
+    for root, (host, plugin_id, skill) in mappings_by_root.items():
+        if skill not in plugins.get((host, plugin_id), set()):
+            raise FilterError(
+                f"legacy cleanup mapping for {root!r} has no desired plugin skill"
+            )
+
+
+def reconcile_plugins(
+    dest_dir: Path,
+    ownership_file: Path,
+    desired: PluginPlan,
+    execute: Callable[[PluginOperation], Iterable[str]],
+    cleanup_legacy: Callable[[object], None],
+) -> tuple[ManagedPluginResource, ...]:
+    """Converge managed plugin resources without touching unmanaged resources."""
+    from pathlib import Path
+
+    destination = Path(dest_dir)
+    ownership_path = validate_state_manifest_path(destination, ownership_file)
+    _validate_legacy_cleanup_plan(destination, desired)
+    owned = ()
+    if ownership_path.exists():
+        owned = parse_plugin_ownership(ownership_path.read_text(encoding="utf-8"))
+    operations = plan_plugin_operations(desired, owned)
+    owned_removals = tuple(
+        operation for operation in operations if operation.action == "uninstall"
+    )
+    if desired.owned_removals is not None and desired.owned_removals != owned_removals:
+        raise FilterError("owned removal preview does not match current ownership")
+    identity = lambda resource: (
+        resource.kind,
+        resource.host,
+        resource.resource_id,
+    )
+    managed_by_identity = {identity(resource): resource for resource in owned}
+    durable_by_identity = dict(managed_by_identity)
+    initially_owned_identities = set(managed_by_identity)
+    desired_by_identity = {
+        identity(resource): resource for resource in desired.resources
+    }
+
+    verified_identities = set()
+    for operation in operations:
+        if operation.action == "preflight":
+            output = tuple(execute(operation))
+            if output:
+                raise FilterError(
+                    f"plugin {operation.resource_id!r} on {operation.host!r} "
+                    "is already installed but is not bridge-owned; use explicit adoption after verifying its complete content"
+                )
+        elif operation.action in ("install", "update", "adopt"):
+            resource = desired_by_identity[
+                (operation.kind, operation.host, operation.resource_id)
+            ]
+            output = tuple(execute(operation))
+            if (
+                operation.action == "install"
+                and identity(resource) not in initially_owned_identities
+            ):
+                durable_by_identity[identity(resource)] = resource
+                _replace_manifest_atomically(
+                    ownership_path,
+                    _render_plugin_ownership(durable_by_identity.values()),
+                )
+            if resource.kind == "plugin":
+                actual_skills = output
+                if operation.action != "adopt":
+                    actual_skills = tuple(
+                        execute(
+                            PluginOperation(
+                                "verify",
+                                resource.kind,
+                                resource.host,
+                                resource.resource_id,
+                                resource.verify,
+                            )
+                        )
+                    )
+                if tuple(sorted(actual_skills)) != tuple(
+                    sorted(resource.expected_skills)
+                ):
+                    raise FilterError(
+                        f"plugin {resource.resource_id!r} on {resource.host!r} "
+                        f"has skills {actual_skills!r}, expected "
+                        f"{resource.expected_skills!r}"
+                    )
+                verified_identities.add(identity(resource))
+            managed_by_identity[identity(resource)] = resource
+
+    for resource in sorted(
+        (
+            item
+            for item in desired.resources
+            if item.kind == "plugin" and identity(item) not in verified_identities
+        ),
+        key=lambda item: (item.host, item.resource_id),
+    ):
+        actual_skills = tuple(
+            execute(
+                PluginOperation(
+                    "verify",
+                    resource.kind,
+                    resource.host,
+                    resource.resource_id,
+                    resource.verify,
+                )
+            )
+        )
+        if tuple(sorted(actual_skills)) != tuple(sorted(resource.expected_skills)):
+            raise FilterError(
+                f"plugin {resource.resource_id!r} on {resource.host!r} has "
+                f"skills {actual_skills!r}, expected {resource.expected_skills!r}"
+            )
+
+    _replace_manifest_atomically(
+        ownership_path, _render_plugin_ownership(managed_by_identity.values())
+    )
+
+    if desired.legacy_cleanup is not None:
+        cleanup_legacy(desired.legacy_cleanup)
+
+    for operation in operations:
+        if operation.action == "uninstall":
+            execute(operation)
+            managed_by_identity.pop(
+                (operation.kind, operation.host, operation.resource_id)
+            )
+            _replace_manifest_atomically(
+                ownership_path,
+                _render_plugin_ownership(managed_by_identity.values()),
+            )
+
+    managed = tuple(desired.resources)
+    _replace_manifest_atomically(ownership_path, _render_plugin_ownership(managed))
+    return managed
 
 
 ALLOWED_SKILL_ROOTS = (
@@ -518,8 +1070,101 @@ def _parse_cleanup_args(argv: Iterable[str]) -> argparse.Namespace:
     return parser.parse_args(list(argv))
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def _parse_reconcile_plugins_args(argv: Iterable[str]) -> argparse.Namespace:
+    from pathlib import Path
+
+    parser = argparse.ArgumentParser(
+        prog="skill-filter reconcile-plugins",
+        description="converge managed user-scoped agent plugins from a JSON plan",
+    )
+    parser.add_argument(
+        "--dest-dir",
+        required=True,
+        type=Path,
+        help="chezmoi destination directory",
+    )
+    parser.add_argument(
+        "--ownership-file",
+        required=True,
+        type=Path,
+        help="runtime ownership record under .local/state/dotfiles",
+    )
+    return parser.parse_args(list(argv))
+
+
+def _execute_plugin_command(operation: PluginOperation) -> tuple[str, ...]:
+    import json
+    import subprocess
+
+    if not operation.argv:
+        raise FilterError(
+            f"{operation.action} command is missing for {operation.resource_id!r}"
+        )
+    completed = subprocess.run(
+        operation.argv,
+        check=True,
+        capture_output=operation.action in ("verify", "adopt", "preflight"),
+        text=True,
+    )
+    if operation.action not in ("verify", "adopt", "preflight"):
+        return ()
+    if operation.action == "preflight" and not completed.stdout:
+        return ()
+    try:
+        output = json.loads(completed.stdout)
+        if operation.action == "preflight":
+            installed = output["installed"]
+            if not isinstance(installed, bool):
+                raise TypeError("installed must be a boolean")
+            return ("installed",) if installed else ()
+        skills = output["skills"] if isinstance(output, dict) else output
+    except (KeyError, TypeError, ValueError) as error:
+        raise FilterError(
+            f"invalid skill verification output for {operation.resource_id!r}"
+        ) from error
+    if not isinstance(skills, list) or not all(
+        isinstance(skill, str) for skill in skills
+    ):
+        raise FilterError(
+            f"invalid skill verification output for {operation.resource_id!r}"
+        )
+    return tuple(skills)
+
+
+def _cleanup_legacy_skill_roots(cleanup_plan: object) -> None:
+    from pathlib import Path
+
+    _, destination, state_manifest, desired_manifest = _legacy_cleanup_fields(
+        cleanup_plan
+    )
+    reconcile_skill_roots(
+        Path(destination),
+        Path(state_manifest),
+        desired_manifest,
+    )
+
+
+def main(
+    argv: Optional[Sequence[str]] = None,
+    *,
+    plugin_executor: Optional[Callable[[PluginOperation], Iterable[str]]] = None,
+    legacy_cleaner: Optional[Callable[[object], None]] = None,
+) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
+    if raw_argv[:1] == ["reconcile-plugins"]:
+        args = _parse_reconcile_plugins_args(raw_argv[1:])
+        try:
+            reconcile_plugins(
+                args.dest_dir,
+                args.ownership_file,
+                parse_plugin_plan(sys.stdin.read()),
+                plugin_executor or _execute_plugin_command,
+                legacy_cleaner or _cleanup_legacy_skill_roots,
+            )
+        except (FilterError, OSError, UnicodeError) as error:
+            print(f"skill-filter: {error}", file=sys.stderr)
+            return 1
+        return 0
     if raw_argv[:1] == ["cleanup-skill-roots"]:
         args = _parse_cleanup_args(raw_argv[1:])
         try:
