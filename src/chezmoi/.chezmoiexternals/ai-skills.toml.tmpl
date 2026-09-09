@@ -25,14 +25,16 @@
 {{-         fail (printf "ai.skills.external.%s: ref and sha256 are required (versions are always pinned)" $sourceName) -}}
 {{-       end -}}
 {{-       $url := dig "url" "" $source -}}
+{{-       $host := dict -}}
 {{-       if not $url -}}
 {{-         $hostName := dig "host" "github" $source -}}
-{{-         $host := dig $hostName (dict) $cfg.hosts -}}
+{{-         $host = dig $hostName (dict) $cfg.hosts -}}
 {{-         if not $host -}}
 {{-           fail (printf "ai.skills.external.%s: unknown host %q (no ai.skills.hosts.%s entry)" $sourceName $hostName $hostName) -}}
 {{-         end -}}
 {{-         $url = $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
 {{-       end -}}
+{{-       $checksum := dig $sourceName $source.sha256 (dig "checksums" (dict) $host) -}}
 {{-       $skillFile := dig "skill_file" "" $source -}}
 {{-       $selectArg := $skillFile -}}
 {{-       if not $skillFile -}}
@@ -43,12 +45,12 @@
 {{-           $entry := dict
                 "type" "archive"
                 "url" $url
-                "checksum" (dict "sha256" $source.sha256)
+                "checksum" (dict "sha256" $checksum)
                 "exact" true
                 "format" "tar"
                 "filter" (dict
                   "command" $python
-                  "args" (list "-S" $script "--cache-key" $source.sha256 "--select" $selectArg))
+                  "args" (list "-S" $script "--cache-key" $checksum "--select" $selectArg))
 -}}
 {{-           $_ := set $config (printf "%s/%s" $skillsDir $skillName) $entry -}}
 {{-         end -}}
