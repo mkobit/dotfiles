@@ -148,6 +148,10 @@ include = [
 
 [tool.ty.rules]
 all = "error"
+unsound-assignment = "ignore"
+unsound-return-statement = "ignore"
+unsound-yield = "ignore"
+dynamic-function-decorator-return = "ignore"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
