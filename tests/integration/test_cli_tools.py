@@ -69,7 +69,7 @@ def test_sbx_env_help(host):
 
 
 @pytest.mark.integration
-@pytest.mark.chezmoi_installation("agy", methods={"dotfiles.script", "preinstalled"})
+@pytest.mark.chezmoi_installation("local.bin.agy", methods={"github_releases", "preinstalled"})
 @pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
 def test_agy_available(host, shell_cmd):
     """Verify agy is on PATH in bash and zsh when enabled."""
@@ -78,9 +78,9 @@ def test_agy_available(host, shell_cmd):
 
 
 @pytest.mark.integration
-@pytest.mark.chezmoi_installation("agy", methods={"none"})
+@pytest.mark.chezmoi_installation("local.bin.agy", methods={"none"})
 @pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
 def test_agy_not_available(host, shell_cmd):
     """Verify agy is not on PATH in bash and zsh when disabled."""
     result = host.run(f"{shell_cmd} 'command -v agy'")
-    assert result.rc != 0, f"'agy' was found via {shell_cmd!r} despite agy.installation_method = 'none'"
+    assert result.rc != 0, f"'agy' was found via {shell_cmd!r} despite local.bin.agy.installation_method = 'none'"

@@ -1,10 +1,10 @@
 from collections.abc import Mapping
 from typing import Any
 
-AGY_INSTALLATION_METHODS = frozenset({"dotfiles.script", "preinstalled", "none", "uninstall"})
+AGY_INSTALLATION_METHODS = frozenset({"github_releases", "preinstalled", "none", "uninstall"})
 
 MARKER_GATED_INSTALLATION_METHODS = {
-    "agy": AGY_INSTALLATION_METHODS,
+    "local.bin.agy": AGY_INSTALLATION_METHODS,
     "local.bin.btop": frozenset({"github_releases", "homebrew", "none"}),
     "local.bin.codex": frozenset({"github_releases", "none"}),
     "local.bin.opencode": frozenset({"github_releases", "none"}),

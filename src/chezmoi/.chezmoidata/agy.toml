@@ -1,3 +1,25 @@
-[agy]
-# Update to trigger reinstall; installer always fetches latest from the manifest service
-version             = "1.1.11"
+[bin.agy]
+version = "1.2.2"
+
+[bin.agy.github_releases]
+repo            = "google-antigravity/antigravity-cli"
+bin_name        = "agy"
+external_type   = "archive-file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "{version}"
+filename_format = "agy_cli_{target}.tar.gz"
+path_format     = "antigravity"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.agy.github_releases.platforms]
+darwin_arm64 = "mac_arm64"
+darwin_amd64 = "mac_x64"
+linux_amd64  = "linux_x64"
+linux_arm64  = "linux_arm64"
+
+[bin.agy.github_releases.checksums]
+darwin_arm64 = "f90ff6094a196f1be3854ac45d999a542d47ec66a1513aa882a8505b947b9a0f"
+darwin_amd64 = "2b44ed726a73a0ef0a39956c80e07b5898c0b4fe21f8ecd383be74f1c0b65e5d"
+linux_amd64  = "2cfa5c9a4a1edd96db6d4058f34970be60d3bcacda866e2bdce6aefb2451b48e"
+linux_arm64  = "00fc5cb50cd714b81cdf1298fcc90e63a59e3e564a4f8076454ab8457d36e6eb"

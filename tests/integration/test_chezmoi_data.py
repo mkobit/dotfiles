@@ -8,9 +8,9 @@ from chezmoi_test_data import (
 
 
 def test_installation_method_reads_top_level_feature():
-    data = {"agy": {"installation_method": "preinstalled"}}
+    data = {"local": {"bin": {"agy": {"installation_method": "preinstalled"}}}}
 
-    assert installation_method(data, "agy") == "preinstalled"
+    assert installation_method(data, "local.bin.agy") == "preinstalled"
 
 
 def test_installation_method_reads_dotted_feature_path():
@@ -39,27 +39,27 @@ def test_required_installation_method_rejects_missing_dotted_path():
 
 
 def test_installation_method_defaults_missing_feature_to_none():
-    assert installation_method({}, "agy") == "none"
+    assert installation_method({}, "local.bin.agy") == "none"
 
 
 def test_installation_method_defaults_missing_method_to_none():
-    assert installation_method({"agy": {}}, "agy") == "none"
+    assert installation_method({"local": {"bin": {"agy": {}}}}, "local.bin.agy") == "none"
 
 
 def test_required_installation_method_rejects_missing_method():
-    with pytest.raises(KeyError, match=r"agy\.installation_method"):
-        required_installation_method({"agy": {}}, "agy")
+    with pytest.raises(KeyError, match=r"local\.bin\.agy\.installation_method"):
+        required_installation_method({"local": {"bin": {"agy": {}}}}, "local.bin.agy")
 
 
 def test_required_installation_method_rejects_non_string_method():
-    with pytest.raises(TypeError, match=r"agy\.installation_method"):
-        required_installation_method({"agy": {"installation_method": []}}, "agy")
+    with pytest.raises(TypeError, match=r"local\.bin\.agy\.installation_method"):
+        required_installation_method({"local": {"bin": {"agy": {"installation_method": []}}}}, "local.bin.agy")
 
 
 @pytest.mark.integration
 def test_chezmoi_data_contains_agy_installation_method(chezmoi_data):
-    assert "agy" in chezmoi_data
-    assert installation_method(chezmoi_data, "agy") in AGY_INSTALLATION_METHODS
+    assert "local" in chezmoi_data and "bin" in chezmoi_data["local"] and "agy" in chezmoi_data["local"]["bin"]
+    assert installation_method(chezmoi_data, "local.bin.agy") in AGY_INSTALLATION_METHODS
 
 
 @pytest.mark.integration

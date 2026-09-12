@@ -74,6 +74,9 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 [data.local.bin.sbx]
 installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
 
+[data.local.bin.agy]
+installation_method = "github_releases"
+
 [data.local.bin.gh]
 installation_method = "github_releases"
 
@@ -197,8 +200,6 @@ installation_method = "chezmoi_external"
 [data.claude_code]
 installation_method = "none"
 
-[data.agy]
-installation_method = "dotfiles.script"
 
 [data.npmrc]
 installation_method = "chezmoi"

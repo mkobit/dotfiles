@@ -6,7 +6,7 @@ import pytest
 
 
 @pytest.mark.integration
-@pytest.mark.chezmoi_installation("agy", methods={"dotfiles.script", "preinstalled"})
+@pytest.mark.chezmoi_installation("local.bin.agy", methods={"github_releases", "preinstalled"})
 def test_antigravity_version(host):
     """Verify that the agy CLI is operational when enabled."""
     result = host.run("agy --version")
@@ -35,7 +35,7 @@ def _render_antigravity_settings(stdin: str, agy_method: str) -> subprocess.Comp
             "-f",
             "--with-stdin",
             "--override-data",
-            json.dumps({"agy": {"installation_method": agy_method}}),
+            json.dumps({"local": {"bin": {"agy": {"installation_method": agy_method}}}}),
             str(template),
         ],
         input=stdin,

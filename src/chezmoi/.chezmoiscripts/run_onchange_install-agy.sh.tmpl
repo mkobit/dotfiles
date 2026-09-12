@@ -1,13 +1,1 @@
-{{- if eq (dig "installation_method" "none" .agy) "dotfiles.script" -}}
-#!/bin/bash
-# agy {{ .agy.version }}
-set -euo pipefail
-
-if command -v agy &>/dev/null; then
-    echo "agy already installed at $(command -v agy); self-updates automatically"
-    exit 0
-fi
-
-echo "Installing Antigravity CLI {{ .agy.version }}..."
-curl -fsSL https://antigravity.google/cli/install.sh | bash -s -- --dir "{{ .chezmoi.destDir }}/.local/bin"
-{{- end }}
+# Deprecated installer script replaced by direct binary download in .chezmoidata/bin/agy.toml
