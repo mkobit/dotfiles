@@ -1,0 +1,95 @@
+{{- $expectedSkills := list -}}
+{{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
+{{-   if eq $state "present" }}{{ $expectedSkills = append $expectedSkills $skillName }}{{ end -}}
+{{- end -}}
+{{- range $_, $source := .ai.skills.external -}}
+{{-   range $skillName, $state := dig "skills" (dict) $source -}}
+{{-     if eq $state "present" }}{{ $expectedSkills = append $expectedSkills $skillName }}{{ end -}}
+{{-   end -}}
+{{- end -}}
+{{- $expectedSkills = $expectedSkills | sortAlpha -}}
+{{- $guidelineSections := list -}}
+{{- range .ai.guidelines.sections -}}
+{{-   $guidelineSections = append $guidelineSections (.content | trim) -}}
+{{- end -}}
+{{- $guidelineSections = append $guidelineSections "You are already inside an isolated sandbox.\nRun project build and verification commands here.\nHost orchestration belongs to the host coordinator." -}}
+{{- $instructions := join "\n\n" $guidelineSections -}}
+{{- $personalEnabled := dig "sbx" "personal" "enabled" nil . -}}
+{{- $inputs := dict "enabled" (dig "sbx" "personal" "enabled" false .) "skills" .ai.skills -}}
+{{- range $path := glob (joinPath .chezmoi.workingTree "src/ai/skills/**/*") | sortAlpha -}}
+{{-   if eq (lstat $path).type "file" -}}
+{{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
+{{-   end -}}
+{{- end -}}
+#!/bin/sh
+set -eu
+
+# personal-sbx-learning-kit-input-fingerprint: {{ sha256sum (toJson $inputs) }}
+
+{{- if eq $personalEnabled true }}
+destination={{ .chezmoi.destDir | quote }}
+personal_root="$destination/.local/share/sbx/personal"
+portable_skills="$destination/.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills"
+parent_root="$destination/.local/share/sbx"
+
+case "$personal_root" in
+    "$parent_root"/personal) ;;
+    *)
+        printf '%s\n' 'sbx personal learning kit: refusing unsafe target' >&2
+        exit 1
+        ;;
+esac
+
+if [ ! -d "$portable_skills" ]; then
+    printf '%s\n' "sbx personal learning kit: portable skills are unavailable" >&2
+    exit 1
+fi
+
+{{- range $skillName := $expectedSkills }}
+if [ ! -d "$portable_skills/{{ $skillName }}" ] || [ ! -f "$portable_skills/{{ $skillName }}/SKILL.md" ]; then
+        printf '%s\n' "sbx personal learning kit: missing portable skill: {{ $skillName }}" >&2
+        exit 1
+fi
+{{- end }}
+
+mkdir -p -- "$parent_root"
+temporary_root=$(mktemp -d "$parent_root/.personal.XXXXXXXX")
+cleanup() {
+    rm -rf -- "$temporary_root"
+}
+trap cleanup EXIT HUP INT TERM
+
+mkdir -p -- \
+    "$temporary_root/kit/files/home/.agents/skills" \
+    "$temporary_root/kit/files/home/.claude/skills" \
+    "$temporary_root/kit/files/home/.gemini/antigravity-cli/skills"
+
+{{- range $skillName := $expectedSkills }}
+for skill_root in \
+    "$temporary_root/kit/files/home/.agents/skills" \
+    "$temporary_root/kit/files/home/.claude/skills" \
+    "$temporary_root/kit/files/home/.gemini/antigravity-cli/skills"; do
+    cp -R -- "$portable_skills/{{ $skillName }}" "$skill_root/{{ $skillName }}"
+done
+{{- end }}
+
+cat > "$temporary_root/personal.sbxenv.yaml" <<'YAML'
+schemaVersion: "1"
+kits:
+  - ./kit
+sandboxOptions:
+  shareSkills: false
+YAML
+
+cat > "$temporary_root/kit/spec.yaml" <<'YAML'
+{{ dict "schemaVersion" "2" "kind" "mixin" "name" "personal-learning" "agentInstructions" (dict "content" $instructions) | toYaml }}
+YAML
+
+rm -rf -- "$personal_root"
+mv -- "$temporary_root" "$personal_root"
+trap - EXIT HUP INT TERM
+{{- else if eq $personalEnabled false }}
+destination={{ .chezmoi.destDir | quote }}
+personal_root="$destination/.local/share/sbx/personal"
+rm -rf -- "$personal_root"
+{{- end }}

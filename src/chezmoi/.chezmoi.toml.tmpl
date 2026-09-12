@@ -74,6 +74,11 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 [data.local.bin.sbx]
 installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
 
+# Personal learning kit for Docker Sandboxes.  It is deliberately separate
+# from project environment files, which continue to own their build setup.
+[data.sbx.personal]
+enabled = {{ if eq .chezmoi.os "linux" }}true{{ else }}false{{ end }}
+
 [data.local.bin.gh]
 installation_method = "github_releases"
 
