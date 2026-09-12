@@ -15,6 +15,7 @@ def test_skill_routes_repository_setup_through_progressive_references():
 
     for required in (
         "sbx version",
+        "0.42.1",
         "AGENTS.md",
         ".agents/skills",
         "CI",
