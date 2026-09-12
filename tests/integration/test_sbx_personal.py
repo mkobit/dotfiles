@@ -213,7 +213,9 @@ def test_personal_layer_contains_only_portable_learning_content(tmp_path):
     personal = destination / ".local/share/sbx/personal"
     paths = {path.relative_to(personal).as_posix() for path in personal.rglob("*")}
     assert not any(path.startswith("kit/files/home/.codex") for path in paths)
-    instructions = yaml.safe_load((personal / "kit/spec.yaml").read_text(encoding="utf-8"))["agentInstructions"]["content"]
+    instructions = yaml.safe_load((personal / "kit/spec.yaml").read_text(encoding="utf-8"))["agentInstructions"][
+        "content"
+    ]
     assert instructions == (
         "## Fixture guidelines\nUse the project checks.\n\n"
         "## Fixture voice\nKeep the output concise.\n\n"
