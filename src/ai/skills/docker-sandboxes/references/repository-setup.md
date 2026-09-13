@@ -8,9 +8,15 @@ The legacy `.sbx/.sbxenv.yaml` and `.sbx/.sbxenv.agy.yaml` names remain compatib
 
 Add `.sbx/local.sbxenv.yaml` to the repository’s `.gitignore` before creating a host-specific overlay.
 
-Run the Codex environment with `sbx env run .sbx/sbxenv.yaml ~/.local/share/sbx/personal/personal.sbxenv.yaml` when the personal overlay exists.
+Run the Codex environment with `sbx env run .sbx/sbxenv.yaml ~/.local/share/sbx/personal/personal.codex.sbxenv.yaml` when the native Codex overlay exists.
 
 Run the AGY environment with `sbx env run .sbx/sbxenv.agy.yaml ~/.local/share/sbx/personal/personal.sbxenv.yaml` when the personal overlay exists.
+
+The project owns required build dependencies, versions, tests, services, and ports through its checked-in tooling and environment file.
+The personal layer is optional and supplies user-specific guidelines, tools, skills, and agent-native plugins.
+Put repeatable project setup in a repository kit only when the project cannot express it through its own tooling.
+Reuse versioned shared kits for common guest setup and declare build-required kits in the project environment.
+Prefer native plugins for agent capabilities; SBX kits handle guest provisioning and plugin activation.
 
 Pass the same project-first, personal-second paths to `sbx env plan`, `sbx env create`, `sbx env exec`, and `sbx env rm`.
 
