@@ -83,6 +83,33 @@ def _render_personal_script(destination: Path, enabled: bool | None, extra_data:
     return result.stdout
 
 
+def _chezmoi_arch(destination: Path) -> str:
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            "/dev/null",
+            "--config-format",
+            "toml",
+            "--source",
+            str(REPO_ROOT),
+            "--destination",
+            str(destination),
+            "execute-template",
+            "{{ .chezmoi.arch }}",
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    return result.stdout.strip()
+
+
+def _tool_cache(destination: Path) -> Path:
+    return destination / f".local/share/sbx/tool-cache/linux_{_chezmoi_arch(destination)}"
+
+
 def _portable_skills(destination: Path) -> Path:
     return destination / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills"
 
@@ -248,7 +275,7 @@ def test_personal_layer_copies_cached_tools_and_codex_package_separately(tmp_pat
     destination = tmp_path / "destination"
     _populate_selected_portable_skills(destination)
     _codex_fixture(destination)
-    cache = destination / ".local/share/sbx/tool-cache/linux_amd64"
+    cache = _tool_cache(destination)
     cache.mkdir(parents=True)
     binary = cache / "ripgrep"
     binary.write_bytes(b"fixture-rg")
@@ -276,8 +303,18 @@ def test_personal_layer_copies_cached_tools_and_codex_package_separately(tmp_pat
         .replace("/etc/sandbox-persistent.sh", str(persistent))
         for item in setup
     ]
+    fake_uname = tmp_path / "uname"
+    guest_uname = "x86_64" if _chezmoi_arch(destination) == "amd64" else "aarch64"
+    fake_uname.write_text(f"#!/bin/sh\necho {guest_uname}\n", encoding="utf-8")
+    fake_uname.chmod(0o755)
     for command in setup_commands:
-        result = subprocess.run(["sh", "-c", command], capture_output=True, check=False, text=True)
+        result = subprocess.run(
+            ["sh", "-c", command],
+            env={"PATH": f"{tmp_path}:{os.environ['PATH']}"},
+            capture_output=True,
+            check=False,
+            text=True,
+        )
         assert result.returncode == 0, result.stderr
     assert guest_copy.stat().st_mode & 0o111
     assert (
@@ -327,7 +364,7 @@ def test_personal_layer_missing_codex_skill_preserves_previous_output(tmp_path):
 def test_personal_layer_setup_install_schema_and_path_architecture_gate(tmp_path):
     destination = tmp_path / "destination"
     _populate_selected_portable_skills(destination)
-    cache = destination / ".local/share/sbx/tool-cache/linux_amd64"
+    cache = _tool_cache(destination)
     cache.mkdir(parents=True)
     binary = cache / "ripgrep"
     binary.write_bytes(b"rg")
@@ -354,7 +391,17 @@ def test_personal_layer_setup_install_schema_and_path_architecture_gate(tmp_path
         .replace("/etc/sandbox-persistent.sh", str(persistent))
         for item in installs
     ]
-    matching = subprocess.run(["sh", "-c", "; ".join(commands)], capture_output=True, check=False, text=True)
+    fake_uname = tmp_path / "uname"
+    matching_uname = "x86_64" if _chezmoi_arch(destination) == "amd64" else "aarch64"
+    fake_uname.write_text(f"#!/bin/sh\necho {matching_uname}\n", encoding="utf-8")
+    fake_uname.chmod(0o755)
+    matching = subprocess.run(
+        ["sh", "-c", commands[0]],
+        env={"PATH": f"{tmp_path}:{os.environ['PATH']}"},
+        capture_output=True,
+        check=False,
+        text=True,
+    )
     assert matching.returncode == 0, matching.stderr
     assert guest_tool.stat().st_mode & 0o111
     shell = subprocess.run(
@@ -367,9 +414,8 @@ def test_personal_layer_setup_install_schema_and_path_architecture_gate(tmp_path
     assert shell.stdout == f"/project/bin:{guest_bin}"
     persistent_after_match = persistent.read_text()
 
-    fake_uname = tmp_path / "uname"
-    fake_uname.write_text("#!/bin/sh\necho aarch64\n", encoding="utf-8")
-    fake_uname.chmod(0o755)
+    mismatching_uname = "aarch64" if matching_uname == "x86_64" else "x86_64"
+    fake_uname.write_text(f"#!/bin/sh\necho {mismatching_uname}\n", encoding="utf-8")
     mismatch = subprocess.run(
         ["sh", "-c", commands[0]],
         env={"PATH": f"{tmp_path}:{os.environ['PATH']}"},
@@ -385,7 +431,7 @@ def test_personal_layer_setup_install_schema_and_path_architecture_gate(tmp_path
 def test_personal_layer_missing_cached_tool_preserves_previous_output(tmp_path):
     destination = tmp_path / "destination"
     _populate_selected_portable_skills(destination)
-    cache = destination / ".local/share/sbx/tool-cache/linux_amd64"
+    cache = _tool_cache(destination)
     cache.mkdir(parents=True)
     binary = cache / "ripgrep"
     binary.write_bytes(b"rg")
@@ -404,7 +450,7 @@ def test_personal_layer_false_selections_prune_optional_outputs_and_keep_skills(
     destination = tmp_path / "destination"
     _populate_selected_portable_skills(destination)
     _codex_fixture(destination)
-    cache = destination / ".local/share/sbx/tool-cache/linux_amd64"
+    cache = _tool_cache(destination)
     cache.mkdir(parents=True)
     binary = cache / "ripgrep"
     binary.write_bytes(b"rg")
