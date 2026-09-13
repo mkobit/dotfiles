@@ -14,24 +14,42 @@
 {{- end -}}
 {{- $guidelineSections = append $guidelineSections "You are already inside an isolated sandbox.\nRun project build and verification commands here.\nHost orchestration belongs to the host coordinator." -}}
 {{- $instructions := join "\n\n" $guidelineSections -}}
-{{- $personalEnabled := dig "sbx" "personal" "enabled" nil . -}}
-{{- $inputs := dict "enabled" (dig "sbx" "personal" "enabled" false .) "skills" .ai.skills -}}
-{{- range $path := glob (joinPath .chezmoi.workingTree "src/ai/skills/**/*") | sortAlpha -}}
-{{-   if eq (lstat $path).type "file" -}}
-{{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
+{{- $personal := dig "sbx" "personal" (dict) . -}}
+{{- $enabled := dig "enabled" nil $personal -}}
+{{- $codex := dig "plugins" "codex" false $personal -}}
+{{- $tools := dig "tools" (dict) $personal -}}
+{{- $selectedTools := dict -}}
+{{- range $name, $selected := $tools -}}
+{{-   if and (eq $enabled true) (eq $selected true) -}}
+{{-     $release := dig $name "github_releases" (dict) $.bin -}}
+{{-     if not $release }}{{ fail (printf "sbx personal kit: missing release catalog for %s" $name) }}{{ end -}}
+{{-     $guestName := dig "bin_name" "" $release -}}
+{{-     if not $guestName }}{{ $guestName = base (dig "path_format" $name $release) }}{{ end -}}
+{{-     $_ := set $selectedTools $name $guestName -}}
+{{-   end -}}
+{{- end -}}
+{{- $guestArch := "" -}}
+{{- if $selectedTools -}}
+{{-   if eq .chezmoi.arch "amd64" }}{{ $guestArch = "x86_64" -}}
+{{-   else if eq .chezmoi.arch "arm64" }}{{ $guestArch = "aarch64" -}}
+{{-   else }}{{ fail "sbx personal kit: unsupported guest architecture" }}{{ end -}}
+{{- end -}}
+{{- $inputs := dict "enabled" $enabled "codex" $codex "tools" $tools "catalogs" .bin "skills" .ai.skills "plugins" (dig "plugin_bridge" (dict) .ai) -}}
+{{- range $pattern := list "src/ai/skills/**/*" "src/chezmoi/dot_local/share/agent-plugins/**/*" "src/chezmoi/.chezmoiscripts/*agent-plugin*" -}}
+{{-   range $path := glob (joinPath $.chezmoi.workingTree $pattern) | sortAlpha -}}
+{{-     if eq (lstat $path).type "file" -}}
+{{-       $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
+{{-     end -}}
 {{-   end -}}
 {{- end -}}
 #!/bin/sh
 set -eu
-
 # personal-sbx-learning-kit-input-fingerprint: {{ sha256sum (toJson $inputs) }}
-
-{{- if eq $personalEnabled true }}
+{{- if eq $enabled true }}
 destination={{ .chezmoi.destDir | quote }}
 personal_root="$destination/.local/share/sbx/personal"
-portable_skills="$destination/.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills"
 parent_root="$destination/.local/share/sbx"
-
+portable_skills="$destination/.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills"
 case "$personal_root" in
     "$parent_root"/personal) ;;
     *)
@@ -39,57 +57,128 @@ case "$personal_root" in
         exit 1
         ;;
 esac
-
 if [ ! -d "$portable_skills" ]; then
-    printf '%s\n' "sbx personal learning kit: portable skills are unavailable" >&2
+    printf '%s\n' 'sbx personal kit: portable skills are unavailable' >&2
     exit 1
 fi
-
 {{- range $skillName := $expectedSkills }}
-if [ ! -d "$portable_skills/{{ $skillName }}" ] || [ ! -f "$portable_skills/{{ $skillName }}/SKILL.md" ]; then
-        printf '%s\n' "sbx personal learning kit: missing portable skill: {{ $skillName }}" >&2
-        exit 1
+if [ ! -f "$portable_skills/{{ $skillName }}/SKILL.md" ]; then
+    printf '%s\n' "sbx personal kit: missing portable skill: {{ $skillName }}" >&2
+    exit 1
 fi
 {{- end }}
-
+{{- if eq $codex true }}
+marketplace="$destination/.local/share/agent-plugins/marketplace"
+if [ ! -f "$marketplace/.agents/plugins/marketplace.json" ] || [ ! -f "$marketplace/plugins/mkobit-dotfiles/codex/.codex-plugin/plugin.json" ]; then
+    printf '%s\n' 'sbx personal kit: Codex marketplace/plugin snapshot is unavailable' >&2
+    exit 1
+fi
+{{- range $skillName := $expectedSkills }}
+if [ ! -f "$marketplace/plugins/mkobit-dotfiles/codex/skills/{{ $skillName }}/SKILL.md" ]; then
+    printf '%s\n' "sbx personal kit: missing Codex plugin skill: {{ $skillName }}" >&2
+    exit 1
+fi
+{{- end }}
+{{- end }}
 mkdir -p -- "$parent_root"
 temporary_root=$(mktemp -d "$parent_root/.personal.XXXXXXXX")
 cleanup() {
     rm -rf -- "$temporary_root"
 }
 trap cleanup EXIT HUP INT TERM
-
-mkdir -p -- \
-    "$temporary_root/kit/files/home/.agents/skills" \
-    "$temporary_root/kit/files/home/.claude/skills" \
-    "$temporary_root/kit/files/home/.gemini/antigravity-cli/skills"
-
+mkdir -p -- "$temporary_root/skills-kit/files/home/.agents/skills" "$temporary_root/skills-kit/files/home/.claude/skills" "$temporary_root/skills-kit/files/home/.gemini/antigravity-cli/skills"
+mkdir -p -- "$temporary_root/kit"
 {{- range $skillName := $expectedSkills }}
 for skill_root in \
-    "$temporary_root/kit/files/home/.agents/skills" \
-    "$temporary_root/kit/files/home/.claude/skills" \
-    "$temporary_root/kit/files/home/.gemini/antigravity-cli/skills"; do
+    "$temporary_root/skills-kit/files/home/.agents/skills" \
+    "$temporary_root/skills-kit/files/home/.claude/skills" \
+    "$temporary_root/skills-kit/files/home/.gemini/antigravity-cli/skills"; do
     cp -R -- "$portable_skills/{{ $skillName }}" "$skill_root/{{ $skillName }}"
 done
 {{- end }}
+{{- range $name, $guestName := $selectedTools }}
+tool_cache="$destination/.local/share/sbx/tool-cache/linux_{{ $.chezmoi.arch }}/{{ $name }}"
+if [ ! -f "$tool_cache" ] || [ ! -x "$tool_cache" ]; then
+    printf '%s\n' "sbx personal kit: cached tool unavailable: {{ $name }}" >&2
+    exit 1
+fi
+mkdir -p -- "$temporary_root/kit/files/home/.local/share/sbx/bin"
+cp -- "$tool_cache" "$temporary_root/kit/files/home/.local/share/sbx/bin/{{ $guestName }}"
+{{- end }}
+{{- if eq $codex true }}
+mkdir -p -- "$temporary_root/codex-kit/files/home/.local/share/sbx/marketplace/.agents/plugins" "$temporary_root/codex-kit/files/home/.local/share/sbx/marketplace/plugins/mkobit-dotfiles"
+cp -- "$marketplace/.agents/plugins/marketplace.json" "$temporary_root/codex-kit/files/home/.local/share/sbx/marketplace/.agents/plugins/marketplace.json"
+cp -R -- "$marketplace/plugins/mkobit-dotfiles/codex" "$temporary_root/codex-kit/files/home/.local/share/sbx/marketplace/plugins/mkobit-dotfiles/codex"
+{{- end }}
+cat > "$temporary_root/kit/spec.yaml" <<'YAML'
+{{ dict "schemaVersion" "2" "kind" "mixin" "name" "personal" "agentInstructions" (dict "content" $instructions) | toYaml }}
+{{- if $selectedTools }}
+setup:
+  install:
+    - user: "1000"
+      command: |
+        set -eu
+        case "$(uname -m)" in
+          {{ $guestArch }}) ;;
+          *) echo 'sbx personal kit: guest architecture does not match packaged tools' >&2; exit 1 ;;
+        esac
+{{- range $_, $guestName := $selectedTools }}
+        chmod +x /home/agent/.local/share/sbx/bin/{{ $guestName }}
+{{- end }}
+        cat >> /etc/sandbox-persistent.sh <<'SH'
 
+        case ":${PATH:-}:" in
+          *:/home/agent/.local/share/sbx/bin:*) ;;
+          *) export PATH="${PATH:-}:/home/agent/.local/share/sbx/bin" ;;
+        esac
+        SH
+{{- end }}
+YAML
+cat > "$temporary_root/skills-kit/spec.yaml" <<'YAML'
+schemaVersion: "2"
+kind: mixin
+name: personal-skills
+YAML
 cat > "$temporary_root/personal.sbxenv.yaml" <<'YAML'
 schemaVersion: "1"
 kits:
   - ./kit
+  - ./skills-kit
 sandboxOptions:
   shareSkills: false
 YAML
-
-cat > "$temporary_root/kit/spec.yaml" <<'YAML'
-{{ dict "schemaVersion" "2" "kind" "mixin" "name" "personal-learning" "agentInstructions" (dict "content" $instructions) | toYaml }}
+{{- if eq $codex true }}
+cat > "$temporary_root/codex-kit/spec.yaml" <<'YAML'
+schemaVersion: "2"
+kind: mixin
+name: personal-codex
+requires:
+  agent: codex
+setup:
+  install:
+    - user: "1000"
+      command: |
+        set -eu
+        if ! codex plugin marketplace add --help >/dev/null 2>&1 || ! codex plugin add --help >/dev/null 2>&1; then
+            echo 'sbx personal kit: installed Codex CLI lacks native plugin commands' >&2
+            exit 1
+        fi
+        codex plugin marketplace add /home/agent/.local/share/sbx/marketplace --json
+        codex plugin add mkobit-dotfiles@dotfiles --json
 YAML
-
+cat > "$temporary_root/personal.codex.sbxenv.yaml" <<'YAML'
+schemaVersion: "1"
+kits:
+  - ./kit
+  - ./codex-kit
+sandboxOptions:
+  shareSkills: false
+YAML
+{{- end }}
 rm -rf -- "$personal_root"
 mv -- "$temporary_root" "$personal_root"
 trap - EXIT HUP INT TERM
-{{- else if eq $personalEnabled false }}
+{{- else if eq $enabled false }}
 destination={{ .chezmoi.destDir | quote }}
-personal_root="$destination/.local/share/sbx/personal"
-rm -rf -- "$personal_root"
+rm -rf -- "$destination/.local/share/sbx/personal"
 {{- end }}
