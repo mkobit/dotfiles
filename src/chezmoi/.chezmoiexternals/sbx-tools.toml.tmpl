@@ -1,0 +1,33 @@
+{{- /*
+  Generates selected Linux guest tools for the personal SBX kit.
+  Tool selection lives under sbx.personal.tools and reuses the normal bin
+  catalogs, but the external target is kept in the SBX tool cache.
+*/ -}}
+{{- $personal := dig "sbx" "personal" (dict) . -}}
+{{- if eq (dig "enabled" false $personal) true -}}
+{{-   $root := . -}}
+{{-   $platform := printf "linux_%s" .chezmoi.arch -}}
+{{-   range $name, $selected := (dig "tools" (dict) $personal) -}}
+{{-     if eq $selected true -}}
+{{-       if not (hasKey $root.bin $name) -}}
+{{-         fail (printf "sbx.personal.tools.%s: no bin catalog entry exists" $name) -}}
+{{-       end -}}
+{{-       $tool := index $root.bin $name -}}
+{{-       if not (hasKey $tool "github_releases") -}}
+{{-         fail (printf "sbx.personal.tools.%s: no github_releases catalog entry exists" $name) -}}
+{{-       end -}}
+{{-       $release := $tool.github_releases -}}
+{{-       if not (hasKey $release.platforms $platform) -}}
+{{-         fail (printf "sbx.personal.tools.%s: no Linux guest platform entry for %s" $name $platform) -}}
+{{-       end -}}
+{{-       $checksum := dig "checksums" $platform "" $release -}}
+{{-       if not $checksum -}}
+{{-         fail (printf "sbx.personal.tools.%s: no checksum for Linux guest platform %s" $name $platform) -}}
+{{-       end -}}
+{{-       $tool = deepCopy $tool -}}
+{{-       $target := printf ".local/share/sbx/tool-cache/%s/%s" $platform $name -}}
+{{-       $tool = $tool | setValueAtPath "github_releases.bin_name" $target -}}
+{{ includeTemplate "bin/github-releases-entry.tmpl" (dict "name" $name "tool" $tool "platform" $platform "base" (dig "github_releases" "base_url" "https://github.com" $root)) }}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}

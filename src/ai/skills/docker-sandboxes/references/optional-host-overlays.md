@@ -2,26 +2,30 @@
 
 Repository environments must run without chezmoi.
 
-When a host has a reviewed managed personal layer, keep `~/.local/share/sbx/personal/personal.sbxenv.yaml` outside the repository and pass it after the project environment file so SBX merges it as a later override.
+Keep the managed personal files outside repositories under `~/.local/share/sbx/personal/` and pass exactly one personal overlay after the project environment file.
+Do not compose both personal overlays because their shared kit content would be duplicated.
 
-The personal layer carries shared guidelines and skills that follow the user across repositories.
-Each project owns its dependency versions, tool versions, build checks, and project-specific setup.
-Do not create a personal copy inside each project.
+`personal.codex.sbxenv.yaml` is the primary Codex-native plugin option.
+It composes the shared `./kit` instructions/tools and the separate `./codex-kit` plugin kit.
+It does not include the loose `./skills-kit` snapshot because the Codex kit activates the native plugin instead.
+Use the Codex overlay only with a Codex project environment; do not assume AGY or other agents support the Codex plugin API.
+`personal.sbxenv.yaml` is the portable compatibility fallback for shared guidelines and loose skills.
+It composes the shared `./kit` and `./skills-kit` snapshots and sets `sandboxOptions.shareSkills: false`.
 
-In the personal dotfiles, `sbx.personal.enabled` controls kit generation during `chezmoi apply`.
-The kit uses `ai.guidelines.sections` and portable skills selected as `present` in `ai.skills`, including their supporting files.
-Update those canonical sources and apply chezmoi before creating a sandbox to receive the new learning.
-Explicitly setting `enabled = false` removes the generated personal layer; an omitted setting leaves it unmanaged.
+The generator is controlled by `sbx.personal.enabled` during `chezmoi apply`.
+It keeps the portable overlay and adds the Codex overlay only when the boolean `plugins.codex` BOM setting is enabled.
+The native setup must add the generated owned `dotfiles` marketplace and `mkobit-dotfiles` plugin through the Codex CLI, then verify installation and enabled state with the exact composed command:
+`sbx env exec PROJECT PERSONAL -- codex plugin list --json`.
+Do not claim all plugin types or agent invocation paths are verified from this Codex check.
 
-Disable native writable shared skills in the personal overlay with `sandboxOptions.shareSkills: false` when the overlay supplies its own skill snapshots.
-This is a personal-overlay choice, not a universal project prohibition.
-Private skill snapshots are copied when the sandbox is created and require environment recreation to update.
-Do not describe them as live refreshed files.
+Shared guest tools are selected explicitly through `sbx.personal.tools`, currently using the `ripgrep` and `fd` catalog entries (`rg` is the ripgrep binary).
+Use the existing pinned Linux binary catalog URLs and checksums, guard for the local Linux architecture, and cache host downloads under `.local/share/sbx/tool-cache/linux_<arch>/<catalog-name>`.
+Install them in the guest at `.local/share/sbx/bin/<binary>` and append that guest directory after the project PATH so project tools win.
+Changing the overlay or kit requires `sbx env rm` and recreation; `sbx env run` does not reprovision kits.
 
-Do not copy host credentials, SSH material, GPG material, or agent settings into a repository environment.
+Update canonical sources and apply chezmoi before creating a sandbox.
+Explicitly setting `enabled = false` removes generated personal files; omitting it leaves them unmanaged.
+Do not copy credentials, SSH/GPG material, or agent settings into repository environments.
 
-Do not claim global skill discovery works for Codex or AGY until it has been proven by a live sandbox check for that agent.
-
-Host overlays are optional extensions for shared skills, local models, GPU capability, or policy defaults.
-
-GPU passthrough is experimental Linux NVIDIA VFIO host support and is never enabled by a project environment by default.
+Read Docker's [environment-file reference](https://docs.docker.com/ai/sandboxes/configuration/environment-files/) and [kit customization reference](https://docs.docker.com/ai/sandboxes/customize/kits/) for composition and kit behavior.
+GPU passthrough remains experimental Linux NVIDIA VFIO host support and is never enabled by a project environment by default.

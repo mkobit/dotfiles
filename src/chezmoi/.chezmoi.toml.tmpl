@@ -79,6 +79,13 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 [data.sbx.personal]
 enabled = {{ if eq .chezmoi.os "linux" }}true{{ else }}false{{ end }}
 
+[data.sbx.personal.plugins]
+codex = {{ if eq .chezmoi.os "linux" }}true{{ else }}false{{ end }}
+
+[data.sbx.personal.tools]
+ripgrep = {{ if eq .chezmoi.os "linux" }}true{{ else }}false{{ end }}
+fd = {{ if eq .chezmoi.os "linux" }}true{{ else }}false{{ end }}
+
 [data.local.bin.gh]
 installation_method = "github_releases"
 
