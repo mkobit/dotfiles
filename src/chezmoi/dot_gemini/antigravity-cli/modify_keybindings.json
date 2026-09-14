@@ -1,0 +1,52 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /* Documentation: https://antigravity.google/docs/cli/reference/#default-keybindings */ -}}
+{{- /* Manages ~/.gemini/antigravity-cli/keybindings.json */ -}}
+{{- $keybindings := dict -}}
+{{- $stdin := dig "stdin" "" .chezmoi -}}
+{{- if $stdin -}}
+{{-   $keybindings = fromJson $stdin -}}
+{{- end -}}
+{{- $configured := dig "gemini" "keybindings" (dict) . -}}
+{{- if not $configured -}}{{- $configured = dict -}}{{- end -}}
+{{- $removeList := dig "gemini" "keybindings_remove" (list) . -}}
+{{- if not $removeList -}}{{- $removeList = list -}}{{- end -}}
+{{- $needsEdit := false -}}
+{{- if and (eq $stdin "") (gt (len $configured) 0) -}}
+{{-   $needsEdit = true -}}
+{{- end -}}
+{{- range $key := $removeList -}}
+{{-   if hasKey $keybindings $key -}}
+{{-     $needsEdit = true -}}
+{{-     $keybindings = omit $keybindings $key -}}
+{{-   end -}}
+{{- end -}}
+{{- range $k, $v := $configured -}}
+{{-   if or (kindIs "invalid" $v) (and (kindIs "bool" $v) (not $v)) -}}
+{{-     if hasKey $keybindings $k -}}
+{{-       $needsEdit = true -}}
+{{-       $keybindings = omit $keybindings $k -}}
+{{-     end -}}
+{{-   else -}}
+{{-     if not (hasKey $keybindings $k) -}}
+{{-       $needsEdit = true -}}
+{{-       $keybindings = set $keybindings $k $v -}}
+{{-     else -}}
+{{-       $existing := index $keybindings $k -}}
+{{-       $match := false -}}
+{{-       if and (kindIs "slice" $v) (kindIs "slice" $existing) -}}
+{{-         $match = deepEqual ($v | uniq | sortAlpha) ($existing | uniq | sortAlpha) -}}
+{{-       else -}}
+{{-         $match = deepEqual $v $existing -}}
+{{-       end -}}
+{{-       if not $match -}}
+{{-         $needsEdit = true -}}
+{{-         $keybindings = set $keybindings $k $v -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- if and (ne $stdin "") (not $needsEdit) -}}
+{{-   $stdin -}}
+{{- else if or (ne $stdin "") (gt (len $keybindings) 0) -}}
+{{-   $keybindings | toPrettyJson -}}
+{{- end -}}

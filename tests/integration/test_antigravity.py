@@ -1,6 +1,7 @@
 import json
 import subprocess
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -98,9 +99,10 @@ def test_antigravity_vim_mode_settings() -> None:
 
 
 def _render_antigravity_keybindings(
-    override_data: dict | None = None,
+    stdin: str = "",
+    override_data: dict[str, Any] | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    template = Path.cwd() / "src/chezmoi/dot_gemini/antigravity-cli/keybindings.json.tmpl"
+    template = Path.cwd() / "src/chezmoi/dot_gemini/antigravity-cli/modify_keybindings.json"
     command = [
         "chezmoi",
         "--config",
@@ -111,12 +113,14 @@ def _render_antigravity_keybindings(
         str(Path.cwd()),
         "execute-template",
         "-f",
+        "--with-stdin",
     ]
     if override_data is not None:
         command.extend(["--override-data", json.dumps(override_data)])
     command.append(str(template))
     return subprocess.run(
         command,
+        input=stdin,
         capture_output=True,
         check=False,
         text=True,
@@ -137,3 +141,79 @@ def test_antigravity_keybindings_empty_when_no_keybindings_configured() -> None:
     result = _render_antigravity_keybindings(override_data={"gemini": {"keybindings": None}})
     assert result.returncode == 0, result.stderr
     assert result.stdout == ""
+
+
+@pytest.mark.integration
+def test_antigravity_keybindings_upserts_and_preserves_existing_keys() -> None:
+    initial = {
+        "edit.yank": ["ctrl+y"],
+        "vim.insert.submit": ["alt+s"],
+    }
+    result = _render_antigravity_keybindings(stdin=json.dumps(initial))
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert rendered["edit.yank"] == ["ctrl+y"]
+    assert rendered["vim.insert.insert_newline"] == ["alt+enter", "ctrl+j", "shift+enter"]
+    assert rendered["vim.insert.submit"] == ["ctrl+enter", "ctrl+s", "enter"]
+
+
+@pytest.mark.integration
+def test_antigravity_keybindings_preserves_exact_stdin_when_matching() -> None:
+    initial = '{\n  "custom.action": ["ctrl+k"],\n  "vim.insert.insert_newline": ["alt+enter", "ctrl+j", "shift+enter"],\n  "vim.insert.submit": ["ctrl+enter", "ctrl+s", "enter"]\n}\n'
+    result = _render_antigravity_keybindings(stdin=initial)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == initial
+
+
+@pytest.mark.integration
+def test_antigravity_keybindings_matches_regardless_of_shortcut_list_order() -> None:
+    initial = '{\n  "vim.insert.insert_newline": ["ctrl+j", "alt+enter", "shift+enter"],\n  "vim.insert.submit": ["enter", "ctrl+s", "ctrl+enter"]\n}\n'
+    result = _render_antigravity_keybindings(stdin=initial)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == initial
+
+
+@pytest.mark.integration
+def test_antigravity_keybindings_updates_when_chord_modifiers_differ() -> None:
+    initial = '{\n  "vim.insert.insert_newline": ["alt+enter", "ctrl+j", "shift+enter"],\n  "vim.insert.submit": ["enter+ctrl", "ctrl+s", "enter"]\n}\n'
+    result = _render_antigravity_keybindings(stdin=initial)
+    assert result.returncode == 0, result.stderr
+    assert result.stdout != initial
+    rendered = json.loads(result.stdout)
+    assert rendered["vim.insert.submit"] == ["ctrl+enter", "ctrl+s", "enter"]
+
+
+@pytest.mark.integration
+def test_antigravity_keybindings_deletes_key_via_remove_list() -> None:
+    initial = json.dumps(
+        {
+            "to.delete": ["ctrl+d"],
+            "vim.insert.insert_newline": ["alt+enter", "ctrl+j", "shift+enter"],
+            "vim.insert.submit": ["ctrl+enter", "ctrl+s", "enter"],
+        }
+    )
+    result = _render_antigravity_keybindings(
+        stdin=initial,
+        override_data={"gemini": {"keybindings_remove": ["to.delete"]}},
+    )
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert "to.delete" not in rendered
+
+
+@pytest.mark.integration
+def test_antigravity_keybindings_deletes_key_via_boolean_false() -> None:
+    initial = json.dumps(
+        {
+            "to.delete": ["ctrl+d"],
+            "vim.insert.insert_newline": ["alt+enter", "ctrl+j", "shift+enter"],
+            "vim.insert.submit": ["ctrl+enter", "ctrl+s", "enter"],
+        }
+    )
+    result = _render_antigravity_keybindings(
+        stdin=initial,
+        override_data={"gemini": {"keybindings": {"to.delete": False}}},
+    )
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert "to.delete" not in rendered
