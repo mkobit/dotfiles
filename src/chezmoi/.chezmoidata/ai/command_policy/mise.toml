@@ -1,0 +1,4 @@
+# Read-only task discovery command for mise.
+[ai.command_policy.commands]
+"mise task ls" = "allow"
+"mise tasks ls" = "allow"
