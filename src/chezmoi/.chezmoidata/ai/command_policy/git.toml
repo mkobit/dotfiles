@@ -25,6 +25,7 @@
 "git mv" = "allow"
 "git pull" = "allow"
 "git rebase" = "allow"
+"git remote -v" = "allow"
 "git restore" = "allow"
 "git rev-parse" = "allow"
 "git show" = "allow"
