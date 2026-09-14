@@ -1,5 +1,0 @@
-{{- /* Documentation: https://antigravity.google/docs/cli/reference/#default-keybindings */ -}}
-{{- $keybindings := dig "gemini" "keybindings" (dict) . -}}
-{{- if and $keybindings (gt (len $keybindings) 0) -}}
-{{-   $keybindings | toPrettyJson | trimSuffix "\n" }}
-{{ end -}}
