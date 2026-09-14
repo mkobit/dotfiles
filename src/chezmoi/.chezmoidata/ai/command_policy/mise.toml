@@ -2,3 +2,4 @@
 [ai.command_policy.commands]
 "mise task ls" = "allow"
 "mise tasks ls" = "allow"
+"mise outdated" = "allow"
