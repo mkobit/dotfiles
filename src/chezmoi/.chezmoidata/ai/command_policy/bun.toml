@@ -16,5 +16,6 @@
 "bun build" = "allow"
 "bun info" = "allow"
 "bun outdated" = "allow"
+"bun pm ls" = "allow"
 "bun test" = "allow"
 "bun why" = "allow"
