@@ -206,8 +206,7 @@ installation_method = "chezmoi"
 # Secrets — prompted once at chezmoi init, exported to the shell (see
 # .chezmoitemplates/shell/secrets.sh via zsh.config_fragments."15-secrets" in
 # .chezmoidata/zsh.toml), never written into any git-tracked file. Blank
-# answer = not exported, harmless no-op. Skipped in CI (no TTY, no cached
-# answer on ephemeral runners).
+# answer = not exported, harmless no-op. Skipped in CI/Jules environments.
 #
 # promptStringOnce's path arg is a dotted lookup into nested data, not a flat
 # key — must match where the value lands below ("secrets.stitch_api_key").
