@@ -40,9 +40,6 @@ warning_acknowledged = true
 sandbox = false
 sandbox_allowed_paths = ["~/"]
 
-[gemini.extensions]
-
-
 [gemini.context]
 include_directories = ["~/.config/gh"]
 

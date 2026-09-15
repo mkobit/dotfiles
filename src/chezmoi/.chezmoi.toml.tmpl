@@ -74,6 +74,9 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 [data.local.bin.sbx]
 installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
 
+[data.local.bin.agy]
+installation_method = "github_releases"
+
 # Personal learning kit for Docker Sandboxes.  It is deliberately separate
 # from project environment files, which continue to own their build setup.
 [data.sbx.personal]
@@ -115,25 +118,13 @@ installation_method = "chezmoi"
 [data.local.mise.global_tools.python]
 installation_method = "mise"
 
-[data.local.mise.global_tools.pnpm]
-installation_method = "mise"
-
 [data.local.mise.global_tools.java]
-installation_method = "mise"
-
-[data.local.mise.global_tools.rust]
 installation_method = "mise"
 
 [data.local.mise.global_tools.bun]
 installation_method = "mise"
 
 [data.local.mise.global_tools.node]
-installation_method = "mise"
-
-[data.local.mise.global_tools.gemini-cli]
-installation_method = "mise"
-
-[data.local.mise.global_tools."npm:@anthropic-ai/sandbox-runtime"]
 installation_method = "mise"
 
 [data.local.mise.global_tools.ollama]
@@ -208,9 +199,6 @@ installation_method = "chezmoi_external"
 # External Scripts & Configs Installation Methods
 [data.claude_code]
 installation_method = "none"
-
-[data.agy]
-installation_method = "dotfiles.script"
 
 [data.npmrc]
 installation_method = "chezmoi"
