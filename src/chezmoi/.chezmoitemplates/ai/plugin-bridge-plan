@@ -8,7 +8,10 @@
 {{- $environment := dig "environment" "" $bridge -}}
 {{- if not (and (kindIs "string" $environment) $environment) -}}{{- fail "ai.plugin_bridge.environment must be a non-empty string" -}}{{- end -}}
 {{- $dest := .chezmoi.destDir -}}
+{{- $generatedMarketplaceRoot := dig "generated_marketplace_root" (joinPath $dest ".local/share/agent-plugins/marketplace") $bridge -}}
+{{- if not (and (kindIs "string" $generatedMarketplaceRoot) $generatedMarketplaceRoot) -}}{{- fail "ai.plugin_bridge.generated_marketplace_root must be a non-empty string" -}}{{- end -}}
 {{- $adapter := joinPath $dest ".local/libexec/dotfiles/agent-plugin-host-bridge.sh" -}}
+{{- $cursorAdapter := joinPath $dest ".local/libexec/dotfiles/agent-plugin-cursor-bridge.sh" -}}
 {{- $stateManifest := joinPath $dest ".local/state/dotfiles/ai-skill-roots.manifest" -}}
 {{- $ownershipFile := joinPath $dest ".local/state/dotfiles/agent-plugin-ownership.json" -}}
 {{- $resourcesByKey := dict -}}
@@ -33,19 +36,36 @@
 {{-   if not (or (kindIs "int" $order) (kindIs "int8" $order) (kindIs "int16" $order) (kindIs "int32" $order) (kindIs "int64" $order) (kindIs "uint" $order) (kindIs "uint8" $order) (kindIs "uint16" $order) (kindIs "uint32" $order) (kindIs "uint64" $order) (and (kindIs "float64" $order) (regexMatch "^[+-]?[0-9]+(\\.0+)?$" (printf "%v" $order)))) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.order must be an integer" $name) -}}{{- end -}}
 {{-   if kindIs "float64" $order -}}{{- $order = atoi (printf "%.0f" $order) -}}{{- end -}}
 {{-   if or (lt $order 0) (gt $order 999999999) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.order must be between 0 and 999999999" $name) -}}{{- end -}}
+{{-   $effectiveSourceLocator := $sourceLocator -}}
+{{-   if and (eq $sourceType "generated") (not $effectiveSourceLocator) -}}{{- $effectiveSourceLocator = $generatedMarketplaceRoot -}}{{- end -}}
 {{-   range $host := $hosts -}}
-{{-     $marketplaceInstall := list $adapter "marketplace-add" $host $name -}}
-{{-     $marketplaceUpdate := list $adapter "marketplace-update" $host $name -}}
+{{-     $resourceAdapter := $adapter -}}
+{{-     if eq $host "cursor" -}}{{- $resourceAdapter = $cursorAdapter -}}{{- end -}}
+{{-     $marketplaceInstall := list $resourceAdapter "marketplace-add" $host $name -}}
+{{-     $marketplaceUpdate := list $resourceAdapter "marketplace-update" $host $name -}}
 {{-     if eq $sourceType "host-provided" -}}
-{{-       $marketplaceInstall = list $adapter "marketplace-discover" $host $name -}}
-{{-       $marketplaceUpdate = list $adapter "marketplace-verify" $host $name -}}
-{{-     else if $sourceLocator -}}
-{{-       $marketplaceInstall = append $marketplaceInstall $sourceLocator -}}
-{{-       $marketplaceUpdate = append $marketplaceUpdate $sourceLocator -}}
+{{-       $marketplaceInstall = list $resourceAdapter "marketplace-discover" $host $name -}}
+{{-       $marketplaceUpdate = list $resourceAdapter "marketplace-verify" $host $name -}}
+{{-     else if $effectiveSourceLocator -}}
+{{-       $marketplaceInstall = append $marketplaceInstall $effectiveSourceLocator -}}
+{{-       $marketplaceUpdate = append $marketplaceUpdate $effectiveSourceLocator -}}
 {{-     end -}}
-{{-     $marketplaceUninstall := list $adapter "marketplace-remove" $host $name -}}
-{{-     if eq $sourceType "host-provided" -}}{{- $marketplaceUninstall = list $adapter "marketplace-verify" $host $name -}}{{- end -}}
-{{-     $resource := dict "kind" "marketplace" "stable_key" $name "phase" 10 "order" $order "host" $host "id" $name "marketplace" $name "source_type" $sourceType "source_locator" $sourceLocator "trust_class" $trustClass "update_policy" $updatePolicy "fingerprint" (toJson (dict "marketplace" $name "source_type" $sourceType "source_locator" $sourceLocator "trust_class" $trustClass "update_policy" $updatePolicy "order" $order)) "install" $marketplaceInstall "update" $marketplaceUpdate "uninstall" $marketplaceUninstall -}}
+{{-     $marketplaceUninstall := list $resourceAdapter "marketplace-remove" $host $name -}}
+{{-     if eq $sourceType "host-provided" -}}{{- $marketplaceUninstall = list $resourceAdapter "marketplace-verify" $host $name -}}{{- end -}}
+{{-     if eq $host "cursor" -}}
+{{-       $marketplaceInstall = list $resourceAdapter "marketplace-add" $host $name $dest -}}
+{{-       $marketplaceUpdate = list $resourceAdapter "marketplace-update" $host $name $dest -}}
+{{-       $marketplaceUninstall = list $resourceAdapter "marketplace-remove" $host $name $dest -}}
+{{-       if eq $sourceType "host-provided" -}}
+{{-         $marketplaceInstall = list $resourceAdapter "marketplace-discover" $host $name $dest -}}
+{{-         $marketplaceUpdate = list $resourceAdapter "marketplace-verify" $host $name $dest -}}
+{{-         $marketplaceUninstall = list $resourceAdapter "marketplace-verify" $host $name $dest -}}
+{{-       else if $effectiveSourceLocator -}}
+{{-         $marketplaceInstall = append $marketplaceInstall $effectiveSourceLocator -}}
+{{-         $marketplaceUpdate = append $marketplaceUpdate $effectiveSourceLocator -}}
+{{-       end -}}
+{{-     end -}}
+{{-     $resource := dict "kind" "marketplace" "stable_key" $name "phase" 10 "order" $order "host" $host "id" $name "marketplace" $name "source_type" $sourceType "source_locator" $effectiveSourceLocator "trust_class" $trustClass "update_policy" $updatePolicy "fingerprint" (toJson (dict "marketplace" $name "source_type" $sourceType "source_locator" $effectiveSourceLocator "trust_class" $trustClass "update_policy" $updatePolicy "order" $order)) "install" $marketplaceInstall "update" $marketplaceUpdate "uninstall" $marketplaceUninstall -}}
 {{-     $key := printf "%02d:%09d:%s:%s" 10 $order $name $host -}}
 {{-     if hasKey $resourcesByKey $key -}}{{- fail (printf "duplicate plugin resource ordering key %q" $key) -}}{{- end -}}
 {{-     $_ := set $resourcesByKey $key $resource -}}
@@ -73,7 +93,25 @@
 {{-   if has $environment $environments -}}
 {{-     range $host := ($hosts | uniq | sortAlpha) -}}
 {{-       $pluginID := printf "%s@%s" $name $marketplace -}}
-{{-       $resource := dict "kind" "plugin" "stable_key" $name "phase" 30 "order" $order "host" $host "id" $pluginID "plugin" $name "marketplace" $marketplace "environments" $environments "fingerprint" (toJson (dict "plugin" $name "marketplace" $marketplace "environments" $environments "order" $order)) "install" (list $adapter "plugin-install" $host $pluginID) "update" (list $adapter "plugin-update" $host $pluginID) "uninstall" (list $adapter "plugin-remove" $host $pluginID) "status" (list $adapter "plugin-status" $host $pluginID) "verify" (list $adapter "plugin-verify" $host $pluginID) "expected_skills" (list) -}}
+{{-       $resourceAdapter := $adapter -}}
+{{-       if eq $host "cursor" -}}{{- $resourceAdapter = $cursorAdapter -}}{{- end -}}
+{{-       $install := list $resourceAdapter "plugin-install" $host $pluginID -}}
+{{-       $update := list $resourceAdapter "plugin-update" $host $pluginID -}}
+{{-       $enable := list $resourceAdapter "plugin-enable" $host $pluginID -}}
+{{-       $uninstall := list $resourceAdapter "plugin-remove" $host $pluginID -}}
+{{-       $status := list $resourceAdapter "plugin-status" $host $pluginID -}}
+{{-       $verify := list $resourceAdapter "plugin-verify" $host $pluginID -}}
+{{-       if eq $host "cursor" -}}
+{{-         $install = append $install $dest -}}
+{{-         $update = append $update $dest -}}
+{{-         $enable = append $enable $dest -}}
+{{-         $uninstall = append $uninstall $dest -}}
+{{-         $status = append $status $dest -}}
+{{-         $verify = append $verify $dest -}}
+{{-       else -}}
+{{-         $verify = append $verify $dest -}}
+{{-       end -}}
+{{-       $resource := dict "kind" "plugin" "stable_key" $name "phase" 30 "order" $order "host" $host "id" $pluginID "plugin" $name "marketplace" $marketplace "environments" $environments "fingerprint" (toJson (dict "plugin" $name "marketplace" $marketplace "environments" $environments "order" $order)) "install" $install "update" $update "enable" $enable "uninstall" $uninstall "status" $status "verify" $verify "expected_skills" (list) -}}
 {{-       $key := printf "%02d:%09d:%s:%s" 30 $order $name $host -}}
 {{-       if hasKey $resourcesByKey $key -}}{{- fail (printf "duplicate plugin resource ordering key %q" $key) -}}{{- end -}}
 {{-       $_ := set $resourcesByKey $key $resource -}}
@@ -104,7 +142,28 @@
 {{-   range $host := ($hosts | uniq | sortAlpha) -}}
 {{-     if not (has $host $marketplaceHosts) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.hosts includes unsupported marketplace host %q" $name $host) -}}{{- end -}}
 {{-     $pluginID := printf "%s@%s" $name $marketplace -}}
-{{-     $resource := dict "kind" "plugin" "stable_key" $name "phase" 20 "order" $order "host" $host "id" $pluginID "plugin" $name "marketplace" $marketplace "fingerprint" (toJson (dict "capability" $name "marketplace" $marketplace "skills" $skills "order" $order)) "install" (list $adapter "plugin-install" $host $pluginID) "update" (list $adapter "plugin-update" $host $pluginID) "uninstall" (list $adapter "plugin-remove" $host $pluginID) "status" (list $adapter "plugin-status" $host $pluginID) "verify" (list $adapter "plugin-verify" $host $pluginID) "expected_skills" $skills -}}
+{{-     $resourceAdapter := $adapter -}}
+{{-     if eq $host "cursor" -}}{{- $resourceAdapter = $cursorAdapter -}}{{- end -}}
+{{-     $install := list $resourceAdapter "plugin-install" $host $pluginID -}}
+{{-     $update := list $resourceAdapter "plugin-update" $host $pluginID -}}
+{{-     $enable := list $resourceAdapter "plugin-enable" $host $pluginID -}}
+{{-     $uninstall := list $resourceAdapter "plugin-remove" $host $pluginID -}}
+{{-     $status := list $resourceAdapter "plugin-status" $host $pluginID -}}
+{{-     $verify := list $resourceAdapter "plugin-verify" $host $pluginID -}}
+{{-     if eq $host "cursor" -}}
+{{-       $install = append $install $dest -}}
+{{-       $update = append $update $dest -}}
+{{-       $enable = append $enable $dest -}}
+{{-       $uninstall = append $uninstall $dest -}}
+{{-       $status = append $status $dest -}}
+{{-       $verify = append $verify $dest -}}
+{{-       $verify = append $verify $name -}}
+{{-     else -}}
+{{-       $verify = append $verify $dest -}}
+{{-       $verify = append $verify $name -}}
+{{-     end -}}
+{{-     range $skill := $skills -}}{{- $verify = append $verify $skill -}}{{- end -}}
+{{-     $resource := dict "kind" "plugin" "stable_key" $name "phase" 20 "order" $order "host" $host "id" $pluginID "plugin" $name "marketplace" $marketplace "fingerprint" (toJson (dict "capability" $name "marketplace" $marketplace "skills" $skills "order" $order)) "install" $install "update" $update "enable" $enable "uninstall" $uninstall "status" $status "verify" $verify "expected_skills" $skills -}}
 {{-     $key := printf "%02d:%09d:%s:%s" 20 $order $name $host -}}
 {{-     if hasKey $resourcesByKey $key -}}{{- fail (printf "duplicate plugin resource ordering key %q" $key) -}}{{- end -}}
 {{-     $_ := set $resourcesByKey $key $resource -}}

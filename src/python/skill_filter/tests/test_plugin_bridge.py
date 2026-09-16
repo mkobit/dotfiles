@@ -38,6 +38,18 @@ def rendered_plan(
     return json.dumps(plan)
 
 
+def rendered_v2_plan(resources, *, owned_removals=None):
+    plan = {
+        "version": 2,
+        "resources": list(resources),
+        "skill_mappings": [],
+        "legacy_cleanup": None,
+    }
+    if owned_removals is not None:
+        plan["owned_removals"] = list(owned_removals)
+    return json.dumps(plan)
+
+
 def marketplace(host: str, resource_id: str, fingerprint: str = "market-v1"):
     return {
         "kind": "marketplace",
@@ -67,6 +79,15 @@ def plugin(
         "status": [host, "plugin", "status", resource_id, "--json"],
         "verify": [host, "plugin", "skills", resource_id, "--json"],
         "expected_skills": skills,
+    }
+
+
+def plugin_v2(host: str, resource_id: str, skills: list[str], fingerprint="plugin-v1"):
+    return {
+        **plugin(host, resource_id, skills, fingerprint),
+        "marketplace": resource_id.rsplit("@", 1)[-1],
+        "order": 200,
+        "enable": ["bridge", "plugin-enable", host, resource_id],
     }
 
 
@@ -123,6 +144,36 @@ def render_declaration_plan(data, destination):
         check=False,
         text=True,
     )
+
+
+def render_adapter(template: Path, data, destination):
+    return subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            "/dev/null",
+            "--config-format",
+            "toml",
+            "--source",
+            str(BASE_ROOT),
+            "--destination",
+            str(destination),
+            "--override-data",
+            json.dumps(data),
+            "execute-template",
+            "--file",
+            str(template),
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+def executable(path: Path, content: str) -> Path:
+    path.write_text(content, encoding="utf-8")
+    path.chmod(0o755)
+    return path
 
 
 def declaration_data(*, marketplaces=None, plugins=None, capabilities=None):
@@ -298,6 +349,29 @@ class TestPluginBridgeDeclarations:
 
 
 class TestPluginBridgeDeclarationPolicies:
+    def test_generated_marketplace_uses_configurable_filesystem_locator(self, tmp_path):
+        data = declaration_data(
+            marketplaces={"generated": example_marketplace(hosts=["codex"])},
+        )
+        result = render_declaration_plan(data, tmp_path)
+
+        assert result.returncode == 0, result.stderr
+        resource = json.loads(result.stdout)["resources"][0]
+        default_locator = str(tmp_path / ".local/share/agent-plugins/marketplace")
+        assert resource["source_locator"] == default_locator
+        assert resource["install"][-1] == default_locator
+        assert resource["update"][-1] == default_locator
+
+        configured_locator = str(tmp_path / "rendered-marketplace")
+        data["ai"]["plugin_bridge"]["generated_marketplace_root"] = configured_locator
+        result = render_declaration_plan(data, tmp_path)
+
+        assert result.returncode == 0, result.stderr
+        resource = json.loads(result.stdout)["resources"][0]
+        assert resource["source_locator"] == configured_locator
+        assert resource["install"][-1] == configured_locator
+        assert resource["update"][-1] == configured_locator
+
     def test_renders_generic_explicit_marketplace_sources(self, tmp_path):
         result = render_declaration_plan(
             declaration_data(
@@ -428,6 +502,42 @@ class TestPluginBridgeDeclarationPolicies:
         assert resource["expected_skills"] == ["alpha", "zeta"]
         assert resource["host"] == "codex"
 
+    def test_routes_cursor_and_verifies_generated_package_skills(self, tmp_path):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={"dotfiles": example_marketplace()},
+                capabilities={
+                    "capability": {
+                        "marketplace": "dotfiles",
+                        "hosts": ["cursor", "claude"],
+                        "skills": {"zeta": {}, "alpha": {}},
+                    }
+                },
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode == 0, result.stderr
+        resources = json.loads(result.stdout)["resources"]
+        for host in ("cursor", "claude"):
+            resource = next(
+                resource
+                for resource in resources
+                if resource["kind"] == "plugin" and resource["host"] == host
+            )
+            assert resource["enable"][1] == "plugin-enable"
+            assert resource["expected_skills"] == ["alpha", "zeta"]
+            assert resource["verify"][-4:] == [
+                str(tmp_path),
+                "capability",
+                "alpha",
+                "zeta",
+            ]
+            if host == "cursor":
+                assert resource["install"][0].endswith("agent-plugin-cursor-bridge.sh")
+            else:
+                assert resource["install"][0].endswith("agent-plugin-host-bridge.sh")
+
     def test_orders_numeric_values_before_stable_key(self, tmp_path):
         result = render_declaration_plan(
             declaration_data(
@@ -526,10 +636,10 @@ class TestPluginPlanning:
         expected = [
             ("install", "marketplace", "claude", "dotfiles"),
             ("install", "marketplace", "cursor", "dotfiles"),
-            ("preflight", "plugin", "claude", "bridge@dotfiles"),
-            ("install", "plugin", "claude", "bridge@dotfiles"),
             ("preflight", "plugin", "cursor", "bridge"),
             ("install", "plugin", "cursor", "bridge"),
+            ("preflight", "plugin", "claude", "bridge@dotfiles"),
+            ("install", "plugin", "claude", "bridge@dotfiles"),
         ]
         assert operation_keys(forward) == expected
         assert operation_keys(reverse) == expected
@@ -574,9 +684,10 @@ class TestPluginPlanning:
         operations = plan_operations(desired, owned)
 
         assert operation_keys(operations) == [
-            ("update", "plugin", "claude", "bridge@dotfiles"),
             ("preflight", "plugin", "cursor", "bridge"),
             ("install", "plugin", "cursor", "bridge"),
+            ("preflight", "plugin", "claude", "bridge@dotfiles"),
+            ("update", "plugin", "claude", "bridge@dotfiles"),
             ("uninstall", "plugin", "claude", "obsolete@dotfiles"),
             ("uninstall", "marketplace", "claude", "obsolete-market"),
         ]
@@ -645,6 +756,245 @@ class TestPluginPlanning:
             parse_plan(rendered_plan([], skill_mappings=mappings))
 
 
+class TestPluginAdapters:
+    def test_codex_adapter_uses_supported_cli_commands(self, tmp_path):
+        template = (
+            BASE_ROOT
+            / "src/chezmoi/dot_local/libexec/dotfiles/executable_agent-plugin-host-bridge.sh.tmpl"
+        )
+        data = declaration_data(
+            marketplaces={"dotfiles": example_marketplace(hosts=["codex"])},
+            plugins={"bridge": example_plugin(hosts=["codex"])},
+        )
+        rendered = render_adapter(template, data, tmp_path)
+        assert rendered.returncode == 0, rendered.stderr
+        adapter = executable(tmp_path / "host-bridge.sh", rendered.stdout)
+        log = tmp_path / "codex-argv.log"
+        executable(
+            tmp_path / "codex",
+            "#!/bin/sh\n"
+            'printf \'%s\\n\' "$*" >> "$CODEX_ARGV_LOG"\n'
+            'case "$*" in\n'
+            "  'plugin list -m dotfiles')\n"
+            "    printf '%s\\n' 'Marketplace `dotfiles`' 'Installed plugins:' 'PLUGIN  STATUS  VERSION  SOURCE' 'bridge@dotfiles  installed, enabled  1.0  local'\n"
+            "    ;;\n"
+            "esac\n",
+        )
+        env = {"PATH": f"{tmp_path}:/usr/bin:/bin", "CODEX_ARGV_LOG": str(log)}
+
+        operations = [
+            ("marketplace-update", "dotfiles"),
+            ("plugin-install", "bridge@dotfiles"),
+            ("plugin-update", "bridge@dotfiles"),
+            ("plugin-enable", "bridge@dotfiles"),
+            ("plugin-status", "bridge@dotfiles"),
+            ("plugin-remove", "bridge@dotfiles"),
+        ]
+        for operation, resource in operations:
+            result = subprocess.run(
+                [str(adapter), operation, "codex", resource],
+                capture_output=True,
+                check=False,
+                text=True,
+                env=env,
+            )
+            assert result.returncode == 0, result.stderr
+
+        assert log.read_text(encoding="utf-8").splitlines() == [
+            "plugin marketplace upgrade dotfiles",
+            "plugin add bridge@dotfiles",
+            "plugin add bridge@dotfiles",
+            "plugin list -m dotfiles",
+            "plugin list -m dotfiles",
+            "plugin remove bridge@dotfiles",
+        ]
+
+    @pytest.mark.parametrize("host", ["claude", "codex"])
+    def test_host_adapter_requires_declared_plugin_and_returns_packaged_skills(
+        self, tmp_path, host
+    ):
+        template = (
+            BASE_ROOT
+            / "src/chezmoi/dot_local/libexec/dotfiles/executable_agent-plugin-host-bridge.sh.tmpl"
+        )
+        data = declaration_data(
+            marketplaces={"dotfiles": example_marketplace(hosts=[host])},
+            capabilities={
+                "capability": {
+                    "marketplace": "dotfiles",
+                    "hosts": [host],
+                    "skills": {"alpha": {}, "zeta": {}},
+                }
+            },
+        )
+        rendered = render_adapter(template, data, tmp_path)
+        assert rendered.returncode == 0, rendered.stderr
+        adapter = executable(tmp_path / "host-bridge.sh", rendered.stdout)
+        package = (
+            tmp_path
+            / ".local/share/agent-plugins/marketplace/plugins/capability"
+            / host
+        )
+        (package / (f".{host}-plugin")).mkdir(parents=True)
+        (package / f".{host}-plugin/plugin.json").write_text(
+            json.dumps({"name": "capability"}), encoding="utf-8"
+        )
+        for skill in ("alpha", "zeta"):
+            (package / "skills" / skill).mkdir(parents=True)
+            (package / "skills" / skill / "SKILL.md").write_text("# skill\n")
+
+        if host == "claude":
+            plugin_list = (
+                'printf \'%s\' \'[{"id":"capability@dotfiles","enabled":true}]\''
+            )
+        else:
+            plugin_list = "printf '%s\\n' 'Marketplace `dotfiles`' 'Installed plugins:' 'PLUGIN  STATUS  VERSION  SOURCE' 'capability@dotfiles  installed, enabled  1.0  local'"
+        executable(
+            tmp_path / host,
+            f"#!/bin/sh\ncase \"$*\" in\n  *'plugin marketplace list'*) printf '%s' '[{{\"name\":\"dotfiles\"}}]' ;;\n  *'plugin list'*) {plugin_list} ;;\n  *) exit 0 ;;\nesac\n",
+        )
+        env = {"PATH": f"{tmp_path}:/usr/bin:/bin"}
+        marketplace_result = subprocess.run(
+            [str(adapter), "marketplace-add", host, "dotfiles", "locator://one"],
+            capture_output=True,
+            check=False,
+            text=True,
+            env=env,
+        )
+        assert marketplace_result.returncode == 0, marketplace_result.stderr
+        discovered_marketplace = subprocess.run(
+            [str(adapter), "marketplace-discover", host, "dotfiles"],
+            capture_output=True,
+            check=False,
+            text=True,
+            env=env,
+        )
+        assert discovered_marketplace.returncode == 0, discovered_marketplace.stderr
+        verify_result = subprocess.run(
+            [
+                str(adapter),
+                "plugin-verify",
+                host,
+                "capability@dotfiles",
+                str(tmp_path),
+                "capability",
+                "alpha",
+                "zeta",
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            env=env,
+        )
+        assert verify_result.returncode == 0, verify_result.stderr
+        assert json.loads(verify_result.stdout) == {"skills": ["alpha", "zeta"]}
+
+        missing_marketplace = subprocess.run(
+            [str(adapter), "marketplace-discover", host, "missing"],
+            capture_output=True,
+            check=False,
+            text=True,
+            env=env,
+        )
+        assert missing_marketplace.returncode != 0
+
+    def test_cursor_adapter_routes_local_plugin_and_reports_actual_skills(
+        self, tmp_path
+    ):
+        template = (
+            BASE_ROOT
+            / "src/chezmoi/dot_local/libexec/dotfiles/executable_agent-plugin-cursor-bridge.sh.tmpl"
+        )
+        data = declaration_data(
+            marketplaces={"dotfiles": example_marketplace(hosts=["cursor"])},
+            capabilities={
+                "capability": {
+                    "marketplace": "dotfiles",
+                    "hosts": ["cursor"],
+                    "skills": {"alpha": {}},
+                }
+            },
+        )
+        rendered = render_adapter(template, data, tmp_path)
+        assert rendered.returncode == 0, rendered.stderr
+        adapter = executable(tmp_path / "cursor-bridge.sh", rendered.stdout)
+        package = (
+            tmp_path
+            / ".local/share/agent-plugins/marketplace/plugins/capability/cursor"
+        )
+        (package / ".cursor-plugin").mkdir(parents=True)
+        (package / ".cursor-plugin/plugin.json").write_text(
+            json.dumps({"name": "capability"}), encoding="utf-8"
+        )
+        (package / "skills/alpha").mkdir(parents=True)
+        (package / "skills/alpha/SKILL.md").write_text("# alpha\n")
+        env = {"PATH": "/usr/bin:/bin"}
+        install = subprocess.run(
+            [
+                str(adapter),
+                "plugin-install",
+                "cursor",
+                "capability@dotfiles",
+                str(tmp_path),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            env=env,
+        )
+        assert install.returncode == 0, install.stderr
+        verify = subprocess.run(
+            [
+                str(adapter),
+                "plugin-verify",
+                "cursor",
+                "capability@dotfiles",
+                str(tmp_path),
+                "capability",
+                "alpha",
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            env=env,
+        )
+        assert verify.returncode == 0, verify.stderr
+        assert json.loads(verify.stdout) == {"skills": ["alpha"]}
+
+    def test_cursor_adapter_executes_generic_plugin_declaration(self, tmp_path):
+        template = (
+            BASE_ROOT
+            / "src/chezmoi/dot_local/libexec/dotfiles/executable_agent-plugin-cursor-bridge.sh.tmpl"
+        )
+        data = declaration_data(
+            marketplaces={"dotfiles": example_marketplace(hosts=["cursor"])},
+            plugins={"generic": example_plugin(hosts=["cursor"])},
+        )
+        rendered = render_adapter(template, data, tmp_path)
+        assert rendered.returncode == 0, rendered.stderr
+        adapter = executable(tmp_path / "cursor-bridge.sh", rendered.stdout)
+        package = (
+            tmp_path / ".local/share/agent-plugins/marketplace/plugins/generic/cursor"
+        )
+        package.mkdir(parents=True)
+
+        install = subprocess.run(
+            [
+                str(adapter),
+                "plugin-install",
+                "cursor",
+                "generic@dotfiles",
+                str(tmp_path),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            env={"PATH": "/usr/bin:/bin"},
+        )
+
+        assert install.returncode == 0, install.stderr
+
+
 class TestPluginOwnership:
     def test_parses_owned_resources_needed_for_future_removal(self):
         parse_ownership = bridge_helper("parse_plugin_ownership")
@@ -711,6 +1061,67 @@ class TestPluginOwnership:
 
 
 class TestPluginReconciliation:
+    def test_v1_marketplace_ownership_matches_v2_desired_identity(self, tmp_path):
+        parse_ownership = bridge_helper("parse_plugin_ownership")
+        parse_plan = bridge_helper("parse_plugin_plan")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        desired = marketplace("claude", "dotfiles")
+        desired["marketplace"] = "dotfiles"
+        ownership_file.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "resources": [
+                        {
+                            "kind": "marketplace",
+                            "host": "claude",
+                            "id": "dotfiles",
+                            "fingerprint": "market-v1",
+                            "uninstall": desired["uninstall"],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        plan = parse_plan(rendered_v2_plan([desired]))
+        actions = []
+
+        reconcile(tmp_path, ownership_file, plan, actions.append, lambda _: None)
+
+        assert actions == []
+        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
+        assert owned.marketplace == "dotfiles"
+
+    def test_owned_removal_preview_is_order_insensitive_but_exact(self, tmp_path):
+        parse_plan = bridge_helper("parse_plugin_plan")
+        reconcile = bridge_helper("reconcile_plugins")
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        first = plugin("claude", "first@dotfiles", ["one"])
+        second = plugin("claude", "second@dotfiles", ["two"])
+        ownership_file.write_text(
+            json.dumps({"version": 1, "resources": [first, second]}),
+            encoding="utf-8",
+        )
+        plan = parse_plan(
+            rendered_plan(
+                [],
+                owned_removals=[removal_preview(second), removal_preview(first)],
+            )
+        )
+        removed = []
+        reconcile(
+            tmp_path,
+            ownership_file,
+            plan,
+            lambda operation: removed.append(operation.resource_id),
+            lambda _: None,
+        )
+        assert removed == ["first@dotfiles", "second@dotfiles"]
+
     def test_rejects_mismatched_owned_removal_preview_before_host_execution(
         self, tmp_path
     ):
@@ -757,7 +1168,7 @@ class TestPluginReconciliation:
 
         reconcile(tmp_path, ownership_file, plan, execute, lambda _: None)
 
-        assert actions == ["adopt"]
+        assert actions == ["preflight", "adopt"]
         (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
         assert (owned.kind, owned.host, owned.resource_id) == (
             "plugin",
@@ -977,8 +1388,7 @@ class TestPluginReconciliation:
             )
 
         assert cleaned == []
-        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        assert owned.resource_id == "bridge@dotfiles"
+        assert parse_ownership(ownership_file.read_text(encoding="utf-8")) == ()
 
     def test_plugin_install_failure_records_prior_marketplace_install(self, tmp_path):
         parse_ownership = bridge_helper("parse_plugin_ownership")
@@ -1054,6 +1464,12 @@ class TestPluginReconciliation:
 
         def complete_retry(operation):
             retry_attempts.append((operation.action, operation.resource_id))
+            if operation.action == "preflight":
+                return (
+                    ("installed", "enabled")
+                    if operation.resource_id == "first@dotfiles"
+                    else ()
+                )
             if operation.action == "verify":
                 return (operation.resource_id[: -len("@dotfiles")],)
             return ()
@@ -1061,10 +1477,11 @@ class TestPluginReconciliation:
         reconcile(tmp_path, ownership_file, plan, complete_retry, lambda _: None)
 
         assert retry_attempts == [
+            ("preflight", "first@dotfiles"),
+            ("verify", "first@dotfiles"),
             ("preflight", "second@dotfiles"),
             ("install", "second@dotfiles"),
             ("verify", "second@dotfiles"),
-            ("verify", "first@dotfiles"),
         ]
         assert {
             resource.resource_id
@@ -1109,7 +1526,6 @@ class TestPluginReconciliation:
         assert ("install", "marketplace") not in actions
 
     def test_retry_owns_plugin_when_initial_verification_fails(self, tmp_path):
-        parse_ownership = bridge_helper("parse_plugin_ownership")
         parse_plan = bridge_helper("parse_plugin_plan")
         reconcile = bridge_helper("reconcile_plugins")
         ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
@@ -1123,8 +1539,7 @@ class TestPluginReconciliation:
         with pytest.raises(MAIN_MODULE.FilterError, match="expected"):
             reconcile(tmp_path, ownership_file, plan, fail_verification, lambda _: None)
 
-        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        assert owned.resource_id == "bridge@dotfiles"
+        assert not ownership_file.exists()
 
         actions = []
 
@@ -1134,7 +1549,7 @@ class TestPluginReconciliation:
 
         reconcile(tmp_path, ownership_file, plan, complete_retry, lambda _: None)
 
-        assert actions == ["verify"]
+        assert actions == ["preflight", "install", "verify"]
 
     def test_partial_checkpoint_preserves_prior_update_fingerprint(self, tmp_path):
         parse_ownership = bridge_helper("parse_plugin_ownership")
@@ -1159,6 +1574,12 @@ class TestPluginReconciliation:
         )
 
         def fail_last_update(operation):
+            if operation.action == "preflight":
+                return (
+                    ()
+                    if operation.resource_id == "second@dotfiles"
+                    else ("installed", "enabled")
+                )
             if (
                 operation.action == "update"
                 and operation.resource_id == "third@dotfiles"
@@ -1175,7 +1596,7 @@ class TestPluginReconciliation:
             resource.resource_id: resource
             for resource in parse_ownership(ownership_file.read_text(encoding="utf-8"))
         }
-        assert owned["first@dotfiles"].fingerprint == "plugin-v1"
+        assert owned["first@dotfiles"].fingerprint == "plugin-v2"
         assert owned["second@dotfiles"].fingerprint == "plugin-v1"
         assert owned["third@dotfiles"].fingerprint == "plugin-v1"
 
@@ -1270,3 +1691,311 @@ class TestPluginReconciliation:
 
         assert result == 0
         assert actions == ["preflight", "install", "verify"]
+
+
+class TestVersionTwoPluginLifecycle:
+    def test_missing_plugin_is_installed_enabled_verified_and_checkpointed(
+        self, tmp_path
+    ):
+        resource = plugin_v2("claude", "bridge@dotfiles", ["brainstorming"])
+        plan = MAIN_MODULE.parse_plugin_plan(rendered_v2_plan([resource]))
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        actions = []
+
+        def execute(operation):
+            actions.append(operation.action)
+            return ("brainstorming",) if operation.action == "verify" else ()
+
+        MAIN_MODULE.reconcile_plugins(
+            tmp_path, ownership_file, plan, execute, lambda _: None
+        )
+
+        assert actions == ["preflight", "install", "enable", "verify"]
+        ownership = json.loads(ownership_file.read_text(encoding="utf-8"))
+        assert ownership["version"] == 2
+        assert ownership["resources"][0]["marketplace"] == "dotfiles"
+
+    def test_enabled_unowned_plugin_is_verified_and_adopted_without_install(
+        self, tmp_path
+    ):
+        resource = plugin_v2("claude", "bridge@dotfiles", ["brainstorming"])
+        plan = MAIN_MODULE.parse_plugin_plan(rendered_v2_plan([resource]))
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        actions = []
+
+        def execute(operation):
+            actions.append(operation.action)
+            if operation.action == "preflight":
+                return ("installed", "enabled")
+            return ("brainstorming",) if operation.action == "verify" else ()
+
+        MAIN_MODULE.reconcile_plugins(
+            tmp_path, ownership_file, plan, execute, lambda _: None
+        )
+
+        assert actions == ["preflight", "verify"]
+
+    def test_disabled_owned_plugin_is_enabled_and_verified(self, tmp_path):
+        resource = plugin_v2("claude", "bridge@dotfiles", ["brainstorming"])
+        plan = MAIN_MODULE.parse_plugin_plan(rendered_v2_plan([resource]))
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        ownership_file.write_text(
+            json.dumps(
+                {
+                    "version": 2,
+                    "resources": [
+                        {
+                            "kind": "plugin",
+                            "host": "claude",
+                            "marketplace": "dotfiles",
+                            "id": "bridge@dotfiles",
+                            "order": 200,
+                            "fingerprint": "plugin-v1",
+                            "enable": resource["enable"],
+                            "uninstall": resource["uninstall"],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        actions = []
+
+        def execute(operation):
+            actions.append(operation.action)
+            if operation.action == "preflight":
+                return ("installed",)
+            return ("brainstorming",) if operation.action == "verify" else ()
+
+        MAIN_MODULE.reconcile_plugins(
+            tmp_path, ownership_file, plan, execute, lambda _: None
+        )
+
+        assert actions == ["preflight", "enable", "verify"]
+
+    def test_failed_verification_does_not_claim_new_plugin(self, tmp_path):
+        resource = plugin_v2("claude", "bridge@dotfiles", ["brainstorming"])
+        plan = MAIN_MODULE.parse_plugin_plan(rendered_v2_plan([resource]))
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+
+        def execute(operation):
+            if operation.action == "verify":
+                return ("wrong",)
+            return ()
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="expected"):
+            MAIN_MODULE.reconcile_plugins(
+                tmp_path, ownership_file, plan, execute, lambda _: None
+            )
+        assert not ownership_file.exists()
+
+    def test_removed_owned_plugin_is_uninstalled_after_desired_verification(
+        self, tmp_path
+    ):
+        resource = plugin_v2("claude", "bridge@dotfiles", ["brainstorming"])
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        ownership_file.write_text(
+            json.dumps(
+                {
+                    "version": 2,
+                    "resources": [
+                        {
+                            "kind": "plugin",
+                            "host": "claude",
+                            "marketplace": "dotfiles",
+                            "id": "bridge@dotfiles",
+                            "order": 200,
+                            "fingerprint": "plugin-v1",
+                            "enable": resource["enable"],
+                            "uninstall": resource["uninstall"],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        actions = []
+        plan = MAIN_MODULE.parse_plugin_plan(rendered_v2_plan([]))
+
+        def execute(operation):
+            actions.append(operation.action)
+            return ()
+
+        MAIN_MODULE.reconcile_plugins(
+            tmp_path, ownership_file, plan, execute, lambda _: None
+        )
+
+        assert actions == ["uninstall"]
+        assert json.loads(ownership_file.read_text(encoding="utf-8"))["resources"] == []
+
+    def test_never_owned_undeclared_plugin_is_untouched(self, tmp_path):
+        actions = []
+        plan = MAIN_MODULE.parse_plugin_plan(rendered_v2_plan([]))
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+
+        MAIN_MODULE.reconcile_plugins(
+            tmp_path, ownership_file, plan, actions.append, lambda _: None
+        )
+
+        assert actions == []
+        assert not ownership_file.exists()
+
+    def test_fingerprint_update_failure_preserves_prior_ownership(self, tmp_path):
+        resource = plugin_v2(
+            "claude", "bridge@dotfiles", ["brainstorming"], fingerprint="plugin-v2"
+        )
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        ownership_file.write_text(
+            json.dumps(
+                {
+                    "version": 2,
+                    "resources": [
+                        {
+                            "kind": "plugin",
+                            "host": "claude",
+                            "marketplace": "dotfiles",
+                            "id": "bridge@dotfiles",
+                            "order": 200,
+                            "fingerprint": "plugin-v1",
+                            "enable": resource["enable"],
+                            "uninstall": resource["uninstall"],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        plan = MAIN_MODULE.parse_plugin_plan(rendered_v2_plan([resource]))
+
+        def execute(operation):
+            if operation.action == "preflight":
+                return ("installed", "enabled")
+            if operation.action == "update":
+                raise OSError("update failed")
+            return ()
+
+        with pytest.raises(OSError, match="update failed"):
+            MAIN_MODULE.reconcile_plugins(
+                tmp_path, ownership_file, plan, execute, lambda _: None
+            )
+
+        ownership = json.loads(ownership_file.read_text(encoding="utf-8"))
+        assert ownership["version"] == 2
+        assert ownership["resources"][0]["fingerprint"] == "plugin-v1"
+
+    def test_enable_failure_preserves_prior_ownership(self, tmp_path):
+        resource = plugin_v2("claude", "bridge@dotfiles", ["brainstorming"])
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        ownership_file.write_text(
+            json.dumps(
+                {
+                    "version": 2,
+                    "resources": [
+                        {
+                            "kind": "plugin",
+                            "host": "claude",
+                            "marketplace": "dotfiles",
+                            "id": "bridge@dotfiles",
+                            "order": 200,
+                            "fingerprint": "plugin-v1",
+                            "enable": resource["enable"],
+                            "uninstall": resource["uninstall"],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        plan = MAIN_MODULE.parse_plugin_plan(rendered_v2_plan([resource]))
+
+        def execute(operation):
+            if operation.action == "preflight":
+                return ("installed",)
+            if operation.action == "enable":
+                raise OSError("enable failed")
+            return ()
+
+        with pytest.raises(OSError, match="enable failed"):
+            MAIN_MODULE.reconcile_plugins(
+                tmp_path, ownership_file, plan, execute, lambda _: None
+            )
+
+        ownership = json.loads(ownership_file.read_text(encoding="utf-8"))
+        assert ownership["resources"][0]["fingerprint"] == "plugin-v1"
+
+    def test_uninstall_failure_preserves_prior_ownership(self, tmp_path):
+        resource = plugin_v2("claude", "bridge@dotfiles", ["brainstorming"])
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        ownership_file.write_text(
+            json.dumps(
+                {
+                    "version": 2,
+                    "resources": [
+                        {
+                            "kind": "plugin",
+                            "host": "claude",
+                            "marketplace": "dotfiles",
+                            "id": "bridge@dotfiles",
+                            "order": 200,
+                            "fingerprint": "plugin-v1",
+                            "enable": resource["enable"],
+                            "uninstall": resource["uninstall"],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        plan = MAIN_MODULE.parse_plugin_plan(rendered_v2_plan([]))
+
+        def execute(operation):
+            raise OSError("uninstall failed")
+
+        with pytest.raises(OSError, match="uninstall failed"):
+            MAIN_MODULE.reconcile_plugins(
+                tmp_path, ownership_file, plan, execute, lambda _: None
+            )
+
+        ownership = json.loads(ownership_file.read_text(encoding="utf-8"))
+        assert ownership["resources"][0]["id"] == "bridge@dotfiles"
+
+    def test_v1_ownership_is_migrated_when_desired_resource_is_verified(self, tmp_path):
+        resource = plugin_v2("claude", "bridge@dotfiles", ["brainstorming"])
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        ownership_file.write_text(
+            json.dumps(
+                {
+                    "version": 1,
+                    "resources": [
+                        {
+                            "kind": "plugin",
+                            "host": "claude",
+                            "id": "bridge@dotfiles",
+                            "fingerprint": "plugin-v1",
+                            "uninstall": resource["uninstall"],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        plan = MAIN_MODULE.parse_plugin_plan(rendered_v2_plan([resource]))
+
+        def execute(operation):
+            if operation.action == "preflight":
+                return ("installed", "enabled")
+            return ("brainstorming",) if operation.action == "verify" else ()
+
+        MAIN_MODULE.reconcile_plugins(
+            tmp_path, ownership_file, plan, execute, lambda _: None
+        )
+
+        ownership = json.loads(ownership_file.read_text(encoding="utf-8"))
+        assert ownership["version"] == 2
+        assert ownership["resources"][0]["marketplace"] == "dotfiles"

@@ -1,0 +1,11 @@
+#!/bin/sh
+set -eu
+
+{{ $python := includeTemplate "python/filter-interpreter" . -}}
+{{ $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
+{{ $plan := includeTemplate "ai/plugin-bridge-plan" . -}}
+{{ $python | quote }} -S {{ $script | quote }} reconcile-plugins \
+  --dest-dir {{ .chezmoi.destDir | quote }} \
+  --ownership-file {{ joinPath .chezmoi.destDir ".local/state/dotfiles/agent-plugin-ownership.json" | quote }} <<'PLUGIN_PLAN'
+{{ $plan }}
+PLUGIN_PLAN

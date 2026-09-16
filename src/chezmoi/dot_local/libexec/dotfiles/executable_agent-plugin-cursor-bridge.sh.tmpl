@@ -1,0 +1,123 @@
+{{- $managed := dict -}}
+{{- range $name, $definition := dig "plugin_bridge" "plugins" (dict) .ai -}}
+{{-   if has "cursor" (dig "hosts" (list) $definition) -}}{{- $_ := set $managed (printf "%s@%s" $name (dig "marketplace" "" $definition)) true -}}{{- end -}}
+{{- end -}}
+{{- range $name, $definition := dig "plugin_bridge" "capabilities" (dict) .ai -}}
+{{-   if has "cursor" (dig "hosts" (list) $definition) -}}{{- $_ := set $managed (printf "%s@%s" $name (dig "marketplace" "" $definition)) true -}}{{- end -}}
+{{- end -}}
+{{- $ownership := joinPath .chezmoi.destDir ".local/state/dotfiles/agent-plugin-ownership.json" -}}
+{{- if stat $ownership -}}
+{{-   range $resource := dig "resources" (list) (fromJson (output "cat" $ownership)) -}}
+{{-     if and (eq $resource.kind "plugin") (eq $resource.host "cursor") -}}{{- $_ := set $managed $resource.id true -}}{{- end -}}
+{{-   end -}}
+{{- end -}}
+#!/bin/sh
+set -eu
+
+fail() {
+    printf '%s\n' "agent-plugin-cursor-bridge: $*" >&2
+    exit 1
+}
+
+operation="${1:-}"
+host="${2:-}"
+plugin="${3:-}"
+destination="${4:-}"
+shift 4 || fail "expected operation, host, plugin, and destination"
+
+[ "$host" = cursor ] || fail "unsupported host: $host"
+
+package="${plugin%@*}"
+expected_package="${1:-}"
+has_expected_package=0
+if [ "$#" -gt 0 ]; then
+    has_expected_package=1
+    package="$expected_package"
+    shift
+fi
+
+case "$operation" in
+    marketplace-add|marketplace-update|marketplace-discover|marketplace-verify|marketplace-remove)
+        [ -n "$destination" ] || fail "marketplace destination is required"
+        exit 0
+        ;;
+esac
+
+case "$plugin" in
+{{- range $name := keys $managed | sortAlpha }}
+{{- if not (regexMatch "^[A-Za-z0-9][A-Za-z0-9._-]*(@[A-Za-z0-9][A-Za-z0-9._-]*)?$" $name) -}}{{- fail (printf "invalid managed plugin name %q" $name) -}}{{- end }}
+    {{ $name | quote }}) ;;
+{{- end }}
+    *) fail "unmanaged plugin identity: $plugin" ;;
+esac
+
+link_dir="$destination/.cursor/plugins/local"
+link="$link_dir/$package"
+target="$destination/.local/share/agent-plugins/marketplace/plugins/$package/cursor"
+
+case "$operation" in
+    plugin-status|status)
+        if [ -L "$link" ] && [ "$(readlink "$link")" = "$target" ]; then
+            printf '%s\n' '{"installed":true,"enabled":true}'
+        else
+            printf '%s\n' '{"installed":false,"enabled":false}'
+        fi
+        ;;
+    plugin-install|plugin-enable|install|enable)
+        [ -d "$target" ] || fail "missing packaged plugin: $target"
+        mkdir -p "$link_dir"
+        if [ -e "$link" ] || [ -L "$link" ]; then
+            [ -L "$link" ] || fail "refusing to replace unmanaged entry: $link"
+            [ "$(readlink "$link")" = "$target" ] || fail "refusing to replace unmanaged link: $link"
+        else
+            ln -s "$target" "$link"
+        fi
+        ;;
+    plugin-update|update)
+        "$0" plugin-install "$host" "$plugin" "$destination"
+        ;;
+    plugin-verify|verify)
+        [ -L "$link" ] || fail "missing bridge-owned link: $link"
+        [ "$(readlink "$link")" = "$target" ] || fail "bridge-owned link target changed: $link"
+        if [ "$has_expected_package" -eq 0 ]; then
+            printf '%s\n' '{"skills":[]}'
+            exit 0
+        fi
+        command -v python3 >/dev/null 2>&1 || fail "python3 is required to verify packaged skills"
+        python3 - "$target" "$package" "$@" <<'PY'
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+expected_package = sys.argv[2]
+expected = sorted(sys.argv[3:])
+manifest = root / ".cursor-plugin/plugin.json"
+if not manifest.is_file():
+    raise SystemExit(f"missing packaged plugin manifest: {manifest}")
+try:
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+except (OSError, ValueError) as error:
+    raise SystemExit(f"invalid packaged plugin manifest: {error}")
+if not isinstance(data, dict) or data.get("name") != expected_package:
+    raise SystemExit("packaged plugin manifest has the wrong name")
+skills_root = root / "skills"
+actual = sorted(
+    entry.name
+    for entry in skills_root.iterdir()
+    if entry.is_dir() and (entry / "SKILL.md").is_file()
+) if skills_root.is_dir() else []
+if actual != expected:
+    raise SystemExit(json.dumps({"skills": actual}))
+print(json.dumps({"skills": actual}))
+PY
+        ;;
+    plugin-remove|uninstall|remove)
+        if [ -e "$link" ] || [ -L "$link" ]; then
+            [ -L "$link" ] || fail "refusing to remove unmanaged entry: $link"
+            [ "$(readlink "$link")" = "$target" ] || fail "refusing to remove unmanaged link: $link"
+            rm "$link"
+        fi
+        ;;
+    *) fail "unsupported operation: $operation" ;;
+esac

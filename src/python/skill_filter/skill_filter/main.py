@@ -63,10 +63,13 @@ class FilterError(Exception):
 class ManagedPluginResource(NamedTuple):
     kind: str
     host: str
+    marketplace: str
     resource_id: str
+    order: int
     fingerprint: str
     install: tuple[str, ...]
     update: tuple[str, ...]
+    enable: tuple[str, ...]
     uninstall: tuple[str, ...]
     status: tuple[str, ...]
     verify: tuple[str, ...]
@@ -75,6 +78,7 @@ class ManagedPluginResource(NamedTuple):
 
 
 class PluginPlan(NamedTuple):
+    version: int
     resources: tuple[ManagedPluginResource, ...]
     skill_mappings: tuple[tuple[str, str, str, str], ...]
     legacy_cleanup: object
@@ -97,7 +101,16 @@ def _string_tuple(value: object, field: str) -> tuple[str, ...]:
     return tuple(item for item in value if isinstance(item, str))
 
 
-def _plugin_resource(raw: object) -> ManagedPluginResource:
+def _derived_enable_command(install: tuple[str, ...]) -> tuple[str, ...]:
+    """Derive the generic bridge enable operation for legacy v2 plans."""
+    if len(install) >= 4 and install[1].startswith("plugin-"):
+        return (install[0], "plugin-enable", *install[2:])
+    if len(install) >= 4 and install[1:3] == ("plugin", "install"):
+        return (install[0], "plugin", "enable", *install[3:])
+    return ()
+
+
+def _plugin_resource(raw: object, *, version: int) -> ManagedPluginResource:
     if not isinstance(raw, dict):
         raise FilterError("plugin plan resources must be objects")
     resource = cast(Dict[str, object], raw)
@@ -106,9 +119,15 @@ def _plugin_resource(raw: object) -> ManagedPluginResource:
         host = resource["host"]
         resource_id = resource["id"]
         fingerprint = resource["fingerprint"]
+        marketplace = resource.get("marketplace", "")
+        order = resource.get("order", 0)
         install = _string_tuple(resource["install"], "plugin resource install argv")
         update = _string_tuple(
             resource.get("update", install), "plugin resource update argv"
+        )
+        enable = _string_tuple(
+            resource.get("enable", _derived_enable_command(install)),
+            "plugin resource enable argv",
         )
         uninstall = _string_tuple(
             resource["uninstall"], "plugin resource uninstall argv"
@@ -128,10 +147,13 @@ def _plugin_resource(raw: object) -> ManagedPluginResource:
     if not (
         isinstance(kind, str)
         and isinstance(host, str)
+        and isinstance(marketplace, str)
         and isinstance(resource_id, str)
         and isinstance(fingerprint, str)
     ):
         raise FilterError("plugin resource fields must be strings")
+    if not isinstance(order, int) or isinstance(order, bool):
+        raise FilterError("plugin resource order must be an integer")
     if kind not in ("marketplace", "plugin"):
         raise FilterError(f"unsupported plugin resource kind {kind!r}")
     if not isinstance(adopt, bool):
@@ -140,15 +162,25 @@ def _plugin_resource(raw: object) -> ManagedPluginResource:
         raise FilterError("only plugin resources can be adopted")
     if adopt and not verify:
         raise FilterError("adopted plugin resource must provide verification argv")
-    if kind == "plugin" and not adopt and not status:
+    if kind == "plugin" and not adopt and not status and version == 1:
         raise FilterError("plugin resource must provide status argv")
+    if kind == "marketplace" and not marketplace:
+        # Version 1 marketplace plans used their id as the marketplace identity.
+        marketplace = resource_id
+    elif kind == "plugin" and not marketplace and "@" in resource_id:
+        # Version 1 ownership and plans did not carry marketplace separately.
+        # Recover the conventional marketplace suffix where possible.
+        marketplace = resource_id.rsplit("@", 1)[1]
     return ManagedPluginResource(
         kind,
         host,
+        marketplace,
         resource_id,
+        order,
         fingerprint,
         install,
         update,
+        enable if version >= 2 else (),
         uninstall,
         status,
         verify,
@@ -189,12 +221,13 @@ def parse_plugin_plan(content: str) -> PluginPlan:
         raw = json.loads(content)
     except (TypeError, ValueError) as error:
         raise FilterError(f"invalid plugin plan JSON: {error}") from error
-    if not isinstance(raw, dict) or raw.get("version") != 1:
-        raise FilterError("plugin plan must be a version 1 object")
-    resources = tuple(_plugin_resource(item) for item in raw.get("resources", ()))
-    resource_identities = [
-        (resource.kind, resource.host, resource.resource_id) for resource in resources
-    ]
+    if not isinstance(raw, dict) or raw.get("version") not in (1, 2):
+        raise FilterError("plugin plan must be a version 1 or 2 object")
+    version = int(raw["version"])
+    resources = tuple(
+        _plugin_resource(item, version=version) for item in raw.get("resources", ())
+    )
+    resource_identities = [_identity(resource) for resource in resources]
     if len(resource_identities) != len(set(resource_identities)):
         raise FilterError("duplicate desired resource identity")
     mappings = []
@@ -238,6 +271,7 @@ def parse_plugin_plan(content: str) -> PluginPlan:
             _owned_removal_preview(item) for item in raw_owned_removals
         )
     return PluginPlan(
+        version,
         resources,
         tuple(sorted(mappings)),
         raw.get("legacy_cleanup"),
@@ -253,34 +287,88 @@ def parse_plugin_ownership(content: str) -> tuple[ManagedPluginResource, ...]:
         return ()
     try:
         raw = json.loads(content)
-        raw_resources = raw["resources"]
     except (KeyError, TypeError, ValueError) as error:
         raise FilterError(f"invalid plugin ownership JSON: {error}") from error
-    if not isinstance(raw, dict) or raw.get("version") != 1:
-        raise FilterError("plugin ownership must be a version 1 object")
+    if not isinstance(raw, dict) or raw.get("version") not in (1, 2):
+        raise FilterError("plugin ownership must be a version 1 or 2 object")
+    version = int(raw["version"])
+    raw_resources = raw.get("resources")
+    if not isinstance(raw_resources, list):
+        raise FilterError("plugin ownership resources must be a list")
     resources = []
     for item in raw_resources:
         if not isinstance(item, dict):
             raise FilterError("plugin ownership resources must be objects")
         try:
-            resources.append(
-                ManagedPluginResource(
-                    item["kind"],
-                    item["host"],
-                    item["id"],
-                    item["fingerprint"],
-                    (),
-                    (),
-                    tuple(item["uninstall"]),
-                    (),
-                    (),
-                    (),
-                    False,
-                )
-            )
+            resources.append(_ownership_resource(item, version=version))
         except (KeyError, TypeError) as error:
             raise FilterError(f"invalid plugin ownership resource: {error}") from error
     return tuple(resources)
+
+
+def _ownership_resource(
+    item: dict[str, object], *, version: int
+) -> ManagedPluginResource:
+    """Decode v1 ownership and normalize it to the v2 in-memory shape."""
+    kind = item["kind"]
+    host = item["host"]
+    resource_id = item["id"]
+    fingerprint = item["fingerprint"]
+    marketplace = item.get("marketplace", "")
+    order = item.get("order", 0)
+    uninstall = _string_tuple(item["uninstall"], "plugin ownership uninstall argv")
+    if not all(
+        isinstance(value, str)
+        for value in (kind, host, resource_id, fingerprint, marketplace)
+    ):
+        raise FilterError("plugin ownership resource fields must be strings")
+    if not isinstance(order, int) or isinstance(order, bool):
+        raise FilterError("plugin ownership resource order must be an integer")
+    if kind not in ("marketplace", "plugin"):
+        raise FilterError(f"unsupported plugin ownership resource kind {kind!r}")
+    if kind == "marketplace" and not marketplace:
+        # Version 1 marketplace ownership used its id as the marketplace identity.
+        marketplace = resource_id
+    elif kind == "plugin" and not marketplace and "@" in resource_id:
+        marketplace = resource_id.rsplit("@", 1)[1]
+    return ManagedPluginResource(
+        kind,
+        host,
+        marketplace,
+        resource_id,
+        order,
+        fingerprint,
+        (),
+        (),
+        (),
+        uninstall,
+        (),
+        (),
+        (),
+        False,
+    )
+
+
+def _identity(resource: ManagedPluginResource) -> tuple[str, str, str, str]:
+    return (resource.kind, resource.host, resource.marketplace, resource.resource_id)
+
+
+def _canonical_removal_operations(
+    operations: Iterable[PluginOperation],
+) -> tuple[PluginOperation, ...]:
+    """Compare removal previews as an exact multiset, independent of order."""
+    return tuple(
+        sorted(
+            operations,
+            key=lambda operation: (
+                operation.action,
+                operation.kind,
+                operation.host,
+                operation.resource_id,
+                operation.argv,
+            ),
+        )
+    )
 
 
 def plan_plugin_operations(
@@ -288,27 +376,31 @@ def plan_plugin_operations(
 ) -> tuple[PluginOperation, ...]:
     """Return stable install and owned-resource uninstall operations."""
     owned_resources = tuple(owned)
-    owned_by_identity = {
-        (resource.kind, resource.host, resource.resource_id): resource
-        for resource in owned_resources
-    }
-    desired_identities = {
-        (resource.kind, resource.host, resource.resource_id)
-        for resource in desired.resources
-    }
+    owned_by_identity = {_identity(resource): resource for resource in owned_resources}
+    desired_identities = {_identity(resource) for resource in desired.resources}
     kind_order = {"marketplace": 0, "plugin": 1}
     installs = []
     for resource in sorted(
         desired.resources,
         key=lambda resource: (
             kind_order[resource.kind],
+            getattr(resource, "order", 0),
+            resource.marketplace,
             resource.host,
             resource.resource_id,
         ),
     ):
-        prior = owned_by_identity.get(
-            (resource.kind, resource.host, resource.resource_id)
-        )
+        prior = owned_by_identity.get(_identity(resource))
+        if resource.kind == "plugin" and resource.status:
+            installs.append(
+                PluginOperation(
+                    "preflight",
+                    resource.kind,
+                    resource.host,
+                    resource.resource_id,
+                    resource.status,
+                )
+            )
         if prior is not None and prior.fingerprint != resource.fingerprint:
             installs.append(
                 PluginOperation(
@@ -331,16 +423,6 @@ def plan_plugin_operations(
                     )
                 )
             else:
-                if resource.kind == "plugin":
-                    installs.append(
-                        PluginOperation(
-                            "preflight",
-                            resource.kind,
-                            resource.host,
-                            resource.resource_id,
-                            resource.status,
-                        )
-                    )
                 installs.append(
                     PluginOperation(
                         "install",
@@ -353,8 +435,7 @@ def plan_plugin_operations(
     obsolete = (
         resource
         for resource in owned_resources
-        if (resource.kind, resource.host, resource.resource_id)
-        not in desired_identities
+        if _identity(resource) not in desired_identities
     )
     uninstalls = tuple(
         PluginOperation(
@@ -367,7 +448,9 @@ def plan_plugin_operations(
         for resource in sorted(
             obsolete,
             key=lambda resource: (
+                -getattr(resource, "order", 0),
                 -kind_order[resource.kind],
+                resource.marketplace,
                 resource.host,
                 resource.resource_id,
             ),
@@ -383,14 +466,19 @@ def _render_plugin_ownership(resources: Iterable[ManagedPluginResource]) -> str:
         {
             "kind": resource.kind,
             "host": resource.host,
+            "marketplace": resource.marketplace,
             "id": resource.resource_id,
+            "order": resource.order,
             "fingerprint": resource.fingerprint,
+            "enable": list(resource.enable),
             "uninstall": list(resource.uninstall),
         }
         for resource in sorted(
             resources,
             key=lambda resource: (
+                resource.order,
                 resource.kind,
+                resource.marketplace,
                 resource.host,
                 resource.resource_id,
             ),
@@ -398,7 +486,7 @@ def _render_plugin_ownership(resources: Iterable[ManagedPluginResource]) -> str:
     ]
     return (
         json.dumps(
-            {"version": 1, "resources": records},
+            {"version": 2, "resources": records},
             indent=2,
             sort_keys=True,
         )
@@ -490,88 +578,40 @@ def reconcile_plugins(
     cleanup_legacy: Callable[[object], None],
 ) -> tuple[ManagedPluginResource, ...]:
     """Converge managed plugin resources without touching unmanaged resources."""
+    import json
     from pathlib import Path
 
     destination = Path(dest_dir)
     ownership_path = validate_state_manifest_path(destination, ownership_file)
     _validate_legacy_cleanup_plan(destination, desired)
     owned = ()
+    ownership_version = 2
     if ownership_path.exists():
-        owned = parse_plugin_ownership(ownership_path.read_text(encoding="utf-8"))
+        ownership_content = ownership_path.read_text(encoding="utf-8")
+        owned = parse_plugin_ownership(ownership_content)
+        try:
+            ownership_version = json.loads(ownership_content).get("version", 1)
+        except (TypeError, ValueError):
+            ownership_version = 1
     operations = plan_plugin_operations(desired, owned)
     owned_removals = tuple(
         operation for operation in operations if operation.action == "uninstall"
     )
-    if desired.owned_removals is not None and desired.owned_removals != owned_removals:
+    if desired.owned_removals is not None and _canonical_removal_operations(
+        desired.owned_removals
+    ) != _canonical_removal_operations(owned_removals):
         raise FilterError("owned removal preview does not match current ownership")
-    identity = lambda resource: (
-        resource.kind,
-        resource.host,
-        resource.resource_id,
-    )
-    managed_by_identity = {identity(resource): resource for resource in owned}
-    durable_by_identity = dict(managed_by_identity)
-    initially_owned_identities = set(managed_by_identity)
+    managed_by_identity = {_identity(resource): resource for resource in owned}
     desired_by_identity = {
-        identity(resource): resource for resource in desired.resources
+        _identity(resource): resource for resource in desired.resources
     }
 
-    verified_identities = set()
-    for operation in operations:
-        if operation.action == "preflight":
-            output = tuple(execute(operation))
-            if output:
-                raise FilterError(
-                    f"plugin {operation.resource_id!r} on {operation.host!r} "
-                    "is already installed but is not bridge-owned; use explicit adoption after verifying its complete content"
-                )
-        elif operation.action in ("install", "update", "adopt"):
-            resource = desired_by_identity[
-                (operation.kind, operation.host, operation.resource_id)
-            ]
-            output = tuple(execute(operation))
-            if (
-                operation.action == "install"
-                and identity(resource) not in initially_owned_identities
-            ):
-                durable_by_identity[identity(resource)] = resource
-                _replace_manifest_atomically(
-                    ownership_path,
-                    _render_plugin_ownership(durable_by_identity.values()),
-                )
-            if resource.kind == "plugin":
-                actual_skills = output
-                if operation.action != "adopt":
-                    actual_skills = tuple(
-                        execute(
-                            PluginOperation(
-                                "verify",
-                                resource.kind,
-                                resource.host,
-                                resource.resource_id,
-                                resource.verify,
-                            )
-                        )
-                    )
-                if tuple(sorted(actual_skills)) != tuple(
-                    sorted(resource.expected_skills)
-                ):
-                    raise FilterError(
-                        f"plugin {resource.resource_id!r} on {resource.host!r} "
-                        f"has skills {actual_skills!r}, expected "
-                        f"{resource.expected_skills!r}"
-                    )
-                verified_identities.add(identity(resource))
-            managed_by_identity[identity(resource)] = resource
+    def checkpoint() -> None:
+        _replace_manifest_atomically(
+            ownership_path, _render_plugin_ownership(managed_by_identity.values())
+        )
 
-    for resource in sorted(
-        (
-            item
-            for item in desired.resources
-            if item.kind == "plugin" and identity(item) not in verified_identities
-        ),
-        key=lambda item: (item.host, item.resource_id),
-    ):
+    def verify(resource: ManagedPluginResource) -> None:
         actual_skills = tuple(
             execute(
                 PluginOperation(
@@ -589,27 +629,168 @@ def reconcile_plugins(
                 f"skills {actual_skills!r}, expected {resource.expected_skills!r}"
             )
 
-    _replace_manifest_atomically(
-        ownership_path, _render_plugin_ownership(managed_by_identity.values())
-    )
+    # Desired resources are fully converged before any removal is attempted.
+    for resource in desired.resources:
+        identity = _identity(resource)
+        prior = managed_by_identity.get(identity)
+        if resource.kind == "marketplace":
+            if prior is None:
+                execute(
+                    PluginOperation(
+                        "install",
+                        resource.kind,
+                        resource.host,
+                        resource.resource_id,
+                        resource.install,
+                    )
+                )
+                managed_by_identity[identity] = resource
+                checkpoint()
+            elif prior.fingerprint != resource.fingerprint:
+                execute(
+                    PluginOperation(
+                        "update",
+                        resource.kind,
+                        resource.host,
+                        resource.resource_id,
+                        resource.update,
+                    )
+                )
+                managed_by_identity[identity] = resource
+                checkpoint()
+            continue
+
+        occupied = ()
+        if resource.status:
+            occupied = tuple(
+                execute(
+                    PluginOperation(
+                        "preflight",
+                        resource.kind,
+                        resource.host,
+                        resource.resource_id,
+                        resource.status,
+                    )
+                )
+            )
+        installed = "installed" in occupied
+
+        if prior is None:
+            if resource.adopt:
+                # Explicit adoption keeps the v1 callback contract.  The host
+                # command must return the same strict verification payload.
+                output = tuple(
+                    execute(
+                        PluginOperation(
+                            "adopt",
+                            resource.kind,
+                            resource.host,
+                            resource.resource_id,
+                            resource.verify,
+                        )
+                    )
+                )
+                if tuple(sorted(output)) != tuple(sorted(resource.expected_skills)):
+                    raise FilterError(
+                        f"plugin {resource.resource_id!r} on {resource.host!r} has skills "
+                        f"{output!r}, expected {resource.expected_skills!r}"
+                    )
+            elif not installed:
+                execute(
+                    PluginOperation(
+                        "install",
+                        resource.kind,
+                        resource.host,
+                        resource.resource_id,
+                        resource.install,
+                    )
+                )
+            if resource.enable and (not installed or "enabled" not in occupied):
+                execute(
+                    PluginOperation(
+                        "enable",
+                        resource.kind,
+                        resource.host,
+                        resource.resource_id,
+                        resource.enable,
+                    )
+                )
+            if not resource.adopt:
+                verify(resource)
+            managed_by_identity[identity] = resource
+            checkpoint()
+            continue
+
+        changed = prior.fingerprint != resource.fingerprint
+        if not installed:
+            execute(
+                PluginOperation(
+                    "install",
+                    resource.kind,
+                    resource.host,
+                    resource.resource_id,
+                    resource.install,
+                )
+            )
+        elif changed:
+            execute(
+                PluginOperation(
+                    "update",
+                    resource.kind,
+                    resource.host,
+                    resource.resource_id,
+                    resource.update,
+                )
+            )
+        if resource.enable and (not installed or changed or "enabled" not in occupied):
+            execute(
+                PluginOperation(
+                    "enable",
+                    resource.kind,
+                    resource.host,
+                    resource.resource_id,
+                    resource.enable,
+                )
+            )
+        verify(resource)
+        managed_by_identity[identity] = resource
+        checkpoint()
 
     if desired.legacy_cleanup is not None:
         cleanup_legacy(desired.legacy_cleanup)
 
-    for operation in operations:
-        if operation.action == "uninstall":
-            execute(operation)
-            managed_by_identity.pop(
-                (operation.kind, operation.host, operation.resource_id)
+    # Removal is deliberately last, and each successful removal is durable.
+    obsolete = [
+        resource
+        for identity, resource in managed_by_identity.items()
+        if identity not in desired_by_identity
+    ]
+    kind_order = {"marketplace": 0, "plugin": 1}
+    for resource in sorted(
+        obsolete,
+        key=lambda item: (
+            -kind_order[item.kind],
+            -item.order,
+            item.host,
+            item.resource_id,
+        ),
+    ):
+        execute(
+            PluginOperation(
+                "uninstall",
+                resource.kind,
+                resource.host,
+                resource.resource_id,
+                resource.uninstall,
             )
-            _replace_manifest_atomically(
-                ownership_path,
-                _render_plugin_ownership(managed_by_identity.values()),
-            )
+        )
+        managed_by_identity.pop(_identity(resource), None)
+        checkpoint()
 
-    managed = tuple(desired.resources)
-    _replace_manifest_atomically(ownership_path, _render_plugin_ownership(managed))
-    return managed
+    if ownership_version != 2:
+        checkpoint()
+
+    return tuple(desired.resources)
 
 
 ALLOWED_SKILL_ROOTS = (
@@ -1103,20 +1284,25 @@ def _execute_plugin_command(operation: PluginOperation) -> tuple[str, ...]:
     completed = subprocess.run(
         operation.argv,
         check=True,
-        capture_output=operation.action in ("verify", "adopt", "preflight"),
+        capture_output=operation.action in ("verify", "adopt", "preflight", "status"),
         text=True,
     )
-    if operation.action not in ("verify", "adopt", "preflight"):
+    if operation.action not in ("verify", "adopt", "preflight", "status"):
         return ()
-    if operation.action == "preflight" and not completed.stdout:
+    if operation.action in ("preflight", "status") and not completed.stdout:
         return ()
     try:
         output = json.loads(completed.stdout)
-        if operation.action == "preflight":
+        if operation.action in ("preflight", "status"):
             installed = output["installed"]
             if not isinstance(installed, bool):
                 raise TypeError("installed must be a boolean")
-            return ("installed",) if installed else ()
+            if not installed:
+                return ()
+            enabled = output.get("enabled", False)
+            if not isinstance(enabled, bool):
+                raise TypeError("enabled must be a boolean")
+            return ("installed", "enabled") if enabled else ("installed",)
         skills = output["skills"] if isinstance(output, dict) else output
     except (KeyError, TypeError, ValueError) as error:
         raise FilterError(

@@ -1,0 +1,282 @@
+#!/bin/sh
+set -eu
+
+fail() {
+    printf '%s\n' "agent-plugin-host-bridge: $*" >&2
+    exit 1
+}
+
+operation="${1:-}"
+host="${2:-}"
+resource="${3:-}"
+shift 3 || fail "expected operation, host, and resource"
+
+case "$host" in
+    claude|codex) ;;
+    *) fail "unsupported host: $host" ;;
+esac
+
+host_command="$(command -v "$host" 2>/dev/null || true)"
+[ -n "$host_command" ] || fail "$host CLI is not installed"
+
+locator="${1:-}"
+marketplace=""
+
+# Plugin IDs use the host's conventional `plugin@marketplace` form.
+# The planner intentionally keeps marketplace identity in the resource ID so
+# status and verification commands can use the same adapter argv everywhere.
+if [ -z "$marketplace" ] && {
+    [ "$operation" = plugin-status ] || [ "$operation" = plugin-verify ] || [ "$operation" = plugin-enable ]
+}; then
+    case "$resource" in
+        *@*) marketplace="${resource##*@}" ;;
+        *) fail "plugin resource must include marketplace: $resource" ;;
+    esac
+fi
+
+json_status_claude() {
+    command -v python3 >/dev/null 2>&1 || fail "python3 is required to parse Claude output"
+    printf '%s' "$1" | python3 -c '
+import json
+import sys
+
+try:
+    records = json.load(sys.stdin)
+    if not isinstance(records, list):
+        raise TypeError("top-level value must be a list")
+    if any(not isinstance(item, dict) or not isinstance(item.get("id"), str) for item in records):
+        raise TypeError("plugin records must have string ids")
+    matches = [item for item in records if item["id"] == sys.argv[1]]
+    if len(matches) > 1:
+        raise ValueError("plugin identity appears more than once")
+    if not matches:
+        raise SystemExit(0)
+    enabled = matches[0].get("enabled")
+    if not isinstance(enabled, bool):
+        raise TypeError("plugin enabled state must be a boolean")
+    print(json.dumps({
+        "installed": True,
+        "enabled": enabled,
+    }))
+except (TypeError, ValueError, json.JSONDecodeError) as error:
+    raise SystemExit(f"invalid Claude plugin list: {error}")
+' "$resource"
+}
+
+codex_status() {
+    command -v python3 >/dev/null 2>&1 || fail "python3 is required to parse Codex output"
+    printf '%s' "$1" | python3 -c '
+import json
+import re
+import sys
+
+lines = [line for line in sys.stdin.read().splitlines() if line.strip()]
+if lines == [f"No plugins found in marketplace `{sys.argv[2]}`."]:
+    raise SystemExit(0)
+if len(lines) < 4 or lines[0] != f"Marketplace `{sys.argv[2]}`":
+    raise SystemExit("invalid Codex plugin list framing")
+if lines[2].split() not in (
+    ["PLUGIN", "STATUS", "VERSION", "SOURCE"],
+    ["PLUGIN", "STATUS", "VERSION", "PATH"],
+):
+    raise SystemExit("invalid Codex plugin table header")
+pattern = re.compile(r"(?P<id>\S+)\s{2,}(?P<status>installed, enabled|installed, disabled|not installed)\s{2,}(?:(?P<version>\S+)\s{2,})?(?P<source>\S(?:.*\S)?)$")
+matches = []
+for line in lines[3:]:
+    match = pattern.fullmatch(line)
+    if match is None:
+        raise SystemExit("invalid Codex plugin list row")
+    if match.group("id") == sys.argv[1]:
+        matches.append(match.groupdict())
+if len(matches) > 1:
+    raise SystemExit("plugin identity appears more than once")
+if matches:
+    print(json.dumps({"installed": matches[0]["status"] != "not installed", "enabled": matches[0]["status"] == "installed, enabled"}))
+' "$resource" "$marketplace"
+}
+
+marketplace_exists() {
+    expected="$1"
+    output="$2"
+    command -v python3 >/dev/null 2>&1 || fail "python3 is required to parse marketplace output"
+    printf '%s' "$output" | python3 -c '
+import json
+import sys
+
+expected = sys.argv[1]
+text = sys.stdin.read()
+try:
+    value = json.loads(text)
+except json.JSONDecodeError:
+    lines = [line.strip() for line in text.splitlines() if line.strip()]
+    if not lines or lines[0] not in ("NAME", "MARKETPLACE", "MARKETPLACES", "Installed marketplaces:"):
+        raise SystemExit("unrecognized marketplace list output")
+    names = [line.split()[0] for line in lines[1:]]
+    if any(not name or name in ("NAME", "MARKETPLACE") for name in names):
+        raise SystemExit("malformed marketplace list output")
+else:
+    records = value.get("marketplaces") if isinstance(value, dict) else value
+    if not isinstance(records, list):
+        raise SystemExit("marketplace list JSON must contain a list")
+    names = []
+    for record in records:
+        if not isinstance(record, dict):
+            raise SystemExit("marketplace records must be objects")
+        candidates = [record.get(key) for key in ("name", "id", "marketplace")]
+        candidates = {candidate for candidate in candidates if isinstance(candidate, str)}
+        if len(candidates) != 1:
+            raise SystemExit("marketplace records must expose one unambiguous string identity")
+        names.append(candidates.pop())
+if expected not in names:
+    raise SystemExit(f"marketplace is not installed: {expected}")
+' "$resource"
+}
+
+verify_packaged_skills() {
+    destination="$1"
+    expected_package="$2"
+    shift 2
+    [ -n "$destination" ] || fail "plugin verification destination is required"
+    if [ -z "$expected_package" ]; then
+        printf '%s\n' '{"skills":[]}'
+        return 0
+    fi
+    command -v python3 >/dev/null 2>&1 || fail "python3 is required to verify packaged skills"
+    package_root="$destination/.local/share/agent-plugins/marketplace/plugins/$expected_package/$host"
+    python3 - "$package_root" "$expected_package" "$@" <<'PY'
+import json
+import pathlib
+import sys
+
+root = pathlib.Path(sys.argv[1])
+expected_package = sys.argv[2]
+expected = sorted(sys.argv[3:])
+if not root.is_dir():
+    raise SystemExit(f"missing packaged plugin: {root}")
+manifest = next(
+    (
+        candidate
+        for candidate in (
+            root / ".claude-plugin/plugin.json",
+            root / ".codex-plugin/plugin.json",
+            root / ".cursor-plugin/plugin.json",
+            root / "plugin.json",
+        )
+        if candidate.is_file()
+    ),
+    None,
+)
+if manifest is None:
+    raise SystemExit(f"missing packaged plugin manifest: {root}")
+try:
+    data = json.loads(manifest.read_text(encoding="utf-8"))
+except (OSError, ValueError) as error:
+    raise SystemExit(f"invalid packaged plugin manifest: {error}")
+if not isinstance(data, dict) or data.get("name") != expected_package:
+    raise SystemExit("packaged plugin manifest has the wrong name")
+skills_root = root / "skills"
+actual = sorted(
+    entry.name
+    for entry in skills_root.iterdir()
+    if entry.is_dir() and (entry / "SKILL.md").is_file()
+) if skills_root.is_dir() else []
+if actual != expected:
+    raise SystemExit(json.dumps({"skills": actual}))
+print(json.dumps({"skills": actual}))
+PY
+}
+
+case "$operation" in
+    marketplace-add)
+        [ -n "$locator" ] || fail "marketplace source is required"
+        "$host_command" plugin marketplace add "$locator"
+        ;;
+    marketplace-discover|marketplace-verify)
+        marketplace_exists "$resource" "$($host_command plugin marketplace list)"
+        ;;
+    marketplace-update)
+        if [ "$host" = codex ]; then
+            "$host_command" plugin marketplace upgrade "$resource"
+        else
+            "$host_command" plugin marketplace update "$resource"
+        fi
+        ;;
+    marketplace-remove)
+        "$host_command" plugin marketplace remove "$resource"
+        ;;
+    plugin-status)
+        if [ "$host" = claude ]; then
+            json_status_claude "$($host_command plugin list --json)"
+        else
+            codex_status "$($host_command plugin list -m "$marketplace")"
+        fi
+        ;;
+    plugin-install)
+        if [ "$host" = claude ]; then
+            "$host_command" plugin install "$resource"
+        else
+            "$host_command" plugin add "$resource"
+        fi
+        ;;
+    plugin-update)
+        if [ "$host" = claude ]; then
+            "$host_command" plugin update "$resource"
+        else
+            "$host_command" plugin add "$resource"
+        fi
+        ;;
+    plugin-enable)
+        if [ "$host" = codex ]; then
+            status="$(codex_status "$($host_command plugin list -m "$marketplace")")"
+            [ -n "$status" ] || fail "plugin is not installed: $resource"
+            command -v python3 >/dev/null 2>&1 || fail "python3 is required to validate Codex plugin status"
+            printf '%s' "$status" | python3 -c '
+import json
+import sys
+status = json.load(sys.stdin)
+if status.get("installed") is not True:
+    raise SystemExit("plugin is not installed")
+if status.get("enabled") is not True:
+    raise SystemExit("plugin is not enabled")
+'
+        else
+            "$host_command" plugin enable "$resource"
+        fi
+        ;;
+    plugin-remove)
+        if [ "$host" = claude ]; then
+            "$host_command" plugin uninstall "$resource"
+        else
+            "$host_command" plugin remove "$resource"
+        fi
+        ;;
+    plugin-verify)
+        destination="${1:-}"
+        expected_package="${2:-}"
+        [ -n "$destination" ] || fail "plugin verification destination is required"
+        shift
+        if [ "$#" -gt 0 ]; then
+            shift
+        fi
+        if [ "$host" = claude ]; then
+            status="$(json_status_claude "$($host_command plugin list --json)")"
+        else
+            status="$(codex_status "$($host_command plugin list -m "$marketplace")")"
+        fi
+        [ -n "$status" ] || fail "plugin is not installed: $resource"
+        command -v python3 >/dev/null 2>&1 || fail "python3 is required to validate plugin status"
+        printf '%s' "$status" | python3 -c '
+import json
+import sys
+status = json.load(sys.stdin)
+if status.get("installed") is not True:
+    raise SystemExit("plugin is not installed")
+if status.get("enabled") is not True:
+    raise SystemExit("plugin is not enabled")
+'
+        verify_packaged_skills "$destination" "$expected_package" "$@"
+        ;;
+    *)
+        fail "unsupported operation: $operation"
+        ;;
+esac
