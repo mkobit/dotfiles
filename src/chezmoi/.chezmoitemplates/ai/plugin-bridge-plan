@@ -5,8 +5,9 @@
 {{- if not (kindIs "map" $marketplaces) -}}{{- fail "ai.plugin_bridge.marketplaces must be a table" -}}{{- end -}}
 {{- if not (kindIs "map" $plugins) -}}{{- fail "ai.plugin_bridge.plugins must be a table" -}}{{- end -}}
 {{- if not (kindIs "map" $capabilities) -}}{{- fail "ai.plugin_bridge.capabilities must be a table" -}}{{- end -}}
-{{- $environment := dig "environment" "" $bridge -}}
+{{- $environment := dig "environment" "default" $bridge -}}
 {{- if not (and (kindIs "string" $environment) $environment) -}}{{- fail "ai.plugin_bridge.environment must be a non-empty string" -}}{{- end -}}
+{{- $templateRoot := . -}}
 {{- $dest := .chezmoi.destDir -}}
 {{- $generatedMarketplaceRoot := dig "generated_marketplace_root" (joinPath $dest ".local/share/agent-plugins/marketplace") $bridge -}}
 {{- if not (and (kindIs "string" $generatedMarketplaceRoot) $generatedMarketplaceRoot) -}}{{- fail "ai.plugin_bridge.generated_marketplace_root must be a non-empty string" -}}{{- end -}}
@@ -139,6 +140,52 @@
 {{-   if not (kindIs "map" $skillDefinitions) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.skills must be a table" $name) -}}{{- end -}}
 {{-   range $skillName, $_ := $skillDefinitions -}}{{- if not (and (kindIs "string" $skillName) $skillName) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.skills keys must be non-empty strings" $name) -}}{{- end -}}{{- end -}}
 {{-   $skills := keys $skillDefinitions | sortAlpha -}}
+{{-   $packageSourceRoot := joinPath $templateRoot.chezmoi.sourceDir "dot_local/share/agent-plugins/marketplace/plugins" $name -}}
+{{-   $packageExpectedFiles := list -}}
+{{-   $packagePreservedDirectories := list -}}
+{{-   range $path := glob (joinPath $packageSourceRoot "**/*") | sortAlpha -}}
+{{-     if eq (lstat $path).type "file" -}}
+{{-       $relative := trimPrefix (printf "%s/" $packageSourceRoot) $path -}}
+{{-       $relative = trimSuffix ".tmpl" $relative -}}
+{{-       $relative = replace "dot_" "." $relative -}}
+{{-       $packageExpectedFiles = append $packageExpectedFiles $relative -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $authoredSource := dig "authored_skill_source" "" $definition -}}
+{{-   if $authoredSource -}}
+{{-     if not (kindIs "string" $authoredSource) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.authored_skill_source must be a string" $name) -}}{{- end -}}
+{{-     $authoredRoot := joinPath $templateRoot.chezmoi.workingTree $authoredSource -}}
+{{-     range $skillName, $state := dig "authored" (dict) $templateRoot.ai.skills -}}
+{{-       if or (eq $state "present") (hasKey (dict "claude" true "codex" true "cursor" true) $state) -}}
+{{-         $skillRoot := joinPath $authoredRoot $skillName -}}
+{{-         $packageRoots := list -}}
+{{-         if eq $state "present" -}}
+{{-           $packageRoots = append $packageRoots "skills" -}}
+{{-           range $host := $hosts -}}{{- $packageRoots = append $packageRoots (printf "%s/skills" $host) -}}{{- end -}}
+{{-         else -}}
+{{-           $packageRoots = append $packageRoots (printf "%s/skills" $state) -}}
+{{-         end -}}
+{{-         range $path := glob (joinPath $skillRoot "**/*") | sortAlpha -}}
+{{-           if eq (lstat $path).type "file" -}}
+{{-             $relative := trimPrefix (printf "%s/" $skillRoot) $path -}}
+{{-             range $packageRoot := $packageRoots -}}
+{{-               $packageExpectedFiles = append $packageExpectedFiles (printf "%s/%s/%s" $packageRoot $skillName $relative) -}}
+{{-             end -}}
+{{-           end -}}
+{{-         end -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{-   range $_, $source := dig "external" (dict) $templateRoot.ai.skills -}}
+{{-     range $skillName, $state := dig "skills" (dict) $source -}}
+{{-       if eq $state "present" -}}
+{{-         $packagePreservedDirectories = append $packagePreservedDirectories (printf "skills/%s" $skillName) -}}
+{{-         range $host := $hosts -}}{{- $packagePreservedDirectories = append $packagePreservedDirectories (printf "%s/skills/%s" $host $skillName) -}}{{- end -}}
+{{-       else if has $state $hosts -}}
+{{-         $packagePreservedDirectories = append $packagePreservedDirectories (printf "%s/skills/%s" $state $skillName) -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
 {{-   range $host := ($hosts | uniq | sortAlpha) -}}
 {{-     if not (has $host $marketplaceHosts) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.hosts includes unsupported marketplace host %q" $name $host) -}}{{- end -}}
 {{-     $pluginID := printf "%s@%s" $name $marketplace -}}
@@ -163,7 +210,8 @@
 {{-       $verify = append $verify $name -}}
 {{-     end -}}
 {{-     range $skill := $skills -}}{{- $verify = append $verify $skill -}}{{- end -}}
-{{-     $resource := dict "kind" "plugin" "stable_key" $name "phase" 20 "order" $order "host" $host "id" $pluginID "plugin" $name "marketplace" $marketplace "fingerprint" (toJson (dict "capability" $name "marketplace" $marketplace "skills" $skills "order" $order)) "install" $install "update" $update "enable" $enable "uninstall" $uninstall "status" $status "verify" $verify "expected_skills" $skills -}}
+{{-     $packageCleanup := dict "stable_key" $name "root" (joinPath $generatedMarketplaceRoot "plugins" $name) "expected_files" ($packageExpectedFiles | uniq | sortAlpha) "preserved_directories" ($packagePreservedDirectories | uniq | sortAlpha) -}}
+{{-     $resource := dict "kind" "plugin" "stable_key" $name "phase" 20 "order" $order "host" $host "id" $pluginID "plugin" $name "marketplace" $marketplace "fingerprint" (toJson (dict "capability" $name "marketplace" $marketplace "skills" $skills "order" $order)) "install" $install "update" $update "enable" $enable "uninstall" $uninstall "status" $status "verify" $verify "expected_skills" $skills "package_cleanup" $packageCleanup -}}
 {{-     $key := printf "%02d:%09d:%s:%s" 20 $order $name $host -}}
 {{-     if hasKey $resourcesByKey $key -}}{{- fail (printf "duplicate plugin resource ordering key %q" $key) -}}{{- end -}}
 {{-     $_ := set $resourcesByKey $key $resource -}}
@@ -181,4 +229,4 @@
 {{-     if not (hasKey $desiredIdentities $identity) -}}{{- $ownedRemovals = append $ownedRemovals (dict "action" "uninstall" "kind" $resource.kind "host" $resource.host "id" $resource.id "argv" $resource.uninstall) -}}{{- end -}}
 {{-   end -}}
 {{- end -}}
-{{- dict "version" 2 "resources" $resources "skill_mappings" (list) "legacy_cleanup" (dict "dest_dir" $dest "state_manifest" $stateManifest "desired_manifest" "" "direct_roots" (list)) "owned_removals" $ownedRemovals | toPrettyJson -}}
+{{- dict "version" 2 "generated_marketplace_root" $generatedMarketplaceRoot "resources" $resources "skill_mappings" (list) "legacy_cleanup" (dict "dest_dir" $dest "state_manifest" $stateManifest "desired_manifest" "" "direct_roots" (list)) "owned_removals" $ownedRemovals | toPrettyJson -}}

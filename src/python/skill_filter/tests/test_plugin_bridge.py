@@ -38,7 +38,9 @@ def rendered_plan(
     return json.dumps(plan)
 
 
-def rendered_v2_plan(resources, *, owned_removals=None):
+def rendered_v2_plan(
+    resources, *, owned_removals=None, generated_marketplace_root=None
+):
     plan = {
         "version": 2,
         "resources": list(resources),
@@ -47,6 +49,8 @@ def rendered_v2_plan(resources, *, owned_removals=None):
     }
     if owned_removals is not None:
         plan["owned_removals"] = list(owned_removals)
+    if generated_marketplace_root is not None:
+        plan["generated_marketplace_root"] = str(generated_marketplace_root)
     return json.dumps(plan)
 
 
@@ -82,13 +86,23 @@ def plugin(
     }
 
 
-def plugin_v2(host: str, resource_id: str, skills: list[str], fingerprint="plugin-v1"):
-    return {
+def plugin_v2(
+    host: str,
+    resource_id: str,
+    skills: list[str],
+    fingerprint="plugin-v1",
+    *,
+    package_cleanup=None,
+):
+    resource = {
         **plugin(host, resource_id, skills, fingerprint),
         "marketplace": resource_id.rsplit("@", 1)[-1],
         "order": 200,
         "enable": ["bridge", "plugin-enable", host, resource_id],
     }
+    if package_cleanup is not None:
+        resource["package_cleanup"] = package_cleanup
+    return resource
 
 
 def operation_keys(operations):
@@ -537,6 +551,97 @@ class TestPluginBridgeDeclarationPolicies:
                 assert resource["install"][0].endswith("agent-plugin-cursor-bridge.sh")
             else:
                 assert resource["install"][0].endswith("agent-plugin-host-bridge.sh")
+
+    def test_declares_generated_package_cleanup_inventory(self, tmp_path):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={"dotfiles": example_marketplace()},
+                capabilities={
+                    "mkobit-dotfiles": {
+                        "marketplace": "dotfiles",
+                        "hosts": ["claude"],
+                        "authored_skill_source": "src/ai/skills",
+                        "skills": {"alpha": {}},
+                    }
+                },
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode == 0, result.stderr
+        plan = json.loads(result.stdout)
+        resource = next(
+            resource for resource in plan["resources"] if resource["kind"] == "plugin"
+        )
+        cleanup = resource["package_cleanup"]
+        assert cleanup["stable_key"] == "mkobit-dotfiles"
+        assert cleanup["root"] == str(
+            tmp_path / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles"
+        )
+        assert "plugin.json" in cleanup["expected_files"]
+        assert "claude/.claude-plugin/plugin.json" in cleanup["expected_files"]
+
+    def test_declares_authored_skill_package_inventory(self, tmp_path):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={"dotfiles": example_marketplace()},
+                capabilities={
+                    "mkobit-dotfiles": {
+                        "marketplace": "dotfiles",
+                        "hosts": ["claude", "codex", "cursor"],
+                        "authored_skill_source": "src/ai/skills",
+                        "skills": {"alpha": {}},
+                    }
+                },
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode == 0, result.stderr
+        resource = next(
+            resource
+            for resource in json.loads(result.stdout)["resources"]
+            if resource["kind"] == "plugin"
+        )
+        expected_files = resource["package_cleanup"]["expected_files"]
+        assert "skills/docker-sandboxes/SKILL.md" in expected_files
+        assert "claude/skills/docker-sandboxes/SKILL.md" in expected_files
+        assert "codex/skills/docker-sandboxes/SKILL.md" in expected_files
+        assert "cursor/skills/docker-sandboxes/SKILL.md" in expected_files
+
+    def test_preserves_selected_exact_external_skill_trees(self, tmp_path):
+        data = declaration_data(
+            marketplaces={"dotfiles": example_marketplace()},
+            capabilities={
+                "mkobit-dotfiles": {
+                    "marketplace": "dotfiles",
+                    "hosts": ["claude", "codex", "cursor"],
+                    "skills": {"external-skill": {}},
+                }
+            },
+        )
+        data["ai"]["skills"] = {
+            "external": {
+                "public-source": {
+                    "skills": {"external-skill": "present"},
+                }
+            }
+        }
+
+        result = render_declaration_plan(data, tmp_path)
+
+        assert result.returncode == 0, result.stderr
+        resource = next(
+            resource
+            for resource in json.loads(result.stdout)["resources"]
+            if resource["kind"] == "plugin"
+        )
+        assert set(resource["package_cleanup"]["preserved_directories"]) >= {
+            "claude/skills/external-skill",
+            "codex/skills/external-skill",
+            "cursor/skills/external-skill",
+            "skills/external-skill",
+        }
 
     def test_orders_numeric_values_before_stable_key(self, tmp_path):
         result = render_declaration_plan(
@@ -1694,6 +1799,359 @@ class TestPluginReconciliation:
 
 
 class TestVersionTwoPluginLifecycle:
+    def test_rejects_package_cleanup_outside_generated_root(self, tmp_path):
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["brainstorming"],
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(tmp_path / "outside"),
+                "expected_files": ["plugin.json"],
+            },
+        )
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="package cleanup root"):
+            MAIN_MODULE.parse_plugin_plan(
+                rendered_v2_plan(
+                    [resource],
+                    generated_marketplace_root=tmp_path / "marketplace",
+                )
+            )
+
+    @pytest.mark.parametrize("root_suffix", ["/../bridge", "/bridge/."])
+    def test_rejects_noncanonical_package_root(self, tmp_path, root_suffix):
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["brainstorming"],
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(tmp_path / "marketplace/plugins") + root_suffix,
+                "expected_files": ["plugin.json"],
+            },
+        )
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="package cleanup root"):
+            MAIN_MODULE.parse_plugin_plan(
+                rendered_v2_plan(
+                    [resource], generated_marketplace_root=tmp_path / "marketplace"
+                )
+            )
+
+    @pytest.mark.parametrize(
+        "entry",
+        [
+            "../escape",
+            "/absolute",
+            "dir/../escape",
+            ".",
+            "dir/./escape",
+            "dir//escape",
+            "dir/",
+        ],
+    )
+    def test_rejects_escaping_package_inventory_entries(self, tmp_path, entry):
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["brainstorming"],
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(tmp_path / "marketplace/plugins/bridge"),
+                "expected_files": [entry],
+            },
+        )
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="package cleanup"):
+            MAIN_MODULE.parse_plugin_plan(
+                rendered_v2_plan(
+                    [resource], generated_marketplace_root=tmp_path / "marketplace"
+                )
+            )
+
+    def test_rejects_file_directory_conflict_in_package_inventory(self, tmp_path):
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["brainstorming"],
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(tmp_path / "marketplace/plugins/bridge"),
+                "expected_files": ["plugin.json", "plugin.json/child"],
+            },
+        )
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="file/directory conflict"):
+            MAIN_MODULE.parse_plugin_plan(
+                rendered_v2_plan(
+                    [resource], generated_marketplace_root=tmp_path / "marketplace"
+                )
+            )
+
+    def test_package_cleanup_removes_stale_files_after_verification(
+        self, tmp_path, monkeypatch
+    ):
+        root = tmp_path / "marketplace/plugins/bridge"
+        root.mkdir(parents=True)
+        (root / "plugin.json").write_text("{}", encoding="utf-8")
+        (root / "stale.json").write_text("{}", encoding="utf-8")
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["brainstorming"],
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(root),
+                "expected_files": ["plugin.json"],
+            },
+        )
+        plan = MAIN_MODULE.parse_plugin_plan(
+            rendered_v2_plan(
+                [resource], generated_marketplace_root=tmp_path / "marketplace"
+            )
+        )
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        cleanup = MAIN_MODULE._cleanup_generated_package
+        events = []
+
+        def record_cleanup(generated_root, cleanup_resource):
+            events.append("package-cleanup")
+            return cleanup(generated_root, cleanup_resource)
+
+        monkeypatch.setattr(MAIN_MODULE, "_cleanup_generated_package", record_cleanup)
+
+        def execute(operation):
+            events.append(operation.action)
+            return ("brainstorming",) if operation.action == "verify" else ()
+
+        MAIN_MODULE.reconcile_plugins(
+            tmp_path, ownership_file, plan, execute, lambda _: None
+        )
+
+        assert not (root / "stale.json").exists()
+        assert events.index("verify") < events.index("package-cleanup")
+
+    def test_package_cleanup_preserves_exact_external_directory_contents(
+        self, tmp_path
+    ):
+        root = tmp_path / "marketplace/plugins/bridge"
+        external = root / "skills/external-skill"
+        external.mkdir(parents=True)
+        nested = external / "nested/README.md"
+        nested.parent.mkdir()
+        nested.write_text("owned by exact external", encoding="utf-8")
+        stale = root / "skills/removed-skill/SKILL.md"
+        stale.parent.mkdir()
+        stale.write_text("stale", encoding="utf-8")
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["external-skill"],
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(root),
+                "expected_files": [],
+                "preserved_directories": ["skills/external-skill"],
+            },
+        )
+        plan = MAIN_MODULE.parse_plugin_plan(
+            rendered_v2_plan(
+                [resource], generated_marketplace_root=tmp_path / "marketplace"
+            )
+        )
+
+        MAIN_MODULE.reconcile_plugins(
+            tmp_path,
+            tmp_path / ".local/state/dotfiles/ownership.json",
+            plan,
+            lambda operation: (
+                ("installed", "enabled")
+                if operation.action == "preflight"
+                else (("external-skill",) if operation.action == "verify" else ())
+            ),
+            lambda _: None,
+        )
+
+        assert nested.read_text(encoding="utf-8") == "owned by exact external"
+        assert not stale.exists()
+
+    def test_failed_package_install_preserves_files_and_ownership(self, tmp_path):
+        root = tmp_path / "marketplace/plugins/bridge"
+        root.mkdir(parents=True)
+        stale = root / "stale.json"
+        stale.write_text("{}", encoding="utf-8")
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["brainstorming"],
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(root),
+                "expected_files": [],
+            },
+        )
+        plan = MAIN_MODULE.parse_plugin_plan(
+            rendered_v2_plan(
+                [resource], generated_marketplace_root=tmp_path / "marketplace"
+            )
+        )
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+
+        def execute(operation):
+            if operation.action == "install":
+                raise OSError("install failed")
+            return ()
+
+        with pytest.raises(OSError, match="install failed"):
+            MAIN_MODULE.reconcile_plugins(
+                tmp_path, ownership_file, plan, execute, lambda _: None
+            )
+
+        assert stale.exists()
+        assert not ownership_file.exists()
+
+    def test_failed_package_verification_preserves_files_and_ownership(self, tmp_path):
+        root = tmp_path / "marketplace/plugins/bridge"
+        root.mkdir(parents=True)
+        stale = root / "stale.json"
+        stale.write_text("{}", encoding="utf-8")
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["brainstorming"],
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(root),
+                "expected_files": [],
+            },
+        )
+        plan = MAIN_MODULE.parse_plugin_plan(
+            rendered_v2_plan(
+                [resource], generated_marketplace_root=tmp_path / "marketplace"
+            )
+        )
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+
+        def execute(operation):
+            return ("unexpected",) if operation.action == "verify" else ()
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="expected"):
+            MAIN_MODULE.reconcile_plugins(
+                tmp_path, ownership_file, plan, execute, lambda _: None
+            )
+
+        assert stale.exists()
+        assert not ownership_file.exists()
+
+    def test_package_cleanup_failure_preserves_prior_ownership(
+        self, tmp_path, monkeypatch
+    ):
+        root = tmp_path / "marketplace/plugins/bridge"
+        root.mkdir(parents=True)
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["brainstorming"],
+            fingerprint="plugin-v2",
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(root),
+                "expected_files": [],
+            },
+        )
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        ownership_file.parent.mkdir(parents=True)
+        ownership_file.write_text(
+            json.dumps(
+                {
+                    "version": 2,
+                    "resources": [
+                        {
+                            **plugin_v2("claude", "bridge@dotfiles", ["brainstorming"]),
+                            "uninstall": [
+                                "claude",
+                                "plugin",
+                                "remove",
+                                "bridge@dotfiles",
+                            ],
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        plan = MAIN_MODULE.parse_plugin_plan(
+            rendered_v2_plan(
+                [resource], generated_marketplace_root=tmp_path / "marketplace"
+            )
+        )
+
+        def fail_cleanup(_root, _resource):
+            raise OSError("package cleanup failed")
+
+        monkeypatch.setattr(MAIN_MODULE, "_cleanup_generated_package", fail_cleanup)
+        with pytest.raises(OSError, match="package cleanup failed"):
+            MAIN_MODULE.reconcile_plugins(
+                tmp_path,
+                ownership_file,
+                plan,
+                lambda operation: (
+                    ("installed", "enabled")
+                    if operation.action == "preflight"
+                    else (("brainstorming",) if operation.action == "verify" else ())
+                ),
+                lambda _: None,
+            )
+
+        assert (
+            json.loads(ownership_file.read_text(encoding="utf-8"))["resources"][0][
+                "fingerprint"
+            ]
+            == "plugin-v1"
+        )
+
+    def test_package_cleanup_rejects_expected_symlink(self, tmp_path):
+        root = tmp_path / "marketplace/plugins/bridge"
+        root.mkdir(parents=True)
+        (root / "outside.json").write_text("{}", encoding="utf-8")
+        (root / "plugin.json").symlink_to(root / "outside.json")
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["brainstorming"],
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(root),
+                "expected_files": ["plugin.json"],
+            },
+        )
+        resource["adopt"] = True
+        plan = MAIN_MODULE.parse_plugin_plan(
+            rendered_v2_plan(
+                [resource], generated_marketplace_root=tmp_path / "marketplace"
+            )
+        )
+
+        with pytest.raises(MAIN_MODULE.FilterError, match="symlink"):
+            MAIN_MODULE.reconcile_plugins(
+                tmp_path,
+                tmp_path / ".local/state/dotfiles/ownership.json",
+                plan,
+                lambda operation: (
+                    ("installed", "enabled")
+                    if operation.action == "preflight"
+                    else (
+                        ("brainstorming",)
+                        if operation.action in ("adopt", "verify")
+                        else ()
+                    )
+                ),
+                lambda _: None,
+            )
+
+        assert (root / "plugin.json").is_symlink()
+
     def test_missing_plugin_is_installed_enabled_verified_and_checkpointed(
         self, tmp_path
     ):
@@ -1734,6 +2192,43 @@ class TestVersionTwoPluginLifecycle:
         )
 
         assert actions == ["preflight", "verify"]
+
+    def test_generated_unowned_plugin_is_verified_cleaned_and_adopted(self, tmp_path):
+        root = tmp_path / "marketplace/plugins/bridge"
+        root.mkdir(parents=True)
+        stale = root / "stale.json"
+        stale.write_text("{}", encoding="utf-8")
+        resource = plugin_v2(
+            "claude",
+            "bridge@dotfiles",
+            ["brainstorming"],
+            package_cleanup={
+                "stable_key": "bridge",
+                "root": str(root),
+                "expected_files": [],
+            },
+        )
+        plan = MAIN_MODULE.parse_plugin_plan(
+            rendered_v2_plan(
+                [resource], generated_marketplace_root=tmp_path / "marketplace"
+            )
+        )
+        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
+        actions = []
+
+        def execute(operation):
+            actions.append(operation.action)
+            if operation.action == "preflight":
+                return ("installed", "enabled")
+            return ("brainstorming",) if operation.action == "verify" else ()
+
+        MAIN_MODULE.reconcile_plugins(
+            tmp_path, ownership_file, plan, execute, lambda _: None
+        )
+
+        assert actions == ["preflight", "verify"]
+        assert not stale.exists()
+        assert ownership_file.exists()
 
     def test_disabled_owned_plugin_is_enabled_and_verified(self, tmp_path):
         resource = plugin_v2("claude", "bridge@dotfiles", ["brainstorming"])

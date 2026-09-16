@@ -6,8 +6,8 @@
   straight from the working tree and refreshPeriod re-reads them on every
   apply, keeping package snapshots in sync with local edits. The state-manifest
   cleanup hook continues to manage Antigravity's flattened global skill roots.
-  The after-phase package-root cleanup script removes stale package skill
-  directories and ancillary files after these externals render current content.
+  The plugin bridge prunes stale package files only after the rendered plugin
+  verifies, while exact externals retain ownership of their selected trees.
 */ -}}
 {{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
 {{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}

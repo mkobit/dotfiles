@@ -45,7 +45,16 @@ import posixpath
 import sys
 import tarfile
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, BinaryIO, Callable, Dict, NamedTuple, Optional, cast
+from typing import (
+    TYPE_CHECKING,
+    BinaryIO,
+    Callable,
+    Dict,
+    Mapping,
+    NamedTuple,
+    Optional,
+    cast,
+)
 
 if TYPE_CHECKING:
     from pathlib import Path
@@ -58,6 +67,13 @@ class Selection(NamedTuple):
 
 class FilterError(Exception):
     """Raised when the archive or arguments are invalid."""
+
+
+class PackageCleanup(NamedTuple):
+    stable_key: str
+    root: str
+    expected_files: tuple[str, ...]
+    preserved_directories: tuple[str, ...]
 
 
 class ManagedPluginResource(NamedTuple):
@@ -75,6 +91,7 @@ class ManagedPluginResource(NamedTuple):
     verify: tuple[str, ...]
     expected_skills: tuple[str, ...]
     adopt: bool
+    package_cleanup: PackageCleanup | None
 
 
 class PluginPlan(NamedTuple):
@@ -83,6 +100,7 @@ class PluginPlan(NamedTuple):
     skill_mappings: tuple[tuple[str, str, str, str], ...]
     legacy_cleanup: object
     owned_removals: tuple[PluginOperation, ...] | None
+    generated_marketplace_root: str | None
 
 
 class PluginOperation(NamedTuple):
@@ -101,6 +119,88 @@ def _string_tuple(value: object, field: str) -> tuple[str, ...]:
     return tuple(item for item in value if isinstance(item, str))
 
 
+def _package_cleanup(
+    raw: object, *, generated_marketplace_root: str | None = None
+) -> PackageCleanup | None:
+    if raw is None:
+        return None
+    if not isinstance(raw, dict):
+        raise FilterError("package cleanup must be an object")
+    cleanup = cast(Dict[str, object], raw)
+    stable_key = cleanup.get("stable_key")
+    root = cleanup.get("root")
+    expected_files = cleanup.get("expected_files")
+    preserved_directories = cleanup.get("preserved_directories", ())
+    if not isinstance(stable_key, str) or not stable_key:
+        raise FilterError("package cleanup stable_key must be a non-empty string")
+    if (
+        stable_key in (".", "..")
+        or "/" in stable_key
+        or "\\" in stable_key
+        or "\0" in stable_key
+    ):
+        raise FilterError("package cleanup stable_key must be a simple path name")
+    if not isinstance(root, str) or not root:
+        raise FilterError("package cleanup root must be a non-empty string")
+    if not os.path.isabs(root) or "\0" in root:
+        raise FilterError("package cleanup root must be absolute")
+    if not isinstance(expected_files, (list, tuple)) or not all(
+        isinstance(entry, str) for entry in expected_files
+    ):
+        raise FilterError("package cleanup expected_files must be a list of strings")
+    if not isinstance(preserved_directories, (list, tuple)) or not all(
+        isinstance(entry, str) for entry in preserved_directories
+    ):
+        raise FilterError(
+            "package cleanup preserved_directories must be a list of strings"
+        )
+    entries = tuple(cast(str, entry) for entry in expected_files)
+    preserved = tuple(cast(str, entry) for entry in preserved_directories)
+    for entry in (*entries, *preserved):
+        parts = entry.split("/")
+        if (
+            not entry
+            or "\0" in entry
+            or "\\" in entry
+            or os.path.isabs(entry)
+            or any(part in ("", ".", "..") for part in parts)
+        ):
+            raise FilterError(f"package cleanup expected file is unsafe: {entry!r}")
+    if len(entries) != len(set(entries)):
+        raise FilterError("package cleanup expected_files contain a duplicate entry")
+    if len(preserved) != len(set(preserved)):
+        raise FilterError(
+            "package cleanup preserved_directories contain a duplicate entry"
+        )
+    sorted_entries = sorted(entries)
+    for parent, child in zip(sorted_entries, sorted_entries[1:]):
+        if child.startswith(f"{parent}/"):
+            raise FilterError(
+                "package cleanup expected_files contain a file/directory conflict"
+            )
+    for preserved_root in preserved:
+        if preserved_root in entries or any(
+            preserved_root.startswith(f"{entry}/")
+            or entry.startswith(f"{preserved_root}/")
+            for entry in entries
+        ):
+            raise FilterError(
+                "package cleanup file and preserved directory inventories conflict"
+            )
+    if generated_marketplace_root is not None:
+        if (
+            not os.path.isabs(generated_marketplace_root)
+            or "\0" in generated_marketplace_root
+        ):
+            raise FilterError("generated marketplace root must be absolute")
+        expected_root = os.path.join(generated_marketplace_root, "plugins", stable_key)
+        if root != os.path.normpath(root) or root != expected_root:
+            raise FilterError(
+                "package cleanup root is outside generated marketplace root"
+            )
+    return PackageCleanup(stable_key, root, entries, preserved)
+
+
 def _derived_enable_command(install: tuple[str, ...]) -> tuple[str, ...]:
     """Derive the generic bridge enable operation for legacy v2 plans."""
     if len(install) >= 4 and install[1].startswith("plugin-"):
@@ -110,7 +210,9 @@ def _derived_enable_command(install: tuple[str, ...]) -> tuple[str, ...]:
     return ()
 
 
-def _plugin_resource(raw: object, *, version: int) -> ManagedPluginResource:
+def _plugin_resource(
+    raw: object, *, version: int, generated_marketplace_root: str | None = None
+) -> ManagedPluginResource:
     if not isinstance(raw, dict):
         raise FilterError("plugin plan resources must be objects")
     resource = cast(Dict[str, object], raw)
@@ -142,6 +244,7 @@ def _plugin_resource(raw: object, *, version: int) -> ManagedPluginResource:
             resource.get("expected_skills", ()), "plugin resource expected skills"
         )
         adopt = resource.get("adopt", False)
+        package_cleanup = resource.get("package_cleanup")
     except (KeyError, TypeError) as error:
         raise FilterError(f"invalid plugin plan resource: {error}") from error
     if not (
@@ -162,6 +265,14 @@ def _plugin_resource(raw: object, *, version: int) -> ManagedPluginResource:
         raise FilterError("only plugin resources can be adopted")
     if adopt and not verify:
         raise FilterError("adopted plugin resource must provide verification argv")
+    if package_cleanup is not None and kind != "plugin":
+        raise FilterError("only plugin resources can have package cleanup")
+    parsed_package_cleanup = _package_cleanup(
+        package_cleanup,
+        generated_marketplace_root=(
+            generated_marketplace_root if kind == "plugin" else None
+        ),
+    )
     if kind == "plugin" and not adopt and not status and version == 1:
         raise FilterError("plugin resource must provide status argv")
     if kind == "marketplace" and not marketplace:
@@ -186,6 +297,7 @@ def _plugin_resource(raw: object, *, version: int) -> ManagedPluginResource:
         verify,
         expected_skills,
         adopt,
+        parsed_package_cleanup,
     )
 
 
@@ -224,8 +336,22 @@ def parse_plugin_plan(content: str) -> PluginPlan:
     if not isinstance(raw, dict) or raw.get("version") not in (1, 2):
         raise FilterError("plugin plan must be a version 1 or 2 object")
     version = int(raw["version"])
+    generated_marketplace_root = raw.get("generated_marketplace_root")
+    if generated_marketplace_root is not None and not isinstance(
+        generated_marketplace_root, str
+    ):
+        raise FilterError("generated marketplace root must be a string")
+    if generated_marketplace_root is not None and not os.path.isabs(
+        generated_marketplace_root
+    ):
+        raise FilterError("generated marketplace root must be absolute")
     resources = tuple(
-        _plugin_resource(item, version=version) for item in raw.get("resources", ())
+        _plugin_resource(
+            item,
+            version=version,
+            generated_marketplace_root=generated_marketplace_root,
+        )
+        for item in raw.get("resources", ())
     )
     resource_identities = [_identity(resource) for resource in resources]
     if len(resource_identities) != len(set(resource_identities)):
@@ -276,6 +402,7 @@ def parse_plugin_plan(content: str) -> PluginPlan:
         tuple(sorted(mappings)),
         raw.get("legacy_cleanup"),
         owned_removals,
+        generated_marketplace_root,
     )
 
 
@@ -331,6 +458,7 @@ def _ownership_resource(
         marketplace = resource_id
     elif kind == "plugin" and not marketplace and "@" in resource_id:
         marketplace = resource_id.rsplit("@", 1)[1]
+    package_cleanup = _package_cleanup(item.get("package_cleanup"))
     return ManagedPluginResource(
         kind,
         host,
@@ -346,6 +474,7 @@ def _ownership_resource(
         (),
         (),
         False,
+        package_cleanup,
     )
 
 
@@ -462,8 +591,18 @@ def plan_plugin_operations(
 def _render_plugin_ownership(resources: Iterable[ManagedPluginResource]) -> str:
     import json
 
-    records = [
-        {
+    records = []
+    for resource in sorted(
+        resources,
+        key=lambda resource: (
+            resource.order,
+            resource.kind,
+            resource.marketplace,
+            resource.host,
+            resource.resource_id,
+        ),
+    ):
+        record = {
             "kind": resource.kind,
             "host": resource.host,
             "marketplace": resource.marketplace,
@@ -473,17 +612,16 @@ def _render_plugin_ownership(resources: Iterable[ManagedPluginResource]) -> str:
             "enable": list(resource.enable),
             "uninstall": list(resource.uninstall),
         }
-        for resource in sorted(
-            resources,
-            key=lambda resource: (
-                resource.order,
-                resource.kind,
-                resource.marketplace,
-                resource.host,
-                resource.resource_id,
-            ),
-        )
-    ]
+        if resource.package_cleanup is not None:
+            record["package_cleanup"] = {
+                "stable_key": resource.package_cleanup.stable_key,
+                "root": resource.package_cleanup.root,
+                "expected_files": list(resource.package_cleanup.expected_files),
+                "preserved_directories": list(
+                    resource.package_cleanup.preserved_directories
+                ),
+            }
+        records.append(record)
     return (
         json.dumps(
             {"version": 2, "resources": records},
@@ -570,6 +708,71 @@ def _validate_legacy_cleanup_plan(dest_dir: Path, desired: PluginPlan) -> None:
             )
 
 
+def _cleanup_generated_package(
+    generated_marketplace_root: str, resource: ManagedPluginResource
+) -> None:
+    """Prune stale files from one validated generated plugin package."""
+    from pathlib import Path
+
+    cleanup = resource.package_cleanup
+    if cleanup is None:
+        return
+    generated_root = Path(generated_marketplace_root)
+    package_root = Path(cleanup.root)
+    expected_root = generated_root / "plugins" / cleanup.stable_key
+    if not generated_root.is_absolute() or package_root != expected_root:
+        raise FilterError("package cleanup root is outside generated marketplace root")
+
+    for ancestor in (package_root, *package_root.parents):
+        if ancestor.is_symlink():
+            raise FilterError("package cleanup path contains a symlink")
+    if not package_root.exists():
+        return
+    if not package_root.is_dir():
+        raise FilterError("package cleanup root is not a directory")
+
+    expected_files = set(cleanup.expected_files)
+    preserved_directories = set(cleanup.preserved_directories)
+
+    def prune(directory: Path) -> None:
+        for entry in os.scandir(directory):
+            path = Path(entry.path)
+            relative = path.relative_to(package_root).as_posix()
+            if relative in preserved_directories:
+                if entry.is_symlink() or not entry.is_dir(follow_symlinks=False):
+                    raise FilterError(
+                        "package cleanup preserved path is not a directory: "
+                        f"{relative!r}"
+                    )
+                continue
+            if entry.is_symlink():
+                if relative in expected_files:
+                    raise FilterError(
+                        f"package cleanup expected file is a symlink: {relative!r}"
+                    )
+                path.unlink()
+                continue
+            if entry.is_dir(follow_symlinks=False):
+                if relative in expected_files:
+                    raise FilterError(
+                        f"package cleanup expected file is a directory: {relative!r}"
+                    )
+                prune(path)
+                try:
+                    path.rmdir()
+                except OSError:
+                    pass
+                continue
+            if not entry.is_file(follow_symlinks=False):
+                raise FilterError(
+                    f"package cleanup encountered special file: {relative!r}"
+                )
+            if relative not in expected_files:
+                path.unlink()
+
+    prune(package_root)
+
+
 def reconcile_plugins(
     dest_dir: Path,
     ownership_file: Path,
@@ -606,9 +809,13 @@ def reconcile_plugins(
         _identity(resource): resource for resource in desired.resources
     }
 
-    def checkpoint() -> None:
+    durable_by_identity = dict(managed_by_identity)
+
+    def checkpoint(
+        resources: Mapping[tuple[str, str, str], ManagedPluginResource],
+    ) -> None:
         _replace_manifest_atomically(
-            ownership_path, _render_plugin_ownership(managed_by_identity.values())
+            ownership_path, _render_plugin_ownership(resources.values())
         )
 
     def verify(resource: ManagedPluginResource) -> None:
@@ -645,7 +852,8 @@ def reconcile_plugins(
                     )
                 )
                 managed_by_identity[identity] = resource
-                checkpoint()
+                durable_by_identity[identity] = resource
+                checkpoint(durable_by_identity)
             elif prior.fingerprint != resource.fingerprint:
                 execute(
                     PluginOperation(
@@ -657,7 +865,8 @@ def reconcile_plugins(
                     )
                 )
                 managed_by_identity[identity] = resource
-                checkpoint()
+                durable_by_identity[identity] = resource
+                checkpoint(durable_by_identity)
             continue
 
         occupied = ()
@@ -717,8 +926,15 @@ def reconcile_plugins(
                 )
             if not resource.adopt:
                 verify(resource)
+            if resource.package_cleanup is not None:
+                if desired.generated_marketplace_root is None:
+                    raise FilterError(
+                        "package cleanup requires generated marketplace root"
+                    )
+                _cleanup_generated_package(desired.generated_marketplace_root, resource)
             managed_by_identity[identity] = resource
-            checkpoint()
+            durable_by_identity[identity] = resource
+            checkpoint(durable_by_identity)
             continue
 
         changed = prior.fingerprint != resource.fingerprint
@@ -753,8 +969,13 @@ def reconcile_plugins(
                 )
             )
         verify(resource)
+        if resource.package_cleanup is not None:
+            if desired.generated_marketplace_root is None:
+                raise FilterError("package cleanup requires generated marketplace root")
+            _cleanup_generated_package(desired.generated_marketplace_root, resource)
         managed_by_identity[identity] = resource
-        checkpoint()
+        durable_by_identity[identity] = resource
+        checkpoint(durable_by_identity)
 
     if desired.legacy_cleanup is not None:
         cleanup_legacy(desired.legacy_cleanup)
@@ -785,10 +1006,22 @@ def reconcile_plugins(
             )
         )
         managed_by_identity.pop(_identity(resource), None)
-        checkpoint()
+        durable_by_identity.pop(_identity(resource), None)
+        checkpoint(durable_by_identity)
 
     if ownership_version != 2:
-        checkpoint()
+        durable_by_identity = dict(managed_by_identity)
+        checkpoint(durable_by_identity)
+
+    if (
+        not ownership_path.exists()
+        and (
+            desired.generated_marketplace_root is not None
+            or desired.legacy_cleanup is not None
+            or desired.resources
+        )
+    ) or durable_by_identity != managed_by_identity:
+        checkpoint(managed_by_identity)
 
     return tuple(desired.resources)
 

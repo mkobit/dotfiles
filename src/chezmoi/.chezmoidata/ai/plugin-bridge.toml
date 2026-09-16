@@ -1,7 +1,3 @@
-[ai.plugin_bridge]
-# The overlay replaces this with its selected runtime environment.
-environment = "default"
-
 [ai.plugin_bridge.marketplace]
 name = "dotfiles"
 owner = "mkobit"
@@ -18,3 +14,4 @@ order = 100
 [ai.plugin_bridge.capabilities.mkobit-dotfiles]
 description = "Base dotfiles capability bundle."
 marketplace = "dotfiles"
+authored_skill_source = "src/ai/skills"
