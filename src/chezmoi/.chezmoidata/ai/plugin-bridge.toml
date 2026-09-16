@@ -1,8 +1,20 @@
+[ai.plugin_bridge]
+# The overlay replaces this with its selected runtime environment.
+environment = "default"
+
 [ai.plugin_bridge.marketplace]
 name = "dotfiles"
 owner = "mkobit"
 source = "local"
 trust_class = "owned"
 
+# Keyed declarations are the generic input to the bridge planner.
+[ai.plugin_bridge.marketplaces.dotfiles]
+source_type = "generated"
+trust_class = "owned"
+hosts = ["claude", "codex", "cursor"]
+order = 100
+
 [ai.plugin_bridge.capabilities.mkobit-dotfiles]
 description = "Base dotfiles capability bundle."
+marketplace = "dotfiles"

@@ -1,0 +1,125 @@
+{{- $bridge := dig "plugin_bridge" (dict) .ai -}}
+{{- $marketplaces := dig "marketplaces" (dict) $bridge -}}
+{{- $plugins := dig "plugins" (dict) $bridge -}}
+{{- $capabilities := dig "capabilities" (dict) $bridge -}}
+{{- if not (kindIs "map" $marketplaces) -}}{{- fail "ai.plugin_bridge.marketplaces must be a table" -}}{{- end -}}
+{{- if not (kindIs "map" $plugins) -}}{{- fail "ai.plugin_bridge.plugins must be a table" -}}{{- end -}}
+{{- if not (kindIs "map" $capabilities) -}}{{- fail "ai.plugin_bridge.capabilities must be a table" -}}{{- end -}}
+{{- $environment := dig "environment" "" $bridge -}}
+{{- if not (and (kindIs "string" $environment) $environment) -}}{{- fail "ai.plugin_bridge.environment must be a non-empty string" -}}{{- end -}}
+{{- $dest := .chezmoi.destDir -}}
+{{- $adapter := joinPath $dest ".local/libexec/dotfiles/agent-plugin-host-bridge.sh" -}}
+{{- $stateManifest := joinPath $dest ".local/state/dotfiles/ai-skill-roots.manifest" -}}
+{{- $ownershipFile := joinPath $dest ".local/state/dotfiles/agent-plugin-ownership.json" -}}
+{{- $resourcesByKey := dict -}}
+{{- $desiredIdentities := dict -}}
+{{- /* Resource construction stays generic; host-specific commands belong to the adapter. */ -}}
+{{- range $name := keys $marketplaces | sortAlpha -}}
+{{-   $definition := index $marketplaces $name -}}
+{{-   if not (kindIs "map" $definition) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s must be a table" $name) -}}{{- end -}}
+{{-   $sourceType := dig "source_type" "" $definition -}}
+{{-   if not (and (kindIs "string" $sourceType) $sourceType) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.source_type must be a non-empty string" $name) -}}{{- end -}}
+{{-   $sourceLocator := dig "source_locator" "" $definition -}}
+{{-   if not (kindIs "string" $sourceLocator) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.source_locator must be a string" $name) -}}{{- end -}}
+{{-   if and (not (has $sourceType (list "generated" "host-provided"))) (not $sourceLocator) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.source_locator is required for source type %q" $name $sourceType) -}}{{- end -}}
+{{-   $trustClass := dig "trust_class" "" $definition -}}
+{{-   if not (and (kindIs "string" $trustClass) $trustClass) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.trust_class must be a non-empty string" $name) -}}{{- end -}}
+{{-   $updatePolicy := dig "update_policy" "managed" $definition -}}
+{{-   if not (and (kindIs "string" $updatePolicy) $updatePolicy) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.update_policy must be a non-empty string" $name) -}}{{- end -}}
+{{-   $hosts := dig "hosts" (list) $definition -}}
+{{-   if or (not (kindIs "slice" $hosts)) (not $hosts) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.hosts must be a non-empty list" $name) -}}{{- end -}}
+{{-   range $host := $hosts -}}{{- if not (and (kindIs "string" $host) $host) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.hosts entries must be non-empty strings" $name) -}}{{- end -}}{{- end -}}
+{{-   $order := dig "order" 100 $definition -}}
+{{-   if not (or (kindIs "int" $order) (kindIs "int8" $order) (kindIs "int16" $order) (kindIs "int32" $order) (kindIs "int64" $order) (kindIs "uint" $order) (kindIs "uint8" $order) (kindIs "uint16" $order) (kindIs "uint32" $order) (kindIs "uint64" $order) (and (kindIs "float64" $order) (regexMatch "^[+-]?[0-9]+(\\.0+)?$" (printf "%v" $order)))) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.order must be an integer" $name) -}}{{- end -}}
+{{-   if kindIs "float64" $order -}}{{- $order = atoi (printf "%.0f" $order) -}}{{- end -}}
+{{-   if or (lt $order 0) (gt $order 999999999) -}}{{- fail (printf "ai.plugin_bridge.marketplaces.%s.order must be between 0 and 999999999" $name) -}}{{- end -}}
+{{-   range $host := $hosts -}}
+{{-     $marketplaceInstall := list $adapter "marketplace-add" $host $name -}}
+{{-     $marketplaceUpdate := list $adapter "marketplace-update" $host $name -}}
+{{-     if eq $sourceType "host-provided" -}}
+{{-       $marketplaceInstall = list $adapter "marketplace-discover" $host $name -}}
+{{-       $marketplaceUpdate = list $adapter "marketplace-verify" $host $name -}}
+{{-     else if $sourceLocator -}}
+{{-       $marketplaceInstall = append $marketplaceInstall $sourceLocator -}}
+{{-       $marketplaceUpdate = append $marketplaceUpdate $sourceLocator -}}
+{{-     end -}}
+{{-     $marketplaceUninstall := list $adapter "marketplace-remove" $host $name -}}
+{{-     if eq $sourceType "host-provided" -}}{{- $marketplaceUninstall = list $adapter "marketplace-verify" $host $name -}}{{- end -}}
+{{-     $resource := dict "kind" "marketplace" "stable_key" $name "phase" 10 "order" $order "host" $host "id" $name "marketplace" $name "source_type" $sourceType "source_locator" $sourceLocator "trust_class" $trustClass "update_policy" $updatePolicy "fingerprint" (toJson (dict "marketplace" $name "source_type" $sourceType "source_locator" $sourceLocator "trust_class" $trustClass "update_policy" $updatePolicy "order" $order)) "install" $marketplaceInstall "update" $marketplaceUpdate "uninstall" $marketplaceUninstall -}}
+{{-     $key := printf "%02d:%09d:%s:%s" 10 $order $name $host -}}
+{{-     if hasKey $resourcesByKey $key -}}{{- fail (printf "duplicate plugin resource ordering key %q" $key) -}}{{- end -}}
+{{-     $_ := set $resourcesByKey $key $resource -}}
+{{-     $_ := set $desiredIdentities (printf "marketplace:%s:%s" $host $name) true -}}
+{{-   end -}}
+{{- end -}}
+
+{{- range $name := keys $plugins | sortAlpha -}}
+{{-   $definition := index $plugins $name -}}
+{{-   if not (kindIs "map" $definition) -}}{{- fail (printf "ai.plugin_bridge.plugins.%s must be a table" $name) -}}{{- end -}}
+{{-   $marketplace := dig "marketplace" "" $definition -}}
+{{-   if not (and (kindIs "string" $marketplace) (hasKey $marketplaces $marketplace)) -}}{{- fail (printf "ai.plugin_bridge.plugins.%s.marketplace references an unknown marketplace %q" $name $marketplace) -}}{{- end -}}
+{{-   $marketplaceDefinition := index $marketplaces $marketplace -}}
+{{-   $marketplaceHosts := dig "hosts" (list) $marketplaceDefinition -}}
+{{-   $hosts := dig "hosts" (list) $definition -}}
+{{-   if or (not (kindIs "slice" $hosts)) (not $hosts) -}}{{- fail (printf "ai.plugin_bridge.plugins.%s.hosts must be a non-empty list" $name) -}}{{- end -}}
+{{-   range $host := $hosts -}}{{- if not (and (kindIs "string" $host) $host (has $host $marketplaceHosts)) -}}{{- fail (printf "ai.plugin_bridge.plugins.%s.hosts includes unsupported marketplace host %q" $name $host) -}}{{- end -}}{{- end -}}
+{{-   $environments := dig "environments" (list) $definition -}}
+{{-   if or (not (kindIs "slice" $environments)) (not $environments) -}}{{- fail (printf "ai.plugin_bridge.plugins.%s.environments must be a non-empty list" $name) -}}{{- end -}}
+{{-   range $pluginEnvironment := $environments -}}{{- if not (and (kindIs "string" $pluginEnvironment) $pluginEnvironment) -}}{{- fail (printf "ai.plugin_bridge.plugins.%s.environments entries must be non-empty strings" $name) -}}{{- end -}}{{- end -}}
+{{-   $order := dig "order" 200 $definition -}}
+{{-   if not (or (kindIs "int" $order) (kindIs "int8" $order) (kindIs "int16" $order) (kindIs "int32" $order) (kindIs "int64" $order) (kindIs "uint" $order) (kindIs "uint8" $order) (kindIs "uint16" $order) (kindIs "uint32" $order) (kindIs "uint64" $order) (and (kindIs "float64" $order) (regexMatch "^[+-]?[0-9]+(\\.0+)?$" (printf "%v" $order)))) -}}{{- fail (printf "ai.plugin_bridge.plugins.%s.order must be an integer" $name) -}}{{- end -}}
+{{-   if kindIs "float64" $order -}}{{- $order = atoi (printf "%.0f" $order) -}}{{- end -}}
+{{-   if or (lt $order 0) (gt $order 999999999) -}}{{- fail (printf "ai.plugin_bridge.plugins.%s.order must be between 0 and 999999999" $name) -}}{{- end -}}
+{{-   if has $environment $environments -}}
+{{-     range $host := ($hosts | uniq | sortAlpha) -}}
+{{-       $pluginID := printf "%s@%s" $name $marketplace -}}
+{{-       $resource := dict "kind" "plugin" "stable_key" $name "phase" 30 "order" $order "host" $host "id" $pluginID "plugin" $name "marketplace" $marketplace "environments" $environments "fingerprint" (toJson (dict "plugin" $name "marketplace" $marketplace "environments" $environments "order" $order)) "install" (list $adapter "plugin-install" $host $pluginID) "update" (list $adapter "plugin-update" $host $pluginID) "uninstall" (list $adapter "plugin-remove" $host $pluginID) "status" (list $adapter "plugin-status" $host $pluginID) "verify" (list $adapter "plugin-verify" $host $pluginID) "expected_skills" (list) -}}
+{{-       $key := printf "%02d:%09d:%s:%s" 30 $order $name $host -}}
+{{-       if hasKey $resourcesByKey $key -}}{{- fail (printf "duplicate plugin resource ordering key %q" $key) -}}{{- end -}}
+{{-       $_ := set $resourcesByKey $key $resource -}}
+{{-       $_ := set $desiredIdentities (printf "plugin:%s:%s" $host $pluginID) true -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+
+{{- range $name := keys $capabilities | sortAlpha -}}
+{{-   $definition := index $capabilities $name -}}
+{{-   if not (kindIs "map" $definition) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s must be a table" $name) -}}{{- end -}}
+{{-   $marketplace := dig "marketplace" "" $definition -}}
+{{-   if not (and (kindIs "string" $marketplace) $marketplace) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.marketplace must be an explicit non-empty string" $name) -}}{{- end -}}
+{{-   if not (hasKey $marketplaces $marketplace) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.marketplace references an unknown marketplace %q" $name $marketplace) -}}{{- end -}}
+{{-   $marketplaceDefinition := index $marketplaces $marketplace -}}
+{{-   $marketplaceHosts := dig "hosts" (list) $marketplaceDefinition -}}
+{{-   $hosts := dig "hosts" $marketplaceHosts $definition -}}
+{{-   if or (not (kindIs "slice" $hosts)) (not $hosts) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.hosts must be a non-empty list" $name) -}}{{- end -}}
+{{-   range $host := $hosts -}}{{- if not (and (kindIs "string" $host) $host) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.hosts entries must be non-empty strings" $name) -}}{{- end -}}{{- end -}}
+{{-   $order := dig "order" 200 $definition -}}
+{{-   if not (or (kindIs "int" $order) (kindIs "int8" $order) (kindIs "int16" $order) (kindIs "int32" $order) (kindIs "int64" $order) (kindIs "uint" $order) (kindIs "uint8" $order) (kindIs "uint16" $order) (kindIs "uint32" $order) (kindIs "uint64" $order) (and (kindIs "float64" $order) (regexMatch "^[+-]?[0-9]+(\\.0+)?$" (printf "%v" $order)))) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.order must be an integer" $name) -}}{{- end -}}
+{{-   if kindIs "float64" $order -}}{{- $order = atoi (printf "%.0f" $order) -}}{{- end -}}
+{{-   if or (lt $order 0) (gt $order 999999999) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.order must be between 0 and 999999999" $name) -}}{{- end -}}
+{{-   $skillDefinitions := dig "skills" (dict) $definition -}}
+{{-   if not (kindIs "map" $skillDefinitions) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.skills must be a table" $name) -}}{{- end -}}
+{{-   range $skillName, $_ := $skillDefinitions -}}{{- if not (and (kindIs "string" $skillName) $skillName) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.skills keys must be non-empty strings" $name) -}}{{- end -}}{{- end -}}
+{{-   $skills := keys $skillDefinitions | sortAlpha -}}
+{{-   range $host := ($hosts | uniq | sortAlpha) -}}
+{{-     if not (has $host $marketplaceHosts) -}}{{- fail (printf "ai.plugin_bridge.capabilities.%s.hosts includes unsupported marketplace host %q" $name $host) -}}{{- end -}}
+{{-     $pluginID := printf "%s@%s" $name $marketplace -}}
+{{-     $resource := dict "kind" "plugin" "stable_key" $name "phase" 20 "order" $order "host" $host "id" $pluginID "plugin" $name "marketplace" $marketplace "fingerprint" (toJson (dict "capability" $name "marketplace" $marketplace "skills" $skills "order" $order)) "install" (list $adapter "plugin-install" $host $pluginID) "update" (list $adapter "plugin-update" $host $pluginID) "uninstall" (list $adapter "plugin-remove" $host $pluginID) "status" (list $adapter "plugin-status" $host $pluginID) "verify" (list $adapter "plugin-verify" $host $pluginID) "expected_skills" $skills -}}
+{{-     $key := printf "%02d:%09d:%s:%s" 20 $order $name $host -}}
+{{-     if hasKey $resourcesByKey $key -}}{{- fail (printf "duplicate plugin resource ordering key %q" $key) -}}{{- end -}}
+{{-     $_ := set $resourcesByKey $key $resource -}}
+{{-     $_ := set $desiredIdentities (printf "plugin:%s:%s" $host $pluginID) true -}}
+{{-   end -}}
+{{- end -}}
+
+{{- $resources := list -}}
+{{- range $key := keys $resourcesByKey | sortAlpha -}}{{- $resources = append $resources (index $resourcesByKey $key) -}}{{- end -}}
+{{- $ownedRemovals := list -}}
+{{- if stat $ownershipFile -}}
+{{-   $owned := fromJson (output "cat" $ownershipFile) -}}
+{{-   range $resource := (dig "resources" (list) $owned) -}}
+{{-     $identity := printf "%s:%s:%s" $resource.kind $resource.host $resource.id -}}
+{{-     if not (hasKey $desiredIdentities $identity) -}}{{- $ownedRemovals = append $ownedRemovals (dict "action" "uninstall" "kind" $resource.kind "host" $resource.host "id" $resource.id "argv" $resource.uninstall) -}}{{- end -}}
+{{-   end -}}
+{{- end -}}
+{{- dict "version" 2 "resources" $resources "skill_mappings" (list) "legacy_cleanup" (dict "dest_dir" $dest "state_manifest" $stateManifest "desired_manifest" "" "direct_roots" (list)) "owned_removals" $ownedRemovals | toPrettyJson -}}

@@ -5,10 +5,13 @@ import io
 import json
 import os
 import subprocess
+from pathlib import Path
 
 import pytest
 
 MAIN_MODULE = importlib.import_module("skill_filter.main")
+BASE_ROOT = Path(__file__).resolve().parents[4]
+BASE_TEMPLATE = BASE_ROOT / "src/chezmoi/.chezmoitemplates/ai/plugin-bridge-plan"
 
 
 def bridge_helper(name: str):
@@ -96,6 +99,355 @@ def legacy_cleanup(tmp_path, *, prior=(), desired=()):
         "state_manifest": str(state_manifest),
         "desired_manifest": "".join(f"{root}\n" for root in desired),
     }
+
+
+def render_declaration_plan(data, destination):
+    return subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            "/dev/null",
+            "--config-format",
+            "toml",
+            "--source",
+            str(BASE_ROOT),
+            "--destination",
+            str(destination),
+            "--override-data",
+            json.dumps(data),
+            "execute-template",
+            "--file",
+            str(BASE_TEMPLATE),
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+def declaration_data(*, marketplaces=None, plugins=None, capabilities=None):
+    return {
+        "ai": {
+            "plugin_bridge": {
+                "environment": "local",
+                "marketplaces": marketplaces or {},
+                "plugins": plugins or {},
+                "capabilities": capabilities or {},
+            }
+        }
+    }
+
+
+def example_marketplace(**overrides):
+    declaration = {
+        "source_type": "generated",
+        "trust_class": "owned",
+        "hosts": ["claude", "codex", "cursor"],
+        "order": 100,
+    }
+    declaration.update(overrides)
+    return declaration
+
+
+def example_plugin(**overrides):
+    declaration = {
+        "marketplace": "dotfiles",
+        "hosts": ["claude", "codex"],
+        "environments": ["local", "mydev", "mydata"],
+        "order": 200,
+    }
+    declaration.update(overrides)
+    return declaration
+
+
+class TestPluginBridgeDeclarations:
+    def test_renders_version_two_resources_from_keyed_declarations(self, tmp_path):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={"dotfiles": example_marketplace()},
+                plugins={"example": example_plugin()},
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode == 0, result.stderr
+        plan = json.loads(result.stdout)
+        resources = [
+            resource
+            for resource in plan["resources"]
+            if resource["stable_key"] in {"dotfiles", "example"}
+        ]
+        assert plan["version"] == 2
+        assert [
+            (resource["kind"], resource["stable_key"], resource["host"])
+            for resource in resources
+        ] == [
+            ("marketplace", "dotfiles", "claude"),
+            ("marketplace", "dotfiles", "codex"),
+            ("marketplace", "dotfiles", "cursor"),
+            ("plugin", "example", "claude"),
+            ("plugin", "example", "codex"),
+        ]
+        assert plan["skill_mappings"] == []
+        assert plan["legacy_cleanup"]["direct_roots"] == []
+        assert plan["owned_removals"] == []
+
+    def test_orders_same_phase_and_order_by_stable_key_then_host(self, tmp_path):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={
+                    "zeta": example_marketplace(order=100),
+                    "alpha": example_marketplace(order=100),
+                },
+                plugins={
+                    "zeta-plugin": example_plugin(order=200),
+                    "alpha-plugin": example_plugin(order=200),
+                },
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode == 0, result.stderr
+        resources = json.loads(result.stdout)["resources"]
+        assert [
+            (resource["stable_key"], resource["host"])
+            for resource in resources
+            if resource["kind"] == "marketplace"
+            and resource["stable_key"] in {"alpha", "zeta"}
+        ] == [
+            ("alpha", "claude"),
+            ("alpha", "codex"),
+            ("alpha", "cursor"),
+            ("zeta", "claude"),
+            ("zeta", "codex"),
+            ("zeta", "cursor"),
+        ]
+        assert [
+            (resource["stable_key"], resource["host"])
+            for resource in resources
+            if resource["kind"] == "plugin"
+            and resource["stable_key"] in {"alpha-plugin", "zeta-plugin"}
+        ] == [
+            ("alpha-plugin", "claude"),
+            ("alpha-plugin", "codex"),
+            ("zeta-plugin", "claude"),
+            ("zeta-plugin", "codex"),
+        ]
+        assert all(
+            resource["phase"] == 10
+            for resource in resources
+            if resource["kind"] == "marketplace"
+        )
+        assert all(
+            resource["phase"] == 30
+            for resource in resources
+            if resource["kind"] == "plugin"
+            and resource["stable_key"] in {"alpha-plugin", "zeta-plugin"}
+        )
+
+    @pytest.mark.parametrize(
+        ("marketplace", "plugin", "message"),
+        [
+            (
+                example_marketplace(),
+                example_plugin(marketplace="missing"),
+                "marketplace",
+            ),
+            (example_marketplace(hosts=[]), example_plugin(), "hosts"),
+            (example_marketplace(), example_plugin(hosts=[]), "hosts"),
+            (example_marketplace(), example_plugin(environments=[]), "environments"),
+            (
+                example_marketplace(source_type=""),
+                example_plugin(),
+                "source_type",
+            ),
+            (
+                example_marketplace(source_type="internal"),
+                example_plugin(),
+                "source_locator",
+            ),
+            (example_marketplace(order=-1), example_plugin(), "order"),
+            (example_marketplace(order=1_000_000_000), example_plugin(), "order"),
+            (example_marketplace(order="100"), example_plugin(), "order"),
+        ],
+        ids=[
+            "unknown-marketplace",
+            "empty-marketplace-hosts",
+            "empty-plugin-hosts",
+            "empty-plugin-environments",
+            "empty-source-type",
+            "missing-explicit-source-locator",
+            "negative-order",
+            "order-out-of-range",
+            "non-integer-order",
+        ],
+    )
+    def test_rejects_invalid_keyed_declarations_during_rendering(
+        self, tmp_path, marketplace, plugin, message
+    ):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={"dotfiles": marketplace},
+                plugins={"example": plugin},
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode != 0
+        assert message in result.stderr
+
+
+class TestPluginBridgeDeclarationPolicies:
+    def test_renders_generic_explicit_marketplace_sources(self, tmp_path):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={
+                    "internal": example_marketplace(
+                        source_type="internal",
+                        source_locator="corp://internal-marketplace",
+                        trust_class="managed",
+                        update_policy="pinned",
+                    ),
+                    "public": example_marketplace(
+                        source_type="reviewed-public",
+                        source_locator="https://example.invalid/marketplace",
+                        trust_class="reviewed",
+                    ),
+                }
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode == 0, result.stderr
+        resources = json.loads(result.stdout)["resources"]
+        internal = next(
+            resource for resource in resources if resource["stable_key"] == "internal"
+        )
+        public = next(
+            resource for resource in resources if resource["stable_key"] == "public"
+        )
+        assert internal["source_locator"] == "corp://internal-marketplace"
+        assert internal["update_policy"] == "pinned"
+        assert internal["install"][-1] == "corp://internal-marketplace"
+        assert public["source_type"] == "reviewed-public"
+        assert public["install"][-1] == "https://example.invalid/marketplace"
+
+    def test_host_provided_marketplace_is_discovered_and_verified(self, tmp_path):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={
+                    "managed": example_marketplace(source_type="host-provided")
+                }
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode == 0, result.stderr
+        resource = next(
+            resource
+            for resource in json.loads(result.stdout)["resources"]
+            if resource["stable_key"] == "managed"
+        )
+        assert resource["install"][1] == "marketplace-discover"
+        assert resource["update"][1] == "marketplace-verify"
+        assert resource["uninstall"][1] == "marketplace-verify"
+        assert "marketplace-add" not in resource["install"]
+        assert "marketplace-update" not in resource["update"]
+
+    @pytest.mark.parametrize(
+        "plugin",
+        [
+            example_plugin(environments=["local", ""]),
+            example_plugin(environments=["local", 1]),
+        ],
+        ids=["empty-environment", "non-string-environment"],
+    )
+    def test_rejects_invalid_environment_entries(self, tmp_path, plugin):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={"dotfiles": example_marketplace()},
+                plugins={"example": plugin},
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode != 0
+        assert "environments entries" in result.stderr
+
+    def test_rejects_empty_runtime_environment(self, tmp_path):
+        data = declaration_data(marketplaces={"dotfiles": example_marketplace()})
+        data["ai"]["plugin_bridge"]["environment"] = ""
+        result = render_declaration_plan(data, tmp_path)
+
+        assert result.returncode != 0
+        assert "environment must be a non-empty string" in result.stderr
+
+    def test_requires_capability_skills_table_and_explicit_marketplace(self, tmp_path):
+        invalid_skills = declaration_data(
+            marketplaces={"dotfiles": example_marketplace()},
+            capabilities={
+                "capability": {
+                    "marketplace": "dotfiles",
+                    "skills": [],
+                }
+            },
+        )
+        result = render_declaration_plan(invalid_skills, tmp_path)
+        assert result.returncode != 0
+        assert "skills must be a table" in result.stderr
+
+        missing_marketplace = declaration_data(
+            marketplaces={"dotfiles": example_marketplace()},
+            capabilities={"capability": {"skills": {"skill": {}}}},
+        )
+        result = render_declaration_plan(missing_marketplace, tmp_path)
+        assert result.returncode != 0
+        assert "marketplace must be an explicit" in result.stderr
+
+    def test_capability_skills_are_sorted_and_hosts_are_validated(self, tmp_path):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={"dotfiles": example_marketplace()},
+                capabilities={
+                    "capability": {
+                        "marketplace": "dotfiles",
+                        "hosts": ["codex"],
+                        "skills": {"zeta": {}, "alpha": {}},
+                    }
+                },
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode == 0, result.stderr
+        resource = next(
+            resource
+            for resource in json.loads(result.stdout)["resources"]
+            if resource["stable_key"] == "capability"
+        )
+        assert resource["expected_skills"] == ["alpha", "zeta"]
+        assert resource["host"] == "codex"
+
+    def test_orders_numeric_values_before_stable_key(self, tmp_path):
+        result = render_declaration_plan(
+            declaration_data(
+                marketplaces={
+                    "ten": example_marketplace(order=10),
+                    "two": example_marketplace(order=2),
+                }
+            ),
+            tmp_path,
+        )
+
+        assert result.returncode == 0, result.stderr
+        resources = [
+            resource
+            for resource in json.loads(result.stdout)["resources"]
+            if resource["kind"] == "marketplace"
+            and resource["host"] == "claude"
+            and resource["stable_key"] in {"two", "ten"}
+        ]
+        assert [resource["stable_key"] for resource in resources] == ["two", "ten"]
 
 
 class TestPluginPlanning:
