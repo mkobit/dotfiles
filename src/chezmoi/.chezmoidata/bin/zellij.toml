@@ -1,6 +1,6 @@
 [bin.zellij]
 # version already includes "v" prefix — tag_format uses {version} directly
-version = "v0.44.3"
+version = "v0.45.1"
 
 [bin.zellij.github_releases]
 repo            = "zellij-org/zellij"
@@ -19,10 +19,10 @@ linux_amd64  = "x86_64-unknown-linux-musl"
 linux_arm64  = "aarch64-unknown-linux-musl"
 
 [bin.zellij.github_releases.checksums]
-darwin_arm64 = "b6acf83a7739cf5f0f4e9bd47709642d4d98acbbf8c34d4a12c6e706f531da61"
-darwin_amd64 = "59f803faa32cd4e5f316f0dc2d3b7a5530a72553e38ad939286471848a418eeb"
-linux_amd64  = "0f7c346788627f506c0a28296517768633cff24fc822a739f8264b640ecad751"
-linux_arm64  = "15e6534d42644d66973d136c590c49739dcfd6a1a2a0d3d917973f16c81b45fb"
+darwin_arm64 = "c029ba4fe1927b79ad9f0cdd59155c4dff80777863c85857d4d09b88b56f9891"
+darwin_amd64 = "8e8bea22737d1652278c51fc5c26c7c22c9855d0ebb9634a84b8873823093114"
+linux_amd64  = "40bcc2e03f5d5ae8e054e39f676081fe12ab70871506996ba595834c3718eefc"
+linux_arm64  = "05f0802afadd53f8db9514e7cae53c9ae8432fed1b35b8294aa816ee3044a16b"
 
 [bin.zellij.homebrew]
 name = "zellij"
