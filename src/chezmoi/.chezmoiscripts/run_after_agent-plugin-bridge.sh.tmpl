@@ -2,12 +2,18 @@
 set -eu
 
 {{ $python := includeTemplate "python/filter-interpreter" . -}}
-{{ $bridge := dig "plugin_bridge" (dict) (dig "ai" (dict) .) -}}
+{{- $ai := dig "ai" (dict) . -}}
+{{- $bridge := dig "plugin_bridge" (dict) $ai -}}
+{{- $chezmoi := dig "chezmoi" (dict) . -}}
+{{- $workingTree := dig "workingTree" "." $chezmoi -}}
+{{- $sourceDir := dig "sourceDir" (joinPath $workingTree "src/chezmoi") $chezmoi -}}
+{{- $destination := dig "destDir" "." $chezmoi -}}
+{{- $payload := dict "plugin_bridge" $bridge "skills" (dig "skills" (dict) $ai) "overlay_skills" (dig "overlay_skills" (dict) $ai) "source_dir" $sourceDir "working_tree" $workingTree "generated_marketplace_root" (joinPath $destination ".local/share/agent-plugins/marketplace") -}}
 
-destination={{ .chezmoi.destDir | quote }}
+destination={{ $destination | quote }}
 python_command={{ $python | quote }}
-bridge_helper={{ joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/plugin_bridge.py" | quote }}
+bridge_helper={{ joinPath $workingTree "src/python/skill_filter/skill_filter/plugin_bridge.py" | quote }}
 
 exec "$python_command" -S "$bridge_helper" reconcile --destination "$destination" <<'EOF'
-{{ toJson $bridge }}
+{{ toJson $payload }}
 EOF
