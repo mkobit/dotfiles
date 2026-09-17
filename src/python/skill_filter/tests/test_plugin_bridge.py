@@ -2,6 +2,8 @@ import json
 import subprocess
 import sys
 
+import pytest
+
 from skill_filter import plugin_bridge
 
 
@@ -121,6 +123,39 @@ def test_migrate_ownership_writes_canonical_tsv(tmp_path):
     assert (
         result.stdout == "plugin\tclaude\tmarket\tdemo\nmarketplace\tcodex\tmarket\t\n"
     )
+
+
+def test_migrate_ownership_resolves_legacy_cursor_plugin_from_declaration(tmp_path):
+    legacy = tmp_path / "ownership.json"
+    legacy.write_text(
+        json.dumps(
+            {
+                "resources": [
+                    {"kind": "plugin", "host": "cursor", "id": "demo"},
+                ]
+            }
+        )
+    )
+
+    result = plugin_bridge.migrate_ownership(legacy, {("cursor", "demo"): "market"})
+
+    assert result == "plugin\tcursor\tmarket\tdemo\n"
+
+
+def test_migrate_ownership_keeps_non_cursor_bare_plugin_ids_invalid(tmp_path):
+    legacy = tmp_path / "ownership.json"
+    legacy.write_text(
+        json.dumps(
+            {
+                "resources": [
+                    {"kind": "plugin", "host": "claude", "id": "demo"},
+                ]
+            }
+        )
+    )
+
+    with pytest.raises(ValueError, match="invalid legacy plugin identity"):
+        plugin_bridge.migrate_ownership(legacy)
 
 
 def test_has_identity_accepts_exact_json_identity():

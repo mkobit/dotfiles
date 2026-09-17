@@ -16,7 +16,9 @@ class BridgeError(RuntimeError):
     """Raised when a declared bridge resource cannot be reconciled."""
 
 
-def migrate_ownership(path: Path) -> str:
+def migrate_ownership(
+    path: Path, declared_marketplaces: Mapping[tuple[str, str], str] | None = None
+) -> str:
     payload = json.loads(path.read_text(encoding="utf-8"))
     resources = payload.get("resources", [])
     lines = []
@@ -27,7 +29,10 @@ def migrate_ownership(path: Path) -> str:
         if kind == "plugin":
             plugin, separator, marketplace = resource_id.rpartition("@")
             if not separator:
-                raise ValueError(f"invalid legacy plugin identity: {resource_id}")
+                if host != "cursor":
+                    raise ValueError(f"invalid legacy plugin identity: {resource_id}")
+                marketplace = (declared_marketplaces or {}).get((host, resource_id), "")
+                plugin = resource_id
         elif kind == "marketplace":
             marketplace, plugin = resource_id, ""
         else:
@@ -220,11 +225,22 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
     ):
         raise BridgeError("ai.plugin_bridge declarations must be tables")
 
+    declared_marketplaces = {}
+    for declarations in (capabilities, plugins):
+        for name, definition in declarations.items():
+            if not isinstance(definition, Mapping):
+                continue
+            marketplace = str(definition.get("marketplace", ""))
+            if marketplace:
+                declared_marketplaces[("cursor", name)] = marketplace
+
     state = destination / ".local/state/dotfiles"
     ownership_file = state / "agent-plugin-ownership"
     legacy = state / "agent-plugin-ownership.json"
     if not ownership_file.exists() and legacy.exists():
-        ownership_file.write_text(migrate_ownership(legacy), encoding="utf-8")
+        ownership_file.write_text(
+            migrate_ownership(legacy, declared_marketplaces), encoding="utf-8"
+        )
     previous = _read_ownership(ownership_file)
     desired: set[str] = set()
     owned_desired: set[str] = set()
