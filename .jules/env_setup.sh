@@ -7,6 +7,7 @@ export GIT_COMMIT_HASH=$(git rev-parse HEAD)
 echo "Commit: ${GIT_COMMIT_HASH}"
 
 export DEBIAN_FRONTEND=noninteractive
+export JULES_ENV="${JULES_ENV:-true}"
 
 CHEZMOI_CI_VERSION=$(grep 'CHEZMOI_VERSION:' .github/workflows/ci.yml | awk '{print $2}' | tr -d '"' | tr -d "'")
 
