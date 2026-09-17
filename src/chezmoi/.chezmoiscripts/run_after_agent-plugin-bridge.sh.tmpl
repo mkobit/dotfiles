@@ -6,6 +6,7 @@ set -eu
 
 destination={{ .chezmoi.destDir | quote }}
 python_command={{ $python | quote }}
+bridge_helper={{ joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/plugin_bridge.py" | quote }}
 state_dir="$destination/.local/state/dotfiles"
 ownership_file="$state_dir/agent-plugin-ownership"
 legacy_ownership_file="$state_dir/agent-plugin-ownership.json"
@@ -19,27 +20,7 @@ mkdir -p "$state_dir"
 trap 'rm -f "$desired_file" "$owned_desired_file" "$migration_file"' EXIT HUP INT TERM
 
 if [ ! -f "$ownership_file" ] && [ -f "$legacy_ownership_file" ]; then
-  "$python_command" -S - "$legacy_ownership_file" >"$migration_file" <<'PY'
-import json
-import sys
-
-with open(sys.argv[1], encoding="utf-8") as stream:
-    resources = json.load(stream).get("resources", [])
-for resource in resources:
-    kind = resource["kind"]
-    host = resource["host"]
-    resource_id = resource["id"]
-    if kind == "plugin":
-        plugin, separator, marketplace = resource_id.rpartition("@")
-        if not separator:
-            raise SystemExit(f"invalid legacy plugin identity: {resource_id}")
-    elif kind == "marketplace":
-        marketplace = resource_id
-        plugin = ""
-    else:
-        raise SystemExit(f"invalid legacy resource kind: {kind}")
-    print(kind, host, marketplace, plugin, sep="\t")
-PY
+  "$python_command" -S "$bridge_helper" migrate-ownership "$legacy_ownership_file" >"$migration_file"
   mv "$migration_file" "$ownership_file"
 fi
 
@@ -91,16 +72,7 @@ cursor_plugin_target() {
 json_has_identity() {
   field=$1
   expected=$2
-  "$python_command" -S -c '
-import json
-import sys
-
-value = json.load(sys.stdin)
-records = value.get("marketplaces", []) if isinstance(value, dict) else value
-if not isinstance(records, list):
-    raise SystemExit("plugin host returned invalid JSON")
-raise SystemExit(0 if any(isinstance(item, dict) and item.get(sys.argv[1]) == sys.argv[2] for item in records) else 1)
-' "$field" "$expected"
+  "$python_command" -S "$bridge_helper" has-identity --field "$field" --expected "$expected"
 }
 
 marketplace_present() {
