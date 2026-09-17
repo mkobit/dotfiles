@@ -126,6 +126,19 @@ def _plugin_present(host: str, marketplace: str, plugin: str) -> bool:
     )
 
 
+def _claude_plugin_state(marketplace: str, plugin: str) -> tuple[bool, bool]:
+    expected = f"{plugin}@{marketplace}"
+    records = json.loads(_run("claude", "plugin", "list", "--json"))
+    if isinstance(records, Mapping):
+        records = records.get("plugins", [])
+    if not isinstance(records, list):
+        raise TypeError("plugin host returned invalid JSON")
+    for item in records:
+        if isinstance(item, Mapping) and item.get("id") == expected:
+            return True, item.get("enabled") is True
+    return False, False
+
+
 def _validate_name(name: str) -> None:
     allowed = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
     if not name or name in {".", ".."} or any(c not in allowed for c in name):
@@ -198,15 +211,25 @@ def _ensure_plugin(
         _remove(installed)
         installed.parent.mkdir(parents=True, exist_ok=True)
         shutil.copytree(target, installed)
+    elif host == "claude":
+        present, enabled = _claude_plugin_state(marketplace, plugin)
+        if present:
+            _run(host, "plugin", "update", expected)
+            if not enabled:
+                _run(host, "plugin", "enable", expected)
+        else:
+            _run(host, "plugin", "install", expected)
+            _run(host, "plugin", "enable", expected)
+        present, enabled = _claude_plugin_state(marketplace, plugin)
+        if not present or not enabled:
+            raise BridgeError(
+                f"plugin did not become available and enabled: {expected}"
+            )
     elif _plugin_present(host, marketplace, plugin):
-        _run(host, "plugin", "update" if host == "claude" else "add", expected)
-        if host == "claude":
-            _run(host, "plugin", "enable", expected)
+        _run(host, "plugin", "add", expected)
     else:
-        _run(host, "plugin", "install" if host == "claude" else "add", expected)
-        if host == "claude":
-            _run(host, "plugin", "enable", expected)
-    if host != "cursor" and not _plugin_present(host, marketplace, plugin):
+        _run(host, "plugin", "add", expected)
+    if host == "codex" and not _plugin_present(host, marketplace, plugin):
         raise BridgeError(f"plugin did not become available: {expected}")
     owned_desired.add(record)
     _checkpoint(ownership_file, record)

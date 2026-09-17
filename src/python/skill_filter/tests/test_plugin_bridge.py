@@ -100,6 +100,88 @@ plugin\tclaude\ta-market\ta-plugin
     ]
 
 
+def test_enabled_claude_plugin_is_not_enabled_again(tmp_path, monkeypatch):
+    calls = []
+
+    def run(host, *args):
+        calls.append((host, *args))
+        if args == ("plugin", "list", "--json"):
+            return '[{"id":"demo@market","enabled":true}]'
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+
+    plugin_bridge._ensure_plugin(
+        "claude",
+        "market",
+        "demo",
+        tmp_path,
+        tmp_path / "ownership",
+        set(),
+        set(),
+    )
+
+    assert ("claude", "plugin", "enable", "demo@market") not in calls
+
+
+def test_disabled_claude_plugin_must_be_enabled(tmp_path, monkeypatch):
+    calls = []
+    enabled = False
+
+    def run(host, *args):
+        nonlocal enabled
+        calls.append((host, *args))
+        if args == ("plugin", "list", "--json"):
+            return json.dumps([{"id": "demo@market", "enabled": enabled}])
+        if args == ("plugin", "enable", "demo@market"):
+            enabled = True
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+
+    plugin_bridge._ensure_plugin(
+        "claude",
+        "market",
+        "demo",
+        tmp_path,
+        tmp_path / "ownership",
+        set(),
+        set(),
+    )
+
+    assert ("claude", "plugin", "enable", "demo@market") in calls
+
+
+def test_claude_plugin_reconciliation_rejects_disabled_final_state(
+    tmp_path, monkeypatch
+):
+    calls = []
+
+    def run(host, *args):
+        calls.append((host, *args))
+        if args == ("plugin", "list", "--json"):
+            return '[{"id":"demo@market","enabled":false}]'
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+
+    with pytest.raises(
+        plugin_bridge.BridgeError,
+        match="plugin did not become available and enabled: demo@market",
+    ):
+        plugin_bridge._ensure_plugin(
+            "claude",
+            "market",
+            "demo",
+            tmp_path,
+            tmp_path / "ownership",
+            set(),
+            set(),
+        )
+
+    assert ("claude", "plugin", "enable", "demo@market") in calls
+
+
 def test_migrate_ownership_writes_canonical_tsv(tmp_path):
     legacy = tmp_path / "ownership.json"
     legacy.write_text(
