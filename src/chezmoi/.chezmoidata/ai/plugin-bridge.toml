@@ -8,7 +8,7 @@ trust_class = "owned"
 [ai.plugin_bridge.marketplaces.dotfiles]
 source_type = "generated"
 trust_class = "owned"
-hosts = ["claude", "codex", "cursor"]
+hosts = ["claude", "codex"]
 order = 100
 
 [ai.plugin_bridge.capabilities.mkobit-dotfiles]
