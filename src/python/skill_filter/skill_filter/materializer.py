@@ -99,6 +99,7 @@ def _copy_tree(
     destination: Path,
     description: str = "declared source",
     source_attribute_dirs: set[Path] | None = None,
+    encode_source_files: bool = False,
 ) -> None:
     _source_root(source, description)
     destination.mkdir(parents=True, exist_ok=True)
@@ -107,7 +108,10 @@ def _copy_tree(
         mode = entry.lstat().st_mode
         if stat.S_ISLNK(mode):
             raise MaterializerError(f"{description} contains a symlink: {entry}")
-        target = destination / relative
+        target_name = (
+            _encode_source_file_name(entry.name) if encode_source_files else entry.name
+        )
+        target = destination / relative.with_name(target_name)
         if stat.S_ISDIR(mode):
             target.mkdir(parents=True, exist_ok=True)
             if source_attribute_dirs is not None and entry.name.startswith(
@@ -210,6 +214,7 @@ def _add_skill(
             source / name,
             package / destination / name,
             "declared skill source",
+            encode_source_files=True,
         )
 
 
@@ -526,6 +531,15 @@ def _encode_source_name(name: str) -> str:
     """Encode a generated directory name as an exact chezmoi source name."""
     literal = name.startswith(_SOURCE_ATTRIBUTE_PREFIXES)
     return f"exact_{'literal_' if literal else ''}{name}"
+
+
+def _encode_source_file_name(name: str) -> str:
+    """Encode a generated skill filename that chezmoi would interpret."""
+    if name.endswith(".tmpl"):
+        return f"literal_{name}.literal"
+    if name.startswith(_SOURCE_ATTRIBUTE_PREFIXES):
+        return f"literal_{name}"
+    return name
 
 
 def _mark_exact_tree(

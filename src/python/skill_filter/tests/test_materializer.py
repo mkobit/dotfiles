@@ -123,6 +123,36 @@ def test_materialize_emits_exact_package_and_cursor_trees(tmp_path):
     assert (cursor / "exact_skills/exact_cursor-only/SKILL.md").read_text() == "cursor"
 
 
+def test_materialize_encodes_generated_skill_attribute_and_template_files(tmp_path):
+    payload = _payload(tmp_path)
+    skill = Path(str(payload["working_tree"])) / "src/ai/skills/shared"
+    (skill / "run_eval.py").write_bytes(b"#!/usr/bin/env python3\n{{ raw }}\n")
+    (skill / "instructions.tmpl").write_bytes(b"{{ should stay literal }}\n")
+    (skill / "run_eval.py").chmod(0o751)
+    (skill / "instructions.tmpl").chmod(0o640)
+
+    materialize(payload)
+
+    package = (
+        Path(str(payload["output_source_root"]))
+        / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_demo"
+        / "exact_skills/exact_shared"
+    )
+    for source_name, encoded_name, mode in (
+        ("run_eval.py", "literal_run_eval.py", 0o751),
+        (
+            "instructions.tmpl",
+            "literal_instructions.tmpl.literal",
+            0o640,
+        ),
+    ):
+        source = skill / source_name
+        encoded = package / encoded_name
+        assert encoded.read_bytes() == source.read_bytes()
+        assert stat.S_IMODE(encoded.stat().st_mode) == mode
+        assert not (package / source_name).exists()
+
+
 def test_materialize_replaces_owned_boundaries_deterministically(tmp_path):
     payload = _payload(tmp_path)
     materialize(payload)
