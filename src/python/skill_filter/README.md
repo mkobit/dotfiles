@@ -50,6 +50,49 @@ EOF
 The archive-in/archive-out contract is the seam for future per-tool content transformation (the rulette idea).
 A transforming filter can replace this tool without changing the chezmoi external structure.
 
+## Plugin source-state compiler
+
+`materializer.py` compiles versioned normalized agent-plugin declarations into chezmoi source-state artifacts before chezmoi calculates target state.
+It reads one JSON object with `plan_version = 1` from stdin and writes no data to stdout.
+The object contains `plugin_bridge`, `skills`, `overlay_skills`, `acquired_sources`, `environment`, `working_tree`, and `output_source_root`.
+`acquired_sources` maps each stable source ID to an absolute acquired directory supplied by the acquisition adapter.
+`working_tree` and `output_source_root` must be normalized absolute paths without empty, `.`, or `..` components.
+Capability and plugin declarations retain the registration bridge's marketplace, host, environment, source, and skill-state semantics.
+
+`plugin_bridge.marketplaces.<name>` declares `source_type`, optional `source_locator`, `hosts`, and `order` for native marketplace registration.
+Use `source_type = "generated"` for the compiled local marketplace, `source_type = "host-provided"` for a marketplace already supplied by the host, and a locator-backed source type with `source_locator` for an explicit internal or public marketplace.
+`plugin_bridge.plugins.<name>` declares `marketplace`, `hosts`, optional `environments`, `order`, and optional `cursor_source_dir` for native registration and Cursor filesystem materialization.
+`plugin_bridge.capabilities.<name>` declares a generated package with `marketplace`, `hosts`, `wrapper_source_dir`, optional `environments`, source roots, and skill states.
+The declaration key is the stable marketplace, plugin, or capability identity.
+
+Chezmoi externals own pinned archive and repository acquisition rather than the compiler or registration bridge.
+The compiler accepts only verified absolute acquired directories through `acquired_sources` and performs no network, subprocess, or chezmoi operations.
+Working-tree wrapper and authored source paths are declared relative to `working_tree`.
+The compiler rejects a declared Cursor filesystem plugin whose `cursor_source_dir` is absent, non-normalized, outside `working_tree`, or contains unsupported file types.
+
+The compiler emits the complete generated capability collection below `dot_local/share/agent-plugins/marketplace/exact_plugins/<capability>/` in `output_source_root`.
+It emits Cursor's complete local plugin inventory below `dot_cursor/plugins/exact_local/`.
+These complete boundaries make chezmoi the exclusive owner of the corresponding generated package collection and `~/.cursor/plugins/local` trees.
+Removing a declaration removes its generated package or Cursor plugin on the next assembly and apply.
+The compiler preserves unrelated non-exact package source entries.
+
+The compiler sorts declarations and source entries, copies regular files without symlinks, and replaces each complete owned boundary from staged output.
+Repeated compilation of the same declarations and sources produces the same source state.
+It validates declarations and source trees before replacing either output boundary.
+The complete generated package and Cursor boundaries are staged before replacement.
+Publication uses invocation-unique backups and restores previously published boundaries if either recoverable swap fails.
+This rollback does not provide process-crash atomicity across two independent filesystem roots.
+Rerunning assembly deterministically converges every boundary to the declared state.
+It rejects unsupported plan versions, undeclared marketplaces, malformed names or hosts, non-normalized paths, source symlinks, output-boundary symlinks, and special source files.
+The compiler writes only below `output_source_root` and never writes deployed target paths.
+
+Chezmoi exclusively creates, updates, and prunes generated plugin filesystem state during apply.
+After-apply code performs only native Claude and Codex marketplace or plugin registration and does not generate, copy, or prune plugin files.
+Native registration checkpoints remain separate from filesystem ownership.
+
+The normalized declaration schema, acquisition ownership split, and exact output paths are the producer contract.
+A future standalone compiler may replace `materializer.py` without changing declarations, target paths, exact ownership boundaries, or the native registration bridge.
+
 ## Development
 
 Tested through the uv workspace; the deployed artifact is just this file tree, nothing is installed.

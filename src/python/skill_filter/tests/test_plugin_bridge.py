@@ -1,99 +1,242 @@
+from __future__ import annotations
+
 import json
 import subprocess
 import sys
-from pathlib import Path
 
 import pytest
-import tomllib
 
 from skill_filter import plugin_bridge
 
 
-def test_reconcile_orders_marketplaces_capabilities_then_environment_plugins(
+def _valid_bridge() -> dict[str, object]:
+    return {
+        "plugin_bridge": {
+            "environment": "local",
+            "marketplaces": {
+                "market": {
+                    "source_type": "generated",
+                    "hosts": ["claude", "codex", "cursor"],
+                    "order": 100,
+                }
+            },
+            "plugins": {
+                "plugin": {
+                    "marketplace": "market",
+                    "hosts": ["claude", "codex", "cursor"],
+                    "environments": ["local"],
+                    "order": 200,
+                }
+            },
+            "capabilities": {
+                "capability": {
+                    "marketplace": "market",
+                    "hosts": ["claude", "codex", "cursor"],
+                    "environments": ["local"],
+                    "order": 300,
+                }
+            },
+        }
+    }
+
+
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (
+            lambda bridge: bridge["marketplaces"].update({"bad/name": {}}),
+            "marketplace name",
+        ),
+        (lambda bridge: bridge["plugins"].update({"bad/name": {}}), "plugin name"),
+        (
+            lambda bridge: bridge["capabilities"].update({"bad/name": {}}),
+            "capability name",
+        ),
+        (
+            lambda bridge: bridge["plugins"]["plugin"].update(
+                {"marketplace": "missing"}
+            ),
+            "marketplace",
+        ),
+        (
+            lambda bridge: bridge["capabilities"]["capability"].update(
+                {"marketplace": "missing"}
+            ),
+            "marketplace",
+        ),
+        (
+            lambda bridge: bridge["marketplaces"]["market"].update(
+                {"hosts": ["cursorx"]}
+            ),
+            "host",
+        ),
+        (
+            lambda bridge: bridge["plugins"]["plugin"].update({"hosts": ["cursorx"]}),
+            "host",
+        ),
+        (
+            lambda bridge: bridge["capabilities"]["capability"].update(
+                {"hosts": ["cursorx"]}
+            ),
+            "host",
+        ),
+        (
+            lambda bridge: bridge["marketplaces"]["market"].update(
+                {"source_type": "unknown"}
+            ),
+            "source type",
+        ),
+        (
+            lambda bridge: bridge["marketplaces"]["market"].update(
+                {"source_type": "public"}
+            ),
+            "source locator",
+        ),
+        (lambda bridge: bridge["plugins"]["plugin"].update({"order": "200"}), "order"),
+        (
+            lambda bridge: bridge["plugins"]["plugin"].update(
+                {"environments": ["bad environment"]}
+            ),
+            "environment",
+        ),
+    ],
+)
+def test_reconcile_validates_all_declarations_before_side_effects(
+    tmp_path, monkeypatch, mutation, message
+):
+    declaration = _valid_bridge()
+    bridge = declaration["plugin_bridge"]
+    assert isinstance(bridge, dict)
+    mutation(bridge)
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_run",
+        lambda *args: pytest.fail(f"unexpected host operation: {args}"),
+    )
+
+    with pytest.raises(plugin_bridge.BridgeError, match=message):
+        plugin_bridge.reconcile(tmp_path, declaration)
+
+    assert not (tmp_path / ".local").exists()
+
+
+def test_reconcile_orders_native_registrations_and_filters_environment(
     tmp_path, monkeypatch
 ):
     calls = []
     monkeypatch.setattr(
         plugin_bridge,
         "_ensure_marketplace",
-        lambda host, name, source_type, locator, *args: calls.append(
-            ("marketplace", name, host)
-        ),
+        lambda host, name, *args: calls.append(("marketplace", name, host)),
     )
     monkeypatch.setattr(
         plugin_bridge,
         "_ensure_plugin",
         lambda host, marketplace, name, *args: calls.append(("plugin", name, host)),
     )
-
     plugin_bridge.reconcile(
         tmp_path,
         {
             "plugin_bridge": {
                 "environment": "mydata",
                 "marketplaces": {
-                    "z-market": {"hosts": ["codex"], "order": 10},
-                    "a-market": {"hosts": ["claude"], "order": 10},
+                    "z": {
+                        "source_type": "generated",
+                        "hosts": ["cursor", "codex"],
+                        "order": 10,
+                    },
+                    "a": {
+                        "source_type": "generated",
+                        "hosts": ["claude"],
+                        "order": 10,
+                    },
                 },
                 "capabilities": {
-                    "z-capability": {
-                        "marketplace": "a-market",
-                        "hosts": ["claude"],
+                    "z-cap": {
+                        "marketplace": "a",
+                        "hosts": ["claude", "cursor"],
                         "order": 20,
-                    },
-                    "a-capability": {
-                        "marketplace": "a-market",
-                        "hosts": ["codex"],
-                        "order": 20,
-                    },
+                    }
                 },
                 "plugins": {
-                    "z-plugin": {
-                        "marketplace": "a-market",
+                    "skip": {
+                        "marketplace": "a",
                         "hosts": ["claude"],
-                        "environments": ["mydata"],
-                        "order": 1,
+                        "environments": ["local"],
                     },
-                    "a-plugin": {
-                        "marketplace": "a-market",
+                    "active": {
+                        "marketplace": "a",
                         "hosts": ["codex"],
                         "environments": ["mydata"],
-                        "order": 1,
                     },
                 },
             }
         },
     )
-
     assert calls == [
-        ("marketplace", "a-market", "claude"),
-        ("marketplace", "z-market", "codex"),
-        ("plugin", "a-capability", "codex"),
-        ("plugin", "z-capability", "claude"),
-        ("plugin", "a-plugin", "codex"),
-        ("plugin", "z-plugin", "claude"),
+        ("marketplace", "a", "claude"),
+        ("marketplace", "z", "codex"),
+        ("plugin", "z-cap", "claude"),
+        ("plugin", "active", "codex"),
     ]
+
+
+def test_reconcile_ignores_cursor_and_filesystem_metadata(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_marketplace",
+        lambda host, *args: calls.append(("marketplace", host)),
+    )
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_plugin",
+        lambda host, *args: calls.append(("plugin", host)),
+    )
+    plugin_bridge.reconcile(
+        tmp_path,
+        {
+            "plugin_bridge": {
+                "marketplaces": {
+                    "market": {
+                        "source_type": "generated",
+                        "hosts": ["claude", "codex", "cursor"],
+                        "package_cleanup": {"unsafe": "ignored"},
+                    }
+                },
+                "capabilities": {
+                    "demo": {
+                        "marketplace": "market",
+                        "hosts": ["claude", "codex", "cursor"],
+                    }
+                },
+                "generated_marketplace_root": "../ignored",
+            },
+            "skills": {"ignored": True},
+            "source_dir": "../ignored",
+            "working_tree": "../ignored",
+        },
+    )
+    assert calls == [
+        ("marketplace", "claude"),
+        ("marketplace", "codex"),
+        ("plugin", "claude"),
+        ("plugin", "codex"),
+    ]
+    assert not (tmp_path / ".cursor").exists()
 
 
 def test_reconcile_removes_plugins_before_marketplaces(tmp_path, monkeypatch):
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     ownership.parent.mkdir(parents=True)
     ownership.write_text(
-        """marketplace\tcodex\tz-market\t
-plugin\tcodex\tb-market\tz-plugin
-marketplace\tclaude\ta-market\t
-plugin\tclaude\ta-market\ta-plugin
-"""
+        "marketplace\tcodex\tz-market\t\nplugin\tcodex\tb-market\tz-plugin\nmarketplace\tclaude\ta-market\t\nplugin\tclaude\ta-market\ta-plugin\n"
     )
     calls = []
     monkeypatch.setattr(
-        plugin_bridge,
-        "_run",
-        lambda host, *args: calls.append((host, *args)) or "",
+        plugin_bridge, "_run", lambda host, *args: calls.append((host, *args)) or ""
     )
-
     plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
-
     assert calls == [
         ("claude", "plugin", "uninstall", "a-plugin@a-market"),
         ("codex", "plugin", "remove", "z-plugin@b-market"),
@@ -102,523 +245,103 @@ plugin\tclaude\ta-market\ta-plugin
     ]
 
 
-def test_cursor_marketplace_move_preserves_newly_materialized_plugin(tmp_path):
+def test_successful_removal_is_checkpointed_before_later_failure(tmp_path, monkeypatch):
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     ownership.parent.mkdir(parents=True)
-    ownership.write_text("plugin\tcursor\told-market\tdemo\n", encoding="utf-8")
-    package = tmp_path / ".local/share/agent-plugins/marketplace/plugins/demo/cursor"
-    package.mkdir(parents=True)
-    (package / "plugin.json").write_text("new", encoding="utf-8")
-
-    plugin_bridge.reconcile(
-        tmp_path,
-        {
-            "plugin_bridge": {
-                "marketplaces": {"new-market": {"hosts": ["cursor"]}},
-                "plugins": {"demo": {"marketplace": "new-market", "hosts": ["cursor"]}},
-            }
-        },
+    ownership.write_text(
+        "plugin\tclaude\tmarket\ta-plugin\nplugin\tclaude\tmarket\tb-plugin\n",
+        encoding="utf-8",
     )
+    installed = {"a-plugin@market", "b-plugin@market"}
+    fail_once = True
 
-    installed = tmp_path / ".cursor/plugins/local/demo/plugin.json"
-    assert installed.read_text(encoding="utf-8") == "new"
+    def run(host, *args):
+        nonlocal fail_once
+        plugin = args[-1]
+        if plugin == "b-plugin@market" and fail_once:
+            fail_once = False
+            raise plugin_bridge.BridgeError("later failure")
+        if plugin not in installed:
+            raise plugin_bridge.BridgeError(f"already removed: {plugin}")
+        installed.remove(plugin)
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    with pytest.raises(plugin_bridge.BridgeError, match="later failure"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
     assert ownership.read_text(encoding="utf-8") == (
-        "plugin\tcursor\tnew-market\tdemo\n"
+        "plugin\tclaude\tmarket\tb-plugin\n"
     )
 
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
 
-def test_reconcile_rejects_symlinked_state_root_before_writing(tmp_path):
-    redirected_state = tmp_path / "redirected-state"
-    redirected_state.mkdir()
-    state = tmp_path / ".local/state/dotfiles"
-    state.parent.mkdir(parents=True)
-    state.symlink_to(redirected_state, target_is_directory=True)
-
-    with pytest.raises(plugin_bridge.BridgeError, match="state root"):
-        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
-
-    assert not (redirected_state / "agent-plugin-ownership").exists()
+    assert installed == set()
+    assert ownership.read_text(encoding="utf-8") == ""
 
 
-def test_reconcile_rejects_symlinked_cursor_root_before_materializing(
-    tmp_path,
-):
-    redirected_plugins = tmp_path / "redirected-plugins"
-    redirected_plugins.mkdir()
-    marker = redirected_plugins / "demo/marker"
-    marker.parent.mkdir()
-    marker.write_text("keep", encoding="utf-8")
-    cursor_root = tmp_path / ".cursor/plugins/local"
-    cursor_root.parent.mkdir(parents=True)
-    cursor_root.symlink_to(redirected_plugins, target_is_directory=True)
-    package = tmp_path / ".local/share/agent-plugins/marketplace/plugins/demo/cursor"
-    package.mkdir(parents=True)
-
-    with pytest.raises(plugin_bridge.BridgeError, match="cursor plugin root"):
-        plugin_bridge.reconcile(
-            tmp_path,
-            {
-                "plugin_bridge": {
-                    "plugins": {"demo": {"marketplace": "market", "hosts": ["cursor"]}}
-                }
-            },
-        )
-
-    assert marker.read_text(encoding="utf-8") == "keep"
-
-
-def test_reconcile_rejects_symlinked_cursor_root_before_stale_cleanup(tmp_path):
-    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
-    ownership.parent.mkdir(parents=True)
-    ownership.write_text("plugin\tcursor\told-market\tdemo\n", encoding="utf-8")
-    redirected_plugins = tmp_path / "redirected-plugins"
-    redirected_plugins.mkdir()
-    marker = redirected_plugins / "demo/marker"
-    marker.parent.mkdir()
-    marker.write_text("keep", encoding="utf-8")
-    cursor_root = tmp_path / ".cursor/plugins/local"
-    cursor_root.parent.mkdir(parents=True)
-    cursor_root.symlink_to(redirected_plugins, target_is_directory=True)
-
-    with pytest.raises(plugin_bridge.BridgeError, match="cursor plugin root"):
-        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
-
-    assert marker.read_text(encoding="utf-8") == "keep"
-
-
-def test_reconcile_cleans_generated_package_after_plugin_materialization(
+def test_reconcile_discards_cursor_ownership_without_removing_files(
     tmp_path, monkeypatch
 ):
-    source_dir = tmp_path / "source"
-    package_source = (
-        source_dir / "dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles"
-    )
-    package_source.joinpath("claude/dot_claude-plugin").mkdir(parents=True)
-    package_source.joinpath("plugin.json.tmpl").write_text("plugin", encoding="utf-8")
-    package_source.joinpath("claude/dot_claude-plugin/plugin.json.tmpl").write_text(
-        "claude", encoding="utf-8"
-    )
-    working_tree = tmp_path / "working"
-    authored_skill = working_tree / "src/ai/skills/kept"
-    authored_skill.mkdir(parents=True)
-    (authored_skill / "SKILL.md").write_text("authored", encoding="utf-8")
-    selected_skill = working_tree / "src/ai/skills/selected"
-    selected_skill.mkdir(parents=True)
-    (selected_skill / "SKILL.md").write_text("selected", encoding="utf-8")
-    plugin_skill = working_tree / "src/overlay-plugins/example/skills/plugin-skill"
-    plugin_skill.mkdir(parents=True)
-    (plugin_skill / "SKILL.md").write_text("plugin", encoding="utf-8")
-    generated_root = tmp_path / ".local/share/agent-plugins/marketplace"
-    package_root = generated_root / "plugins/mkobit-dotfiles"
-    package_root.mkdir(parents=True)
-    expected = {
-        "plugin.json": "plugin",
-        "claude/.claude-plugin/plugin.json": "claude",
-        "skills/kept/SKILL.md": "portable",
-        "claude/skills/kept/SKILL.md": "claude skill",
-        "codex/skills/kept/SKILL.md": "codex skill",
-        "cursor/skills/selected/SKILL.md": "cursor skill",
-        "skills/plugin-skill/SKILL.md": "plugin skill",
-    }
-    for relative, content in expected.items():
-        path = package_root / relative
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-    for relative in ("skills/removed/SKILL.md", "codex/skills/removed/SKILL.md"):
-        stale = package_root / relative
-        stale.parent.mkdir(parents=True, exist_ok=True)
-        stale.write_text("stale", encoding="utf-8")
-    stale = package_root / "skills/removed/SKILL.md"
-    external = package_root / "skills/external"
-    external.mkdir(parents=True)
-    (external / "README.md").write_text("external", encoding="utf-8")
-
-    events = []
-    cleanup = plugin_bridge._cleanup_generated_package
-
-    def cleanup_before_host_sync(*args):
-        cleanup(*args)
-        events.append("cleanup")
-
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text("plugin\tcursor\tmarket\tdemo\n", encoding="utf-8")
+    marker = tmp_path / ".cursor/plugins/local/demo/marker"
+    marker.parent.mkdir(parents=True)
+    marker.write_text("keep", encoding="utf-8")
     monkeypatch.setattr(
-        plugin_bridge, "_cleanup_generated_package", cleanup_before_host_sync
+        plugin_bridge, "_run", lambda *args: pytest.fail(f"unexpected call: {args}")
     )
-    monkeypatch.setattr(
-        plugin_bridge,
-        "_ensure_marketplace",
-        lambda *args: (assert_not_exists(stale), events.append("marketplace"))[1],
-    )
-    monkeypatch.setattr(
-        plugin_bridge,
-        "_ensure_plugin",
-        lambda *args: (assert_not_exists(stale), events.append("plugin"))[1],
-    )
-
-    plugin_bridge.reconcile(
-        tmp_path,
-        {
-            "plugin_bridge": {
-                "generated_marketplace_root": str(generated_root),
-                "marketplaces": {"dotfiles": {"hosts": ["claude"]}},
-                "capabilities": {
-                    "mkobit-dotfiles": {
-                        "marketplace": "dotfiles",
-                        "hosts": ["claude", "codex", "cursor"],
-                        "authored_skill_source": "src/ai/skills",
-                        "source_dir": "src/overlay-plugins/example",
-                        "skills": {"plugin-skill": "present"},
-                    }
-                },
-            },
-            "skills": {
-                "authored": {
-                    "kept": "present",
-                    "selected": "cursor",
-                    "removed": "absent",
-                },
-                "external": {"catalog": {"skills": {"external": "present"}}},
-            },
-            "source_dir": str(source_dir),
-            "working_tree": str(working_tree),
-            "generated_marketplace_root": str(generated_root),
-        },
-    )
-
-    assert events == ["cleanup", "marketplace", "plugin", "plugin", "plugin"]
-    for relative in expected:
-        assert (package_root / relative).exists()
-    assert not (package_root / "skills/removed").exists()
-    assert not (package_root / "codex/skills/removed").exists()
-    assert (external / "README.md").read_text(encoding="utf-8") == "external"
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+    assert marker.read_text(encoding="utf-8") == "keep"
+    assert ownership.read_text(encoding="utf-8") == ""
 
 
-def assert_not_exists(path):
-    assert not path.exists()
-
-
-def test_source_files_transforms_only_dot_prefix_per_path_component(tmp_path):
-    root = tmp_path / "source"
-    (root / "not_dot_name.tmpl").parent.mkdir(parents=True)
-    (root / "not_dot_name.tmpl").write_text("keep", encoding="utf-8")
-    (root / "dot_name.tmpl").write_text("hidden", encoding="utf-8")
-    (root / "nested/not_dot_dir/dot_file.tmpl").parent.mkdir(parents=True)
-    (root / "nested/not_dot_dir/dot_file.tmpl").write_text("nested", encoding="utf-8")
-
-    assert plugin_bridge._source_files(root, transform_target_names=True) == [
-        ".name",
-        "nested/not_dot_dir/.file",
-        "not_dot_name",
-    ]
-
-
-def test_actual_base_capability_inventory_uses_all_package_skill_destinations(
-    tmp_path,
-):
-    base_root = Path(__file__).parents[4]
-    with (base_root / "src/chezmoi/.chezmoidata/ai/plugin-bridge.toml").open(
-        "rb"
-    ) as config_file:
-        config = tomllib.load(config_file)
-    bridge = config["ai"]["plugin_bridge"]
-    capability = bridge["capabilities"]["mkobit-dotfiles"]
-    assert capability["hosts"] == ["claude", "codex", "cursor"]
-
-    source_dir = tmp_path / "source"
-    package_source = (
-        source_dir / "dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles"
-    )
-    package_source.mkdir(parents=True)
-    working_tree = tmp_path / "working"
-    authored = working_tree / capability["authored_skill_source"] / "authored"
-    authored.mkdir(parents=True)
-    (authored / "SKILL.md").write_text("authored", encoding="utf-8")
-
-    inventory = plugin_bridge._package_cleanup_inventory(
-        "mkobit-dotfiles",
-        capability,
-        bridge["marketplaces"],
-        {
-            "authored": {"authored": "present"},
-            "external": {"external": {"skills": {"external": "present"}}},
-        },
-        source_dir,
-        working_tree,
-        tmp_path / ".local/share/agent-plugins/marketplace",
-    )
-
-    assert inventory is not None
-    assert {
-        "skills/authored/SKILL.md",
-        "claude/skills/authored/SKILL.md",
-        "codex/skills/authored/SKILL.md",
-        "cursor/skills/authored/SKILL.md",
-    } <= set(inventory["expected_files"])
-    assert set(inventory["preserved_directories"]) == {
-        "skills/external",
-        "claude/skills/external",
-        "codex/skills/external",
-        "cursor/skills/external",
-    }
-
-
-def test_external_host_specific_inventory_uses_destination_hosts(
-    tmp_path,
-):
-    source_dir = tmp_path / "source"
-    package_source = (
-        source_dir / "dot_local/share/agent-plugins/marketplace/plugins/example"
-    )
-    package_source.mkdir(parents=True)
-
-    inventory = plugin_bridge._package_cleanup_inventory(
-        "example",
-        {
-            "marketplace": "dotfiles",
-            "hosts": ["codex"],
-            "authored_skill_source": "src/ai/skills",
-        },
-        {},
-        {"external": {"catalog": {"skills": {"private": "claude"}}}},
-        source_dir,
-        tmp_path / "working",
-        tmp_path / ".local/share/agent-plugins/marketplace",
-    )
-
-    assert inventory is not None
-    assert inventory["preserved_directories"] == ["claude/skills/private"]
-
-
-def test_actual_overlay_capability_inventory_uses_overlay_skill_states(tmp_path):
-    repo_root = Path(__file__).parents[6]
-    config_path = repo_root / "src/chezmoi/.chezmoidata/ai/overlay-plugin-bridge.toml"
-    skills_path = repo_root / "src/chezmoi/.chezmoidata/ai/overlay-skills.toml"
-    with config_path.open("rb") as config_file, skills_path.open("rb") as skills_file:
-        capability = tomllib.load(config_file)["ai"]["plugin_bridge"]["capabilities"][
-            "stripe-dotfiles"
-        ]
-        overlay_skills = tomllib.load(skills_file)["ai"]["overlay_skills"]
-
-    source_dir = tmp_path / "source"
-    package_source = (
-        source_dir / "dot_local/share/agent-plugins/marketplace/plugins/stripe-dotfiles"
-    )
-    package_source.mkdir(parents=True)
-
-    inventory = plugin_bridge._package_cleanup_inventory(
-        "stripe-dotfiles",
-        capability,
-        {"dotfiles": {"hosts": ["claude", "codex", "cursor"]}},
-        {},
-        source_dir,
-        repo_root,
-        tmp_path / ".local/share/agent-plugins/marketplace",
-        overlay_skills=overlay_skills,
-    )
-
-    assert inventory is not None
-    expected = {
-        "skills/domain-projects/SKILL.md",
-        "claude/skills/domain-projects/SKILL.md",
-        "codex/skills/domain-projects/SKILL.md",
-        "cursor/skills/domain-projects/SKILL.md",
-        "skills/writing/SKILL.md",
-        "claude/skills/writing/SKILL.md",
-        "codex/skills/writing/SKILL.md",
-        "cursor/skills/writing/SKILL.md",
-    }
-    assert expected <= set(inventory["expected_files"])
-    local_files = {
-        f"{root}/jira-format-content/SKILL.md"
-        for root in (
-            "skills",
-            "claude/skills",
-            "codex/skills",
-            "cursor/skills",
-        )
-    }
-    if Path("/Applications/Santa.app").exists():
-        assert local_files <= set(inventory["expected_files"])
-    else:
-        assert local_files.isdisjoint(inventory["expected_files"])
-
-
-def test_actual_overlay_capability_declares_all_package_hosts():
-    repo_root = Path(__file__).parents[6]
-    config_path = repo_root / "src/chezmoi/.chezmoidata/ai/overlay-plugin-bridge.toml"
-    with config_path.open("rb") as config_file:
-        capability = tomllib.load(config_file)["ai"]["plugin_bridge"]["capabilities"][
-            "stripe-dotfiles"
-        ]
-
-    assert capability["hosts"] == ["claude", "codex", "cursor"]
-
-
-@pytest.mark.parametrize(
-    "cleanup,match",
-    [
-        (
-            {
-                "stable_key": "mkobit-dotfiles",
-                "root": "{generated}/plugins/other",
-                "expected_files": [],
-            },
-            "outside generated marketplace root",
-        ),
-        (
-            {
-                "stable_key": "mkobit-dotfiles",
-                "root": "{generated}/plugins/mkobit-dotfiles",
-                "expected_files": ["../escape"],
-            },
-            "unsafe",
-        ),
-    ],
-)
-def test_reconcile_rejects_unsafe_package_cleanup_inventory(
-    tmp_path, cleanup, match, monkeypatch
-):
-    generated_root = tmp_path / ".local/share/agent-plugins/marketplace"
-    package_root = generated_root / "plugins/mkobit-dotfiles"
-    package_root.mkdir(parents=True)
-    cleanup = {
-        key: value.replace("{generated}", str(generated_root))
-        if isinstance(value, str)
-        else value
-        for key, value in cleanup.items()
-    }
-    monkeypatch.setattr(plugin_bridge, "_ensure_plugin", lambda *args: None)
-
-    with pytest.raises(plugin_bridge.BridgeError, match=match):
-        plugin_bridge.reconcile(
-            tmp_path,
-            {
-                "plugin_bridge": {
-                    "generated_marketplace_root": str(generated_root),
-                    "capabilities": {
-                        "mkobit-dotfiles": {
-                            "marketplace": "dotfiles",
-                            "package_cleanup": cleanup,
-                        }
-                    },
-                }
-            },
-        )
-
-
-def test_reconcile_rejects_symlinked_generated_package_ancestor(tmp_path, monkeypatch):
-    generated_root = tmp_path / ".local/share/agent-plugins/marketplace"
+def test_reconcile_rejects_symlinked_state_root(tmp_path):
     redirected = tmp_path / "redirected"
     redirected.mkdir()
-    generated_root.parent.mkdir(parents=True)
-    generated_root.symlink_to(redirected, target_is_directory=True)
-    monkeypatch.setattr(plugin_bridge, "_ensure_plugin", lambda *args: None)
+    state = tmp_path / ".local/state/dotfiles"
+    state.parent.mkdir(parents=True)
+    state.symlink_to(redirected, target_is_directory=True)
+    with pytest.raises(plugin_bridge.BridgeError, match="state root"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+    assert list(redirected.iterdir()) == []
 
-    with pytest.raises(plugin_bridge.BridgeError, match="symlink"):
+
+def test_successful_registration_is_checkpointed_before_later_failure(
+    tmp_path, monkeypatch
+):
+    calls = 0
+
+    def ensure(host, marketplace, name, ownership_file, desired, owned):
+        nonlocal calls
+        calls += 1
+        record = plugin_bridge._identity("plugin", host, marketplace, name)
+        desired.add(record)
+        if calls == 2:
+            raise plugin_bridge.BridgeError("later failure")
+        owned.add(record)
+        plugin_bridge._checkpoint(ownership_file, record)
+
+    monkeypatch.setattr(plugin_bridge, "_ensure_plugin", ensure)
+    with pytest.raises(plugin_bridge.BridgeError, match="later failure"):
         plugin_bridge.reconcile(
             tmp_path,
             {
                 "plugin_bridge": {
-                    "generated_marketplace_root": str(generated_root),
+                    "marketplaces": {"m": {"source_type": "generated", "hosts": []}},
                     "capabilities": {
-                        "mkobit-dotfiles": {
-                            "marketplace": "dotfiles",
-                            "package_cleanup": {
-                                "stable_key": "mkobit-dotfiles",
-                                "root": str(generated_root / "plugins/mkobit-dotfiles"),
-                                "expected_files": [],
-                            },
-                        }
+                        "a": {"marketplace": "m", "hosts": ["claude"]},
+                        "b": {"marketplace": "m", "hosts": ["claude"]},
                     },
                 }
             },
         )
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    assert ownership.read_text() == "plugin\tclaude\tm\ta\n"
 
 
-def test_reconcile_rejects_expected_package_symlink(tmp_path, monkeypatch):
-    generated_root = tmp_path / ".local/share/agent-plugins/marketplace"
-    package_root = generated_root / "plugins/mkobit-dotfiles"
-    package_root.mkdir(parents=True)
-    outside = tmp_path / "outside"
-    outside.write_text("outside", encoding="utf-8")
-    (package_root / "plugin.json").symlink_to(outside)
-    monkeypatch.setattr(plugin_bridge, "_ensure_plugin", lambda *args: None)
-
-    with pytest.raises(plugin_bridge.BridgeError, match="expected file is a symlink"):
-        plugin_bridge.reconcile(
-            tmp_path,
-            {
-                "plugin_bridge": {
-                    "generated_marketplace_root": str(generated_root),
-                    "capabilities": {
-                        "mkobit-dotfiles": {
-                            "marketplace": "dotfiles",
-                            "package_cleanup": {
-                                "stable_key": "mkobit-dotfiles",
-                                "root": str(package_root),
-                                "expected_files": ["plugin.json"],
-                            },
-                        }
-                    },
-                }
-            },
-        )
-
-
-def test_enabled_claude_plugin_is_not_enabled_again(tmp_path, monkeypatch):
-    calls = []
-
-    def run(host, *args):
-        calls.append((host, *args))
-        if args == ("plugin", "list", "--json"):
-            return '[{"id":"demo@market","enabled":true}]'
-        return ""
-
-    monkeypatch.setattr(plugin_bridge, "_run", run)
-
-    plugin_bridge._ensure_plugin(
-        "claude",
-        "market",
-        "demo",
-        tmp_path,
-        tmp_path / "ownership",
-        set(),
-        set(),
-    )
-
-    assert ("claude", "plugin", "enable", "demo@market") not in calls
-
-
-def test_claude_plugin_update_rechecks_enabled_state(tmp_path, monkeypatch):
-    calls = []
-    enabled = True
-
-    def run(host, *args):
-        nonlocal enabled
-        calls.append((host, *args))
-        if args == ("plugin", "list", "--json"):
-            return json.dumps([{"id": "demo@market", "enabled": enabled}])
-        if args == ("plugin", "update", "demo@market"):
-            enabled = False
-        if args == ("plugin", "enable", "demo@market"):
-            enabled = True
-        return ""
-
-    monkeypatch.setattr(plugin_bridge, "_run", run)
-
-    plugin_bridge._ensure_plugin(
-        "claude",
-        "market",
-        "demo",
-        tmp_path,
-        tmp_path / "ownership",
-        set(),
-        set(),
-    )
-
-    assert ("claude", "plugin", "enable", "demo@market") in calls
-
-
-def test_disabled_claude_plugin_must_be_enabled(tmp_path, monkeypatch):
+def test_existing_claude_plugin_is_adopted_and_enabled(tmp_path, monkeypatch):
     calls = []
     enabled = False
 
@@ -632,51 +355,33 @@ def test_disabled_claude_plugin_must_be_enabled(tmp_path, monkeypatch):
         return ""
 
     monkeypatch.setattr(plugin_bridge, "_run", run)
-
-    plugin_bridge._ensure_plugin(
-        "claude",
-        "market",
-        "demo",
-        tmp_path,
-        tmp_path / "ownership",
-        set(),
-        set(),
-    )
-
+    desired, owned = set(), set()
+    ownership = tmp_path / "ownership"
+    plugin_bridge._ensure_plugin("claude", "market", "demo", ownership, desired, owned)
+    assert ("claude", "plugin", "update", "demo@market") in calls
     assert ("claude", "plugin", "enable", "demo@market") in calls
+    assert owned == {"plugin\tclaude\tmarket\tdemo"}
 
 
-def test_claude_plugin_reconciliation_rejects_disabled_final_state(
-    tmp_path, monkeypatch
-):
-    calls = []
-
-    def run(host, *args):
-        calls.append((host, *args))
-        if args == ("plugin", "list", "--json"):
-            return '[{"id":"demo@market","enabled":false}]'
-        return ""
-
-    monkeypatch.setattr(plugin_bridge, "_run", run)
-
+def test_claude_plugin_rejects_disabled_final_state(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_run",
+        lambda host, *args: (
+            '[{"id":"demo@market","enabled":false}]'
+            if args == ("plugin", "list", "--json")
+            else ""
+        ),
+    )
     with pytest.raises(
-        plugin_bridge.BridgeError,
-        match="plugin did not become available and enabled: demo@market",
+        plugin_bridge.BridgeError, match="did not become available and enabled"
     ):
         plugin_bridge._ensure_plugin(
-            "claude",
-            "market",
-            "demo",
-            tmp_path,
-            tmp_path / "ownership",
-            set(),
-            set(),
+            "claude", "market", "demo", tmp_path / "ownership", set(), set()
         )
 
-    assert ("claude", "plugin", "enable", "demo@market") in calls
 
-
-def test_migrate_ownership_writes_canonical_tsv(tmp_path):
+def test_migrate_ownership_keeps_native_and_drops_cursor(tmp_path):
     legacy = tmp_path / "ownership.json"
     legacy.write_text(
         json.dumps(
@@ -684,87 +389,117 @@ def test_migrate_ownership_writes_canonical_tsv(tmp_path):
                 "resources": [
                     {"kind": "plugin", "host": "claude", "id": "demo@market"},
                     {"kind": "marketplace", "host": "codex", "id": "market"},
+                    {"kind": "plugin", "host": "cursor", "id": "local"},
                 ]
             }
         )
     )
-
-    result = subprocess.run(
-        [sys.executable, str(plugin_bridge.__file__), "migrate-ownership", str(legacy)],
-        check=True,
-        capture_output=True,
-        text=True,
-    )
-
     assert (
-        result.stdout == "plugin\tclaude\tmarket\tdemo\nmarketplace\tcodex\tmarket\t\n"
-    )
-
-
-def test_migrate_ownership_resolves_legacy_cursor_plugin_from_declaration(tmp_path):
-    legacy = tmp_path / "ownership.json"
-    legacy.write_text(
-        json.dumps(
-            {
-                "resources": [
-                    {"kind": "plugin", "host": "cursor", "id": "demo"},
-                ]
-            }
-        )
-    )
-
-    result = plugin_bridge.migrate_ownership(legacy, {("cursor", "demo"): "market"})
-
-    assert result == "plugin\tcursor\tmarket\tdemo\n"
-
-
-def test_migrate_ownership_keeps_non_cursor_bare_plugin_ids_invalid(tmp_path):
-    legacy = tmp_path / "ownership.json"
-    legacy.write_text(
-        json.dumps(
-            {
-                "resources": [
-                    {"kind": "plugin", "host": "claude", "id": "demo"},
-                ]
-            }
-        )
-    )
-
-    with pytest.raises(ValueError, match="invalid legacy plugin identity"):
         plugin_bridge.migrate_ownership(legacy)
+        == "plugin\tclaude\tmarket\tdemo\nmarketplace\tcodex\tmarket\t\n"
+    )
 
 
-def test_has_identity_accepts_exact_json_identity():
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(plugin_bridge.__file__),
-            "has-identity",
-            "--field",
-            "id",
-            "--expected",
-            "demo@market",
-        ],
-        input='[{"id":"demo@market"}]\n',
-        check=False,
+def test_reconcile_removes_legacy_ownership_after_durable_migration(tmp_path):
+    state = tmp_path / ".local/state/dotfiles"
+    state.mkdir(parents=True)
+    legacy = state / "agent-plugin-ownership.json"
+    legacy.write_text(
+        json.dumps(
+            {
+                "resources": [
+                    {"kind": "plugin", "host": "cursor", "id": "local"},
+                    {"kind": "package", "host": "filesystem", "id": "generated"},
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    assert not legacy.exists()
+    assert (state / "agent-plugin-ownership").read_text(encoding="utf-8") == ""
+
+
+def test_failed_legacy_migration_keeps_legacy_ownership(tmp_path, monkeypatch):
+    state = tmp_path / ".local/state/dotfiles"
+    state.mkdir(parents=True)
+    legacy = state / "agent-plugin-ownership.json"
+    legacy.write_text(
+        json.dumps(
+            {"resources": [{"kind": "plugin", "host": "cursor", "id": "local"}]}
+        ),
+        encoding="utf-8",
+    )
+
+    def fail_write(path, records):
+        raise OSError("durable write failed")
+
+    monkeypatch.setattr(plugin_bridge, "_write_ownership", fail_write)
+    with pytest.raises(OSError, match="durable write failed"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    assert legacy.exists()
+    assert not (state / "agent-plugin-ownership").exists()
+
+
+def test_legacy_cleanup_recovers_after_unlink_failure(tmp_path, monkeypatch):
+    state = tmp_path / ".local/state/dotfiles"
+    state.mkdir(parents=True)
+    legacy = state / "agent-plugin-ownership.json"
+    legacy.write_text(
+        json.dumps(
+            {"resources": [{"kind": "plugin", "host": "cursor", "id": "local"}]}
+        ),
+        encoding="utf-8",
+    )
+    unlink = type(legacy).unlink
+    fail_once = True
+
+    def flaky_unlink(path, *args, **kwargs):
+        nonlocal fail_once
+        if path == legacy and fail_once:
+            fail_once = False
+            raise OSError("unlink failed")
+        return unlink(path, *args, **kwargs)
+
+    monkeypatch.setattr(type(legacy), "unlink", flaky_unlink)
+    with pytest.raises(OSError, match="unlink failed"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    ownership = state / "agent-plugin-ownership"
+    assert ownership.read_text(encoding="utf-8") == ""
+    assert legacy.exists()
+
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    assert not legacy.exists()
+    assert ownership.read_text(encoding="utf-8") == ""
+
+
+def test_has_identity_cli_uses_exact_json_identity():
+    command = [
+        sys.executable,
+        str(plugin_bridge.__file__),
+        "has-identity",
+        "--field",
+        "id",
+        "--expected",
+        "demo@market",
+    ]
+    present = subprocess.run(
+        command,
+        input='[{"id":"demo@market"}]',
         capture_output=True,
         text=True,
-    )
-    assert result.returncode == 0
-
-    result = subprocess.run(
-        [
-            sys.executable,
-            str(plugin_bridge.__file__),
-            "has-identity",
-            "--field",
-            "id",
-            "--expected",
-            "demo@market",
-        ],
-        input='[{"id":"demographic@market"}]\n',
         check=False,
+    )
+    absent = subprocess.run(
+        command,
+        input='[{"id":"demographic@market"}]',
         capture_output=True,
         text=True,
+        check=False,
     )
-    assert result.returncode == 1
+    assert (present.returncode, absent.returncode) == (0, 1)

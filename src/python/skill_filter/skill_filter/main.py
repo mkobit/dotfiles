@@ -42,13 +42,13 @@ import hashlib
 import io
 import os
 import posixpath
+import shutil
 import sys
 import tarfile
+import tempfile
 from collections.abc import Iterable, Sequence
-from typing import TYPE_CHECKING, BinaryIO, Callable, NamedTuple, Optional
-
-if TYPE_CHECKING:
-    from pathlib import Path
+from pathlib import Path
+from typing import BinaryIO, Callable, NamedTuple
 
 
 class Selection(NamedTuple):
@@ -104,8 +104,6 @@ def validate_skill_root_manifest(
     dest_dir: Path, entries: Iterable[str]
 ) -> tuple[Path, ...]:
     """Resolve manifest entries without permitting traversal or symlink escapes."""
-    from pathlib import Path
-
     destination = Path(dest_dir)
     if not destination.is_absolute():
         raise FilterError("destination directory must be absolute")
@@ -130,8 +128,6 @@ def validate_skill_root_manifest(
 
 def validate_state_manifest_path(dest_dir: Path, state_manifest: Path) -> Path:
     """Reject state manifests outside their canonical destination state path."""
-    from pathlib import Path
-
     destination = Path(dest_dir)
     manifest = Path(state_manifest)
     if not destination.is_absolute():
@@ -165,8 +161,6 @@ def validate_state_manifest_path(dest_dir: Path, state_manifest: Path) -> Path:
 
 
 def _replace_manifest_atomically(state_manifest: Path, content: str) -> None:
-    import tempfile
-
     state_manifest.parent.mkdir(parents=True, exist_ok=True)
     file_descriptor, temporary_name = tempfile.mkstemp(
         dir=str(state_manifest.parent), prefix=f".{state_manifest.name}."
@@ -176,10 +170,10 @@ def _replace_manifest_atomically(state_manifest: Path, content: str) -> None:
             file.write(content)
             file.flush()
             os.fsync(file.fileno())
-        os.replace(temporary_name, state_manifest)
+        Path(temporary_name).replace(state_manifest)
     except BaseException:
         try:
-            os.unlink(temporary_name)
+            Path(temporary_name).unlink()
         except FileNotFoundError:
             pass
         raise
@@ -189,9 +183,6 @@ def reconcile_skill_roots(
     dest_dir: Path, state_manifest: Path, desired_manifest: str
 ) -> tuple[str, ...]:
     """Delete stale managed skill roots and atomically record desired roots."""
-    import shutil
-    from pathlib import Path
-
     destination = Path(dest_dir)
     manifest = validate_state_manifest_path(destination, state_manifest)
     desired_entries = parse_skill_root_manifest(desired_manifest, allow_duplicates=True)
@@ -202,7 +193,7 @@ def reconcile_skill_roots(
     if manifest.exists():
         prior = parse_skill_root_manifest(manifest.read_text(encoding="utf-8"))
         prior_paths = validate_skill_root_manifest(destination, prior)
-        prior_by_entry = dict(zip(prior, prior_paths))
+        prior_by_entry = dict(zip(prior, prior_paths, strict=True))
         stale_roots = tuple(
             (stale, prior_by_entry[stale])
             for stale in sorted(set(prior) - set(desired))
@@ -368,7 +359,7 @@ TRANSFORMS: dict[str, Transform] = {
 }
 
 
-def _stripped_name(name: str, strip_components: int) -> Optional[str]:
+def _stripped_name(name: str, strip_components: int) -> str | None:
     normalized = posixpath.normpath(name)
     if normalized.startswith(("/", "..")):
         raise FilterError(f"archive member {name!r} escapes the extraction root")
@@ -377,7 +368,7 @@ def _stripped_name(name: str, strip_components: int) -> Optional[str]:
     return "/".join(remainder) if remainder else None
 
 
-def _output_name(name: str, selection: Selection) -> Optional[str]:
+def _output_name(name: str, selection: Selection) -> str | None:
     if name != selection.src and not name.startswith(f"{selection.src}/"):
         return None
     remainder = name[len(selection.src) :].lstrip("/")
@@ -387,7 +378,7 @@ def _output_name(name: str, selection: Selection) -> Optional[str]:
 
 
 def _renamed_member(
-    member: tarfile.TarInfo, name: str, size: Optional[int] = None
+    member: tarfile.TarInfo, name: str, size: int | None = None
 ) -> tarfile.TarInfo:
     # TarInfo.replace() requires python 3.12; copy manually to support older system pythons.
     renamed = copy.copy(member)
@@ -401,36 +392,88 @@ def _renamed_member(
     return renamed
 
 
+def _normalize_expected_root(expected_root: str) -> str:
+    normalized_root = posixpath.normpath(expected_root)
+    if (
+        not expected_root
+        or normalized_root.startswith(("/", "../"))
+        or normalized_root in {".", ".."}
+    ) and expected_root != ".":
+        raise FilterError("expected root must be a normalized relative path")
+    return normalized_root
+
+
+def _extract_member(
+    archive: tarfile.TarFile,
+    member: tarfile.TarInfo,
+    selection: Selection,
+    transform: Transform | None,
+) -> bytes | None:
+    if not member.isfile():
+        return None
+    extracted = archive.extractfile(member)
+    if extracted is None:
+        return None
+    content = extracted.read()
+    return transform(selection.src, content) if transform is not None else content
+
+
+def _match_member(
+    archive: tarfile.TarFile,
+    member: tarfile.TarInfo,
+    name: str,
+    selections: Sequence[Selection],
+    transform: Transform | None,
+) -> tuple[str, Selection, bytes | None] | None:
+    for selection in selections:
+        output_name = _output_name(name, selection)
+        if output_name is not None:
+            content = _extract_member(archive, member, selection, transform)
+            return output_name, selection, content
+    return None
+
+
+def _collect_matches(
+    archive: tarfile.TarFile,
+    selections: Sequence[Selection],
+    strip_components: int,
+    transform: Transform | None,
+    normalized_root: str,
+) -> tuple[list[tuple[str, tarfile.TarInfo, Selection, bytes | None]], set[str], bool]:
+    matched_triples = []
+    matched_sources = set()
+    found_root = normalized_root == "."
+    for member in archive:
+        name = _stripped_name(member.name, strip_components)
+        if name is None:
+            continue
+        if normalized_root != "." and (
+            name == normalized_root or name.startswith(f"{normalized_root}/")
+        ):
+            found_root = True
+        match = _match_member(archive, member, name, selections, transform)
+        if match is not None:
+            output_name, selection, content = match
+            matched_sources.add(selection.src)
+            matched_triples.append((output_name, member, selection, content))
+    return matched_triples, matched_sources, found_root
+
+
 def filter_archive(
     src: BinaryIO,
     dst: BinaryIO,
     selections: Sequence[Selection],
     strip_components: int = 1,
-    transform: Optional[Transform] = None,
+    transform: Transform | None = None,
+    expected_root: str = ".",
 ) -> None:
     """Copy selected, re-rooted subtrees from a tar.gz stream to a tar stream."""
-    matched_triples = []
-    matched_sources = set()
+    normalized_root = _normalize_expected_root(expected_root)
 
     with tarfile.open(fileobj=src, mode="r|gz") as archive:
-        for member in archive:
-            name = _stripped_name(member.name, strip_components)
-            if name is None:
-                continue
-            for selection in selections:
-                output_name = _output_name(name, selection)
-                if output_name is not None:
-                    matched_sources.add(selection.src)
-                    content = None
-                    if member.isfile():
-                        extracted = archive.extractfile(member)
-                        if extracted is not None:
-                            if transform is None:
-                                content = extracted.read()
-                            else:
-                                content = transform(selection.src, extracted.read())
-                    matched_triples.append((output_name, member, selection, content))
-                    break
+        matched_triples, matched_sources, found_root = _collect_matches(
+            archive, selections, strip_components, transform, normalized_root
+        )
 
     unmatched = [
         selection.src
@@ -441,6 +484,8 @@ def filter_archive(
         raise FilterError(
             f"selections matched nothing in the archive: {', '.join(unmatched)}"
         )
+    if not found_root:
+        raise FilterError(f"expected root does not exist: {expected_root}")
 
     # Sort output by name to satisfy TestDeterminism
     matched_triples.sort(key=lambda x: x[0])
@@ -493,12 +538,15 @@ def _parse_args(argv: Iterable[str]) -> argparse.Namespace:
         "--cache-key",
         help="cache key (usually the source archive SHA256) to enable caching of filtered output",
     )
+    parser.add_argument(
+        "--expected-root",
+        default=".",
+        help="root path expected after archive prefix stripping",
+    )
     return parser.parse_args(list(argv))
 
 
 def _parse_cleanup_args(argv: Iterable[str]) -> argparse.Namespace:
-    from pathlib import Path
-
     parser = argparse.ArgumentParser(
         prog="skill-filter cleanup-skill-roots",
         description="prune stale managed AI skill directories from a destination",
@@ -518,77 +566,88 @@ def _parse_cleanup_args(argv: Iterable[str]) -> argparse.Namespace:
     return parser.parse_args(list(argv))
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def _run_cleanup(argv: Sequence[str]) -> int:
+    args = _parse_cleanup_args(argv)
+    try:
+        reconcile_skill_roots(
+            args.dest_dir,
+            args.state_manifest,
+            sys.stdin.read(),
+        )
+    except (FilterError, OSError, UnicodeError) as error:
+        print(f"skill-filter: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _cache_file(args: argparse.Namespace) -> Path | None:
+    if not args.cache_key:
+        return None
+    args_str = (
+        f"select={sorted(args.select)},transform={args.transform},"
+        f"strip={args.strip_components},root={args.expected_root}"
+    )
+    args_hash = hashlib.sha256(args_str.encode("utf-8")).hexdigest()
+    return Path("~/.cache/skill-filter").expanduser() / (
+        f"{args.cache_key}-{args_hash}.tar"
+    )
+
+
+def _run_filter(args: argparse.Namespace) -> None:
+    selections = [parse_selection(raw) for raw in args.select]
+    if len(selections) > 1 and any(selection.dest == "." for selection in selections):
+        raise FilterError("a '.' destination is only allowed with a single --select")
+    transform = TRANSFORMS[args.transform] if args.transform else None
+    cache_file = _cache_file(args)
+
+    if cache_file is not None and cache_file.exists():
+        try:
+            with cache_file.open("rb") as cached:
+                sys.stdout.buffer.write(cached.read())
+            while sys.stdin.buffer.read(1024 * 1024):
+                pass
+            return
+        except Exception as error:  # noqa: BLE001 - cache reads are best-effort
+            print(f"skill-filter cache read error: {error}", file=sys.stderr)
+
+    if cache_file is None:
+        filter_archive(
+            sys.stdin.buffer,
+            sys.stdout.buffer,
+            selections,
+            args.strip_components,
+            transform,
+            args.expected_root,
+        )
+        return
+
+    output_buffer = io.BytesIO()
+    filter_archive(
+        sys.stdin.buffer,
+        output_buffer,
+        selections,
+        args.strip_components,
+        transform,
+        args.expected_root,
+    )
+    output_data = output_buffer.getvalue()
+    sys.stdout.buffer.write(output_data)
+    try:
+        cache_file.parent.mkdir(parents=True, exist_ok=True)
+        with cache_file.open("wb") as cached:
+            cached.write(output_data)
+    except Exception as error:  # noqa: BLE001 - cache writes are best-effort
+        print(f"skill-filter cache write error: {error}", file=sys.stderr)
+
+
+def main(argv: Sequence[str] | None = None) -> int:
     raw_argv = list(sys.argv[1:] if argv is None else argv)
     if raw_argv[:1] == ["cleanup-skill-roots"]:
-        args = _parse_cleanup_args(raw_argv[1:])
-        try:
-            reconcile_skill_roots(
-                args.dest_dir,
-                args.state_manifest,
-                sys.stdin.read(),
-            )
-        except (FilterError, OSError, UnicodeError) as error:
-            print(f"skill-filter: {error}", file=sys.stderr)
-            return 1
-        return 0
+        return _run_cleanup(raw_argv[1:])
 
     args = _parse_args(raw_argv)
     try:
-        selections = [parse_selection(raw) for raw in args.select]
-        if len(selections) > 1 and any(
-            selection.dest == "." for selection in selections
-        ):
-            raise FilterError(
-                "a '.' destination is only allowed with a single --select"
-            )
-        transform = TRANSFORMS[args.transform] if args.transform else None
-
-        cache_file = None
-        if args.cache_key:
-            # Generate a stable hash of the selections and transforms
-            args_str = f"select={sorted(args.select)},transform={args.transform},strip={args.strip_components}"
-            args_hash = hashlib.sha256(args_str.encode("utf-8")).hexdigest()
-            cache_dir = os.path.expanduser("~/.cache/skill-filter")
-            cache_file = os.path.join(cache_dir, f"{args.cache_key}-{args_hash}.tar")
-            if os.path.exists(cache_file):
-                try:
-                    with open(cache_file, "rb") as f:
-                        cache_data = f.read()
-                    sys.stdout.buffer.write(cache_data)
-                    # Discard stdin to avoid SIGPIPE in parent
-                    while sys.stdin.buffer.read(1024 * 1024):
-                        pass
-                    return 0
-                except Exception as e:  # noqa: BLE001  # cache read is best-effort; any failure falls back to a full rebuild
-                    print(f"skill-filter cache read error: {e}", file=sys.stderr)
-
-        if cache_file:
-            output_buffer = io.BytesIO()
-            filter_archive(
-                sys.stdin.buffer,
-                output_buffer,
-                selections,
-                args.strip_components,
-                transform,
-            )
-            output_data = output_buffer.getvalue()
-            sys.stdout.buffer.write(output_data)
-            try:
-                os.makedirs(os.path.dirname(cache_file), exist_ok=True)
-                with open(cache_file, "wb") as f:
-                    f.write(output_data)
-            except Exception as e:  # noqa: BLE001  # cache write is best-effort; any failure just skips caching
-                print(f"skill-filter cache write error: {e}", file=sys.stderr)
-        else:
-            filter_archive(
-                sys.stdin.buffer,
-                sys.stdout.buffer,
-                selections,
-                args.strip_components,
-                transform,
-            )
-
+        _run_filter(args)
     except (FilterError, tarfile.TarError, gzip.BadGzipFile, EOFError) as error:
         print(f"skill-filter: {error}", file=sys.stderr)
         return 1

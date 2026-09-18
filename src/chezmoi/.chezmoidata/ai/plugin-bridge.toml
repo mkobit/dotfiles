@@ -13,6 +13,8 @@ order = 100
 
 [ai.plugin_bridge.capabilities.mkobit-dotfiles]
 description = "Base dotfiles capability bundle."
+acquisition_destination = true
 marketplace = "dotfiles"
 hosts = ["claude", "codex", "cursor"]
 authored_skill_source = "src/ai/skills"
+wrapper_source_dir = "src/ai/plugins/mkobit-dotfiles/wrappers"

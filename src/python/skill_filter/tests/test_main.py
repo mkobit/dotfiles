@@ -3,7 +3,6 @@ from __future__ import annotations
 import gzip
 import importlib
 import io
-import os
 import subprocess
 import sys
 import tarfile
@@ -635,7 +634,7 @@ class TestSkillRootManifest:
         link.parent.mkdir(parents=True)
         link.symlink_to(outside, target_is_directory=True)
 
-        with pytest.raises(FilterError, match="escape|symlink"):
+        with pytest.raises(FilterError, match=r"escape|symlink"):
             reconcile(tmp_path, state_manifest, "")
 
         assert marker.read_text(encoding="utf-8") == "keep"
@@ -685,10 +684,10 @@ class TestSkillRootManifest:
         prior = ".codex/skills/prior\n"
         state_manifest.write_text(prior, encoding="utf-8")
 
-        def fail_replace(src, dst):
+        def fail_replace(self, dst):
             raise OSError("replace failed")
 
-        monkeypatch.setattr(os, "replace", fail_replace)
+        monkeypatch.setattr(Path, "replace", fail_replace)
 
         with pytest.raises(OSError, match="replace failed"):
             reconcile(tmp_path, state_manifest, ".codex/skills/desired\n")

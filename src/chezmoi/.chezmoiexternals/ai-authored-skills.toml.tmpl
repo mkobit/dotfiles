@@ -1,22 +1,12 @@
 {{- /*
-  Generates one file external per (present authored skill file, tool dir) from
-  the catalog in .chezmoidata/ai/skills.toml. Authored skills are full
-  directory trees under src/ai/skills/<skill>/; nested paths are preserved, so
-  the overlay rsync union must include src/ai/skills/. file:// URLs read
-  straight from the working tree and refreshPeriod re-reads them on every
-  apply, keeping package snapshots in sync with local edits. The state-manifest
-  cleanup hook continues to manage Antigravity's flattened global skill roots.
-  The plugin bridge prunes stale package files only after the rendered plugin
-  verifies, while exact externals retain ownership of their selected trees.
+  Keeps Antigravity's flattened global skill deployment for portable authored
+  skills. The pre-state plugin materializer owns generated package copies.
 */ -}}
-{{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
-{{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}
-{{- $portable := printf "%s/skills" $bundle -}}
 {{- $antigravity := ".gemini/antigravity-cli/skills" -}}
 {{- $root := joinPath .chezmoi.workingTree "src/ai/skills" -}}
 {{- $config := dict -}}
 {{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
-{{-   if or (eq $state "present") (hasKey $tools $state) -}}
+{{-   if eq $state "present" -}}
 {{-     $skillDir := joinPath $root $skillName -}}
 {{-     $found := false -}}
 {{-     range $path := glob (joinPath $skillDir "**/*") -}}
@@ -28,22 +18,14 @@
                   "url" (printf "file://%s" $path)
                   "refreshPeriod" "1s"
 -}}
-{{-         if eq $state "present" -}}
-{{-           $_ := set $config (printf "%s/%s/%s" $portable $skillName $rel) $entry -}}
-{{-           $_ := set $config (printf "%s/%s/%s" $antigravity $skillName $rel) $entry -}}
-{{-         end -}}
-{{-         range $toolName, $dir := $tools -}}
-{{-           if or (eq $state "present") (eq $state $toolName) -}}
-{{-             $_ := set $config (printf "%s/%s/%s" $dir $skillName $rel) $entry -}}
-{{-           end -}}
-{{-         end -}}
+{{-         $_ := set $config (printf "%s/%s/%s" $antigravity $skillName $rel) $entry -}}
 {{-       end -}}
 {{-     end -}}
 {{-     if not $found -}}
 {{-       fail (printf "ai.skills.authored.%s: no files found under %s" $skillName $skillDir) -}}
 {{-     end -}}
-{{-   else if ne $state "absent" -}}
-{{-     fail (printf "ai.skills.authored.%s: state must be \"present\", \"absent\", or a tool name (%s), got %q" $skillName (keys $tools | sortAlpha | join ", ") $state) -}}
+{{-   else if not (has $state (list "absent" "claude" "codex" "cursor")) -}}
+{{-     fail (printf "ai.skills.authored.%s: invalid state %q" $skillName $state) -}}
 {{-   end -}}
 {{- end -}}
 {{- if $config -}}{{- toToml $config -}}{{- end -}}
