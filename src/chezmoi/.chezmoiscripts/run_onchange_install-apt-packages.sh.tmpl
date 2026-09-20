@@ -74,8 +74,12 @@ if dpkg -l {{ $name }} 2>/dev/null | grep -q "^ii"; then
     log_success "{{ $name }} already installed via apt"
 elif [ "$has_sudo_access" -eq 1 ]; then
     log_info "🔒 Installing {{ $name }} via apt..."
-    sudo apt-get install -y {{ $name }} \
-        || { log_error "Failed to install {{ $name }} via apt"; exit 1; }
+    if ! sudo apt-get install -y {{ $name }}; then
+        log_warn "Failed to install {{ $name }} via apt, updating apt cache and retrying..."
+        sudo apt-get update
+        sudo apt-get install -y {{ $name }} \
+            || { log_error "Failed to install {{ $name }} via apt after update"; exit 1; }
+    fi
     log_success "{{ $name }} installed"
 else
     log_warn "No TTY and no cached sudo credentials — skipping {{ $name }} install, will retry next apply"
