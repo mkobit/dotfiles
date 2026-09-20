@@ -21,8 +21,15 @@ def test_antigravity_settings_deployed(host, chezmoi_dest):
     assert settings_file.exists, "~/.gemini/antigravity-cli/settings.json does not exist"
 
 
-def _render_antigravity_settings(stdin: str, agy_method: str) -> subprocess.CompletedProcess[str]:
+def _render_antigravity_settings(
+    stdin: str,
+    agy_method: str,
+    override_data: dict[str, Any] | None = None,
+) -> subprocess.CompletedProcess[str]:
     template = Path.cwd() / "src/chezmoi/dot_gemini/antigravity-cli/modify_settings.json"
+    data: dict[str, Any] = {"local": {"bin": {"agy": {"installation_method": agy_method}}}}
+    if override_data is not None:
+        data.update(override_data)
     return subprocess.run(
         [
             "chezmoi",
@@ -36,7 +43,7 @@ def _render_antigravity_settings(stdin: str, agy_method: str) -> subprocess.Comp
             "-f",
             "--with-stdin",
             "--override-data",
-            json.dumps({"local": {"bin": {"agy": {"installation_method": agy_method}}}}),
+            json.dumps(data),
             str(template),
         ],
         input=stdin,
@@ -97,6 +104,27 @@ def test_antigravity_vim_mode_settings() -> None:
     rendered = json.loads(result.stdout)
     assert rendered.get("editorMode") == "vim"
     assert rendered.get("vimInsertFirst") is True
+
+
+@pytest.mark.integration
+def test_antigravity_agent_mode_default() -> None:
+    result = _render_antigravity_settings("{}", "preinstalled")
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert rendered.get("agentMode") == "accept-edits"
+
+
+@pytest.mark.integration
+def test_antigravity_permissions_merges_live_and_configured_urls() -> None:
+    result = _render_antigravity_settings(
+        '{"permissions":{"allow":["read_url(example.com)"]}}',
+        "preinstalled",
+    )
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    allow = rendered.get("permissions", {}).get("allow", [])
+    assert "read_url(example.com)" in allow
+    assert "read_url(antigravity.google)" in allow
 
 
 def _render_antigravity_keybindings(

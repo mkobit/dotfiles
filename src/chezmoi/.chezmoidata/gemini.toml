@@ -16,6 +16,7 @@ show_model_info_in_chat = true
 hide_context_percentage = false
 
 [gemini.general]
+agent_mode = "accept-edits"
 enable_auto_update = false
 preview_features = true
 show_feedback_survey = false
@@ -45,3 +46,8 @@ include_directories = ["~/.config/gh"]
 
 [gemini.experimental]
 worktrees = true
+
+[gemini.permissions]
+allow = [
+  "read_url(antigravity.google)",
+]
