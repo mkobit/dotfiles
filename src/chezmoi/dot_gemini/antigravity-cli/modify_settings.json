@@ -19,11 +19,23 @@
    documented "Deny > Ask > Allow" precedence, not yet live-tested —
    harmless today since nothing sets "deny" here. */ -}}
 {{-   end -}}
-{{-   $agPermissions := dict "allow" ($agAllow | uniq | sortAlpha) -}}
+{{-   $liveAllow   := dig "permissions" "allow"  (list) $config -}}
+{{-   $ensureAllow := dig "gemini" "permissions" "allow"  (list) . -}}
+{{-   $removeAllow := dig "gemini" "permissions" "remove" (list) . -}}
+{{-   $merged      := concat $agAllow $ensureAllow $liveAllow | uniq | sortAlpha -}}
+{{-   $finalAllow  := list -}}
+{{-   range $entry := $merged -}}
+{{-     if not (has $entry $removeAllow) -}}
+{{-       $finalAllow = append $finalAllow $entry -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $agPermissions := dict "allow" $finalAllow -}}
 {{-   if gt (len $agDeny) 0 -}}
 {{-     $agPermissions = set $agPermissions "deny" ($agDeny | uniq | sortAlpha) -}}
 {{-   end -}}
+{{-   $agentMode := dig "gemini" "general" "agent_mode" (dig "gemini" "agent_mode" "accept-edits" .) . -}}
 {{-   $settings := dict
+        "agentMode" $agentMode
         "enableTelemetry" .gemini.telemetry.enabled
         "showFeedbackSurvey" .gemini.general.show_feedback_survey
         "ui" (dict
