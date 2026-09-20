@@ -86,7 +86,8 @@ def test_antigravity_show_feedback_survey_disabled() -> None:
     result = _render_antigravity_settings("{}", "preinstalled")
     assert result.returncode == 0, result.stderr
     rendered = json.loads(result.stdout)
-    assert rendered.get("general", {}).get("showFeedbackSurvey") is False
+    assert rendered.get("showFeedbackSurvey") is False
+    assert "showFeedbackSurvey" not in rendered.get("general", {})
 
 
 @pytest.mark.integration
