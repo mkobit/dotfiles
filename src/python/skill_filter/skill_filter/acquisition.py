@@ -51,7 +51,11 @@ def _relative(value: object, description: str) -> str:
 
 
 def _sha256(value: object, description: str) -> str:
-    if not isinstance(value, str) or len(value) != 64 or any(char not in _HEX for char in value):
+    if (
+        not isinstance(value, str)
+        or len(value) != 64
+        or any(char not in _HEX for char in value)
+    ):
         raise AcquisitionError(f"{description} must be a SHA-256 digest")
     return value.lower()
 
@@ -73,9 +77,13 @@ def _source_metadata(definition: Mapping[str, object], name: str) -> dict[str, o
         raise AcquisitionError(f"external source {name!r}.ref must be a string")
     archive_format = definition.get("archive_format", definition.get("format", "tar"))
     if not isinstance(archive_format, str) or not archive_format:
-        raise AcquisitionError(f"external source {name!r}.archive_format must be a string")
+        raise AcquisitionError(
+            f"external source {name!r}.archive_format must be a string"
+        )
     if archive_format != "tar":
-        raise AcquisitionError(f"external source {name!r}.archive_format is unsupported")
+        raise AcquisitionError(
+            f"external source {name!r}.archive_format is unsupported"
+        )
     refresh_policy = definition.get("refresh_policy", "auto")
     if refresh_policy not in {"always", "auto", "never"}:
         raise AcquisitionError(f"external source {name!r}.refresh_policy is invalid")
@@ -114,11 +122,17 @@ def build_plan(externals: Mapping[str, object]) -> dict[str, object]:
         else:
             for field, value in metadata.items():
                 if source[field] != value:
-                    raise AcquisitionError(f"conflicting {field} for deduplicated source {source['id']!r}")
-        skills = _mapping(definition.get("skills", {}), f"external source {name!r}.skills")
+                    raise AcquisitionError(
+                        f"conflicting {field} for deduplicated source {source['id']!r}"
+                    )
+        skills = _mapping(
+            definition.get("skills", {}), f"external source {name!r}.skills"
+        )
         skills_root = definition.get("skills_root", "skills")
         if not isinstance(skills_root, str):
-            raise AcquisitionError(f"external source {name!r}.skills_root must be a path")
+            raise AcquisitionError(
+                f"external source {name!r}.skills_root must be a path"
+            )
         _relative(skills_root, f"external source {name!r}.skills_root")
         skill_file = definition.get("skill_file")
         if skill_file is not None:
@@ -127,7 +141,9 @@ def build_plan(externals: Mapping[str, object]) -> dict[str, object]:
             if state == "absent":
                 continue
             if not isinstance(state, str):
-                raise AcquisitionError(f"external skill {name!r}.{skill} has an invalid state")
+                raise AcquisitionError(
+                    f"external skill {name!r}.{skill} has an invalid state"
+                )
             if skill in selected:
                 raise AcquisitionError(f"duplicate selected skill {skill!r}")
             selected.add(skill)
@@ -140,10 +156,22 @@ def build_plan(externals: Mapping[str, object]) -> dict[str, object]:
             )
             expected_root = source["expected_root"]
             if not isinstance(expected_root, str):
-                raise AcquisitionError(f"external source {name!r}.expected_root must be a path")
-            archive_select = select if expected_root == "." else posixpath.join(expected_root, select)
-            filter_select = f"{select}:{skill}/SKILL.md" if skill_file else f"{select}:{skill}"
-            archive_filter_select = f"{archive_select}:{skill}/SKILL.md" if skill_file else f"{archive_select}:{skill}"
+                raise AcquisitionError(
+                    f"external source {name!r}.expected_root must be a path"
+                )
+            archive_select = (
+                select
+                if expected_root == "."
+                else posixpath.join(expected_root, select)
+            )
+            filter_select = (
+                f"{select}:{skill}/SKILL.md" if skill_file else f"{select}:{skill}"
+            )
+            archive_filter_select = (
+                f"{archive_select}:{skill}/SKILL.md"
+                if skill_file
+                else f"{archive_select}:{skill}"
+            )
             uses.append(
                 {
                     "id": f"{source['id']}-{skill}",
@@ -153,8 +181,12 @@ def build_plan(externals: Mapping[str, object]) -> dict[str, object]:
                     "select": _relative(select, f"external skill {skill!r}.select"),
                     "filter_select": filter_select,
                     "selection": {
-                        "source": _relative(archive_select, f"external skill {skill!r}.selection.source"),
-                        "destination": _relative(skill, f"external skill {skill!r}.selection.destination"),
+                        "source": _relative(
+                            archive_select, f"external skill {skill!r}.selection.source"
+                        ),
+                        "destination": _relative(
+                            skill, f"external skill {skill!r}.selection.destination"
+                        ),
                     },
                     "archive_filter_select": archive_filter_select,
                 }
@@ -380,9 +412,13 @@ def recover_publication(published: Path, candidate: Path | None = None) -> None:
 
 def _validate_publication_input(published: Path, candidate: Path) -> None:
     if candidate.parent != published.parent:
-        raise AcquisitionError("publication candidate must be beside the published tree")
+        raise AcquisitionError(
+            "publication candidate must be beside the published tree"
+        )
     if candidate == published:
-        raise AcquisitionError("publication candidate must differ from the published tree")
+        raise AcquisitionError(
+            "publication candidate must differ from the published tree"
+        )
     for path, description in (
         (published, "published tree"),
         (candidate, "publication candidate"),
@@ -424,7 +460,9 @@ def _remove_tree_best_effort(path: Path) -> bool:
 
 def _publication_journal_paths(published: Path, transaction: Path) -> tuple[Path, Path]:
     prefix = f".{published.name}.transaction."
-    if transaction.parent != published.parent or not transaction.name.startswith(prefix):
+    if transaction.parent != published.parent or not transaction.name.startswith(
+        prefix
+    ):
         raise AcquisitionError(f"unexpected publication journal: {transaction.name}")
     token = transaction.name[len(prefix) :]
     if not _PUBLICATION_TOKEN.fullmatch(token):
@@ -440,11 +478,15 @@ def _recover_publication_transactions(published: Path, candidate: Path | None) -
     records: list[tuple[Path, Path, Path]] = []
     for transaction in journals:
         if transaction.is_symlink() or not transaction.is_file():
-            raise AcquisitionError(f"publication journal must be a regular file: {transaction.name}")
+            raise AcquisitionError(
+                f"publication journal must be a regular file: {transaction.name}"
+            )
         try:
             content = transaction.read_text(encoding="utf-8")
         except OSError as error:
-            raise AcquisitionError(f"cannot read publication journal: {transaction.name}") from error
+            raise AcquisitionError(
+                f"cannot read publication journal: {transaction.name}"
+            ) from error
         if content != _PUBLICATION_JOURNAL:
             raise AcquisitionError(f"malformed publication journal: {transaction.name}")
         backup, orphan_candidate = _publication_journal_paths(published, transaction)
@@ -492,7 +534,9 @@ def build_catalog_plan(catalog: Mapping[str, object]) -> dict[str, object]:
             repo = definition.get("repo")
             ref = definition.get("ref")
             if not isinstance(repo, str) or not isinstance(ref, str):
-                raise AcquisitionError(f"external source {name!r} requires repo and ref")
+                raise AcquisitionError(
+                    f"external source {name!r} requires repo and ref"
+                )
             url = url_format.replace("{repo}", repo).replace("{ref}", ref)
             definition["url"] = url
         resolved[str(name)] = definition
@@ -500,7 +544,9 @@ def build_catalog_plan(catalog: Mapping[str, object]) -> dict[str, object]:
     destination_capability = catalog.get("destination_capability")
     if destination_capability is not None:
         if not isinstance(destination_capability, str) or not destination_capability:
-            raise AcquisitionError("skill catalog destination_capability must be a name")
+            raise AcquisitionError(
+                "skill catalog destination_capability must be a name"
+            )
         plan["destination_capability"] = destination_capability
     return plan
 
@@ -541,7 +587,9 @@ def render_synthetic_externals(
         checksum = _sha256(checksum, f"source {source_id!r}.sha256")
         archive_format = source.get("archive_format", "tar")
         if not isinstance(archive_format, str) or archive_format != "tar":
-            raise AcquisitionError(f"source {source_id!r}.archive_format is unsupported")
+            raise AcquisitionError(
+                f"source {source_id!r}.archive_format is unsupported"
+            )
         source_refresh = source.get("refresh_policy", "auto")
         if source_refresh not in {"always", "auto", "never"}:
             raise AcquisitionError(f"source {source_id!r}.refresh_policy is invalid")
@@ -600,7 +648,9 @@ def copy_plan_to_aggregate(
     if not isinstance(uses, list):
         raise AcquisitionError("acquisition plan uses must be a list")
     destination.parent.mkdir(parents=True, exist_ok=True)
-    candidate = Path(tempfile.mkdtemp(prefix=f".{destination.name}.build-", dir=destination.parent))
+    candidate = Path(
+        tempfile.mkdtemp(prefix=f".{destination.name}.build-", dir=destination.parent)
+    )
     try:
         destinations: set[str] = set()
         for raw_use in sorted(uses, key=lambda item: str(item.get("id"))):
@@ -608,10 +658,14 @@ def copy_plan_to_aggregate(
             source_id = use.get("source_id")
             skill = _relative(use.get("skill"), "acquisition use skill")
             if skill in destinations:
-                raise AcquisitionError(f"duplicate aggregate skill destination: {skill!r}")
+                raise AcquisitionError(
+                    f"duplicate aggregate skill destination: {skill!r}"
+                )
             destinations.add(skill)
             if not isinstance(source_id, str) or source_id not in source_roots:
-                raise AcquisitionError(f"missing acquired source mapping: {source_id!r}")
+                raise AcquisitionError(
+                    f"missing acquired source mapping: {source_id!r}"
+                )
             selection = _mapping(use.get("selection", {}), "acquisition use selection")
             destination_name = _relative(
                 selection.get("destination", skill),
@@ -633,7 +687,9 @@ def copy_plan_to_aggregate(
     return destination
 
 
-def validated_source_roots(plan: Mapping[str, object], acquired_root: Path) -> dict[str, Path]:
+def validated_source_roots(
+    plan: Mapping[str, object], acquired_root: Path
+) -> dict[str, Path]:
     """Validate each synthetic external tree and return its content root."""
     _validate_plan_version(plan)
     sources = plan.get("sources", ())
@@ -643,7 +699,9 @@ def validated_source_roots(plan: Mapping[str, object], acquired_root: Path) -> d
     if not isinstance(uses, list):
         raise AcquisitionError("acquisition plan uses must be a list")
     used_ids = {
-        use.get("source_id") for use in uses if isinstance(use, Mapping) and isinstance(use.get("source_id"), str)
+        use.get("source_id")
+        for use in uses
+        if isinstance(use, Mapping) and isinstance(use.get("source_id"), str)
     }
     result: dict[str, Path] = {}
     for raw_source in sources:
@@ -678,7 +736,9 @@ def build_materializer_payload(
     copy_plan_to_aggregate(plan, source_roots, aggregate)
     result = dict(payload)
     bridge = dict(_mapping(result.get("plugin_bridge", {}), "plugin_bridge"))
-    capabilities = dict(_mapping(bridge.get("capabilities", {}), "plugin_bridge.capabilities"))
+    capabilities = dict(
+        _mapping(bridge.get("capabilities", {}), "plugin_bridge.capabilities")
+    )
     destination_capability = capability or plan.get("destination_capability")
     if not isinstance(destination_capability, str) or not destination_capability:
         raise AcquisitionError("acquisition plan requires destination_capability")
@@ -689,14 +749,20 @@ def build_materializer_payload(
         )
     )
     if definition.get("acquisition_destination") is not True:
-        raise AcquisitionError(f"capability {destination_capability!r} is not the declared acquisition destination")
-    skills = {str(use["skill"]): use["state"] for use in uses if isinstance(use, Mapping)}
+        raise AcquisitionError(
+            f"capability {destination_capability!r} is not the declared acquisition destination"
+        )
+    skills = {
+        str(use["skill"]): use["state"] for use in uses if isinstance(use, Mapping)
+    }
     definition["source_id"] = "acquired-external-skills"
     definition["skills"] = skills
     capabilities[destination_capability] = definition
     bridge["capabilities"] = capabilities
     result["plugin_bridge"] = bridge
-    acquired_sources = dict(_mapping(result.get("acquired_sources", {}), "acquired_sources"))
+    acquired_sources = dict(
+        _mapping(result.get("acquired_sources", {}), "acquired_sources")
+    )
     acquired_sources["acquired-external-skills"] = str(aggregate)
     result["acquired_sources"] = acquired_sources
     return result
@@ -730,8 +796,14 @@ def main(argv: list[str] | None = None) -> int:
             )
             sys.stdout.write(result)
         else:
-            if args.plan is None or args.acquired_root is None or args.aggregate is None:
-                raise AcquisitionError("adapter requires --plan, --acquired-root, and --aggregate")
+            if (
+                args.plan is None
+                or args.acquired_root is None
+                or args.aggregate is None
+            ):
+                raise AcquisitionError(
+                    "adapter requires --plan, --acquired-root, and --aggregate"
+                )
             plan = json.loads(args.plan.read_text(encoding="utf-8"))
             roots = validated_source_roots(plan, args.acquired_root)
             result = build_materializer_payload(payload, plan, roots, args.aggregate)
