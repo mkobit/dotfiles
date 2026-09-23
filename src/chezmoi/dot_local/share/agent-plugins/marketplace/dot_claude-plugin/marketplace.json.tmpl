@@ -3,8 +3,11 @@
 {{- $environment := dig "environment" "default" $bridge -}}
 {{- $plugins := list -}}
 {{- range $name, $capability := $bridge.capabilities -}}
+{{-   $capabilityMarketplace := dig "marketplace" "" $capability -}}
+{{-   $marketplaceDefinition := dig $capabilityMarketplace (dict) $bridge.marketplaces -}}
+{{-   $hosts := dig "hosts" (dig "hosts" (list) $marketplaceDefinition) $capability -}}
 {{-   $environments := dig "environments" nil $capability -}}
-{{-   if or (eq $environments nil) (has $environment $environments) -}}
+{{-   if and (eq $capabilityMarketplace $marketplace.name) (has "claude" $hosts) (or (eq $environments nil) (has $environment $environments)) -}}
 {{-     $plugins = append $plugins (dict "name" $name "source" (printf "./plugins/%s/claude" $name)) -}}
 {{-   end -}}
 {{- end -}}

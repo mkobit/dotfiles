@@ -1,17 +1,23 @@
 from __future__ import annotations
 
 import json
+import multiprocessing
 import os
 import shutil
 import stat
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
 import pytest
 
 import skill_filter.materializer as materializer_module
-from skill_filter.materializer import MaterializerError, materialize
+from skill_filter.materializer import (
+    MaterializerError,
+    materialize,
+    validate_plugin_references,
+)
 
 
 def _write(path: Path, content: str) -> None:
@@ -19,7 +25,7 @@ def _write(path: Path, content: str) -> None:
     path.write_text(content, encoding="utf-8")
 
 
-def _payload(tmp_path: Path) -> dict[str, object]:
+def _payload(tmp_path: Path) -> dict[str, Any]:
     working = tmp_path / "working"
     output = tmp_path / "assembled"
     wrapper = working / "src/plugins/demo/wrapper"
@@ -33,7 +39,12 @@ def _payload(tmp_path: Path) -> dict[str, object]:
     return {
         "plan_version": 1,
         "plugin_bridge": {
-            "marketplaces": {"dotfiles": {"hosts": ["claude", "cursor"]}},
+            "marketplaces": {
+                "dotfiles": {
+                    "source_type": "generated",
+                    "hosts": ["claude", "cursor"],
+                }
+            },
             "capabilities": {
                 "demo": {
                     "marketplace": "dotfiles",
@@ -93,9 +104,7 @@ def test_mark_exact_tree_encodes_nested_literal_attribute_names(tmp_path):
     materializer_module._mark_exact_tree(root)
 
     assert (root / "exact_skills/exact_child/marker").read_text() == "child\n"
-    assert (
-        root / "exact_skills/exact_literal_exact_child/marker"
-    ).read_text() == "literal\n"
+    assert (root / "exact_skills/exact_literal_exact_child/marker").read_text() == "literal\n"
 
 
 def test_materialize_emits_exact_package_and_cursor_trees(tmp_path):
@@ -104,21 +113,13 @@ def test_materialize_emits_exact_package_and_cursor_trees(tmp_path):
     materialize(payload)
 
     output = Path(str(payload["output_source_root"]))
-    package = (
-        output / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_demo"
-    )
+    package = output / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_demo"
     cursor = output / "dot_cursor/plugins/exact_local/exact_demo"
     assert (package / "plugin.json.tmpl").read_text() == "package"
     assert (package / "exact_skills/exact_shared/SKILL.md").read_text() == "shared"
-    assert (
-        package / "exact_cursor/exact_skills/exact_shared/SKILL.md"
-    ).read_text() == "shared"
-    assert (
-        package / "exact_cursor/exact_skills/exact_cursor-only/SKILL.md"
-    ).read_text() == "cursor"
-    assert (cursor / "exact_dot_cursor-plugin/plugin.json.tmpl").read_text() == (
-        "cursor manifest"
-    )
+    assert (package / "exact_cursor/exact_skills/exact_shared/SKILL.md").read_text() == "shared"
+    assert (package / "exact_cursor/exact_skills/exact_cursor-only/SKILL.md").read_text() == "cursor"
+    assert (cursor / "exact_dot_cursor-plugin/plugin.json.tmpl").read_text() == ("cursor manifest")
     assert (cursor / "exact_skills/exact_shared/SKILL.md").read_text() == "shared"
     assert (cursor / "exact_skills/exact_cursor-only/SKILL.md").read_text() == "cursor"
 
@@ -126,8 +127,7 @@ def test_materialize_emits_exact_package_and_cursor_trees(tmp_path):
 def test_materialize_does_not_require_path_is_relative_to(tmp_path, monkeypatch):
     payload = _payload(tmp_path)
     _write(
-        Path(str(payload["working_tree"]))
-        / "src/plugins/demo/wrapper/cursor/exact_marker/marker",
+        Path(str(payload["working_tree"])) / "src/plugins/demo/wrapper/cursor/exact_marker/marker",
         "marker",
     )
     monkeypatch.setattr(
@@ -198,9 +198,7 @@ def test_materialize_replaces_owned_boundaries_deterministically(tmp_path):
 
     assert not (package_parent / "demo").exists()
     assert not (package_parent / "stale").exists()
-    assert (
-        output / "dot_local/share/agent-plugins/marketplace/plugins/unmanaged/marker"
-    ).read_text() == "keep"
+    assert (output / "dot_local/share/agent-plugins/marketplace/plugins/unmanaged/marker").read_text() == "keep"
     assert list((output / "dot_cursor/plugins/exact_local").iterdir()) == []
 
 
@@ -215,10 +213,36 @@ def test_materialize_filters_environment_specific_capabilities(tmp_path):
     materialize(payload)
 
     output = Path(str(payload["output_source_root"]))
-    assert not (
-        output / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_demo"
-    ).exists()
+    assert not (output / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_demo").exists()
     assert list((output / "dot_cursor/plugins/exact_local").iterdir()) == []
+
+
+def test_validate_plugin_references_is_side_effect_free(tmp_path):
+    payload = _payload(tmp_path)
+    output = Path(str(payload["output_source_root"]))
+    _write(output / "published/marker", "keep")
+    payload["plugin_bridge"]["capabilities"]["demo"]["marketplace"] = "missing"
+
+    with pytest.raises(MaterializerError, match="undeclared marketplace"):
+        validate_plugin_references(payload)
+
+    assert (output / "published/marker").read_text() == "keep"
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("source_type", "unknown", "invalid marketplace source type"),
+        ("source_locator", 42, "source locator"),
+        ("hosts", "claude", "hosts must be a list"),
+    ],
+)
+def test_validate_plugin_references_rejects_malformed_marketplaces(tmp_path, field, value, message):
+    payload = _payload(tmp_path)
+    payload["plugin_bridge"]["marketplaces"]["dotfiles"][field] = value
+
+    with pytest.raises(MaterializerError, match=message):
+        validate_plugin_references(payload)
 
 
 @pytest.mark.parametrize(
@@ -230,9 +254,7 @@ def test_materialize_filters_environment_specific_capabilities(tmp_path):
         ("source", "capability source"),
     ],
 )
-def test_materialize_validates_inactive_malformed_capabilities_before_publication(
-    tmp_path, mutation, message
-):
+def test_materialize_validates_inactive_malformed_capabilities_before_publication(tmp_path, mutation, message):
     payload = _payload(tmp_path)
     output = Path(str(payload["output_source_root"]))
     package_root = output / "dot_local/share/agent-plugins/marketplace/exact_plugins"
@@ -262,21 +284,16 @@ def test_materialize_validates_inactive_malformed_capabilities_before_publicatio
     assert _file_snapshot(cursor_root, "old/marker") == before_cursor
 
 
-def test_materialize_rolls_back_both_collections_when_second_publication_fails(
-    tmp_path, monkeypatch
-):
+def test_materialize_rolls_back_both_collections_when_second_publication_fails(tmp_path, monkeypatch):
     payload = _payload(tmp_path)
     materialize(payload)
     output = Path(str(payload["output_source_root"]))
     package_root = output / "dot_local/share/agent-plugins/marketplace/exact_plugins"
     cursor_root = output / "dot_cursor/plugins/exact_local"
     before_package = _file_snapshot(package_root / "exact_demo", "plugin.json.tmpl")
-    before_cursor = _file_snapshot(
-        cursor_root / "exact_demo", "exact_dot_cursor-plugin/plugin.json.tmpl"
-    )
+    before_cursor = _file_snapshot(cursor_root / "exact_demo", "exact_dot_cursor-plugin/plugin.json.tmpl")
     _write(
-        Path(str(payload["working_tree"]))
-        / "src/plugins/demo/wrapper/plugin.json.tmpl",
+        Path(str(payload["working_tree"])) / "src/plugins/demo/wrapper/plugin.json.tmpl",
         "new package",
     )
 
@@ -294,24 +311,14 @@ def test_materialize_rolls_back_both_collections_when_second_publication_fails(
     with pytest.raises(OSError, match="second publication"):
         materialize(payload)
 
-    assert (
-        _file_snapshot(package_root / "exact_demo", "plugin.json.tmpl")
-        == before_package
-    )
-    assert (
-        _file_snapshot(
-            cursor_root / "exact_demo", "exact_dot_cursor-plugin/plugin.json.tmpl"
-        )
-        == before_cursor
-    )
+    assert _file_snapshot(package_root / "exact_demo", "plugin.json.tmpl") == before_package
+    assert _file_snapshot(cursor_root / "exact_demo", "exact_dot_cursor-plugin/plugin.json.tmpl") == before_cursor
 
 
 def test_materialize_preserves_preexisting_backup_sibling(tmp_path):
     payload = _payload(tmp_path)
     output = Path(str(payload["output_source_root"]))
-    backup = (
-        output / "dot_local/share/agent-plugins/marketplace/.exact_plugins.previous"
-    )
+    backup = output / "dot_local/share/agent-plugins/marketplace/.exact_plugins.previous"
     _write(backup / "do-not-delete", "preserve me")
 
     materialize(payload)
@@ -324,7 +331,13 @@ def test_materialize_copies_declared_cursor_plugin_source(tmp_path):
     working = Path(str(payload["working_tree"]))
     _write(working / "vendor/public-plugin/dot_cursor-plugin/plugin.json", "public")
     payload["plugin_bridge"] = {
-        "marketplaces": {"public": {"hosts": ["claude", "cursor"]}},
+        "marketplaces": {
+            "public": {
+                "source_type": "public",
+                "source_locator": "https://example.invalid/public-marketplace",
+                "hosts": ["claude", "cursor"],
+            }
+        },
         "capabilities": {},
         "plugins": {
             "public-plugin": {
@@ -430,12 +443,8 @@ def test_materialize_rejects_invalid_skill_state(tmp_path, state, hosts):
         materialize(payload)
 
 
-@pytest.mark.parametrize(
-    ("environment", "present"), [("local", True), ("remote", False)]
-)
-def test_materialize_overlay_local_skill_depends_on_environment(
-    tmp_path, environment, present
-):
+@pytest.mark.parametrize(("environment", "present"), [("local", True), ("remote", False)])
+def test_materialize_overlay_local_skill_depends_on_environment(tmp_path, environment, present):
     payload = _payload(tmp_path)
     working = Path(str(payload["working_tree"]))
     _write(working / "src/overlay-skills/local-only/SKILL.md", "local")
@@ -499,7 +508,7 @@ def test_materializer_cli_reports_invalid_json():
 def test_materialize_rejects_unsafe_declaration_names(tmp_path, name):
     payload = _payload(tmp_path)
     payload["plugin_bridge"] = {
-        "marketplaces": {"dotfiles": {"hosts": ["cursor"]}},
+        "marketplaces": {"dotfiles": {"source_type": "generated", "hosts": ["cursor"]}},
         "capabilities": {name: {"marketplace": "dotfiles", "hosts": ["cursor"]}},
         "plugins": {},
     }
@@ -575,24 +584,14 @@ def test_materialize_uses_acquired_source_mapping_and_deduplicates_fanout(tmp_pa
     materialize(payload)
 
     output = Path(str(payload["output_source_root"]))
-    package = (
-        output / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_demo"
-    )
-    assert (
-        package / "exact_skills/exact_from-acquired/SKILL.md"
-    ).read_text() == "acquired"
-    other = (
-        output / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_other"
-    )
-    assert (
-        other / "exact_skills/exact_from-acquired/SKILL.md"
-    ).read_text() == "acquired"
+    package = output / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_demo"
+    assert (package / "exact_skills/exact_from-acquired/SKILL.md").read_text() == "acquired"
+    other = output / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_other"
+    assert (other / "exact_skills/exact_from-acquired/SKILL.md").read_text() == "acquired"
 
 
 @pytest.mark.parametrize("entry_kind", ["symlink", "special"])
-def test_materialize_rejects_bad_acquired_source_entries_before_mutation(
-    tmp_path, entry_kind
-):
+def test_materialize_rejects_bad_acquired_source_entries_before_mutation(tmp_path, entry_kind):
     payload = _payload(tmp_path)
     acquired = tmp_path / "acquired"
     acquired.mkdir()
@@ -621,9 +620,7 @@ def test_materialize_rejects_bad_acquired_source_entries_before_mutation(
         "exact_local/exact_demo",
     ],
 )
-def test_materialize_rejects_desired_output_symlink_before_replacement(
-    tmp_path, relative
-):
+def test_materialize_rejects_desired_output_symlink_before_replacement(tmp_path, relative):
     payload = _payload(tmp_path)
     output = Path(str(payload["output_source_root"]))
     if relative.startswith("exact_plugins"):
@@ -643,19 +640,106 @@ def test_materialize_rejects_desired_output_symlink_before_replacement(
 
 def test_materialize_preserves_modes_and_bytes_across_repeated_runs(tmp_path):
     payload = _payload(tmp_path)
-    wrapper_file = (
-        Path(str(payload["working_tree"])) / "src/plugins/demo/wrapper/plugin.json.tmpl"
-    )
+    wrapper_file = Path(str(payload["working_tree"])) / "src/plugins/demo/wrapper/plugin.json.tmpl"
     wrapper_file.chmod(0o751)
 
     materialize(payload)
     output = Path(str(payload["output_source_root"]))
-    package = (
-        output
-        / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_demo/plugin.json.tmpl"
-    )
+    package = output / "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_demo/plugin.json.tmpl"
     first = (package.read_bytes(), stat.S_IMODE(package.stat().st_mode))
     materialize(payload)
     second = (package.read_bytes(), stat.S_IMODE(package.stat().st_mode))
 
     assert first == second == (b"package", 0o751)
+
+
+def test_materialize_stages_on_output_filesystem(tmp_path, monkeypatch):
+    payload = _payload(tmp_path)
+    output = Path(str(payload["output_source_root"]))
+    calls: list[tuple[str, str | None]] = []
+    original_mkdtemp = materializer_module.tempfile.mkdtemp
+
+    def record_mkdtemp(*args, **kwargs):
+        calls.append((str(kwargs.get("dir")), str(kwargs.get("prefix"))))
+        return original_mkdtemp(*args, **kwargs)
+
+    monkeypatch.setattr(materializer_module.tempfile, "mkdtemp", record_mkdtemp)
+
+    materialize(payload)
+
+    assert calls == [(str(output), ".plugin-materializer-")]
+
+
+def test_materialize_recovers_orphaned_publication_backup(tmp_path):
+    payload = _payload(tmp_path)
+    materialize(payload)
+    output = Path(str(payload["output_source_root"]))
+    package_root = output / "dot_local/share/agent-plugins/marketplace/exact_plugins"
+    backup = package_root.with_name(f".{package_root.name}.previous.{'a' * 32}")
+    backup.mkdir()
+    (backup / "orphan").write_text("stale")
+
+    materialize(payload)
+
+    assert not backup.exists()
+
+
+def test_materialize_preserves_unrelated_previous_siblings(tmp_path):
+    payload = _payload(tmp_path)
+    materialize(payload)
+    output = Path(str(payload["output_source_root"]))
+    package_root = output / "dot_local/share/agent-plugins/marketplace/exact_plugins"
+    unrelated = package_root.with_name(f".{package_root.name}.previous-not-a-publication")
+    historical_with_bad_token = package_root.with_name(f".{package_root.name}.previous-123")
+    for sibling in (unrelated, historical_with_bad_token):
+        sibling.mkdir()
+        (sibling / "sentinel").write_text("preserve", encoding="utf-8")
+
+    materialize(payload)
+
+    assert (unrelated / "sentinel").read_text(encoding="utf-8") == "preserve"
+    assert (historical_with_bad_token / "sentinel").read_text(encoding="utf-8") == "preserve"
+
+
+def _materialize_child(payload, started, finished):
+    started.set()
+    materialize(payload)
+    finished.set()
+
+
+def test_materialize_serializes_concurrent_invocations(tmp_path):
+    payload = _payload(tmp_path)
+    output = Path(str(payload["output_source_root"]))
+    output.mkdir()
+    context = multiprocessing.get_context("spawn")
+    started = context.Event()
+    finished = context.Event()
+    process = context.Process(
+        target=_materialize_child,
+        args=(payload, started, finished),
+    )
+
+    with materializer_module._materialization_lock(output):
+        process.start()
+        assert started.wait(5)
+        assert not finished.wait(0.5)
+        assert process.is_alive()
+
+    assert finished.wait(10)
+    process.join(10)
+    assert process.exitcode == 0
+
+
+def test_materialize_rejects_duplicate_authored_and_acquired_skills(tmp_path):
+    payload = _payload(tmp_path)
+    acquired = tmp_path / "acquired"
+    _write(acquired / "shared/SKILL.md", "acquired")
+    capability = payload["plugin_bridge"]["capabilities"]["demo"]
+    capability["source_id"] = "shared-pin"
+    capability["source_root"] = "."
+    capability["skills"] = {"shared": "present"}
+    capability.pop("source_dir")
+    payload["acquired_sources"] = {"shared-pin": str(acquired)}
+
+    with pytest.raises(MaterializerError, match="duplicate skill destination"):
+        materialize(payload)

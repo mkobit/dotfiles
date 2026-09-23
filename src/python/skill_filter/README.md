@@ -79,8 +79,9 @@ The compiler preserves unrelated non-exact package source entries.
 The compiler sorts declarations and source entries, copies regular files without symlinks, and replaces each complete owned boundary from staged output.
 Repeated compilation of the same declarations and sources produces the same source state.
 It validates declarations and source trees before replacing either output boundary.
-The complete generated package and Cursor boundaries are staged before replacement.
-Publication uses invocation-unique backups and restores previously published boundaries if either recoverable swap fails.
+The complete generated package and Cursor boundaries are staged on the output filesystem before replacement.
+Publication uses invocation-unique journals and backups, restores previously published boundaries if either recoverable swap fails, and recovers interrupted swaps on the next run.
+Recovery and publication take an output-root lock so concurrent materializers cannot treat a live transaction as interrupted.
 This rollback does not provide process-crash atomicity across two independent filesystem roots.
 Rerunning assembly deterministically converges every boundary to the declared state.
 It rejects unsupported plan versions, undeclared marketplaces, malformed names or hosts, non-normalized paths, source symlinks, output-boundary symlinks, and special source files.

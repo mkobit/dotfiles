@@ -2,14 +2,17 @@
 
 from __future__ import annotations
 
+import fcntl
 import json
 import os
+import re
 import shutil
 import stat
 import sys
 import tempfile
 import uuid
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
+from contextlib import contextmanager, suppress
 from pathlib import Path
 
 
@@ -18,10 +21,10 @@ class MaterializerError(RuntimeError):
 
 
 _PLAN_VERSION = 1
+_PUBLICATION_TOKEN = re.compile(r"[0-9a-f]{32}\Z")
+_PUBLICATION_JOURNAL = "version=1\n"
 _HOSTS = ("claude", "codex", "cursor")
-_NAME_CHARS = frozenset(
-    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
-)
+_NAME_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
 _SOURCE_ATTRIBUTE_PREFIXES = (
     "remove_",
     "external_",
@@ -41,6 +44,26 @@ _SOURCE_ATTRIBUTE_PREFIXES = (
     "symlink_",
     "literal_",
 )
+
+
+def _validate_plan_version(payload: Mapping[str, object]) -> None:
+    version = payload.get("plan_version")
+    if type(version) is not int or version != _PLAN_VERSION:
+        raise MaterializerError(f"unsupported plan version: {version!r}")
+
+
+@contextmanager
+def _materialization_lock(output: Path) -> Iterator[None]:
+    """Serialize recovery and publication for one output source root."""
+    descriptor = os.open(output, os.O_RDONLY)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        yield
+    finally:
+        try:
+            fcntl.flock(descriptor, fcntl.LOCK_UN)
+        finally:
+            os.close(descriptor)
 
 
 def _is_relative_to(path: Path, root: Path) -> bool:
@@ -77,10 +100,7 @@ def _path(value: object, description: str, *, absolute: bool) -> Path:
         kind = "absolute" if absolute else "relative"
         raise MaterializerError(f"{description} must be a normalized {kind} path")
     components = value.split("/")[1:] if absolute else value.split("/")
-    if (
-        any(component in {"", ".", ".."} for component in components)
-        or os.path.normpath(value) != value
-    ):
+    if any(component in {"", ".", ".."} for component in components) or os.path.normpath(value) != value:
         kind = "absolute" if absolute else "relative"
         raise MaterializerError(f"{description} must be a normalized {kind} path")
     return path
@@ -117,15 +137,11 @@ def _copy_tree(
         mode = entry.lstat().st_mode
         if stat.S_ISLNK(mode):
             raise MaterializerError(f"{description} contains a symlink: {entry}")
-        target_name = (
-            _encode_source_file_name(entry.name) if encode_source_files else entry.name
-        )
+        target_name = _encode_source_file_name(entry.name) if encode_source_files else entry.name
         target = destination / relative.with_name(target_name)
         if stat.S_ISDIR(mode):
             target.mkdir(parents=True, exist_ok=True)
-            if source_attribute_dirs is not None and entry.name.startswith(
-                _SOURCE_ATTRIBUTE_PREFIXES
-            ):
+            if source_attribute_dirs is not None and entry.name.startswith(_SOURCE_ATTRIBUTE_PREFIXES):
                 source_attribute_dirs.add(target)
         elif stat.S_ISREG(mode):
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -145,9 +161,7 @@ def _validate_tree(source: Path, description: str) -> None:
             raise MaterializerError(f"{description} contains a special file: {entry}")
 
 
-def _hosts(
-    definition: Mapping[str, object], marketplace: Mapping[str, object]
-) -> tuple[str, ...]:
+def _hosts(definition: Mapping[str, object], marketplace: Mapping[str, object]) -> tuple[str, ...]:
     raw = definition.get("hosts", marketplace.get("hosts", ()))
     if not isinstance(raw, Sequence) or isinstance(raw, (str, bytes)):
         raise MaterializerError("plugin hosts must be a list")
@@ -159,14 +173,10 @@ def _hosts(
     return tuple(sorted(set(hosts)))
 
 
-def _marketplace(
-    marketplaces: Mapping[str, object], name: object, description: str
-) -> Mapping[str, object]:
+def _marketplace(marketplaces: Mapping[str, object], name: object, description: str) -> Mapping[str, object]:
     marketplace_name = _name(name, "marketplace")
     if marketplace_name not in marketplaces:
-        raise MaterializerError(
-            f"undeclared marketplace {marketplace_name!r} for {description}"
-        )
+        raise MaterializerError(f"undeclared marketplace {marketplace_name!r} for {description}")
     return _table(marketplaces[marketplace_name], f"marketplace {marketplace_name!r}")
 
 
@@ -179,16 +189,12 @@ def _skill_destinations(
 ) -> tuple[str, ...]:
     if state == "present":
         return ("skills", *(f"{host}/skills" for host in hosts))
-    if state == "absent" or (
-        state == "local" and local_allowed and environment != "local"
-    ):
+    if state == "absent" or (state == "local" and local_allowed and environment != "local"):
         return ()
     if state == "local" and local_allowed:
         return ("skills", *(f"{host}/skills" for host in hosts))
     if state in _HOSTS and state not in hosts:
-        raise MaterializerError(
-            f"skill state {state!r} selects a host not declared by the capability"
-        )
+        raise MaterializerError(f"skill state {state!r} selects a host not declared by the capability")
     if isinstance(state, str) and state in hosts:
         return (f"{state}/skills",)
     raise MaterializerError(f"invalid skill state: {state!r}")
@@ -216,9 +222,7 @@ def _add_skill(
     local_allowed: bool = False,
 ) -> None:
     name = _name(skill_name, "skill")
-    for destination in _skill_destinations(
-        state, hosts, environment=environment, local_allowed=local_allowed
-    ):
+    for destination in _skill_destinations(state, hosts, environment=environment, local_allowed=local_allowed):
         _copy_tree(
             source / name,
             package / destination / name,
@@ -256,9 +260,7 @@ def _acquired_source(
     value = acquired_sources[source_name]
     root = _path(value, f"acquired source {source_name!r}", absolute=True)
     if root == working_tree or _is_relative_to(root, working_tree):
-        raise MaterializerError(
-            f"acquired source {source_name!r} must be an acquired directory"
-        )
+        raise MaterializerError(f"acquired source {source_name!r} must be an acquired directory")
     _source_root(root, f"acquired source {source_name!r}")
     return _relative_source(root, definition, "source_root")
 
@@ -284,6 +286,45 @@ def _validate_skill_sources(
             _validate_tree(source / name, f"{description} skill source")
 
 
+def _validate_skill_ownership(
+    definition: Mapping[str, object],
+    skills: Mapping[str, object],
+    overlay_skills: Mapping[str, object],
+    hosts: Sequence[str],
+    environment: str,
+) -> None:
+    owners: dict[str, str] = {}
+    sources: list[tuple[str, Mapping[str, object], bool]] = []
+    if definition.get("source_id") is not None:
+        sources.append(("acquired", _table(definition.get("skills", {}), "skills"), False))
+    if definition.get("source_dir") is not None:
+        sources.append(("capability", _table(definition.get("skills", {}), "skills"), False))
+    if definition.get("authored_skill_source") is not None:
+        sources.append(("authored", _table(skills.get("authored", {}), "skills.authored"), False))
+    if definition.get("overlay_skill_source") is not None:
+        sources.append(
+            (
+                "overlay",
+                _table(overlay_skills.get("authored", {}), "overlay_skills.authored"),
+                True,
+            )
+        )
+    for source_name, declared, local_allowed in sources:
+        for raw_skill, state in declared.items():
+            name = _name(raw_skill, "skill")
+            for destination in _skill_destinations(
+                state,
+                hosts,
+                environment=environment,
+                local_allowed=local_allowed,
+            ):
+                target = f"{destination}/{name}"
+                previous = owners.get(target)
+                if previous is not None:
+                    raise MaterializerError(f"duplicate skill destination {target!r}: {previous} and {source_name}")
+                owners[target] = source_name
+
+
 def _validate_capability(
     name: str,
     definition: Mapping[str, object],
@@ -294,9 +335,7 @@ def _validate_capability(
     working_tree: Path,
     environment: str,
 ) -> None:
-    marketplace = _marketplace(
-        marketplaces, definition.get("marketplace"), f"capability {name!r}"
-    )
+    marketplace = _marketplace(marketplaces, definition.get("marketplace"), f"capability {name!r}")
     hosts = _hosts(definition, marketplace)
     _enabled(definition, environment)
 
@@ -364,6 +403,8 @@ def _validate_capability(
             local_allowed=True,
         )
 
+    _validate_skill_ownership(definition, skills, overlay_skills, hosts, environment)
+
 
 def _validate_plugin(
     name: str,
@@ -373,9 +414,7 @@ def _validate_plugin(
     working_tree: Path,
     environment: str,
 ) -> None:
-    marketplace = _marketplace(
-        marketplaces, definition.get("marketplace"), f"plugin {name!r}"
-    )
+    marketplace = _marketplace(marketplaces, definition.get("marketplace"), f"plugin {name!r}")
     hosts = _hosts(definition, marketplace)
     _enabled(definition, environment)
 
@@ -390,6 +429,7 @@ def _validate_plugin(
             acquired_sources,
             working_tree,
         )
+        assert cursor_source is not None
         _validate_tree(cursor_source, "cursor plugin source")
     elif cursor_source_dir is not None:
         cursor_source = _source(
@@ -399,7 +439,7 @@ def _validate_plugin(
         )
         _validate_tree(cursor_source, "cursor plugin source")
     elif "cursor" in hosts:
-        _source(working_tree, cursor_source_dir, f"cursor plugin source for {name!r}")
+        raise MaterializerError(f"cursor plugin source for {name!r} is required")
 
 
 def _build_package(
@@ -413,9 +453,7 @@ def _build_package(
     stage: Path,
     environment: str,
 ) -> tuple[Path, bool, set[Path]]:
-    marketplace = _marketplace(
-        marketplaces, definition.get("marketplace"), f"capability {name!r}"
-    )
+    marketplace = _marketplace(marketplaces, definition.get("marketplace"), f"capability {name!r}")
     hosts = _hosts(definition, marketplace)
     wrapper_source = _source(
         working_tree,
@@ -496,9 +534,7 @@ def _validate_output_boundary(root: Path, path: Path) -> None:
         if current.is_symlink():
             raise MaterializerError(f"output boundary contains a symlink: {current}")
         if current.exists() and not current.is_dir():
-            raise MaterializerError(
-                f"output boundary contains a non-directory: {current}"
-            )
+            raise MaterializerError(f"output boundary contains a non-directory: {current}")
 
 
 def _validate_output_ancestors(path: Path) -> None:
@@ -506,13 +542,9 @@ def _validate_output_ancestors(path: Path) -> None:
     for component in path.parts[1:]:
         current /= component
         if current.is_symlink():
-            raise MaterializerError(
-                f"output source root ancestor is a symlink: {current}"
-            )
+            raise MaterializerError(f"output source root ancestor is a symlink: {current}")
         if current.exists() and not current.is_dir():
-            raise MaterializerError(
-                f"output source root ancestor is not a directory: {current}"
-            )
+            raise MaterializerError(f"output source root ancestor is not a directory: {current}")
 
 
 def _reject_existing_symlinks(path: Path, description: str) -> None:
@@ -522,9 +554,7 @@ def _reject_existing_symlinks(path: Path, description: str) -> None:
         raise MaterializerError(f"{description} is a symlink: {path}")
     for entry in path.rglob("*"):
         if entry.is_symlink():
-            raise MaterializerError(
-                f"{description} contains an output symlink: {entry}"
-            )
+            raise MaterializerError(f"{description} contains an output symlink: {entry}")
 
 
 def _remove_path(path: Path) -> None:
@@ -534,6 +564,11 @@ def _remove_path(path: Path) -> None:
         shutil.rmtree(path)
     else:
         path.unlink()
+
+
+def _remove_path_best_effort(path: Path) -> None:
+    with suppress(OSError):
+        _remove_path(path)
 
 
 def _encode_source_name(name: str) -> str:
@@ -551,9 +586,7 @@ def _encode_source_file_name(name: str) -> str:
     return name
 
 
-def _mark_exact_tree(
-    root: Path, source_attribute_dirs: set[Path] | None = None
-) -> None:
+def _mark_exact_tree(root: Path, source_attribute_dirs: set[Path] | None = None) -> None:
     """Mark every generated directory as an exact chezmoi source boundary."""
     directories = sorted(
         (path for path in root.rglob("*") if path.is_dir()),
@@ -568,21 +601,15 @@ def _mark_exact_tree(
     directory_set = set(directories)
     source_attribute_dirs = source_attribute_dirs or set()
     for path in directories:
-        if path in source_attribute_dirs and path.name.startswith(
-            _SOURCE_ATTRIBUTE_PREFIXES
-        ):
-            target_name = (
-                path.name if path.name.startswith("exact_") else f"exact_{path.name}"
-            )
+        if path in source_attribute_dirs and path.name.startswith(_SOURCE_ATTRIBUTE_PREFIXES):
+            target_name = path.name if path.name.startswith("exact_") else f"exact_{path.name}"
         else:
             target_name = _encode_source_name(path.name)
         target = path.with_name(target_name)
         targets[path] = target
         names = siblings.setdefault(path.parent, {})
         if target.name in names:
-            raise MaterializerError(
-                f"exact output directory name collision: {names[target.name]} and {path}"
-            )
+            raise MaterializerError(f"exact output directory name collision: {names[target.name]} and {path}")
         names[target.name] = path
         if os.path.lexists(target) and target not in directory_set:
             raise MaterializerError(f"exact output directory already exists: {target}")
@@ -593,9 +620,7 @@ def _mark_exact_tree(
         temporary_name = f".materializer-exact-{temporary_token}-{index}"
         temporary = path.with_name(temporary_name)
         if os.path.lexists(temporary):
-            raise MaterializerError(
-                f"exact output temporary path already exists: {temporary}"
-            )
+            raise MaterializerError(f"exact output temporary path already exists: {temporary}")
         temporary_names[path] = temporary_name
 
     for path in directories:
@@ -614,26 +639,42 @@ def _mark_exact_tree(
         temporary_path(path).replace(temporary_path(path).with_name(targets[path].name))
 
 
-def _replace_directory(
-    staged: Path, destination: Path, backup: Path | None = None
-) -> Path | None:
+def _replace_directory(staged: Path, destination: Path, backup: Path | None = None) -> Path | None:
     destination.parent.mkdir(parents=True, exist_ok=True)
+    token = uuid.uuid4().hex
     if backup is None:
-        backup = destination.with_name(
-            f".{destination.name}.previous-{uuid.uuid4().hex}"
-        )
-    if os.path.lexists(backup):
-        raise MaterializerError(f"publication backup already exists: {backup}")
+        backup = destination.with_name(f".{destination.name}.previous.{token}")
+    staged_candidate = destination.with_name(f".{destination.name}.candidate.{token}")
+    transaction = destination.with_name(f".{destination.name}.transaction.{token}")
+    for path, description in (
+        (backup, "publication backup"),
+        (staged_candidate, "publication candidate"),
+        (transaction, "publication journal"),
+    ):
+        if os.path.lexists(path):
+            raise MaterializerError(f"{description} already exists: {path}")
     had_destination = os.path.lexists(destination)
-    if had_destination:
-        destination.replace(backup)
+    transaction.write_text(_PUBLICATION_JOURNAL, encoding="utf-8")
+    candidate_staged = False
+    published_backed_up = False
+    candidate_published = False
     try:
-        staged.replace(destination)
+        staged.replace(staged_candidate)
+        candidate_staged = True
+        if had_destination:
+            destination.replace(backup)
+            published_backed_up = True
+        staged_candidate.replace(destination)
+        candidate_published = True
+        transaction.unlink()
     except BaseException:
-        if os.path.lexists(destination):
+        if candidate_published:
             _remove_path(destination)
-        if os.path.lexists(backup):
+        if published_backed_up and os.path.lexists(backup):
             backup.replace(destination)
+        if candidate_staged and os.path.lexists(staged_candidate):
+            _remove_path(staged_candidate)
+        _remove_path_best_effort(transaction)
         raise
     return backup if had_destination else None
 
@@ -681,6 +722,38 @@ def _validate_declarations(
         )
 
 
+def validate_plugin_references(payload: Mapping[str, object]) -> None:
+    """Validate normalized plugin marketplace references without touching the filesystem."""
+    _validate_plan_version(payload)
+    bridge = _table(payload.get("plugin_bridge", {}), "plugin_bridge")
+    marketplaces = _table(bridge.get("marketplaces", {}), "plugin_bridge.marketplaces")
+    for raw_name, raw_definition in marketplaces.items():
+        name = _name(raw_name, "marketplace")
+        definition = _table(raw_definition, f"marketplace {name!r}")
+        source_type = definition.get("source_type")
+        if source_type not in {"generated", "host-provided", "internal", "public"}:
+            raise MaterializerError(f"invalid marketplace source type: {source_type!r}")
+        locator = definition.get("source_locator", "")
+        if not isinstance(locator, str):
+            raise MaterializerError(f"marketplace {name!r} source locator must be a string")
+        if source_type in {"internal", "public"} and not locator:
+            raise MaterializerError(f"marketplace {name!r} source locator is required")
+        if source_type == "host-provided" and locator:
+            raise MaterializerError(f"marketplace {name!r} host-provided source cannot have a locator")
+        _hosts({}, definition)
+        order = definition.get("order", 100)
+        if isinstance(order, bool) or not isinstance(order, int) or order < 0:
+            raise MaterializerError(f"marketplace {name!r} order must be a non-negative integer")
+
+    for kind in ("capabilities", "plugins"):
+        declarations = _table(bridge.get(kind, {}), f"plugin_bridge.{kind}")
+        singular = kind[:-1]
+        for raw_name, raw_definition in declarations.items():
+            name = _name(raw_name, singular)
+            definition = _table(raw_definition, f"{kind} {name!r}")
+            _marketplace(marketplaces, definition.get("marketplace"), f"{singular} {name!r}")
+
+
 def _publish_staged(
     package_stage: Path,
     package_root: Path,
@@ -706,14 +779,79 @@ def _publish_staged(
         raise
     for _, backup in published:
         if backup is not None:
-            _remove_path(backup)
+            _remove_path_best_effort(backup)
+
+
+def _publication_journal_paths(published: Path, transaction: Path) -> tuple[Path, Path]:
+    prefix = f".{published.name}.transaction."
+    if transaction.parent != published.parent or not transaction.name.startswith(prefix):
+        raise MaterializerError(f"unexpected publication journal: {transaction.name}")
+    token = transaction.name[len(prefix) :]
+    if not _PUBLICATION_TOKEN.fullmatch(token):
+        raise MaterializerError(f"malformed publication journal: {transaction.name}")
+    return (
+        published.with_name(f".{published.name}.previous.{token}"),
+        published.with_name(f".{published.name}.candidate.{token}"),
+    )
+
+
+def _is_publication_backup(path: Path, published: Path) -> bool:
+    prefix = f".{published.name}.previous"
+    for separator in (".", "-"):
+        marker = f"{prefix}{separator}"
+        if path.name.startswith(marker):
+            return _PUBLICATION_TOKEN.fullmatch(path.name[len(marker) :]) is not None
+    return False
+
+
+def _recover_publication_transaction(published: Path, transaction: Path) -> None:
+    if transaction.is_symlink() or not transaction.is_file():
+        raise MaterializerError(f"publication journal must be a regular file: {transaction.name}")
+    if transaction.read_text(encoding="utf-8") != _PUBLICATION_JOURNAL:
+        raise MaterializerError(f"malformed publication journal: {transaction.name}")
+    backup, candidate = _publication_journal_paths(published, transaction)
+    for path, description in (
+        (backup, "publication backup"),
+        (candidate, "publication candidate"),
+    ):
+        if path.is_symlink():
+            raise MaterializerError(f"{description} is a symlink: {path.name}")
+        if path.exists() and not path.is_dir():
+            raise MaterializerError(f"{description} is not a directory: {path.name}")
+        if path.exists():
+            _validate_tree(path, description)
+    if published.exists():
+        _remove_path_best_effort(backup)
+        _remove_path_best_effort(candidate)
+    elif backup.exists():
+        backup.replace(published)
+        _remove_path_best_effort(candidate)
+    else:
+        _remove_path_best_effort(candidate)
+    _remove_path_best_effort(transaction)
+
+
+def _recover_publication(published: Path) -> None:
+    if published.is_symlink():
+        raise MaterializerError(f"published tree must not be a symlink: {published}")
+    if published.exists() and not published.is_dir():
+        raise MaterializerError(f"published tree must be a directory: {published}")
+    prefix = f".{published.name}.transaction."
+    for transaction in sorted(published.parent.glob(f"{prefix}*")):
+        _recover_publication_transaction(published, transaction)
+
+    if published.exists():
+        for backup in published.parent.iterdir():
+            if not _is_publication_backup(backup, published):
+                continue
+            if backup.is_symlink():
+                raise MaterializerError(f"publication backup is a symlink: {backup.name}")
+            _remove_path_best_effort(backup)
 
 
 def materialize(payload: Mapping[str, object]) -> None:
     """Emit complete exact-owned generated packages and Cursor plugins."""
-    version = payload.get("plan_version")
-    if version != _PLAN_VERSION:
-        raise MaterializerError(f"unsupported plan version: {version!r}")
+    validate_plugin_references(payload)
     bridge = _table(payload.get("plugin_bridge", {}), "plugin_bridge")
     marketplaces = _table(bridge.get("marketplaces", {}), "plugin_bridge.marketplaces")
     capabilities = _table(bridge.get("capabilities", {}), "plugin_bridge.capabilities")
@@ -723,18 +861,20 @@ def materialize(payload: Mapping[str, object]) -> None:
     acquired_sources = _table(payload.get("acquired_sources", {}), "acquired_sources")
     environment = _name(payload.get("environment"), "environment")
     working_tree = _path(payload.get("working_tree"), "working_tree", absolute=True)
-    output = _path(
-        payload.get("output_source_root"), "output_source_root", absolute=True
-    )
+    output = _path(payload.get("output_source_root"), "output_source_root", absolute=True)
     _validate_output_ancestors(output)
+    output.mkdir(parents=True, exist_ok=True)
     _source_root(working_tree, "working tree")
 
     package_root = output / "dot_local/share/agent-plugins/marketplace/exact_plugins"
     cursor_root = output / "dot_cursor/plugins/exact_local"
-    _validate_output_boundary(output, package_root)
-    _validate_output_boundary(output, cursor_root)
-    _reject_existing_symlinks(package_root, "exact_plugins output")
-    _reject_existing_symlinks(cursor_root, "exact_local output")
+    with _materialization_lock(output):
+        _validate_output_boundary(output, package_root)
+        _validate_output_boundary(output, cursor_root)
+        _recover_publication(package_root)
+        _recover_publication(cursor_root)
+        _reject_existing_symlinks(package_root, "exact_plugins output")
+        _reject_existing_symlinks(cursor_root, "exact_local output")
 
     for raw_source_id, raw_source in acquired_sources.items():
         source_id = _name(raw_source_id, "source")
@@ -754,7 +894,7 @@ def materialize(payload: Mapping[str, object]) -> None:
         environment,
     )
 
-    staging_parent = Path(tempfile.mkdtemp(prefix=".plugin-materializer-"))
+    staging_parent = Path(tempfile.mkdtemp(prefix=".plugin-materializer-", dir=output))
     try:
         package_stage = staging_parent / "exact_plugins"
         cursor_stage = staging_parent / "exact_local"
@@ -797,12 +937,8 @@ def materialize(payload: Mapping[str, object]) -> None:
         for raw_name, raw_definition in sorted(plugins.items()):
             name = _name(raw_name, "plugin")
             definition = _table(raw_definition, f"plugin {name!r}")
-            marketplace = _marketplace(
-                marketplaces, definition.get("marketplace"), f"plugin {name!r}"
-            )
-            if not _enabled(definition, environment) or "cursor" not in _hosts(
-                definition, marketplace
-            ):
+            marketplace = _marketplace(marketplaces, definition.get("marketplace"), f"plugin {name!r}")
+            if not _enabled(definition, environment) or "cursor" not in _hosts(definition, marketplace):
                 continue
             if name in cursor_names:
                 raise MaterializerError(f"duplicate cursor plugin name: {name!r}")
@@ -822,6 +958,7 @@ def materialize(payload: Mapping[str, object]) -> None:
                     definition.get("cursor_source_dir"),
                     f"cursor plugin source for {name!r}",
                 )
+            assert cursor_source is not None
             cursor_stage_path = cursor_stage / f"exact_{name}"
             cursor_attribute_dirs: set[Path] = set()
             _copy_tree(
@@ -835,20 +972,25 @@ def materialize(payload: Mapping[str, object]) -> None:
 
         for package in package_stage.iterdir():
             source_attribute_dirs = next(
-                source_dirs
-                for package_name, package_path, _, source_dirs in packages
-                if package_path == package
+                source_dirs for package_name, package_path, _, source_dirs in packages if package_path == package
             )
             _mark_exact_tree(package, source_attribute_dirs)
         for plugin in cursor_stage.iterdir():
             _mark_exact_tree(plugin, cursor_source_attribute_dirs.get(plugin))
 
-        _publish_staged(
-            package_stage,
-            package_root,
-            cursor_stage,
-            cursor_root,
-        )
+        with _materialization_lock(output):
+            _validate_output_boundary(output, package_root)
+            _validate_output_boundary(output, cursor_root)
+            _recover_publication(package_root)
+            _recover_publication(cursor_root)
+            _reject_existing_symlinks(package_root, "exact_plugins output")
+            _reject_existing_symlinks(cursor_root, "exact_local output")
+            _publish_staged(
+                package_stage,
+                package_root,
+                cursor_stage,
+                cursor_root,
+            )
     finally:
         shutil.rmtree(staging_parent, ignore_errors=True)
 
@@ -856,8 +998,8 @@ def materialize(payload: Mapping[str, object]) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     """Read one normalized declaration as JSON from stdin and materialize it."""
     arguments = tuple(sys.argv[1:] if argv is None else argv)
-    if arguments:
-        print("plugin-materializer: no arguments are accepted", file=sys.stderr)
+    if arguments not in ((), ("--validate-references",)):
+        print("plugin-materializer: unsupported arguments", file=sys.stderr)
         return 2
     try:
         payload = json.load(sys.stdin)
@@ -868,14 +1010,17 @@ def main(argv: Sequence[str] | None = None) -> int:
         print("plugin-materializer: input must be a JSON object", file=sys.stderr)
         return 1
     try:
-        materialize(payload)
+        if arguments == ("--validate-references",):
+            validate_plugin_references(payload)
+        else:
+            materialize(payload)
     except (MaterializerError, OSError) as error:
         print(f"plugin-materializer: {error}", file=sys.stderr)
         return 1
     return 0
 
 
-__all__ = ["MaterializerError", "main", "materialize"]
+__all__ = ["MaterializerError", "main", "materialize", "validate_plugin_references"]
 
 
 if __name__ == "__main__":

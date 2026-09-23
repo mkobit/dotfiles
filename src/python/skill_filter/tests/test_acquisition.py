@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tarfile
 from pathlib import Path
+from typing import Any, cast
 
 import pytest
 
@@ -113,7 +114,7 @@ def test_build_plan_deduplicates_identical_source_pins():
         },
     }
 
-    plan = acquisition.build_plan(raw)
+    plan = cast(Any, acquisition.build_plan(raw))
 
     assert plan["plan_version"] == 1
     assert len(plan["sources"]) == 1
@@ -122,17 +123,20 @@ def test_build_plan_deduplicates_identical_source_pins():
 
 
 def test_build_plan_normalizes_archive_root_and_source_contract():
-    plan = acquisition.build_plan(
-        {
-            "source": {
-                "url": "https://example.invalid/source.tar.gz",
-                "ref": "abc123",
-                "sha256": "a" * 64,
-                "expected_root": "project",
-                "skills_root": "skills",
-                "skills": {"demo": "present"},
+    plan = cast(
+        Any,
+        acquisition.build_plan(
+            {
+                "source": {
+                    "url": "https://example.invalid/source.tar.gz",
+                    "ref": "abc123",
+                    "sha256": "a" * 64,
+                    "expected_root": "project",
+                    "skills_root": "skills",
+                    "skills": {"demo": "present"},
+                }
             }
-        }
+        ),
     )
 
     source = plan["sources"][0]
@@ -209,7 +213,7 @@ def test_catalog_plan_resolves_host_and_renders_one_external_per_source():
             },
         }
     }
-    plan = acquisition.build_catalog_plan(catalog)
+    plan = cast(Any, acquisition.build_catalog_plan(catalog))
     rendered = acquisition.render_synthetic_externals(
         plan,
         target_root=".acquired",
@@ -268,6 +272,7 @@ def test_adapter_aggregates_verified_sources_for_materializer(tmp_path: Path):
     (source / "demo").mkdir(parents=True)
     (source / "demo/SKILL.md").write_text("demo\n", encoding="utf-8")
     plan = {
+        "plan_version": 1,
         "destination_capability": "demo",
         "sources": [{"id": "source-a", "expected_root": "."}],
         "uses": [
@@ -286,20 +291,76 @@ def test_adapter_aggregates_verified_sources_for_materializer(tmp_path: Path):
         "acquired_sources": {},
     }
 
-    result = acquisition.build_materializer_payload(
-        payload, plan, {"source-a": source}, tmp_path / "aggregate"
+    result = cast(
+        Any,
+        acquisition.build_materializer_payload(payload, plan, {"source-a": source}, tmp_path / "aggregate"),
     )
 
-    assert (
-        result["plugin_bridge"]["capabilities"]["demo"]["source_id"]
-        == "acquired-external-skills"
-    )
-    assert result["plugin_bridge"]["capabilities"]["demo"]["skills"] == {
-        "demo": "present"
+    assert result["plugin_bridge"]["capabilities"]["demo"]["source_id"] == "acquired-external-skills"
+    assert result["plugin_bridge"]["capabilities"]["demo"]["skills"] == {"demo": "present"}
+    assert (tmp_path / "aggregate/demo/SKILL.md").read_text(encoding="utf-8") == "demo\n"
+
+
+def test_adapter_replaces_aggregate_to_prune_removed_skills(tmp_path: Path):
+    source = tmp_path / "source"
+    (source / "demo").mkdir(parents=True)
+    (source / "demo/SKILL.md").write_text("demo\n", encoding="utf-8")
+    aggregate = tmp_path / "aggregate"
+    (aggregate / "stale").mkdir(parents=True)
+    (aggregate / "stale/SKILL.md").write_text("stale\n", encoding="utf-8")
+    plan = {
+        "plan_version": 1,
+        "destination_capability": "demo",
+        "sources": [{"id": "source-a", "expected_root": "."}],
+        "uses": [
+            {
+                "id": "use-a",
+                "source_id": "source-a",
+                "skill": "demo",
+                "state": "present",
+                "selection": {"source": "demo", "destination": "demo"},
+            }
+        ],
     }
-    assert (tmp_path / "aggregate/demo/SKILL.md").read_text(
-        encoding="utf-8"
-    ) == "demo\n"
+
+    acquisition.build_materializer_payload(
+        {
+            "plugin_bridge": {"capabilities": {"demo": {"acquisition_destination": True}}},
+            "acquired_sources": {},
+        },
+        plan,
+        {"source-a": source},
+        aggregate,
+    )
+
+    assert not (aggregate / "stale").exists()
+    assert (aggregate / "demo/SKILL.md").read_text(encoding="utf-8") == "demo\n"
+
+
+@pytest.mark.parametrize("consumer", ["validated_source_roots", "build_materializer_payload"])
+def test_adapter_rejects_unsupported_plan_version_before_mutation(tmp_path: Path, consumer):
+    source = tmp_path / "source"
+    (source / "demo").mkdir(parents=True)
+    plan = {
+        "plan_version": 2,
+        "destination_capability": "demo",
+        "sources": [{"id": "source-a", "expected_root": "."}],
+        "uses": [],
+    }
+    aggregate = tmp_path / "aggregate"
+    (aggregate / "old").mkdir(parents=True)
+    if consumer == "validated_source_roots":
+        with pytest.raises(acquisition.AcquisitionError, match="plan version"):
+            acquisition.validated_source_roots(plan, tmp_path)
+    else:
+        with pytest.raises(acquisition.AcquisitionError, match="plan version"):
+            acquisition.build_materializer_payload(
+                {"plugin_bridge": {"capabilities": {}}, "acquired_sources": {}},
+                plan,
+                {},
+                aggregate,
+            )
+    assert (aggregate / "old").exists()
 
 
 def test_filter_adapter_acquires_rooted_archive_as_selected_skill(tmp_path: Path):
@@ -326,23 +387,28 @@ def test_filter_adapter_acquires_rooted_archive_as_selected_skill(tmp_path: Path
     )
 
     with tarfile.open(fileobj=io.BytesIO(result.stdout), mode="r:") as filtered:
-        assert filtered.extractfile("demo/SKILL.md").read() == b"demo\n"
+        member = filtered.extractfile("demo/SKILL.md")
+        assert member is not None
+        assert member.read() == b"demo\n"
 
 
 def test_real_synthetic_chezmoi_offline_hit_uses_fixture_cache(tmp_path: Path):
     archive = _fixture_archive(tmp_path)
     checksum = _sha256(archive)
-    source_id = acquisition.build_plan(
-        {
-            "fixture": {
-                "url": archive.as_uri(),
-                "ref": "abc123",
-                "sha256": checksum,
-                "expected_root": "project",
-                "skills_root": "skills",
-                "skills": {"demo": "present"},
+    source_id = cast(
+        Any,
+        acquisition.build_plan(
+            {
+                "fixture": {
+                    "url": archive.as_uri(),
+                    "ref": "abc123",
+                    "sha256": checksum,
+                    "expected_root": "project",
+                    "skills_root": "skills",
+                    "skills": {"demo": "present"},
+                }
             }
-        }
+        ),
     )["sources"][0]["id"]
     cache = tmp_path / "cache"
     home = tmp_path / "home"
@@ -374,9 +440,7 @@ def test_real_synthetic_chezmoi_offline_hit_uses_fixture_cache(tmp_path: Path):
     )
 
     assert result.returncode == 0, result.stderr
-    assert (
-        destination / ".acquired" / str(source_id) / "demo/SKILL.md"
-    ).read_text() == "demo\n"
+    assert (destination / ".acquired" / str(source_id) / "demo/SKILL.md").read_text() == "demo\n"
 
 
 def test_real_synthetic_chezmoi_offline_miss_does_not_mutate_publication(
@@ -388,9 +452,7 @@ def test_real_synthetic_chezmoi_offline_miss_does_not_mutate_publication(
     published.mkdir()
     (published / "old").write_text("old\n", encoding="utf-8")
 
-    result = _synthetic_chezmoi(
-        tmp_path, archive, checksum, tmp_path / "candidate", tmp_path / "cache", "never"
-    )
+    result = _synthetic_chezmoi(tmp_path, archive, checksum, tmp_path / "candidate", tmp_path / "cache", "never")
 
     assert result.returncode != 0
     assert (published / "old").read_text(encoding="utf-8") == "old\n"
@@ -479,10 +541,7 @@ def test_validate_and_filter_source_rejects_bad_root_and_symlink(tmp_path: Path)
     (source / "fixture/skills/demo").mkdir(parents=True)
     (source / "fixture/skills/demo/SKILL.md").write_text("demo\n", encoding="utf-8")
 
-    assert (
-        acquisition.validate_source_tree(source, expected_root="fixture")
-        == source / "fixture"
-    )
+    assert acquisition.validate_source_tree(source, expected_root="fixture") == source / "fixture"
     with pytest.raises(acquisition.AcquisitionError, match="expected root"):
         acquisition.validate_source_tree(source, expected_root="missing")
 
@@ -605,15 +664,9 @@ def test_publish_candidate_rollback_preserves_published_tree_on_rename_failure(
 
     def fail_selected_replace(source: Path, target: Path) -> Path:
         nonlocal failed
-        is_stage = source == candidate and target.name.startswith(
-            ".published.candidate."
-        )
-        is_backup = source == published and target.name.startswith(
-            ".published.previous."
-        )
-        is_publish = (
-            source.name.startswith(".published.candidate.") and target == published
-        )
+        is_stage = source == candidate and target.name.startswith(".published.candidate.")
+        is_backup = source == published and target.name.startswith(".published.previous.")
+        is_publish = source.name.startswith(".published.candidate.") and target == published
         selected = {
             "stage": is_stage,
             "backup": is_backup,
@@ -688,9 +741,7 @@ def test_recovery_rejects_malicious_journal_without_deleting_targets(tmp_path: P
     journal = tmp_path / f".published.transaction.{token}"
     journal.write_text(f"{outside}\n{outside}\n", encoding="utf-8")
 
-    with pytest.raises(
-        acquisition.AcquisitionError, match="malformed publication journal"
-    ):
+    with pytest.raises(acquisition.AcquisitionError, match="malformed publication journal"):
         acquisition.recover_publication(published)
 
     assert (published / "old").read_text(encoding="utf-8") == "old\n"
