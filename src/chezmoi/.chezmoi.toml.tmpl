@@ -2,6 +2,7 @@
 MISE_CONFIG_DIR = "{{ .chezmoi.destDir }}/.config/mise"
 MISE_DATA_DIR   = "{{ .chezmoi.destDir }}/.local/share/mise"
 MISE_STATE_DIR  = "{{ .chezmoi.destDir }}/.local/state/mise"
+AGY_CLI_DISABLE_AUTO_UPDATE = "true"
 
 # BOM — static binaries strongly preferred over package managers.
 # github_releases = static binary download via chezmoi externals
@@ -76,6 +77,10 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 
 [data.local.bin.agy]
 installation_method = "github_releases"
+auto_update = false
+
+[data.gemini.general]
+enable_auto_update = false
 
 # Personal learning kit for Docker Sandboxes.  It is deliberately separate
 # from project environment files, which continue to own their build setup.

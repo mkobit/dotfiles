@@ -45,7 +45,7 @@
           "footer" (dict "hideContextPercentage" .gemini.ui.footer.hide_context_percentage)
         )
         "general" (dict
-          "enableAutoUpdate" .gemini.general.enable_auto_update
+          "enableAutoUpdate" (dig "local" "bin" "agy" "auto_update" .gemini.general.enable_auto_update .)
           "previewFeatures" .gemini.general.preview_features
           "sessionRetention" (dict
             "enabled" .gemini.general.sessionRetention.enabled
