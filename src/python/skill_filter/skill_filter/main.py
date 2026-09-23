@@ -193,7 +193,11 @@ def reconcile_skill_roots(
     if manifest.exists():
         prior = parse_skill_root_manifest(manifest.read_text(encoding="utf-8"))
         prior_paths = validate_skill_root_manifest(destination, prior)
-        prior_by_entry = dict(zip(prior, prior_paths, strict=True))
+        if len(prior) != len(prior_paths):
+            raise FilterError(
+                "skill root manifest entries and paths have different lengths"
+            )
+        prior_by_entry = dict(zip(prior, prior_paths))
         stale_roots = tuple(
             (stale, prior_by_entry[stale])
             for stale in sorted(set(prior) - set(desired))

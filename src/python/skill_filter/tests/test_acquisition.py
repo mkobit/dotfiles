@@ -66,6 +66,8 @@ def _synthetic_chezmoi(
     )
     config = tmp_path / f"empty-{refresh}.toml"
     config.write_text("", encoding="utf-8")
+    environment = os.environ.copy()
+    environment["HOME"] = str(home or tmp_path / f"home-{refresh}")
     return subprocess.run(
         [
             "chezmoi",
@@ -91,7 +93,7 @@ def _synthetic_chezmoi(
         capture_output=True,
         text=True,
         check=False,
-        env=os.environ | {"HOME": str(home or tmp_path / f"home-{refresh}")},
+        env=environment,
     )
 
 
