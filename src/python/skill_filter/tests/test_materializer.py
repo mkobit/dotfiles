@@ -134,6 +134,7 @@ def test_materialize_does_not_require_path_is_relative_to(tmp_path, monkeypatch)
         Path,
         "is_relative_to",
         lambda *args: (_ for _ in ()).throw(AssertionError("unsupported API")),
+        raising=False,
     )
 
     materialize(payload)
