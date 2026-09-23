@@ -43,6 +43,15 @@ _SOURCE_ATTRIBUTE_PREFIXES = (
 )
 
 
+def _is_relative_to(path: Path, root: Path) -> bool:
+    """Return whether path is lexically contained by root on Python 3.8+."""
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
 def _table(value: object, description: str) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
         raise MaterializerError(f"{description} must be a table")
@@ -246,7 +255,7 @@ def _acquired_source(
         raise MaterializerError(f"missing acquired source mapping: {source_name!r}")
     value = acquired_sources[source_name]
     root = _path(value, f"acquired source {source_name!r}", absolute=True)
-    if root == working_tree or root.is_relative_to(working_tree):
+    if root == working_tree or _is_relative_to(root, working_tree):
         raise MaterializerError(
             f"acquired source {source_name!r} must be an acquired directory"
         )
@@ -730,7 +739,7 @@ def materialize(payload: Mapping[str, object]) -> None:
     for raw_source_id, raw_source in acquired_sources.items():
         source_id = _name(raw_source_id, "source")
         root = _path(raw_source, f"acquired source {source_id!r}", absolute=True)
-        if root == working_tree or root.is_relative_to(working_tree):
+        if root == working_tree or _is_relative_to(root, working_tree):
             raise MaterializerError(f"acquired source {source_id!r} must be acquired")
         _validate_tree(root, f"acquired source {source_id!r}")
 
@@ -781,7 +790,7 @@ def materialize(payload: Mapping[str, object]) -> None:
                 cursor_source_attribute_dirs[cursor_stage_path] = {
                     cursor_stage_path / path.relative_to(package / "cursor")
                     for path in source_attribute_dirs
-                    if path.is_relative_to(package / "cursor")
+                    if _is_relative_to(path, package / "cursor")
                 }
                 cursor_names.add(name)
 

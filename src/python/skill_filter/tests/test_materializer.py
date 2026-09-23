@@ -123,6 +123,29 @@ def test_materialize_emits_exact_package_and_cursor_trees(tmp_path):
     assert (cursor / "exact_skills/exact_cursor-only/SKILL.md").read_text() == "cursor"
 
 
+def test_materialize_does_not_require_path_is_relative_to(tmp_path, monkeypatch):
+    payload = _payload(tmp_path)
+    _write(
+        Path(str(payload["working_tree"]))
+        / "src/plugins/demo/wrapper/cursor/exact_marker/marker",
+        "marker",
+    )
+    monkeypatch.setattr(
+        Path,
+        "is_relative_to",
+        lambda *args: (_ for _ in ()).throw(AssertionError("unsupported API")),
+    )
+
+    materialize(payload)
+
+    assert any(
+        path.read_text() == "marker"
+        for path in Path(str(payload["output_source_root"]))
+        .joinpath("dot_cursor/plugins/exact_local/exact_demo")
+        .rglob("marker")
+    )
+
+
 def test_materialize_encodes_generated_skill_attribute_and_template_files(tmp_path):
     payload = _payload(tmp_path)
     skill = Path(str(payload["working_tree"])) / "src/ai/skills/shared"
