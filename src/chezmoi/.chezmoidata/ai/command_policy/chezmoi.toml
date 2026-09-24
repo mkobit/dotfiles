@@ -1,0 +1,3 @@
+# Chezmoi CLI: safe inspection and diffing.
+[ai.command_policy.commands]
+"chezmoi diff" = "allow"
