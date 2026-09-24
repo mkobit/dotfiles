@@ -1,0 +1,3 @@
+# Read-only chezmoi inspection: safe diffing against current machine state.
+[ai.command_policy.commands]
+"chezmoi diff" = "allow"
