@@ -29,13 +29,14 @@ Every project environment provides its own kit at `.sbx/kit/spec.yaml`.
 ## Execution and state retrieval
 
 1. Run `sbx version`; this workflow was last validated against `0.45.1`.
-2. Inspect the repository's `AGENTS.md`, `mise.toml`, build manifests, and `.sbx/` configuration.
-3. Validate and plan the environment with `sbx kit validate .sbx/kit` and `sbx env plan .sbx/sbxenv.yaml`.
-4. Dispatch tasks into the sandbox using `sbx env exec .sbx/sbxenv.yaml -- <command>`.
-5. For interactive or autonomous agent sessions, run `sbx env run .sbx/sbxenv.yaml`.
-6. Retrieve committed clone-mode work on the host by fetching the sandbox git remote: `git fetch sandbox-<name> <branch>`.
-7. Review changes on the host, run host verification gates, and commit or push with host credentials.
-8. Tear down environments when finished with `sbx env rm .sbx/sbxenv.yaml --force`.
+2. Inspect the repository's `AGENTS.md`, `.agents/skills`, `mise.toml`, CI workflows, build manifests, and `.sbx/` configuration.
+3. State the selected agent, clone-mode workspace, and required checks before creating a sandbox; require user confirmation for actions outside session authorization.
+4. Validate and plan the environment with `sbx kit validate .sbx/kit` and `sbx env plan .sbx/sbxenv.yaml`.
+5. Dispatch tasks into the sandbox using `sbx env exec .sbx/sbxenv.yaml -- <command>`.
+6. For interactive or autonomous agent sessions, run `sbx env run .sbx/sbxenv.yaml`.
+7. Retrieve committed clone-mode work on the host by fetching the sandbox git remote: `git fetch sandbox-<name> <branch>`.
+8. Review changes on the host, run host verification gates, and commit or push with host credentials.
+9. Tear down environments when finished with `sbx env rm .sbx/sbxenv.yaml --force`.
 
 For detailed references:
 - [Repository setup](references/repository-setup.md) covers `.sbx/sbxenv.yaml` and `.sbx/kit/spec.yaml` creation.
