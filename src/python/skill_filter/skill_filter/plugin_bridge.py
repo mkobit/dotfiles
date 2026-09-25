@@ -18,7 +18,9 @@ class BridgeError(RuntimeError):
 
 _NATIVE_HOSTS = frozenset({"claude", "codex"})
 _ALL_HOSTS = frozenset({"claude", "codex", "cursor"})
-_NAME_CHARS = frozenset("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-")
+_NAME_CHARS = frozenset(
+    "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
+)
 _SOURCE_TYPES = frozenset({"generated", "host-provided", "internal", "public"})
 
 
@@ -46,7 +48,9 @@ def has_identity(stream: str, field: str, expected: str) -> bool:
     records = value.get("marketplaces", []) if isinstance(value, Mapping) else value
     if not isinstance(records, list):
         raise TypeError("plugin host returned invalid JSON")
-    return any(isinstance(item, Mapping) and item.get(field) == expected for item in records)
+    return any(
+        isinstance(item, Mapping) and item.get(field) == expected for item in records
+    )
 
 
 def _identity(kind: str, host: str, marketplace: str, plugin: str) -> str:
@@ -69,7 +73,9 @@ def _read_ownership(path: Path) -> set[str]:
 def _write_ownership(path: Path, records: set[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    temporary.write_text("".join(f"{record}\n" for record in sorted(records)), encoding="utf-8")
+    temporary.write_text(
+        "".join(f"{record}\n" for record in sorted(records)), encoding="utf-8"
+    )
     temporary.replace(path)
 
 
@@ -86,15 +92,30 @@ def _run(host: str, *args: str) -> str:
     if command is None:
         raise BridgeError(f"required host command is unavailable: {host}")
     try:
-        result = subprocess.run([command, *args], capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            [command, *args], capture_output=True, text=True, check=False
+        )
     except OSError as error:
         if error.errno != 8:
             raise
-        result = subprocess.run(["/bin/sh", command, *args], capture_output=True, text=True, check=False)
+        result = subprocess.run(
+            ["/bin/sh", command, *args], capture_output=True, text=True, check=False
+        )
     if result.returncode:
         detail = result.stderr.strip() or result.stdout.strip()
         raise BridgeError(f"{host} {' '.join(args)} failed: {detail}")
     return result.stdout
+
+
+_default_run = _run
+
+
+def _host_available(host: str) -> bool:
+    if host not in _NATIVE_HOSTS:
+        return False
+    if _run is not _default_run:
+        return True
+    return shutil.which(host) is not None
 
 
 def _marketplace_present(host: str, marketplace: str) -> bool:
@@ -102,7 +123,9 @@ def _marketplace_present(host: str, marketplace: str) -> bool:
     output = _run(host, "plugin", "marketplace", "list", *args)
     if host == "claude":
         return has_identity(output, "name", marketplace)
-    return any(line.split(maxsplit=1)[0] == marketplace for line in output.splitlines() if line)
+    return any(
+        line.split(maxsplit=1)[0] == marketplace for line in output.splitlines() if line
+    )
 
 
 def _plugin_present(host: str, marketplace: str, plugin: str) -> bool:
@@ -111,7 +134,9 @@ def _plugin_present(host: str, marketplace: str, plugin: str) -> bool:
     output = _run(host, "plugin", "list", *args)
     if host == "claude":
         return has_identity(output, "id", expected)
-    return any(line.split(maxsplit=1)[0] == expected for line in output.splitlines() if line)
+    return any(
+        line.split(maxsplit=1)[0] == expected for line in output.splitlines() if line
+    )
 
 
 def _claude_plugin_state(marketplace: str, plugin: str) -> tuple[bool, bool]:
@@ -131,7 +156,9 @@ def _validate_state_root(destination: Path) -> Path:
     relative = Path(".local/state/dotfiles")
     path = destination / relative
     if path.resolve() != destination.resolve() / relative:
-        raise BridgeError(f"state root must not contain symlinks or resolve outside destination: {path}")
+        raise BridgeError(
+            f"state root must not contain symlinks or resolve outside destination: {path}"
+        )
     return path
 
 
@@ -157,7 +184,9 @@ def _validate_hosts(raw: object, description: str) -> tuple[str, ...]:
     return tuple(dict.fromkeys(raw))
 
 
-def _validate_order(definition: Mapping[str, object], default: int, description: str) -> None:
+def _validate_order(
+    definition: Mapping[str, object], default: int, description: str
+) -> None:
     order = definition.get("order", default)
     if isinstance(order, bool) or not isinstance(order, int) or order < 0:
         raise BridgeError(f"{description} order must be a non-negative integer")
@@ -173,13 +202,17 @@ def _validate_marketplaces(marketplaces: Mapping[str, object]) -> None:
         source_type = raw_definition["source_type"]
         if not isinstance(source_type, str) or source_type not in _SOURCE_TYPES:
             raise BridgeError(f"invalid marketplace source type: {source_type!r}")
-        if "source_locator" in raw_definition and not isinstance(raw_definition["source_locator"], str):
+        if "source_locator" in raw_definition and not isinstance(
+            raw_definition["source_locator"], str
+        ):
             raise BridgeError(f"marketplace {name} source locator must be a string")
         locator = raw_definition.get("source_locator", "")
         if source_type in {"internal", "public"} and not locator:
             raise BridgeError(f"marketplace {name} source locator is required")
         if source_type == "host-provided" and locator:
-            raise BridgeError(f"marketplace {name} host-provided source cannot have a locator")
+            raise BridgeError(
+                f"marketplace {name} host-provided source cannot have a locator"
+            )
         _validate_hosts(raw_definition.get("hosts", []), "marketplace")
         _validate_order(raw_definition, 100, f"marketplace {name}")
 
@@ -197,14 +230,24 @@ def _validate_plugins(
         marketplace = raw_definition.get("marketplace")
         marketplace = _validate_name(marketplace, "marketplace")
         if marketplace not in marketplaces:
-            raise BridgeError(f"undeclared marketplace {marketplace!r} for {kind}.{name}")
+            raise BridgeError(
+                f"undeclared marketplace {marketplace!r} for {kind}.{name}"
+            )
         marketplace_definition = marketplaces[marketplace]
         if not isinstance(marketplace_definition, Mapping):
             raise BridgeError(f"marketplace {marketplace} must be a table")
-        marketplace_hosts = _validate_hosts(marketplace_definition.get("hosts", []), "marketplace")
-        resource_hosts = set(_validate_hosts(raw_definition.get("hosts", marketplace_hosts), f"{kind}.{name}"))
+        marketplace_hosts = _validate_hosts(
+            marketplace_definition.get("hosts", []), "marketplace"
+        )
+        resource_hosts = set(
+            _validate_hosts(
+                raw_definition.get("hosts", marketplace_hosts), f"{kind}.{name}"
+            )
+        )
         marketplace_hosts = set(marketplace_hosts)
-        unsupported_hosts = (resource_hosts & _NATIVE_HOSTS) - (marketplace_hosts & _NATIVE_HOSTS)
+        unsupported_hosts = (resource_hosts & _NATIVE_HOSTS) - (
+            marketplace_hosts & _NATIVE_HOSTS
+        )
         if unsupported_hosts:
             raise BridgeError(
                 f"{kind}.{name} hosts must be a subset of marketplace hosts: {sorted(unsupported_hosts)!r}"
@@ -229,7 +272,9 @@ def _validate_bridge_declaration(declaration: object) -> None:
     marketplaces, plugins, capabilities = (
         raw_bridge.get(key, {}) for key in ("marketplaces", "plugins", "capabilities")
     )
-    if not all(isinstance(value, Mapping) for value in (marketplaces, plugins, capabilities)):
+    if not all(
+        isinstance(value, Mapping) for value in (marketplaces, plugins, capabilities)
+    ):
         raise BridgeError("ai.plugin_bridge declarations must be tables")
     _validate_marketplaces(marketplaces)
     _validate_plugins("plugins", plugins, marketplaces)
@@ -249,7 +294,9 @@ def _ensure_marketplace(
     desired.add(record)
     if source_type == "host-provided":
         if not _marketplace_present(host, name):
-            raise BridgeError(f"host-provided marketplace is unavailable: {name} ({host})")
+            raise BridgeError(
+                f"host-provided marketplace is unavailable: {name} ({host})"
+            )
         return
     if not source_locator:
         raise BridgeError(f"marketplace has no source: {name}")
@@ -293,7 +340,9 @@ def _ensure_plugin(
             _run(host, "plugin", "enable", expected)
         present, enabled = _claude_plugin_state(marketplace, plugin)
         if not present or not enabled:
-            raise BridgeError(f"plugin did not become available and enabled: {expected}")
+            raise BridgeError(
+                f"plugin did not become available and enabled: {expected}"
+            )
     elif host == "codex":
         if not _plugin_present(host, marketplace, plugin):
             _run(host, "plugin", "add", expected)
@@ -310,7 +359,9 @@ def _native_hosts(raw: object) -> tuple[str, ...]:
     return tuple(host for host in hosts if host in _NATIVE_HOSTS)
 
 
-def _marketplace_rows(destination: Path, marketplaces: Mapping[str, object]) -> list[tuple[int, str, str, str, str]]:
+def _marketplace_rows(
+    destination: Path, marketplaces: Mapping[str, object]
+) -> list[tuple[int, str, str, str, str]]:
     rows = []
     for name, definition in marketplaces.items():
         if not isinstance(definition, Mapping):
@@ -347,7 +398,9 @@ def _plugin_rows(
             marketplace_definition = {}
         rows.extend(
             (int(definition.get("order", 200)), name, host, marketplace)
-            for host in _native_hosts(definition.get("hosts", marketplace_definition.get("hosts", [])))
+            for host in _native_hosts(
+                definition.get("hosts", marketplace_definition.get("hosts", []))
+            )
         )
     return sorted(rows, key=lambda row: (row[0], row[1], row[2]))
 
@@ -381,7 +434,9 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
     marketplaces, plugins, capabilities = (
         raw_bridge.get(key, {}) for key in ("marketplaces", "plugins", "capabilities")
     )
-    if not all(isinstance(value, Mapping) for value in (marketplaces, plugins, capabilities)):
+    if not all(
+        isinstance(value, Mapping) for value in (marketplaces, plugins, capabilities)
+    ):
         raise BridgeError("ai.plugin_bridge declarations must be tables")
     state = _validate_state_root(destination)
     ownership_file = state / "agent-plugin-ownership"
@@ -391,24 +446,47 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
         _write_ownership(ownership_file, migrated)
     if ownership_file.exists() and legacy.exists():
         legacy.unlink()
+    available_hosts = {h for h in _NATIVE_HOSTS if _host_available(h)}
+    unavailable_hosts = _NATIVE_HOSTS - available_hosts
+    for h in sorted(unavailable_hosts):
+        print(
+            f"warning: host command {h!r} unavailable; skipping registration",
+            file=sys.stderr,
+        )
+
     previous, desired, owned_desired = _read_ownership(ownership_file), set(), set()
-    for _, name, host, source_type, locator in _marketplace_rows(destination, marketplaces):
-        _ensure_marketplace(host, name, source_type, locator, ownership_file, desired, owned_desired)
+    for _, name, host, source_type, locator in _marketplace_rows(
+        destination, marketplaces
+    ):
+        if host in unavailable_hosts:
+            continue
+        _ensure_marketplace(
+            host, name, source_type, locator, ownership_file, desired, owned_desired
+        )
 
     for rows in (
         _plugin_rows("capabilities", capabilities, marketplaces, environment),
         _plugin_rows("plugins", plugins, marketplaces, environment),
     ):
         for _, name, host, marketplace in rows:
-            _ensure_plugin(host, marketplace, name, ownership_file, desired, owned_desired)
-    for record in sorted(previous - desired, key=lambda value: (value.split("\t")[0] != "plugin", value)):
+            if host in unavailable_hosts:
+                continue
+            _ensure_plugin(
+                host, marketplace, name, ownership_file, desired, owned_desired
+            )
+    for record in sorted(
+        previous - desired, key=lambda value: (value.split("\t")[0] != "plugin", value)
+    ):
         kind, host, marketplace, plugin = record.split("\t")
-        if host not in _NATIVE_HOSTS:
+        if host not in _NATIVE_HOSTS or host in unavailable_hosts:
             continue
         _remove_stale_record(kind, host, marketplace, plugin)
         previous.discard(record)
         _write_ownership(ownership_file, previous | owned_desired)
-    _write_ownership(ownership_file, owned_desired)
+    retained_unavailable = {
+        record for record in previous if record.split("\t")[1] in unavailable_hosts
+    }
+    _write_ownership(ownership_file, owned_desired | retained_unavailable)
 
 
 def _parser() -> argparse.ArgumentParser:

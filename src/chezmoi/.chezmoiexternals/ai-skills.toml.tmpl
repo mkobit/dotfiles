@@ -18,18 +18,18 @@
 {{- $selectedSkills := dict -}}
 {{- $authoredSkills := dict -}}
 {{- range $skillName, $state := dig "authored" (dict) $cfg -}}
-{{-   if eq $state "present" -}}
+{{-   if or (eq $state "present") (eq $state "antigravity") -}}
 {{-     $_ := set $authoredSkills $skillName (printf "ai.skills.authored.%s" $skillName) -}}
 {{-   end -}}
 {{- end -}}
 {{- range $sourceName, $source := $cfg.external -}}
 {{-   range $skillName, $state := dig "skills" (dict) $source -}}
-{{-     if or (eq $state "present") (has $state (list "claude" "codex" "cursor")) -}}
+{{-     if or (eq $state "present") (has $state (list "antigravity" "claude" "codex" "cursor")) -}}
 {{-       if hasKey $selectedSkills $skillName -}}
 {{-         fail (printf "duplicate capability skill %q from ai.skills.external.%s and ai.skills.external.%s" $skillName (index $selectedSkills $skillName) $sourceName) -}}
 {{-       end -}}
 {{-       $_ := set $selectedSkills $skillName $sourceName -}}
-{{-       if and (eq $state "present") (hasKey $authoredSkills $skillName) -}}
+{{-       if and (or (eq $state "present") (eq $state "antigravity")) (hasKey $authoredSkills $skillName) -}}
 {{-         fail (printf "duplicate Antigravity skill path %q from ai.skills.external.%s.skills.%s and %s" (printf "%s/%s" $antigravity $skillName) $sourceName $skillName (index $authoredSkills $skillName)) -}}
 {{-       end -}}
 {{-       if or (not (dig "ref" "" $source)) (not (dig "sha256" "" $source)) -}}
@@ -59,11 +59,11 @@
                   "command" $python
                   "args" (list "-S" $script "--cache-key" $source.sha256 "--select" $selectArg))
 -}}
-{{-       if eq $state "present" -}}
+{{-       if or (eq $state "present") (eq $state "antigravity") -}}
 {{-         $_ := set $config (printf "%s/%s" $antigravity $skillName) $entry -}}
 {{-       end -}}
 {{-     else if ne $state "absent" -}}
-{{-       fail (printf "ai.skills.external.%s.skills.%s: state must be \"present\", \"absent\", or a tool name (claude, codex, cursor), got %q" $sourceName $skillName $state) -}}
+{{-       fail (printf "ai.skills.external.%s.skills.%s: state must be \"present\", \"absent\", or a tool name (antigravity, claude, codex, cursor), got %q" $sourceName $skillName $state) -}}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}

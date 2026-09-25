@@ -293,12 +293,21 @@ def test_adapter_aggregates_verified_sources_for_materializer(tmp_path: Path):
 
     result = cast(
         Any,
-        acquisition.build_materializer_payload(payload, plan, {"source-a": source}, tmp_path / "aggregate"),
+        acquisition.build_materializer_payload(
+            payload, plan, {"source-a": source}, tmp_path / "aggregate"
+        ),
     )
 
-    assert result["plugin_bridge"]["capabilities"]["demo"]["source_id"] == "acquired-external-skills"
-    assert result["plugin_bridge"]["capabilities"]["demo"]["skills"] == {"demo": "present"}
-    assert (tmp_path / "aggregate/demo/SKILL.md").read_text(encoding="utf-8") == "demo\n"
+    assert (
+        result["plugin_bridge"]["capabilities"]["demo"]["source_id"]
+        == "acquired-external-skills"
+    )
+    assert result["plugin_bridge"]["capabilities"]["demo"]["skills"] == {
+        "demo": "present"
+    }
+    assert (tmp_path / "aggregate/demo/SKILL.md").read_text(
+        encoding="utf-8"
+    ) == "demo\n"
 
 
 def test_adapter_replaces_aggregate_to_prune_removed_skills(tmp_path: Path):
@@ -325,7 +334,9 @@ def test_adapter_replaces_aggregate_to_prune_removed_skills(tmp_path: Path):
 
     acquisition.build_materializer_payload(
         {
-            "plugin_bridge": {"capabilities": {"demo": {"acquisition_destination": True}}},
+            "plugin_bridge": {
+                "capabilities": {"demo": {"acquisition_destination": True}}
+            },
             "acquired_sources": {},
         },
         plan,
@@ -337,8 +348,12 @@ def test_adapter_replaces_aggregate_to_prune_removed_skills(tmp_path: Path):
     assert (aggregate / "demo/SKILL.md").read_text(encoding="utf-8") == "demo\n"
 
 
-@pytest.mark.parametrize("consumer", ["validated_source_roots", "build_materializer_payload"])
-def test_adapter_rejects_unsupported_plan_version_before_mutation(tmp_path: Path, consumer):
+@pytest.mark.parametrize(
+    "consumer", ["validated_source_roots", "build_materializer_payload"]
+)
+def test_adapter_rejects_unsupported_plan_version_before_mutation(
+    tmp_path: Path, consumer
+):
     source = tmp_path / "source"
     (source / "demo").mkdir(parents=True)
     plan = {
@@ -392,6 +407,9 @@ def test_filter_adapter_acquires_rooted_archive_as_selected_skill(tmp_path: Path
         assert member.read() == b"demo\n"
 
 
+@pytest.mark.skipif(
+    shutil.which("chezmoi") is None, reason="chezmoi binary not in PATH"
+)
 def test_real_synthetic_chezmoi_offline_hit_uses_fixture_cache(tmp_path: Path):
     archive = _fixture_archive(tmp_path)
     checksum = _sha256(archive)
@@ -440,9 +458,14 @@ def test_real_synthetic_chezmoi_offline_hit_uses_fixture_cache(tmp_path: Path):
     )
 
     assert result.returncode == 0, result.stderr
-    assert (destination / ".acquired" / str(source_id) / "demo/SKILL.md").read_text() == "demo\n"
+    assert (
+        destination / ".acquired" / str(source_id) / "demo/SKILL.md"
+    ).read_text() == "demo\n"
 
 
+@pytest.mark.skipif(
+    shutil.which("chezmoi") is None, reason="chezmoi binary not in PATH"
+)
 def test_real_synthetic_chezmoi_offline_miss_does_not_mutate_publication(
     tmp_path: Path,
 ):
@@ -452,12 +475,17 @@ def test_real_synthetic_chezmoi_offline_miss_does_not_mutate_publication(
     published.mkdir()
     (published / "old").write_text("old\n", encoding="utf-8")
 
-    result = _synthetic_chezmoi(tmp_path, archive, checksum, tmp_path / "candidate", tmp_path / "cache", "never")
+    result = _synthetic_chezmoi(
+        tmp_path, archive, checksum, tmp_path / "candidate", tmp_path / "cache", "never"
+    )
 
     assert result.returncode != 0
     assert (published / "old").read_text(encoding="utf-8") == "old\n"
 
 
+@pytest.mark.skipif(
+    shutil.which("chezmoi") is None, reason="chezmoi binary not in PATH"
+)
 def test_real_synthetic_chezmoi_checksum_failure_does_not_mutate_publication(
     tmp_path: Path,
 ):
@@ -541,7 +569,10 @@ def test_validate_and_filter_source_rejects_bad_root_and_symlink(tmp_path: Path)
     (source / "fixture/skills/demo").mkdir(parents=True)
     (source / "fixture/skills/demo/SKILL.md").write_text("demo\n", encoding="utf-8")
 
-    assert acquisition.validate_source_tree(source, expected_root="fixture") == source / "fixture"
+    assert (
+        acquisition.validate_source_tree(source, expected_root="fixture")
+        == source / "fixture"
+    )
     with pytest.raises(acquisition.AcquisitionError, match="expected root"):
         acquisition.validate_source_tree(source, expected_root="missing")
 
@@ -664,9 +695,15 @@ def test_publish_candidate_rollback_preserves_published_tree_on_rename_failure(
 
     def fail_selected_replace(source: Path, target: Path) -> Path:
         nonlocal failed
-        is_stage = source == candidate and target.name.startswith(".published.candidate.")
-        is_backup = source == published and target.name.startswith(".published.previous.")
-        is_publish = source.name.startswith(".published.candidate.") and target == published
+        is_stage = source == candidate and target.name.startswith(
+            ".published.candidate."
+        )
+        is_backup = source == published and target.name.startswith(
+            ".published.previous."
+        )
+        is_publish = (
+            source.name.startswith(".published.candidate.") and target == published
+        )
         selected = {
             "stage": is_stage,
             "backup": is_backup,
@@ -741,7 +778,9 @@ def test_recovery_rejects_malicious_journal_without_deleting_targets(tmp_path: P
     journal = tmp_path / f".published.transaction.{token}"
     journal.write_text(f"{outside}\n{outside}\n", encoding="utf-8")
 
-    with pytest.raises(acquisition.AcquisitionError, match="malformed publication journal"):
+    with pytest.raises(
+        acquisition.AcquisitionError, match="malformed publication journal"
+    ):
         acquisition.recover_publication(published)
 
     assert (published / "old").read_text(encoding="utf-8") == "old\n"
