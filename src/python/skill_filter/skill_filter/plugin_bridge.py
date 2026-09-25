@@ -107,17 +107,6 @@ def _run(host: str, *args: str) -> str:
     return result.stdout
 
 
-_default_run = _run
-
-
-def _host_available(host: str) -> bool:
-    if host not in _NATIVE_HOSTS:
-        return False
-    if _run is not _default_run:
-        return True
-    return shutil.which(host) is not None
-
-
 def _marketplace_present(host: str, marketplace: str) -> bool:
     args = ["--json"] if host == "claude" else []
     output = _run(host, "plugin", "marketplace", "list", *args)
@@ -446,20 +435,10 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
         _write_ownership(ownership_file, migrated)
     if ownership_file.exists() and legacy.exists():
         legacy.unlink()
-    available_hosts = {h for h in _NATIVE_HOSTS if _host_available(h)}
-    unavailable_hosts = _NATIVE_HOSTS - available_hosts
-    for h in sorted(unavailable_hosts):
-        print(
-            f"warning: host command {h!r} unavailable; skipping registration",
-            file=sys.stderr,
-        )
-
     previous, desired, owned_desired = _read_ownership(ownership_file), set(), set()
     for _, name, host, source_type, locator in _marketplace_rows(
         destination, marketplaces
     ):
-        if host in unavailable_hosts:
-            continue
         _ensure_marketplace(
             host, name, source_type, locator, ownership_file, desired, owned_desired
         )
@@ -469,8 +448,6 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
         _plugin_rows("plugins", plugins, marketplaces, environment),
     ):
         for _, name, host, marketplace in rows:
-            if host in unavailable_hosts:
-                continue
             _ensure_plugin(
                 host, marketplace, name, ownership_file, desired, owned_desired
             )
@@ -478,15 +455,12 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
         previous - desired, key=lambda value: (value.split("\t")[0] != "plugin", value)
     ):
         kind, host, marketplace, plugin = record.split("\t")
-        if host not in _NATIVE_HOSTS or host in unavailable_hosts:
+        if host not in _NATIVE_HOSTS:
             continue
         _remove_stale_record(kind, host, marketplace, plugin)
         previous.discard(record)
         _write_ownership(ownership_file, previous | owned_desired)
-    retained_unavailable = {
-        record for record in previous if record.split("\t")[1] in unavailable_hosts
-    }
-    _write_ownership(ownership_file, owned_desired | retained_unavailable)
+    _write_ownership(ownership_file, owned_desired)
 
 
 def _parser() -> argparse.ArgumentParser:

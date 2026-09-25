@@ -759,7 +759,7 @@ def test_publish_candidate_ignores_backup_cleanup_failure(tmp_path: Path, monkey
     def fail_backup_cleanup(path, *args, **kwargs):
         if ".previous." in str(path):
             raise OSError("simulated cleanup failure")
-        return original_rmtree(path, *args, **kwargs)
+        return original_rmtree(path)
 
     monkeypatch.setattr(acquisition.shutil, "rmtree", fail_backup_cleanup)
     acquisition.publish_candidate(published, candidate, lambda: None)

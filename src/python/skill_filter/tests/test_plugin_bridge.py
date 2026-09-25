@@ -700,19 +700,3 @@ def test_has_identity_cli_uses_exact_json_identity():
         check=False,
     )
     assert (present.returncode, absent.returncode) == (0, 1)
-
-
-def test_reconcile_skips_unavailable_native_hosts(tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(plugin_bridge, "_host_available", lambda host: False)
-    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
-    ownership.parent.mkdir(parents=True)
-    ownership.write_text("plugin\tclaude\tmarket\tprevious\n", encoding="utf-8")
-
-    declaration = _valid_bridge()
-    plugin_bridge.reconcile(tmp_path, declaration)
-
-    # previous record for unavailable host is retained, not removed
-    assert "plugin\tclaude\tmarket\tprevious" in ownership.read_text(encoding="utf-8")
-    captured = capsys.readouterr()
-    assert "host command 'claude' unavailable" in captured.err
-    assert "host command 'codex' unavailable" in captured.err
