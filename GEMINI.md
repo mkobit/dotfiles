@@ -12,7 +12,7 @@ rules[4]:
     applyTo[5]: *.md,*.mdx,*.adoc,*.rst,*.txt
   - path: @.gemini/memories/11-write-agent-context.md
     description: Minimal context rules for agent configuration files and skills
-    applyTo[5]: AGENTS.md,CLAUDE.md,GEMINI.md,SKILL.md,*.mdc
+    applyTo[5]: AGENTS.md,GEMINI.md,SKILL.md,*.mdc
 
 # Additional Conventions Beyond the Built-in Functions
 
