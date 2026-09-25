@@ -19,7 +19,7 @@
       "Edit(~/.claude/hooks/**)",
       "Edit(~/.claude/commands/**)",
       "Edit(~/.claude/settings.json)",
-      "Edit(~/.claude/AGENTS.md)",
+      "Edit(~/.claude/CLAUDE.md)",
       "Edit(~/.cursor/skills/**)",
       "Edit(~/.cursor/agents/**)",
       "Edit(~/.codex/skills/**)",

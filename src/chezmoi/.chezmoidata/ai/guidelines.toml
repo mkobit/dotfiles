@@ -1,5 +1,5 @@
 # Universal agent guidelines — shared across all AI coding tools.
-# Consumed by dot_claude/AGENTS.md.tmpl, dot_codex/AGENTS.md.tmpl, and goose.
+# Consumed by dot_claude/CLAUDE.md.tmpl, dot_codex/AGENTS.md.tmpl, and goose.
 # Keep this tight — injected into every conversation turn.
 
 [[ai.guidelines.sections]]

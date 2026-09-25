@@ -44,17 +44,17 @@ Favor general architectural principles and reusable patterns over hyper-specific
 
 ## Editing Claude Code / AI-tool configuration
 
-When a request in this repo mentions editing Claude settings, agent definitions, skills, or other AI-tool config, it means editing the chezmoi source and running `chezmoi apply` — **never** editing the deployed file directly.
+When a request in this repo mentions editing Claude settings, `CLAUDE.md`, agent definitions, skills, or other AI-tool config, it means editing the chezmoi source and running `chezmoi apply` — **never** editing the deployed file directly.
 Deployed copies under `~/.claude/`, `~/.codex/`, `~/.gemini/`, `~/.cursor/`, etc. (or the equivalent under `.chezmoi.destDir` during testing) are chezmoi-managed targets; direct edits there are silently overwritten on the next `chezmoi apply`.
 This applies to every dotfile-managed target, not just Claude's — the same mistake applies to any tool whose config chezmoi owns.
 This repo's `.claude/settings.json` denies `Edit(...)` on known deployed paths for this reason (`Edit` deny rules also cover Write and NotebookEdit — see [permission docs](https://code.claude.com/docs/en/permissions)); Read stays allowed since chezmoi's own tooling still needs to inspect deployed files. An overlay composing this repo should register the equivalent deny rules in its own project `.claude/settings.json`.
 
-- Global Claude Code prompt: `src/chezmoi/dot_claude/AGENTS.md.tmpl` → `~/.claude/AGENTS.md`.
+- Global Claude Code prompt: `src/chezmoi/dot_claude/CLAUDE.md.tmpl` → `~/.claude/CLAUDE.md`.
 - Claude Code settings: `src/chezmoi/dot_claude/modify_settings.json` → `~/.claude/settings.json`.
 - Skills catalog: `src/chezmoi/.chezmoidata/ai/skills/`; authored skill sources under `src/ai/skills/`.
 - Agents catalog: `src/chezmoi/.chezmoidata/ai/agents.toml` (pinned upstream selections; no authored agent sources exist yet).
 
-After editing source, preview with `chezmoi diff`, then sync with `chezmoi apply` (optionally scoped to a target path, e.g. `chezmoi apply ~/.claude/AGENTS.md`).
+After editing source, preview with `chezmoi diff`, then sync with `chezmoi apply` (optionally scoped to a target path, e.g. `chezmoi apply ~/.claude/CLAUDE.md`).
 
 ## Managed environment constraints
 
