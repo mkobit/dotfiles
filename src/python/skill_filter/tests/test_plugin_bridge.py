@@ -705,7 +705,6 @@ def test_has_identity_cli_uses_exact_json_identity():
 def test_reconcile_skips_unavailable_host_and_preserves_previous_ownership(
     tmp_path, monkeypatch
 ):
-    assert plugin_bridge._run is plugin_bridge._default_run
     monkeypatch.setattr(plugin_bridge.shutil, "which", lambda cmd: None)
 
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
