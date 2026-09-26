@@ -28,10 +28,11 @@ def test_skill_routes_repository_setup_through_progressive_references():
         assert required in skill, f"Missing {required!r} in {SKILL_FILE}"
 
 
-def test_skill_ships_clone_only_agent_environment_templates():
-    """Keep Codex and AGY project environments separate and host-safe by default."""
+def test_skill_ships_agent_environment_templates():
+    """Keep Codex, AGY, and Claude project environments host-safe by default."""
     codex = yaml.safe_load((TEMPLATES_DIR / "codex.sbxenv.yaml").read_text(encoding="utf-8"))
     agy = yaml.safe_load((TEMPLATES_DIR / "agy.sbxenv.yaml").read_text(encoding="utf-8"))
+    claude = yaml.safe_load((TEMPLATES_DIR / "claude.sbxenv.yaml").read_text(encoding="utf-8"))
 
     assert codex["schemaVersion"] == "1"
     assert codex["agent"] == "codex"
@@ -44,7 +45,11 @@ def test_skill_ships_clone_only_agent_environment_templates():
         "git+https://github.com/docker/sbx-kits-contrib.git#ref=21e1928b5fe0036163307ea8047e48390f2d6fec&dir=antigravity"
     ]
 
-    for environment in (codex, agy):
+    assert claude["schemaVersion"] == "1"
+    assert claude["agent"] == "claude"
+    assert claude["workspace"] == {"path": "..", "clone": False}
+
+    for environment in (codex, agy, claude):
         assert not {"secrets", "bindings", "registries", "mcp", "additionalWorkspaces"} & set(environment)
 
 
@@ -55,7 +60,7 @@ def test_skill_references_record_the_pinned_agy_supply_chain_and_safety_boundary
 
     assert "21e1928b5fe0036163307ea8047e48390f2d6fec" in pin
     assert "6fba87a5f2e3b76003e9efe3410572cbb47d925adc8b1aaafeab2f786841b0e9" in pin
-    for prohibited in ("secrets", "bindings", "registries", "local-command MCP", "direct mount"):
+    for prohibited in ("secrets", "bindings", "registries", "local-command MCP"):
         assert prohibited in environment_files
 
 

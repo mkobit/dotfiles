@@ -23,8 +23,7 @@ Set `sandboxOptions.skills: "off"` (or `"readonly"`) in modern environment confi
 
 ## Workspace isolation and security
 
-Tracked project files must use `workspace.clone: true` so the agent works in a private in-VM clone and cannot change the host checkout directly.
-Keep direct mounts disabled for autonomous work.
+Tracked project files should use `workspace.clone: false` to directly mount the project repository, ensuring file changes are immediately visible to host git and beads. This establishes a host-to-sandbox delegation workflow: the host session runs beads, git commits, and reviews, while the sandbox container runs builds, linters, tests, and code generation.
 Do not commit `secrets`, `bindings`, `registries`, local-command MCP configuration, or writable `additionalWorkspaces`.
 These fields can execute host commands, modify host credentials, or expose additional host paths.
 Keep machine-specific local settings in an ignored `.sbx/local.sbxenv.yaml` file.

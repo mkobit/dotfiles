@@ -17,8 +17,10 @@ Create `.sbx/sbxenv.yaml` with:
 - `schemaVersion: "1"`
 - `name: "<project-slug>-codex"` (lowercase, hyphens only, max 63 characters).
 - `agent: codex`
-- `workspace:` with `path: ..` and `clone: true`.
+- `workspace:` with `path: ..` and `clone: false`.
 - `kits:` including `./kit`.
+
+Using `workspace.clone: false` directly mounts the project repository. This establishes a host-to-sandbox delegation workflow: the host session runs beads, git commits, and reviews, while the sandbox container runs builds, linters, tests, and code generation. File changes made in the sandbox are immediately visible to host git and beads.
 - `ports:` declaring any necessary port forwards for services or dev servers.
 
 Do not include `additionalWorkspaces`, `bindings`, `registries`, `secrets`, or local command MCP servers in tracked files.
@@ -76,3 +78,7 @@ Key requirements for kit authoring:
 4. Run project checks inside the sandbox: `sbx env exec .sbx/sbxenv.yaml -- mise run check`.
 5. Remove the sandbox when finished: `sbx env rm .sbx/sbxenv.yaml --force`.
 
+Sandbox agent harnesses (antigravity, claude, codex) already default to auto-approved permissions inside the isolated microVM (e.g. antigravity's kit defaults to `--dangerously-skip-permissions`), so prompts do not need manual permission flags. You can use streamlined invocation syntax:
+- Antigravity: `sbx env run .sbx/sbxenv.agy.yaml -- -p "<prompt>"`
+- Codex: `sbx env run .sbx/sbxenv.yaml -- -q "<prompt>"`
+- Claude: `sbx env run .sbx/sbxenv.claude.yaml -- -p "<prompt>"`
