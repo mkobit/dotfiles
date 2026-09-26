@@ -1,36 +1,65 @@
 {{- /*
-  Keeps Antigravity's native flattened skill lifecycle for present skills from
-  the catalog in .chezmoidata/ai/skills.toml. Assembly separately acquires one
-  filtered tree per deduplicated source pin for compiler materialization.
+  Generates one archive external per (present skill, active tool) from the
+  catalog in .chezmoidata/ai/skills.toml. Each external downloads the pinned
+  upstream archive (verified against sha256, cached once per URL) and pipes it
+  through skill_filter to re-root a single skill directory in the capability
+  bundle.
   A source with "skill_file" set (flat, single-skill repo with SKILL.md at
   the archive root instead of a skills_root/<name>/ subdirectory) selects
   that bare file directly rather than a subtree.
   The filter must stay stdlib-only because uv and mise are not installed until
   after apply; python/filter-interpreter resolves which interpreter runs it.
-  Generated packages and Cursor local plugins are compiler-owned collections.
-  Overlays deselect skills via "absent" states rather than disabling a target.
+  Portable, Claude, Codex, and Cursor package roots retain the existing state
+  targeting under the stable mkobit-dotfiles capability identity. Antigravity
+  remains on its existing flattened global skill lifecycle. Overlays deselect
+  skills via "absent" states rather than disabling a target.
 */ -}}
 {{- $cfg := .ai.skills -}}
+{{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
+{{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}
+{{- $portable := printf "%s/skills" $bundle -}}
 {{- $antigravity := ".gemini/antigravity-cli/skills" -}}
 {{- $python := includeTemplate "python/filter-interpreter" . -}}
 {{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
 {{- $config := dict -}}
 {{- $selectedSkills := dict -}}
-{{- $authoredSkills := dict -}}
+{{- $authoredPackagePaths := dict -}}
 {{- range $skillName, $state := dig "authored" (dict) $cfg -}}
-{{-   if or (eq $state "present") (eq $state "antigravity") -}}
-{{-     $_ := set $authoredSkills $skillName (printf "ai.skills.authored.%s" $skillName) -}}
+{{-   if eq $state "present" -}}
+{{-     $_ := set $authoredPackagePaths (printf "%s/%s" $portable $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     $_ := set $authoredPackagePaths (printf "%s/%s" $antigravity $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     range $_, $skillsDir := $tools -}}
+{{-       $_ := set $authoredPackagePaths (printf "%s/%s" $skillsDir $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     end -}}
+{{-   else if hasKey $tools $state -}}
+{{-     $_ := set $authoredPackagePaths (printf "%s/%s" (index $tools $state) $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-   else if eq $state "antigravity" -}}
+{{-     $_ := set $authoredPackagePaths (printf "%s/%s" $antigravity $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
 {{-   end -}}
 {{- end -}}
 {{- range $sourceName, $source := $cfg.external -}}
 {{-   range $skillName, $state := dig "skills" (dict) $source -}}
-{{-     if or (eq $state "present") (has $state (list "antigravity" "claude" "codex" "cursor")) -}}
+{{-     if or (eq $state "present") (hasKey $tools $state) (eq $state "antigravity") -}}
 {{-       if hasKey $selectedSkills $skillName -}}
 {{-         fail (printf "duplicate capability skill %q from ai.skills.external.%s and ai.skills.external.%s" $skillName (index $selectedSkills $skillName) $sourceName) -}}
 {{-       end -}}
 {{-       $_ := set $selectedSkills $skillName $sourceName -}}
-{{-       if and (or (eq $state "present") (eq $state "antigravity")) (hasKey $authoredSkills $skillName) -}}
-{{-         fail (printf "duplicate Antigravity skill path %q from ai.skills.external.%s.skills.%s and %s" (printf "%s/%s" $antigravity $skillName) $sourceName $skillName (index $authoredSkills $skillName)) -}}
+{{-       $externalPackagePaths := list -}}
+{{-       if eq $state "present" -}}
+{{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $portable $skillName) -}}
+{{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $antigravity $skillName) -}}
+{{-         range $_, $skillsDir := $tools -}}
+{{-           $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $skillsDir $skillName) -}}
+{{-         end -}}
+{{-       else if hasKey $tools $state -}}
+{{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" (index $tools $state) $skillName) -}}
+{{-       else if eq $state "antigravity" -}}
+{{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $antigravity $skillName) -}}
+{{-       end -}}
+{{-       range $path := $externalPackagePaths -}}
+{{-         if hasKey $authoredPackagePaths $path -}}
+{{-           fail (printf "duplicate capability package path %q from ai.skills.external.%s.skills.%s and %s" $path $sourceName $skillName (index $authoredPackagePaths $path)) -}}
+{{-         end -}}
 {{-       end -}}
 {{-       if or (not (dig "ref" "" $source)) (not (dig "sha256" "" $source)) -}}
 {{-         fail (printf "ai.skills.external.%s: ref and sha256 are required (versions are always pinned)" $sourceName) -}}
@@ -59,11 +88,19 @@
                   "command" $python
                   "args" (list "-S" $script "--cache-key" $source.sha256 "--select" $selectArg))
 -}}
-{{-       if or (eq $state "present") (eq $state "antigravity") -}}
+{{-       if eq $state "present" -}}
+{{-         $_ := set $config (printf "%s/%s" $portable $skillName) $entry -}}
+{{-         $_ := set $config (printf "%s/%s" $antigravity $skillName) $entry -}}
+{{-         range $_, $skillsDir := $tools -}}
+{{-           $_ := set $config (printf "%s/%s" $skillsDir $skillName) $entry -}}
+{{-         end -}}
+{{-       else if hasKey $tools $state -}}
+{{-         $_ := set $config (printf "%s/%s" (index $tools $state) $skillName) $entry -}}
+{{-       else if eq $state "antigravity" -}}
 {{-         $_ := set $config (printf "%s/%s" $antigravity $skillName) $entry -}}
 {{-       end -}}
 {{-     else if ne $state "absent" -}}
-{{-       fail (printf "ai.skills.external.%s.skills.%s: state must be \"present\", \"absent\", or a tool name (antigravity, claude, codex, cursor), got %q" $sourceName $skillName $state) -}}
+{{-       fail (printf "ai.skills.external.%s.skills.%s: state must be \"present\", \"absent\", or a tool name (%s), got %q" $sourceName $skillName (concat (keys $tools) (list "antigravity") | sortAlpha | join ", ") $state) -}}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}

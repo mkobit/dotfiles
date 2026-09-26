@@ -1,0 +1,22 @@
+{{- /*
+  Prunes absent skills from the mkobit-dotfiles capability bundle packages.
+*/ -}}
+{{- $absentSkills := dict -}}
+{{- range $skillName, $state := dig "authored" (dict) (dig "skills" (dict) .ai) -}}
+{{-   if eq $state "absent" -}}
+{{-     $_ := set $absentSkills $skillName true -}}
+{{-   end -}}
+{{- end -}}
+{{- range $sourceName, $source := dig "external" (dict) (dig "skills" (dict) .ai) -}}
+{{-   range $skillName, $state := dig "skills" (dict) $source -}}
+{{-     if eq $state "absent" -}}
+{{-       $_ := set $absentSkills $skillName true -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- range $skillName := keys $absentSkills | sortAlpha }}
+skills/{{ $skillName }}
+claude/skills/{{ $skillName }}
+codex/skills/{{ $skillName }}
+cursor/skills/{{ $skillName }}
+{{- end }}
