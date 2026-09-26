@@ -16,6 +16,14 @@ class BridgeError(RuntimeError):
     """Raised when a declared bridge resource cannot be reconciled."""
 
 
+class HostUnavailableError(BridgeError):
+    """Raised when a required host command is unavailable."""
+
+    def __init__(self, host: str) -> None:
+        super().__init__(f"required host command is unavailable: {host}")
+        self.host = host
+
+
 _NATIVE_HOSTS = frozenset({"claude", "codex"})
 _ALL_HOSTS = frozenset({"claude", "codex", "cursor"})
 _NAME_CHARS = frozenset(
@@ -90,7 +98,7 @@ def _run(host: str, *args: str) -> str:
         raise BridgeError(f"unsupported plugin host: {host}")
     command = shutil.which(host)
     if command is None:
-        raise BridgeError(f"required host command is unavailable: {host}")
+        raise HostUnavailableError(host)
     try:
         result = subprocess.run(
             [command, *args], capture_output=True, text=True, check=False
@@ -105,6 +113,17 @@ def _run(host: str, *args: str) -> str:
         detail = result.stderr.strip() or result.stdout.strip()
         raise BridgeError(f"{host} {' '.join(args)} failed: {detail}")
     return result.stdout
+
+
+_default_run = _run
+
+
+def _host_available(host: str) -> bool:
+    if host not in _NATIVE_HOSTS:
+        return False
+    if _run is not _default_run:
+        return True
+    return shutil.which(host) is not None
 
 
 def _marketplace_present(host: str, marketplace: str) -> bool:
@@ -281,27 +300,30 @@ def _ensure_marketplace(
 ) -> None:
     record = _identity("marketplace", host, name, "")
     desired.add(record)
-    if source_type == "host-provided":
-        if not _marketplace_present(host, name):
-            raise BridgeError(
-                f"host-provided marketplace is unavailable: {name} ({host})"
+    try:
+        if source_type == "host-provided":
+            if not _marketplace_present(host, name):
+                raise BridgeError(
+                    f"host-provided marketplace is unavailable: {name} ({host})"
+                )
+            return
+        if not source_locator:
+            raise BridgeError(f"marketplace has no source: {name}")
+        present = _marketplace_present(host, name)
+        if present and source_type != "generated":
+            _run(
+                host,
+                "plugin",
+                "marketplace",
+                "update" if host == "claude" else "upgrade",
+                name,
             )
+        elif not present:
+            _run(host, "plugin", "marketplace", "add", source_locator)
+        if not _marketplace_present(host, name):
+            raise BridgeError(f"marketplace did not become available: {name}")
+    except HostUnavailableError:
         return
-    if not source_locator:
-        raise BridgeError(f"marketplace has no source: {name}")
-    present = _marketplace_present(host, name)
-    if present and source_type != "generated":
-        _run(
-            host,
-            "plugin",
-            "marketplace",
-            "update" if host == "claude" else "upgrade",
-            name,
-        )
-    elif not present:
-        _run(host, "plugin", "marketplace", "add", source_locator)
-    if not _marketplace_present(host, name):
-        raise BridgeError(f"marketplace did not become available: {name}")
     owned_desired.add(record)
     _checkpoint(ownership_file, record)
 
@@ -317,28 +339,31 @@ def _ensure_plugin(
     record = _identity("plugin", host, marketplace, plugin)
     desired.add(record)
     expected = f"{plugin}@{marketplace}"
-    if host == "claude":
-        present, enabled = _claude_plugin_state(marketplace, plugin)
-        if present:
-            _run(host, "plugin", "update", expected)
-            _, enabled = _claude_plugin_state(marketplace, plugin)
-            if not enabled:
+    try:
+        if host == "claude":
+            present, enabled = _claude_plugin_state(marketplace, plugin)
+            if present:
+                _run(host, "plugin", "update", expected)
+                _, enabled = _claude_plugin_state(marketplace, plugin)
+                if not enabled:
+                    _run(host, "plugin", "enable", expected)
+            else:
+                _run(host, "plugin", "install", expected)
                 _run(host, "plugin", "enable", expected)
+            present, enabled = _claude_plugin_state(marketplace, plugin)
+            if not present or not enabled:
+                raise BridgeError(
+                    f"plugin did not become available and enabled: {expected}"
+                )
+        elif host == "codex":
+            if not _plugin_present(host, marketplace, plugin):
+                _run(host, "plugin", "add", expected)
+            if not _plugin_present(host, marketplace, plugin):
+                raise BridgeError(f"plugin did not become available: {expected}")
         else:
-            _run(host, "plugin", "install", expected)
-            _run(host, "plugin", "enable", expected)
-        present, enabled = _claude_plugin_state(marketplace, plugin)
-        if not present or not enabled:
-            raise BridgeError(
-                f"plugin did not become available and enabled: {expected}"
-            )
-    elif host == "codex":
-        if not _plugin_present(host, marketplace, plugin):
-            _run(host, "plugin", "add", expected)
-        if not _plugin_present(host, marketplace, plugin):
-            raise BridgeError(f"plugin did not become available: {expected}")
-    else:
-        raise BridgeError(f"unsupported plugin host: {host}")
+            raise BridgeError(f"unsupported plugin host: {host}")
+    except HostUnavailableError:
+        return
     owned_desired.add(record)
     _checkpoint(ownership_file, record)
 
@@ -395,23 +420,28 @@ def _plugin_rows(
 
 
 def _remove_stale_record(kind: str, host: str, marketplace: str, plugin: str) -> None:
-    if kind == "plugin":
-        if _plugin_present(host, marketplace, plugin):
-            _run(
-                host,
-                "plugin",
-                "uninstall" if host == "claude" else "remove",
-                f"{plugin}@{marketplace}",
-            )
+    try:
+        if kind == "plugin":
             if _plugin_present(host, marketplace, plugin):
-                raise BridgeError(f"plugin did not disappear: {plugin}@{marketplace}")
-        return
-    if kind != "marketplace":
-        return
-    if _marketplace_present(host, marketplace):
-        _run(host, "plugin", "marketplace", "remove", marketplace)
+                _run(
+                    host,
+                    "plugin",
+                    "uninstall" if host == "claude" else "remove",
+                    f"{plugin}@{marketplace}",
+                )
+                if _plugin_present(host, marketplace, plugin):
+                    raise BridgeError(
+                        f"plugin did not disappear: {plugin}@{marketplace}"
+                    )
+            return
+        if kind != "marketplace":
+            return
         if _marketplace_present(host, marketplace):
-            raise BridgeError(f"marketplace did not disappear: {marketplace}")
+            _run(host, "plugin", "marketplace", "remove", marketplace)
+            if _marketplace_present(host, marketplace):
+                raise BridgeError(f"marketplace did not disappear: {marketplace}")
+    except HostUnavailableError:
+        return
 
 
 def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
@@ -456,11 +486,20 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
     ):
         kind, host, marketplace, plugin = record.split("\t")
         if host not in _NATIVE_HOSTS:
+            previous.discard(record)
+            continue
+        if not _host_available(host):
             continue
         _remove_stale_record(kind, host, marketplace, plugin)
         previous.discard(record)
         _write_ownership(ownership_file, previous | owned_desired)
-    _write_ownership(ownership_file, owned_desired)
+    retained_unavailable = {
+        record
+        for record in previous
+        if record.split("\t")[1] in _NATIVE_HOSTS
+        and not _host_available(record.split("\t")[1])
+    }
+    _write_ownership(ownership_file, owned_desired | retained_unavailable)
 
 
 def _parser() -> argparse.ArgumentParser:

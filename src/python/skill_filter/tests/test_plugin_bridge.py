@@ -700,3 +700,49 @@ def test_has_identity_cli_uses_exact_json_identity():
         check=False,
     )
     assert (present.returncode, absent.returncode) == (0, 1)
+
+
+def test_reconcile_skips_unavailable_host_and_preserves_previous_ownership(
+    tmp_path, monkeypatch
+):
+    assert plugin_bridge._run is plugin_bridge._default_run
+    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda cmd: None)
+
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    ownership.parent.mkdir(parents=True)
+    previous_content = (
+        "marketplace\tclaude\tkept-market\t\n"
+        "marketplace\tclaude\tstale-market\t\n"
+        "plugin\tclaude\tkept-market\tkept-plugin\n"
+        "plugin\tclaude\tstale-market\tstale-plugin\n"
+    )
+    ownership.write_text(previous_content, encoding="utf-8")
+
+    declaration = {
+        "plugin_bridge": {
+            "marketplaces": {
+                "kept-market": {
+                    "source_type": "generated",
+                    "hosts": ["claude"],
+                },
+                "unregistered-market": {
+                    "source_type": "generated",
+                    "hosts": ["claude"],
+                },
+            },
+            "plugins": {
+                "kept-plugin": {
+                    "marketplace": "kept-market",
+                    "hosts": ["claude"],
+                },
+                "unregistered-plugin": {
+                    "marketplace": "kept-market",
+                    "hosts": ["claude"],
+                },
+            },
+        }
+    }
+
+    plugin_bridge.reconcile(tmp_path, declaration)
+
+    assert ownership.read_text(encoding="utf-8") == previous_content
