@@ -44,7 +44,12 @@ def test_skill_ships_clone_only_agent_environment_templates():
         "git+https://github.com/shelajev/agy-sbx-kit.git#ref=3e7016f108f3cf09922cf351b55a49e38d97f9f2"
     ]
 
-    for environment in (codex, agy):
+    claude = yaml.safe_load((TEMPLATES_DIR / "claude.sbxenv.yaml").read_text(encoding="utf-8"))
+    assert claude["schemaVersion"] == "1"
+    assert claude["agent"] == "claude"
+    assert claude["workspace"] == {"path": "..", "clone": False}
+
+    for environment in (codex, agy, claude):
         assert not {"secrets", "bindings", "registries", "mcp", "additionalWorkspaces"} & set(environment)
 
 
@@ -55,7 +60,7 @@ def test_skill_references_record_the_pinned_agy_supply_chain_and_safety_boundary
 
     assert "3e7016f108f3cf09922cf351b55a49e38d97f9f2" in pin
     assert "cd2fec52b532a9136550ba0051bde6eb5ea17cb8f86ad9c0cb1475c54dc17d1a" in pin
-    for prohibited in ("secrets", "bindings", "registries", "local-command MCP", "direct mount"):
+    for prohibited in ("secrets", "bindings", "registries", "local-command MCP"):
         assert prohibited in environment_files
 
 

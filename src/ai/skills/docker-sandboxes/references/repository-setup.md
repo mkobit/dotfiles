@@ -2,6 +2,19 @@
 
 Each repository must be fully self-bootable in `sbx` without depending on external host sources or dotfile overlays.
 
+## Host-to-sandbox delegation workflow
+
+The host session runs beads, git commits, and reviews, while the sandbox container runs builds, linters, tests, and code generation.
+
+When using `workspace.clone: false`, the environment directly mounts the project repository, ensuring file changes are immediately visible to host git and beads.
+
+Sandbox agent harnesses (antigravity, claude, codex) already default to auto-approved permissions inside the isolated microVM (e.g. antigravity's kit defaults to `--dangerously-skip-permissions`), so prompts do not need manual permission flags.
+
+Use the streamlined invocation syntax:
+- Antigravity: `sbx env run .sbx/sbxenv.agy.yaml -- -p "<prompt>"`
+- Codex: `sbx env run .sbx/sbxenv.yaml -- -q "<prompt>"`
+- Claude: `sbx env run .sbx/sbxenv.claude.yaml -- -p "<prompt>"`
+
 ## File layout
 
 A self-bootable repository contains:

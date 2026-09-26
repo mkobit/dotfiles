@@ -25,6 +25,16 @@ Set `sandboxOptions.skills: "off"` (or `"readonly"`) in modern environment confi
 
 Tracked project files must use `workspace.clone: true` so the agent works in a private in-VM clone and cannot change the host checkout directly.
 Keep direct mounts disabled for autonomous work.
+
+However, when using `workspace.clone: false` (such as in `claude.sbxenv.yaml`), the environment directly mounts the project repository, ensuring file changes are immediately visible to host git and beads.
+This supports a host-to-sandbox delegation workflow where the host session runs beads, git commits, and reviews, while the sandbox container runs builds, linters, tests, and code generation.
+
+Sandbox agent harnesses (antigravity, claude, codex) already default to auto-approved permissions inside the isolated microVM (e.g. antigravity's kit defaults to `--dangerously-skip-permissions`), so prompts do not need manual permission flags.
+
+Streamlined invocation syntax:
+- Antigravity: `sbx env run .sbx/sbxenv.agy.yaml -- -p "<prompt>"`
+- Codex: `sbx env run .sbx/sbxenv.yaml -- -q "<prompt>"`
+- Claude: `sbx env run .sbx/sbxenv.claude.yaml -- -p "<prompt>"`
 Do not commit `secrets`, `bindings`, `registries`, local-command MCP configuration, or writable `additionalWorkspaces`.
 These fields can execute host commands, modify host credentials, or expose additional host paths.
 Keep machine-specific local settings in an ignored `.sbx/local.sbxenv.yaml` file.
