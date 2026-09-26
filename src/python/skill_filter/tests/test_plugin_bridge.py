@@ -1,920 +1,702 @@
 from __future__ import annotations
 
-import importlib
-import io
 import json
-import os
 import subprocess
+import sys
 
 import pytest
 
-MAIN_MODULE = importlib.import_module("skill_filter.main")
+from skill_filter import plugin_bridge
 
 
-def bridge_helper(name: str):
-    helper = getattr(MAIN_MODULE, name, None)
-    assert helper is not None, f"{name} is not implemented"
-    return helper
-
-
-def rendered_plan(
-    resources,
-    *,
-    skill_mappings=(),
-    legacy_cleanup=None,
-    owned_removals=None,
-):
-    plan = {
-        "version": 1,
-        "resources": list(resources),
-        "skill_mappings": list(skill_mappings),
-        "legacy_cleanup": legacy_cleanup,
-    }
-    if owned_removals is not None:
-        plan["owned_removals"] = list(owned_removals)
-    return json.dumps(plan)
-
-
-def marketplace(host: str, resource_id: str, fingerprint: str = "market-v1"):
+def _valid_bridge() -> dict[str, object]:
     return {
-        "kind": "marketplace",
-        "host": host,
-        "id": resource_id,
-        "fingerprint": fingerprint,
-        "install": [host, "marketplace", "add", resource_id],
-        "update": [host, "marketplace", "update", resource_id],
-        "uninstall": [host, "marketplace", "remove", resource_id],
+        "plugin_bridge": {
+            "environment": "local",
+            "marketplaces": {
+                "market": {
+                    "source_type": "generated",
+                    "hosts": ["claude", "codex", "cursor"],
+                    "order": 100,
+                }
+            },
+            "plugins": {
+                "plugin": {
+                    "marketplace": "market",
+                    "hosts": ["claude", "codex", "cursor"],
+                    "environments": ["local"],
+                    "order": 200,
+                }
+            },
+            "capabilities": {
+                "capability": {
+                    "marketplace": "market",
+                    "hosts": ["claude", "codex", "cursor"],
+                    "environments": ["local"],
+                    "order": 300,
+                }
+            },
+        }
     }
 
 
-def plugin(
-    host: str,
-    resource_id: str,
-    skills: list[str],
-    fingerprint: str = "plugin-v1",
+@pytest.mark.parametrize(
+    ("mutation", "message"),
+    [
+        (
+            lambda bridge: bridge["marketplaces"].update({"bad/name": {}}),
+            "marketplace name",
+        ),
+        (lambda bridge: bridge["plugins"].update({"bad/name": {}}), "plugin name"),
+        (
+            lambda bridge: bridge["capabilities"].update({"bad/name": {}}),
+            "capability name",
+        ),
+        (
+            lambda bridge: bridge["plugins"]["plugin"].update(
+                {"marketplace": "missing"}
+            ),
+            "marketplace",
+        ),
+        (
+            lambda bridge: bridge["capabilities"]["capability"].update(
+                {"marketplace": "missing"}
+            ),
+            "marketplace",
+        ),
+        (
+            lambda bridge: bridge["marketplaces"]["market"].update(
+                {"hosts": ["cursorx"]}
+            ),
+            "host",
+        ),
+        (
+            lambda bridge: bridge["plugins"]["plugin"].update({"hosts": ["cursorx"]}),
+            "host",
+        ),
+        (
+            lambda bridge: bridge["capabilities"]["capability"].update(
+                {"hosts": ["cursorx"]}
+            ),
+            "host",
+        ),
+        (
+            lambda bridge: bridge["marketplaces"]["market"].update(
+                {"source_type": "unknown"}
+            ),
+            "source type",
+        ),
+        (
+            lambda bridge: bridge["marketplaces"]["market"].update(
+                {"source_type": "public"}
+            ),
+            "source locator",
+        ),
+        (lambda bridge: bridge["plugins"]["plugin"].update({"order": "200"}), "order"),
+        (
+            lambda bridge: bridge["plugins"]["plugin"].update(
+                {"environments": ["bad environment"]}
+            ),
+            "environment",
+        ),
+    ],
+)
+def test_reconcile_validates_all_declarations_before_side_effects(
+    tmp_path, monkeypatch, mutation, message
 ):
-    return {
-        "kind": "plugin",
-        "host": host,
-        "id": resource_id,
-        "fingerprint": fingerprint,
-        "install": [host, "plugin", "install", resource_id],
-        "update": [host, "plugin", "update", resource_id],
-        "uninstall": [host, "plugin", "uninstall", resource_id],
-        "status": [host, "plugin", "status", resource_id, "--json"],
-        "verify": [host, "plugin", "skills", resource_id, "--json"],
-        "expected_skills": skills,
-    }
+    declaration = _valid_bridge()
+    bridge = declaration["plugin_bridge"]
+    assert isinstance(bridge, dict)
+    mutation(bridge)
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_run",
+        lambda *args: pytest.fail(f"unexpected host operation: {args}"),
+    )
+
+    with pytest.raises(plugin_bridge.BridgeError, match=message):
+        plugin_bridge.reconcile(tmp_path, declaration)
+
+    assert not (tmp_path / ".local").exists()
 
 
-def operation_keys(operations):
-    return [
-        (operation.action, operation.kind, operation.host, operation.resource_id)
-        for operation in operations
+def test_reconcile_orders_native_registrations_and_filters_environment(
+    tmp_path, monkeypatch
+):
+    calls = []
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_marketplace",
+        lambda host, name, *args: calls.append(("marketplace", name, host)),
+    )
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_plugin",
+        lambda host, marketplace, name, *args: calls.append(("plugin", name, host)),
+    )
+    plugin_bridge.reconcile(
+        tmp_path,
+        {
+            "plugin_bridge": {
+                "environment": "remote",
+                "marketplaces": {
+                    "z": {
+                        "source_type": "generated",
+                        "hosts": ["cursor", "codex"],
+                        "order": 10,
+                    },
+                    "a": {
+                        "source_type": "generated",
+                        "hosts": ["claude"],
+                        "order": 10,
+                    },
+                },
+                "capabilities": {
+                    "z-cap": {
+                        "marketplace": "a",
+                        "hosts": ["claude"],
+                        "order": 20,
+                    }
+                },
+                "plugins": {
+                    "skip": {
+                        "marketplace": "a",
+                        "hosts": ["claude"],
+                        "environments": ["local"],
+                    },
+                    "active": {
+                        "marketplace": "z",
+                        "hosts": ["codex"],
+                        "environments": ["remote"],
+                    },
+                },
+            }
+        },
+    )
+    assert calls == [
+        ("marketplace", "a", "claude"),
+        ("marketplace", "z", "codex"),
+        ("plugin", "z-cap", "claude"),
+        ("plugin", "active", "codex"),
     ]
 
 
-def removal_preview(resource):
-    return {
-        "action": "uninstall",
-        "kind": resource["kind"],
-        "host": resource["host"],
-        "id": resource["id"],
-        "argv": resource["uninstall"],
-    }
-
-
-def legacy_cleanup(tmp_path, *, prior=(), desired=()):
-    state_manifest = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
-    if prior:
-        state_manifest.parent.mkdir(parents=True, exist_ok=True)
-        state_manifest.write_text(
-            "".join(f"{root}\n" for root in prior), encoding="utf-8"
-        )
-    return {
-        "dest_dir": str(tmp_path),
-        "state_manifest": str(state_manifest),
-        "desired_manifest": "".join(f"{root}\n" for root in desired),
-    }
-
-
-class TestPluginPlanning:
-    def test_empty_preflight_output_means_no_occupying_plugin(self, monkeypatch):
-        operation = MAIN_MODULE.PluginOperation(
-            "preflight",
-            "plugin",
-            "claude",
-            "bridge@dotfiles",
-            ("claude", "plugin", "status", "bridge@dotfiles"),
-        )
-
-        monkeypatch.setattr(
-            subprocess,
-            "run",
-            lambda *args, **kwargs: subprocess.CompletedProcess(
-                args[0], 0, stdout="", stderr=""
-            ),
-        )
-
-        assert MAIN_MODULE._execute_plugin_command(operation) == ()
-
-    def test_rejects_duplicate_desired_resource_identities(self):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        resources = [
-            plugin("claude", "bridge@dotfiles", ["brainstorming"]),
-            plugin(
-                "claude",
-                "bridge@dotfiles",
-                ["writing"],
-                fingerprint="plugin-v2",
-            ),
-        ]
-
-        with pytest.raises(
-            MAIN_MODULE.FilterError, match="duplicate desired resource identity"
-        ):
-            parse_plan(rendered_plan(resources))
-
-    @pytest.mark.parametrize(
-        ("resource", "message"),
-        [
-            (
-                {
-                    **plugin("claude", "bridge@dotfiles", ["brainstorming"]),
-                    "adopt": "yes",
-                },
-                "adopt marker must be a boolean",
-            ),
-            (
-                {**marketplace("claude", "dotfiles"), "adopt": True},
-                "only plugin resources can be adopted",
-            ),
-        ],
-        ids=["non-boolean", "unverifiable-marketplace"],
+@pytest.mark.parametrize("kind", ["plugins", "capabilities"])
+def test_reconcile_rejects_resource_host_outside_marketplace_before_side_effects(
+    tmp_path, monkeypatch, kind
+):
+    declaration = _valid_bridge()
+    bridge = declaration["plugin_bridge"]
+    assert isinstance(bridge, dict)
+    marketplace = bridge["marketplaces"]["market"]
+    assert isinstance(marketplace, dict)
+    marketplace["hosts"] = ["claude"]
+    resource = bridge[kind]["plugin" if kind == "plugins" else "capability"]
+    assert isinstance(resource, dict)
+    resource["hosts"] = ["codex"]
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_run",
+        lambda *args: pytest.fail(f"unexpected host operation: {args}"),
     )
-    def test_rejects_invalid_adoption_markers(self, resource, message):
-        parse_plan = bridge_helper("parse_plugin_plan")
 
-        with pytest.raises(MAIN_MODULE.FilterError, match=message):
-            parse_plan(rendered_plan([resource]))
+    with pytest.raises(plugin_bridge.BridgeError, match="marketplace hosts"):
+        plugin_bridge.reconcile(tmp_path, declaration)
 
-    def test_desired_resources_have_deterministic_install_order(self):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        plan_operations = bridge_helper("plan_plugin_operations")
-        resources = [
-            plugin("cursor", "bridge", ["writing"]),
-            marketplace("claude", "dotfiles"),
-            plugin("claude", "bridge@dotfiles", ["brainstorming"]),
-            marketplace("cursor", "dotfiles"),
-        ]
+    assert not (tmp_path / ".local").exists()
 
-        forward = plan_operations(parse_plan(rendered_plan(resources)), ())
-        reverse = plan_operations(parse_plan(rendered_plan(reversed(resources))), ())
 
-        expected = [
-            ("install", "marketplace", "claude", "dotfiles"),
-            ("install", "marketplace", "cursor", "dotfiles"),
-            ("preflight", "plugin", "claude", "bridge@dotfiles"),
-            ("install", "plugin", "claude", "bridge@dotfiles"),
-            ("preflight", "plugin", "cursor", "bridge"),
-            ("install", "plugin", "cursor", "bridge"),
-        ]
-        assert operation_keys(forward) == expected
-        assert operation_keys(reverse) == expected
+def test_reconcile_allows_cursor_capability_with_native_marketplace_hosts(
+    tmp_path, monkeypatch
+):
+    declaration = _valid_bridge()
+    bridge = declaration["plugin_bridge"]
+    assert isinstance(bridge, dict)
+    marketplaces = bridge["marketplaces"]
+    capabilities = bridge["capabilities"]
+    plugins = bridge["plugins"]
+    assert isinstance(marketplaces, dict)
+    assert isinstance(capabilities, dict)
+    assert isinstance(plugins, dict)
+    marketplaces["market"]["hosts"] = ["claude", "codex"]
+    capabilities["capability"]["hosts"] = ["claude", "codex", "cursor"]
+    plugins.clear()
+    calls = []
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_marketplace",
+        lambda host, name, *args: calls.append(("marketplace", host, name)),
+    )
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_plugin",
+        lambda host, marketplace, name, *args: calls.append(
+            ("plugin", host, marketplace, name)
+        ),
+    )
 
-    def test_plans_install_update_and_owned_uninstall_deltas(self):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        plan_operations = bridge_helper("plan_plugin_operations")
-        desired = parse_plan(
-            rendered_plan(
+    plugin_bridge.reconcile(tmp_path, declaration)
+
+    assert calls == [
+        ("marketplace", "claude", "market"),
+        ("marketplace", "codex", "market"),
+        ("plugin", "claude", "market", "capability"),
+        ("plugin", "codex", "market", "capability"),
+    ]
+
+
+def test_reconcile_ignores_cursor_and_filesystem_metadata(tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_marketplace",
+        lambda host, *args: calls.append(("marketplace", host)),
+    )
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_plugin",
+        lambda host, *args: calls.append(("plugin", host)),
+    )
+    plugin_bridge.reconcile(
+        tmp_path,
+        {
+            "plugin_bridge": {
+                "marketplaces": {
+                    "market": {
+                        "source_type": "generated",
+                        "hosts": ["claude", "codex", "cursor"],
+                        "package_cleanup": {"unsafe": "ignored"},
+                    }
+                },
+                "capabilities": {
+                    "demo": {
+                        "marketplace": "market",
+                        "hosts": ["claude", "codex", "cursor"],
+                    }
+                },
+                "generated_marketplace_root": "../ignored",
+            },
+            "skills": {"ignored": True},
+            "source_dir": "../ignored",
+            "working_tree": "../ignored",
+        },
+    )
+    assert calls == [
+        ("marketplace", "claude"),
+        ("marketplace", "codex"),
+        ("plugin", "claude"),
+        ("plugin", "codex"),
+    ]
+    assert not (tmp_path / ".cursor").exists()
+
+
+def test_reconcile_removes_plugins_before_marketplaces(tmp_path, monkeypatch):
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text(
+        "marketplace\tcodex\tz-market\t\nplugin\tcodex\tb-market\tz-plugin\nmarketplace\tclaude\ta-market\t\nplugin\tclaude\ta-market\ta-plugin\n"
+    )
+    calls = []
+    installed_plugins = {"a-plugin@a-market", "z-plugin@b-market"}
+    installed_marketplaces = {"a-market", "z-market"}
+
+    def run(host, *args):
+        calls.append((host, *args))
+        if args == ("plugin", "list", "--json"):
+            return json.dumps(
                 [
-                    marketplace("claude", "dotfiles"),
-                    plugin(
-                        "claude",
-                        "bridge@dotfiles",
-                        ["brainstorming"],
-                        fingerprint="plugin-v2",
-                    ),
-                    plugin("cursor", "bridge", ["writing"]),
+                    {"id": plugin, "enabled": True}
+                    for plugin in sorted(installed_plugins)
                 ]
             )
-        )
-        owned = parse_ownership(
-            json.dumps(
-                {
-                    "version": 1,
-                    "resources": [
-                        marketplace("claude", "dotfiles"),
-                        plugin(
-                            "claude",
-                            "bridge@dotfiles",
-                            ["brainstorming"],
-                            fingerprint="plugin-v1",
-                        ),
-                        plugin("claude", "obsolete@dotfiles", ["old"]),
-                        marketplace("claude", "obsolete-market"),
-                    ],
-                }
+        if args == ("plugin", "list", "-m", "b-market"):
+            return (
+                "z-plugin@b-market  installed, enabled  1.0.0  /fixture/z-plugin\n"
+                if "z-plugin@b-market" in installed_plugins
+                else ""
             )
-        )
-
-        operations = plan_operations(desired, owned)
-
-        assert operation_keys(operations) == [
-            ("update", "plugin", "claude", "bridge@dotfiles"),
-            ("preflight", "plugin", "cursor", "bridge"),
-            ("install", "plugin", "cursor", "bridge"),
-            ("uninstall", "plugin", "claude", "obsolete@dotfiles"),
-            ("uninstall", "marketplace", "claude", "obsolete-market"),
-        ]
-
-    def test_plans_documented_marketplace_update_for_changed_fingerprint(self):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        plan_operations = bridge_helper("plan_plugin_operations")
-        desired = parse_plan(
-            rendered_plan([marketplace("codex", "dotfiles", "market-v2")])
-        )
-        owned = parse_ownership(
-            json.dumps(
-                {
-                    "version": 1,
-                    "resources": [marketplace("codex", "dotfiles", "market-v1")],
-                }
+        if args == ("plugin", "marketplace", "list", "--json"):
+            return json.dumps(
+                [
+                    {"name": marketplace}
+                    for marketplace in sorted(installed_marketplaces)
+                ]
             )
-        )
+        if args == ("plugin", "marketplace", "list"):
+            return "\n".join(
+                f"{marketplace}  /fixture/{marketplace}"
+                for marketplace in sorted(installed_marketplaces)
+            )
+        if args == ("plugin", "uninstall", "a-plugin@a-market"):
+            installed_plugins.remove("a-plugin@a-market")
+        elif args == ("plugin", "remove", "z-plugin@b-market"):
+            installed_plugins.remove("z-plugin@b-market")
+        elif args == ("plugin", "marketplace", "remove", "a-market"):
+            installed_marketplaces.remove("a-market")
+        elif args == ("plugin", "marketplace", "remove", "z-market"):
+            installed_marketplaces.remove("z-market")
+        return ""
 
-        (operation,) = plan_operations(desired, owned)
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+    assert calls == [
+        ("claude", "plugin", "list", "--json"),
+        ("claude", "plugin", "uninstall", "a-plugin@a-market"),
+        ("claude", "plugin", "list", "--json"),
+        ("codex", "plugin", "list", "-m", "b-market"),
+        ("codex", "plugin", "remove", "z-plugin@b-market"),
+        ("codex", "plugin", "list", "-m", "b-market"),
+        ("claude", "plugin", "marketplace", "list", "--json"),
+        ("claude", "plugin", "marketplace", "remove", "a-market"),
+        ("claude", "plugin", "marketplace", "list", "--json"),
+        ("codex", "plugin", "marketplace", "list"),
+        ("codex", "plugin", "marketplace", "remove", "z-market"),
+        ("codex", "plugin", "marketplace", "list"),
+    ]
 
-        assert (operation.action, operation.argv) == (
-            "update",
-            ("codex", "marketplace", "update", "dotfiles"),
-        )
 
-    @pytest.mark.parametrize(
-        "mappings",
-        [
-            [
-                {
-                    "legacy_root": ".claude/skills/brainstorming",
-                    "host": "claude",
-                    "plugin": "bridge@dotfiles",
-                    "skill": "brainstorming",
-                },
-                {
-                    "legacy_root": ".claude/skills/brainstorming",
-                    "host": "claude",
-                    "plugin": "other@dotfiles",
-                    "skill": "brainstorming",
-                },
-            ],
-            [
-                {
-                    "legacy_root": ".claude/skills/brainstorming",
-                    "host": "claude",
-                    "plugin": "bridge@dotfiles",
-                    "skill": "brainstorming",
-                },
-                {
-                    "legacy_root": ".claude/skills/brainstorming-copy",
-                    "host": "claude",
-                    "plugin": "bridge@dotfiles",
-                    "skill": "brainstorming",
-                },
-            ],
-        ],
-        ids=["multiple-replacements", "duplicate-replacement-identity"],
+def test_successful_removal_is_checkpointed_before_later_failure(tmp_path, monkeypatch):
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text(
+        "plugin\tclaude\tmarket\ta-plugin\nplugin\tclaude\tmarket\tb-plugin\n",
+        encoding="utf-8",
     )
-    def test_rejects_ambiguous_skill_mappings(self, mappings):
-        parse_plan = bridge_helper("parse_plugin_plan")
+    installed = {"a-plugin@market", "b-plugin@market"}
+    fail_once = True
 
-        with pytest.raises(MAIN_MODULE.FilterError, match="ambiguous skill mapping"):
-            parse_plan(rendered_plan([], skill_mappings=mappings))
+    def run(host, *args):
+        nonlocal fail_once
+        if args == ("plugin", "list", "--json"):
+            return json.dumps(
+                [{"id": plugin, "enabled": True} for plugin in sorted(installed)]
+            )
+        plugin = args[-1]
+        if plugin == "b-plugin@market" and fail_once:
+            fail_once = False
+            raise plugin_bridge.BridgeError("later failure")
+        if plugin not in installed:
+            raise plugin_bridge.BridgeError(f"already removed: {plugin}")
+        installed.remove(plugin)
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    with pytest.raises(plugin_bridge.BridgeError, match="later failure"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    assert ownership.read_text(encoding="utf-8") == (
+        "plugin\tclaude\tmarket\tb-plugin\n"
+    )
+
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    assert installed == set()
+    assert ownership.read_text(encoding="utf-8") == ""
 
 
-class TestPluginOwnership:
-    def test_parses_owned_resources_needed_for_future_removal(self):
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        content = json.dumps(
+def test_reconcile_discards_cursor_ownership_without_removing_files(
+    tmp_path, monkeypatch
+):
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text("plugin\tcursor\tmarket\tdemo\n", encoding="utf-8")
+    marker = tmp_path / ".cursor/plugins/local/demo/marker"
+    marker.parent.mkdir(parents=True)
+    marker.write_text("keep", encoding="utf-8")
+    monkeypatch.setattr(
+        plugin_bridge, "_run", lambda *args: pytest.fail(f"unexpected call: {args}")
+    )
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+    assert marker.read_text(encoding="utf-8") == "keep"
+    assert ownership.read_text(encoding="utf-8") == ""
+
+
+def test_reconcile_rejects_symlinked_state_root(tmp_path):
+    redirected = tmp_path / "redirected"
+    redirected.mkdir()
+    state = tmp_path / ".local/state/dotfiles"
+    state.parent.mkdir(parents=True)
+    state.symlink_to(redirected, target_is_directory=True)
+    with pytest.raises(plugin_bridge.BridgeError, match="state root"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+    assert list(redirected.iterdir()) == []
+
+
+def test_successful_registration_is_checkpointed_before_later_failure(
+    tmp_path, monkeypatch
+):
+    calls = 0
+
+    def ensure(host, marketplace, name, ownership_file, desired, owned):
+        nonlocal calls
+        calls += 1
+        record = plugin_bridge._identity("plugin", host, marketplace, name)
+        desired.add(record)
+        if calls == 2:
+            raise plugin_bridge.BridgeError("later failure")
+        owned.add(record)
+        plugin_bridge._checkpoint(ownership_file, record)
+
+    monkeypatch.setattr(plugin_bridge, "_ensure_plugin", ensure)
+    monkeypatch.setattr(plugin_bridge, "_ensure_marketplace", lambda *args: None)
+    with pytest.raises(plugin_bridge.BridgeError, match="later failure"):
+        plugin_bridge.reconcile(
+            tmp_path,
             {
-                "version": 1,
+                "plugin_bridge": {
+                    "marketplaces": {
+                        "m": {"source_type": "generated", "hosts": ["claude"]}
+                    },
+                    "capabilities": {
+                        "a": {"marketplace": "m", "hosts": ["claude"]},
+                        "b": {"marketplace": "m", "hosts": ["claude"]},
+                    },
+                }
+            },
+        )
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    assert ownership.read_text() == "plugin\tclaude\tm\ta\n"
+
+
+def test_existing_claude_plugin_is_adopted_and_enabled(tmp_path, monkeypatch):
+    calls = []
+    enabled = False
+
+    def run(host, *args):
+        nonlocal enabled
+        calls.append((host, *args))
+        if args == ("plugin", "list", "--json"):
+            return json.dumps([{"id": "demo@market", "enabled": enabled}])
+        if args == ("plugin", "enable", "demo@market"):
+            enabled = True
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    desired, owned = set(), set()
+    ownership = tmp_path / "ownership"
+    plugin_bridge._ensure_plugin("claude", "market", "demo", ownership, desired, owned)
+    assert ("claude", "plugin", "update", "demo@market") in calls
+    assert ("claude", "plugin", "enable", "demo@market") in calls
+    assert owned == {"plugin\tclaude\tmarket\tdemo"}
+
+
+def test_existing_codex_plugin_is_not_added_again(tmp_path, monkeypatch):
+    calls = []
+
+    def run(host, *args):
+        calls.append((host, *args))
+        if args == ("plugin", "list", "-m", "market"):
+            return "demo@market  installed, enabled  1.0.0  /fixture/demo\n"
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    desired, owned = set(), set()
+    plugin_bridge._ensure_plugin(
+        "codex", "market", "demo", tmp_path / "ownership", desired, owned
+    )
+
+    assert ("codex", "plugin", "add", "demo@market") not in calls
+    assert owned == {"plugin\tcodex\tmarket\tdemo"}
+
+
+def test_plugin_removal_requires_verified_absence(tmp_path, monkeypatch):
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text("plugin\tclaude\tmarket\tdemo\n", encoding="utf-8")
+    calls = []
+
+    def run(host, *args):
+        calls.append((host, *args))
+        if args == ("plugin", "list", "--json"):
+            return '[{"id":"demo@market","enabled":true}]'
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    with pytest.raises(plugin_bridge.BridgeError, match="did not disappear"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    assert ownership.read_text(encoding="utf-8") == ("plugin\tclaude\tmarket\tdemo\n")
+    assert ("claude", "plugin", "uninstall", "demo@market") in calls
+
+
+def test_reconcile_checkpoints_already_absent_plugin_without_removing(
+    tmp_path, monkeypatch
+):
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text("plugin\tclaude\tmarket\tdemo\n", encoding="utf-8")
+    calls = []
+
+    def run(host, *args):
+        calls.append((host, *args))
+        if args == ("plugin", "list", "--json"):
+            return "[]"
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    assert ownership.read_text(encoding="utf-8") == ""
+    assert ("claude", "plugin", "uninstall", "demo@market") not in calls
+
+
+def test_marketplace_removal_requires_verified_absence(tmp_path, monkeypatch):
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text("marketplace\tclaude\tmarket\t\n", encoding="utf-8")
+    calls = []
+
+    def run(host, *args):
+        calls.append((host, *args))
+        if args == ("plugin", "marketplace", "list", "--json"):
+            return '[{"name":"market"}]'
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    with pytest.raises(plugin_bridge.BridgeError, match="did not disappear"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    assert ownership.read_text(encoding="utf-8") == ("marketplace\tclaude\tmarket\t\n")
+    assert ("claude", "plugin", "marketplace", "remove", "market") in calls
+
+
+def test_claude_plugin_rejects_disabled_final_state(tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_run",
+        lambda host, *args: (
+            '[{"id":"demo@market","enabled":false}]'
+            if args == ("plugin", "list", "--json")
+            else ""
+        ),
+    )
+    with pytest.raises(
+        plugin_bridge.BridgeError, match="did not become available and enabled"
+    ):
+        plugin_bridge._ensure_plugin(
+            "claude", "market", "demo", tmp_path / "ownership", set(), set()
+        )
+
+
+def test_migrate_ownership_keeps_native_and_drops_cursor(tmp_path):
+    legacy = tmp_path / "ownership.json"
+    legacy.write_text(
+        json.dumps(
+            {
                 "resources": [
-                    {
-                        "kind": "plugin",
-                        "host": "claude",
-                        "id": "bridge@dotfiles",
-                        "fingerprint": "plugin-v1",
-                        "uninstall": [
-                            "claude",
-                            "plugin",
-                            "uninstall",
-                            "bridge@dotfiles",
-                        ],
-                    }
-                ],
+                    {"kind": "plugin", "host": "claude", "id": "demo@market"},
+                    {"kind": "marketplace", "host": "codex", "id": "market"},
+                    {"kind": "plugin", "host": "cursor", "id": "local"},
+                ]
             }
         )
-
-        (owned,) = parse_ownership(content)
-
-        assert owned.kind == "plugin"
-        assert owned.host == "claude"
-        assert owned.resource_id == "bridge@dotfiles"
-        assert owned.fingerprint == "plugin-v1"
-        assert owned.uninstall == (
-            "claude",
-            "plugin",
-            "uninstall",
-            "bridge@dotfiles",
-        )
-
-    def test_failed_atomic_update_preserves_prior_ownership(
-        self, tmp_path, monkeypatch
-    ):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/agent-plugin-ownership.json"
-        ownership_file.parent.mkdir(parents=True)
-        prior = json.dumps(
-            {"version": 1, "resources": [marketplace("claude", "dotfiles")]}
-        )
-        ownership_file.write_text(prior, encoding="utf-8")
-        plan = parse_plan(rendered_plan([marketplace("claude", "dotfiles")]))
-
-        def fail_replace(src, dst):
-            raise OSError("replace failed")
-
-        monkeypatch.setattr(os, "replace", fail_replace)
-
-        with pytest.raises(OSError, match="replace failed"):
-            reconcile(
-                tmp_path, ownership_file, plan, lambda operation: (), lambda _: None
-            )
-
-        assert ownership_file.read_text(encoding="utf-8") == prior
-        assert [path.name for path in ownership_file.parent.iterdir()] == [
-            ownership_file.name
-        ]
-
-
-class TestPluginReconciliation:
-    def test_rejects_mismatched_owned_removal_preview_before_host_execution(
-        self, tmp_path
-    ):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
-        ownership_file.parent.mkdir(parents=True)
-        owned_resource = plugin("claude", "obsolete@dotfiles", ["old"])
-        ownership_file.write_text(
-            json.dumps({"version": 1, "resources": [owned_resource]}),
-            encoding="utf-8",
-        )
-        plan = parse_plan(
-            rendered_plan(
-                [],
-                owned_removals=[
-                    {
-                        **removal_preview(owned_resource),
-                        "argv": ["claude", "plugin", "uninstall", "wrong@dotfiles"],
-                    }
-                ],
-            )
-        )
-        executed = []
-
-        with pytest.raises(MAIN_MODULE.FilterError, match="owned removal preview"):
-            reconcile(tmp_path, ownership_file, plan, executed.append, lambda _: None)
-
-        assert executed == []
-
-    def test_adopts_verified_existing_plugin_without_installing(self, tmp_path):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
-        resource = plugin("claude", "bridge@dotfiles", ["brainstorming"])
-        resource["adopt"] = True
-        plan = parse_plan(rendered_plan([resource]))
-        actions = []
-
-        def execute(operation):
-            actions.append(operation.action)
-            return ("brainstorming",) if operation.action == "adopt" else ()
-
-        reconcile(tmp_path, ownership_file, plan, execute, lambda _: None)
-
-        assert actions == ["adopt"]
-        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        assert (owned.kind, owned.host, owned.resource_id) == (
-            "plugin",
-            "claude",
-            "bridge@dotfiles",
-        )
-
-    def test_failed_adoption_verification_does_not_record_ownership(self, tmp_path):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
-        resource = plugin("claude", "bridge@dotfiles", ["brainstorming"])
-        resource["adopt"] = True
-        plan = parse_plan(rendered_plan([resource]))
-
-        with pytest.raises(MAIN_MODULE.FilterError, match="expected"):
-            reconcile(
-                tmp_path,
-                ownership_file,
-                plan,
-                lambda operation: ("unexpected",),
-                lambda _: None,
-            )
-
-        assert not ownership_file.exists()
-
-    @pytest.mark.parametrize(
-        "mapping",
-        [
-            None,
-            {
-                "legacy_root": ".claude/skills/brainstorming",
-                "host": "claude",
-                "plugin": "other@dotfiles",
-                "skill": "brainstorming",
-            },
-            {
-                "legacy_root": ".claude/skills/brainstorming",
-                "host": "claude",
-                "plugin": "bridge@dotfiles",
-                "skill": "missing",
-            },
-        ],
-        ids=["missing", "wrong-plugin", "missing-expected-skill"],
     )
-    def test_rejects_unmapped_legacy_cleanup_before_host_execution(
-        self, tmp_path, mapping
-    ):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
-        cleanup_state = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
-        cleanup_state.parent.mkdir(parents=True)
-        cleanup_state.write_text(".claude/skills/brainstorming\n", encoding="utf-8")
-        cleanup_plan = {
-            "dest_dir": str(tmp_path),
-            "state_manifest": str(cleanup_state),
-            "desired_manifest": "",
-        }
-        mappings = [] if mapping is None else [mapping]
-        executed = []
+    assert (
+        plugin_bridge.migrate_ownership(legacy)
+        == "plugin\tclaude\tmarket\tdemo\nmarketplace\tcodex\tmarket\t\n"
+    )
 
-        with pytest.raises(MAIN_MODULE.FilterError, match="legacy cleanup mapping"):
-            plan = parse_plan(
-                rendered_plan(
-                    [plugin("claude", "bridge@dotfiles", ["brainstorming"])],
-                    skill_mappings=mappings,
-                    legacy_cleanup=cleanup_plan,
-                )
-            )
-            reconcile(
-                tmp_path,
-                ownership_file,
-                plan,
-                lambda operation: executed.append(operation),
-                lambda _: None,
-            )
 
-        assert executed == []
-
-    def test_allows_direct_antigravity_cleanup_without_a_plugin_mapping(self, tmp_path):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
-        legacy_root = ".gemini/antigravity-cli/skills/retired"
-        stale_skill = tmp_path / legacy_root
-        stale_skill.mkdir(parents=True)
-        (stale_skill / "SKILL.md").write_text("# retired\n", encoding="utf-8")
-        cleanup_plan = legacy_cleanup(tmp_path, prior=(legacy_root,))
-        cleanup_plan["direct_roots"] = [legacy_root]
-        plan = parse_plan(rendered_plan([], legacy_cleanup=cleanup_plan))
-
-        reconcile(
-            tmp_path,
-            ownership_file,
-            plan,
-            lambda _: (),
-            MAIN_MODULE._cleanup_legacy_skill_roots,
-        )
-
-        assert not stale_skill.exists()
-        assert (tmp_path / ".local/state/dotfiles/skill-roots.manifest").read_text(
-            encoding="utf-8"
-        ) == ""
-
-    def test_verifies_before_cleanup_and_preserves_unmanaged_plugins(self, tmp_path):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/agent-plugin-ownership.json"
-        ownership_file.parent.mkdir(parents=True)
-        ownership_file.write_text(
-            json.dumps(
-                {
-                    "version": 1,
-                    "resources": [plugin("claude", "obsolete@dotfiles", ["old"])],
-                }
-            ),
-            encoding="utf-8",
-        )
-        plan = parse_plan(
-            rendered_plan(
-                [
-                    marketplace("claude", "dotfiles"),
-                    plugin("claude", "bridge@dotfiles", ["brainstorming"]),
-                ],
-                skill_mappings=[
-                    {
-                        "legacy_root": ".claude/skills/brainstorming",
-                        "host": "claude",
-                        "plugin": "bridge@dotfiles",
-                        "skill": "brainstorming",
-                    }
-                ],
-                legacy_cleanup=legacy_cleanup(
-                    tmp_path, prior=(".claude/skills/brainstorming",)
-                ),
-            )
-        )
-        events = []
-        installed_plugins = {"unmanaged@personal", "obsolete@dotfiles"}
-
-        def execute(operation):
-            events.append(
-                (
-                    operation.action,
-                    operation.kind,
-                    operation.host,
-                    operation.resource_id,
-                )
-            )
-            if operation.action == "install" and operation.kind == "plugin":
-                installed_plugins.add(operation.resource_id)
-            if operation.action == "verify":
-                return ("brainstorming",)
-            if operation.action == "uninstall" and operation.kind == "plugin":
-                installed_plugins.remove(operation.resource_id)
-            return ()
-
-        def cleanup(cleanup_plan):
-            events.append(("cleanup", cleanup_plan["state_manifest"]))
-
-        reconcile(tmp_path, ownership_file, plan, execute, cleanup)
-
-        assert events == [
-            ("install", "marketplace", "claude", "dotfiles"),
-            ("preflight", "plugin", "claude", "bridge@dotfiles"),
-            ("install", "plugin", "claude", "bridge@dotfiles"),
-            ("verify", "plugin", "claude", "bridge@dotfiles"),
-            (
-                "cleanup",
-                str(tmp_path / ".local/state/dotfiles/skill-roots.manifest"),
-            ),
-            ("uninstall", "plugin", "claude", "obsolete@dotfiles"),
-        ]
-        assert installed_plugins == {"unmanaged@personal", "bridge@dotfiles"}
-
-    def test_skill_verification_failure_preserves_legacy_and_records_install(
-        self, tmp_path
-    ):
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/agent-plugin-ownership.json"
-        ownership_file.parent.mkdir(parents=True)
-        prior = json.dumps({"version": 1, "resources": []})
-        ownership_file.write_text(prior, encoding="utf-8")
-        plan = parse_plan(
-            rendered_plan(
-                [plugin("claude", "bridge@dotfiles", ["brainstorming"])],
-                skill_mappings=[
-                    {
-                        "legacy_root": ".claude/skills/brainstorming",
-                        "host": "claude",
-                        "plugin": "bridge@dotfiles",
-                        "skill": "brainstorming",
-                    }
-                ],
-                legacy_cleanup=legacy_cleanup(
-                    tmp_path, prior=(".claude/skills/brainstorming",)
-                ),
-            )
-        )
-        cleaned = []
-
-        def execute(operation):
-            if operation.action == "verify":
-                return ("unexpected-skill",)
-            return ()
-
-        with pytest.raises(MAIN_MODULE.FilterError, match="expected"):
-            reconcile(
-                tmp_path,
-                ownership_file,
-                plan,
-                execute,
-                cleaned.append,
-            )
-
-        assert cleaned == []
-        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        assert owned.resource_id == "bridge@dotfiles"
-
-    def test_plugin_install_failure_records_prior_marketplace_install(self, tmp_path):
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/agent-plugin-ownership.json"
-        plan = parse_plan(
-            rendered_plan(
-                [
-                    marketplace("claude", "dotfiles"),
-                    plugin("claude", "bridge@dotfiles", ["brainstorming"]),
-                ],
-                legacy_cleanup=legacy_cleanup(tmp_path),
-            )
-        )
-        cleaned = []
-
-        def execute(operation):
-            if operation.resource_id == "bridge@dotfiles":
-                raise OSError("install failed")
-            return ()
-
-        with pytest.raises(OSError, match="install failed"):
-            reconcile(
-                tmp_path,
-                ownership_file,
-                plan,
-                execute,
-                cleaned.append,
-            )
-
-        assert cleaned == []
-        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        assert (owned.kind, owned.resource_id) == ("marketplace", "dotfiles")
-
-    def test_retry_recovers_ownership_after_a_later_install_failure(self, tmp_path):
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/agent-plugin-ownership.json"
-        first = plugin("claude", "first@dotfiles", ["first"])
-        second = plugin("codex", "second@dotfiles", ["second"])
-        plan = parse_plan(rendered_plan([first, second]))
-        first_attempts = []
-
-        def fail_second_install(operation):
-            first_attempts.append((operation.action, operation.resource_id))
-            if (
-                operation.action == "install"
-                and operation.resource_id == "second@dotfiles"
-            ):
-                raise OSError("second install failed")
-            if operation.action == "verify":
-                return (operation.resource_id[: -len("@dotfiles")],)
-            return ()
-
-        with pytest.raises(OSError, match="second install failed"):
-            reconcile(
-                tmp_path, ownership_file, plan, fail_second_install, lambda _: None
-            )
-
-        assert first_attempts == [
-            ("preflight", "first@dotfiles"),
-            ("install", "first@dotfiles"),
-            ("verify", "first@dotfiles"),
-            ("preflight", "second@dotfiles"),
-            ("install", "second@dotfiles"),
-        ]
-        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        assert owned.resource_id == "first@dotfiles"
-
-        retry_attempts = []
-
-        def complete_retry(operation):
-            retry_attempts.append((operation.action, operation.resource_id))
-            if operation.action == "verify":
-                return (operation.resource_id[: -len("@dotfiles")],)
-            return ()
-
-        reconcile(tmp_path, ownership_file, plan, complete_retry, lambda _: None)
-
-        assert retry_attempts == [
-            ("preflight", "second@dotfiles"),
-            ("install", "second@dotfiles"),
-            ("verify", "second@dotfiles"),
-            ("verify", "first@dotfiles"),
-        ]
-        assert {
-            resource.resource_id
-            for resource in parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        } == {"first@dotfiles", "second@dotfiles"}
-
-    def test_retry_recovers_marketplace_after_plugin_install_failure(self, tmp_path):
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
-        plan = parse_plan(
-            rendered_plan(
-                [
-                    marketplace("claude", "dotfiles"),
-                    plugin("claude", "bridge@dotfiles", ["brainstorming"]),
+def test_reconcile_removes_legacy_ownership_after_durable_migration(tmp_path):
+    state = tmp_path / ".local/state/dotfiles"
+    state.mkdir(parents=True)
+    legacy = state / "agent-plugin-ownership.json"
+    legacy.write_text(
+        json.dumps(
+            {
+                "resources": [
+                    {"kind": "plugin", "host": "cursor", "id": "local"},
+                    {"kind": "package", "host": "filesystem", "id": "generated"},
                 ]
-            )
-        )
+            }
+        ),
+        encoding="utf-8",
+    )
 
-        def fail_plugin_install(operation):
-            if operation.action == "install" and operation.kind == "plugin":
-                raise OSError("plugin install failed")
-            return ()
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
 
-        with pytest.raises(OSError, match="plugin install failed"):
-            reconcile(
-                tmp_path, ownership_file, plan, fail_plugin_install, lambda _: None
-            )
+    assert not legacy.exists()
+    assert (state / "agent-plugin-ownership").read_text(encoding="utf-8") == ""
 
-        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        assert (owned.kind, owned.resource_id) == ("marketplace", "dotfiles")
 
-        actions = []
+def test_failed_legacy_migration_keeps_legacy_ownership(tmp_path, monkeypatch):
+    state = tmp_path / ".local/state/dotfiles"
+    state.mkdir(parents=True)
+    legacy = state / "agent-plugin-ownership.json"
+    legacy.write_text(
+        json.dumps(
+            {"resources": [{"kind": "plugin", "host": "cursor", "id": "local"}]}
+        ),
+        encoding="utf-8",
+    )
 
-        def complete_retry(operation):
-            actions.append((operation.action, operation.kind))
-            return ("brainstorming",) if operation.action == "verify" else ()
+    def fail_write(path, records):
+        raise OSError("durable write failed")
 
-        reconcile(tmp_path, ownership_file, plan, complete_retry, lambda _: None)
+    monkeypatch.setattr(plugin_bridge, "_write_ownership", fail_write)
+    with pytest.raises(OSError, match="durable write failed"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
 
-        assert ("install", "marketplace") not in actions
+    assert legacy.exists()
+    assert not (state / "agent-plugin-ownership").exists()
 
-    def test_retry_owns_plugin_when_initial_verification_fails(self, tmp_path):
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
-        plan = parse_plan(
-            rendered_plan([plugin("claude", "bridge@dotfiles", ["brainstorming"])])
-        )
 
-        def fail_verification(operation):
-            return ("unexpected",) if operation.action == "verify" else ()
+def test_legacy_cleanup_recovers_after_unlink_failure(tmp_path, monkeypatch):
+    state = tmp_path / ".local/state/dotfiles"
+    state.mkdir(parents=True)
+    legacy = state / "agent-plugin-ownership.json"
+    legacy.write_text(
+        json.dumps(
+            {"resources": [{"kind": "plugin", "host": "cursor", "id": "local"}]}
+        ),
+        encoding="utf-8",
+    )
+    unlink = type(legacy).unlink
+    fail_once = True
 
-        with pytest.raises(MAIN_MODULE.FilterError, match="expected"):
-            reconcile(tmp_path, ownership_file, plan, fail_verification, lambda _: None)
+    def flaky_unlink(path, *args, **kwargs):
+        nonlocal fail_once
+        if path == legacy and fail_once:
+            fail_once = False
+            raise OSError("unlink failed")
+        return unlink(path, *args, **kwargs)
 
-        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        assert owned.resource_id == "bridge@dotfiles"
+    monkeypatch.setattr(type(legacy), "unlink", flaky_unlink)
+    with pytest.raises(OSError, match="unlink failed"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
 
-        actions = []
+    ownership = state / "agent-plugin-ownership"
+    assert ownership.read_text(encoding="utf-8") == ""
+    assert legacy.exists()
 
-        def complete_retry(operation):
-            actions.append(operation.action)
-            return ("brainstorming",) if operation.action == "verify" else ()
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
 
-        reconcile(tmp_path, ownership_file, plan, complete_retry, lambda _: None)
+    assert not legacy.exists()
+    assert ownership.read_text(encoding="utf-8") == ""
 
-        assert actions == ["verify"]
 
-    def test_partial_checkpoint_preserves_prior_update_fingerprint(self, tmp_path):
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        parse_plan = bridge_helper("parse_plugin_plan")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
-        ownership_file.parent.mkdir(parents=True)
-        prior_first = plugin("claude", "first@dotfiles", ["first"], "plugin-v1")
-        prior_third = plugin("claude", "third@dotfiles", ["third"], "plugin-v1")
-        ownership_file.write_text(
-            json.dumps({"version": 1, "resources": [prior_first, prior_third]}),
-            encoding="utf-8",
-        )
-        plan = parse_plan(
-            rendered_plan(
-                [
-                    plugin("claude", "first@dotfiles", ["first"], "plugin-v2"),
-                    plugin("claude", "second@dotfiles", ["second"]),
-                    plugin("claude", "third@dotfiles", ["third"], "plugin-v2"),
-                ]
-            )
-        )
-
-        def fail_last_update(operation):
-            if (
-                operation.action == "update"
-                and operation.resource_id == "third@dotfiles"
-            ):
-                raise OSError("last update failed")
-            if operation.action == "verify":
-                return (operation.resource_id[: -len("@dotfiles")],)
-            return ()
-
-        with pytest.raises(OSError, match="last update failed"):
-            reconcile(tmp_path, ownership_file, plan, fail_last_update, lambda _: None)
-
-        owned = {
-            resource.resource_id: resource
-            for resource in parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        }
-        assert owned["first@dotfiles"].fingerprint == "plugin-v1"
-        assert owned["second@dotfiles"].fingerprint == "plugin-v1"
-        assert owned["third@dotfiles"].fingerprint == "plugin-v1"
-
-    def test_cleanup_failure_records_successfully_verified_installs(self, tmp_path):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
-        cleanup_state = tmp_path / ".local/state/dotfiles/skill-roots.manifest"
-        cleanup_plan = {
-            "dest_dir": str(tmp_path),
-            "state_manifest": str(cleanup_state),
-            "desired_manifest": "",
-        }
-        plan = parse_plan(
-            rendered_plan(
-                [plugin("claude", "bridge@dotfiles", ["brainstorming"])],
-                legacy_cleanup=cleanup_plan,
-            )
-        )
-
-        def execute(operation):
-            return ("brainstorming",) if operation.action == "verify" else ()
-
-        def fail_cleanup(_cleanup_plan):
-            raise OSError("cleanup failed")
-
-        with pytest.raises(OSError, match="cleanup failed"):
-            reconcile(tmp_path, ownership_file, plan, execute, fail_cleanup)
-
-        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        assert (owned.kind, owned.host, owned.resource_id) == (
-            "plugin",
-            "claude",
-            "bridge@dotfiles",
-        )
-
-    def test_uninstall_failure_records_prior_successful_removals(self, tmp_path):
-        parse_plan = bridge_helper("parse_plugin_plan")
-        parse_ownership = bridge_helper("parse_plugin_ownership")
-        reconcile = bridge_helper("reconcile_plugins")
-        ownership_file = tmp_path / ".local/state/dotfiles/ownership.json"
-        ownership_file.parent.mkdir(parents=True)
-        ownership_file.write_text(
-            json.dumps(
-                {
-                    "version": 1,
-                    "resources": [
-                        plugin("claude", "first@dotfiles", ["first"]),
-                        plugin("claude", "second@dotfiles", ["second"]),
-                    ],
-                }
-            ),
-            encoding="utf-8",
-        )
-        plan = parse_plan(rendered_plan([]))
-
-        def execute(operation):
-            if operation.resource_id == "second@dotfiles":
-                raise OSError("uninstall failed")
-            return ()
-
-        with pytest.raises(OSError, match="uninstall failed"):
-            reconcile(tmp_path, ownership_file, plan, execute, lambda _: None)
-
-        (owned,) = parse_ownership(ownership_file.read_text(encoding="utf-8"))
-        assert owned.resource_id == "second@dotfiles"
-
-    def test_reconcile_plugins_command_accepts_injected_host_executor(
-        self, tmp_path, monkeypatch
-    ):
-        ownership_file = tmp_path / ".local/state/dotfiles/agent-plugin-ownership.json"
-        plan = rendered_plan([plugin("claude", "bridge@dotfiles", ["brainstorming"])])
-        monkeypatch.setattr("sys.stdin", io.StringIO(plan))
-        actions = []
-
-        def execute(operation):
-            actions.append(operation.action)
-            return ("brainstorming",) if operation.action == "verify" else ()
-
-        result = MAIN_MODULE.main(
-            [
-                "reconcile-plugins",
-                "--dest-dir",
-                str(tmp_path),
-                "--ownership-file",
-                str(ownership_file),
-            ],
-            plugin_executor=execute,
-            legacy_cleaner=lambda _: None,
-        )
-
-        assert result == 0
-        assert actions == ["preflight", "install", "verify"]
+def test_has_identity_cli_uses_exact_json_identity():
+    command = [
+        sys.executable,
+        str(plugin_bridge.__file__),
+        "has-identity",
+        "--field",
+        "id",
+        "--expected",
+        "demo@market",
+    ]
+    present = subprocess.run(
+        command,
+        input='[{"id":"demo@market"}]',
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    absent = subprocess.run(
+        command,
+        input='[{"id":"demographic@market"}]',
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert (present.returncode, absent.returncode) == (0, 1)

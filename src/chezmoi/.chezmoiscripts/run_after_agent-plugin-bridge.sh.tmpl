@@ -1,0 +1,18 @@
+#!/usr/bin/env sh
+set -eu
+
+{{ $python := includeTemplate "python/filter-interpreter" . -}}
+{{- $ai := dig "ai" (dict) . -}}
+{{- $bridge := dig "plugin_bridge" (dict) $ai -}}
+{{- $chezmoi := dig "chezmoi" (dict) . -}}
+{{- $destination := dig "destDir" "." $chezmoi -}}
+{{- $registration := dict "environment" (dig "environment" "default" $bridge) "marketplaces" (dig "marketplaces" (dict) $bridge) "plugins" (dig "plugins" (dict) $bridge) "capabilities" (dig "capabilities" (dict) $bridge) -}}
+{{- $payload := dict "plugin_bridge" $registration -}}
+
+destination={{ $destination | quote }}
+python_command={{ $python | quote }}
+bridge_helper={{ joinPath (dig "workingTree" "." $chezmoi) "src/python/skill_filter/skill_filter/plugin_bridge.py" | quote }}
+
+exec "$python_command" -S "$bridge_helper" reconcile --destination "$destination" <<'EOF'
+{{ toJson $payload }}
+EOF

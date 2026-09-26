@@ -4,28 +4,27 @@
   ~/.cursor/skills/<name> to the plugin package. Agent cleanup and the
   state-manifest hook continue to handle their existing lifecycle cases.
 */ -}}
-{{- $capabilities := dig "capabilities" (dict) (dig "plugin_bridge" (dict) .ai) -}}
-{{- $baseBridge := hasKey $capabilities "mkobit-dotfiles" -}}
-{{- $overlayBridge := hasKey $capabilities "stripe-dotfiles" -}}
-{{- range $sourceName, $source := .ai.skills.external -}}
+{{- $hasBridge := false -}}
+{{- range $capability := dig "capabilities" (dict) (dig "plugin_bridge" (dict) .ai) -}}
+{{-   if has "cursor" (dig "hosts" (list) $capability) -}}
+{{-     $hasBridge = true -}}
+{{-   end -}}
+{{- end -}}
+{{- range $sourceName, $source := dig "external" (dict) (dig "skills" (dict) .ai) -}}
 {{-   range $skillName, $state := dig "skills" (dict) $source -}}
-{{-     if or $baseBridge (not (or (eq $state "present") (eq $state "cursor"))) }}
+{{-     if or $hasBridge (not (or (eq $state "present") (eq $state "cursor"))) }}
 skills/{{ $skillName }}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
-{{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
-{{-   if or $baseBridge (not (or (eq $state "present") (eq $state "cursor"))) }}
+{{- range $skillName, $state := dig "authored" (dict) (dig "skills" (dict) .ai) -}}
+{{-   if or $hasBridge (not (or (eq $state "present") (eq $state "cursor"))) }}
 skills/{{ $skillName }}
 {{-   end -}}
 {{- end -}}
-{{- $isLocal := stat "/Applications/Santa.app" -}}
-{{- if $overlayBridge -}}
-{{-   range $skillName, $state := dig "overlay_skills" "authored" (dict) .ai -}}
-{{-     $active := or (eq $state "present") (eq $state "cursor") (and (eq $state "local") $isLocal) -}}
-{{-     if $active }}
+{{- if $hasBridge -}}
+{{-   range $skillName, $state := dig "authored" (dict) (dig "overlay_skills" (dict) .ai) }}
 skills/{{ $skillName }}
-{{-     end -}}
 {{-   end -}}
 {{- end -}}
 {{- range $sourceName, $source := dig "external" (dict) (dig "agents" (dict) .ai) -}}
