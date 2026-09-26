@@ -38,10 +38,10 @@ def test_skill_ships_clone_only_agent_environment_templates():
     assert codex["workspace"] == {"path": "..", "clone": True}
 
     assert agy["schemaVersion"] == "1"
-    assert agy["agent"] == "agy"
+    assert agy["agent"] == "antigravity"
     assert agy["workspace"] == {"path": "..", "clone": True}
     assert agy["kits"] == [
-        "git+https://github.com/shelajev/agy-sbx-kit.git#ref=3e7016f108f3cf09922cf351b55a49e38d97f9f2"
+        "git+https://github.com/docker/sbx-kits-contrib.git#ref=21e1928b5fe0036163307ea8047e48390f2d6fec&dir=antigravity"
     ]
 
     for environment in (codex, agy):
@@ -53,8 +53,8 @@ def test_skill_references_record_the_pinned_agy_supply_chain_and_safety_boundary
     pin = (REFERENCES_DIR / "upstream-pins.md").read_text(encoding="utf-8")
     environment_files = (REFERENCES_DIR / "environment-files.md").read_text(encoding="utf-8")
 
-    assert "3e7016f108f3cf09922cf351b55a49e38d97f9f2" in pin
-    assert "cd2fec52b532a9136550ba0051bde6eb5ea17cb8f86ad9c0cb1475c54dc17d1a" in pin
+    assert "21e1928b5fe0036163307ea8047e48390f2d6fec" in pin
+    assert "6fba87a5f2e3b76003e9efe3410572cbb47d925adc8b1aaafeab2f786841b0e9" in pin
     for prohibited in ("secrets", "bindings", "registries", "local-command MCP", "direct mount"):
         assert prohibited in environment_files
 
@@ -63,5 +63,5 @@ def test_skill_documents_the_confirmation_gated_agy_kit_allowlist_prerequisite()
     """Keep the Git-pinned AGY kit usable without silently broadening host policy."""
     agents = (REFERENCES_DIR / "agents.md").read_text(encoding="utf-8")
 
-    for required in ("kit.allowedSources", "github.com/shelajev/", "confirmation", "preserv"):
+    for required in ("kit.allowedSources", "github.com/docker/", "confirmation", "preserv"):
         assert required in agents
