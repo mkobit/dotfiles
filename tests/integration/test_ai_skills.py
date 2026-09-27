@@ -100,6 +100,64 @@ def test_capability_plugin_deployed_and_valid(chezmoi_dest, relative_dir, plugin
         assert not direct_skill.exists(), f"{direct_skill} remains after capability-plugin cutover"
 
 
+@pytest.mark.integration
+def test_portable_skills_root_deployed_and_valid(chezmoi_dest):
+    """Verify portable skills root is deployed and contains valid skills."""
+    portable_dir = chezmoi_dest / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills"
+    assert portable_dir.exists(), f"{portable_dir} does not exist after chezmoi apply"
+    assert portable_dir.is_dir(), f"{portable_dir} is not a directory"
+    assert any(portable_dir.iterdir()), f"{portable_dir} contains no skills"
+    assert_entries_are_valid_skills(portable_dir)
+
+
+@pytest.mark.integration
+def test_root_capability_plugin_manifest_deployed_and_valid(chezmoi_dest):
+    """Verify root capability plugin manifest is deployed and valid."""
+    manifest_path = chezmoi_dest / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/plugin.json"
+    assert manifest_path.is_file(), f"{manifest_path} does not exist after chezmoi apply"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    assert manifest["name"] == "mkobit-dotfiles"
+    assert manifest["skills"] == "./skills"
+    assert manifest["version"].startswith("1.0.0+")
+
+
+@pytest.mark.integration
+def test_marketplace_manifests_deployed_and_valid(chezmoi_dest):
+    """Verify marketplace manifests and bridge provenance are deployed and valid."""
+    agents_marketplace = chezmoi_dest / ".local/share/agent-plugins/marketplace/.agents/plugins/marketplace.json"
+    assert agents_marketplace.is_file(), f"{agents_marketplace} does not exist after chezmoi apply"
+    agents_data = json.loads(agents_marketplace.read_text(encoding="utf-8"))
+    assert agents_data["name"] == "dotfiles"
+    assert agents_data["plugins"][0]["name"] == "mkobit-dotfiles"
+    assert agents_data["plugins"][0]["source"]["path"] == "./plugins/mkobit-dotfiles/codex"
+
+    claude_marketplace = chezmoi_dest / ".local/share/agent-plugins/marketplace/.claude-plugin/marketplace.json"
+    assert claude_marketplace.is_file(), f"{claude_marketplace} does not exist after chezmoi apply"
+    claude_data = json.loads(claude_marketplace.read_text(encoding="utf-8"))
+    assert claude_data["name"] == "dotfiles"
+    assert claude_data["plugins"][0]["name"] == "mkobit-dotfiles"
+    claude_source = claude_data["plugins"][0]["source"]
+    claude_path = claude_source["path"] if isinstance(claude_source, dict) else claude_source
+    assert claude_path == "./plugins/mkobit-dotfiles/claude"
+
+    provenance_path = chezmoi_dest / ".local/share/agent-plugins/marketplace/bridge-provenance.json"
+    assert provenance_path.is_file(), f"{provenance_path} does not exist after chezmoi apply"
+    json.loads(provenance_path.read_text(encoding="utf-8"))
+
+
+@pytest.mark.integration
+def test_plugin_bridge_ownership_state(chezmoi_dest):
+    """Verify agent-plugin ownership state file contains valid tab-separated records."""
+    state_file = chezmoi_dest / ".local/state/dotfiles/agent-plugin-ownership"
+    if not state_file.is_file():
+        return
+    for line in state_file.read_text(encoding="utf-8").splitlines():
+        if not line:
+            continue
+        fields = line.split("\t")
+        assert len(fields) == 4, f"expected 4 tab-separated fields in {line!r}, got {len(fields)}"
+
+
 # Tool agent directories actively deployed to by .chezmoiexternals/ai-agents.toml.tmpl.
 ACTIVE_AGENT_DIRS = [
     pytest.param(Path(".claude/agents"), id="claude"),

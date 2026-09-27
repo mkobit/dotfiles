@@ -22,8 +22,4 @@ skills/{{ $skillName }}
 skills/{{ $skillName }}
 {{-   end -}}
 {{- end -}}
-{{- if $hasBridge -}}
-{{-   range $skillName, $state := dig "authored" (dict) (dig "overlay_skills" (dict) .ai) }}
-skills/{{ $skillName }}
-{{-   end -}}
-{{- end -}}
+

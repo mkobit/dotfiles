@@ -22,11 +22,7 @@ skills/{{ $skillName }}
 skills/{{ $skillName }}
 {{-   end -}}
 {{- end -}}
-{{- if $hasBridge -}}
-{{-   range $skillName, $state := dig "authored" (dict) (dig "overlay_skills" (dict) .ai) }}
-skills/{{ $skillName }}
-{{-   end -}}
-{{- end -}}
+
 {{- range $sourceName, $source := dig "external" (dict) (dig "agents" (dict) .ai) -}}
 {{-   range $agentPath, $state := dig "agents" (dict) $source -}}
 {{-     if not (or (eq $state "present") (eq $state "cursor")) }}
