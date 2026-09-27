@@ -88,7 +88,7 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
                 "settings": {
                     "kit_allowed_sources": {
                         "docker_hub": "docker.io/",
-                        "github_shelajev": "github.com/shelajev/",
+                        "github_docker": "github.com/docker/",
                     },
                 }
             },
@@ -140,7 +140,7 @@ def test_sbx_settings_catalog_declares_complete_approved_kit_source_list():
 
     assert catalog["sbx"]["settings"]["kit_allowed_sources"] == {
         "docker_hub": "docker.io/",
-        "github_shelajev": "github.com/shelajev/",
+        "github_docker": "github.com/docker/",
     }
 
 
@@ -168,7 +168,7 @@ def test_sbx_settings_script_uses_existing_sbx_installation_opt_in():
                 "settings": {
                     "kit_allowed_sources": {
                         "docker_hub": "docker.io/",
-                        "github_shelajev": "github.com/shelajev/",
+                        "github_docker": "github.com/docker/",
                     },
                 }
             },
@@ -185,14 +185,14 @@ def test_sbx_settings_script_preserves_every_declared_source_when_updating(tmp_p
     assert result.returncode == 0, result.stderr
     assert calls == [
         "settings get kit.allowedSources",
-        'settings set kit.allowedSources ["docker.io/","github.com/shelajev/"]',
+        'settings set kit.allowedSources ["docker.io/","github.com/docker/"]',
     ]
 
 
 def test_sbx_settings_script_is_idempotent_for_matching_sources(tmp_path):
     result, calls = _run_rendered_sbx_settings_script(
         tmp_path,
-        '["docker.io/", "github.com/shelajev/"]',
+        '["docker.io/", "github.com/docker/"]',
     )
 
     assert result.returncode == 0, result.stderr
@@ -213,7 +213,7 @@ def test_sbx_settings_script_skips_when_daemon_fails_during_update(tmp_path):
     assert result.returncode == 0, result.stderr
     assert calls == [
         "settings get kit.allowedSources",
-        'settings set kit.allowedSources ["docker.io/","github.com/shelajev/"]',
+        'settings set kit.allowedSources ["docker.io/","github.com/docker/"]',
     ]
     assert "Unable to configure kit.allowedSources" in result.stdout
 
