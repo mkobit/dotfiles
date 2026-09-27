@@ -131,9 +131,11 @@ def _plugin_present(host: str, marketplace: str, plugin: str) -> bool:
     output = _run(host, "plugin", "list", *args)
     if host == "claude":
         return has_identity(output, "id", expected)
-    return any(
-        line.split(maxsplit=1)[0] == expected for line in output.splitlines() if line
-    )
+    for line in output.splitlines():
+        parts = line.split()
+        if parts and parts[0] == expected:
+            return len(parts) > 1 and parts[1] != "not"
+    return False
 
 
 def _claude_plugin_state(marketplace: str, plugin: str) -> tuple[bool, bool]:
@@ -329,12 +331,15 @@ def _ensure_plugin(
         present, enabled = _claude_plugin_state(marketplace, plugin)
         if present:
             _run(host, "plugin", "update", expected)
-            _, enabled = _claude_plugin_state(marketplace, plugin)
-            if not enabled:
-                _run(host, "plugin", "enable", expected)
         else:
             _run(host, "plugin", "install", expected)
-            _run(host, "plugin", "enable", expected)
+        _, enabled = _claude_plugin_state(marketplace, plugin)
+        if not enabled:
+            try:
+                _run(host, "plugin", "enable", expected)
+            except BridgeError as error:
+                if "already enabled" not in str(error).lower():
+                    raise
         present, enabled = _claude_plugin_state(marketplace, plugin)
         if not present or not enabled:
             raise BridgeError(
