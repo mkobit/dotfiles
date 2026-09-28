@@ -34,7 +34,7 @@
 {{- $cfg := .ai.agents -}}
 {{- $hosts := .ai.skills.hosts -}}
 {{- $python := includeTemplate "python/filter-interpreter" . -}}
-{{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
+{{- $script := joinPath .chezmoi.sourceDir ".." "python/skill_filter/skill_filter/main.py" -}}
 {{- $skillTools := dict "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" -}}
 {{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
 {{- $validStates := list "present" "absent" "claude" "antigravity" "cursor" "opencode" "codex" -}}

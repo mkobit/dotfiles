@@ -151,6 +151,44 @@ def _claude_plugin_state(marketplace: str, plugin: str) -> tuple[bool, bool]:
     return False, False
 
 
+def _codex_plugin_state(marketplace: str, plugin: str) -> tuple[bool, bool, str | None, Path | None]:
+    expected = f"{plugin}@{marketplace}"
+    response = json.loads(_run("codex", "plugin", "list", "-m", marketplace, "--json"))
+    if not isinstance(response, Mapping):
+        raise TypeError("plugin host returned invalid JSON")
+    records = response.get("installed", [])
+    if not isinstance(records, list):
+        raise TypeError("plugin host returned invalid JSON")
+    for item in records:
+        if not isinstance(item, Mapping) or item.get("pluginId") != expected:
+            continue
+        source = item.get("source")
+        source_path = source.get("path") if isinstance(source, Mapping) else None
+        return (
+            item.get("installed") is True,
+            item.get("enabled") is True,
+            item.get("version") if isinstance(item.get("version"), str) else None,
+            Path(source_path) if isinstance(source_path, str) else None,
+        )
+    return False, False, None, None
+
+
+def _codex_manifest_version(source_path: Path | None, plugin: str) -> str:
+    if source_path is None:
+        raise BridgeError(f"Codex plugin has no source path: {plugin}")
+    manifest_path = source_path / ".codex-plugin/plugin.json"
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        raise BridgeError(f"cannot read Codex plugin manifest: {manifest_path}") from error
+    if not isinstance(manifest, Mapping) or manifest.get("name") != plugin:
+        raise BridgeError(f"invalid Codex plugin manifest: {manifest_path}")
+    version = manifest.get("version")
+    if not isinstance(version, str) or not version:
+        raise BridgeError(f"Codex plugin manifest has no version: {manifest_path}")
+    return version
+
+
 def _validate_state_root(destination: Path) -> Path:
     relative = Path(".local/state/dotfiles")
     path = destination / relative
@@ -346,10 +384,18 @@ def _ensure_plugin(
                 f"plugin did not become available and enabled: {expected}"
             )
     elif host == "codex":
-        if not _plugin_present(host, marketplace, plugin):
+        installed, enabled, installed_version, source_path = _codex_plugin_state(marketplace, plugin)
+        manifest_version = _codex_manifest_version(source_path, plugin) if installed else None
+        if not installed:
             _run(host, "plugin", "add", expected)
-        if not _plugin_present(host, marketplace, plugin):
-            raise BridgeError(f"plugin did not become available: {expected}")
+        elif not enabled or installed_version != manifest_version:
+            _run(host, "plugin", "remove", expected)
+            _run(host, "plugin", "add", expected)
+        installed, enabled, installed_version, source_path = _codex_plugin_state(marketplace, plugin)
+        if not installed or not enabled:
+            raise BridgeError(f"plugin did not become available and enabled: {expected}")
+        if installed_version != _codex_manifest_version(source_path, plugin):
+            raise BridgeError(f"plugin did not refresh to deployed version: {expected}")
     else:
         raise BridgeError(f"unsupported plugin host: {host}")
     owned_desired.add(record)

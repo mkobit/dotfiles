@@ -16,9 +16,10 @@ fi
 
 {{ range $name, $tool := (default dict (get . "local_bin_tools")) -}}
 {{- $method := dig "installation_method" "none" $tool -}}
+{{- $sourceDir := dig "source_dir" "" $tool -}}
 {{- if eq $method "dotfiles.uv" }}
 UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
-  "$MISE" exec --cd "{{ $root }}" -- uv tool install --force --editable "{{ $root }}/{{ $tool.source_dir }}"
+  "$MISE" exec --cd "{{ $root }}" -- uv tool install --force --editable "{{ $root }}/{{ $sourceDir }}"
 {{- else if eq $method "uninstall" }}
 {{- $pkg := index $tool "package_name" -}}
 {{- if $pkg }}

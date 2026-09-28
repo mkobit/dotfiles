@@ -11,7 +11,7 @@ set -eu
 
 destination={{ $destination | quote }}
 python_command={{ $python | quote }}
-bridge_helper={{ joinPath (dig "workingTree" "." $chezmoi) "src/python/skill_filter/skill_filter/plugin_bridge.py" | quote }}
+bridge_helper={{ joinPath .chezmoi.sourceDir ".." "python/skill_filter/skill_filter/plugin_bridge.py" | quote }}
 
 exec "$python_command" -S "$bridge_helper" reconcile --destination "$destination" <<'EOF'
 {{ toJson $payload }}

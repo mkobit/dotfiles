@@ -35,6 +35,16 @@ AUTHORED_CLEANUP_SCRIPT = (
     REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-skills-cleanup.sh.tmpl"
 )
 AUTHORED_SKILLS_EXTERNAL = REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-skills.toml.tmpl"
+CURSOR_LOCAL_SKILLS_REMOVE = (
+    REPOSITORY_ROOT / "src/chezmoi/dot_cursor/plugins/local/mkobit-dotfiles/.chezmoiremove.tmpl"
+)
+CURSOR_LOCAL_PLUGIN_MANIFEST = (
+    REPOSITORY_ROOT / "src/chezmoi/dot_cursor/plugins/local/mkobit-dotfiles/exact_dot_cursor-plugin/plugin.json.tmpl"
+)
+CAPABILITY_PACKAGE_SKILLS_REMOVE = (
+    REPOSITORY_ROOT
+    / "src/chezmoi/dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/.chezmoiremove.tmpl"
+)
 FILTER_INTERPRETER_TEMPLATE = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/python/filter-interpreter"
 FILTER_INTERPRETER_RESOLVER = REPOSITORY_ROOT / "src/python/skill_filter/resolve-interpreter.sh"
 AUTHORED_SKILL_ROOTS = {
@@ -42,8 +52,18 @@ AUTHORED_SKILL_ROOTS = {
     "claude": Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude/skills"),
     "codex": Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex/skills"),
     "cursor": Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/cursor/skills"),
+    "cursor-local": Path(".cursor/plugins/local/mkobit-dotfiles/skills"),
     "antigravity": Path(".gemini/antigravity-cli/skills"),
 }
+CAPABILITY_AUTHORED_SKILL_ROOTS = {
+    root_name: root for root_name, root in AUTHORED_SKILL_ROOTS.items() if root_name != "antigravity"
+}
+CAPABILITY_MANIFEST_TEMPLATES = (
+    Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/plugin.json.tmpl"),
+    Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude/dot_claude-plugin/plugin.json.tmpl"),
+    Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex/dot_codex-plugin/plugin.json.tmpl"),
+    Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/cursor/dot_cursor-plugin/plugin.json.tmpl"),
+)
 
 
 def _entries(directory: Path) -> list[Path]:
@@ -106,8 +126,21 @@ def _apply_authored_cleanup(source: Path, destination: Path, config: Path) -> su
 
 
 def _initialize_authored_cleanup_source(source: Path, *, include_external: bool = False) -> None:
+    source_root = source / "src/chezmoi"
     source_files = [
         (AUTHORED_CLEANUP_SCRIPT, Path(".chezmoiscripts") / AUTHORED_CLEANUP_SCRIPT.name),
+        (
+            CURSOR_LOCAL_SKILLS_REMOVE,
+            Path("dot_cursor/plugins/local/mkobit-dotfiles/.chezmoiremove.tmpl"),
+        ),
+        (
+            CURSOR_LOCAL_PLUGIN_MANIFEST,
+            Path("dot_cursor/plugins/local/mkobit-dotfiles/exact_dot_cursor-plugin/plugin.json.tmpl"),
+        ),
+        (
+            CAPABILITY_PACKAGE_SKILLS_REMOVE,
+            Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/.chezmoiremove.tmpl"),
+        ),
         (FILTER_INTERPRETER_TEMPLATE, Path(".chezmoitemplates/python/filter-interpreter")),
         (FILTER_INTERPRETER_RESOLVER, Path("src/python/skill_filter/resolve-interpreter.sh")),
     ]
@@ -115,32 +148,101 @@ def _initialize_authored_cleanup_source(source: Path, *, include_external: bool 
         source_files.append((AUTHORED_SKILLS_EXTERNAL, Path(".chezmoiexternals") / AUTHORED_SKILLS_EXTERNAL.name))
     for source_file, relative_target in source_files:
         assert source_file.is_file(), f"missing cleanup fixture dependency: {source_file}"
-        target = source / relative_target
+        target = source_root / relative_target
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source_file, target)
+    (source / ".chezmoiroot").write_text("src/chezmoi\n", encoding="utf-8")
+    resolver = source / "src/python/skill_filter/resolve-interpreter.sh"
+    resolver.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(FILTER_INTERPRETER_RESOLVER, resolver)
     subprocess.run(["git", "init", "--quiet", str(source)], check=True)
+
+
+def _render_capability_manifest_versions(source: Path, destination: Path, config: Path) -> dict[str, str]:
+    """Render all base capability manifests and return their version strings."""
+    result = subprocess.run(
+        ["chezmoi", "--source", str(source), "--destination", str(destination), "--config", str(config), "apply"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    manifest_paths = {
+        "root": destination / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/plugin.json",
+        "claude": destination
+        / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude/.claude-plugin/plugin.json",
+        "codex": destination
+        / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex/.codex-plugin/plugin.json",
+        "cursor": destination
+        / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/cursor/.cursor-plugin/plugin.json",
+    }
+    return {name: json.loads(path.read_text(encoding="utf-8"))["version"] for name, path in manifest_paths.items()}
+
+
+def test_capability_manifest_versions_ignore_legacy_overlay_source(tmp_path):
+    """Base capability versions only depend on base-projected skill inputs."""
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    for relative_path in CAPABILITY_MANIFEST_TEMPLATES:
+        template = source / relative_path
+        template.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(REPOSITORY_ROOT / "src/chezmoi" / relative_path, template)
+
+    base_skill = source.parent / "ai/skills/base/SKILL.md"
+    base_skill.parent.mkdir(parents=True)
+    base_skill.write_text("# Base\n", encoding="utf-8")
+    first_overlay = tmp_path / "first-overlay"
+    second_overlay = tmp_path / "second-overlay"
+    first_overlay.mkdir()
+    second_overlay.mkdir()
+    (first_overlay / "SKILL.md").write_text("# First\n", encoding="utf-8")
+    (second_overlay / "SKILL.md").write_text("# Second\n", encoding="utf-8")
+
+    def config_for(overlay_source: Path) -> Path:
+        config = tmp_path / f"{overlay_source.name}.toml"
+        config.write_text(
+            "\n".join(
+                [
+                    "[data.ai.skills]",
+                    f"overlay_authored_source = {json.dumps(str(overlay_source))}",
+                    "",
+                    "[data.ai.skills.authored]",
+                    "",
+                    "[data.ai.skills.external]",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+        return config
+
+    first_versions = _render_capability_manifest_versions(source, destination, config_for(first_overlay))
+    second_versions = _render_capability_manifest_versions(source, destination, config_for(second_overlay))
+
+    assert first_versions == second_versions
 
 
 @pytest.mark.parametrize(
     ("state", "antigravity_enabled", "expected_roots"),
     [
-        ("present", True, frozenset(AUTHORED_SKILL_ROOTS)),
+        ("present", True, frozenset(CAPABILITY_AUTHORED_SKILL_ROOTS)),
         ("claude", True, frozenset({"claude"})),
-        ("antigravity", True, frozenset({"antigravity"})),
-        ("present", False, frozenset({"portable", "claude", "codex", "cursor"})),
+        ("antigravity", True, frozenset()),
+        ("present", False, frozenset({"portable", "claude", "codex", "cursor", "cursor-local"})),
         ("antigravity", False, frozenset()),
     ],
 )
-def test_authored_skill_cleanup_prunes_renamed_nested_file_only_from_selected_roots(
+def test_authored_skill_cleanup_prunes_renamed_nested_file_from_every_catalog_owned_root(
     tmp_path, state, antigravity_enabled, expected_roots
 ):
-    """A selected authored skill's old nested path is removed on the next apply."""
+    """A renamed authored skill file converges every catalog-owned package root."""
     source = tmp_path / "source"
     destination = tmp_path / "destination"
     destination.mkdir()
     _initialize_authored_cleanup_source(source, include_external=True)
 
-    skill_source = source / "overlay-skills" / "fixture"
+    skill_source = source / "src/ai/skills" / "fixture"
     (skill_source / "references").mkdir(parents=True)
     (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
     stale_source = skill_source / "references" / "old-name.md"
@@ -150,9 +252,6 @@ def test_authored_skill_cleanup_prunes_renamed_nested_file_only_from_selected_ro
     config.write_text(
         "\n".join(
             [
-                "[data.ai.skills]",
-                'overlay_authored_source = "overlay-skills"',
-                "",
                 "[data.ai.skills.authored]",
                 f'fixture = "{state}"',
                 "",
@@ -164,7 +263,7 @@ def test_authored_skill_cleanup_prunes_renamed_nested_file_only_from_selected_ro
         encoding="utf-8",
     )
 
-    for root_name, root in AUTHORED_SKILL_ROOTS.items():
+    for root_name, root in CAPABILITY_AUTHORED_SKILL_ROOTS.items():
         if root_name not in expected_roots:
             skill_target = destination / root / "fixture"
             (skill_target / "references").mkdir(parents=True)
@@ -176,20 +275,85 @@ def test_authored_skill_cleanup_prunes_renamed_nested_file_only_from_selected_ro
 
     first_apply = _apply_authored_cleanup(source, destination, config)
     assert first_apply.returncode == 0, first_apply.stderr
-    for root in AUTHORED_SKILL_ROOTS.values():
-        assert (destination / root / "fixture/SKILL.md").is_file()
-        assert (destination / root / "fixture/references/old-name.md").is_file()
+    for root_name, root in CAPABILITY_AUTHORED_SKILL_ROOTS.items():
+        assert (destination / root / "fixture").exists() is (root_name in expected_roots)
+        assert (destination / root / "fixture/references/old-name.md").exists() is (root_name in expected_roots)
 
     stale_source.rename(skill_source / "references" / "new-name.md")
 
     second_apply = _apply_authored_cleanup(source, destination, config)
     assert second_apply.returncode == 0, second_apply.stderr
-    for root_name, root in AUTHORED_SKILL_ROOTS.items():
+    for root_name, root in CAPABILITY_AUTHORED_SKILL_ROOTS.items():
         stale_target = destination / root / "fixture/references/old-name.md"
-        assert stale_target.exists() is (root_name not in expected_roots)
+        assert not stale_target.exists()
         assert (destination / root / "fixture/references/new-name.md").exists() is (root_name in expected_roots)
-        assert (destination / root / "fixture/SKILL.md").is_file()
+        assert (destination / root / "fixture/SKILL.md").exists() is (root_name in expected_roots)
         assert (destination / root / "external-skill/SKILL.md").is_file()
+
+
+def test_authored_skill_cleanup_removes_disabled_canonical_skill_from_every_capability_package_root(tmp_path):
+    """Disabling an authored skill removes its package copies, including Cursor's local plugin."""
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    _initialize_authored_cleanup_source(source, include_external=True)
+
+    skill_source = source / "src/ai/skills/fixture"
+    skill_source.mkdir(parents=True)
+    (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
+
+    config = tmp_path / "chezmoi.toml"
+    config.write_text(
+        "\n".join(
+            [
+                "[data.ai.skills.authored]",
+                'fixture = "present"',
+                "",
+                "[data.ai.skills.external]",
+                "",
+                "[data.ai.agents.external]",
+                "",
+                "[data.local.bin.agy]",
+                'installation_method = "system"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    first_apply = _apply_authored_cleanup(source, destination, config)
+    assert first_apply.returncode == 0, first_apply.stderr
+    for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values():
+        assert (destination / root / "fixture/SKILL.md").is_file()
+    cursor_manifest = destination / ".cursor/plugins/local/mkobit-dotfiles/.cursor-plugin/plugin.json"
+    manifest = json.loads(cursor_manifest.read_text(encoding="utf-8"))
+    assert manifest["name"] == "mkobit-dotfiles"
+    assert manifest["version"].startswith("1.0.0+")
+    assert manifest["description"] == "Base dotfiles capability bundle."
+    assert manifest["skills"] == "./skills"
+
+    config.write_text(
+        "\n".join(
+            [
+                "[data.ai.skills.authored]",
+                'fixture = "absent"',
+                "",
+                "[data.ai.skills.external]",
+                "",
+                "[data.ai.agents.external]",
+                "",
+                "[data.local.bin.agy]",
+                'installation_method = "system"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    second_apply = _apply_authored_cleanup(source, destination, config)
+    assert second_apply.returncode == 0, second_apply.stderr
+    for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values():
+        assert not (destination / root / "fixture").exists()
 
 
 def test_authored_skill_cleanup_rejects_shell_metacharacters_without_executing_them(tmp_path):
@@ -226,16 +390,13 @@ def test_authored_skill_cleanup_rejects_symlink_escape_without_deleting_outside(
     destination = tmp_path / "destination"
     _initialize_authored_cleanup_source(source)
 
-    skill_source = source / "overlay-skills" / "fixture"
+    skill_source = source / "src/ai/skills" / "fixture"
     skill_source.mkdir(parents=True)
     (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
     config = tmp_path / "chezmoi.toml"
     config.write_text(
         "\n".join(
             [
-                "[data.ai.skills]",
-                'overlay_authored_source = "overlay-skills"',
-                "",
                 "[data.ai.skills.authored]",
                 'fixture = "claude"',
                 "",
@@ -269,16 +430,13 @@ def test_authored_skill_cleanup_handles_newline_descendant_without_escaping_root
     destination = tmp_path / "destination"
     _initialize_authored_cleanup_source(source)
 
-    skill_source = source / "overlay-skills" / "fixture"
+    skill_source = source / "src/ai/skills" / "fixture"
     skill_source.mkdir(parents=True)
     (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
     config = tmp_path / "chezmoi.toml"
     config.write_text(
         "\n".join(
             [
-                "[data.ai.skills]",
-                'overlay_authored_source = "overlay-skills"',
-                "",
                 "[data.ai.skills.authored]",
                 'fixture = "claude"',
                 "",
@@ -310,7 +468,7 @@ def test_authored_skill_cleanup_propagates_descendant_symlink_refusal(tmp_path):
     destination = tmp_path / "destination"
     _initialize_authored_cleanup_source(source)
 
-    skill_source = source / "overlay-skills" / "fixture"
+    skill_source = source / "src/ai/skills" / "fixture"
     skill_source.mkdir(parents=True)
     (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
     skill_target = destination / AUTHORED_SKILL_ROOTS["claude"] / "fixture"
@@ -325,9 +483,6 @@ def test_authored_skill_cleanup_propagates_descendant_symlink_refusal(tmp_path):
     config.write_text(
         "\n".join(
             [
-                "[data.ai.skills]",
-                'overlay_authored_source = "overlay-skills"',
-                "",
                 "[data.ai.skills.authored]",
                 'fixture = "claude"',
                 "",
@@ -402,15 +557,15 @@ def test_marketplace_manifests_deployed_and_valid(chezmoi_dest):
     assert agents_marketplace.is_file(), f"{agents_marketplace} does not exist after chezmoi apply"
     agents_data = json.loads(agents_marketplace.read_text(encoding="utf-8"))
     assert agents_data["name"] == "dotfiles"
-    assert agents_data["plugins"][0]["name"] == "mkobit-dotfiles"
-    assert agents_data["plugins"][0]["source"]["path"] == "./plugins/mkobit-dotfiles/codex"
+    agents_plugins = {plugin["name"]: plugin for plugin in agents_data["plugins"]}
+    assert agents_plugins["mkobit-dotfiles"]["source"]["path"] == "./plugins/mkobit-dotfiles/codex"
 
     claude_marketplace = chezmoi_dest / ".local/share/agent-plugins/marketplace/.claude-plugin/marketplace.json"
     assert claude_marketplace.is_file(), f"{claude_marketplace} does not exist after chezmoi apply"
     claude_data = json.loads(claude_marketplace.read_text(encoding="utf-8"))
     assert claude_data["name"] == "dotfiles"
-    assert claude_data["plugins"][0]["name"] == "mkobit-dotfiles"
-    claude_source = claude_data["plugins"][0]["source"]
+    claude_plugins = {plugin["name"]: plugin for plugin in claude_data["plugins"]}
+    claude_source = claude_plugins["mkobit-dotfiles"]["source"]
     claude_path = claude_source["path"] if isinstance(claude_source, dict) else claude_source
     assert claude_path == "./plugins/mkobit-dotfiles/claude"
 

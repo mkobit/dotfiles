@@ -1,19 +1,7 @@
 {{- $inputs := dict "external" .ai.skills.external "authored" (dig "authored" (dict) .ai.skills) -}}
-{{- range $path := glob (joinPath .chezmoi.workingTree "src/ai/skills/**/*") | sortAlpha -}}
+{{- range $path := glob (joinPath .chezmoi.sourceDir ".." "ai/skills/**/*") | sortAlpha -}}
 {{-   if eq (lstat $path).type "file" -}}
 {{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
-{{-   end -}}
-{{- end -}}
-{{- $overlaySource := dig "overlay_authored_source" "" .ai.skills -}}
-{{- if $overlaySource -}}
-{{-   $_ := set $inputs "overlay_authored_source" $overlaySource -}}
-{{-   if not (hasPrefix "/" $overlaySource) -}}
-{{-     $overlaySource = joinPath .chezmoi.workingTree $overlaySource -}}
-{{-   end -}}
-{{-   range $path := glob (joinPath $overlaySource "**/*") | sortAlpha -}}
-{{-     if eq (lstat $path).type "file" -}}
-{{-       $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
-{{-     end -}}
 {{-   end -}}
 {{- end -}}
 {{- $version := printf "1.0.0+%s" (trunc 12 (sha256sum (toJson $inputs))) -}}

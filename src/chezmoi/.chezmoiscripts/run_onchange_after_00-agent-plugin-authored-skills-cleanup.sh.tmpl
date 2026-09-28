@@ -5,25 +5,15 @@
 {{-   end -}}
 {{- end -}}
 {{- $inputs := dict "skills" .ai.skills -}}
-{{- $root := joinPath .chezmoi.workingTree "src/ai/skills" -}}
+{{- $root := joinPath .chezmoi.sourceDir ".." "ai/skills" -}}
 {{- range $path := glob (joinPath $root "**/*") | sortAlpha -}}
 {{-   if eq (lstat $path).type "file" -}}
 {{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
 {{-   end -}}
 {{- end -}}
-{{- $overlaySource := dig "overlay_authored_source" "" .ai.skills -}}
-{{- if and $overlaySource (not (hasPrefix "/" $overlaySource)) -}}
-{{-   $overlaySource = joinPath .chezmoi.workingTree $overlaySource -}}
-{{- end -}}
-{{- if $overlaySource -}}
-{{-   range $path := glob (joinPath $overlaySource "**/*") | sortAlpha -}}
-{{-     if eq (lstat $path).type "file" -}}
-{{-       $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
-{{-     end -}}
-{{-   end -}}
-{{- end -}}
 {{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
 {{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}
+{{- $cursorLocal := ".cursor/plugins/local/mkobit-dotfiles/skills" -}}
 {{- $portable := printf "%s/skills" $bundle -}}
 {{- $antigravity := ".gemini/antigravity-cli/skills" -}}
 {{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
@@ -60,6 +50,9 @@ clean_skill() {
             ;;
         "$bundle"/cursor/skills/*)
             root="$bundle/cursor/skills"
+            ;;
+        "$destination"/.cursor/plugins/local/mkobit-dotfiles/skills/*)
+            root="$destination/.cursor/plugins/local/mkobit-dotfiles/skills"
             ;;
         "$destination"/.gemini/antigravity-cli/skills/*)
             root="$destination/.gemini/antigravity-cli/skills"
@@ -163,20 +156,25 @@ PY
 
 {{- range $skillName, $state := $authored -}}
 {{-   $skillDir := joinPath $root $skillName -}}
-{{-   if and $overlaySource (stat (joinPath $overlaySource $skillName)) -}}
-{{-     $skillDir = joinPath $overlaySource $skillName -}}
+{{-   $selectedRoots := dict -}}
+{{-   if eq $state "present" -}}
+{{-     $_ := set $selectedRoots $portable true -}}
+{{-     range $_, $skillsDir := $tools -}}
+{{-       $_ := set $selectedRoots $skillsDir true -}}
+{{-     end -}}
+{{-     $_ := set $selectedRoots $cursorLocal true -}}
+{{-     if $antigravityEnabled -}}
+{{-       $_ := set $selectedRoots $antigravity true -}}
+{{-     end -}}
+{{-   else if hasKey $tools $state -}}
+{{-     $_ := set $selectedRoots (index $tools $state) true -}}
+{{-     if eq $state "cursor" -}}
+{{-       $_ := set $selectedRoots $cursorLocal true -}}
+{{-     end -}}
+{{-   else if and (eq $state "antigravity") $antigravityEnabled -}}
+{{-     $_ := set $selectedRoots $antigravity true -}}
 {{-   end -}}
-{{-   if eq $state "present" }}
-clean_skill {{ joinPath $.chezmoi.destDir $portable $skillName | shellQuote }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}
-{{-     range $_, $skillsDir := $tools }}
-clean_skill {{ joinPath $.chezmoi.destDir $skillsDir $skillName | shellQuote }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}
-{{-     end }}
-{{-     if $antigravityEnabled }}
-clean_skill {{ joinPath $.chezmoi.destDir $antigravity $skillName | shellQuote }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}
-{{-     end }}
-{{-   else if hasKey $tools $state }}
-clean_skill {{ joinPath $.chezmoi.destDir (index $tools $state) $skillName | shellQuote }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}
-{{-   else if and (eq $state "antigravity") $antigravityEnabled }}
-clean_skill {{ joinPath $.chezmoi.destDir $antigravity $skillName | shellQuote }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}
+{{-   range $skillsDir := (list $portable (index $tools "claude") (index $tools "codex") (index $tools "cursor") $cursorLocal $antigravity) }}
+clean_skill {{ joinPath $.chezmoi.destDir $skillsDir $skillName | shellQuote }}{{ if index $selectedRoots $skillsDir }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}{{ end }}
 {{-   end }}
 {{- end }}

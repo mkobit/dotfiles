@@ -482,21 +482,76 @@ def test_existing_claude_plugin_is_adopted_and_enabled(tmp_path, monkeypatch):
 
 def test_existing_codex_plugin_is_not_added_again(tmp_path, monkeypatch):
     calls = []
+    source = tmp_path / "marketplace/plugins/demo/codex"
+    manifest = source / ".codex-plugin/plugin.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(json.dumps({"name": "demo", "version": "1.0.0"}), encoding="utf-8")
 
     def run(host, *args):
         calls.append((host, *args))
-        if args == ("plugin", "list", "-m", "market"):
-            return "demo@market  installed, enabled  1.0.0  /fixture/demo\n"
+        if args == ("plugin", "list", "-m", "market", "--json"):
+            return json.dumps(
+                {
+                    "installed": [
+                        {
+                            "pluginId": "demo@market",
+                            "installed": True,
+                            "enabled": True,
+                            "version": "1.0.0",
+                            "source": {"source": "local", "path": str(source)},
+                        }
+                    ]
+                }
+            )
         return ""
 
     monkeypatch.setattr(plugin_bridge, "_run", run)
     desired, owned = set(), set()
-    plugin_bridge._ensure_plugin(
-        "codex", "market", "demo", tmp_path / "ownership", desired, owned
-    )
+    plugin_bridge._ensure_plugin("codex", "market", "demo", tmp_path / "ownership", desired, owned)
 
     assert ("codex", "plugin", "add", "demo@market") not in calls
+    assert ("codex", "plugin", "remove", "demo@market") not in calls
     assert owned == {"plugin\tcodex\tmarket\tdemo"}
+
+
+def test_stale_codex_plugin_version_is_reinstalled_from_deployed_manifest(tmp_path, monkeypatch):
+    source = tmp_path / "marketplace/plugins/demo/codex"
+    manifest = source / ".codex-plugin/plugin.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(json.dumps({"name": "demo", "version": "2.0.0"}), encoding="utf-8")
+    installed, installed_version = True, "1.0.0"
+    calls = []
+
+    def run(host, *args):
+        nonlocal installed, installed_version
+        calls.append((host, *args))
+        if args == ("plugin", "list", "-m", "market", "--json"):
+            records = []
+            if installed:
+                records.append(
+                    {
+                        "pluginId": "demo@market",
+                        "installed": True,
+                        "enabled": True,
+                        "version": installed_version,
+                        "source": {"source": "local", "path": str(source)},
+                    }
+                )
+            return json.dumps({"installed": records})
+        if args == ("plugin", "remove", "demo@market"):
+            installed = False
+            installed_version = ""
+        if args == ("plugin", "add", "demo@market"):
+            installed = True
+            installed_version = "2.0.0"
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    plugin_bridge._ensure_plugin("codex", "market", "demo", tmp_path / "ownership", set(), set())
+
+    assert installed_version == "2.0.0"
+    assert ("codex", "plugin", "remove", "demo@market") in calls
+    assert ("codex", "plugin", "add", "demo@market") in calls
 
 
 def test_plugin_removal_requires_verified_absence(tmp_path, monkeypatch):

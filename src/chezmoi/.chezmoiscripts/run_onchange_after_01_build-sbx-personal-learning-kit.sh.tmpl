@@ -35,13 +35,14 @@
 {{-   else }}{{ fail "sbx personal kit: unsupported guest architecture" }}{{ end -}}
 {{- end -}}
 {{- $inputs := dict "enabled" $enabled "codex" $codex "tools" $tools "catalogs" .bin "skills" .ai.skills "plugins" (dig "plugin_bridge" (dict) .ai) -}}
-{{- range $pattern := list "src/ai/skills/**/*" "src/chezmoi/dot_local/share/agent-plugins/**/*" "src/chezmoi/.chezmoiscripts/*agent-plugin*" -}}
-{{-   range $path := glob (joinPath $.chezmoi.workingTree $pattern) | sortAlpha -}}
+{{- range $path := concat
+      (glob (joinPath $.chezmoi.sourceDir ".." "ai/skills/**/*"))
+      (glob (joinPath $.chezmoi.sourceDir "dot_local/share/agent-plugins/**/*"))
+      (glob (joinPath $.chezmoi.sourceDir ".chezmoiscripts/*agent-plugin*")) | sortAlpha -}}
 {{-     if eq (lstat $path).type "file" -}}
 {{-       $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
 {{-     end -}}
 {{-   end -}}
-{{- end -}}
 #!/bin/sh
 set -eu
 # personal-sbx-learning-kit-input-fingerprint: {{ sha256sum (toJson $inputs) }}

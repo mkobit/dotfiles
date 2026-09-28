@@ -1,0 +1,36 @@
+{{- $ai := dig "ai" (dict) . -}}
+{{- $bridge := dig "plugin_bridge" (dict) $ai -}}
+{{- $capabilities := dig "capabilities" (dict) $bridge -}}
+{{- $environment := dig "environment" "default" $bridge -}}
+{{- $roots := list
+      (dict "source" "dot_local/share/agent-plugins/marketplace/plugins" "target" ".local/share/agent-plugins/marketplace/plugins" "layout" "marketplace")
+      (dict "source" "dot_cursor/plugins/local" "target" ".cursor/plugins/local" "layout" "cursor")
+-}}
+{{- range $root := $roots -}}
+{{-   $sourceRoot := joinPath $.chezmoi.sourceDir $root.source -}}
+{{-   range $manifest := glob (joinPath $sourceRoot "**/plugin.json.tmpl") -}}
+{{-     if eq (lstat $manifest).type "file" -}}
+{{-       $relative := trimPrefix (printf "%s/" $sourceRoot) $manifest -}}
+{{-       $segments := splitList "/" $relative -}}
+{{-       $capabilityName := first $segments -}}
+{{-       $capability := dig $capabilityName nil $capabilities -}}
+{{-       $ignore := eq $capability nil -}}
+{{-       if not $ignore -}}
+{{-         $environments := dig "environments" nil $capability -}}
+{{-         $ignore = and (ne $environments nil) (not (has $environment $environments)) -}}
+{{-       end -}}
+{{-       $targetRoot := joinPath $root.target $capabilityName -}}
+{{-       if and (not $ignore) (eq $root.layout "marketplace") (ge (len $segments) 3) -}}
+{{-         $host := trimPrefix "exact_" (index $segments 1) -}}
+{{-         $hosts := dig "hosts" (list) $capability -}}
+{{-         if and (has $host (list "claude" "codex" "cursor")) (not (has $host $hosts)) -}}
+{{-           $targetRoot = joinPath $targetRoot $host -}}
+{{-           $ignore = true -}}
+{{-         end -}}
+{{-       else if and (not $ignore) (eq $root.layout "cursor") (not (has "cursor" (dig "hosts" (list) $capability))) -}}
+{{-         $ignore = true -}}
+{{-       end -}}
+{{-       if $ignore -}}{{ printf "%s/**\n" $targetRoot }}{{- end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}

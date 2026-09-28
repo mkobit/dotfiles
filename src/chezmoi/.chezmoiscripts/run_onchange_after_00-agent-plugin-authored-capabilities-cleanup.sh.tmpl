@@ -1,0 +1,261 @@
+{{- $ai := dig "ai" (dict) . -}}
+{{- $bridge := dig "plugin_bridge" (dict) $ai -}}
+{{- $capabilities := dig "capabilities" (dict) $bridge -}}
+{{- $environment := dig "environment" "default" $bridge -}}
+{{- $hostRoots := dict
+      "claude" ".local/share/agent-plugins/marketplace/plugins/%s/claude/skills"
+      "codex" ".local/share/agent-plugins/marketplace/plugins/%s/codex/skills"
+      "cursor" ".local/share/agent-plugins/marketplace/plugins/%s/cursor/skills"
+-}}
+{{- $cursorLocalRoot := ".cursor/plugins/local/%s/skills" -}}
+{{- $inputs := dict "capabilities" $capabilities -}}
+{{- $desired := list -}}
+{{- range $capabilityName, $capability := $capabilities -}}
+{{-   $sourceDir := dig "source_dir" "" $capability -}}
+{{-   $skills := dig "skills" (dict) $capability -}}
+{{-   $environments := dig "environments" nil $capability -}}
+{{-   $enabled := or (eq $environments nil) (has $environment $environments) -}}
+{{-   if and $sourceDir $skills $enabled -}}
+{{-     if not (regexMatch "^[a-z0-9]+(-[a-z0-9]+)*$" $capabilityName) -}}
+{{-       fail (printf "ai.plugin_bridge.capabilities.%s: invalid capability name" $capabilityName) -}}
+{{-     end -}}
+{{-     if not (regexMatch "^src/[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$" $sourceDir) -}}
+{{-       fail (printf "ai.plugin_bridge.capabilities.%s: invalid source_dir %q" $capabilityName $sourceDir) -}}
+{{-     end -}}
+{{-     $skillsSourceDir := dig "skills_source_dir" "" $capability -}}
+{{-     if $skillsSourceDir -}}
+{{-       if not (regexMatch "^src/[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$" $skillsSourceDir) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s: invalid skills_source_dir %q" $capabilityName $skillsSourceDir) -}}
+{{-       end -}}
+{{-       $skillsSourceDir = trimPrefix "src/" $skillsSourceDir -}}
+{{-     end -}}
+{{-     $declaredHosts := dig "hosts" (list) $capability -}}
+{{-     if not $declaredHosts -}}
+{{-       fail (printf "ai.plugin_bridge.capabilities.%s: must declare at least one host" $capabilityName) -}}
+{{-     end -}}
+{{-     range $host := $declaredHosts -}}
+{{-       if not (hasKey $hostRoots $host) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s: unknown host %q" $capabilityName $host) -}}
+{{-       end -}}
+{{-     end -}}
+{{-     $skillRoot := joinPath $.chezmoi.sourceDir ".." (trimPrefix "src/" $sourceDir) "skills" -}}
+{{-     if $skillsSourceDir -}}
+{{-       $skillRoot = joinPath $.chezmoi.sourceDir ".." $skillsSourceDir -}}
+{{-     end -}}
+{{-     range $skillName, $state := $skills -}}
+{{-       if not (regexMatch "^[a-z0-9]+(-[a-z0-9]+)*$" $skillName) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s: invalid skill name" $capabilityName $skillName) -}}
+{{-       end -}}
+{{-       if not (or (eq $state "present") (eq $state "absent") (hasKey $hostRoots $state)) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s: state must be present, absent, claude, codex, or cursor, got %q" $capabilityName $skillName $state) -}}
+{{-       end -}}
+{{-       if and (hasKey $hostRoots $state) (not (has $state $declaredHosts)) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s selects %q, which is absent from capability hosts" $capabilityName $skillName $state) -}}
+{{-       end -}}
+{{-       if ne $state "absent" -}}
+{{-         $skillDir := joinPath $skillRoot $skillName -}}
+{{-         if not (stat (joinPath $skillDir "SKILL.md")) -}}
+{{-           fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s: missing SKILL.md" $capabilityName $skillName) -}}
+{{-         end -}}
+{{-         range $path := glob (joinPath $skillDir "**/*") -}}
+{{-           if eq (lstat $path).type "file" -}}
+{{-             $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
+{{-             $rel := trimPrefix (printf "%s/" $skillDir) $path -}}
+{{-             range $hostName, $hostRootFormat := $hostRoots -}}
+{{-               if and (has $hostName $declaredHosts) (or (eq $state "present") (eq $state $hostName)) -}}
+{{-                 $desired = append $desired (joinPath (printf $hostRootFormat $capabilityName) $skillName $rel) -}}
+{{-               end -}}
+{{-             end -}}
+{{-             if and (has "cursor" $declaredHosts) (or (eq $state "present") (eq $state "cursor")) -}}
+{{-               $desired = append $desired (joinPath (printf $cursorLocalRoot $capabilityName) $skillName $rel) -}}
+{{-             end -}}
+{{-           end -}}
+{{-         end -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $marketplaceRoot := joinPath $.chezmoi.sourceDir "dot_local/share/agent-plugins/marketplace/plugins" -}}
+{{- range $manifest := glob (joinPath $marketplaceRoot "**/plugin.json.tmpl") -}}
+{{-   if eq (lstat $manifest).type "file" -}}
+{{-     $relative := trimPrefix (printf "%s/" $marketplaceRoot) $manifest -}}
+{{-     $segments := splitList "/" $relative -}}
+{{-     if eq (len $segments) 4 -}}
+{{-       $capabilityName := index $segments 0 -}}
+{{-       $capability := dig $capabilityName nil $capabilities -}}
+{{-       if $capability -}}
+{{-         $environments := dig "environments" nil $capability -}}
+{{-         $enabled := or (eq $environments nil) (has $environment $environments) -}}
+{{-         $host := trimPrefix "exact_" (index $segments 1) -}}
+{{-         $hosts := dig "hosts" (list) $capability -}}
+{{-         if and $enabled (has $host (list "claude" "codex" "cursor")) (has $host $hosts) (eq (index $segments 2) (printf "exact_dot_%s-plugin" $host)) (eq (index $segments 3) "plugin.json.tmpl") -}}
+{{-           $desired = append $desired (printf ".local/share/agent-plugins/marketplace/plugins/%s/%s/.%s-plugin/plugin.json" $capabilityName $host $host) -}}
+{{-         end -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $cursorRoot := joinPath $.chezmoi.sourceDir "dot_cursor/plugins/local" -}}
+{{- range $manifest := glob (joinPath $cursorRoot "**/plugin.json.tmpl") -}}
+{{-   if eq (lstat $manifest).type "file" -}}
+{{-     $relative := trimPrefix (printf "%s/" $cursorRoot) $manifest -}}
+{{-     $segments := splitList "/" $relative -}}
+{{-     if and (eq (len $segments) 3) (eq (index $segments 1) "exact_dot_cursor-plugin") (eq (index $segments 2) "plugin.json.tmpl") -}}
+{{-       $capabilityName := index $segments 0 -}}
+{{-       $capability := dig $capabilityName nil $capabilities -}}
+{{-       if $capability -}}
+{{-         $environments := dig "environments" nil $capability -}}
+{{-         $enabled := or (eq $environments nil) (has $environment $environments) -}}
+{{-         $hosts := dig "hosts" (list) $capability -}}
+{{-         if and $enabled (has "cursor" $hosts) -}}
+{{-           $desired = append $desired (printf ".cursor/plugins/local/%s/.cursor-plugin/plugin.json" $capabilityName) -}}
+{{-         end -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $python := includeTemplate "python/filter-interpreter" . -}}
+#!/bin/sh
+set -eu
+set -f
+
+# capability-input-fingerprint: {{ sha256sum (toJson $inputs) }}
+destination={{ .chezmoi.destDir | shellQuote }}
+state_file={{ joinPath .chezmoi.destDir ".local/state/dotfiles/agent-plugin-capability-ownership.json" | shellQuote }}
+python={{ $python | shellQuote }}
+desired={{ toJson ($desired | uniq | sortAlpha) | shellQuote }}
+
+exec "$python" - "$destination" "$state_file" "$desired" <<'PY'
+import json
+import os
+import re
+import stat
+import sys
+from pathlib import Path, PurePosixPath
+
+
+class CleanupError(Exception):
+    pass
+
+
+PACKAGE_PATH = re.compile(
+    r"^\.local/share/agent-plugins/marketplace/plugins/[a-z0-9]+(?:-[a-z0-9]+)*/"
+    r"(?:claude/skills/[a-z0-9]+(?:-[a-z0-9]+)*/.+|"
+    r"codex/skills/[a-z0-9]+(?:-[a-z0-9]+)*/.+|"
+    r"cursor/skills/[a-z0-9]+(?:-[a-z0-9]+)*/.+|"
+    r"claude/\.claude-plugin/plugin\.json|codex/\.codex-plugin/plugin\.json|"
+    r"cursor/\.cursor-plugin/plugin\.json)$"
+)
+CURSOR_LOCAL_PATH = re.compile(
+    r"^\.cursor/plugins/local/[a-z0-9]+(?:-[a-z0-9]+)*/"
+    r"(?:skills/[a-z0-9]+(?:-[a-z0-9]+)*/.+|\.cursor-plugin/plugin\.json)$"
+)
+
+
+def fail(message):
+    raise CleanupError("agent-plugin-authored-capabilities-cleanup: " + message)
+
+
+def checked_relative(value):
+    if not isinstance(value, str):
+        fail("state contains a non-string path")
+    path = PurePosixPath(value)
+    if path.is_absolute() or not path.parts or any(part in ("", ".", "..") for part in path.parts):
+        fail("state contains an unsafe path: {!r}".format(value))
+    if not (PACKAGE_PATH.fullmatch(value) or CURSOR_LOCAL_PATH.fullmatch(value)):
+        fail("state contains a path outside capability-owned roots: {!r}".format(value))
+    return Path(*path.parts)
+
+
+def reject_symlink_components(destination, relative):
+    candidate = destination
+    for component in relative.parts:
+        candidate /= component
+        try:
+            mode = candidate.lstat().st_mode
+        except FileNotFoundError:
+            return
+        if stat.S_ISLNK(mode):
+            fail("refusing symlinked cleanup path: {}".format(candidate))
+
+
+def package_root(relative):
+    parts = relative.parts
+    if parts[0] == ".cursor":
+        if ".cursor-plugin" in parts:
+            return Path(*parts[:4])
+        return Path(*parts[:6])
+    if "skills" not in parts:
+        return Path(*parts[:7])
+    return Path(*parts[:9])
+
+
+def remove_owned_file(destination, relative):
+    reject_symlink_components(destination, relative)
+    target = destination / relative
+    try:
+        mode = target.lstat().st_mode
+    except FileNotFoundError:
+        return
+    if not stat.S_ISREG(mode):
+        fail("owned path is not a regular file: {}".format(target))
+    target.unlink()
+
+    root = destination / package_root(relative)
+    candidate = target.parent
+    while candidate != root.parent:
+        try:
+            candidate.rmdir()
+        except FileNotFoundError:
+            pass
+        except OSError:
+            break
+        candidate = candidate.parent
+
+
+def load_state(destination, state_file):
+    relative_state = state_file.relative_to(destination)
+    reject_symlink_components(destination, relative_state)
+    if not state_file.exists():
+        return set()
+    try:
+        decoded = json.loads(state_file.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as error:
+        fail("cannot read ownership state: {}".format(error))
+    if not isinstance(decoded, dict) or decoded.get("version") != 1 or not isinstance(decoded.get("paths"), list):
+        fail("ownership state has an unsupported format")
+    return {checked_relative(value).as_posix() for value in decoded["paths"]}
+
+
+def write_state(destination, state_file, paths):
+    relative_state = state_file.relative_to(destination)
+    reject_symlink_components(destination, relative_state)
+    state_file.parent.mkdir(parents=True, exist_ok=True)
+    reject_symlink_components(destination, relative_state.parent)
+    temporary = state_file.with_name(state_file.name + ".tmp")
+    temporary.write_text(json.dumps({"version": 1, "paths": sorted(paths)}) + "\n", encoding="utf-8")
+    os.replace(temporary, state_file)
+
+
+def main(destination, state_file, desired_json):
+    destination = Path(destination)
+    state_file = Path(state_file)
+    try:
+        desired_values = json.loads(desired_json)
+    except json.JSONDecodeError as error:
+        fail("cannot parse desired ownership state: {}".format(error))
+    if not isinstance(desired_values, list):
+        fail("desired ownership state is not a list")
+    desired = {checked_relative(value).as_posix() for value in desired_values}
+    previous = load_state(destination, state_file)
+    for value in previous - desired:
+        remove_owned_file(destination, checked_relative(value))
+    write_state(destination, state_file, desired)
+
+
+try:
+    main(*sys.argv[1:])
+except (CleanupError, OSError, ValueError) as error:
+    print(error, file=sys.stderr)
+    raise SystemExit(1)
+PY

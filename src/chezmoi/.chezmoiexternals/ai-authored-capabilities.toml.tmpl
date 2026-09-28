@@ -1,0 +1,93 @@
+{{- /*
+  Projects authored overlay capability skills from their canonical source trees
+  into the selected Claude, Codex, and Cursor package paths. The assembled
+  chezmoi source lives below the overlay repository, so source_dir is resolved
+  from sourceDir/.. rather than from the base repository. Overlay declarations
+  retain their src/ prefix, which is removed for the assembled-tree lookup.
+*/ -}}
+{{- $hostRoots := dict
+      "claude" ".local/share/agent-plugins/marketplace/plugins/%s/claude/skills"
+      "codex" ".local/share/agent-plugins/marketplace/plugins/%s/codex/skills"
+      "cursor" ".local/share/agent-plugins/marketplace/plugins/%s/cursor/skills"
+-}}
+{{- $cursorLocalRoot := ".cursor/plugins/local/%s/skills" -}}
+{{- $root := . -}}
+{{- $config := dict -}}
+{{- $bridge := dig "plugin_bridge" (dict) (dig "ai" (dict) $root) -}}
+{{- $capabilities := dig "capabilities" (dict) $bridge -}}
+{{- $environment := dig "environment" "default" $bridge -}}
+{{- range $capabilityName, $capability := $capabilities -}}
+{{-   $sourceDir := dig "source_dir" "" $capability -}}
+{{-   $skills := dig "skills" (dict) $capability -}}
+{{-   $environments := dig "environments" nil $capability -}}
+{{-   $enabled := or (eq $environments nil) (has $environment $environments) -}}
+{{-   if and $sourceDir $skills $enabled -}}
+{{-     if not (regexMatch "^[a-z0-9]+(-[a-z0-9]+)*$" $capabilityName) -}}
+{{-       fail (printf "ai.plugin_bridge.capabilities.%s: invalid capability name" $capabilityName) -}}
+{{-     end -}}
+{{-     if not (regexMatch "^src/[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$" $sourceDir) -}}
+{{-       fail (printf "ai.plugin_bridge.capabilities.%s: invalid source_dir %q" $capabilityName $sourceDir) -}}
+{{-     end -}}
+{{-     $sourceDir = trimPrefix "src/" $sourceDir -}}
+{{-     $skillsSourceDir := dig "skills_source_dir" "" $capability -}}
+{{-     if $skillsSourceDir -}}
+{{-       if not (regexMatch "^src/[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$" $skillsSourceDir) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s: invalid skills_source_dir %q" $capabilityName $skillsSourceDir) -}}
+{{-       end -}}
+{{-       $skillsSourceDir = trimPrefix "src/" $skillsSourceDir -}}
+{{-     end -}}
+{{-     $declaredHosts := dig "hosts" (list) $capability -}}
+{{-     if not $declaredHosts -}}
+{{-       fail (printf "ai.plugin_bridge.capabilities.%s: must declare at least one host" $capabilityName) -}}
+{{-     end -}}
+{{-     range $host := $declaredHosts -}}
+{{-       if not (hasKey $hostRoots $host) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s: unknown host %q" $capabilityName $host) -}}
+{{-       end -}}
+{{-     end -}}
+{{-     $skillRoot := joinPath $root.chezmoi.sourceDir ".." $sourceDir "skills" -}}
+{{-     if $skillsSourceDir -}}
+{{-       $skillRoot = joinPath $root.chezmoi.sourceDir ".." $skillsSourceDir -}}
+{{-     end -}}
+{{-     range $skillName, $state := $skills -}}
+{{-       if not (regexMatch "^[a-z0-9]+(-[a-z0-9]+)*$" $skillName) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s: invalid skill name" $capabilityName $skillName) -}}
+{{-       end -}}
+{{-       if not (or (eq $state "present") (eq $state "absent") (hasKey $hostRoots $state)) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s: state must be present, absent, claude, codex, or cursor, got %q" $capabilityName $skillName $state) -}}
+{{-       end -}}
+{{-       if and (hasKey $hostRoots $state) (not (has $state $declaredHosts)) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s selects %q, which is absent from capability hosts" $capabilityName $skillName $state) -}}
+{{-       end -}}
+{{-       if ne $state "absent" -}}
+{{-         $skillDir := joinPath $skillRoot $skillName -}}
+{{-         if not (stat (joinPath $skillDir "SKILL.md")) -}}
+{{-           fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s: missing SKILL.md" $capabilityName $skillName) -}}
+{{-         end -}}
+{{-         $found := false -}}
+{{-         range $path := glob (joinPath $skillDir "**/*") -}}
+{{-           if eq (lstat $path).type "file" -}}
+{{-             $found = true -}}
+{{-             $rel := trimPrefix (printf "%s/" $skillDir) $path -}}
+{{-             $entry := dict "type" "file" "url" (printf "file://%s" $path) "refreshPeriod" "1s" -}}
+{{-             if or (ne (mod (div (lstat $path).perm 64) 2) 0) (ne (mod (div (lstat $path).perm 8) 2) 0) (ne (mod (lstat $path).perm 2) 0) -}}
+{{-               $_ := set $entry "executable" true -}}
+{{-             end -}}
+{{-             range $hostName, $hostRootFormat := $hostRoots -}}
+{{-               if and (has $hostName $declaredHosts) (or (eq $state "present") (eq $state $hostName)) -}}
+{{-                 $_ := set $config (printf "%s/%s/%s" (printf $hostRootFormat $capabilityName) $skillName $rel) $entry -}}
+{{-               end -}}
+{{-             end -}}
+{{-             if and (has "cursor" $declaredHosts) (or (eq $state "present") (eq $state "cursor")) -}}
+{{-               $_ := set $config (printf "%s/%s/%s" (printf $cursorLocalRoot $capabilityName) $skillName $rel) $entry -}}
+{{-             end -}}
+{{-           end -}}
+{{-         end -}}
+{{-         if not $found -}}
+{{-           fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s: no files found under %s" $capabilityName $skillName $skillDir) -}}
+{{-         end -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- if $config -}}{{- toToml $config -}}{{- end -}}
