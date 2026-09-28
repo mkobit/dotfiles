@@ -23,16 +23,16 @@ LEGACY_TARGETS = (
 )
 
 
-def test_sbx_release_catalog_pins_v0_42_1_with_verified_linux_checksums():
-    """Keep the SBX release archive pinned to the verified v0.42.1 assets."""
+def test_sbx_release_catalog_pins_v0_45_1_with_verified_linux_checksums():
+    """Keep the SBX release archive pinned to the verified v0.45.1 assets."""
     with SBX_CATALOG.open("rb") as catalog_file:
         catalog = tomllib.load(catalog_file)
 
     sbx = catalog["bin"]["sbx"]
-    assert sbx["version"] == "0.42.1"
+    assert sbx["version"] == "0.45.1"
     assert sbx["github_releases"]["checksums"] == {
-        "linux_amd64": "fe46facba420d1cb8b1dad57d5b182d6df9dadd46c324c2ca3ef574fb7eada6f",
-        "linux_arm64": "285b36cdb46ce65f792f006869698f2664fcde8adc1e8524357f150f9368dd4c",
+        "linux_amd64": "a5470cabe32d25d242e05a10d1a2feb67a33e1e668e0e8c2488e0e02712e74f7",
+        "linux_arm64": "ede2c8a6f8eff34fa20820ad445ee1e874e8c9928c76491cb496b5ff488ab065",
     }
 
 
@@ -88,7 +88,7 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
                 "settings": {
                     "kit_allowed_sources": {
                         "docker_hub": "docker.io/",
-                        "github_shelajev": "github.com/shelajev/",
+                        "github_docker": "github.com/docker/",
                     },
                 }
             },
@@ -140,7 +140,7 @@ def test_sbx_settings_catalog_declares_complete_approved_kit_source_list():
 
     assert catalog["sbx"]["settings"]["kit_allowed_sources"] == {
         "docker_hub": "docker.io/",
-        "github_shelajev": "github.com/shelajev/",
+        "github_docker": "github.com/docker/",
     }
 
 
@@ -168,7 +168,7 @@ def test_sbx_settings_script_uses_existing_sbx_installation_opt_in():
                 "settings": {
                     "kit_allowed_sources": {
                         "docker_hub": "docker.io/",
-                        "github_shelajev": "github.com/shelajev/",
+                        "github_docker": "github.com/docker/",
                     },
                 }
             },
@@ -185,14 +185,14 @@ def test_sbx_settings_script_preserves_every_declared_source_when_updating(tmp_p
     assert result.returncode == 0, result.stderr
     assert calls == [
         "settings get kit.allowedSources",
-        'settings set kit.allowedSources ["docker.io/","github.com/shelajev/"]',
+        'settings set kit.allowedSources ["docker.io/","github.com/docker/"]',
     ]
 
 
 def test_sbx_settings_script_is_idempotent_for_matching_sources(tmp_path):
     result, calls = _run_rendered_sbx_settings_script(
         tmp_path,
-        '["docker.io/", "github.com/shelajev/"]',
+        '["docker.io/", "github.com/docker/"]',
     )
 
     assert result.returncode == 0, result.stderr
@@ -213,7 +213,7 @@ def test_sbx_settings_script_skips_when_daemon_fails_during_update(tmp_path):
     assert result.returncode == 0, result.stderr
     assert calls == [
         "settings get kit.allowedSources",
-        'settings set kit.allowedSources ["docker.io/","github.com/shelajev/"]',
+        'settings set kit.allowedSources ["docker.io/","github.com/docker/"]',
     ]
     assert "Unable to configure kit.allowedSources" in result.stdout
 

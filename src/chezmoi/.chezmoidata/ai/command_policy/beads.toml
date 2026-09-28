@@ -10,9 +10,8 @@
 # an oversight.
 #
 # Deliberately excluded — do not add:
-#   - "bd dolt pull", "bd dolt remote": still prompt-gated — pulling in
-#     changes from elsewhere or reconfiguring the remote aren't the
-#     agent's own local work the way push is.
+#   - "bd dolt remote": still prompt-gated — reconfiguring the remote isn't
+#     the agent's own local work the way push is.
 #   - "bd federation": peer-to-peer sync with other workspaces, not in
 #     use anywhere yet — always prompt if that changes.
 #   - "bd sql": raw SQL escape hatch that bypasses bd's storage layer
@@ -33,7 +32,7 @@
 #     just issues — more severe than any allowed destructive op, same
 #     rare/high-blast-radius bar as "bd migrate".
 #   - "bd repo sync": hydrates issues in from other local repos — not
-#     the agent's own local work, same reasoning as "bd dolt pull".
+#     the agent's own local work.
 [ai.command_policy.commands]
 "bd --help" = "allow"
 "bd admin cleanup" = "allow"
@@ -63,6 +62,7 @@
 "bd dolt clean-databases" = "allow"
 "bd dolt commit" = "allow"
 "bd dolt killall" = "allow"
+"bd dolt pull" = "allow"
 "bd dolt push" = "allow"
 "bd dolt set" = "allow"
 "bd dolt show" = "allow"

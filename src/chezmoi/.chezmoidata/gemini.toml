@@ -1,4 +1,4 @@
-# Configuration documentation: https://geminicli.com/docs/get-started/configuration/
+# Configuration documentation: https://antigravity.google/docs/cli/reference
 
 [gemini]
 model = "auto-gemini-3"
@@ -16,6 +16,7 @@ show_model_info_in_chat = true
 hide_context_percentage = false
 
 [gemini.general]
+agent_mode = "accept-edits"
 enable_auto_update = false
 preview_features = true
 show_feedback_survey = false
@@ -28,13 +29,13 @@ vim_insert_first = true
 "vim.insert.insert_newline" = ["alt+enter", "ctrl+j", "shift+enter"]
 "vim.insert.submit" = ["ctrl+enter", "ctrl+s", "enter"]
 
-# Session Management: https://developers.googleblog.com/pick-up-exactly-where-you-left-off-with-session-management-in-gemini-cli/
+# Session Management: https://antigravity.google/docs/cli/conversations/
 [gemini.general.sessionRetention]
 enabled = true
 max_age = "30d"
 warning_acknowledged = true
 
-# Sandbox Configuration: https://geminicli.com/docs/cli/sandbox/
+# Sandbox Configuration: https://antigravity.google/docs/sandbox
 [gemini.tools]
 # Disabled globally due to current complexity using existing tools like git
 sandbox = false
@@ -45,3 +46,8 @@ include_directories = ["~/.config/gh"]
 
 [gemini.experimental]
 worktrees = true
+
+[gemini.permissions]
+allow = [
+  "read_url(antigravity.google)",
+]

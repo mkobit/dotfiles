@@ -2,6 +2,7 @@
 MISE_CONFIG_DIR = "{{ .chezmoi.destDir }}/.config/mise"
 MISE_DATA_DIR   = "{{ .chezmoi.destDir }}/.local/share/mise"
 MISE_STATE_DIR  = "{{ .chezmoi.destDir }}/.local/state/mise"
+AGY_CLI_DISABLE_AUTO_UPDATE = "true"
 
 # BOM — static binaries strongly preferred over package managers.
 # github_releases = static binary download via chezmoi externals
@@ -86,6 +87,10 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 {{- end }}
 [data.local.bin.agy]
 installation_method = {{ $agyInstallationMethod | quote }}
+auto_update = false
+
+[data.gemini.general]
+enable_auto_update = false
 
 # Personal learning kit for Docker Sandboxes.  It is deliberately separate
 # from project environment files, which continue to own their build setup.
@@ -216,13 +221,12 @@ installation_method = "chezmoi"
 # Secrets — prompted once at chezmoi init, exported to the shell (see
 # .chezmoitemplates/shell/secrets.sh via zsh.config_fragments."15-secrets" in
 # .chezmoidata/zsh.toml), never written into any git-tracked file. Blank
-# answer = not exported, harmless no-op. Skipped in CI (no TTY, no cached
-# answer on ephemeral runners).
+# answer = not exported, harmless no-op. Skipped in CI/Jules environments.
 #
 # promptStringOnce's path arg is a dotted lookup into nested data, not a flat
 # key — must match where the value lands below ("secrets.stitch_api_key").
 {{- $stitchApiKey := "" -}}
-{{- if and (not (env "CI")) (not (env "JULES_SESSION_ID")) -}}
+{{- if and (not (env "CI")) (not (env "JULES_ENV")) -}}
 {{-   $stitchApiKey = promptStringOnce . "secrets.stitch_api_key" "Stitch API key, exported as $STITCH_API_KEY for use in any project's .mcp.json (blank to skip — stitch.withgoogle.com → Settings → API key)" "" -}}
 {{- end }}
 [data.secrets]

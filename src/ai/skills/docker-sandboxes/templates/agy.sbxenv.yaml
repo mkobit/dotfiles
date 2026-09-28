@@ -1,8 +1,8 @@
 schemaVersion: "1"
 name: "{{PROJECT_SLUG}}-agy"
-agent: agy
+agent: antigravity
 workspace:
   path: ..
   clone: true
 kits:
-  - "git+https://github.com/shelajev/agy-sbx-kit.git#ref=3e7016f108f3cf09922cf351b55a49e38d97f9f2"
+  - "git+https://github.com/docker/sbx-kits-contrib.git#ref=21e1928b5fe0036163307ea8047e48390f2d6fec&dir=antigravity"

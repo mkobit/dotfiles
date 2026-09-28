@@ -1,0 +1,6 @@
+schemaVersion: "1"
+name: "{{PROJECT_SLUG}}-claude"
+agent: claude
+workspace:
+  path: ..
+  clone: false

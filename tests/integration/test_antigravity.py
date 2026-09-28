@@ -22,8 +22,24 @@ def test_antigravity_settings_deployed(host, chezmoi_dest):
     assert settings_file.exists, "~/.gemini/antigravity-cli/settings.json does not exist"
 
 
-def _render_antigravity_settings(stdin: str, agy_method: str) -> subprocess.CompletedProcess[str]:
+def _deep_merge(target: dict[str, Any], source: dict[str, Any]) -> dict[str, Any]:
+    for key, value in source.items():
+        if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+            _deep_merge(target[key], value)
+        else:
+            target[key] = value
+    return target
+
+
+def _render_antigravity_settings(
+    stdin: str,
+    agy_method: str,
+    override_data: dict[str, Any] | None = None,
+) -> subprocess.CompletedProcess[str]:
     template = Path.cwd() / "src/chezmoi/dot_gemini/antigravity-cli/modify_settings.json"
+    data: dict[str, Any] = {"local": {"bin": {"agy": {"installation_method": agy_method}}}}
+    if override_data is not None:
+        _deep_merge(data, override_data)
     return subprocess.run(
         [
             "chezmoi",
@@ -37,7 +53,7 @@ def _render_antigravity_settings(stdin: str, agy_method: str) -> subprocess.Comp
             "-f",
             "--with-stdin",
             "--override-data",
-            json.dumps({"local": {"bin": {"agy": {"installation_method": agy_method}}}}),
+            json.dumps(data),
             str(template),
         ],
         input=stdin,
@@ -87,7 +103,8 @@ def test_antigravity_show_feedback_survey_disabled() -> None:
     result = _render_antigravity_settings("{}", "preinstalled")
     assert result.returncode == 0, result.stderr
     rendered = json.loads(result.stdout)
-    assert rendered.get("general", {}).get("showFeedbackSurvey") is False
+    assert rendered.get("showFeedbackSurvey") is False
+    assert "showFeedbackSurvey" not in rendered.get("general", {})
 
 
 @pytest.mark.integration
@@ -97,6 +114,27 @@ def test_antigravity_vim_mode_settings() -> None:
     rendered = json.loads(result.stdout)
     assert rendered.get("editorMode") == "vim"
     assert rendered.get("vimInsertFirst") is True
+
+
+@pytest.mark.integration
+def test_antigravity_agent_mode_default() -> None:
+    result = _render_antigravity_settings("{}", "preinstalled")
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    assert rendered.get("agentMode") == "accept-edits"
+
+
+@pytest.mark.integration
+def test_antigravity_permissions_merges_live_and_configured_urls() -> None:
+    result = _render_antigravity_settings(
+        '{"permissions":{"allow":["read_url(example.com)"]}}',
+        "preinstalled",
+    )
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    allow = rendered.get("permissions", {}).get("allow", [])
+    assert "read_url(example.com)" in allow
+    assert "read_url(antigravity.google)" in allow
 
 
 def _render_antigravity_keybindings(
@@ -323,3 +361,70 @@ def test_antigravity_externals_are_omitted_when_agy_is_disabled(template_name: s
     assert {path: entry for path, entry in disabled.items() if not path.startswith(antigravity_prefix)} == {
         path: entry for path, entry in enabled.items() if not path.startswith(antigravity_prefix)
     }
+
+
+@pytest.mark.integration
+def test_antigravity_auto_update_disabled_in_shell_configs() -> None:
+    for shell_file in ["dot_dotfiles/bash/config.bash.tmpl", "dot_dotfiles/zsh/config.zsh.tmpl"]:
+        template = Path.cwd() / "src/chezmoi" / shell_file
+        result = subprocess.run(
+            [
+                "chezmoi",
+                "--config",
+                "/dev/null",
+                "--config-format",
+                "toml",
+                "--source",
+                str(Path.cwd()),
+                "execute-template",
+                "-f",
+                str(template),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "export AGY_CLI_DISABLE_AUTO_UPDATE=true" in result.stdout
+
+
+@pytest.mark.integration
+def test_antigravity_auto_update_enabled_omits_shell_export() -> None:
+    for shell_file in ["dot_dotfiles/bash/config.bash.tmpl", "dot_dotfiles/zsh/config.zsh.tmpl"]:
+        template = Path.cwd() / "src/chezmoi" / shell_file
+        result = subprocess.run(
+            [
+                "chezmoi",
+                "--config",
+                "/dev/null",
+                "--config-format",
+                "toml",
+                "--source",
+                str(Path.cwd()),
+                "execute-template",
+                "-f",
+                "--override-data",
+                json.dumps({"local": {"bin": {"agy": {"auto_update": True}}}}),
+                str(template),
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        assert result.returncode == 0, result.stderr
+        assert "export AGY_CLI_DISABLE_AUTO_UPDATE=true" not in result.stdout
+
+
+@pytest.mark.integration
+def test_antigravity_settings_auto_update_gated_by_init_var() -> None:
+    default_res = _render_antigravity_settings("{}", "preinstalled")
+    assert default_res.returncode == 0, default_res.stderr
+    assert json.loads(default_res.stdout)["general"]["enableAutoUpdate"] is False
+
+    enabled_res = _render_antigravity_settings(
+        "{}",
+        "preinstalled",
+        override_data={"local": {"bin": {"agy": {"auto_update": True}}}},
+    )
+    assert enabled_res.returncode == 0, enabled_res.stderr
+    assert json.loads(enabled_res.stdout)["general"]["enableAutoUpdate"] is True
