@@ -1,0 +1,24 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /* Manages ~/.gemini/config/plugins.json */ -}}
+{{- $agyMethod := dig "local" "bin" "agy" "installation_method" "none" . -}}
+{{- if ne $agyMethod "none" -}}
+{{-   $config := dict "entries" list -}}
+{{-   if .chezmoi.stdin -}}
+{{-     $config = fromJson .chezmoi.stdin -}}
+{{-   end -}}
+{{-   $entries := dig "entries" list $config -}}
+{{-   $targetPath := printf "%s/.local/share/agent-plugins/marketplace/plugins" .chezmoi.destDir -}}
+{{-   $hasEntry := false -}}
+{{-   range $entries -}}
+{{-     if eq (dig "path" "" .) $targetPath -}}
+{{-       $hasEntry = true -}}
+{{-     end -}}
+{{-   end -}}
+{{-   if not $hasEntry -}}
+{{-     $entries = append $entries (dict "path" $targetPath) -}}
+{{-   end -}}
+{{-   $config = set $config "entries" $entries -}}
+{{-   $config | toPrettyJson | trimSuffix "\n" -}}
+{{- else -}}
+{{-   .chezmoi.stdin -}}
+{{- end -}}

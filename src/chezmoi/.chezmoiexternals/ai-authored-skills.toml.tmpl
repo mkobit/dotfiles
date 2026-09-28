@@ -16,6 +16,7 @@
 {{- if and $overlaySource (not (hasPrefix "/" $overlaySource)) -}}
 {{-   $overlaySource = joinPath .chezmoi.workingTree $overlaySource -}}
 {{- end -}}
+{{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
 {{- $config := dict -}}
 {{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
 {{-   if or (eq $state "present") (hasKey $tools $state) (eq $state "antigravity") -}}
@@ -38,13 +39,15 @@
 {{-         end -}}
 {{-         if eq $state "present" -}}
 {{-           $_ := set $config (printf "%s/%s/%s" $portable $skillName $rel) $entry -}}
-{{-           $_ := set $config (printf "%s/%s/%s" $antigravity $skillName $rel) $entry -}}
+{{-           if $antigravityEnabled -}}
+{{-             $_ := set $config (printf "%s/%s/%s" $antigravity $skillName $rel) $entry -}}
+{{-           end -}}
 {{-           range $_, $skillsDir := $tools -}}
 {{-             $_ := set $config (printf "%s/%s/%s" $skillsDir $skillName $rel) $entry -}}
 {{-           end -}}
 {{-         else if hasKey $tools $state -}}
 {{-           $_ := set $config (printf "%s/%s/%s" (index $tools $state) $skillName $rel) $entry -}}
-{{-         else if eq $state "antigravity" -}}
+{{-         else if and (eq $state "antigravity") $antigravityEnabled -}}
 {{-           $_ := set $config (printf "%s/%s/%s" $antigravity $skillName $rel) $entry -}}
 {{-         end -}}
 {{-       end -}}

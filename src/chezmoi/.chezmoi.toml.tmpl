@@ -74,8 +74,18 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 [data.local.bin.sbx]
 installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
 
+{{- $agyInstallationMethod := dig "local" "bin" "agy" "installation_method" "github_releases" . -}}
+{{- if and (not (env "CI")) (not (env "JULES_SESSION_ID")) -}}
+{{-   $defaultAgy := ne $agyInstallationMethod "none" -}}
+{{-   $enableAgy := promptBoolOnce . "local.bin.agy.enabled" "Enable Antigravity CLI (agy)?" $defaultAgy -}}
+{{-   if not $enableAgy -}}
+{{-     $agyInstallationMethod = "none" -}}
+{{-   else if eq $agyInstallationMethod "none" -}}
+{{-     $agyInstallationMethod = "github_releases" -}}
+{{-   end -}}
+{{- end }}
 [data.local.bin.agy]
-installation_method = "github_releases"
+installation_method = {{ $agyInstallationMethod | quote }}
 
 # Personal learning kit for Docker Sandboxes.  It is deliberately separate
 # from project environment files, which continue to own their build setup.

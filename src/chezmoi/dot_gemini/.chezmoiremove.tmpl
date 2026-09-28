@@ -7,6 +7,8 @@
   hook separately handles history-aware deleted or renamed skill keys and
   removed skill sources.
 */ -}}
+{{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
+{{- if $antigravityEnabled -}}
 {{- range $sourceName, $source := .ai.skills.external -}}
 {{-   range $skillName, $state := dig "skills" (dict) $source -}}
 {{-     if not (or (eq $state "present") (eq $state "antigravity")) }}
@@ -25,6 +27,7 @@ antigravity-cli/skills/{{ $skillName }}
 antigravity-cli/skills/{{ base $agentPath }}
 {{-     end -}}
 {{-   end -}}
+{{- end -}}
 {{- end -}}
 
 # Deprecated legacy Gemini CLI settings

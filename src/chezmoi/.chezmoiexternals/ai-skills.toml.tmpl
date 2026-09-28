@@ -24,16 +24,19 @@
 {{- $config := dict -}}
 {{- $selectedSkills := dict -}}
 {{- $authoredPackagePaths := dict -}}
+{{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
 {{- range $skillName, $state := dig "authored" (dict) $cfg -}}
 {{-   if eq $state "present" -}}
 {{-     $_ := set $authoredPackagePaths (printf "%s/%s" $portable $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
-{{-     $_ := set $authoredPackagePaths (printf "%s/%s" $antigravity $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     if $antigravityEnabled -}}
+{{-       $_ := set $authoredPackagePaths (printf "%s/%s" $antigravity $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     end -}}
 {{-     range $_, $skillsDir := $tools -}}
 {{-       $_ := set $authoredPackagePaths (printf "%s/%s" $skillsDir $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
 {{-     end -}}
 {{-   else if hasKey $tools $state -}}
 {{-     $_ := set $authoredPackagePaths (printf "%s/%s" (index $tools $state) $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
-{{-   else if eq $state "antigravity" -}}
+{{-   else if and (eq $state "antigravity") $antigravityEnabled -}}
 {{-     $_ := set $authoredPackagePaths (printf "%s/%s" $antigravity $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
 {{-   end -}}
 {{- end -}}
@@ -47,13 +50,15 @@
 {{-       $externalPackagePaths := list -}}
 {{-       if eq $state "present" -}}
 {{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $portable $skillName) -}}
-{{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $antigravity $skillName) -}}
+{{-         if $antigravityEnabled -}}
+{{-           $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $antigravity $skillName) -}}
+{{-         end -}}
 {{-         range $_, $skillsDir := $tools -}}
 {{-           $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $skillsDir $skillName) -}}
 {{-         end -}}
 {{-       else if hasKey $tools $state -}}
 {{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" (index $tools $state) $skillName) -}}
-{{-       else if eq $state "antigravity" -}}
+{{-       else if and (eq $state "antigravity") $antigravityEnabled -}}
 {{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $antigravity $skillName) -}}
 {{-       end -}}
 {{-       range $path := $externalPackagePaths -}}

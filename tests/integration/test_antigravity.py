@@ -217,3 +217,45 @@ def test_antigravity_keybindings_deletes_key_via_boolean_false() -> None:
     assert result.returncode == 0, result.stderr
     rendered = json.loads(result.stdout)
     assert "to.delete" not in rendered
+
+
+def _render_antigravity_plugins(stdin: str, agy_method: str) -> subprocess.CompletedProcess[str]:
+    template = Path.cwd() / "src/chezmoi/dot_gemini/config/modify_plugins.json"
+    return subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            "/dev/null",
+            "--config-format",
+            "toml",
+            "--source",
+            str(Path.cwd()),
+            "execute-template",
+            "-f",
+            "--with-stdin",
+            "--override-data",
+            json.dumps({"local": {"bin": {"agy": {"installation_method": agy_method}}}}),
+            str(template),
+        ],
+        input=stdin,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+@pytest.mark.integration
+def test_antigravity_plugins_json_renders_entries_when_enabled() -> None:
+    result = _render_antigravity_plugins("{}", "github_releases")
+    assert result.returncode == 0, result.stderr
+    rendered = json.loads(result.stdout)
+    entries = rendered.get("entries", [])
+    assert any(".local/share/agent-plugins/marketplace/plugins" in entry.get("path", "") for entry in entries)
+
+
+@pytest.mark.integration
+def test_antigravity_plugins_json_preserves_stdin_when_disabled() -> None:
+    initial = '{"entries": [{"path": "/custom/path"}]}'
+    result = _render_antigravity_plugins(initial, "none")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == initial

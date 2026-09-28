@@ -6,7 +6,8 @@ manages all skill and plugin assets through Chezmoi under `.chezmoiroot`.
 deploys portable skills to `.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills/`.
 deploys host views to `claude/`, `codex/`, and `cursor/` subdirectories under `.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/`.
 runs post-apply bridge script `run_after_agent-plugin-bridge.sh.tmpl` calling `src/python/skill_filter/skill_filter/plugin_bridge.py` to register marketplaces and plugins in Claude Code and OpenAI Codex.
-Antigravity consumes direct flat skills under `~/.gemini/antigravity-cli/skills/`.
+Antigravity consumes direct flat skills under `~/.gemini/antigravity-cli/skills/` and discovers plugin bundles via declarative `~/.gemini/config/plugins.json` pointing to `.local/share/agent-plugins/marketplace/plugins`.
+Antigravity skill deployment and configuration are gated on `local.bin.agy.installation_method != 'none'`, allowing work overlays to omit Antigravity entirely.
 
 ## Workflows for AI agents
 
