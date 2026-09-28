@@ -151,7 +151,9 @@ def _claude_plugin_state(marketplace: str, plugin: str) -> tuple[bool, bool]:
     return False, False
 
 
-def _codex_plugin_state(marketplace: str, plugin: str) -> tuple[bool, bool, str | None, Path | None]:
+def _codex_plugin_state(
+    marketplace: str, plugin: str
+) -> tuple[bool, bool, str | None, Path | None]:
     expected = f"{plugin}@{marketplace}"
     response = json.loads(_run("codex", "plugin", "list", "-m", marketplace, "--json"))
     if not isinstance(response, Mapping):
@@ -180,7 +182,9 @@ def _codex_manifest_version(source_path: Path | None, plugin: str) -> str:
     try:
         manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as error:
-        raise BridgeError(f"cannot read Codex plugin manifest: {manifest_path}") from error
+        raise BridgeError(
+            f"cannot read Codex plugin manifest: {manifest_path}"
+        ) from error
     if not isinstance(manifest, Mapping) or manifest.get("name") != plugin:
         raise BridgeError(f"invalid Codex plugin manifest: {manifest_path}")
     version = manifest.get("version")
@@ -384,16 +388,24 @@ def _ensure_plugin(
                 f"plugin did not become available and enabled: {expected}"
             )
     elif host == "codex":
-        installed, enabled, installed_version, source_path = _codex_plugin_state(marketplace, plugin)
-        manifest_version = _codex_manifest_version(source_path, plugin) if installed else None
+        installed, enabled, installed_version, source_path = _codex_plugin_state(
+            marketplace, plugin
+        )
+        manifest_version = (
+            _codex_manifest_version(source_path, plugin) if installed else None
+        )
         if not installed:
             _run(host, "plugin", "add", expected)
         elif not enabled or installed_version != manifest_version:
             _run(host, "plugin", "remove", expected)
             _run(host, "plugin", "add", expected)
-        installed, enabled, installed_version, source_path = _codex_plugin_state(marketplace, plugin)
+        installed, enabled, installed_version, source_path = _codex_plugin_state(
+            marketplace, plugin
+        )
         if not installed or not enabled:
-            raise BridgeError(f"plugin did not become available and enabled: {expected}")
+            raise BridgeError(
+                f"plugin did not become available and enabled: {expected}"
+            )
         if installed_version != _codex_manifest_version(source_path, plugin):
             raise BridgeError(f"plugin did not refresh to deployed version: {expected}")
     else:

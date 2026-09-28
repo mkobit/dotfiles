@@ -485,7 +485,9 @@ def test_existing_codex_plugin_is_not_added_again(tmp_path, monkeypatch):
     source = tmp_path / "marketplace/plugins/demo/codex"
     manifest = source / ".codex-plugin/plugin.json"
     manifest.parent.mkdir(parents=True)
-    manifest.write_text(json.dumps({"name": "demo", "version": "1.0.0"}), encoding="utf-8")
+    manifest.write_text(
+        json.dumps({"name": "demo", "version": "1.0.0"}), encoding="utf-8"
+    )
 
     def run(host, *args):
         calls.append((host, *args))
@@ -507,18 +509,24 @@ def test_existing_codex_plugin_is_not_added_again(tmp_path, monkeypatch):
 
     monkeypatch.setattr(plugin_bridge, "_run", run)
     desired, owned = set(), set()
-    plugin_bridge._ensure_plugin("codex", "market", "demo", tmp_path / "ownership", desired, owned)
+    plugin_bridge._ensure_plugin(
+        "codex", "market", "demo", tmp_path / "ownership", desired, owned
+    )
 
     assert ("codex", "plugin", "add", "demo@market") not in calls
     assert ("codex", "plugin", "remove", "demo@market") not in calls
     assert owned == {"plugin\tcodex\tmarket\tdemo"}
 
 
-def test_stale_codex_plugin_version_is_reinstalled_from_deployed_manifest(tmp_path, monkeypatch):
+def test_stale_codex_plugin_version_is_reinstalled_from_deployed_manifest(
+    tmp_path, monkeypatch
+):
     source = tmp_path / "marketplace/plugins/demo/codex"
     manifest = source / ".codex-plugin/plugin.json"
     manifest.parent.mkdir(parents=True)
-    manifest.write_text(json.dumps({"name": "demo", "version": "2.0.0"}), encoding="utf-8")
+    manifest.write_text(
+        json.dumps({"name": "demo", "version": "2.0.0"}), encoding="utf-8"
+    )
     installed, installed_version = True, "1.0.0"
     calls = []
 
@@ -547,7 +555,9 @@ def test_stale_codex_plugin_version_is_reinstalled_from_deployed_manifest(tmp_pa
         return ""
 
     monkeypatch.setattr(plugin_bridge, "_run", run)
-    plugin_bridge._ensure_plugin("codex", "market", "demo", tmp_path / "ownership", set(), set())
+    plugin_bridge._ensure_plugin(
+        "codex", "market", "demo", tmp_path / "ownership", set(), set()
+    )
 
     assert installed_version == "2.0.0"
     assert ("codex", "plugin", "remove", "demo@market") in calls
