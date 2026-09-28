@@ -16,9 +16,11 @@
 {{-   end -}}
 {{-   if not $hasEntry -}}
 {{-     $entries = append $entries (dict "path" $targetPath) -}}
+{{-     $config = set $config "entries" $entries -}}
+{{-     $config | toPrettyJson | trimSuffix "\n" -}}
+{{-   else -}}
+{{-     .chezmoi.stdin -}}
 {{-   end -}}
-{{-   $config = set $config "entries" $entries -}}
-{{-   $config | toPrettyJson | trimSuffix "\n" -}}
 {{- else -}}
 {{-   .chezmoi.stdin -}}
 {{- end -}}

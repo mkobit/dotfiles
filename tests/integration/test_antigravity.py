@@ -1,5 +1,6 @@
 import json
 import subprocess
+import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -219,9 +220,45 @@ def test_antigravity_keybindings_deletes_key_via_boolean_false() -> None:
     assert "to.delete" not in rendered
 
 
-def _render_antigravity_plugins(stdin: str, agy_method: str) -> subprocess.CompletedProcess[str]:
+def _render_antigravity_plugins(
+    stdin: str,
+    agy_method: str,
+    destination: Path | None = None,
+) -> subprocess.CompletedProcess[str]:
     template = Path.cwd() / "src/chezmoi/dot_gemini/config/modify_plugins.json"
+    command = [
+        "chezmoi",
+        "--config",
+        "/dev/null",
+        "--config-format",
+        "toml",
+        "--source",
+        str(Path.cwd()),
+    ]
+    if destination is not None:
+        command.extend(["--destination", str(destination)])
+    command.extend(
+        [
+            "execute-template",
+            "-f",
+            "--with-stdin",
+            "--override-data",
+            json.dumps({"local": {"bin": {"agy": {"installation_method": agy_method}}}}),
+            str(template),
+        ]
+    )
     return subprocess.run(
+        command,
+        input=stdin,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+
+
+def _render_antigravity_externals(template_name: str, agy_method: str) -> dict[str, Any]:
+    template = Path.cwd() / "src/chezmoi/.chezmoiexternals" / template_name
+    result = subprocess.run(
         [
             "chezmoi",
             "--config",
@@ -232,25 +269,30 @@ def _render_antigravity_plugins(stdin: str, agy_method: str) -> subprocess.Compl
             str(Path.cwd()),
             "execute-template",
             "-f",
-            "--with-stdin",
             "--override-data",
             json.dumps({"local": {"bin": {"agy": {"installation_method": agy_method}}}}),
             str(template),
         ],
-        input=stdin,
         capture_output=True,
         check=False,
         text=True,
     )
+    assert result.returncode == 0, result.stderr
+    return tomllib.loads(result.stdout)
 
 
 @pytest.mark.integration
-def test_antigravity_plugins_json_renders_entries_when_enabled() -> None:
-    result = _render_antigravity_plugins("{}", "github_releases")
+def test_antigravity_plugins_json_appends_destination_rooted_entry_when_missing(tmp_path: Path) -> None:
+    destination = tmp_path / "target"
+    initial = '{"entries": [{"path": "/custom/path"}], "custom": true}'
+    result = _render_antigravity_plugins(initial, "github_releases", destination)
     assert result.returncode == 0, result.stderr
     rendered = json.loads(result.stdout)
-    entries = rendered.get("entries", [])
-    assert any(".local/share/agent-plugins/marketplace/plugins" in entry.get("path", "") for entry in entries)
+    assert rendered["custom"] is True
+    assert rendered["entries"] == [
+        {"path": "/custom/path"},
+        {"path": str(destination / ".local/share/agent-plugins/marketplace/plugins")},
+    ]
 
 
 @pytest.mark.integration
@@ -259,3 +301,25 @@ def test_antigravity_plugins_json_preserves_stdin_when_disabled() -> None:
     result = _render_antigravity_plugins(initial, "none")
     assert result.returncode == 0, result.stderr
     assert result.stdout == initial
+
+
+@pytest.mark.integration
+def test_antigravity_plugins_json_preserves_matching_entry_byte_for_byte() -> None:
+    target_path = json.loads(_render_antigravity_plugins("{}", "preinstalled").stdout)["entries"][0]["path"]
+    initial = f'{{\n  "entries": [{{"path": {json.dumps(target_path)}}}],\n  "custom": true\n}}\n'
+    result = _render_antigravity_plugins(initial, "preinstalled")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == initial
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("template_name", ["ai-skills.toml.tmpl", "ai-agents.toml.tmpl"])
+def test_antigravity_externals_are_omitted_when_agy_is_disabled(template_name: str) -> None:
+    enabled = _render_antigravity_externals(template_name, "preinstalled")
+    disabled = _render_antigravity_externals(template_name, "none")
+    antigravity_prefix = ".gemini/antigravity-cli/skills/"
+    assert any(path.startswith(antigravity_prefix) for path in enabled)
+    assert not any(path.startswith(antigravity_prefix) for path in disabled)
+    assert {path: entry for path, entry in disabled.items() if not path.startswith(antigravity_prefix)} == {
+        path: entry for path, entry in enabled.items() if not path.startswith(antigravity_prefix)
+    }

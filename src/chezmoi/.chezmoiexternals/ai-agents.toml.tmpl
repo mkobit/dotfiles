@@ -36,6 +36,7 @@
 {{- $python := includeTemplate "python/filter-interpreter" . -}}
 {{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
 {{- $skillTools := dict "antigravity" ".gemini/antigravity-cli/skills" "cursor" ".cursor/skills" -}}
+{{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
 {{- $validStates := list "present" "absent" "claude" "antigravity" "cursor" "opencode" "codex" -}}
 {{- $config := dict -}}
 {{- range $sourceName, $source := $cfg.external -}}
@@ -72,7 +73,7 @@
 {{-         $codexSelects = concat $codexSelects (list "--select" (printf "%s:%s.toml" $path (base $agentPath))) -}}
 {{-       end -}}
 {{-       range $tool, $skillsDir := $skillTools -}}
-{{-         if or (eq $state "present") (eq $state $tool) -}}
+{{-         if and (or (eq $state "present") (eq $state $tool)) (or (ne $tool "antigravity") $antigravityEnabled) -}}
 {{-           $key := printf "%s/%s" $skillsDir (base $agentPath) -}}
 {{-           if hasKey $config $key -}}
 {{-             fail (printf "ai.agents: duplicate external target %q (agent basenames must be unique across sources)" $key) -}}

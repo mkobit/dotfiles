@@ -1,5 +1,6 @@
 import json
 import shutil
+import subprocess
 import tomllib
 from pathlib import Path
 
@@ -28,6 +29,21 @@ CAPABILITY_PLUGIN_DIRS = [
         id="cursor",
     ),
 ]
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+AUTHORED_CLEANUP_SCRIPT = (
+    REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-skills-cleanup.sh.tmpl"
+)
+AUTHORED_SKILLS_EXTERNAL = REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-skills.toml.tmpl"
+FILTER_INTERPRETER_TEMPLATE = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/python/filter-interpreter"
+FILTER_INTERPRETER_RESOLVER = REPOSITORY_ROOT / "src/python/skill_filter/resolve-interpreter.sh"
+AUTHORED_SKILL_ROOTS = {
+    "portable": Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills"),
+    "claude": Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude/skills"),
+    "codex": Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex/skills"),
+    "cursor": Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/cursor/skills"),
+    "antigravity": Path(".gemini/antigravity-cli/skills"),
+}
 
 
 def _entries(directory: Path) -> list[Path]:
@@ -67,6 +83,264 @@ def assert_entries_are_valid_skills(skills_dir: Path, allowed_marker_files: froz
                 f"{child} is not a directory, but {entry} has no SKILL.md so it must be a namespace of skills"
             )
             assert_is_skill(child)
+
+
+def _apply_authored_cleanup(source: Path, destination: Path, config: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [
+            "chezmoi",
+            "--source",
+            str(source),
+            "--destination",
+            str(destination),
+            "--config",
+            str(config),
+            "--refresh-externals=always",
+            "apply",
+        ],
+        capture_output=True,
+        check=False,
+        cwd=destination.parent,
+        text=True,
+    )
+
+
+def _initialize_authored_cleanup_source(source: Path, *, include_external: bool = False) -> None:
+    source_files = [
+        (AUTHORED_CLEANUP_SCRIPT, Path(".chezmoiscripts") / AUTHORED_CLEANUP_SCRIPT.name),
+        (FILTER_INTERPRETER_TEMPLATE, Path(".chezmoitemplates/python/filter-interpreter")),
+        (FILTER_INTERPRETER_RESOLVER, Path("src/python/skill_filter/resolve-interpreter.sh")),
+    ]
+    if include_external:
+        source_files.append((AUTHORED_SKILLS_EXTERNAL, Path(".chezmoiexternals") / AUTHORED_SKILLS_EXTERNAL.name))
+    for source_file, relative_target in source_files:
+        assert source_file.is_file(), f"missing cleanup fixture dependency: {source_file}"
+        target = source / relative_target
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_file, target)
+    subprocess.run(["git", "init", "--quiet", str(source)], check=True)
+
+
+@pytest.mark.parametrize(
+    ("state", "antigravity_enabled", "expected_roots"),
+    [
+        ("present", True, frozenset(AUTHORED_SKILL_ROOTS)),
+        ("claude", True, frozenset({"claude"})),
+        ("antigravity", True, frozenset({"antigravity"})),
+        ("present", False, frozenset({"portable", "claude", "codex", "cursor"})),
+        ("antigravity", False, frozenset()),
+    ],
+)
+def test_authored_skill_cleanup_prunes_renamed_nested_file_only_from_selected_roots(
+    tmp_path, state, antigravity_enabled, expected_roots
+):
+    """A selected authored skill's old nested path is removed on the next apply."""
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    _initialize_authored_cleanup_source(source, include_external=True)
+
+    skill_source = source / "overlay-skills" / "fixture"
+    (skill_source / "references").mkdir(parents=True)
+    (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
+    stale_source = skill_source / "references" / "old-name.md"
+    stale_source.write_text("old\n", encoding="utf-8")
+
+    config = tmp_path / "chezmoi.toml"
+    config.write_text(
+        "\n".join(
+            [
+                "[data.ai.skills]",
+                'overlay_authored_source = "overlay-skills"',
+                "",
+                "[data.ai.skills.authored]",
+                f'fixture = "{state}"',
+                "",
+                "[data.local.bin.agy]",
+                f'installation_method = "{"system" if antigravity_enabled else "none"}"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    for root_name, root in AUTHORED_SKILL_ROOTS.items():
+        if root_name not in expected_roots:
+            skill_target = destination / root / "fixture"
+            (skill_target / "references").mkdir(parents=True)
+            (skill_target / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
+            (skill_target / "references" / "old-name.md").write_text("old\n", encoding="utf-8")
+        unrelated = destination / root / "external-skill"
+        unrelated.mkdir(parents=True)
+        (unrelated / "SKILL.md").write_text("# External\n", encoding="utf-8")
+
+    first_apply = _apply_authored_cleanup(source, destination, config)
+    assert first_apply.returncode == 0, first_apply.stderr
+    for root in AUTHORED_SKILL_ROOTS.values():
+        assert (destination / root / "fixture/SKILL.md").is_file()
+        assert (destination / root / "fixture/references/old-name.md").is_file()
+
+    stale_source.rename(skill_source / "references" / "new-name.md")
+
+    second_apply = _apply_authored_cleanup(source, destination, config)
+    assert second_apply.returncode == 0, second_apply.stderr
+    for root_name, root in AUTHORED_SKILL_ROOTS.items():
+        stale_target = destination / root / "fixture/references/old-name.md"
+        assert stale_target.exists() is (root_name not in expected_roots)
+        assert (destination / root / "fixture/references/new-name.md").exists() is (root_name in expected_roots)
+        assert (destination / root / "fixture/SKILL.md").is_file()
+        assert (destination / root / "external-skill/SKILL.md").is_file()
+
+
+def test_authored_skill_cleanup_rejects_shell_metacharacters_without_executing_them(tmp_path):
+    """An invalid catalog key cannot become shell syntax in the rendered cleanup hook."""
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    _initialize_authored_cleanup_source(source)
+
+    malicious_name = "$(touch${IFS}injected)"
+    config = tmp_path / "chezmoi.toml"
+    config.write_text(
+        "\n".join(
+            [
+                "[data.ai.skills.authored]",
+                f'{json.dumps(malicious_name)} = "claude"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = _apply_authored_cleanup(source, destination, config)
+
+    assert result.returncode != 0
+    assert "invalid authored skill name" in result.stderr
+    assert not (tmp_path / "injected").exists()
+
+
+@pytest.mark.parametrize("symlink_level", ["managed-root", "skill-root"])
+def test_authored_skill_cleanup_rejects_symlink_escape_without_deleting_outside(tmp_path, symlink_level):
+    """Cleanup refuses a symlinked managed root or skill root before traversal."""
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    _initialize_authored_cleanup_source(source)
+
+    skill_source = source / "overlay-skills" / "fixture"
+    skill_source.mkdir(parents=True)
+    (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
+    config = tmp_path / "chezmoi.toml"
+    config.write_text(
+        "\n".join(
+            [
+                "[data.ai.skills]",
+                'overlay_authored_source = "overlay-skills"',
+                "",
+                "[data.ai.skills.authored]",
+                'fixture = "claude"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    managed_root = destination / AUTHORED_SKILL_ROOTS["claude"]
+    outside_skill = tmp_path / "outside" / "fixture"
+    (outside_skill / "references").mkdir(parents=True)
+    sentinel = outside_skill / "references" / "old-name.md"
+    sentinel.write_text("keep\n", encoding="utf-8")
+    if symlink_level == "managed-root":
+        managed_root.parent.mkdir(parents=True)
+        managed_root.symlink_to(outside_skill.parent, target_is_directory=True)
+    else:
+        managed_root.mkdir(parents=True)
+        (managed_root / "fixture").symlink_to(outside_skill, target_is_directory=True)
+
+    result = _apply_authored_cleanup(source, destination, config)
+
+    assert result.returncode != 0
+    assert "symlink" in result.stderr
+    assert sentinel.read_text(encoding="utf-8") == "keep\n"
+
+
+def test_authored_skill_cleanup_handles_newline_descendant_without_escaping_root(tmp_path):
+    """A newline-bearing descendant cannot become an outside deletion target."""
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    _initialize_authored_cleanup_source(source)
+
+    skill_source = source / "overlay-skills" / "fixture"
+    skill_source.mkdir(parents=True)
+    (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
+    config = tmp_path / "chezmoi.toml"
+    config.write_text(
+        "\n".join(
+            [
+                "[data.ai.skills]",
+                'overlay_authored_source = "overlay-skills"',
+                "",
+                "[data.ai.skills.authored]",
+                'fixture = "claude"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    skill_target = destination / AUTHORED_SKILL_ROOTS["claude"] / "fixture"
+    skill_target.mkdir(parents=True)
+    (skill_target / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
+    sentinel = tmp_path / "outside" / "sentinel"
+    sentinel.parent.mkdir()
+    sentinel.write_text("keep\n", encoding="utf-8")
+    mirrored_sentinel = skill_target / "payload\n" / Path(*sentinel.parts[1:])
+    mirrored_sentinel.parent.mkdir(parents=True)
+    mirrored_sentinel.write_text("stale\n", encoding="utf-8")
+
+    result = _apply_authored_cleanup(source, destination, config)
+
+    assert result.returncode == 0, result.stderr
+    assert sentinel.read_text(encoding="utf-8") == "keep\n"
+    assert not mirrored_sentinel.exists()
+
+
+def test_authored_skill_cleanup_propagates_descendant_symlink_refusal(tmp_path):
+    """A descendant symlink aborts traversal without touching its outside target."""
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    _initialize_authored_cleanup_source(source)
+
+    skill_source = source / "overlay-skills" / "fixture"
+    skill_source.mkdir(parents=True)
+    (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
+    skill_target = destination / AUTHORED_SKILL_ROOTS["claude"] / "fixture"
+    skill_target.mkdir(parents=True)
+    (skill_target / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
+    sentinel = tmp_path / "outside" / "sentinel"
+    sentinel.parent.mkdir()
+    sentinel.write_text("keep\n", encoding="utf-8")
+    escape = skill_target / "escape"
+    escape.symlink_to(sentinel.parent, target_is_directory=True)
+    config = tmp_path / "chezmoi.toml"
+    config.write_text(
+        "\n".join(
+            [
+                "[data.ai.skills]",
+                'overlay_authored_source = "overlay-skills"',
+                "",
+                "[data.ai.skills.authored]",
+                'fixture = "claude"',
+                "",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    result = _apply_authored_cleanup(source, destination, config)
+
+    assert result.returncode != 0
+    assert "symlink descendant" in result.stderr
+    assert escape.is_symlink()
+    assert sentinel.read_text(encoding="utf-8") == "keep\n"
 
 
 @pytest.mark.integration

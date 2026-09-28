@@ -1,0 +1,182 @@
+{{- $authored := dig "authored" (dict) .ai.skills -}}
+{{- range $skillName, $_ := $authored -}}
+{{-   if or (not (regexMatch "^[A-Za-z0-9._-]+$" $skillName)) (eq $skillName ".") (eq $skillName "..") -}}
+{{-     fail (printf "invalid authored skill name %q: use only letters, digits, dot, underscore, and hyphen" $skillName) -}}
+{{-   end -}}
+{{- end -}}
+{{- $inputs := dict "skills" .ai.skills -}}
+{{- $root := joinPath .chezmoi.workingTree "src/ai/skills" -}}
+{{- range $path := glob (joinPath $root "**/*") | sortAlpha -}}
+{{-   if eq (lstat $path).type "file" -}}
+{{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
+{{-   end -}}
+{{- end -}}
+{{- $overlaySource := dig "overlay_authored_source" "" .ai.skills -}}
+{{- if and $overlaySource (not (hasPrefix "/" $overlaySource)) -}}
+{{-   $overlaySource = joinPath .chezmoi.workingTree $overlaySource -}}
+{{- end -}}
+{{- if $overlaySource -}}
+{{-   range $path := glob (joinPath $overlaySource "**/*") | sortAlpha -}}
+{{-     if eq (lstat $path).type "file" -}}
+{{-       $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
+{{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}
+{{- $portable := printf "%s/skills" $bundle -}}
+{{- $antigravity := ".gemini/antigravity-cli/skills" -}}
+{{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
+{{- $python := includeTemplate "python/filter-interpreter" . -}}
+#!/bin/sh
+set -eu
+set -f
+
+# This rendered value makes run_onchange track catalog, selection, and source changes.
+# package-input-fingerprint: {{ sha256sum (toJson $inputs) }}
+
+destination={{ .chezmoi.destDir | shellQuote }}
+bundle={{ joinPath .chezmoi.destDir $bundle | shellQuote }}
+python={{ $python | shellQuote }}
+
+fail_cleanup() {
+    printf '%s\n' "agent-plugin-authored-skills-cleanup: $1" >&2
+    exit 1
+}
+
+clean_skill() {
+    skill_root=$1
+    shift
+
+    case "$skill_root" in
+        "$bundle"/skills/*)
+            root="$bundle/skills"
+            ;;
+        "$bundle"/claude/skills/*)
+            root="$bundle/claude/skills"
+            ;;
+        "$bundle"/codex/skills/*)
+            root="$bundle/codex/skills"
+            ;;
+        "$bundle"/cursor/skills/*)
+            root="$bundle/cursor/skills"
+            ;;
+        "$destination"/.gemini/antigravity-cli/skills/*)
+            root="$destination/.gemini/antigravity-cli/skills"
+            ;;
+        *)
+            fail_cleanup "refusing unsafe path: $skill_root"
+            ;;
+    esac
+
+    skill_name=${skill_root#"$root"/}
+    case "$skill_name" in
+        ''|.|..|*/*)
+            fail_cleanup "refusing unsafe skill path: $skill_root"
+            ;;
+    esac
+
+    "$python" - "$destination" "$root" "$skill_root" "$@" <<'PY'
+import errno
+import os
+import sys
+from pathlib import Path
+
+
+class CleanupError(Exception):
+    pass
+
+
+def require_contained(path, parent, description):
+    try:
+        return path.relative_to(parent)
+    except ValueError as error:
+        raise CleanupError("{} resolves outside {}: {}".format(description, parent, path)) from error
+
+
+def reject_symlink_components(destination, skill_root):
+    relative = require_contained(skill_root, destination, "skill root")
+    candidate = destination
+    if candidate.is_symlink():
+        raise CleanupError("refusing symlinked destination: {}".format(candidate))
+    for component in relative.parts:
+        candidate /= component
+        if candidate.is_symlink():
+            raise CleanupError("refusing symlinked managed root or skill root: {}".format(candidate))
+
+
+def clean_directory(directory, skill_root, physical_skill_root, expected_paths):
+    require_contained(directory.resolve(strict=True), physical_skill_root, "directory")
+    with os.scandir(str(directory)) as iterator:
+        entries = list(iterator)
+
+    for entry in entries:
+        candidate = Path(entry.path)
+        relative = require_contained(candidate, skill_root, "candidate")
+        require_contained(candidate.parent.resolve(strict=True), physical_skill_root, "candidate parent")
+        if entry.is_symlink():
+            raise CleanupError("refusing symlink descendant: {}".format(candidate))
+        require_contained(candidate.resolve(strict=True), physical_skill_root, "candidate")
+
+        if entry.is_dir(follow_symlinks=False):
+            clean_directory(candidate, skill_root, physical_skill_root, expected_paths)
+            try:
+                candidate.rmdir()
+            except OSError as error:
+                if error.errno not in (errno.EEXIST, errno.ENOTEMPTY):
+                    raise
+        elif relative.as_posix() not in expected_paths:
+            candidate.unlink()
+
+
+def main(arguments):
+    destination = Path(arguments[0])
+    managed_root = Path(arguments[1])
+    skill_root = Path(arguments[2])
+    expected_paths = set(arguments[3:])
+
+    require_contained(managed_root, destination, "managed root")
+    skill_name = require_contained(skill_root, managed_root, "skill root")
+    if len(skill_name.parts) != 1:
+        raise CleanupError("skill root must be a direct child of managed root: {}".format(skill_root))
+    reject_symlink_components(destination, skill_root)
+    if not skill_root.exists():
+        return
+    if not skill_root.is_dir():
+        raise CleanupError("skill root is not a directory: {}".format(skill_root))
+
+    physical_destination = destination.resolve(strict=True)
+    physical_managed_root = managed_root.resolve(strict=True)
+    physical_skill_root = skill_root.resolve(strict=True)
+    require_contained(physical_managed_root, physical_destination, "managed root")
+    require_contained(physical_skill_root, physical_managed_root, "skill root")
+    clean_directory(skill_root, skill_root, physical_skill_root, expected_paths)
+
+
+try:
+    main(sys.argv[1:])
+except (CleanupError, OSError) as error:
+    print("agent-plugin-authored-skills-cleanup: {}".format(error), file=sys.stderr)
+    raise SystemExit(1)
+PY
+}
+
+{{- range $skillName, $state := $authored -}}
+{{-   $skillDir := joinPath $root $skillName -}}
+{{-   if and $overlaySource (stat (joinPath $overlaySource $skillName)) -}}
+{{-     $skillDir = joinPath $overlaySource $skillName -}}
+{{-   end -}}
+{{-   if eq $state "present" }}
+clean_skill {{ joinPath $.chezmoi.destDir $portable $skillName | shellQuote }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}
+{{-     range $_, $skillsDir := $tools }}
+clean_skill {{ joinPath $.chezmoi.destDir $skillsDir $skillName | shellQuote }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}
+{{-     end }}
+{{-     if $antigravityEnabled }}
+clean_skill {{ joinPath $.chezmoi.destDir $antigravity $skillName | shellQuote }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}
+{{-     end }}
+{{-   else if hasKey $tools $state }}
+clean_skill {{ joinPath $.chezmoi.destDir (index $tools $state) $skillName | shellQuote }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}
+{{-   else if and (eq $state "antigravity") $antigravityEnabled }}
+clean_skill {{ joinPath $.chezmoi.destDir $antigravity $skillName | shellQuote }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}
+{{-   end }}
+{{- end }}

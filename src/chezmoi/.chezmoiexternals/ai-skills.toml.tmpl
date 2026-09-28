@@ -95,13 +95,15 @@
 -}}
 {{-       if eq $state "present" -}}
 {{-         $_ := set $config (printf "%s/%s" $portable $skillName) $entry -}}
-{{-         $_ := set $config (printf "%s/%s" $antigravity $skillName) $entry -}}
+{{-         if $antigravityEnabled -}}
+{{-           $_ := set $config (printf "%s/%s" $antigravity $skillName) $entry -}}
+{{-         end -}}
 {{-         range $_, $skillsDir := $tools -}}
 {{-           $_ := set $config (printf "%s/%s" $skillsDir $skillName) $entry -}}
 {{-         end -}}
 {{-       else if hasKey $tools $state -}}
 {{-         $_ := set $config (printf "%s/%s" (index $tools $state) $skillName) $entry -}}
-{{-       else if eq $state "antigravity" -}}
+{{-       else if and (eq $state "antigravity") $antigravityEnabled -}}
 {{-         $_ := set $config (printf "%s/%s" $antigravity $skillName) $entry -}}
 {{-       end -}}
 {{-     else if ne $state "absent" -}}
