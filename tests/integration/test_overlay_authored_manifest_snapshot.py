@@ -6,8 +6,7 @@ import subprocess
 from pathlib import Path
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
-OVERLAY_ROOT = REPOSITORY_ROOT.parent.parent
-OVERLAY_TEMPLATE_ROOT = OVERLAY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
+AUTHORED_TEMPLATE_ROOT = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
 
 
 def _apply(source: Path, destination: Path, config: Path) -> subprocess.CompletedProcess[str]:
@@ -39,7 +38,7 @@ def test_manifest_version_uses_assembled_authored_plugin_snapshot(tmp_path):
     templates = source / ".chezmoitemplates/ai"
     templates.mkdir(parents=True)
     for template_name in ("authored-plugins", "authored-plugin-manifest"):
-        shutil.copy2(OVERLAY_TEMPLATE_ROOT / template_name, templates / template_name)
+        shutil.copy2(AUTHORED_TEMPLATE_ROOT / template_name, templates / template_name)
 
     wrapper = source / "dot_local/share/plugin.json.tmpl"
     wrapper.parent.mkdir(parents=True)

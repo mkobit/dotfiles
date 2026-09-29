@@ -15,7 +15,7 @@ CAPABILITIES_CLEANUP = (
 )
 FILTER_INTERPRETER_TEMPLATE = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/python/filter-interpreter"
 FILTER_INTERPRETER_RESOLVER = REPOSITORY_ROOT / "src/python/skill_filter/resolve-interpreter.sh"
-OVERLAY_TEMPLATE_ROOT = REPOSITORY_ROOT.parent.parent / "src/chezmoi/.chezmoitemplates/ai"
+AUTHORED_TEMPLATE_ROOT = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
 
 
 def _add_plugin_wrappers(source: Path) -> None:
@@ -309,7 +309,7 @@ def test_authored_plugin_manifest_supports_direct_skill_root_and_default_skill_l
     template_root = source / ".chezmoitemplates/ai"
     template_root.mkdir(parents=True)
     for template_name in ("authored-plugin-manifest", "authored-plugins"):
-        shutil.copy2(OVERLAY_TEMPLATE_ROOT / template_name, template_root / template_name)
+        shutil.copy2(AUTHORED_TEMPLATE_ROOT / template_name, template_root / template_name)
     (source / "dot_local/share/stripe-plugin.json.tmpl").parent.mkdir(parents=True)
     (source / "dot_local/share/stripe-plugin.json.tmpl").write_text(
         '{{ includeTemplate "ai/authored-plugin-manifest" (dict "root" . "name" "stripe-dotfiles") }}\n',
