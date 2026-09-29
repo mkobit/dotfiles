@@ -5,6 +5,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from chezmoi_test_data import installation_method
 
 # Antigravity remains a direct skill consumer.
 DIRECT_SKILL_DIRS = [
@@ -500,8 +501,11 @@ def test_authored_skill_cleanup_propagates_descendant_symlink_refusal(tmp_path):
 
 @pytest.mark.integration
 @pytest.mark.parametrize(("relative_dir", "allowed_marker_files"), DIRECT_SKILL_DIRS)
-def test_direct_skill_dir_deployed_and_valid(chezmoi_dest, relative_dir, allowed_marker_files):
+def test_direct_skill_dir_deployed_and_valid(chezmoi_data, chezmoi_dest, relative_dir, allowed_marker_files):
     """Verify each direct skill consumer receives a non-empty valid skill tree."""
+    if installation_method(chezmoi_data, "local.bin.agy") in {"none", "uninstall"}:
+        pytest.skip("Antigravity CLI is disabled")
+
     skills_dir = chezmoi_dest / relative_dir
     assert skills_dir.is_dir(), f"{skills_dir} does not exist after chezmoi apply"
     assert any(skills_dir.iterdir()), f"{skills_dir} contains no skills"
