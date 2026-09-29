@@ -138,7 +138,9 @@ def _plugin_present(host: str, marketplace: str, plugin: str) -> bool:
     return False
 
 
-def _claude_plugin_state(marketplace: str, plugin: str) -> tuple[bool, bool]:
+def _claude_plugin_state(
+    marketplace: str, plugin: str
+) -> tuple[bool, bool, str | None]:
     expected = f"{plugin}@{marketplace}"
     records = json.loads(_run("claude", "plugin", "list", "--json"))
     if isinstance(records, Mapping):
@@ -147,8 +149,43 @@ def _claude_plugin_state(marketplace: str, plugin: str) -> tuple[bool, bool]:
         raise TypeError("plugin host returned invalid JSON")
     for item in records:
         if isinstance(item, Mapping) and item.get("id") == expected:
-            return True, item.get("enabled") is True
-    return False, False
+            version = item.get("version")
+            return (
+                True,
+                item.get("enabled") is True,
+                version if isinstance(version, str) else None,
+            )
+    return False, False, None
+
+
+def _claude_manifest_version(manifest_root: Path | None, plugin: str) -> str | None:
+    if manifest_root is None:
+        return None
+    try:
+        catalog = json.loads(
+            (manifest_root / ".claude-plugin/marketplace.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        entry = next(
+            (
+                item
+                for item in catalog["plugins"]
+                if isinstance(item, Mapping) and item.get("name") == plugin
+            ),
+            {},
+        )
+        manifest = json.loads(
+            (manifest_root / entry["source"] / ".claude-plugin/plugin.json").read_text(
+                encoding="utf-8"
+            )
+        )
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    if not isinstance(manifest, Mapping) or manifest.get("name") != plugin:
+        return None
+    version = manifest.get("version")
+    return version if isinstance(version, str) and version else None
 
 
 def _codex_plugin_state(
@@ -365,28 +402,32 @@ def _ensure_plugin(
     ownership_file: Path,
     desired: set[str],
     owned_desired: set[str],
+    manifest_root: Path | None = None,
 ) -> None:
     record = _identity("plugin", host, marketplace, plugin)
     desired.add(record)
     expected = f"{plugin}@{marketplace}"
     if host == "claude":
-        present, enabled = _claude_plugin_state(marketplace, plugin)
-        if present:
-            _run(host, "plugin", "update", expected)
-        else:
-            _run(host, "plugin", "install", expected)
-        _, enabled = _claude_plugin_state(marketplace, plugin)
-        if not enabled:
-            try:
-                _run(host, "plugin", "enable", expected)
-            except BridgeError as error:
-                if "already enabled" not in str(error).lower():
-                    raise
-        present, enabled = _claude_plugin_state(marketplace, plugin)
-        if not present or not enabled:
-            raise BridgeError(
-                f"plugin did not become available and enabled: {expected}"
-            )
+        present, enabled, installed_version = _claude_plugin_state(marketplace, plugin)
+        deployed_version = _claude_manifest_version(manifest_root, plugin)
+        current = deployed_version is not None and installed_version == deployed_version
+        if not (present and enabled and current):
+            if not present:
+                _run(host, "plugin", "install", expected)
+            elif not current:
+                _run(host, "plugin", "update", expected)
+            _, enabled, _ = _claude_plugin_state(marketplace, plugin)
+            if not enabled:
+                try:
+                    _run(host, "plugin", "enable", expected)
+                except BridgeError as error:
+                    if "already enabled" not in str(error).lower():
+                        raise
+            present, enabled, _ = _claude_plugin_state(marketplace, plugin)
+            if not present or not enabled:
+                raise BridgeError(
+                    f"plugin did not become available and enabled: {expected}"
+                )
     elif host == "codex":
         installed, enabled, installed_version, source_path = _codex_plugin_state(
             marketplace, plugin
@@ -513,9 +554,13 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
         legacy.unlink()
     unavailable_hosts: set[str] = set()
     previous, desired, owned_desired = _read_ownership(ownership_file), set(), set()
-    for _, name, host, source_type, locator in _marketplace_rows(
-        destination, marketplaces
-    ):
+    marketplace_rows = _marketplace_rows(destination, marketplaces)
+    manifest_roots = {
+        (name, host): Path(locator)
+        for _, name, host, source_type, locator in marketplace_rows
+        if source_type == "generated"
+    }
+    for _, name, host, source_type, locator in marketplace_rows:
         if host in unavailable_hosts:
             continue
         try:
@@ -534,7 +579,13 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
                 continue
             try:
                 _ensure_plugin(
-                    host, marketplace, name, ownership_file, desired, owned_desired
+                    host,
+                    marketplace,
+                    name,
+                    ownership_file,
+                    desired,
+                    owned_desired,
+                    manifest_root=manifest_roots.get((marketplace, host)),
                 )
             except HostUnavailableError:
                 unavailable_hosts.add(host)
