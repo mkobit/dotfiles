@@ -1,0 +1,30 @@
+{{- /*
+  Prunes absent or deselected skills from mkobit-dotfiles capability packages.
+*/ -}}
+{{- $removals := dict -}}
+{{- $record := dict -}}
+{{- range $skillName, $state := dig "authored" (dict) (dig "skills" (dict) .ai) -}}
+{{-   $_ := set $record $skillName $state -}}
+{{- end -}}
+{{- range $sourceName, $source := dig "external" (dict) (dig "skills" (dict) .ai) -}}
+{{-   range $skillName, $state := dig "skills" (dict) $source -}}
+{{-     $_ := set $record $skillName $state -}}
+{{-   end -}}
+{{- end -}}
+{{- range $skillName, $state := $record -}}
+{{-   if ne $state "present" -}}
+{{-     $_ := set $removals (printf "skills/%s" $skillName) true -}}
+{{-   end -}}
+{{-   if and (ne $state "present") (ne $state "claude") -}}
+{{-     $_ := set $removals (printf "claude/skills/%s" $skillName) true -}}
+{{-   end -}}
+{{-   if and (ne $state "present") (ne $state "codex") -}}
+{{-     $_ := set $removals (printf "codex/skills/%s" $skillName) true -}}
+{{-   end -}}
+{{-   if and (ne $state "present") (ne $state "cursor") -}}
+{{-     $_ := set $removals (printf "cursor/skills/%s" $skillName) true -}}
+{{-   end -}}
+{{- end -}}
+{{- range $path := keys $removals | sortAlpha }}
+{{ $path }}
+{{- end }}

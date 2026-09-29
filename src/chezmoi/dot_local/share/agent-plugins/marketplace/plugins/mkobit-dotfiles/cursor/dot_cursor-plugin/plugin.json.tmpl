@@ -1,5 +1,5 @@
 {{- $inputs := dict "external" .ai.skills.external "authored" (dig "authored" (dict) .ai.skills) -}}
-{{- range $path := glob (joinPath .chezmoi.workingTree "src/ai/skills/**/*") | sortAlpha -}}
+{{- range $path := glob (joinPath .chezmoi.sourceDir ".." "ai/skills/**/*") | sortAlpha -}}
 {{-   if eq (lstat $path).type "file" -}}
 {{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
 {{-   end -}}

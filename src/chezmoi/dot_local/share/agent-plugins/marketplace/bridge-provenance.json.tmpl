@@ -3,7 +3,7 @@
 {{- range $capabilityName := keys .ai.plugin_bridge.capabilities | sortAlpha -}}
 {{-   $capability := index $.ai.plugin_bridge.capabilities $capabilityName -}}
 {{-   $upstreamSources := list -}}
-{{-   if eq $capabilityName "mkobit-dotfiles" -}}
+{{-   if dig "acquisition_destination" false $capability -}}
 {{-     range $sourceName := keys (dig "external" (dict) $.ai.skills) | sortAlpha -}}
 {{-       $source := index $.ai.skills.external $sourceName -}}
 {{-       $url := dig "url" "" $source -}}

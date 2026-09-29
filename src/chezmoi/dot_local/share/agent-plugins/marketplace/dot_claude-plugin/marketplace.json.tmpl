@@ -1,6 +1,14 @@
 {{- $marketplace := .ai.plugin_bridge.marketplace -}}
+{{- $bridge := .ai.plugin_bridge -}}
+{{- $environment := dig "environment" "default" $bridge -}}
 {{- $plugins := list -}}
-{{- range $name, $capability := .ai.plugin_bridge.capabilities -}}
-{{-   $plugins = append $plugins (dict "name" $name "source" (printf "./plugins/%s/claude" $name)) -}}
+{{- range $name, $capability := $bridge.capabilities -}}
+{{-   $capabilityMarketplace := dig "marketplace" "" $capability -}}
+{{-   $marketplaceDefinition := dig $capabilityMarketplace (dict) $bridge.marketplaces -}}
+{{-   $hosts := dig "hosts" (dig "hosts" (list) $marketplaceDefinition) $capability -}}
+{{-   $environments := dig "environments" nil $capability -}}
+{{-   if and (eq $capabilityMarketplace $marketplace.name) (has "claude" $hosts) (or (eq $environments nil) (has $environment $environments)) -}}
+{{-     $plugins = append $plugins (dict "name" $name "source" (printf "./plugins/%s/claude" $name)) -}}
+{{-   end -}}
 {{- end -}}
 {{- dict "name" $marketplace.name "owner" (dict "name" $marketplace.owner) "plugins" $plugins | toPrettyJson -}}

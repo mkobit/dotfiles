@@ -1,4 +1,4 @@
-{{- $inputs := dict "external" .ai.skills.external "authored" (dig "authored" (dict) .ai.skills) -}}
+{{- $inputs := dict "external" (dig "external" (dict) .ai.skills) "authored" (dig "authored" (dict) .ai.skills) -}}
 {{- range $path := glob (joinPath .chezmoi.sourceDir ".." "ai/skills/**/*") | sortAlpha -}}
 {{-   if eq (lstat $path).type "file" -}}
 {{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}

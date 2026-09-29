@@ -1,0 +1,5 @@
+{{- $plugins := includeTemplate "ai/authored-plugins" .root | fromJson -}}
+{{- $plugin := index $plugins .name -}}
+{{- if not $plugin -}}{{- fail (printf "missing authored plugin declaration: %s" .name) -}}{{- end -}}
+{{- $version := printf "1.0.0+%s" (trunc 12 (sha256sum (toJson $plugin.inputs))) -}}
+{{- dict "name" .name "version" $version "description" $plugin.inputs.definition.description "skills" "./skills" | toPrettyJson -}}

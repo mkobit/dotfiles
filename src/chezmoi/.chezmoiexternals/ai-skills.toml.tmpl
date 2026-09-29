@@ -17,26 +17,37 @@
 {{- $cfg := .ai.skills -}}
 {{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
 {{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}
+{{- $cursorLocal := ".cursor/plugins/local/mkobit-dotfiles/skills" -}}
 {{- $portable := printf "%s/skills" $bundle -}}
 {{- $antigravity := ".gemini/antigravity-cli/skills" -}}
 {{- $python := includeTemplate "python/filter-interpreter" . -}}
-{{- $script := joinPath .chezmoi.workingTree "src/python/skill_filter/skill_filter/main.py" -}}
+{{- $script := joinPath .chezmoi.sourceDir ".." "python/skill_filter/skill_filter/main.py" -}}
 {{- $config := dict -}}
 {{- $selectedSkills := dict -}}
 {{- $authoredPackagePaths := dict -}}
+{{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
 {{- range $skillName, $state := dig "authored" (dict) $cfg -}}
 {{-   if eq $state "present" -}}
 {{-     $_ := set $authoredPackagePaths (printf "%s/%s" $portable $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     if $antigravityEnabled -}}
+{{-       $_ := set $authoredPackagePaths (printf "%s/%s" $antigravity $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     end -}}
 {{-     range $_, $skillsDir := $tools -}}
 {{-       $_ := set $authoredPackagePaths (printf "%s/%s" $skillsDir $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
 {{-     end -}}
+{{-     $_ := set $authoredPackagePaths (printf "%s/%s" $cursorLocal $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
 {{-   else if hasKey $tools $state -}}
 {{-     $_ := set $authoredPackagePaths (printf "%s/%s" (index $tools $state) $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     if eq $state "cursor" -}}
+{{-       $_ := set $authoredPackagePaths (printf "%s/%s" $cursorLocal $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{-     end -}}
+{{-   else if and (eq $state "antigravity") $antigravityEnabled -}}
+{{-     $_ := set $authoredPackagePaths (printf "%s/%s" $antigravity $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
 {{-   end -}}
 {{- end -}}
 {{- range $sourceName, $source := $cfg.external -}}
 {{-   range $skillName, $state := dig "skills" (dict) $source -}}
-{{-     if or (eq $state "present") (hasKey $tools $state) -}}
+{{-     if or (eq $state "present") (hasKey $tools $state) (eq $state "antigravity") -}}
 {{-       if hasKey $selectedSkills $skillName -}}
 {{-         fail (printf "duplicate capability skill %q from ai.skills.external.%s and ai.skills.external.%s" $skillName (index $selectedSkills $skillName) $sourceName) -}}
 {{-       end -}}
@@ -44,11 +55,20 @@
 {{-       $externalPackagePaths := list -}}
 {{-       if eq $state "present" -}}
 {{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $portable $skillName) -}}
+{{-         if $antigravityEnabled -}}
+{{-           $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $antigravity $skillName) -}}
+{{-         end -}}
 {{-         range $_, $skillsDir := $tools -}}
 {{-           $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $skillsDir $skillName) -}}
 {{-         end -}}
-{{-       else -}}
+{{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $cursorLocal $skillName) -}}
+{{-       else if hasKey $tools $state -}}
 {{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" (index $tools $state) $skillName) -}}
+{{-         if eq $state "cursor" -}}
+{{-           $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $cursorLocal $skillName) -}}
+{{-         end -}}
+{{-       else if and (eq $state "antigravity") $antigravityEnabled -}}
+{{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $antigravity $skillName) -}}
 {{-       end -}}
 {{-       range $path := $externalPackagePaths -}}
 {{-         if hasKey $authoredPackagePaths $path -}}
@@ -84,15 +104,23 @@
 -}}
 {{-       if eq $state "present" -}}
 {{-         $_ := set $config (printf "%s/%s" $portable $skillName) $entry -}}
-{{-         $_ := set $config (printf "%s/%s" $antigravity $skillName) $entry -}}
-{{-       end -}}
-{{-       range $toolName, $skillsDir := $tools -}}
-{{-         if or (eq $state "present") (eq $state $toolName) -}}
+{{-         if $antigravityEnabled -}}
+{{-           $_ := set $config (printf "%s/%s" $antigravity $skillName) $entry -}}
+{{-         end -}}
+{{-         range $_, $skillsDir := $tools -}}
 {{-           $_ := set $config (printf "%s/%s" $skillsDir $skillName) $entry -}}
 {{-         end -}}
+{{-         $_ := set $config (printf "%s/%s" $cursorLocal $skillName) $entry -}}
+{{-       else if hasKey $tools $state -}}
+{{-         $_ := set $config (printf "%s/%s" (index $tools $state) $skillName) $entry -}}
+{{-         if eq $state "cursor" -}}
+{{-           $_ := set $config (printf "%s/%s" $cursorLocal $skillName) $entry -}}
+{{-         end -}}
+{{-       else if and (eq $state "antigravity") $antigravityEnabled -}}
+{{-         $_ := set $config (printf "%s/%s" $antigravity $skillName) $entry -}}
 {{-       end -}}
 {{-     else if ne $state "absent" -}}
-{{-       fail (printf "ai.skills.external.%s.skills.%s: state must be \"present\", \"absent\", or a tool name (%s), got %q" $sourceName $skillName (keys $tools | sortAlpha | join ", ") $state) -}}
+{{-       fail (printf "ai.skills.external.%s.skills.%s: state must be \"present\", \"absent\", or a tool name (%s), got %q" $sourceName $skillName (concat (keys $tools) (list "antigravity") | sortAlpha | join ", ") $state) -}}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}

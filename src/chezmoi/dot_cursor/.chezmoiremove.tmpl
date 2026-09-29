@@ -1,0 +1,32 @@
+{{- /*
+  Emits tombstones for direct Cursor skill roots. A selected capability-bundle
+  skill has a native tombstone so chezmoi status and diff show its cutover from
+  ~/.cursor/skills/<name> to the plugin package. Agent cleanup and the
+  state-manifest hook continue to handle their existing lifecycle cases.
+*/ -}}
+{{- $hasBridge := false -}}
+{{- range $capability := dig "capabilities" (dict) (dig "plugin_bridge" (dict) .ai) -}}
+{{-   if has "cursor" (dig "hosts" (list) $capability) -}}
+{{-     $hasBridge = true -}}
+{{-   end -}}
+{{- end -}}
+{{- range $sourceName, $source := dig "external" (dict) (dig "skills" (dict) .ai) -}}
+{{-   range $skillName, $state := dig "skills" (dict) $source -}}
+{{-     if or $hasBridge (not (or (eq $state "present") (eq $state "cursor"))) }}
+skills/{{ $skillName }}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- range $skillName, $state := dig "authored" (dict) (dig "skills" (dict) .ai) -}}
+{{-   if or $hasBridge (not (or (eq $state "present") (eq $state "cursor"))) }}
+skills/{{ $skillName }}
+{{-   end -}}
+{{- end -}}
+
+{{- range $sourceName, $source := dig "external" (dict) (dig "agents" (dict) .ai) -}}
+{{-   range $agentPath, $state := dig "agents" (dict) $source -}}
+{{-     if not (or (eq $state "present") (eq $state "cursor")) }}
+skills/{{ base $agentPath }}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}

@@ -3,7 +3,7 @@
 # This script runs automatically when your AI skills or agents configuration changes.
 # It prunes stale `.tar` cache files from `~/.cache/skill-filter/`.
 
-cache_dir="$HOME/.cache/skill-filter"
+cache_dir="{{ .chezmoi.destDir }}/.cache/skill-filter"
 if [ -d "$cache_dir" ]; then
   echo "Checking for stale skill-filter cache files..."
   

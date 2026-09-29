@@ -1,0 +1,66 @@
+{{- /* Normalize independently authored plugin declarations once for all consumers. */ -}}
+{{- $plugins := dict -}}
+{{- $supportedHosts := list "claude" "codex" "cursor" -}}
+{{- range $name, $definition := dig "plugin_bridge" "capabilities" (dict) .ai -}}
+{{-   if hasKey $definition "source_dir" -}}
+{{-     if not (regexMatch "^[a-z0-9][a-z0-9-]*$" $name) -}}{{- fail (printf "invalid authored plugin name %q" $name) -}}{{- end -}}
+{{-     $sourceDir := $definition.source_dir -}}
+{{-     if not (and (kindIs "string" $sourceDir) (regexMatch "^src/overlay-plugins/[a-z0-9][a-z0-9-]*$" $sourceDir)) -}}
+{{-       fail (printf "ai.plugin_bridge.capabilities.%s.source_dir must be a directory under src/overlay-plugins" $name) -}}
+{{-     end -}}
+{{-     $assembledRoot := joinPath $.chezmoi.sourceDir ".." -}}
+{{-     $sourcePath := trimPrefix "src/" $sourceDir -}}
+{{-     $root := joinPath $assembledRoot $sourcePath -}}
+{{-     $skillsSourceDir := dig "skills_source_dir" "" $definition -}}
+{{-     if $skillsSourceDir -}}
+{{-       if not (and (kindIs "string" $skillsSourceDir) (regexMatch "^src/[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$" $skillsSourceDir)) -}}
+{{-         fail (printf "ai.plugin_bridge.capabilities.%s.skills_source_dir must be an assembled-tree-relative directory under src" $name) -}}
+{{-       end -}}
+{{-     else -}}
+{{-       $skillsSourceDir = joinPath $sourceDir "skills" -}}
+{{-     end -}}
+{{-     $skillsPath := trimPrefix "src/" $skillsSourceDir -}}
+{{-     $skillRoot := joinPath $assembledRoot $skillsPath -}}
+{{-     range $directory := list (joinPath $assembledRoot "overlay-plugins") $root $skillRoot -}}
+{{-       if not (and (lstat $directory) (eq (lstat $directory).type "dir")) -}}{{- fail (printf "authored plugin source_dir must contain real directories: %s" $directory) -}}{{- end -}}
+{{-     end -}}
+{{-     $hosts := dig "hosts" $supportedHosts $definition -}}
+{{-     if not (and (kindIs "slice" $hosts) $hosts) -}}{{- fail (printf "authored plugin %s hosts must be a non-empty list" $name) -}}{{- end -}}
+{{-     range $host := $hosts -}}{{- if not (has $host $supportedHosts) -}}{{- fail (printf "authored plugin %s has unsupported host %v" $name $host) -}}{{- end -}}{{- end -}}
+{{-     $skills := dig "skills" (dict) $definition -}}
+{{-     if not (kindIs "map" $skills) -}}{{- fail (printf "authored plugin %s skills must be a table" $name) -}}{{- end -}}
+{{-     $sourceFiles := dict -}}
+{{-     range $path := glob (joinPath $root "**/*") | sortAlpha -}}
+{{-       $type := (lstat $path).type -}}
+{{-       if eq $type "file" -}}
+{{-         $_ := set $sourceFiles (trimPrefix (printf "%s/" $root) $path) (output "shasum" "-a" "256" $path | trim | splitList " " | first) -}}
+{{-       else if ne $type "dir" -}}{{- fail (printf "authored plugin %s contains unsupported source entry: %s" $name $path) -}}{{- end -}}
+{{-     end -}}
+{{-     $files := dict -}}
+{{-     range $path := glob (joinPath $skillRoot "**/*") | sortAlpha -}}
+{{-       $type := (lstat $path).type -}}
+{{-       if eq $type "file" -}}
+{{-         $_ := set $files (printf "skills/%s" (trimPrefix (printf "%s/" $skillRoot) $path)) (output "shasum" "-a" "256" $path | trim | splitList " " | first) -}}
+{{-       else if ne $type "dir" -}}{{- fail (printf "authored plugin %s contains unsupported skill source entry: %s" $name $path) -}}{{- end -}}
+{{-     end -}}
+{{-     $byHost := dict "portable" (dict) -}}
+{{-     range $host := $hosts -}}{{- $_ := set $byHost $host (dict) -}}{{- end -}}
+{{-     range $skill, $state := $skills -}}
+{{-       if not (regexMatch "^[a-z0-9][a-z0-9-]*$" $skill) -}}{{- fail (printf "invalid authored plugin skill name %q" $skill) -}}{{- end -}}
+{{-       if not (or (eq $state "present") (eq $state "absent") (has $state $hosts)) -}}{{- fail (printf "authored plugin %s skill %s has unsupported state %v" $name $skill $state) -}}{{- end -}}
+{{-       if ne $state "absent" -}}
+{{-         if not (hasKey $files (printf "skills/%s/SKILL.md" $skill)) -}}{{- fail (printf "authored plugin %s is missing skills/%s/SKILL.md" $name $skill) -}}{{- end -}}
+{{-         $skillFiles := list -}}
+{{-         range $path := keys $files | sortAlpha -}}
+{{-           if hasPrefix (printf "skills/%s/" $skill) $path -}}{{- $skillFiles = append $skillFiles (trimPrefix (printf "skills/%s/" $skill) $path) -}}{{- end -}}
+{{-         end -}}
+{{-         range $host := $hosts -}}
+{{-           if or (eq $state "present") (eq $state $host) -}}{{- $_ := set (index $byHost $host) $skill $skillFiles -}}{{- end -}}
+{{-         end -}}
+{{-         if eq $state "present" -}}{{- $_ := set (index $byHost "portable") $skill $skillFiles -}}{{- end -}}
+{{-       end -}}
+{{-     end -}}
+{{-     $_ := set $plugins $name (dict "source_dir" $sourceDir "skills_source_dir" $skillsSourceDir "hosts" $byHost "inputs" (dict "definition" $definition "source_files" $sourceFiles "skill_files" $files)) -}}
+{{-   end -}}
+{{- end -}}
+{{- toJson $plugins -}}

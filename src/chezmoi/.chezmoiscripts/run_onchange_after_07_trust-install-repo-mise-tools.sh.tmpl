@@ -1,4 +1,5 @@
-{{- $misePath := joinPath (.chezmoi.workingTree | toString) "mise.toml" -}}
+{{- $root := dig "local_bin_tools_root" .chezmoi.workingTree . -}}
+{{- $misePath := joinPath ($root | toString) "mise.toml" -}}
 {{- if and (ne (dig "local" "bin" "mise" "installation_method" "none" $) "none") (stat $misePath) -}}
 #!/usr/bin/env bash
 # mise version: {{ .bin.mise.version }}
@@ -11,19 +12,19 @@ source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
 
 if ! command -v mise &>/dev/null; then
-    log_warn "mise not found in PATH. Skipping trust and install for {{ .chezmoi.workingTree }}."
+    log_warn "mise not found in PATH. Skipping trust and install for {{ $root }}."
     exit 0
 fi
 
-log_info "Trusting mise config: {{ .chezmoi.workingTree }}/mise.toml"
-mise trust "{{ .chezmoi.workingTree }}/mise.toml"
-log_success "Mise config trusted: {{ .chezmoi.workingTree }}/mise.toml"
+log_info "Trusting mise config: {{ $root }}/mise.toml"
+mise trust "{{ $root }}/mise.toml"
+log_success "Mise config trusted: {{ $root }}/mise.toml"
 
-log_info "Installing mise tools in {{ .chezmoi.workingTree }}..."
-if mise install -C "{{ .chezmoi.workingTree }}"; then
-    log_success "Mise tools installed in {{ .chezmoi.workingTree }}."
+log_info "Installing mise tools in {{ $root }}..."
+if mise install -C "{{ $root }}"; then
+    log_success "Mise tools installed in {{ $root }}."
 else
-    log_error "Failed to install mise tools in {{ .chezmoi.workingTree }}."
+    log_error "Failed to install mise tools in {{ $root }}."
     exit 1
 fi
 {{- end -}}
