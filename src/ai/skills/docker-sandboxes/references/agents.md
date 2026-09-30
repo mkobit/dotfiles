@@ -1,25 +1,21 @@
 # Agents
 
-Use the native `codex` agent through `.sbx/sbxenv.yaml`.
+Choose the harness the repository tracks and validates.
 
-Use AGY only through `.sbx/sbxenv.agy.yaml` until SBX custom-agent environment support is proven on the host.
+Codex, Claude, and AGY environment templates all include the repository `./kit` and direct-mounted workspaces.
+
+Use AGY only through a repository `.sbx/sbxenv.agy.yaml` environment.
 
 Before creating an AGY environment, inspect `sbx settings get kit.allowedSources`.
 
-The default allowlist accepts Docker Hub only, so AGY needs the narrow `github.com/docker/` source prefix.
+The AGY contrib kit needs the narrow `github.com/docker/` source prefix.
 
-Require new confirmation before running `sbx settings set kit.allowedSources '<complete JSON list>'` only when the session authorization does not cover that settings change.
+Require confirmation before changing that setting when the session authorization does not already cover it.
 
-That setting replaces the complete allowlist, so preserve every existing approved entry while adding `github.com/docker/`.
+The setting replaces the complete allowlist, so preserve existing approved entries while adding the required prefix.
 
-Before the first AGY task, confirm the pinned kit source is allowed, create the environment, and run `sbx env exec .sbx/sbxenv.agy.yaml ~/.local/share/sbx/personal/personal.sbxenv.yaml -- sh -lc 'agy --help < /dev/null'` when the personal overlay exists.
+If SBX cannot resolve `agent: antigravity`, stop and report the preflight output rather than falling back to a host launcher.
 
 The first AGY run can require a user-completed Google OAuth flow through Docker’s credential proxy.
 
-If SBX cannot resolve `agent: antigravity` (the agent name is `antigravity` when using the contrib kit), stop and report the preflight output rather than falling back to a host launcher.
-
-Codex and AGY do not share a persistent sandbox because each environment is created around one agent and maintains separate state.
-
-Use sandbox Git remotes to fetch reviewed clone-mode work back to the host checkout.
-
-Keep sandbox commits unsigned unless a separately approved signing workflow exists on the host.
+Keep commits, signing, and pushes on the host.

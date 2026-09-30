@@ -180,6 +180,20 @@ def _render_capability_manifest_versions(source: Path, destination: Path, config
     return {name: json.loads(path.read_text(encoding="utf-8"))["version"] for name, path in manifest_paths.items()}
 
 
+def _assert_valid_capability_metadata(manifest: dict[str, object]) -> None:
+    """Keep every rendered capability manifest compatible with Codex ingestion."""
+    assert manifest["author"] == {"name": "mkobit"}
+    assert manifest["interface"] == {
+        "displayName": "mkobit dotfiles",
+        "shortDescription": "Reusable dotfiles skills.",
+        "longDescription": "Reusable skills for configuring and operating mkobit's development environment.",
+        "developerName": "mkobit",
+        "category": "Developer tools",
+        "capabilities": ["Skills"],
+        "defaultPrompt": "Help me use the dotfiles skills.",
+    }
+
+
 def test_capability_manifest_versions_ignore_legacy_overlay_source(tmp_path):
     """Base capability versions only depend on base-projected skill inputs."""
     source = tmp_path / "source"
@@ -524,6 +538,7 @@ def test_capability_plugin_deployed_and_valid(chezmoi_dest, relative_dir, plugin
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["name"] == "mkobit-dotfiles"
     assert manifest["skills"] == "./skills"
+    _assert_valid_capability_metadata(manifest)
     assert skills_dir.is_dir(), f"{skills_dir} does not exist after chezmoi apply"
     assert any(skills_dir.iterdir()), f"{skills_dir} contains no skills"
     assert_entries_are_valid_skills(skills_dir)
@@ -552,6 +567,7 @@ def test_root_capability_plugin_manifest_deployed_and_valid(chezmoi_dest):
     assert manifest["name"] == "mkobit-dotfiles"
     assert manifest["skills"] == "./skills"
     assert manifest["version"].startswith("1.0.0+")
+    _assert_valid_capability_metadata(manifest)
 
 
 @pytest.mark.integration

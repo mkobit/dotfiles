@@ -1,84 +1,59 @@
 # Repository setup
 
-Each repository must be fully self-bootable in `sbx` without depending on external host sources or dotfile overlays.
+Each consuming repository owns a complete, tracked `.sbx/` setup.
 
-## File layout
+The repository provides its own runtime, toolchain, packages, ports, services, and kit behavior.
 
-A self-bootable repository contains:
-- `.sbx/sbxenv.yaml`: primary environment configuration (Codex or default agent).
-- `.sbx/kit/spec.yaml`: repository toolchain kit mixin provisioning `mise` and runtimes.
-- `.sbx/sbxenv.agy.yaml`: optional AGY-specific environment configuration when AGY is supported.
+## Minimal layout
 
-Do not use hidden `.sbx/.sbxenv.yaml` names for new setups; `sbx` directory lookup resolves `sbxenv.yaml`.
+- `.sbx/sbxenv.yaml` defines the primary environment.
+- `.sbx/kit/spec.yaml` defines the repository toolchain kit.
+- `.sbx/sbxenv.agy.yaml` is optional when the repository supports AGY.
 
-## Environment configuration (`.sbx/sbxenv.yaml`)
+## Environment template
 
-Create `.sbx/sbxenv.yaml` with:
-- `schemaVersion: "1"`
-- `name: "<project-slug>-codex"` (lowercase, hyphens only, max 63 characters).
-- `agent: codex`
-- `workspace:` with `path: ..` and `clone: false`.
-- `kits:` including `./kit`.
+Use this baseline for a Codex environment.
 
-Using `workspace.clone: false` directly mounts the project repository. This establishes a host-to-sandbox delegation workflow: the host session runs beads, git commits, and reviews, while the sandbox container runs builds, linters, tests, and code generation. File changes made in the sandbox are immediately visible to host git and beads.
-- `ports:` declaring any necessary port forwards for services or dev servers.
+```yaml
+schemaVersion: "1"
+name: "<project-slug>-codex"
+agent: codex
+workspace:
+  path: ..
+  clone: false
+kits:
+  - ./kit
+```
 
-Do not include `additionalWorkspaces`, `bindings`, `registries`, `secrets`, or local command MCP servers in tracked files.
+Add `ports` only for repository services that require them.
 
-## Kit authoring (`.sbx/kit/spec.yaml`)
+`clone: false` is the default because the sandbox directly mounts the checkout and changes return to the host immediately.
 
-The repository kit provides guest environment bootstrapping so tests and tools run cleanly.
+Use `clone: true` only when a private in-VM clone is required and the repository documents how the host receives reviewed changes.
+
+## Kit baseline
+
+Start `.sbx/kit/spec.yaml` as an SBX mixin.
 
 ```yaml
 schemaVersion: "2"
 kind: mixin
 name: <project-slug>-toolchain
 version: "0.1.0"
-description: Bootstrap mise and project toolchain for <project-slug>
-
-permissions:
-  network:
-    allow:
-      - mise.run
-      - mise.jdx.dev
-      - github.com
-      - api.github.com
-      - "*.githubusercontent.com"
-      - registry.npmjs.org
-      - bun.sh
-
-environment:
-  variables:
-    PATH: /home/agent/.local/share/mise/shims:/home/agent/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-    MISE_YES: "1"
-
-setup:
-  install:
-    - command: |
-        curl -fsSL https://mise.run | MISE_INSTALL_PATH=/usr/local/bin/mise sh
-        printf '%s\n' 'export PATH="/home/agent/.local/share/mise/shims:/home/agent/.local/bin:$PATH"' > /etc/profile.d/mise.sh
-        printf '%s\n' 'export PATH="/home/agent/.local/share/mise/shims:/home/agent/.local/bin:$PATH"' >> /etc/sandbox-persistent.sh
-      description: "Install mise into /usr/local/bin and configure persistent shell paths"
-    - command: "mise settings set paranoid false && mise settings set yes true && mise use -g <tool>@<version>"
-      user: "1000"
-      description: "Install required project tools matching mise.toml"
+description: Bootstrap the project toolchain
 ```
 
-Key requirements for kit authoring:
-1. `permissions.network.allow` must include all hosts queried during install and runtime package resolution.
-2. `/etc/sandbox-persistent.sh` must be updated with the shim paths because `sbx env exec` executes non-login shells.
-3. Tools installed in `setup.install` must align with `mise.toml` so the sandbox provides identical versions to the host.
-4. If native packages are needed (e.g. `build-essential`), install them via `apt-get` in the root install step before `mise`.
+Add only the runtime and setup needed by the repository.
 
-## Local validation and execution
+Declare every package and runtime download domain in the kit network policy.
 
-1. Validate the kit: `sbx kit validate .sbx/kit`.
-2. Inspect the environment plan: `sbx env plan .sbx/sbxenv.yaml`.
-3. Provision the sandbox: `sbx env create .sbx/sbxenv.yaml`.
-4. Run project checks inside the sandbox: `sbx env exec .sbx/sbxenv.yaml -- mise run check`.
-5. Remove the sandbox when finished: `sbx env rm .sbx/sbxenv.yaml --force`.
+Keep kit commands reproducible from repository-tracked toolchain files.
 
-Sandbox agent harnesses (antigravity, claude, codex) already default to auto-approved permissions inside the isolated microVM (e.g. antigravity's kit defaults to `--dangerously-skip-permissions`), so prompts do not need manual permission flags. You can use streamlined invocation syntax:
-- Antigravity: `sbx env run .sbx/sbxenv.agy.yaml -- -p "<prompt>"`
-- Codex: `sbx env run .sbx/sbxenv.yaml -- -q "<prompt>"`
-- Claude: `sbx env run .sbx/sbxenv.claude.yaml -- -p "<prompt>"`
+## Lifecycle
+
+1. Run `sbx kit validate .sbx/kit`.
+2. Run `sbx env plan .sbx/sbxenv.yaml`.
+3. Run `sbx env create .sbx/sbxenv.yaml`.
+4. Run checks or an agent session in the environment.
+5. Review changes and perform Git delivery on the host.
+6. Run `sbx env rm .sbx/sbxenv.yaml --force` when the environment is no longer needed.

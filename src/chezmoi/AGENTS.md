@@ -6,6 +6,11 @@
 - **Command approval policy** (see below): global command-approval allowlist for attended (HITL) agent sessions, rendered into each tool's native permission syntax.
 - **Secrets** (`[data.secrets]` in `.chezmoi.toml.tmpl`): rendered to a private (`0600`) file sourced by shell rc fragments, never inlined into a fragment itself.
 
+## Docker Sandboxes ownership
+
+Dotfiles does not generate personal Docker Sandbox guest overlays, executable tools, or plugin-install kits.
+Each consuming repository owns its complete tracked SBX kit and toolchain.
+
 ## Command approval policy
 
 Global, tool-neutral allowlist of shell commands that AI coding agents auto-approve without prompting the human.

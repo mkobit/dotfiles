@@ -3,6 +3,7 @@ name: "{{PROJECT_SLUG}}-agy"
 agent: antigravity
 workspace:
   path: ..
-  clone: true
+  clone: false
 kits:
+  - ./kit
   - "git+https://github.com/docker/sbx-kits-contrib.git#ref=21e1928b5fe0036163307ea8047e48390f2d6fec&dir=antigravity"

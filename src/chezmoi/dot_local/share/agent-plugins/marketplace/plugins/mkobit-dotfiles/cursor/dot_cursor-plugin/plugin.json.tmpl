@@ -5,4 +5,4 @@
 {{-   end -}}
 {{- end -}}
 {{- $version := printf "1.0.0+%s" (trunc 12 (sha256sum (toJson $inputs))) -}}
-{{- dict "name" "mkobit-dotfiles" "version" $version "description" "Base dotfiles capability bundle." "skills" "./skills" | toPrettyJson -}}
+{{- dict "name" "mkobit-dotfiles" "version" $version "description" "Base dotfiles capability bundle." "author" (dict "name" "mkobit") "skills" "./skills" "interface" (dict "displayName" "mkobit dotfiles" "shortDescription" "Reusable dotfiles skills." "longDescription" "Reusable skills for configuring and operating mkobit's development environment." "developerName" "mkobit" "category" "Developer tools" "capabilities" (list "Skills") "defaultPrompt" "Help me use the dotfiles skills.") | toPrettyJson -}}

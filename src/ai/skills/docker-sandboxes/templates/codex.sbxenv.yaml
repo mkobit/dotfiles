@@ -3,4 +3,6 @@ name: "{{PROJECT_SLUG}}-codex"
 agent: codex
 workspace:
   path: ..
-  clone: true
+  clone: false
+kits:
+  - ./kit
