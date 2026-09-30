@@ -1,6 +1,6 @@
 # Environment files
 
-Docker environment files are experimental; [SKILL.md](../SKILL.md) records the last-tested SBX version (0.45.1).
+Docker environment files are experimental; [SKILL.md](../SKILL.md) records the last-tested SBX version (0.46.0).
 
 Read Docker’s [environment-file reference](https://docs.docker.com/ai/sandboxes/configuration/environment-files/) for file lookup and merge semantics.
 

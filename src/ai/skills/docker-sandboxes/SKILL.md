@@ -28,7 +28,7 @@ Every project environment provides its own kit at `.sbx/kit/spec.yaml`.
 
 ## Execution and state retrieval
 
-1. Run `sbx version`; this workflow was last validated against `0.45.1`.
+1. Run `sbx version`; this workflow was last validated against `0.46.0`.
 2. Inspect the repository's `AGENTS.md`, `.agents/skills`, `mise.toml`, CI workflows, build manifests, and `.sbx/` configuration.
 3. State the selected agent, clone-mode workspace, and required checks before creating a sandbox; require user confirmation for actions outside session authorization.
 4. Validate and plan the environment with `sbx kit validate .sbx/kit` and `sbx env plan .sbx/sbxenv.yaml`.
