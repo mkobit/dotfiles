@@ -4,3 +4,5 @@ agent: claude
 workspace:
   path: ..
   clone: false
+kits:
+  - ./kit
