@@ -20,6 +20,16 @@ import pytest
             "socat",
             marks=pytest.mark.chezmoi_installation("packages.socat", methods={"apt"}),
         ),
+        pytest.param(
+            "ffmpeg",
+            "ffmpeg",
+            marks=pytest.mark.chezmoi_installation("packages.ffmpeg", methods={"apt"}),
+        ),
+        pytest.param(
+            "ffmpeg",
+            "ffprobe",
+            marks=pytest.mark.chezmoi_installation("packages.ffmpeg", methods={"apt"}),
+        ),
     ],
 )
 def test_apt_package_available(host, package, binary):
