@@ -132,7 +132,9 @@ def test_reconcile_orders_native_registrations_and_filters_environment(
     monkeypatch.setattr(
         plugin_bridge,
         "_ensure_plugin",
-        lambda host, marketplace, name, *args: calls.append(("plugin", name, host)),
+        lambda host, marketplace, name, *args, **kwargs: calls.append(
+            ("plugin", name, host)
+        ),
     )
     plugin_bridge.reconcile(
         tmp_path,
@@ -230,7 +232,7 @@ def test_reconcile_allows_cursor_capability_with_native_marketplace_hosts(
     monkeypatch.setattr(
         plugin_bridge,
         "_ensure_plugin",
-        lambda host, marketplace, name, *args: calls.append(
+        lambda host, marketplace, name, *args, **kwargs: calls.append(
             ("plugin", host, marketplace, name)
         ),
     )
@@ -255,7 +257,7 @@ def test_reconcile_ignores_cursor_and_filesystem_metadata(tmp_path, monkeypatch)
     monkeypatch.setattr(
         plugin_bridge,
         "_ensure_plugin",
-        lambda host, *args: calls.append(("plugin", host)),
+        lambda host, *args, **kwargs: calls.append(("plugin", host)),
     )
     plugin_bridge.reconcile(
         tmp_path,
@@ -427,7 +429,7 @@ def test_successful_registration_is_checkpointed_before_later_failure(
 ):
     calls = 0
 
-    def ensure(host, marketplace, name, ownership_file, desired, owned):
+    def ensure(host, marketplace, name, ownership_file, desired, owned, **kwargs):
         nonlocal calls
         calls += 1
         record = plugin_bridge._identity("plugin", host, marketplace, name)
@@ -478,6 +480,152 @@ def test_existing_claude_plugin_is_adopted_and_enabled(tmp_path, monkeypatch):
     assert ("claude", "plugin", "update", "demo@market") in calls
     assert ("claude", "plugin", "enable", "demo@market") in calls
     assert owned == {"plugin\tclaude\tmarket\tdemo"}
+
+
+def _claude_manifest_root(tmp_path, version):
+    root = tmp_path / "marketplace"
+    catalog = root / ".claude-plugin/marketplace.json"
+    catalog.parent.mkdir(parents=True)
+    catalog.write_text(
+        json.dumps(
+            {
+                "name": "market",
+                "plugins": [{"name": "demo", "source": "./plugins/demo/claude"}],
+            }
+        ),
+        encoding="utf-8",
+    )
+    manifest = root / "plugins/demo/claude/.claude-plugin/plugin.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text(
+        json.dumps({"name": "demo", "version": version}), encoding="utf-8"
+    )
+    return root
+
+
+def _claude_run(calls, version, enabled):
+    def run(host, *args):
+        calls.append((host, *args))
+        if args == ("plugin", "list", "--json"):
+            return json.dumps(
+                [{"id": "demo@market", "version": version, "enabled": enabled}]
+            )
+        return ""
+
+    return run
+
+
+def test_current_claude_plugin_is_not_updated(tmp_path, monkeypatch):
+    calls = []
+    root = _claude_manifest_root(tmp_path, "1.0.0+abc")
+    monkeypatch.setattr(plugin_bridge, "_run", _claude_run(calls, "1.0.0+abc", True))
+    owned = set()
+    plugin_bridge._ensure_plugin(
+        "claude",
+        "market",
+        "demo",
+        tmp_path / "ownership",
+        set(),
+        owned,
+        manifest_root=root,
+    )
+    assert calls == [("claude", "plugin", "list", "--json")]
+    assert owned == {"plugin\tclaude\tmarket\tdemo"}
+
+
+def test_changed_claude_plugin_version_is_updated(tmp_path, monkeypatch):
+    calls = []
+    root = _claude_manifest_root(tmp_path, "1.0.0+new")
+    monkeypatch.setattr(plugin_bridge, "_run", _claude_run(calls, "1.0.0+old", True))
+    plugin_bridge._ensure_plugin(
+        "claude",
+        "market",
+        "demo",
+        tmp_path / "ownership",
+        set(),
+        set(),
+        manifest_root=root,
+    )
+    assert ("claude", "plugin", "update", "demo@market") in calls
+
+
+def test_claude_plugin_without_manifest_root_is_updated(tmp_path, monkeypatch):
+    calls = []
+    _claude_manifest_root(tmp_path, "1.0.0+abc")
+    monkeypatch.setattr(plugin_bridge, "_run", _claude_run(calls, "1.0.0+abc", True))
+    plugin_bridge._ensure_plugin(
+        "claude", "market", "demo", tmp_path / "ownership", set(), set()
+    )
+    assert ("claude", "plugin", "update", "demo@market") in calls
+
+
+def test_current_disabled_claude_plugin_is_enabled_without_update(
+    tmp_path, monkeypatch
+):
+    calls = []
+    enabled = False
+    root = _claude_manifest_root(tmp_path, "1.0.0+abc")
+
+    def run(host, *args):
+        nonlocal enabled
+        calls.append((host, *args))
+        if args == ("plugin", "list", "--json"):
+            return json.dumps(
+                [{"id": "demo@market", "version": "1.0.0+abc", "enabled": enabled}]
+            )
+        if args == ("plugin", "enable", "demo@market"):
+            enabled = True
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    plugin_bridge._ensure_plugin(
+        "claude",
+        "market",
+        "demo",
+        tmp_path / "ownership",
+        set(),
+        set(),
+        manifest_root=root,
+    )
+    assert ("claude", "plugin", "enable", "demo@market") in calls
+    assert ("claude", "plugin", "update", "demo@market") not in calls
+
+
+def test_reconcile_passes_manifest_root_only_for_generated_marketplaces(
+    tmp_path, monkeypatch
+):
+    roots = {}
+    monkeypatch.setattr(plugin_bridge, "_ensure_marketplace", lambda *args: None)
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_plugin",
+        lambda host, marketplace, name, *args, manifest_root=None: roots.update(
+            {marketplace: manifest_root}
+        ),
+    )
+    plugin_bridge.reconcile(
+        tmp_path,
+        {
+            "plugin_bridge": {
+                "marketplaces": {
+                    "gen": {"source_type": "generated", "hosts": ["claude"]},
+                    "up": {
+                        "source_type": "public",
+                        "source_locator": "owner/repo",
+                        "hosts": ["claude"],
+                    },
+                },
+                "plugins": {
+                    "a": {"marketplace": "gen", "hosts": ["claude"]},
+                    "b": {"marketplace": "up", "hosts": ["claude"]},
+                },
+            }
+        },
+    )
+    assert roots == {
+        "gen": tmp_path / ".local/share/agent-plugins/marketplace",
+        "up": None,
+    }
 
 
 def test_existing_codex_plugin_is_not_added_again(tmp_path, monkeypatch):
