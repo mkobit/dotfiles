@@ -19,7 +19,7 @@ linux_amd64  = "x86_64-unknown-linux-musl"
 linux_arm64  = "aarch64-unknown-linux-musl"
 
 [bin.codex.github_releases.checksums]
-darwin_arm64 = "025deffd84cbc99d88ef952e585dc67c7c94e4273f89baaac331ca7e16ebcef9d7"
+darwin_arm64 = "025deffd84cbc99d88ef952e585dc67c7c94e4273f89ba3d45f7e5799743c13c"
 darwin_amd64 = "3f4e1f71aa05b1dd3d02dd66e780f7857cf19c693498a171f038f74ef3ef3be9"
 linux_amd64  = "26586b0d246d41a799b0ef8ee1add370f0fb0721b3709340f28db612381616ea"
 linux_arm64  = "472ee4d49464a4f8792bbf0162bd9ac18d7036dbc00900a03e95f715887e930f"
