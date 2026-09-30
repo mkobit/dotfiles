@@ -198,7 +198,7 @@ jobs:
             --cache=${{ env.CHEZMOI_CACHE_DIR }} \
             --source=${{ github.workspace }} \
             --destination=${{ env.CHEZMOI_DEST }} \
-            --config-path=${{ env.CHEZMOI_CONFIG }}
+            --config=${{ env.CHEZMOI_CONFIG }}
 
       - name: Run chezmoi doctor
         run: |
@@ -214,11 +214,17 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
         run: |
-          chezmoi apply \
-            --cache=${{ env.CHEZMOI_CACHE_DIR }} \
-            --config=${{ env.CHEZMOI_CONFIG }} \
-            --source=${{ github.workspace }} \
-            --destination=${{ env.CHEZMOI_DEST }}
+          # externals have no retry option; cached downloads survive, so retries refetch only failures
+          for attempt in 1 2 3; do
+            chezmoi apply \
+              --cache=${{ env.CHEZMOI_CACHE_DIR }} \
+              --config=${{ env.CHEZMOI_CONFIG }} \
+              --source=${{ github.workspace }} \
+              --destination=${{ env.CHEZMOI_DEST }} && exit 0
+            echo "::warning::chezmoi apply attempt $attempt failed"
+            [ "$attempt" -lt 3 ] && sleep $((attempt * 15))
+          done
+          exit 1
 
       - name: Prune mise cache
         run: |
