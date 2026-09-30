@@ -20,6 +20,8 @@ Set `clone: true` only for a private clone with an explicit host return process.
 
 Do not track host credentials, additional writable host paths, or host command bridges in repository environments.
 
+Keep host secrets, bindings, registries, and local-command MCP servers outside the sandbox environment.
+
 Run `sbx env plan .sbx/sbxenv.yaml` before creation.
 
 Recreate an environment after changing its kit, workspace, ports, or environment variables.
