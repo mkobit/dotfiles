@@ -385,7 +385,7 @@ def test_antigravity_auto_update_disabled_in_shell_configs() -> None:
             text=True,
         )
         assert result.returncode == 0, result.stderr
-        assert "export AGY_CLI_DISABLE_AUTO_UPDATE=true" in result.stdout
+        assert "AGY_CLI_DISABLE_AUTO_UPDATE" not in result.stdout
 
 
 @pytest.mark.integration
@@ -412,7 +412,7 @@ def test_antigravity_auto_update_enabled_omits_shell_export() -> None:
             text=True,
         )
         assert result.returncode == 0, result.stderr
-        assert "export AGY_CLI_DISABLE_AUTO_UPDATE=true" not in result.stdout
+        assert "AGY_CLI_DISABLE_AUTO_UPDATE" not in result.stdout
 
 
 @pytest.mark.integration
