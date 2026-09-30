@@ -76,7 +76,7 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}
 installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
 
 {{- $agyInstallationMethod := dig "local" "bin" "agy" "installation_method" "github_releases" . -}}
-{{- if and (not (env "CI")) (not (env "JULES_SESSION_ID")) -}}
+{{- if and (not (env "CI")) (not (env "JULES_ENV")) -}}
 {{-   $defaultAgy := ne $agyInstallationMethod "none" -}}
 {{-   $enableAgy := promptBoolOnce . "local.bin.agy.enabled" "Enable Antigravity CLI (agy)?" $defaultAgy -}}
 {{-   if not $enableAgy -}}
