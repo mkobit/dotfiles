@@ -178,6 +178,9 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end
 [data.packages.at]
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 
+[data.packages.ffmpeg]
+installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
+
 # Local Python Tools (via uv) Installation Methods
 [data.local_bin_tools.termstatus]
 installation_method = "dotfiles.uv"

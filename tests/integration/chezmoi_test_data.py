@@ -10,6 +10,7 @@ MARKER_GATED_INSTALLATION_METHODS = {
     "local.bin.opencode": frozenset({"github_releases", "none"}),
     "local.bin.pi": frozenset({"github_releases", "none"}),
     "packages.bubblewrap": frozenset({"apt", "none"}),
+    "packages.ffmpeg": frozenset({"apt", "homebrew", "none"}),
     "packages.socat": frozenset({"apt", "none"}),
     "packages.strace": frozenset({"apt", "none"}),
 }

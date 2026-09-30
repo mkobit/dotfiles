@@ -1,0 +1,6 @@
+[packages.ffmpeg.package.apt]
+name = "ffmpeg"
+
+[packages.ffmpeg.package.homebrew]
+name = "ffmpeg"
+type = "formula"
