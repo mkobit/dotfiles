@@ -1,5 +1,5 @@
 [bin.codex]
-version = "0.159.2"
+version = "0.159.3"
 
 [bin.codex.github_releases]
 repo            = "openai/codex"
@@ -19,7 +19,7 @@ linux_amd64  = "x86_64-unknown-linux-musl"
 linux_arm64  = "aarch64-unknown-linux-musl"
 
 [bin.codex.github_releases.checksums]
-darwin_arm64 = "025deffd84cbc99d88ef952e585dc67c7c94e4273f89ba3d45f7e5799743c13c"
-darwin_amd64 = "3f4e1f71aa05b1dd3d02dd66e780f7857cf19c693498a171f038f74ef3ef3be9"
-linux_amd64  = "26586b0d246d41a799b0ef8ee1add370f0fb0721b3709340f28db612381616ea"
-linux_arm64  = "472ee4d49464a4f8792bbf0162bd9ac18d7036dbc00900a03e95f715887e930f"
+darwin_arm64 = "51de50a39ea592b5b0a64ae0474548c282181cb6b96d9bd08965a682ae12774c"
+darwin_amd64 = "cbaea8206d3189b8a7cd7c1b476e14a541ab22d469c37253f758ff71d4ed24b7"
+linux_amd64  = "b48ca1b2d6b1bf42b944e02c3d937c898e24651916684cdc35fdedf31b291bcb"
+linux_arm64  = "cd5f307b3fcd6080773e684b86c3114a67d4f1c61dc447be09876b552eb4bea7"
