@@ -4,7 +4,9 @@ alias g='git'
 {{- if eq $.shell "zsh" }}
 compdef g=git
 {{- else if eq $.shell "bash" }}
-complete -F _git -o bashdefault -o default g
+if [[ $- == *i* ]]; then
+    complete -F _git -o bashdefault -o default g
+fi
 {{- end }}
 
 # Prevent prompt tools (Starship, claude-statusline, etc.) from acquiring the
