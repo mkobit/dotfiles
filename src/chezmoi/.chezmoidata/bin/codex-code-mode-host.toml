@@ -2,7 +2,7 @@
 # Reference: https://github.com/openai/codex/issues/31831
 [bin.codex-code-mode-host]
 bom_key = "codex"
-version = "0.160.0"
+version = "0.160.1"
 
 [bin.codex-code-mode-host.github_releases]
 repo            = "openai/codex"
@@ -22,7 +22,7 @@ linux_amd64  = "x86_64-unknown-linux-musl"
 linux_arm64  = "aarch64-unknown-linux-musl"
 
 [bin.codex-code-mode-host.github_releases.checksums]
-darwin_arm64 = "dc70fbc76e9dcae5ae3d5424808c8e7c2df5e0db4ac827ddd4fbe339015aad75"
-darwin_amd64 = "b024eba366ec2e3b6734972a00df8ed9b7bf14e670579bc5ba18194612d9f441"
-linux_amd64  = "ac6cd6288f0e39f46a33eba1cfd37711651f14f33dbc73d6a1b82eb45e038cac"
-linux_arm64  = "94066fdf13ffecd2f58776ec5cb8fc3040283a642e3d6ff25c5d82048c41038e"
+darwin_arm64 = "6e502df69d9220fa305b0c3c7c17ba8f31ab1d4591fc140084dbb823e800c7db"
+darwin_amd64 = "cd0ae67e1c2c6cab9c065e3287a56f068961c5592e114c1ccd6e9a4909bba147"
+linux_amd64  = "8a69207d97545ac753b6585974e1e67a4c51ae5deacf06517db512bb25e0e3c2"
+linux_arm64  = "e5e027e6689efda2e3570aa600179f0ebb18632803350e152ed6c9b97dcf9741"
