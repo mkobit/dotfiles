@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -47,4 +48,28 @@ def test_codex_doctor_local_environment(host):
     assert checks.get("config.load", {}).get("status") == "ok", f"config.load failed: {checks.get('config.load')}"
     assert checks.get("installation", {}).get("status") == "ok", (
         f"installation check failed: {checks.get('installation')}"
+    )
+    install_details = checks.get("installation", {}).get("details", {})
+    assert "package" in install_details.get("install context", ""), (
+        f"installation context is not a package: {install_details}"
+    )
+
+
+@pytest.mark.integration
+@pytest.mark.chezmoi_installation("local.bin.codex", methods={"github_releases"})
+def test_codex_package_structure(host, chezmoi_dest):
+    """Verify codex package layout includes manifest and helper binaries."""
+    package_dir = chezmoi_dest / ".local" / "lib" / "codex"
+    manifest = host.file(str(package_dir / "codex-package.json"))
+    assert manifest.exists, f"{manifest} does not exist"
+    assert manifest.is_file, f"{manifest} is not a file"
+
+    bin_codex = host.file(str(package_dir / "bin" / "codex"))
+    assert bin_codex.exists and bin_codex.is_file, f"{bin_codex} executable missing"
+
+    bin_symlink = host.file(str(chezmoi_dest / ".local" / "bin" / "codex"))
+    assert bin_symlink.is_symlink, f"{bin_symlink} is not a symlink"
+    expected_target = (package_dir / "bin" / "codex").resolve()
+    assert Path(bin_symlink.linked_to).resolve() == expected_target, (
+        f"{bin_symlink} does not point to {expected_target}"
     )
