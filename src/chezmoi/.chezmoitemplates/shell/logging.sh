@@ -28,3 +28,13 @@ log_error() {
 check_command() {
     command -v "$1" >/dev/null 2>&1
 }
+
+check_sudo_access() {
+    if sudo -n true 2>/dev/null; then
+        return 0
+    fi
+    if [ -t 0 ] && [ -t 1 ] && [ -z "${ANTIGRAVITY_AGENT:-}" ] && [ -z "${CI:-}" ] && [ "${DEBIAN_FRONTEND:-}" != "noninteractive" ]; then
+        return 0
+    fi
+    return 1
+}
