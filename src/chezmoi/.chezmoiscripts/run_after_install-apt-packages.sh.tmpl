@@ -19,11 +19,21 @@ if ! check_command apt-get; then
     exit 1
 fi
 
-if sudo -n true 2>/dev/null || [ -t 0 ]; then
+apt_packages_hash="{{ $aptPkgs | toJson | sha256sum }}"
+state_dir="${XDG_STATE_HOME:-{{ .chezmoi.destDir }}/.local/state}/chezmoi"
+cache_file="${state_dir}/apt-packages.hash"
+
+if [ -f "$cache_file" ] && [ "$(cat "$cache_file" 2>/dev/null)" = "$apt_packages_hash" ]; then
+    exit 0
+fi
+
+if check_sudo_access; then
     has_sudo_access=1
 else
     has_sudo_access=0
 fi
+
+skipped_any=0
 
 {{- $ppaPkgs := list -}}
 {{- range $aptPkgs -}}
@@ -42,7 +52,7 @@ if ! check_command add-apt-repository; then
             || { log_error "Failed to install software-properties-common"; exit 1; }
     else
         log_warn "No TTY and no cached sudo credentials — skipping software-properties-common install, will retry next apply"
-        exit 1
+        skipped_any=1
     fi
 fi
 {{- end }}
@@ -67,7 +77,7 @@ if [ "$has_sudo_access" -eq 1 ]; then
     log_success "{{ $name }} installed"
 else
     log_warn "No TTY and no cached sudo credentials — skipping {{ $name }} install, will retry next apply"
-    exit 1
+    skipped_any=1
 fi
 {{- else }}
 if dpkg -l {{ $name }} 2>/dev/null | grep -q "^ii"; then
@@ -83,7 +93,7 @@ elif [ "$has_sudo_access" -eq 1 ]; then
     log_success "{{ $name }} installed"
 else
     log_warn "No TTY and no cached sudo credentials — skipping {{ $name }} install, will retry next apply"
-    exit 1
+    skipped_any=1
 fi
 {{- end }}
 
@@ -98,12 +108,17 @@ if check_command systemctl; then
         log_success "{{ $service }} enabled and started"
     else
         log_warn "No TTY and no cached sudo credentials — skipping {{ $service }} enable, will retry next apply"
-        exit 1
+        skipped_any=1
     fi
 else
     log_warn "systemctl not found — skipping {{ $service }} service enable"
 fi
 {{- end }}
 {{- end }}
+
+if [ "$skipped_any" -eq 0 ]; then
+    mkdir -p "$state_dir"
+    echo "$apt_packages_hash" > "$cache_file"
+fi
 {{- end }}
 {{- end }}

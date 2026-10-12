@@ -24,7 +24,7 @@ if [ "$needs_group" -eq 0 ] && [ "$needs_dev_fix" -eq 0 ]; then
     exit 0
 fi
 
-if sudo -n true 2>/dev/null || [ -t 0 ]; then
+if check_sudo_access; then
     has_sudo_access=1
 else
     has_sudo_access=0
