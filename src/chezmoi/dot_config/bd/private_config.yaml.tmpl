@@ -1,0 +1,4 @@
+{{- $config := dig "beads" "global" "config" dict . -}}
+{{- if $config -}}
+{{ $config | toYaml }}
+{{- end -}}
