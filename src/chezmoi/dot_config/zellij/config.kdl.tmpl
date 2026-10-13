@@ -99,3 +99,10 @@ scrollback_lines_to_serialize {{ .zellij.config.scrollback_lines_to_serialize }}
 
 // https://zellij.dev/documentation/options#show_startup_tips
 show_startup_tips {{ .zellij.config.show_startup_tips }}
+
+{{- $config := dig "config" dict .zellij }}
+{{- if hasKey $config "show_release_notes" }}
+
+// https://zellij.dev/documentation/options#show_release_notes
+show_release_notes {{ $config.show_release_notes }}
+{{- end }}
