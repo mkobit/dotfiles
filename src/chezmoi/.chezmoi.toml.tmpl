@@ -21,6 +21,22 @@ installation_method = "github_releases"
 enabled = false
 log_user_prompt = false
 
+# Beads global defaults; project config overrides ordinary settings.
+# Overlays own these decisions in their init template and can supply arbitrary native config keys.
+[data.beads.global.config]
+# Keep Git operations enabled: https://github.com/gastownhall/beads/blob/v1.3.1/cmd/bd/prime.go#L708
+no-git-ops = false
+
+[data.beads.global.config.metrics]
+# Disable user-global telemetry: https://pkg.go.dev/github.com/steveyegge/beads%40v1.3.1/internal/config
+disabled = true
+
+[data.beads.global.config.dolt]
+# Commit Dolt mutations: https://github.com/gastownhall/beads/blob/v1.3.1/docs/reference/configuration.md#L153
+auto-commit = "on"
+# Push after writes when a remote exists: https://github.com/gastownhall/beads/blob/v1.3.1/cmd/bd/dolt_autopush.go#L67
+auto-push = true
+
 [data.local.bin.pi]
 installation_method = "github_releases"
 
