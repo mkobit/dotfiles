@@ -168,7 +168,7 @@ def _package_fingerprint(root: Path) -> str:
     for path in sorted(root.rglob("*")):
         relative = path.relative_to(root).as_posix()
         if path.is_symlink():
-            entry = (relative, "symlink", path.readlink().as_posix())
+            entry = (relative, "symlink", Path(os.readlink(path)).as_posix())
         elif path.is_file():
             entry = (
                 relative,
@@ -661,10 +661,12 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
                 continue
             root = manifest_roots[marketplace, host]
             package_root = root / str(definition["package_path"])
-            if not package_root.resolve().is_relative_to(root.resolve()):
+            try:
+                package_root.resolve().relative_to(root.resolve())
+            except ValueError as error:
                 raise BridgeError(
                     f"plugin package must resolve inside its marketplace: {package_root}"
-                )
+                ) from error
             package_roots[kind, name, host] = package_root
     for _, name, host, source_type, locator in marketplace_rows:
         if host in unavailable_hosts:
