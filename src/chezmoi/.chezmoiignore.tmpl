@@ -32,6 +32,10 @@
 .npmrc
 {{- end }}
 
+{{- if eq (dig "local" "bin" "opencode" "installation_method" "none" .) "none" }}
+.config/opencode/opencode.json
+{{- end }}
+
 {{- if eq (dig "global_tools" "bun" "installation_method" "" .mise) "none" }}
 .bunfig.toml
 {{- end }}
