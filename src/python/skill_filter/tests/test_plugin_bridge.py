@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 import subprocess
 import sys
 
@@ -98,6 +99,24 @@ def _valid_bridge() -> dict[str, object]:
                 {"environments": ["bad environment"]}
             ),
             "environment",
+        ),
+        (
+            lambda bridge: bridge["capabilities"]["capability"].update(
+                {"package_path": "../outside"}
+            ),
+            "package_path",
+        ),
+        (
+            lambda bridge: bridge["capabilities"]["capability"].update(
+                {"package_path": "/absolute"}
+            ),
+            "package_path",
+        ),
+        (
+            lambda bridge: bridge["capabilities"]["capability"].update(
+                {"package_path": True}
+            ),
+            "package_path",
         ),
     ],
 )
@@ -710,6 +729,196 @@ def test_stale_codex_plugin_version_is_reinstalled_from_deployed_manifest(
     assert installed_version == "2.0.0"
     assert ("codex", "plugin", "remove", "demo@market") in calls
     assert ("codex", "plugin", "add", "demo@market") in calls
+
+
+@pytest.mark.parametrize("change", ["path", "bytes", "executable", "symlink"])
+def test_package_fingerprint_tracks_content_without_absolute_paths(tmp_path, change):
+    source, installed = tmp_path / "source", tmp_path / "cache"
+    source.mkdir()
+    (source / "payload").write_text("original\n", encoding="utf-8")
+    (source / "link").symlink_to("payload")
+    shutil.copytree(source, installed, symlinks=True)
+    original = plugin_bridge._package_fingerprint(source)
+    assert plugin_bridge._package_fingerprint(installed) == original
+
+    if change == "path":
+        (source / "payload").rename(source / "renamed")
+    elif change == "bytes":
+        (source / "payload").write_text("changed\n", encoding="utf-8")
+    elif change == "executable":
+        (source / "payload").chmod(0o755)
+    else:
+        (source / "link").unlink()
+        (source / "link").symlink_to("other")
+
+    assert plugin_bridge._package_fingerprint(source) != original
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_package_plugin_refreshes_same_version_content(tmp_path, monkeypatch, host):
+    source, installed = tmp_path / "source", tmp_path / "cache"
+    source.mkdir()
+    (source / "payload").write_text("original\n", encoding="utf-8")
+    manifest = source / f".{host}-plugin/plugin.json"
+    manifest.parent.mkdir()
+    manifest.write_text(json.dumps({"name": "demo", "version": "7.0.0"}))
+    shutil.copytree(source, installed)
+    (source / "payload").write_text("changed\n", encoding="utf-8")
+    calls = []
+
+    def run(command, *args):
+        assert command == host
+        calls.append(args)
+        if args == ("plugin", "list", "--json"):
+            return json.dumps(
+                [
+                    {
+                        "id": "demo@market",
+                        "version": "7.0.0",
+                        "enabled": True,
+                        "installPath": str(installed),
+                    }
+                ]
+            )
+        if args == ("plugin", "list", "-m", "market", "--json"):
+            return json.dumps(
+                {
+                    "installed": [
+                        {
+                            "pluginId": "demo@market",
+                            "version": "7.0.0",
+                            "installed": True,
+                            "enabled": True,
+                        }
+                    ]
+                }
+            )
+        if args == ("plugin", "uninstall", "demo@market"):
+            shutil.rmtree(installed)
+        if args in {
+            ("plugin", "install", "demo@market"),
+            ("plugin", "add", "demo@market", "--json"),
+        }:
+            shutil.copytree(source, installed, dirs_exist_ok=True)
+            return json.dumps({"installedPath": str(installed)})
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    ownership = tmp_path / "ownership"
+    for _ in range(2):
+        plugin_bridge._ensure_plugin(
+            host, "market", "demo", ownership, set(), set(), package_root=source
+        )
+        assert plugin_bridge._package_fingerprint(installed) == (
+            plugin_bridge._package_fingerprint(source)
+        )
+        assert json.loads(manifest.read_text())["version"] == "7.0.0"
+
+    if host == "claude":
+        assert calls.count(("plugin", "uninstall", "demo@market")) == 1
+        assert calls.count(("plugin", "install", "demo@market")) == 1
+    else:
+        assert calls.count(("plugin", "add", "demo@market", "--json")) == 2
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+@pytest.mark.parametrize("installed_path", [None, "stale"])
+def test_package_plugin_rejects_unverified_cache(
+    tmp_path, monkeypatch, host, installed_path
+):
+    source, installed = tmp_path / "source", tmp_path / "cache"
+    source.mkdir()
+    installed.mkdir()
+    (source / "payload").write_text("expected\n", encoding="utf-8")
+    (installed / "payload").write_text("stale\n", encoding="utf-8")
+
+    def run(command, *args):
+        if command == "claude":
+            return json.dumps(
+                [
+                    {
+                        "id": "demo@market",
+                        "enabled": True,
+                        **({"installPath": str(installed)} if installed_path else {}),
+                    }
+                ]
+            )
+        if args == ("plugin", "add", "demo@market", "--json"):
+            return json.dumps(
+                {"installedPath": str(installed)} if installed_path else {}
+            )
+        return json.dumps(
+            {
+                "installed": [
+                    {"pluginId": "demo@market", "installed": True, "enabled": True}
+                ]
+            }
+        )
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    ownership = tmp_path / "ownership"
+    with pytest.raises(plugin_bridge.BridgeError, match="run chezmoi apply again"):
+        plugin_bridge._ensure_plugin(
+            host, "market", "demo", ownership, set(), set(), package_root=source
+        )
+    assert not ownership.exists()
+
+
+def test_reconcile_passes_package_root_inside_generated_marketplace(
+    tmp_path, monkeypatch
+):
+    calls = []
+    declaration = _valid_bridge()
+    bridge = declaration["plugin_bridge"]
+    assert isinstance(bridge, dict)
+    bridge["capabilities"]["capability"]["package_path"] = "./plugins/capability"
+    monkeypatch.setattr(plugin_bridge, "_ensure_marketplace", lambda *args: None)
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_plugin",
+        lambda host, marketplace, name, *args, **kwargs: calls.append((name, kwargs)),
+    )
+    plugin_bridge.reconcile(tmp_path, declaration)
+    package_root = (
+        tmp_path / ".local/share/agent-plugins/marketplace/plugins/capability"
+    )
+    capability_calls = [kwargs for name, kwargs in calls if name == "capability"]
+    assert len(capability_calls) == 2
+    assert all(kwargs["package_root"] == package_root for kwargs in capability_calls)
+    assert all(
+        "package_root" not in kwargs for name, kwargs in calls if name == "plugin"
+    )
+
+
+def test_package_path_requires_generated_marketplace(tmp_path, monkeypatch):
+    declaration = _valid_bridge()
+    bridge = declaration["plugin_bridge"]
+    assert isinstance(bridge, dict)
+    bridge["marketplaces"]["market"].update(
+        {"source_type": "public", "source_locator": "owner/repo"}
+    )
+    bridge["capabilities"]["capability"]["package_path"] = "./plugins/capability"
+    monkeypatch.setattr(
+        plugin_bridge, "_run", lambda *args: pytest.fail("unexpected host operation")
+    )
+    with pytest.raises(plugin_bridge.BridgeError, match="generated marketplace"):
+        plugin_bridge.reconcile(tmp_path, declaration)
+    assert not (tmp_path / ".local").exists()
+
+
+def test_package_path_cannot_resolve_outside_marketplace(tmp_path, monkeypatch):
+    declaration = _valid_bridge()
+    bridge = declaration["plugin_bridge"]
+    assert isinstance(bridge, dict)
+    bridge["capabilities"]["capability"]["package_path"] = "./plugins/capability"
+    root = tmp_path / ".local/share/agent-plugins/marketplace/plugins"
+    root.mkdir(parents=True)
+    (root / "capability").symlink_to(tmp_path / "outside")
+    monkeypatch.setattr(
+        plugin_bridge, "_run", lambda *args: pytest.fail("unexpected host operation")
+    )
+    with pytest.raises(plugin_bridge.BridgeError, match="resolve inside"):
+        plugin_bridge.reconcile(tmp_path, declaration)
 
 
 def test_plugin_removal_requires_verified_absence(tmp_path, monkeypatch):

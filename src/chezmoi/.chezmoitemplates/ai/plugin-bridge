@@ -1,0 +1,11 @@
+{{- /* Keep native registration consistent with upstream package acquisition. */ -}}
+{{- $bridge := deepCopy (dig "ai" "plugin_bridge" (dict) .) -}}
+{{- $capabilities := dict -}}
+{{- range $name, $capability := dig "capabilities" (dict) $bridge -}}
+{{-   $source := dig "external_source" "" $capability -}}
+{{-   if or (not $source) (eq (dig "ai" "plugins" $source "installation_method" "none" $) "chezmoi_external") -}}
+{{-     $_ := set $capabilities $name $capability -}}
+{{-   end -}}
+{{- end -}}
+{{- $_ := set $bridge "capabilities" $capabilities -}}
+{{- toJson $bridge -}}

@@ -10,7 +10,9 @@ if [ -d "$cache_dir" ]; then
   # Build a space-separated string of active checksums for cross-platform matching
   {{- $activeKeys := list -}}
   {{- range $sourceName, $source := .ai.skills.external }}
-    {{- $activeKeys = concat $activeKeys (list $source.sha256) }}
+    {{- if dig "sha256" "" $source }}
+      {{- $activeKeys = concat $activeKeys (list $source.sha256) }}
+    {{- end }}
   {{- end }}
   {{- range $sourceName, $source := .ai.agents.external }}
     {{- $activeKeys = concat $activeKeys (list $source.sha256) }}

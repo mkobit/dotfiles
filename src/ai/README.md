@@ -8,6 +8,7 @@ deploys host views to `claude/`, `codex/`, and `cursor/` subdirectories under `.
 runs post-apply bridge script `run_after_agent-plugin-bridge.sh.tmpl` calling `src/python/skill_filter/skill_filter/plugin_bridge.py` to register marketplaces and plugins in Claude Code and OpenAI Codex.
 Antigravity consumes direct flat skills under `~/.gemini/antigravity-cli/skills/` and discovers plugin bundles via declarative `~/.gemini/config/plugins.json` pointing to `.local/share/agent-plugins/marketplace/plugins`.
 Antigravity skill deployment and configuration are gated on `local.bin.agy.installation_method != 'none'`, allowing work overlays to omit Antigravity entirely.
+OpenCode V1 receives local package paths in `~/.config/opencode/opencode.json` only when its existing tool gate and the plugin package gate are enabled.
 
 ## Workflows for AI agents
 
@@ -23,13 +24,13 @@ pin `repo`, `ref`, and `sha256` under `[ai.skills.external.<source>]` in `src/ch
 select individual skills under `[ai.skills.external.<source>.skills]` with state `"present"` or a specific host name (`"claude"`, `"codex"`, `"cursor"`, `"antigravity"`).
 
 ```toml
-[ai.skills.external.superpowers]
-repo = "obra/superpowers"
+[ai.skills.external.example]
+repo = "<owner>/<repo>"
 ref = "<full commit sha>"
 sha256 = "<sha256 of downloaded archive>"
 
-[ai.skills.external.superpowers.skills]
-brainstorming = "present"
+[ai.skills.external.example.skills]
+example = "present"
 ```
 
 compute the pin for a new commit with `curl`:
@@ -75,12 +76,31 @@ set state to `"absent"` in the relevant catalog TOML file to deselect an authore
 never delete catalog keys for removed skills, which leaves deployed files unmanaged.
 `.chezmoiremove.tmpl` templates in each plugin host view and `dot_gemini/` tombstone and prune absent skills on `chezmoi apply`.
 
-## Superpowers compatibility policy
+## Upstream plugin packages
 
-selected upstream Superpowers skills retain per-plan SDD state and review loop.
-repository `AGENTS.md` instructions and harness Plan Mode govern wherever upstream wording differs.
-pass `PLAN_FILE` as first argument to every SDD helper call: `sdd-workspace`, `task-brief`, and `review-package`.
-retains upstream worktree and destructive-action safeguards.
+declare archive metadata under `[ai.plugins.<name>]` in `src/chezmoi/.chezmoidata/ai/plugins/<name>.toml`.
+enable the package in the init template:
+
+```toml
+[data.ai.plugins.superpowers]
+installation_method = "chezmoi_external"
+```
+
+set the method to `"none"` to remove the managed package and its host registrations.
+a missing method also means `"none"`.
+the archive pin uses a full commit ref and archive SHA-256.
+archive hosts use the existing `ai.skills.hosts` catalog, so an overlay can select its package mirror.
+
+[Superpowers v7.0.0](https://github.com/obra/superpowers/tree/bb92a77741419a4ab5f06e711a283343f1ada0c3) deploys the complete repository, with no skill filter or workflow edits.
+its shared root is `.local/share/agent-plugins/marketplace/plugins/superpowers/`.
+Claude Code and Codex register that root through the local marketplace bridge.
+Cursor receives an identical archive at `.cursor/plugins/local/superpowers/` and uses the upstream manifest and hooks there.
+the [upstream OpenCode adapter](https://github.com/obra/superpowers/blob/bb92a77741419a4ab5f06e711a283343f1ada0c3/.opencode/INSTALL.md) uses the shared root as an absolute local package directory in the pinned V1 `plugin` array.
+OpenCode registration also requires `local.bin.opencode.installation_method != "none"`.
+Antigravity keeps its existing parent-directory registration and tool gate.
+Gemini CLI stays disabled where its tool gate is absent or set to `"none"`.
+the package retains upstream rules, agents, hooks, and runtime helpers.
+legacy per-skill Superpowers selections stay `"absent"` so apply removes duplicate copies.
 
 ## Upstream agents
 
@@ -110,5 +130,5 @@ run test suite and linters:
 uv run ruff check
 uv run ruff format --check
 uv run ty check
-uv run pytest tests/integration/test_ai_skills.py
+uv run pytest tests/integration/test_ai_skills.py tests/integration/test_ai_environment_fixtures.py tests/integration/test_opencode_plugins.py
 ```
