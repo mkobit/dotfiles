@@ -3,6 +3,7 @@ import os
 import shlex
 import shutil
 import subprocess
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -107,6 +108,57 @@ def test_mise_activation_runs_only_in_interactive_shells(tmp_path, shell, intera
 
     assert result.returncode == 0, result.stderr
     assert result.stdout == ("yes\n" if interactive else "no\n")
+
+
+@pytest.mark.parametrize("override", [None, True])
+def test_mise_config_disables_activation_shims_unless_overridden(tmp_path, override):
+    config = tmp_path / "chezmoi.toml"
+    chezmoi = shutil.which("chezmoi")
+    assert chezmoi is not None
+    command = [
+        chezmoi,
+        "--config",
+        "/dev/null",
+        "--config-format",
+        "toml",
+        "--source",
+        str(REPOSITORY_ROOT),
+        "--destination",
+        str(tmp_path),
+        "execute-template",
+        "--init",
+        "--file",
+        str(REPOSITORY_ROOT / "src/chezmoi/.chezmoi.toml.tmpl"),
+    ]
+    initialized = subprocess.run(
+        command, env={**os.environ, "CI": "1", "PATH": os.defpath}, capture_output=True, text=True, check=True
+    )
+    config.write_text(initialized.stdout, encoding="utf-8")
+    rendered = subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            str(config),
+            "--source",
+            str(REPOSITORY_ROOT),
+            "--destination",
+            str(tmp_path),
+            "execute-template",
+            *(
+                ["--override-data", json.dumps({"mise": {"settings": {"activate_shims": override}}})]
+                if override is not None
+                else []
+            ),
+            "--file",
+            str(REPOSITORY_ROOT / "src/chezmoi/dot_config/mise/config.toml.tmpl"),
+        ],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+
+    settings = tomllib.loads(rendered.stdout)["settings"]
+    assert settings.get("activate_shims") is (override if override is not None else False)
 
 
 @pytest.mark.integration

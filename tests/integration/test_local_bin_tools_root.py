@@ -14,10 +14,14 @@ LOCAL_TOOLS_SCRIPT = SCRIPT_DIR / "run_onchange_after_08_install-local-bin-tools
 
 
 def _render(
-    template: Path, *, source_root: Path | None = None, destination: Path | None = None
+    template: Path,
+    *,
+    source_root: Path | None = None,
+    destination: Path | None = None,
+    mise_method: str | None = "github_releases",
 ) -> subprocess.CompletedProcess[str]:
     data = {
-        "local": {"bin": {"mise": {"installation_method": "github_releases"}}},
+        "local": {"bin": {"mise": {"installation_method": mise_method} if mise_method is not None else {}}},
         "local_bin_tools": {},
     }
     if source_root is not None:
@@ -136,3 +140,13 @@ def test_legacy_tool_cleanup_uses_mise_at_base_checkout(tmp_path, assembled):
         f"exec --cd {root} -- uv tool list",
         f"exec --cd {root} -- uv tool uninstall tmux-runtime-tools",
     ]
+
+
+@pytest.mark.parametrize("mise_method", [None, "none"])
+def test_legacy_tool_cleanup_is_empty_when_mise_is_not_enabled(tmp_path, mise_method):
+    script = _render(
+        SCRIPT_DIR / "run_once_after_uninstall_tmux_helper.sh.tmpl", destination=tmp_path, mise_method=mise_method
+    )
+
+    assert script.returncode == 0, script.stderr
+    assert script.stdout == ""
