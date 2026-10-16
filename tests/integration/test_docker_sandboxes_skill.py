@@ -9,6 +9,19 @@ REFERENCES_DIR = SKILL_DIR / "references"
 TEMPLATES_DIR = SKILL_DIR / "templates"
 
 
+def test_skill_grants_only_reviewed_sbx_commands():
+    """Keep the skill grants scoped to the reviewed repository commands."""
+    frontmatter = SKILL_FILE.read_text(encoding="utf-8").split("---", 2)[1]
+    metadata = yaml.safe_load(frontmatter)
+
+    assert metadata["allowed-tools"] == [
+        "Bash(sbx ls --format json)",
+        "Bash(sbx kit validate .sbx/kit)",
+        "Bash(sbx env plan .sbx/sbxenv.yaml)",
+        "Bash(sbx env exec .sbx/sbxenv.yaml -- *)",
+    ]
+
+
 def test_skill_describes_host_coordinated_repository_sandboxes():
     """Keep host coordination and repository ownership explicit."""
     skill = SKILL_FILE.read_text(encoding="utf-8")

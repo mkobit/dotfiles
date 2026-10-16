@@ -1,118 +1,100 @@
-# Docker Sandboxes (sbx) CLI: safe read-only inspection, help, artifact validation,
-# and sandboxed environment execution (`sbx env exec`).
-#
-# Deliberately excluded — do not add:
-#   - "sbx run", "sbx create", "sbx exec": provisioning, starting, or executing
-#     raw sandboxes from the host requires human confirmation because it spawns
-#     host microVMs/containers, mounts workspaces, and allocates host resources.
-#     Note: "sbx env exec" is explicitly allowed below to enable full AI autonomy
-#     within configured environment sandboxes.
-#   - "sbx rm", "sbx reset", "sbx stop": lifecycle teardown and state destruction
-#     of existing sandboxes; always prompt to avoid accidental container deletion.
-#   - "sbx login", "sbx logout": authenticates or wipes Docker cloud auth state;
-#     always prompt.
-#   - "sbx daemon": manages host-level sandbox daemon process; always prompt.
-#   - "sbx secret set", "sbx secret rm": mutates host-managed secrets store;
-#     always prompt.
-#   - "sbx policy allow", "sbx policy deny", "sbx policy rm", "sbx policy init",
-#     "sbx policy reset": mutates persistent access policies; always prompt.
-#   - "sbx mcp add", "sbx mcp auth", "sbx mcp rm", "sbx mcp load": registers,
-#     authorizes, or mutates MCP servers; always prompt.
-[ai.command_policy.commands]
-"sbx --help" = "allow"
-"sbx --version" = "allow"
-"sbx completion --help" = "allow"
-"sbx completion bash --help" = "allow"
-"sbx completion fish --help" = "allow"
-"sbx completion powershell --help" = "allow"
-"sbx completion zsh --help" = "allow"
-"sbx completion" = "allow"
-"sbx cp --help" = "allow"
-"sbx create --help" = "allow"
-"sbx daemon --help" = "allow"
-"sbx daemon log-level --help" = "allow"
-"sbx daemon restart --help" = "allow"
-"sbx daemon start --help" = "allow"
-"sbx daemon status --help" = "allow"
-"sbx daemon status" = "allow"
-"sbx daemon stop --help" = "allow"
-"sbx diagnose --help" = "allow"
-"sbx diagnose" = "allow"
-"sbx env --help" = "allow"
-"sbx env create --help" = "allow"
-"sbx env exec" = "allow"
-"sbx env exec --help" = "allow"
-"sbx env list --help" = "allow"
-"sbx env list" = "allow"
-"sbx env ls --help" = "allow"
-"sbx env ls" = "allow"
-"sbx env rm --help" = "allow"
-"sbx env run --help" = "allow"
-"sbx exec --help" = "allow"
-"sbx help" = "allow"
-"sbx kit" = "allow"
-"sbx kit --help" = "allow"
-"sbx kit add --help" = "allow"
-"sbx kit inspect --help" = "allow"
-"sbx kit inspect" = "allow"
-"sbx kit pack --help" = "allow"
-"sbx kit provenance --help" = "allow"
-"sbx kit pull --help" = "allow"
-"sbx kit push --help" = "allow"
-"sbx kit sign --help" = "allow"
-"sbx kit validate --help" = "allow"
-"sbx kit validate" = "allow"
-"sbx kit verify --help" = "allow"
-"sbx login --help" = "allow"
-"sbx logout --help" = "allow"
-"sbx ls --help" = "allow"
-"sbx ls" = "allow"
-"sbx mcp --help" = "allow"
-"sbx mcp add --help" = "allow"
-"sbx mcp auth --help" = "allow"
-"sbx mcp inspect --help" = "allow"
-"sbx mcp inspect" = "allow"
-"sbx mcp load --help" = "allow"
-"sbx mcp ls --help" = "allow"
-"sbx mcp ls" = "allow"
-"sbx mcp rm --help" = "allow"
-"sbx policy --help" = "allow"
-"sbx policy allow --help" = "allow"
-"sbx policy check --help" = "allow"
-"sbx policy check" = "allow"
-"sbx policy deny --help" = "allow"
-"sbx policy init --help" = "allow"
-"sbx policy inspect --help" = "allow"
-"sbx policy log --help" = "allow"
-"sbx policy ls --help" = "allow"
-"sbx policy ls" = "allow"
-"sbx policy profile --help" = "allow"
-"sbx policy reset --help" = "allow"
-"sbx policy rm --help" = "allow"
-"sbx ports --help" = "allow"
-"sbx prune --help" = "allow"
-"sbx reset --help" = "allow"
-"sbx rm --help" = "allow"
-"sbx run --help" = "allow"
-"sbx secret --help" = "allow"
-"sbx secret import --help" = "allow"
-"sbx secret ls --help" = "allow"
-"sbx secret ls" = "allow"
-"sbx secret rm --help" = "allow"
-"sbx secret set --help" = "allow"
-"sbx secret set-custom --help" = "allow"
-"sbx setup --help" = "allow"
-"sbx skills --help" = "allow"
-"sbx skills import --help" = "allow"
-"sbx skills ls --help" = "allow"
-"sbx skills ls" = "allow"
-"sbx stop --help" = "allow"
-"sbx template --help" = "allow"
-"sbx template load --help" = "allow"
-"sbx template ls --help" = "allow"
-"sbx template ls" = "allow"
-"sbx template rm --help" = "allow"
-"sbx template save --help" = "allow"
-"sbx tui --help" = "allow"
-"sbx version --help" = "allow"
-"sbx version" = "allow"
+# Retired global SBX grants migrate only matching live allow entries.
+# Active SBX permission guidance is in src/ai/skills/docker-sandboxes/references/permissions.md.
+[ai.command_policy.retired_commands]
+"sbx --help" = true
+"sbx --version" = true
+"sbx completion --help" = true
+"sbx completion bash --help" = true
+"sbx completion fish --help" = true
+"sbx completion powershell --help" = true
+"sbx completion zsh --help" = true
+"sbx completion" = true
+"sbx cp --help" = true
+"sbx create --help" = true
+"sbx daemon --help" = true
+"sbx daemon log-level --help" = true
+"sbx daemon restart --help" = true
+"sbx daemon start --help" = true
+"sbx daemon status --help" = true
+"sbx daemon status" = true
+"sbx daemon stop --help" = true
+"sbx diagnose --help" = true
+"sbx diagnose" = true
+"sbx env --help" = true
+"sbx env create --help" = true
+"sbx env exec" = true
+"sbx env exec --help" = true
+"sbx env list --help" = true
+"sbx env list" = true
+"sbx env ls --help" = true
+"sbx env ls" = true
+"sbx env rm --help" = true
+"sbx env run --help" = true
+"sbx exec --help" = true
+"sbx help" = true
+"sbx kit" = true
+"sbx kit --help" = true
+"sbx kit add --help" = true
+"sbx kit inspect --help" = true
+"sbx kit inspect" = true
+"sbx kit pack --help" = true
+"sbx kit provenance --help" = true
+"sbx kit pull --help" = true
+"sbx kit push --help" = true
+"sbx kit sign --help" = true
+"sbx kit validate --help" = true
+"sbx kit validate" = true
+"sbx kit verify --help" = true
+"sbx login --help" = true
+"sbx logout --help" = true
+"sbx ls --help" = true
+"sbx ls" = true
+"sbx mcp --help" = true
+"sbx mcp add --help" = true
+"sbx mcp auth --help" = true
+"sbx mcp inspect --help" = true
+"sbx mcp inspect" = true
+"sbx mcp load --help" = true
+"sbx mcp ls --help" = true
+"sbx mcp ls" = true
+"sbx mcp rm --help" = true
+"sbx policy --help" = true
+"sbx policy allow --help" = true
+"sbx policy check --help" = true
+"sbx policy check" = true
+"sbx policy deny --help" = true
+"sbx policy init --help" = true
+"sbx policy inspect --help" = true
+"sbx policy log --help" = true
+"sbx policy ls --help" = true
+"sbx policy ls" = true
+"sbx policy profile --help" = true
+"sbx policy reset --help" = true
+"sbx policy rm --help" = true
+"sbx ports --help" = true
+"sbx prune --help" = true
+"sbx reset --help" = true
+"sbx rm --help" = true
+"sbx run --help" = true
+"sbx secret --help" = true
+"sbx secret import --help" = true
+"sbx secret ls --help" = true
+"sbx secret ls" = true
+"sbx secret rm --help" = true
+"sbx secret set --help" = true
+"sbx secret set-custom --help" = true
+"sbx setup --help" = true
+"sbx skills --help" = true
+"sbx skills import --help" = true
+"sbx skills ls --help" = true
+"sbx skills ls" = true
+"sbx stop --help" = true
+"sbx template --help" = true
+"sbx template load --help" = true
+"sbx template ls --help" = true
+"sbx template ls" = true
+"sbx template rm --help" = true
+"sbx template save --help" = true
+"sbx tui --help" = true
+"sbx version --help" = true
+"sbx version" = true

@@ -51,9 +51,14 @@ Keep kit commands reproducible from repository-tracked toolchain files.
 
 ## Lifecycle
 
-1. Run `sbx kit validate .sbx/kit`.
-2. Run `sbx env plan .sbx/sbxenv.yaml`.
-3. Run `sbx env create .sbx/sbxenv.yaml`.
-4. Run checks or an agent session in the environment.
-5. Review changes and perform Git delivery on the host.
-6. Run `sbx env rm .sbx/sbxenv.yaml --force` when the environment is no longer needed.
+Inspect `sbx ls --format json` and reuse a matching environment.
+
+When the kit or environment configuration changes, validate `.sbx/kit` and plan `.sbx/sbxenv.yaml`.
+
+Create the environment only when needed and authorized.
+
+Run checks in the environment and review any direct-mounted changes on the host.
+
+Perform Git delivery on the host when authorized.
+
+Remove the environment only when authorized.
