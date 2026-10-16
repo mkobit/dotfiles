@@ -1,8 +1,11 @@
 """Ensure mise and editable local tools use the configured source checkout root."""
 
 import json
+import os
 import subprocess
 from pathlib import Path
+
+import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts"
@@ -10,7 +13,9 @@ MISE_SCRIPT = SCRIPT_DIR / "run_onchange_after_07_trust-install-repo-mise-tools.
 LOCAL_TOOLS_SCRIPT = SCRIPT_DIR / "run_onchange_after_08_install-local-bin-tools.sh.tmpl"
 
 
-def _render(template: Path, *, source_root: Path | None = None) -> subprocess.CompletedProcess[str]:
+def _render(
+    template: Path, *, source_root: Path | None = None, destination: Path | None = None
+) -> subprocess.CompletedProcess[str]:
     data = {
         "local": {"bin": {"mise": {"installation_method": "github_releases"}}},
         "local_bin_tools": {},
@@ -35,6 +40,7 @@ def _render(template: Path, *, source_root: Path | None = None) -> subprocess.Co
             "toml",
             "--source",
             str(REPOSITORY_ROOT),
+            *(["--destination", str(destination)] if destination is not None else []),
             "execute-template",
             "--file",
             "--override-data",
@@ -86,3 +92,47 @@ def test_mise_and_editable_tool_default_to_standalone_working_tree():
     assert f'mise install -C "{REPOSITORY_ROOT}"' in mise.stdout
     assert f'--cd "{REPOSITORY_ROOT}"' in local_tools.stdout
     assert f'--editable "{REPOSITORY_ROOT}/src/python/termstatus"' in local_tools.stdout
+
+
+@pytest.mark.parametrize("assembled", [False, True])
+def test_legacy_tool_cleanup_uses_mise_at_base_checkout(tmp_path, assembled):
+    source_root = tmp_path / "overlay/src/base" if assembled else None
+    destination = tmp_path / "destination"
+    local_bin = destination / ".local/bin"
+    local_bin.mkdir(parents=True)
+    trace = tmp_path / "mise-commands"
+    mise = local_bin / "mise"
+    mise.write_text(
+        "#!/bin/sh\n"
+        'printf "%s\\n" "$*" >> "$MISE_TEST_TRACE"\n'
+        'test "$1" = exec && test "$2" = --cd && test -d "$3" || exit 1\n'
+        'test "$4 $5 $6" = "-- uv tool" || exit 1\n'
+        'if test "$7" = list; then printf "%s\\n" "tmux-helper v1" "tmux-runtime-tools v1"; fi\n',
+        encoding="utf-8",
+    )
+    mise.chmod(0o755)
+    if source_root is not None:
+        source_root.mkdir(parents=True)
+    script = _render(
+        SCRIPT_DIR / "run_once_after_uninstall_tmux_helper.sh.tmpl", source_root=source_root, destination=destination
+    )
+    assert script.returncode == 0, script.stderr
+
+    result = subprocess.run(
+        ["bash"],
+        input=script.stdout,
+        env={**os.environ, "PATH": "/usr/bin:/bin", "MISE_TEST_TRACE": str(trace)},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    root = source_root if assembled else REPOSITORY_ROOT
+    commands = trace.read_text(encoding="utf-8").splitlines() if trace.exists() else []
+    assert commands == [
+        f"exec --cd {root} -- uv tool list",
+        f"exec --cd {root} -- uv tool uninstall tmux-helper",
+        f"exec --cd {root} -- uv tool list",
+        f"exec --cd {root} -- uv tool uninstall tmux-runtime-tools",
+    ]
