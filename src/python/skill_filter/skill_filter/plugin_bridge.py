@@ -126,6 +126,50 @@ def _marketplace_present(host: str, marketplace: str) -> bool:
     )
 
 
+def _generated_marketplace_source(
+    host: str, name: str, *, allow_missing_manifest: bool = False
+) -> Path | None:
+    try:
+        output = _run(host, "plugin", "marketplace", "list", "--json")
+    except BridgeError as error:
+        if host == "codex" and allow_missing_manifest:
+            # Codex cannot list a registered root after its manifest is removed.
+            prefix = f"- `{name}` at "
+            suffix = ": marketplace root does not contain a supported manifest"
+            for line in str(error).splitlines():
+                if line.startswith(prefix) and line.endswith(suffix):
+                    path = line[len(prefix) : -len(suffix)]
+                    if Path(path).is_absolute():
+                        return Path(path)
+        raise
+    response = json.loads(output)
+    records = response
+    if host == "codex":
+        records = (
+            response.get("marketplaces") if isinstance(response, Mapping) else None
+        )
+    if not isinstance(records, list):
+        raise BridgeError("plugin host returned invalid marketplace JSON")
+    for item in records:
+        if not isinstance(item, Mapping) or item.get("name") != name:
+            continue
+        if host == "claude":
+            path = item.get("path") if item.get("source") == "directory" else None
+        else:
+            source = item.get("marketplaceSource")
+            path = (
+                source.get("source")
+                if isinstance(source, Mapping) and source.get("sourceType") == "local"
+                else None
+            )
+        if not isinstance(path, str) or not Path(path).is_absolute():
+            raise BridgeError(
+                f"plugin host returned no local source for marketplace: {name} ({host})"
+            )
+        return Path(path)
+    return None
+
+
 def _plugin_present(host: str, marketplace: str, plugin: str) -> bool:
     expected = f"{plugin}@{marketplace}"
     args = ["--json"] if host == "claude" else ["-m", marketplace]
@@ -464,19 +508,34 @@ def _ensure_marketplace(
         return
     if not source_locator:
         raise BridgeError(f"marketplace has no source: {name}")
-    present = _marketplace_present(host, name)
-    if present and source_type != "generated":
-        _run(
-            host,
-            "plugin",
-            "marketplace",
-            "update" if host == "claude" else "upgrade",
-            name,
+    if source_type == "generated":
+        expected = Path(source_locator).resolve()
+        registered = _generated_marketplace_source(
+            host, name, allow_missing_manifest=True
         )
-    elif not present:
-        _run(host, "plugin", "marketplace", "add", source_locator)
-    if not _marketplace_present(host, name):
-        raise BridgeError(f"marketplace did not become available: {name}")
+        if registered is not None and registered.resolve() != expected:
+            _run(host, "plugin", "marketplace", "remove", name)
+            registered = None
+        if registered is None:
+            _run(host, "plugin", "marketplace", "add", source_locator)
+        registered = _generated_marketplace_source(host, name)
+        if registered is None or registered.resolve() != expected:
+            raise BridgeError(
+                f"marketplace did not register expected source: {name} ({host}); expected {expected}"
+            )
+    else:
+        if _marketplace_present(host, name):
+            _run(
+                host,
+                "plugin",
+                "marketplace",
+                "update" if host == "claude" else "upgrade",
+                name,
+            )
+        else:
+            _run(host, "plugin", "marketplace", "add", source_locator)
+        if not _marketplace_present(host, name):
+            raise BridgeError(f"marketplace did not become available: {name}")
     owned_desired.add(record)
     _checkpoint(ownership_file, record)
 
