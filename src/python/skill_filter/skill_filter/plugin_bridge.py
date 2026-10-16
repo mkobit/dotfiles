@@ -126,22 +126,8 @@ def _marketplace_present(host: str, marketplace: str) -> bool:
     )
 
 
-def _generated_marketplace_source(
-    host: str, name: str, *, allow_missing_manifest: bool = False
-) -> Path | None:
-    try:
-        output = _run(host, "plugin", "marketplace", "list", "--json")
-    except BridgeError as error:
-        if host == "codex" and allow_missing_manifest:
-            # Codex cannot list a registered root after its manifest is removed.
-            prefix = f"- `{name}` at "
-            suffix = ": marketplace root does not contain a supported manifest"
-            for line in str(error).splitlines():
-                if line.startswith(prefix) and line.endswith(suffix):
-                    path = line[len(prefix) : -len(suffix)]
-                    if Path(path).is_absolute():
-                        return Path(path)
-        raise
+def _generated_marketplace_source(host: str, name: str) -> Path | None:
+    output = _run(host, "plugin", "marketplace", "list", "--json")
     response = json.loads(output)
     records = response
     if host == "codex":
@@ -168,6 +154,29 @@ def _generated_marketplace_source(
             )
         return Path(path)
     return None
+
+
+def _repair_missing_codex_marketplaces(sources: Mapping[str, str]) -> None:
+    if not sources:
+        return
+    try:
+        _generated_marketplace_source("codex", next(iter(sources)))
+    except BridgeError as error:
+        # A missing manifest blocks the global list, including healthy roots.
+        repairs = {}
+        suffix = ": marketplace root does not contain a supported manifest"
+        for name, locator in sources.items():
+            prefix = f"- `{name}` at "
+            for line in str(error).splitlines():
+                if line.startswith(prefix) and line.endswith(suffix):
+                    path = Path(line[len(prefix) : -len(suffix)])
+                    if path.is_absolute() and path.resolve() != Path(locator).resolve():
+                        repairs[name] = locator
+        if not repairs:
+            raise
+        for name, locator in repairs.items():
+            _run("codex", "plugin", "marketplace", "remove", name)
+            _run("codex", "plugin", "marketplace", "add", locator)
 
 
 def _plugin_present(host: str, marketplace: str, plugin: str) -> bool:
@@ -510,9 +519,7 @@ def _ensure_marketplace(
         raise BridgeError(f"marketplace has no source: {name}")
     if source_type == "generated":
         expected = Path(source_locator).resolve()
-        registered = _generated_marketplace_source(
-            host, name, allow_missing_manifest=True
-        )
+        registered = _generated_marketplace_source(host, name)
         if registered is not None and registered.resolve() != expected:
             _run(host, "plugin", "marketplace", "remove", name)
             registered = None
@@ -727,6 +734,16 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
                     f"plugin package must resolve inside its marketplace: {package_root}"
                 ) from error
             package_roots[kind, name, host] = package_root
+    try:
+        _repair_missing_codex_marketplaces(
+            {
+                name: locator
+                for _, name, host, source_type, locator in marketplace_rows
+                if host == "codex" and source_type == "generated"
+            }
+        )
+    except HostUnavailableError:
+        unavailable_hosts.add("codex")
     for _, name, host, source_type, locator in marketplace_rows:
         if host in unavailable_hosts:
             continue
