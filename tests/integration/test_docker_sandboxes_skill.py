@@ -28,20 +28,25 @@ def test_skill_describes_host_coordinated_repository_sandboxes():
 
     for required in (
         "Docker Sandbox",
-        "AGENTS.md",
         "repository-owned",
         "clone: false",
         "immediately visible",
         "commits, signing, and pushes",
         "private clone",
-        "sbx env create",
-        "sbx env rm",
         "references/repository-setup.md",
         "references/environment-files.md",
         "references/agents.md",
         "references/nested-execution.md",
     ):
         assert required in skill, f"Missing {required!r} in {SKILL_FILE}"
+
+    setup_file = REFERENCES_DIR / "repository-setup.md"
+    setup = setup_file.read_text(encoding="utf-8")
+    for required in (
+        "sbx env create .sbx/sbxenv.yaml",
+        "Remove the environment only when authorized",
+    ):
+        assert required in setup, f"Missing {required!r} in {setup_file}"
 
 
 def test_skill_ships_direct_mounted_project_environment_templates():

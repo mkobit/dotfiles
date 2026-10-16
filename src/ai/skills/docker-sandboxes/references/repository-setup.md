@@ -51,11 +51,20 @@ Keep kit commands reproducible from repository-tracked toolchain files.
 
 ## Lifecycle
 
-Inspect `sbx ls --format json` and reuse a matching environment.
+Use this procedure only when the environment is missing or its configuration changed.
+For an existing environment with unchanged configuration, dispatch directly with `sbx env exec`.
 
-When the kit or environment configuration changes, validate `.sbx/kit` and plan `.sbx/sbxenv.yaml`.
+Inspect `sbx ls --format json` if the environment state is unknown.
+Validate and plan the required setup:
 
-Create the environment only when needed and authorized.
+```sh
+sbx kit validate .sbx/kit
+sbx env plan .sbx/sbxenv.yaml
+```
+
+Create a missing environment with `sbx env create .sbx/sbxenv.yaml` when authorized.
+For changed configuration, use the plan to identify the required update or rebuild.
+Keep authorized environment removal separate from task execution.
 
 Run checks in the environment and review any direct-mounted changes on the host.
 
