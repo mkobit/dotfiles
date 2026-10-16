@@ -3,7 +3,7 @@
 ## Notable cross-cutting features
 
 - **AI agent sandbox**: Docker Sandboxes (`sbx`) provides microVM-isolated execution environments for AI agent CLIs; legacy `sandboxr` bwrap implementation is documented in [src/python/sandboxr/AGENTS.md](../python/sandboxr/AGENTS.md).
-- **Command approval policy** (see below): global command-approval allowlist for attended (HITL) agent sessions, rendered into each tool's native permission syntax.
+- **Command approval policy** (see below): shared Claude Code and Antigravity catalog with separate Codex project rules.
 - **Secrets** (`[data.secrets]` in `.chezmoi.toml.tmpl`): rendered to a private (`0600`) file sourced by shell rc fragments, never inlined into a fragment itself.
 
 ## Docker Sandboxes ownership
@@ -13,8 +13,8 @@ Each consuming repository owns its complete tracked SBX kit and toolchain.
 
 ## Command approval policy
 
-Global, tool-neutral allowlist of shell commands that AI coding agents auto-approve without prompting the human.
-Defined once, rendered into each tool's native permission syntax.
+Shared command catalog for Claude Code and Antigravity allow and deny rules.
+Codex uses its own trusted project rules when configured.
 Documented here rather than inside `.chezmoidata/ai/command_policy/` itself: chezmoi parses every file under `.chezmoidata/` as a data source, so a `.md` file there breaks every template reading chezmoi data with an "unknown format" error.
 
 - One file per domain under `.chezmoidata/ai/command_policy/*.toml` (e.g. `git.toml`, `beads.toml`); every file contributes keys to the same `[ai.command_policy.commands]` table.
@@ -27,8 +27,9 @@ Documented here rather than inside `.chezmoidata/ai/command_policy/` itself: che
   Rendered by `dot_gemini/antigravity-cli/modify_settings.json` → Antigravity's `permissions.allow`/`.deny`, `command(<command>)` syntax (each whitespace token matched as an anchored regex).
   The `deny` key name there is inferred from Antigravity's documented "Deny > Ask > Allow" precedence, not yet live-tested.
   Prefix/wildcard matching is entirely a renderer concern — the schema only ever stores complete, literal commands.
-- Both tools' `permissions.allow`/`.deny` are fully replaced by chezmoi on every apply, including any grant agy's own in-CLI "always allow" flow wrote into the live file.
-  Chezmoi owns these fields; add a command to the catalog rather than relying on a tool's own approval UI to persist it.
+- Both tools merge computed command grants, configured ensure entries, and surviving live allow entries.
+  Configured remove entries exclude matching allow entries, while deny behavior remains renderer-specific.
+  Retired command metadata removes only matching legacy live allow entries unless an overlay disables retirement or explicitly re-grants the command.
 - New command = new key, in a new or existing domain file.
   An overlay adds a command by adding a key, or changes an existing one's mode by overriding the same key (e.g. `"git rebase" = "ask"`) — plain chezmoi dict merge, no add/remove/enabled machinery needed (scalars override cleanly on collision; only chezmoi list values have the wholesale-replace problem).
 - Why `git push`/`reset`/`clean` are excluded: see the rationale comment block in `git.toml`.

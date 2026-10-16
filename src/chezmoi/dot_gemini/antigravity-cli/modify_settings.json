@@ -19,7 +19,19 @@
    documented "Deny > Ask > Allow" precedence, not yet live-tested —
    harmless today since nothing sets "deny" here. */ -}}
 {{-   end -}}
-{{-   $liveAllow   := dig "permissions" "allow"  (list) $config -}}
+{{- /* Retire only exact legacy live grants; computed and ensured grants stay eligible. */ -}}
+{{-   $retiredAllow := list -}}
+{{-   range $cmd, $retired := dig "ai" "command_policy" "retired_commands" (dict) . -}}
+{{-     if $retired -}}
+{{-       $retiredAllow = append $retiredAllow (printf "command(%s)" (regexQuoteMeta $cmd)) -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $liveAllow := list -}}
+{{-   range $entry := dig "permissions" "allow" (list) $config -}}
+{{-     if not (has $entry $retiredAllow) -}}
+{{-       $liveAllow = append $liveAllow $entry -}}
+{{-     end -}}
+{{-   end -}}
 {{-   $ensureAllow := dig "gemini" "permissions" "allow"  (list) . -}}
 {{-   $removeAllow := dig "gemini" "permissions" "remove" (list) . -}}
 {{-   $merged      := concat $agAllow $ensureAllow $liveAllow | uniq | sortAlpha -}}
