@@ -110,30 +110,43 @@ def test_mise_activation_runs_only_in_interactive_shells(tmp_path, shell, intera
     assert result.stdout == ("yes\n" if interactive else "no\n")
 
 
-@pytest.mark.parametrize("override", [None, True])
-def test_mise_config_disables_activation_shims_unless_overridden(tmp_path, override):
+@pytest.mark.parametrize(
+    ("overlay_settings", "expected_shims", "expected_log_level"),
+    [
+        pytest.param(None, False, "warn", id="base-init"),
+        pytest.param("", False, "warn", id="minimal-overlay"),
+        pytest.param('log_level = "debug"\n', False, "debug", id="overlay-setting"),
+        pytest.param('log_level = "debug"\nactivate_shims = true\n', True, "debug", id="overlay-override"),
+    ],
+)
+def test_mise_config_disables_activation_shims_unless_overridden(
+    tmp_path, overlay_settings, expected_shims, expected_log_level
+):
     config = tmp_path / "chezmoi.toml"
     chezmoi = shutil.which("chezmoi")
     assert chezmoi is not None
-    command = [
-        chezmoi,
-        "--config",
-        "/dev/null",
-        "--config-format",
-        "toml",
-        "--source",
-        str(REPOSITORY_ROOT),
-        "--destination",
-        str(tmp_path),
-        "execute-template",
-        "--init",
-        "--file",
-        str(REPOSITORY_ROOT / "src/chezmoi/.chezmoi.toml.tmpl"),
-    ]
-    initialized = subprocess.run(
-        command, env={**os.environ, "CI": "1", "PATH": os.defpath}, capture_output=True, text=True, check=True
-    )
-    config.write_text(initialized.stdout, encoding="utf-8")
+    if overlay_settings is None:
+        command = [
+            chezmoi,
+            "--config",
+            "/dev/null",
+            "--config-format",
+            "toml",
+            "--source",
+            str(REPOSITORY_ROOT),
+            "--destination",
+            str(tmp_path),
+            "execute-template",
+            "--init",
+            "--file",
+            str(REPOSITORY_ROOT / "src/chezmoi/.chezmoi.toml.tmpl"),
+        ]
+        initialized = subprocess.run(
+            command, env={**os.environ, "CI": "1", "PATH": os.defpath}, capture_output=True, text=True, check=True
+        )
+        config.write_text(initialized.stdout, encoding="utf-8")
+    else:
+        config.write_text("[data.mise.settings]\n" + overlay_settings, encoding="utf-8")
     rendered = subprocess.run(
         [
             "chezmoi",
@@ -144,11 +157,6 @@ def test_mise_config_disables_activation_shims_unless_overridden(tmp_path, overr
             "--destination",
             str(tmp_path),
             "execute-template",
-            *(
-                ["--override-data", json.dumps({"mise": {"settings": {"activate_shims": override}}})]
-                if override is not None
-                else []
-            ),
             "--file",
             str(REPOSITORY_ROOT / "src/chezmoi/dot_config/mise/config.toml.tmpl"),
         ],
@@ -158,7 +166,8 @@ def test_mise_config_disables_activation_shims_unless_overridden(tmp_path, overr
     )
 
     settings = tomllib.loads(rendered.stdout)["settings"]
-    assert settings.get("activate_shims") is (override if override is not None else False)
+    assert settings.get("activate_shims") is expected_shims
+    assert settings["log_level"] == expected_log_level
 
 
 @pytest.mark.integration
