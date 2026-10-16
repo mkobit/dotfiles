@@ -144,6 +144,9 @@ def test_reconcile_orders_native_registrations_and_filters_environment(
 ):
     calls = []
     monkeypatch.setattr(
+        plugin_bridge, "_repair_missing_codex_marketplaces", lambda _: None
+    )
+    monkeypatch.setattr(
         plugin_bridge,
         "_ensure_marketplace",
         lambda host, name, *args: calls.append(("marketplace", name, host)),
@@ -202,6 +205,356 @@ def test_reconcile_orders_native_registrations_and_filters_environment(
     ]
 
 
+def _marketplace_cli(host, source, *, missing_manifest=False, failure=None):
+    state = {"source": source, "mutations": []}
+
+    def run(command, *args):
+        assert command == host
+        if args[:3] == ("plugin", "marketplace", "list"):
+            registered = state["source"]
+            if registered is None:
+                return '{"marketplaces": []}' if host == "codex" else "[]"
+            if host == "codex" and missing_manifest and registered == source:
+                raise plugin_bridge.BridgeError(
+                    "codex plugin marketplace list --json failed: "
+                    "Error: failed to load marketplace(s):\n"
+                    f"- `market` at {registered}: marketplace root does not contain a supported manifest"
+                )
+            if host == "claude":
+                return json.dumps(
+                    [
+                        {
+                            "name": "market",
+                            "source": "directory",
+                            "path": registered,
+                            "installLocation": registered,
+                        }
+                    ]
+                )
+            if args[-1] != "--json":
+                return f"market  {registered}\n"
+            return json.dumps(
+                {
+                    "marketplaces": [
+                        {
+                            "name": "market",
+                            "root": registered,
+                            "marketplaceSource": {
+                                "sourceType": "local",
+                                "source": registered,
+                            },
+                        }
+                    ]
+                }
+            )
+        state["mutations"].append(args)
+        if args == ("plugin", "marketplace", "remove", "market"):
+            state["source"] = None
+        elif args[:3] == ("plugin", "marketplace", "add"):
+            if failure == "add":
+                raise plugin_bridge.BridgeError("marketplace add failed")
+            state["source"] = source if failure == "wrong-source" else args[3]
+        else:
+            pytest.fail(f"unexpected host operation: {args}")
+        return ""
+
+    return state, run
+
+
+def _generated_declaration(host):
+    return {
+        "plugin_bridge": {
+            "marketplaces": {"market": {"source_type": "generated", "hosts": [host]}},
+            "plugins": {"demo": {"marketplace": "market", "hosts": [host]}},
+        }
+    }
+
+
+@pytest.mark.parametrize(
+    ("host", "missing_manifest"),
+    [("claude", False), ("codex", False), ("codex", True)],
+)
+def test_generated_marketplace_repairs_source_before_plugins_and_stays_current(
+    tmp_path, monkeypatch, host, missing_manifest
+):
+    expected = str(tmp_path / ".local/share/agent-plugins/marketplace")
+    stale = str(tmp_path / "removed-checkout/marketplace")
+    state, run = _marketplace_cli(host, stale, missing_manifest=missing_manifest)
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    plugins = []
+
+    def ensure_plugin(*args, **kwargs):
+        assert state["source"] == expected
+        plugins.append(args[2])
+
+    monkeypatch.setattr(plugin_bridge, "_ensure_plugin", ensure_plugin)
+    for _ in range(2):
+        plugin_bridge.reconcile(tmp_path, _generated_declaration(host))
+
+    assert state["source"] == expected
+    assert state["mutations"] == [
+        ("plugin", "marketplace", "remove", "market"),
+        ("plugin", "marketplace", "add", expected),
+    ]
+    assert plugins == ["demo", "demo"]
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    assert ownership.read_text() == f"marketplace\t{host}\tmarket\t\n"
+
+
+@pytest.mark.parametrize("stale_names", [("a", "b"), ("b",)])
+def test_generated_codex_marketplaces_repair_all_missing_roots_before_plugins(
+    tmp_path, monkeypatch, stale_names
+):
+    expected = {name: str(tmp_path / "deployed" / name) for name in ("a", "b")}
+    stale = {name: str(tmp_path / "removed" / name) for name in expected}
+    registered = {
+        name: stale[name] if name in stale_names else path
+        for name, path in expected.items()
+    }
+    mutations = []
+    verified = set()
+    plugins = []
+
+    def run(host, *args):
+        assert host == "codex"
+        if args == ("plugin", "marketplace", "list", "--json"):
+            missing = {
+                name: path for name, path in registered.items() if path == stale[name]
+            }
+            if missing:
+                raise plugin_bridge.BridgeError(
+                    "Error: failed to load marketplace(s):\n"
+                    + "\n".join(
+                        f"- `{name}` at {path}: marketplace root does not contain a supported manifest"
+                        for name, path in missing.items()
+                    )
+                )
+            assert registered == expected
+            verified.update(registered)
+            return json.dumps(
+                {
+                    "marketplaces": [
+                        {
+                            "name": name,
+                            "marketplaceSource": {
+                                "sourceType": "local",
+                                "source": path,
+                            },
+                        }
+                        for name, path in registered.items()
+                    ]
+                }
+            )
+        mutations.append(args)
+        if args[:3] == ("plugin", "marketplace", "remove"):
+            del registered[args[3]]
+        elif args[:3] == ("plugin", "marketplace", "add"):
+            name = next(name for name, path in expected.items() if path == args[3])
+            registered[name] = args[3]
+        else:
+            pytest.fail(f"unexpected host operation: {args}")
+        return ""
+
+    def ensure_plugin(host, marketplace, name, *args, **kwargs):
+        assert registered == expected
+        assert verified == set(expected)
+        plugins.append((marketplace, name))
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    monkeypatch.setattr(plugin_bridge, "_ensure_plugin", ensure_plugin)
+    declaration = {
+        "plugin_bridge": {
+            "marketplaces": {
+                name: {
+                    "source_type": "generated",
+                    "hosts": ["codex"],
+                    "source_locator": path,
+                }
+                for name, path in expected.items()
+            },
+            "plugins": {
+                f"demo-{name}": {"marketplace": name, "hosts": ["codex"]}
+                for name in expected
+            },
+        }
+    }
+
+    for _ in range(2):
+        verified.clear()
+        plugin_bridge.reconcile(tmp_path, declaration)
+
+    assert registered == expected
+    assert mutations == [
+        mutation
+        for name in stale_names
+        for mutation in (
+            ("plugin", "marketplace", "remove", name),
+            ("plugin", "marketplace", "add", expected[name]),
+        )
+    ]
+    assert plugins == [("a", "demo-a"), ("b", "demo-b")] * 2
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    assert ownership.read_text() == (
+        "marketplace\tcodex\ta\t\nmarketplace\tcodex\tb\t\n"
+    )
+
+
+@pytest.mark.parametrize(
+    ("host", "missing_manifest"),
+    [("claude", False), ("codex", False), ("codex", True)],
+)
+@pytest.mark.parametrize("failure", ["add", "wrong-source"])
+def test_generated_marketplace_failed_repair_stops_before_plugins(
+    tmp_path, monkeypatch, host, missing_manifest, failure
+):
+    state, run = _marketplace_cli(
+        host,
+        str(tmp_path / "old"),
+        missing_manifest=missing_manifest,
+        failure=failure,
+    )
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_ensure_plugin",
+        lambda *args, **kwargs: pytest.fail("plugin ran before source verification"),
+    )
+
+    with pytest.raises(plugin_bridge.BridgeError):
+        plugin_bridge.reconcile(tmp_path, _generated_declaration(host))
+
+    assert state["source"] != str(tmp_path / ".local/share/agent-plugins/marketplace")
+    assert not (tmp_path / ".local/state/dotfiles/agent-plugin-ownership").exists()
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+@pytest.mark.parametrize("present", [False, True])
+def test_generated_marketplace_preserves_matching_and_missing_sources(
+    tmp_path, monkeypatch, host, present
+):
+    expected = str(tmp_path / ".local/share/agent-plugins/marketplace")
+    state, run = _marketplace_cli(host, expected if present else None)
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    declaration = _generated_declaration(host)
+    declaration["plugin_bridge"]["plugins"].clear()
+
+    plugin_bridge.reconcile(tmp_path, declaration)
+
+    assert state["source"] == expected
+    assert state["mutations"] == (
+        [] if present else [("plugin", "marketplace", "add", expected)]
+    )
+
+
+@pytest.mark.parametrize(
+    "detail",
+    [
+        "configuration is invalid",
+        "Error: failed to load marketplace(s):\n- `other` at /removed: marketplace root does not contain a supported manifest",
+    ],
+)
+def test_generated_codex_marketplace_does_not_repair_unrelated_cli_errors(
+    tmp_path, monkeypatch, detail
+):
+    calls = []
+
+    def run(host, *args):
+        calls.append(args)
+        raise plugin_bridge.BridgeError(detail)
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    with pytest.raises(plugin_bridge.BridgeError, match="invalid|other"):
+        plugin_bridge.reconcile(tmp_path, _generated_declaration("codex"))
+
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize(
+    ("host", "response"),
+    [("claude", '{"unknown": []}'), ("codex", '{"unknown": []}'), ("codex", "[]")],
+)
+def test_generated_marketplace_rejects_unknown_list_schema(
+    tmp_path, monkeypatch, host, response
+):
+    calls = []
+
+    def run(command, *args):
+        calls.append(args)
+        return response
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    with pytest.raises(plugin_bridge.BridgeError, match="marketplace JSON"):
+        plugin_bridge.reconcile(tmp_path, _generated_declaration(host))
+
+    assert calls == [("plugin", "marketplace", "list", "--json")]
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_repaired_generated_marketplace_restores_declared_plugin(
+    tmp_path, monkeypatch, host
+):
+    expected = tmp_path / ".local/share/agent-plugins/marketplace"
+    catalog = expected / ".claude-plugin/marketplace.json"
+    catalog.parent.mkdir(parents=True)
+    catalog.write_text(
+        json.dumps({"plugins": [{"name": "demo", "source": "plugins/demo"}]})
+    )
+    source = expected / "plugins/demo"
+    manifest = source / f".{host}-plugin/plugin.json"
+    manifest.parent.mkdir(parents=True)
+    manifest.write_text('{"name": "demo", "version": "1.0.0"}')
+    state, marketplace_run = _marketplace_cli(host, str(tmp_path / "removed-source"))
+    installed = True
+
+    def run(command, *args):
+        nonlocal installed
+        if args[:2] == ("plugin", "marketplace"):
+            result = marketplace_run(command, *args)
+            if args[2] == "remove":
+                installed = False
+            return result
+        if args == ("plugin", "list", "--json"):
+            return json.dumps(
+                [{"id": "demo@market", "version": "1.0.0", "enabled": True}]
+                if installed
+                else []
+            )
+        if args == ("plugin", "list", "-m", "market", "--json"):
+            return json.dumps(
+                {
+                    "installed": [
+                        {
+                            "pluginId": "demo@market",
+                            "version": "1.0.0",
+                            "installed": True,
+                            "enabled": True,
+                            "source": {"source": "local", "path": str(source)},
+                        }
+                    ]
+                    if installed
+                    else []
+                }
+            )
+        if args in {
+            ("plugin", "install", "demo@market"),
+            ("plugin", "add", "demo@market"),
+        }:
+            assert state["source"] == str(expected)
+            installed = True
+            return ""
+        pytest.fail(f"unexpected plugin operation: {args}")
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    plugin_bridge.reconcile(tmp_path, _generated_declaration(host))
+
+    assert installed
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    assert (
+        ownership.read_text()
+        == f"marketplace\t{host}\tmarket\t\nplugin\t{host}\tmarket\tdemo\n"
+    )
+
+
 @pytest.mark.parametrize("kind", ["plugins", "capabilities"])
 def test_reconcile_rejects_resource_host_outside_marketplace_before_side_effects(
     tmp_path, monkeypatch, kind
@@ -230,6 +583,9 @@ def test_reconcile_rejects_resource_host_outside_marketplace_before_side_effects
 def test_reconcile_allows_cursor_capability_with_native_marketplace_hosts(
     tmp_path, monkeypatch
 ):
+    monkeypatch.setattr(
+        plugin_bridge, "_repair_missing_codex_marketplaces", lambda _: None
+    )
     declaration = _valid_bridge()
     bridge = declaration["plugin_bridge"]
     assert isinstance(bridge, dict)
@@ -268,6 +624,9 @@ def test_reconcile_allows_cursor_capability_with_native_marketplace_hosts(
 
 def test_reconcile_ignores_cursor_and_filesystem_metadata(tmp_path, monkeypatch):
     calls = []
+    monkeypatch.setattr(
+        plugin_bridge, "_repair_missing_codex_marketplaces", lambda _: None
+    )
     monkeypatch.setattr(
         plugin_bridge,
         "_ensure_marketplace",
@@ -868,6 +1227,9 @@ def test_reconcile_passes_package_root_inside_generated_marketplace(
     tmp_path, monkeypatch
 ):
     calls = []
+    monkeypatch.setattr(
+        plugin_bridge, "_repair_missing_codex_marketplaces", lambda _: None
+    )
     declaration = _valid_bridge()
     bridge = declaration["plugin_bridge"]
     assert isinstance(bridge, dict)

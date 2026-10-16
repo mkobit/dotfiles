@@ -27,6 +27,8 @@ linux_arm64  = "385e61f3e76a6781795eea541c45bba4cab32d137b84d961fa97f15cb4521156
 
 [mise.settings]
 # Configuration settings: https://mise.jdx.dev/configuration/settings.html
+# Keep activation from adding shims: https://mise.jdx.dev/configuration/settings.html#activate_shims
+activate_shims = false
 cache_prune_age = "60 days"
 disable_hints   = ["self_update"]
 http_retries    = 5

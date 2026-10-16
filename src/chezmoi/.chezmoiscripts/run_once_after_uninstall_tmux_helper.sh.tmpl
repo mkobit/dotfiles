@@ -1,8 +1,10 @@
+{{- if ne (dig "local" "bin" "mise" "installation_method" "none" .) "none" -}}
 #!/usr/bin/env bash
 
 set -euo pipefail
 
 echo "Cleaning up legacy tmux python tools..."
 
-{{ template "uv/tool.sh.tmpl" (dict "action" "uninstall" "name" "tmux-helper") }}
-{{ template "uv/tool.sh.tmpl" (dict "action" "uninstall" "name" "tmux-runtime-tools") }}
+{{ template "uv/tool.sh.tmpl" (merge (dict "action" "uninstall" "name" "tmux-helper") .) }}
+{{ template "uv/tool.sh.tmpl" (merge (dict "action" "uninstall" "name" "tmux-runtime-tools") .) }}
+{{- end -}}
