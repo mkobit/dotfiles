@@ -4,7 +4,8 @@ MISE="{{ .chezmoi.destDir }}/.local/bin/mise"
 TOOL_NAME="{{ .name }}"
 TOOL_PATH="{{ .path }}"
 
-if "$MISE" exec --cd "{{ $root }}" -- uv tool list | grep -q "$TOOL_NAME"; then
+INSTALLED_TOOLS=$("$MISE" exec --cd "{{ $root }}" -- uv tool list)
+if grep -q "$TOOL_NAME" <<< "$INSTALLED_TOOLS"; then
     echo "Updating $TOOL_NAME..."
 else
     echo "Installing $TOOL_NAME..."
@@ -14,7 +15,8 @@ fi
 {{- else if eq .action "uninstall" -}}
 TOOL_NAME="{{ .name }}"
 
-if "$MISE" exec --cd "{{ $root }}" -- uv tool list | grep -q "$TOOL_NAME"; then
+INSTALLED_TOOLS=$("$MISE" exec --cd "{{ $root }}" -- uv tool list)
+if grep -q "$TOOL_NAME" <<< "$INSTALLED_TOOLS"; then
     echo "Uninstalling $TOOL_NAME..."
     "$MISE" exec --cd "{{ $root }}" -- uv tool uninstall "$TOOL_NAME"
 fi

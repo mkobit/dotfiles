@@ -150,3 +150,41 @@ def test_legacy_tool_cleanup_is_empty_when_mise_is_not_enabled(tmp_path, mise_me
 
     assert script.returncode == 0, script.stderr
     assert script.stdout == ""
+
+
+@pytest.mark.parametrize(
+    ("mise_status", "expected_status"),
+    [
+        pytest.param(None, 127, id="missing-mise"),
+        pytest.param(42, 42, id="failed-list"),
+        pytest.param(0, 0, id="empty-list"),
+    ],
+)
+def test_legacy_tool_cleanup_preserves_list_status(tmp_path, mise_status, expected_status):
+    destination = tmp_path / "destination"
+    local_bin = destination / ".local/bin"
+    local_bin.mkdir(parents=True)
+    trace = tmp_path / "mise-commands"
+    if mise_status is not None:
+        mise = local_bin / "mise"
+        mise.write_text(
+            f'#!/bin/sh\nprintf "%s\\n" "$*" >> "$MISE_TEST_TRACE"\nexit {mise_status}\n',
+            encoding="utf-8",
+        )
+        mise.chmod(0o755)
+    script = _render(SCRIPT_DIR / "run_once_after_uninstall_tmux_helper.sh.tmpl", destination=destination)
+    assert script.returncode == 0, script.stderr
+
+    result = subprocess.run(
+        ["bash"],
+        input=script.stdout,
+        env={**os.environ, "PATH": "/usr/bin:/bin", "MISE_TEST_TRACE": str(trace)},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == expected_status, result.stderr
+    commands = trace.read_text(encoding="utf-8").splitlines() if trace.exists() else []
+    expected_calls = 0 if mise_status is None else 1 if mise_status else 2
+    assert commands == [f"exec --cd {REPOSITORY_ROOT} -- uv tool list"] * expected_calls
