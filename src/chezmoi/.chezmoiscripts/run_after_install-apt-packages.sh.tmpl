@@ -45,16 +45,66 @@ skipped_any=0
 {{- end -}}
 
 {{- if $ppaPkgs }}
-if ! check_command add-apt-repository; then
-    if [ "$has_sudo_access" -eq 1 ]; then
-        log_info "🔒 Installing software-properties-common for add-apt-repository..."
-        sudo apt-get install -y software-properties-common \
-            || { log_error "Failed to install software-properties-common"; exit 1; }
-    else
-        log_warn "No TTY and no cached sudo credentials — skipping software-properties-common install, will retry next apply"
-        skipped_any=1
-    fi
-fi
+ppa_is_configured() {
+    local ppa_path="${1#ppa:}" source_file source_format
+    for source_file in /etc/apt/sources.list /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; do
+        [[ -r "$source_file" ]] || continue
+        source_format="${source_file##*.}"
+        if awk -v ppa_path="$ppa_path" -v source_format="$source_format" '
+            function matching_uri(uri) {
+                sub(/\/$/, "", uri)
+                return uri == "https://ppa.launchpadcontent.net/" ppa_path "/ubuntu" ||
+                    uri == "http://ppa.launchpadcontent.net/" ppa_path "/ubuntu" ||
+                    uri == "https://ppa.launchpad.net/" ppa_path "/ubuntu" ||
+                    uri == "http://ppa.launchpad.net/" ppa_path "/ubuntu"
+            }
+            function matching_stanza(    count, values, i, enabled) {
+                enabled = tolower(fields["enabled"])
+                gsub(/^[[:space:]]+|[[:space:]]+$/, "", enabled)
+                if (enabled == "no" || fields["types"] !~ /(^|[[:space:]])deb([[:space:]]|$)/)
+                    return 0
+                count = split(fields["uris"], values, /[[:space:]]+/)
+                for (i = 1; i <= count; i++)
+                    if (matching_uri(values[i])) return 1
+                return 0
+            }
+            /^[[:space:]]*#/ { next }
+            source_format != "sources" {
+                line = $0
+                sub(/^[[:space:]]+/, "", line)
+                if (line !~ /^deb[[:space:]]/) next
+                sub(/^deb[[:space:]]+/, "", line)
+                sub(/^\[[^]]*\][[:space:]]+/, "", line)
+                split(line, parts, /[[:space:]]+/)
+                if (matching_uri(parts[1])) found = 1
+                next
+            }
+            /^[[:space:]]*$/ {
+                if (matching_stanza()) found = 1
+                delete fields
+                key = ""
+                next
+            }
+            /^[[:space:]]/ {
+                line = $0
+                sub(/^[[:space:]]+/, "", line)
+                fields[key] = fields[key] " " line
+                next
+            }
+            /^[^:]+:/ {
+                key = tolower(substr($0, 1, index($0, ":") - 1))
+                value = substr($0, index($0, ":") + 1)
+                sub(/^[[:space:]]+/, "", value)
+                sub(/[[:space:]]+$/, "", value)
+                fields[key] = value
+            }
+            END { exit !(found || (source_format == "sources" && matching_stanza())) }
+        ' "$source_file"; then
+            return 0
+        fi
+    done
+    return 1
+}
 {{- end }}
 
 {{- range $aptPkgs }}
@@ -65,12 +115,26 @@ fi
 {{-   $service := dig "systemd" "service" "" $tool }}
 
 {{- if $ppa }}
-if [ "$has_sudo_access" -eq 1 ]; then
+if ppa_is_configured {{ $ppa | quote }}; then
+    log_success "apt repository {{ $ppa }} already configured"
+elif [ "$has_sudo_access" -eq 1 ]; then
+    if ! check_command add-apt-repository; then
+        log_info "🔒 Installing software-properties-common for add-apt-repository..."
+        sudo apt-get install -y software-properties-common \
+            || { log_error "Failed to install software-properties-common"; exit 1; }
+    fi
     log_info "🔒 Adding apt repository {{ $ppa }} for {{ $name }}..."
     sudo add-apt-repository -y --no-update {{ $ppa | quote }} \
         || { log_error "Failed to add repository {{ $ppa }} for {{ $name }}"; exit 1; }
     sudo apt-get update
+else
+    log_warn "No TTY and no cached sudo credentials — skipping repository {{ $ppa }}, will retry next apply"
+    skipped_any=1
+fi
 
+if dpkg -l {{ $name }} 2>/dev/null | grep -q "^ii"; then
+    log_success "{{ $name }} already installed via apt"
+elif [ "$has_sudo_access" -eq 1 ]; then
     log_info "🔒 Installing {{ $name }} via apt (from {{ $ppa }})..."
     sudo apt-get install -y {{ $name }} \
         || { log_error "Failed to install {{ $name }} via apt"; exit 1; }

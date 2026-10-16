@@ -9,26 +9,44 @@ REFERENCES_DIR = SKILL_DIR / "references"
 TEMPLATES_DIR = SKILL_DIR / "templates"
 
 
+def test_skill_grants_only_reviewed_sbx_commands():
+    """Keep the skill grants scoped to the reviewed repository commands."""
+    frontmatter = SKILL_FILE.read_text(encoding="utf-8").split("---", 2)[1]
+    metadata = yaml.safe_load(frontmatter)
+
+    assert metadata["allowed-tools"] == [
+        "Bash(sbx ls --format json)",
+        "Bash(sbx kit validate .sbx/kit)",
+        "Bash(sbx env plan .sbx/sbxenv.yaml)",
+        "Bash(sbx env exec .sbx/sbxenv.yaml -- *)",
+    ]
+
+
 def test_skill_describes_host_coordinated_repository_sandboxes():
     """Keep host coordination and repository ownership explicit."""
     skill = SKILL_FILE.read_text(encoding="utf-8")
 
     for required in (
         "Docker Sandbox",
-        "AGENTS.md",
         "repository-owned",
         "clone: false",
         "immediately visible",
         "commits, signing, and pushes",
         "private clone",
-        "sbx env create",
-        "sbx env rm",
         "references/repository-setup.md",
         "references/environment-files.md",
         "references/agents.md",
         "references/nested-execution.md",
     ):
         assert required in skill, f"Missing {required!r} in {SKILL_FILE}"
+
+    setup_file = REFERENCES_DIR / "repository-setup.md"
+    setup = setup_file.read_text(encoding="utf-8")
+    for required in (
+        "sbx env create .sbx/sbxenv.yaml",
+        "Remove the environment only when authorized",
+    ):
+        assert required in setup, f"Missing {required!r} in {setup_file}"
 
 
 def test_skill_ships_direct_mounted_project_environment_templates():

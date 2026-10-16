@@ -1,0 +1,36 @@
+# CLI automation
+
+These notes cover Docker Sandboxes CLI v0.48.0 automation.
+See the [v0.48.0 release notes](https://github.com/docker/sbx-releases/releases/tag/v0.48.0).
+
+## Machine output
+
+Use `--format json` or `--format yaml` for machine reads instead of terminal tables.
+`--format`, `--json`, and `-q` are mutually exclusive on commands that use the shared output flags.
+`sbx ls --format json` returns a direct array with snake_case fields, not a `sandboxes` wrapper.
+Use that array shape only for `sbx ls`; other commands have their own output schemas.
+Keep result output from stdout, errors, warnings, and progress from stderr, and preserve each command's exit code.
+
+## Prompts and flags
+
+Confirmation requires terminal input, so piping an answer does not confirm an operation.
+Use `--force` or `-f` only for an operation that is already authorized and only when that command supports the flag.
+In v0.48.0, `sbx env plan`, `sbx env create`, and `sbx env run` use `--force` or `-f` instead of `--auto-approve` or `-y`.
+`sbx run` and `sbx env run` use `--detach` or `-d` instead of `--detached`.
+A command's `--force` flag does not grant platform escalation or expand task authority.
+Lack of terminal input alone does not justify broader host command grants.
+
+Read-only calls and calls with `--force` do not start interactive sign-in.
+Use the supported user sign-in flow before automation that needs authentication.
+Keep runtime errors distinct from platform restrictions when diagnosing a failed command.
+
+## Environment and kit lifecycle
+
+Running sandboxes reuse guest setup until the container starts or the daemon restarts.
+Keep and reuse a matching environment for related checks instead of recreating it each time.
+`sbx kit add` can recreate a container, and its startup commands run when the kit is added and on later starts.
+Keep `sbx kit add` outside automatic grants.
+Existing Codex sandboxes need a planned, explicitly authorized recreation to receive the built-in Codex MCP gateway fix.
+Never remove or recreate a sandbox only because a check fails.
+
+Managed Codex and Claude Desktop SSH targets on macOS and Windows use separate sandboxes with no host workspace mounted.

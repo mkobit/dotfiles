@@ -29,7 +29,19 @@
    force-exclude, not scoped only to live-file survivors.
    Live-file entries not present in ensure or remove survive untouched,
    so non-Bash permissions added by plugin installers persist across applies. */ -}}
-{{- $liveAllow   := dig "permissions" "allow"  (list) $config -}}
+{{- /* Retire only exact legacy live grants; computed and ensured grants stay eligible. */ -}}
+{{- $retiredAllow := list -}}
+{{- range $cmd, $retired := dig "ai" "command_policy" "retired_commands" (dict) . -}}
+{{-   if $retired -}}
+{{-     $retiredAllow = append $retiredAllow (printf "Bash(%s:*)" $cmd) -}}
+{{-   end -}}
+{{- end -}}
+{{- $liveAllow := list -}}
+{{- range $entry := dig "permissions" "allow" (list) $config -}}
+{{-   if not (has $entry $retiredAllow) -}}
+{{-     $liveAllow = append $liveAllow $entry -}}
+{{-   end -}}
+{{- end -}}
 {{- $ensureAllow := dig "permissions" "allow"  (list) .claude_code.settings -}}
 {{- $removeAllow := dig "permissions" "remove" (list) .claude_code.settings -}}
 {{- $merged      := concat $allow $ensureAllow $liveAllow | uniq | sortAlpha -}}
