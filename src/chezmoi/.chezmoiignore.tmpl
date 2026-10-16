@@ -32,6 +32,10 @@
 .npmrc
 {{- end }}
 
+{{- if eq (dig "local" "bin" "opencode" "installation_method" "none" .) "none" }}
+.config/opencode/opencode.json
+{{- end }}
+
 {{- if eq (dig "global_tools" "bun" "installation_method" "" .mise) "none" }}
 .bunfig.toml
 {{- end }}
@@ -40,3 +44,7 @@
 
 # Ignore mise lock files in the destination
 **/.config/mise/mise.lock
+
+# Preserve the complete upstream plugin package.
+!.local/share/agent-plugins/marketplace/plugins/superpowers/**
+!.cursor/plugins/local/superpowers/**

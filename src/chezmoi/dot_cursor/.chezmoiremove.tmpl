@@ -30,3 +30,13 @@ skills/{{ base $agentPath }}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
+
+{{- /* Remove only known upstream Cursor packages when acquisition is disabled. */ -}}
+{{- range $name, $capability := dig "ai" "plugin_bridge" "capabilities" (dict) . -}}
+{{-   $source := dig "external_source" "" $capability -}}
+{{-   if and $source (has "cursor" (dig "hosts" (list) $capability)) -}}
+{{-     if ne (dig "ai" "plugins" $source "installation_method" "none" $) "chezmoi_external" }}
+plugins/local/{{ $name }}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}

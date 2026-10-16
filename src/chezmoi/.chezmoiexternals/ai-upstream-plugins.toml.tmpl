@@ -1,0 +1,25 @@
+{{- /* Acquire complete upstream plugins; init templates own installation choices. */ -}}
+{{- $entries := dict -}}
+{{- range $name, $plugin := dig "ai" "plugins" (dict) . -}}
+{{-   $method := dig "installation_method" "none" $plugin -}}
+{{-   if eq $method "chezmoi_external" -}}
+{{-     if not (and (regexMatch "^[0-9a-f]{40}$" $plugin.ref) (regexMatch "^[0-9a-f]{64}$" $plugin.sha256)) -}}
+{{-       fail (printf "ai.plugins.%s requires a full commit ref and archive sha256" $name) -}}
+{{-     end -}}
+{{-     $hostName := dig "host" "github" $plugin -}}
+{{-     $host := dig "ai" "skills" "hosts" $hostName (dict) $ -}}
+{{-     if not (dig "url_format" "" $host) -}}
+{{-       fail (printf "ai.plugins.%s: unknown archive host %q" $name $hostName) -}}
+{{-     end -}}
+{{-     $url := $host.url_format | replace "{repo}" $plugin.repo | replace "{ref}" $plugin.ref -}}
+{{-     $entry := dict "type" "archive" "url" $url "checksum" (dict "sha256" $plugin.sha256) "exact" true "stripComponents" 1 -}}
+{{-     $_ := set $entries $plugin.path $entry -}}
+{{-     $capability := dig "ai" "plugin_bridge" "capabilities" $name (dict) $ -}}
+{{-     if has "cursor" (dig "hosts" (list) $capability) -}}
+{{-       $_ := set $entries (printf ".cursor/plugins/local/%s" $name) $entry -}}
+{{-     end -}}
+{{-   else if ne $method "none" -}}
+{{-     fail (printf "ai.plugins.%s: unsupported installation_method %q" $name $method) -}}
+{{-   end -}}
+{{- end -}}
+{{- if $entries -}}{{- toToml $entries -}}{{- end -}}

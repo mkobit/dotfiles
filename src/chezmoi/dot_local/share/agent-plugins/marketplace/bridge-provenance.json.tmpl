@@ -1,11 +1,26 @@
-{{- $marketplace := .ai.plugin_bridge.marketplace -}}
+{{- $bridge := fromJson (includeTemplate "ai/plugin-bridge" .) -}}
+{{- $marketplace := $bridge.marketplace -}}
 {{- $capabilities := list -}}
-{{- range $capabilityName := keys .ai.plugin_bridge.capabilities | sortAlpha -}}
-{{-   $capability := index $.ai.plugin_bridge.capabilities $capabilityName -}}
+{{- range $capabilityName := keys $bridge.capabilities | sortAlpha -}}
+{{-   $capability := index $bridge.capabilities $capabilityName -}}
 {{-   $upstreamSources := list -}}
+{{-   $sources := dict -}}
 {{-   if dig "acquisition_destination" false $capability -}}
 {{-     range $sourceName := keys (dig "external" (dict) $.ai.skills) | sortAlpha -}}
 {{-       $source := index $.ai.skills.external $sourceName -}}
+{{-       $selected := false -}}
+{{-       range $state := dig "skills" (dict) $source -}}
+{{-         if ne $state "absent" -}}{{- $selected = true -}}{{- end -}}
+{{-       end -}}
+{{-       if $selected -}}{{- $_ := set $sources $sourceName $source -}}{{- end -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $externalSource := dig "external_source" "" $capability -}}
+{{-   if $externalSource -}}
+{{-     $_ := set $sources $externalSource (index $.ai.plugins $externalSource) -}}
+{{-   end -}}
+{{-   range $sourceName := keys $sources | sortAlpha -}}
+{{-       $source := index $sources $sourceName -}}
 {{-       $url := dig "url" "" $source -}}
 {{-       if not $url -}}
 {{-         $hostName := dig "host" "github" $source -}}
@@ -13,7 +28,6 @@
 {{-         $url = $host.url_format | replace "{repo}" $source.repo | replace "{ref}" $source.ref -}}
 {{-       end -}}
 {{-       $upstreamSources = append $upstreamSources (dict "name" $sourceName "url" $url "ref" $source.ref "sha256" $source.sha256) -}}
-{{-     end -}}
 {{-   end -}}
 {{-   $capabilities = append $capabilities (dict "name" $capabilityName "description" $capability.description "source" $marketplace.source "trust_class" $marketplace.trust_class "upstream_sources" $upstreamSources) -}}
 {{- end -}}

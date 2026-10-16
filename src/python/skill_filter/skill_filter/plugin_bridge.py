@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import shutil
@@ -140,7 +141,7 @@ def _plugin_present(host: str, marketplace: str, plugin: str) -> bool:
 
 def _claude_plugin_state(
     marketplace: str, plugin: str
-) -> tuple[bool, bool, str | None]:
+) -> tuple[bool, bool, str | None, Path | None]:
     expected = f"{plugin}@{marketplace}"
     records = json.loads(_run("claude", "plugin", "list", "--json"))
     if isinstance(records, Mapping):
@@ -150,12 +151,81 @@ def _claude_plugin_state(
     for item in records:
         if isinstance(item, Mapping) and item.get("id") == expected:
             version = item.get("version")
+            install_path = item.get("installPath")
             return (
                 True,
                 item.get("enabled") is True,
                 version if isinstance(version, str) else None,
+                Path(install_path) if isinstance(install_path, str) else None,
             )
-    return False, False, None
+    return False, False, None, None
+
+
+def _package_fingerprint(root: Path) -> str:
+    if not root.is_dir():
+        raise BridgeError(f"plugin package is missing: {root}; run chezmoi apply again")
+    fingerprint = hashlib.sha256()
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root).as_posix()
+        if path.is_symlink():
+            entry = (relative, "symlink", Path(os.readlink(path)).as_posix())
+        elif path.is_file():
+            entry = (
+                relative,
+                "file",
+                path.stat().st_mode & 0o111,
+                hashlib.sha256(path.read_bytes()).hexdigest(),
+            )
+        elif path.is_dir():
+            entry = (relative, "directory")
+        else:
+            raise BridgeError(f"unsupported plugin package entry: {path}")
+        fingerprint.update(json.dumps(entry, ensure_ascii=True).encode("utf-8"))
+        fingerprint.update(b"\n")
+    return fingerprint.hexdigest()
+
+
+def _ensure_package_plugin(
+    host: str, marketplace: str, plugin: str, package_root: Path
+) -> None:
+    expected = f"{plugin}@{marketplace}"
+    fingerprint = _package_fingerprint(package_root)
+    if host == "claude":
+        present, enabled, _, installed_root = _claude_plugin_state(marketplace, plugin)
+        if present and (
+            installed_root is None
+            or not installed_root.is_dir()
+            or _package_fingerprint(installed_root) != fingerprint
+        ):
+            _run(host, "plugin", "uninstall", expected)
+            present = False
+        if not present:
+            _run(host, "plugin", "install", expected)
+        _, enabled, _, installed_root = _claude_plugin_state(marketplace, plugin)
+        if not enabled:
+            _run(host, "plugin", "enable", expected)
+        present, enabled, _, installed_root = _claude_plugin_state(marketplace, plugin)
+    elif host == "codex":
+        response = json.loads(_run(host, "plugin", "add", expected, "--json"))
+        installed_path = (
+            response.get("installedPath") if isinstance(response, Mapping) else None
+        )
+        installed_root = (
+            Path(installed_path) if isinstance(installed_path, str) else None
+        )
+        present, enabled, _, _ = _codex_plugin_state(marketplace, plugin)
+    else:
+        raise BridgeError(f"unsupported plugin host: {host}")
+    if not present or not enabled:
+        raise BridgeError(f"plugin did not become available and enabled: {expected}")
+    if installed_root is None:
+        raise BridgeError(
+            f"plugin host returned no installed path for {expected}; update {host} and run chezmoi apply again"
+        )
+    if _package_fingerprint(installed_root) != fingerprint:
+        raise BridgeError(
+            f"installed plugin content differs from {package_root}: {expected}; reinstall the plugin and run chezmoi apply again"
+        )
 
 
 def _claude_manifest_version(manifest_root: Path | None, plugin: str) -> str | None:
@@ -314,6 +384,22 @@ def _validate_plugins(
         marketplace_definition = marketplaces[marketplace]
         if not isinstance(marketplace_definition, Mapping):
             raise BridgeError(f"marketplace {marketplace} must be a table")
+        if "package_path" in raw_definition:
+            package_path = raw_definition["package_path"]
+            if (
+                not isinstance(package_path, str)
+                or not package_path
+                or Path(package_path).is_absolute()
+                or ".." in Path(package_path).parts
+                or Path(package_path) == Path(".")
+            ):
+                raise BridgeError(
+                    f"{kind}.{name} package_path must be a relative package directory inside its marketplace"
+                )
+            if marketplace_definition.get("source_type") != "generated":
+                raise BridgeError(
+                    f"{kind}.{name} package_path requires a generated marketplace"
+                )
         marketplace_hosts = _validate_hosts(
             marketplace_definition.get("hosts", []), "marketplace"
         )
@@ -403,12 +489,17 @@ def _ensure_plugin(
     desired: set[str],
     owned_desired: set[str],
     manifest_root: Path | None = None,
+    package_root: Path | None = None,
 ) -> None:
     record = _identity("plugin", host, marketplace, plugin)
     desired.add(record)
     expected = f"{plugin}@{marketplace}"
-    if host == "claude":
-        present, enabled, installed_version = _claude_plugin_state(marketplace, plugin)
+    if package_root is not None:
+        _ensure_package_plugin(host, marketplace, plugin, package_root)
+    elif host == "claude":
+        present, enabled, installed_version, _ = _claude_plugin_state(
+            marketplace, plugin
+        )
         deployed_version = _claude_manifest_version(manifest_root, plugin)
         current = deployed_version is not None and installed_version == deployed_version
         if not (present and enabled and current):
@@ -416,14 +507,14 @@ def _ensure_plugin(
                 _run(host, "plugin", "install", expected)
             elif not current:
                 _run(host, "plugin", "update", expected)
-            _, enabled, _ = _claude_plugin_state(marketplace, plugin)
+            _, enabled, _, _ = _claude_plugin_state(marketplace, plugin)
             if not enabled:
                 try:
                     _run(host, "plugin", "enable", expected)
                 except BridgeError as error:
                     if "already enabled" not in str(error).lower():
                         raise
-            present, enabled, _ = _claude_plugin_state(marketplace, plugin)
+            present, enabled, _, _ = _claude_plugin_state(marketplace, plugin)
             if not present or not enabled:
                 raise BridgeError(
                     f"plugin did not become available and enabled: {expected}"
@@ -560,6 +651,23 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
         for _, name, host, source_type, locator in marketplace_rows
         if source_type == "generated"
     }
+    package_roots = {}
+    for kind, declarations in (("capabilities", capabilities), ("plugins", plugins)):
+        for _, name, host, marketplace in _plugin_rows(
+            kind, declarations, marketplaces, environment
+        ):
+            definition = declarations[name]
+            if not isinstance(definition, Mapping) or "package_path" not in definition:
+                continue
+            root = manifest_roots[marketplace, host]
+            package_root = root / str(definition["package_path"])
+            try:
+                package_root.resolve().relative_to(root.resolve())
+            except ValueError as error:
+                raise BridgeError(
+                    f"plugin package must resolve inside its marketplace: {package_root}"
+                ) from error
+            package_roots[kind, name, host] = package_root
     for _, name, host, source_type, locator in marketplace_rows:
         if host in unavailable_hosts:
             continue
@@ -570,10 +678,8 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
         except HostUnavailableError:
             unavailable_hosts.add(host)
 
-    for rows in (
-        _plugin_rows("capabilities", capabilities, marketplaces, environment),
-        _plugin_rows("plugins", plugins, marketplaces, environment),
-    ):
+    for kind, declarations in (("capabilities", capabilities), ("plugins", plugins)):
+        rows = _plugin_rows(kind, declarations, marketplaces, environment)
         for _, name, host, marketplace in rows:
             if host in unavailable_hosts:
                 continue
@@ -586,6 +692,11 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
                     desired,
                     owned_desired,
                     manifest_root=manifest_roots.get((marketplace, host)),
+                    **(
+                        {"package_root": package_roots[kind, name, host]}
+                        if (kind, name, host) in package_roots
+                        else {}
+                    ),
                 )
             except HostUnavailableError:
                 unavailable_hosts.add(host)

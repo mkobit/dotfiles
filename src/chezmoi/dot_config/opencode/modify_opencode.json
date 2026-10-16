@@ -1,0 +1,22 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /* OpenCode V1 accepts an absolute local package directory in plugin. */ -}}
+{{- $config := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $config = fromJson .chezmoi.stdin -}}
+{{- end -}}
+{{- $plugin := dig "ai" "plugins" "superpowers" (dict) . -}}
+{{- $target := joinPath .chezmoi.destDir (dig "path" ".local/share/agent-plugins/marketplace/plugins/superpowers" $plugin) -}}
+{{- $enabled := and
+      (eq (dig "installation_method" "none" $plugin) "chezmoi_external")
+      (ne (dig "local" "bin" "opencode" "installation_method" "none" .) "none") -}}
+{{- $entries := dig "plugin" (list) $config -}}
+{{- $managed := has $target $entries -}}
+{{- if and $enabled (not $managed) -}}
+{{-   $_ := set $config "plugin" (append $entries $target) -}}
+{{-   $config | toPrettyJson | trimSuffix "\n" -}}
+{{- else if and (not $enabled) $managed -}}
+{{-   $_ := set $config "plugin" (without $entries $target) -}}
+{{-   $config | toPrettyJson | trimSuffix "\n" -}}
+{{- else -}}
+{{-   .chezmoi.stdin | default "{}" -}}
+{{- end -}}
