@@ -2,8 +2,6 @@
 MISE_CONFIG_DIR = "{{ .chezmoi.destDir }}/.config/mise"
 MISE_DATA_DIR   = "{{ .chezmoi.destDir }}/.local/share/mise"
 MISE_STATE_DIR  = "{{ .chezmoi.destDir }}/.local/state/mise"
-# Disable the native updater for scripts: https://antigravity.google/docs/cli/troubleshooting/#resolution-3
-AGY_CLI_DISABLE_AUTO_UPDATE = "true"
 
 # Upstream agent plugins are acquired by chezmoi and registered locally.
 [data.ai.plugins.superpowers]
