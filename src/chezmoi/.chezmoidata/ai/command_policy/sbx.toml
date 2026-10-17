@@ -1,5 +1,14 @@
-# Retired global SBX grants migrate only matching live allow entries.
-# Active SBX permission guidance is in src/ai/skills/docker-sandboxes/references/permissions.md.
+# Global grants cover help, listing, and version inspection only.
+[ai.command_policy.commands]
+"sbx --help" = "allow"
+"sbx --version" = "allow"
+"sbx help" = "allow"
+"sbx ls" = "allow"
+"sbx list" = "allow"
+"sbx version" = "allow"
+
+# Retired grants migrate only matching live allow entries.
+# Active SBX permission guidance is in src/ai/skills/sbx-sandboxes/references/permissions.md.
 [ai.command_policy.retired_commands]
 "sbx --help" = true
 "sbx --version" = true

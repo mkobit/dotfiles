@@ -8,16 +8,16 @@ Host credentials stay on the host.
 
 ## Delegation lifecycle
 
-1. Claim a bead on the host that can finish in one repository.
-2. Supply the bead context, file ownership, acceptance criteria, required checks, and log location.
+1. Select an authorized task that can finish in one repository.
+2. Supply the task context, file ownership, acceptance criteria, required checks, and log location.
 3. Dispatch immediately to an existing environment with unchanged configuration.
 4. Review the diff, command exit status, and check results on the host.
-5. Update the bead on the host and report the result and log location.
+5. Report the result and log location; update a task tracker only when used.
 
 Delegation authorizes implementation and checks within the assigned scope.
 Do not substitute read-only research or request routine approval to edit files.
 Choose a bounded task over broad design or cross-repository work, even when the broader task has higher priority.
-Keep Beads writes, credentials, commits, signing, and publication on the host.
+Keep task tracker writes, credentials, commits, signing, and publication on the host.
 
 Save detailed output in task logs and return a short result.
 Run the required checks once and repeat only after relevant changes or failures.

@@ -22,3 +22,7 @@ skills/{{ $skillName }}
 skills/{{ $skillName }}
 {{-   end -}}
 {{- end -}}
+
+{{- if eq (dig "ai" "skills" "authored" "docker-sandboxes" "" .) "absent" }}
+plugins/cache/dotfiles/mkobit-dotfiles/*/skills/docker-sandboxes
+{{- end }}

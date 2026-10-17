@@ -29,7 +29,7 @@ Reference: [Lessons from building Claude Code: How we use skills](https://claude
 9. **Infrastructure operations**
    These are skills that perform routine maintenance and operational procedures, some of which involve destructive actions that benefit from guardrails. These make it easier for engineers to follow best practices in critical operations.
 
-## Docker Sandboxes skill
+## SBX sandboxes skill
 
 Treat the host agent as the bounded coordinator that reviews plans and retains Git, signing, and publishing authority.
 Default tracked agent environments to a direct-mounted workspace so sandbox edits are immediately visible to the host; document private clones as an explicit alternative.

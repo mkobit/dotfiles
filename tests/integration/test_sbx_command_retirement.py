@@ -13,8 +13,8 @@ TEMPLATES = {
     "antigravity": ROOT / "src/chezmoi/dot_gemini/antigravity-cli/modify_settings.json",
 }
 OLD = {
-    "claude": ("Bash(sbx kit:*)", "Bash(sbx env exec:*)", "Bash(sbx --help:*)"),
-    "antigravity": ("command(sbx kit)", "command(sbx env exec)", "command(sbx --help)"),
+    "claude": ("Bash(sbx kit:*)", "Bash(sbx env exec:*)"),
+    "antigravity": ("command(sbx kit)", "command(sbx env exec)"),
 }
 KEEP = {
     "claude": ("Bash(sbx env exec .sbx/sbxenv.yaml:*)", "Bash(sbx custom:*)", "Read(./notes.md)"),
@@ -56,9 +56,12 @@ def _render(tool: str, live: dict | None = None, override: dict | None = None, s
 
 
 @pytest.mark.parametrize("tool", TEMPLATES)
-def test_fresh_settings_have_no_base_sbx_grants(tool: str) -> None:
+def test_fresh_settings_grant_only_help_and_listing(tool: str) -> None:
     allow = _render(tool)["permissions"]["allow"]
-    assert not [entry for entry in allow if entry.startswith(("Bash(sbx ", "command(sbx "))]
+    heads = {"sbx --help", "sbx --version", "sbx help", "sbx ls", "sbx list", "sbx version"}
+    actual = {entry for entry in allow if entry.startswith(("Bash(sbx ", "command(sbx "))}
+    expected = {f"Bash({head}:*)" if tool == "claude" else f"command({head})" for head in heads}
+    assert actual == expected
 
 
 @pytest.mark.parametrize("tool", TEMPLATES)

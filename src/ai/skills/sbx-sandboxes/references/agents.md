@@ -7,14 +7,14 @@ Codex, Claude, and AGY environment templates all include the repository `./kit` 
 ## Codex execution
 
 Use this tested fallback for an existing environment in this repository.
-Set `CODEX_MODEL` to the selected task model and `SBX_TASK_PROMPT` to the claimed bead context, file scope, acceptance criteria, required checks, and task log location.
+Set `CODEX_MODEL` to the selected task model and `SBX_TASK_PROMPT` to the task context, file scope, acceptance criteria, required checks, and task log location.
 
 ```sh
 model="${CODEX_MODEL:?Set CODEX_MODEL to the selected task model}"
 prompt="${SBX_TASK_PROMPT:?Set SBX_TASK_PROMPT to the implementation task}"
 sbx env exec .sbx/sbxenv.yaml -- sh -c \
   'exec codex exec --model "$1" --disable hooks --dangerously-bypass-approvals-and-sandbox "$2" </dev/null' \
-  rulette-codex "$model" "$prompt"
+  sbx-codex "$model" "$prompt"
 ```
 
 The model and prompt pass as positional arguments, without shell evaluation of their contents.
