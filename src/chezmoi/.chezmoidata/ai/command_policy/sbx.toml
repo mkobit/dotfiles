@@ -1,13 +1,5 @@
-# Global grants cover help, listing, and version inspection only.
-[ai.command_policy.commands]
-"sbx --help" = "allow"
-"sbx --version" = "allow"
-"sbx help" = "allow"
-"sbx ls" = "allow"
-"sbx list" = "allow"
-"sbx version" = "allow"
-
 # Retired grants migrate only matching live allow entries.
+# TODO(2026-11-30): Remove these entries after existing installations have applied the grant cleanup.
 # Active SBX permission guidance is in src/ai/skills/sbx-sandboxes/references/permissions.md.
 [ai.command_policy.retired_commands]
 "sbx --help" = true
@@ -47,6 +39,7 @@
 "sbx kit inspect --help" = true
 "sbx kit inspect" = true
 "sbx kit pack --help" = true
+"sbx kit pack" = true
 "sbx kit provenance --help" = true
 "sbx kit pull --help" = true
 "sbx kit push --help" = true
@@ -54,6 +47,7 @@
 "sbx kit validate --help" = true
 "sbx kit validate" = true
 "sbx kit verify --help" = true
+"sbx list" = true
 "sbx login --help" = true
 "sbx logout --help" = true
 "sbx ls --help" = true

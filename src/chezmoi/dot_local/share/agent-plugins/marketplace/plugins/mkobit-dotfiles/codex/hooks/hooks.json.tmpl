@@ -1,0 +1,8 @@
+{{- $state := dig "ai" "skills" "authored" "sbx-sandboxes" "absent" . -}}
+{{- $hooks := dict -}}
+{{- if or (eq $state "present") (eq $state "codex") -}}
+{{-   $script := joinPath .chezmoi.destDir ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex/skills/sbx-sandboxes/scripts/command_approval.py" -}}
+{{-   $handler := dict "type" "command" "command" (printf "python3 %s codex" ($script | quote)) "timeout" 5 -}}
+{{-   $_ := set $hooks "PermissionRequest" (list (dict "matcher" "^Bash$" "hooks" (list $handler))) -}}
+{{- end -}}
+{{- dict "hooks" $hooks | toPrettyJson -}}

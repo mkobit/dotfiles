@@ -199,7 +199,11 @@ def test_capability_manifest_versions_ignore_legacy_overlay_source(tmp_path):
     source = tmp_path / "source"
     destination = tmp_path / "destination"
     destination.mkdir()
-    for relative_path in CAPABILITY_MANIFEST_TEMPLATES:
+    for relative_path in (
+        *CAPABILITY_MANIFEST_TEMPLATES,
+        Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/hooks.json.tmpl"),
+        Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex/hooks/hooks.json.tmpl"),
+    ):
         template = source / relative_path
         template.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPOSITORY_ROOT / "src/chezmoi" / relative_path, template)
@@ -565,7 +569,7 @@ def test_root_capability_plugin_manifest_deployed_and_valid(chezmoi_dest):
     assert manifest_path.is_file(), f"{manifest_path} does not exist after chezmoi apply"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["name"] == "mkobit-dotfiles"
-    assert manifest["skills"] == "./skills"
+    assert manifest["skills"] == ["./skills"]
     assert manifest["version"].startswith("1.0.0+")
     _assert_valid_capability_metadata(manifest)
 
