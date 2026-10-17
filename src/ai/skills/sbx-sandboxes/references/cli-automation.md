@@ -1,7 +1,35 @@
-# CLI automation
+# CLI selection and automation
 
 These notes cover Docker Sandboxes CLI v0.48.0 automation.
 See the [v0.48.0 release notes](https://github.com/docker/sbx-releases/releases/tag/v0.48.0).
+
+## Select a command
+
+| Need | Command |
+| --- | --- |
+| Discover sandboxes | `sbx ls --format json` (`list` is an alias) |
+| Inspect command usage | `sbx help <command>` or `sbx <command> --help` |
+| Run a command with tracked configuration | `sbx env exec .sbx/sbxenv.yaml -- <command>` |
+| Run in an existing named sandbox | `sbx exec <sandbox> <command>` |
+| Inspect allocated ports | `sbx ports <sandbox> --format json` |
+| Diagnose a failure | `sbx diagnose --format json` |
+| Plan configuration changes | `sbx env plan .sbx/sbxenv.yaml` |
+
+The installed CLI has no `sbx env list` or `sbx env ls`; use root `sbx ls`.
+`exec` starts a stopped sandbox; `env exec` requires an existing environment and runs no host lifecycle commands.
+Detached exec is unsupported even though help lists `-d`.
+`sbx run --detach` starts the sandbox and prints its ID without opening an agent session.
+`sbx env run --detach` creates or starts the configured sandbox without attaching.
+Use `sbx exec` or `sbx env exec` to run the coding agent in that sandbox.
+Keep creation and session lifecycle actions separate from command execution.
+
+## Environment paths
+
+Use explicit tracked paths and `--` before the guest command.
+A path can be a directory containing `sbxenv.yaml` or a named environment file.
+Multiple paths deep-merge in order; lists such as `ports` concatenate.
+An explicit path skips the hidden home base layer.
+Use the same `--name` override for each command that addresses an environment.
 
 ## Machine output
 
@@ -15,13 +43,13 @@ Keep result output from stdout, errors, warnings, and progress from stderr, and 
 
 Confirmation requires terminal input, so piping an answer does not confirm an operation.
 Use `--force` or `-f` only for an operation that is already authorized and only when that command supports the flag.
-In v0.48.0, `sbx env plan`, `sbx env create`, and `sbx env run` use `--force` or `-f` instead of `--auto-approve` or `-y`.
+`sbx env plan` has no `--force` flag and applies no changes.
+In v0.48.0, `sbx env create` and `sbx env run` use `--force` or `-f` instead of `--auto-approve` or `-y`.
 `sbx run` and `sbx env run` use `--detach` or `-d` instead of `--detached`.
 A command's `--force` flag does not grant platform escalation or expand task authority.
 Lack of terminal input alone does not justify broader host command grants.
 
-Read-only calls and calls with `--force` do not start interactive sign-in.
-Use the supported user sign-in flow before automation that needs authentication.
+If a command starts sign-in or reports an expired session, use [Authentication](authentication.md).
 Keep runtime errors distinct from platform restrictions when diagnosing a failed command.
 
 ## Environment and kit lifecycle

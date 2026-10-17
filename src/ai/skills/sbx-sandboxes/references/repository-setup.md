@@ -26,6 +26,7 @@ kits:
 ```
 
 Add `ports` only for repository services that require them.
+Declare only `sandbox` ports and omit `host`; see [Environment files](environment-files.md#ports).
 
 `clone: false` is the default because the sandbox directly mounts the checkout and changes return to the host immediately.
 

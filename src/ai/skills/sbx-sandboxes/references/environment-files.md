@@ -25,3 +25,19 @@ Keep host secrets, bindings, registries, and local-command MCP servers outside t
 Run `sbx env plan .sbx/sbxenv.yaml` before creation.
 
 Recreate an environment after changing its kit, workspace, ports, or environment variables.
+
+## Ports
+
+Declare only sandbox ports in environment manifests.
+Omit `host` so SBX allocates host ports dynamically.
+Static host ports cause allocation conflicts when sandboxes or host processes use the same port.
+
+```yaml
+ports:
+  - sandbox: 6080
+  - sandbox: 5900
+  - sandbox: 9222
+  - sandbox: 5173
+```
+
+Use `sbx ports <sandbox>` to inspect allocated host ports.
