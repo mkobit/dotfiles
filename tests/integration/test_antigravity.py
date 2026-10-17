@@ -1,4 +1,6 @@
 import json
+import os
+import shutil
 import subprocess
 import tomllib
 from pathlib import Path
@@ -385,7 +387,7 @@ def test_antigravity_auto_update_disabled_in_shell_configs() -> None:
             text=True,
         )
         assert result.returncode == 0, result.stderr
-        assert "AGY_CLI_DISABLE_AUTO_UPDATE" not in result.stdout
+        assert "export AGY_CLI_DISABLE_AUTO_UPDATE=true" in result.stdout
 
 
 @pytest.mark.integration
@@ -413,6 +415,36 @@ def test_antigravity_auto_update_enabled_omits_shell_export() -> None:
         )
         assert result.returncode == 0, result.stderr
         assert "AGY_CLI_DISABLE_AUTO_UPDATE" not in result.stdout
+
+
+@pytest.mark.integration
+def test_antigravity_auto_update_disabled_in_chezmoi_script_environment(tmp_path: Path) -> None:
+    chezmoi = shutil.which("chezmoi")
+    assert chezmoi is not None
+    result = subprocess.run(
+        [
+            chezmoi,
+            "--config",
+            "/dev/null",
+            "--config-format",
+            "toml",
+            "--source",
+            str(Path.cwd()),
+            "--destination",
+            str(tmp_path),
+            "execute-template",
+            "--init",
+            "--file",
+            str(Path.cwd() / "src/chezmoi/.chezmoi.toml.tmpl"),
+        ],
+        env={**os.environ, "CI": "1", "PATH": os.defpath},
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    config = tomllib.loads(result.stdout)
+    assert config["scriptEnv"]["AGY_CLI_DISABLE_AUTO_UPDATE"] == "true"
 
 
 @pytest.mark.integration
