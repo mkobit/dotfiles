@@ -1,5 +1,5 @@
 [bin.betterleaks]
-version = "1.7.3"
+version = "1.9.0"
 
 [bin.betterleaks.github_releases]
 repo            = "betterleaks/betterleaks"
@@ -18,7 +18,7 @@ linux_amd64  = "linux_x64"
 linux_arm64  = "linux_arm64"
 
 [bin.betterleaks.github_releases.checksums]
-darwin_arm64 = "068449bf665a07d17389a38ddee749be7d5484254e9262018e138e94b43f10c0"
-darwin_amd64 = "2216363235feb5ad3696f6745c40a78156adce0c05dfb06a5eeca6d25e4aeed2"
-linux_amd64  = "9d2ed6fc387bc1c3f95557d5539077b1ce422f0db5ec38db5f14a141ad2947bf"
-linux_arm64  = "0541cd2980964a6fb8ea768e8b9507c91a3c06229193462f33a3ecd9cb146b99"
+darwin_arm64 = "83dd7eaab13d44a1e8e347a17064cdef153a1478db473276d41b38d55613d3f2"
+darwin_amd64 = "68dfd83458d9e7f90663daa7a81c7f944083b170dae82e4f5f8d0581ed519ef1"
+linux_amd64  = "f8b185a39ffcece2a1ca82bf3a4e7435cd81963ffd16b7a9128daf75f35f6de7"
+linux_arm64  = "1d39116e0a58dc94574715e2aa12a2dbd5062f193eee3fec011fef6ba06bd13b"
