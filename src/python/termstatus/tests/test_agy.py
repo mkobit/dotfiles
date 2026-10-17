@@ -22,6 +22,8 @@ from termstatus.agy.git import (
 )
 from termstatus.agy.protocol import Quota, VcsState, decode_payload
 from termstatus.agy.statusline import (
+    _format_quota_label,
+    _format_quota_reset_duration,
     _thinking_cellular_graph,
     display_width,
     git_branch,
@@ -30,6 +32,8 @@ from termstatus.agy.statusline import (
 )
 from termstatus.agy.term_colors import (
     _STATE_COLORS,
+    CYAN,
+    DIM,
     GREEN,
     ORANGE,
     RED,
@@ -82,10 +86,10 @@ def rendered(raw: Mapping[str, object], vcs: VcsState | None = None) -> list[str
     return strip_ansi(render_statusline(decode_payload(raw), vcs)).splitlines()
 
 
-def test_wide_render_uses_four_conditional_rows() -> None:
+def test_wide_render_uses_five_conditional_rows() -> None:
     lines = rendered(FULL_PAYLOAD)
 
-    assert len(lines) == 4
+    assert len(lines) == 5
     assert all(
         expected in line
         for expected, line in zip(
@@ -104,15 +108,53 @@ def test_wide_render_uses_four_conditional_rows() -> None:
     )
     assert " • " in lines[0]
     assert "/work/repo" in lines[1]
-    assert "82% ctx" in lines[1] and "5h ◕ 50%" in lines[1] and "7d ◔ 10%" in lines[1]
+    assert "82% ctx" in lines[1]
+    assert "5h ◕ 50%" in lines[1]
     assert "$0.01" in lines[1]
     assert " • " in lines[1]
-    assert "<feature/renderer → origin/feature/renderer>" in lines[2]
-    assert "!" in lines[2]
-    assert "↑2" in lines[2] and "↓1" in lines[2]
-    assert "tasks:3" in lines[3] and "input:2" in lines[3]
-    assert "confirm" in lines[3] and "artifacts:1" in lines[3]
-    assert " • " in lines[3]
+    assert "7d ◔ 10%" in lines[2]
+    assert "5h" not in lines[2]
+    assert "<feature/renderer → origin/feature/renderer>" in lines[3]
+    assert "!" in lines[3]
+    assert "↑2" in lines[3] and "↓1" in lines[3]
+    assert "tasks:3" in lines[4] and "input:2" in lines[4]
+    assert "confirm" in lines[4] and "artifacts:1" in lines[4]
+    assert " • " in lines[4]
+
+
+def test_quota_row_layout_and_bracket_formatting() -> None:
+    payload = {
+        "cwd": "/work/repo",
+        "quota": {
+            "gemini-5h": {"remaining_percentage": 81, "reset_in_seconds": 1800},
+            "gemini-weekly": {"remaining_percentage": 10, "reset_in_seconds": 7200},
+        },
+        "terminal_width": 160,
+    }
+    with patch(
+        "termstatus.agy.statusline._format_quota_reset_duration",
+        side_effect=lambda delta: "⏳ 30m" if delta and delta.total("seconds") == 1800 else "⏳ 2h",
+    ):
+        lines = rendered(payload)
+
+    assert len(lines) == 3
+    assert "/work/repo" in lines[1]
+    assert "[5h ● 81% ⏳ 30m]" in lines[1]
+    assert " • " in lines[1]
+    assert "[7d ◔ 10% ⏳ 2h]" in lines[2]
+
+    solo_payload = {
+        "cwd": "/work/repo",
+        "quota": {
+            "gemini-5h": {"remaining_percentage": 81, "reset_in_seconds": 1800},
+        },
+        "terminal_width": 160,
+    }
+    with patch("termstatus.agy.statusline._format_quota_reset_duration", return_value="⏳ 30m"):
+        solo_lines = rendered(solo_payload)
+
+    assert len(solo_lines) == 2
+    assert "/work/repo • [5h ● 81% ⏳ 30m]" in solo_lines[1]
 
 
 def test_narrow_render_omits_lower_priority_slots_without_overflowing() -> None:
@@ -137,7 +179,7 @@ def test_payload_display_text_cannot_inject_terminal_controls_or_rows() -> None:
         VcsState("branch\nname\x1b[41m", True, True),
     )
 
-    assert output.count("\n") == 2
+    assert output.count("\n") == 3
     assert "\x1b[41m" not in output
     assert "\r" not in output
 
@@ -376,7 +418,129 @@ def test_3p_quotas_filtered_and_quota_meters_formatted() -> None:
     assert "3p-5h" not in plain
     assert "3p-weekly" not in plain
     assert "capacity:" not in plain
-    assert "[5h ● 97%] [7d ● 84%]" in plain
+    assert "[5h ● 97%]" in lines[1]
+    assert "[7d ● 84%]" in lines[2]
+
+
+def test_format_quota_label_preserves_tier_and_normalizes_intervals() -> None:
+    assert _format_quota_label("gemini-pro-weekly") == "pro-7d"
+    assert _format_quota_label("pro-weekly") == "pro-7d"
+    assert _format_quota_label("gemini-5h") == "5h"
+    assert _format_quota_label("gemini-weekly") == "7d"
+    assert _format_quota_label("codex-5h") == "5h"
+    assert _format_quota_label("codex-weekly") == "7d"
+    assert _format_quota_label("pro-5h") == "pro-5h"
+    assert _format_quota_label("gemini-pro-5h") == "pro-5h"
+    assert _format_quota_label("3p-5h") is None
+    assert _format_quota_label("3p_weekly") is None
+    assert _format_quota_label("3p:daily") is None
+    assert _format_quota_label("user-limit") == "limit"
+    assert _format_quota_label("quota") == "quota"
+
+
+def test_format_quota_reset_duration(monkeypatch: pytest.MonkeyPatch) -> None:
+    assert _format_quota_reset_duration(None) is None
+    assert _format_quota_reset_duration(TimeDelta(seconds=0)) is None
+    assert _format_quota_reset_duration(TimeDelta(seconds=-1)) is None
+
+    assert (
+        strip_ansi(_format_quota_reset_duration(TimeDelta(days=5, hours=6, minutes=12, days_assumed_24h_ok=True)) or "")
+        == "⏳ 5d 6h 12m"
+    )
+    assert strip_ansi(_format_quota_reset_duration(TimeDelta(hours=2, minutes=15)) or "") == "⏳ 2h 15m"
+    assert strip_ansi(_format_quota_reset_duration(TimeDelta(minutes=45)) or "") == "⏳ 45m"
+    assert strip_ansi(_format_quota_reset_duration(TimeDelta(seconds=30)) or "") == "⏳ 1m"
+
+    monkeypatch.setenv("TERMSTATUS_NO_ICONS", "1")
+    assert strip_ansi(_format_quota_reset_duration(TimeDelta(hours=2, minutes=15)) or "") == "2h 15m"
+    monkeypatch.delenv("TERMSTATUS_NO_ICONS", raising=False)
+
+    short_reset = _format_quota_reset_duration(TimeDelta(seconds=1800))
+    assert short_reset is not None
+    assert CYAN in short_reset
+
+    long_reset = _format_quota_reset_duration(TimeDelta(seconds=1801))
+    assert long_reset is not None
+    assert DIM in long_reset
+
+
+def test_quota_tier_preserved_in_statusline_render() -> None:
+    lines = rendered(
+        {
+            "quota": {
+                "gemini-pro-weekly": {"remaining_percentage": 65},
+            },
+            "terminal_width": 160,
+        }
+    )
+    plain = "\n".join(lines)
+    assert "[pro-7d" in plain
+
+
+def test_quota_labels_disambiguate_multiple_buckets_sharing_interval() -> None:
+    lines = rendered(
+        {
+            "quota": {
+                "gemini-weekly": {"remaining_percentage": 80},
+                "gemini-pro-weekly": {"remaining_percentage": 50},
+            },
+            "terminal_width": 160,
+        }
+    )
+    plain = "\n".join(lines)
+    assert "[gemini-7d" in plain
+    assert "[pro-7d" in plain
+    assert "[7d " not in plain
+
+    lines = rendered(
+        {
+            "quota": {
+                "gemini-weekly": {"remaining_percentage": 80},
+                "pro-weekly": {"remaining_percentage": 50},
+            },
+            "terminal_width": 160,
+        }
+    )
+    plain = "\n".join(lines)
+    assert "[gemini-7d" in plain
+    assert "[pro-7d" in plain
+
+    lines = rendered(
+        {
+            "quota": {
+                "gemini-weekly": {"remaining_percentage": 80},
+            },
+            "terminal_width": 160,
+        }
+    )
+    plain = "\n".join(lines)
+    assert "[7d " in plain
+    assert "[gemini-7d" not in plain
+
+    lines = rendered(
+        {
+            "quota": {
+                "gemini-5h": {"remaining_percentage": 80},
+            },
+            "terminal_width": 160,
+        }
+    )
+    plain = "\n".join(lines)
+    assert "[5h " in plain
+    assert "[gemini-5h" not in plain
+
+    lines = rendered(
+        {
+            "quota": {
+                "gemini-5h": {"remaining_percentage": 80},
+                "gemini-pro-5h": {"remaining_percentage": 50},
+            },
+            "terminal_width": 160,
+        }
+    )
+    plain = "\n".join(lines)
+    assert "[gemini-5h" in plain
+    assert "[pro-5h" in plain
 
 
 def test_model_name_strips_effort_case_insensitively() -> None:

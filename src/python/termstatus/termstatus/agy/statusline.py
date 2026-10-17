@@ -7,7 +7,9 @@ from pathlib import Path
 from re import Pattern
 from typing import Final
 
-from termstatus.agy.protocol import AgyPayload, VcsState, normalized_text
+from whenever import TimeDelta
+
+from termstatus.agy.protocol import AgyPayload, Quota, VcsState, normalized_text
 from termstatus.agy.term_colors import (
     _STATE_COLORS,
     BLUE,
@@ -216,17 +218,74 @@ def _format_directory(cwd: str) -> str:
     return f"{SKY_BLUE}{icon_prefix}{link}{RESET}"
 
 
-def _format_quota_label(name: str) -> str | None:
+def _format_quota_label(name: str, *, disambiguate: bool = False) -> str | None:
     low = name.lower()
     if low.startswith(("3p-", "3p_", "3p:")):
         return None
-    if low.endswith("-5h") or low == "5h":
+    remaining = name
+    matched_prefix = ""
+    for prefix in ("gemini-", "codex-"):
+        if remaining.lower().startswith(prefix):
+            matched_prefix = prefix
+            remaining = remaining[len(prefix) :]
+            break
+    rem_low = remaining.lower()
+    if rem_low == "5h":
+        return f"{matched_prefix}{remaining}" if disambiguate and matched_prefix else remaining
+    if rem_low in {"weekly", "7d"}:
+        base = "7d"
+        return f"{matched_prefix}{base}" if disambiguate and matched_prefix else base
+    if rem_low.endswith(("-weekly", "-7d")):
+        stem = remaining[: -len("-weekly")] if rem_low.endswith("-weekly") else remaining[: -len("-7d")]
+        return f"{stem}-7d"
+    if not rem_low.endswith("-5h") and "-" in remaining:
+        return remaining.split("-", 1)[1]
+    return remaining
+
+
+def _quota_interval(name: str) -> str | None:
+    low = name.lower()
+    if low == "5h" or low.endswith(("-5h", "_5h", ":5h")):
         return "5h"
-    if low.endswith(("-weekly", "-7d")) or low in {"weekly", "7d"}:
+    if low in {"weekly", "7d"} or low.endswith(("-weekly", "-7d", "_weekly", "_7d")):
         return "7d"
-    if "-" in name:
-        return name.split("-", 1)[1]
-    return name
+    return None
+
+
+def _format_quota_reset_duration(reset_in: TimeDelta | None) -> str | None:
+    if reset_in is None or reset_in.total("seconds") <= 0:
+        return None
+    total_seconds = int(reset_in.total("seconds"))
+    days = total_seconds // 86400
+    remainder = total_seconds % 86400
+    hours = remainder // 3600
+    minutes = (remainder % 3600) // 60
+    if total_seconds > 0 and days == 0 and hours == 0 and minutes == 0:
+        minutes = 1
+    parts: list[str] = []
+    if days > 0:
+        parts.append(f"{days}d")
+    if hours > 0 or (days > 0 and minutes > 0):
+        parts.append(f"{hours}h")
+    if minutes > 0 or not parts:
+        parts.append(f"{minutes}m")
+    duration = " ".join(parts)
+    icon = "⏳ " if use_icons() else ""
+    formatted = f"{icon}{duration}"
+    if total_seconds <= 1800:
+        return f"{CYAN}{formatted}{RESET}"
+    return f"{DIM}{formatted}{RESET}"
+
+
+def _format_quota_badge(name: str, quota: Quota, base_label: str, *, is_ambiguous: bool) -> str:
+    label = _format_quota_label(name, disambiguate=is_ambiguous)
+    color = meter_color(quota.remaining)
+    icon = fullness_icon(quota.remaining)
+    meter = _format_meter(quota.remaining)
+    icon_text = f" {icon}" if use_icons() else ""
+    reset_str = _format_quota_reset_duration(quota.reset_in)
+    reset_text = f" {reset_str}" if reset_str else ""
+    return f"{DIM}[{RESET}{color}{label}{icon_text} {meter}{RESET}{reset_text}{DIM}]{RESET}"
 
 
 def _resource_slots(payload: AgyPayload) -> list[_Slot]:
@@ -236,33 +295,64 @@ def _resource_slots(payload: AgyPayload) -> list[_Slot]:
         icon = fullness_icon(payload.remaining_context)
         slots.append(_Slot(1, 1, 20, f"{color}{icon} {_format_meter(payload.remaining_context)} ctx{RESET}"))
 
-    quota_parts: list[str] = []
-    for name, quota in payload.quotas.items():
-        label = _format_quota_label(name)
-        if not label:
+    five_hour_quotas: list[tuple[str, str]] = []
+    for name in payload.quotas:
+        if _quota_interval(name) != "5h":
             continue
-        color = meter_color(quota.remaining)
-        icon = fullness_icon(quota.remaining)
-        meter = _format_meter(quota.remaining)
-        icon_text = f" {icon}" if use_icons() else ""
-        quota_parts.append(f"{DIM}[{RESET}{color}{label}{icon_text} {meter}{RESET}{DIM}]{RESET}")
+        base_label = _format_quota_label(name)
+        if base_label is None:
+            continue
+        five_hour_quotas.append((name, base_label))
 
-    if quota_parts:
-        slots.append(_Slot(1, 2, 45, " ".join(quota_parts)))
+    if five_hour_quotas:
+        five_hour_parts: list[str] = []
+        is_multiple = len(five_hour_quotas) > 1
+        for name, base_label in five_hour_quotas:
+            quota = payload.quotas[name]
+            is_ambiguous = is_multiple and base_label == "5h"
+            five_hour_parts.append(_format_quota_badge(name, quota, base_label, is_ambiguous=is_ambiguous))
+        slots.append(_Slot(1, 2, 40, " ".join(five_hour_parts)))
 
     if payload.cost is not None:
         slots.append(_Slot(1, 3, 90, f"{DIM}{_format_cost(payload.cost)}{RESET}"))
     return slots
 
 
+def _quota_slots(payload: AgyPayload) -> list[_Slot]:
+    valid_quotas: list[tuple[str, str, str | None]] = []
+    for name in payload.quotas:
+        if _quota_interval(name) == "5h":
+            continue
+        base_label = _format_quota_label(name)
+        if base_label is None:
+            continue
+        interval = _quota_interval(name)
+        valid_quotas.append((name, base_label, interval))
+
+    interval_counts: dict[str, int] = {}
+    for _, _, interval in valid_quotas:
+        if interval:
+            interval_counts[interval] = interval_counts.get(interval, 0) + 1
+
+    quota_parts: list[str] = []
+    for name, base_label, interval in valid_quotas:
+        quota = payload.quotas[name]
+        is_ambiguous = bool(interval and interval_counts.get(interval, 0) > 1 and base_label == interval)
+        quota_parts.append(_format_quota_badge(name, quota, base_label, is_ambiguous=is_ambiguous))
+
+    if quota_parts:
+        return [_Slot(2, 0, 10, " ".join(quota_parts))]
+    return []
+
+
 def _vcs_slots(vcs: VcsState | None) -> list[_Slot]:
     if not vcs:
         return []
     if branch := git_branch(vcs):
-        return [_Slot(2, 0, 10, branch)]
+        return [_Slot(3, 0, 10, branch)]
     if vcs.dirty:
         dirty_icon = get_icon("dirty") or "!"
-        return [_Slot(2, 0, 10, f"{YELLOW}{dirty_icon} dirty{RESET}")]
+        return [_Slot(3, 0, 10, f"{YELLOW}{dirty_icon} dirty{RESET}")]
     return []
 
 
@@ -277,15 +367,19 @@ def _activity_slots(payload: AgyPayload) -> list[_Slot]:
         (2, 50, f"{BOLD}{RED}confirm{RESET}" if payload.confirmation_pending else None),
         (3, 65, f"{BLUE}artifacts:{payload.artifact_count}{RESET}" if payload.artifact_count is not None else None),
     )
-    return [_Slot(3, index, minimum_width, text) for index, minimum_width, text in values if text]
+    return [_Slot(4, index, minimum_width, text) for index, minimum_width, text in values if text]
 
 
 def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
     slots = (
-        _identity_slots(payload) + _resource_slots(payload) + _vcs_slots(vcs or payload.vcs) + _activity_slots(payload)
+        _identity_slots(payload)
+        + _resource_slots(payload)
+        + _quota_slots(payload)
+        + _vcs_slots(vcs or payload.vcs)
+        + _activity_slots(payload)
     )
     return "\n".join(
         row
-        for line in range(4)
+        for line in range(5)
         if (row := _fit_slots([slot for slot in slots if slot.line == line], payload.terminal_width))
     )
