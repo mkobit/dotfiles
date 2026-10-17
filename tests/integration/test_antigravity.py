@@ -385,11 +385,11 @@ def test_antigravity_auto_update_disabled_in_shell_configs() -> None:
             text=True,
         )
         assert result.returncode == 0, result.stderr
-        assert "AGY_CLI_DISABLE_AUTO_UPDATE" not in result.stdout
+        assert "export AGY_CLI_DISABLE_AUTO_UPDATE=true" in result.stdout
 
 
 @pytest.mark.integration
-def test_antigravity_auto_update_enabled_omits_shell_export() -> None:
+def test_antigravity_auto_update_enabled_still_disables_native_shell_updater() -> None:
     for shell_file in ["dot_dotfiles/bash/config.bash.tmpl", "dot_dotfiles/zsh/config.zsh.tmpl"]:
         template = Path.cwd() / "src/chezmoi" / shell_file
         result = subprocess.run(
@@ -412,7 +412,7 @@ def test_antigravity_auto_update_enabled_omits_shell_export() -> None:
             text=True,
         )
         assert result.returncode == 0, result.stderr
-        assert "AGY_CLI_DISABLE_AUTO_UPDATE" not in result.stdout
+        assert "export AGY_CLI_DISABLE_AUTO_UPDATE=true" in result.stdout
 
 
 @pytest.mark.integration
