@@ -3,6 +3,7 @@ name: sbx-sandboxes
 description: Use when executing coding tasks, inspecting or debugging SBX sandboxes, or configuring repository-owned `.sbx/` environments with the `sbx` CLI. Use only `sbx` for sandbox operations; never the `docker` CLI.
 allowed-tools:
   - Bash(sbx --help)
+  - Bash(sbx help)
   - Bash(sbx help *)
   - Bash(sbx * --help)
   - Bash(sbx ls)

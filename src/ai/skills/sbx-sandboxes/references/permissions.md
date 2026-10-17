@@ -35,22 +35,31 @@ Help with `--help` displays usage; it does not grant execution of the underlying
 Claude Code supports skill tool grants during the invoking turn, subject to managed restrictions.
 See [Claude Code skill permissions](https://code.claude.com/docs/en/skills#pre-approve-tools-for-a-skill).
 
-Codex has no supported plugin command-grant mechanism in the installed version.
-A trusted repository can provide persistent `.codex/rules/*.rules` after authorization.
-Codex rules match argument prefixes, not Bash glob patterns:
+The owned plugin supplies command approval hooks for Codex and AGY.
+Both hooks read this skill's `allowed-tools` list through `scripts/command_approval.py`.
+They approve matching `sbx` commands while the plugin is enabled, including `sbx env --help` and nested subcommand help.
+They do not depend on skill invocation.
+Unmatched commands use the host's normal approval checks.
+Shell wrappers, host command lists, redirection, and substitution also use normal approval checks.
 
-```starlark
-prefix_rule(pattern = ["sbx", "env", "exec", ".sbx/sbxenv.yaml", "--"], decision = "allow")
-prefix_rule(pattern = ["sbx", "exec", "project-codex"], decision = "allow")
-```
+| Host | Command approval | Scope |
+| --- | --- | --- |
+| Claude Code | Skill `allowed-tools` | Invoking turn |
+| Codex | Plugin `PermissionRequest` hook | Enabled plugin with trusted hook |
+| AGY | Plugin `PreToolUse` hook with `auto_approve` | Enabled plugin |
 
-These examples cover guest writes and do not expire with the skill turn.
-See [Codex rules](https://developers.openai.com/codex/rules).
+Codex requires review of each new or changed hook through `/hooks`.
+Installing the plugin does not grant hook trust.
+See [Codex hook trust](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks) and [permission requests](https://learn.chatgpt.com/docs/hooks#permissionrequest).
 
-The shared global command catalog supplies narrow help, listing, and version grants to supported permission renderers.
-Its command heads are literal; do not put globs into that catalog.
-AGY and other hosts must use their supported approval mechanisms where skill metadata is not enforced.
-Cross-tool conversion is outside this skill.
+AGY's hook preserves explicit user permission rules.
+Command approval does not grant access outside AGY's terminal sandbox.
+Use the platform approval process when `sbx` needs host-service access.
+See [AGY hooks](https://antigravity.google/docs/hooks) and [sandbox permissions](https://antigravity.google/docs/sandbox/?tab=cli).
+
+The shared global command catalog has no active SBX grants.
+Its retirement entries remove old generated grants from saved settings.
+An overlay can still declare an explicit grant.
 
 ## Failures and results
 

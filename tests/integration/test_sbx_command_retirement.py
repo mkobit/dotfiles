@@ -13,8 +13,28 @@ TEMPLATES = {
     "antigravity": ROOT / "src/chezmoi/dot_gemini/antigravity-cli/modify_settings.json",
 }
 OLD = {
-    "claude": ("Bash(sbx kit:*)", "Bash(sbx env exec:*)"),
-    "antigravity": ("command(sbx kit)", "command(sbx env exec)"),
+    "claude": (
+        "Bash(sbx kit:*)",
+        "Bash(sbx env exec:*)",
+        "Bash(sbx kit pack:*)",
+        "Bash(sbx --help:*)",
+        "Bash(sbx --version:*)",
+        "Bash(sbx help:*)",
+        "Bash(sbx ls:*)",
+        "Bash(sbx list:*)",
+        "Bash(sbx version:*)",
+    ),
+    "antigravity": (
+        "command(sbx kit)",
+        "command(sbx env exec)",
+        "command(sbx kit pack)",
+        "command(sbx --help)",
+        "command(sbx --version)",
+        "command(sbx help)",
+        "command(sbx ls)",
+        "command(sbx list)",
+        "command(sbx version)",
+    ),
 }
 KEEP = {
     "claude": ("Bash(sbx env exec .sbx/sbxenv.yaml:*)", "Bash(sbx custom:*)", "Read(./notes.md)"),
@@ -56,12 +76,10 @@ def _render(tool: str, live: dict | None = None, override: dict | None = None, s
 
 
 @pytest.mark.parametrize("tool", TEMPLATES)
-def test_fresh_settings_grant_only_help_and_listing(tool: str) -> None:
+def test_fresh_settings_do_not_grant_global_sbx_commands(tool: str) -> None:
     allow = _render(tool)["permissions"]["allow"]
-    heads = {"sbx --help", "sbx --version", "sbx help", "sbx ls", "sbx list", "sbx version"}
     actual = {entry for entry in allow if entry.startswith(("Bash(sbx ", "command(sbx "))}
-    expected = {f"Bash({head}:*)" if tool == "claude" else f"command({head})" for head in heads}
-    assert actual == expected
+    assert actual == set()
 
 
 @pytest.mark.parametrize("tool", TEMPLATES)
@@ -76,10 +94,12 @@ def test_retirement_removes_exact_live_grants_only(tool: str) -> None:
 
 
 @pytest.mark.parametrize("tool", TEMPLATES)
-def test_overlay_command_grant_survives_retirement(tool: str) -> None:
-    override = {"ai": {"command_policy": {"commands": {"sbx env exec": "allow"}}}}
-    allow = _render(tool, {"permissions": {"allow": [OLD[tool][1]]}}, override)["permissions"]["allow"]
-    assert OLD[tool][1] in allow
+@pytest.mark.parametrize("head", ["sbx env exec", "sbx list"])
+def test_overlay_command_grant_survives_retirement(tool: str, head: str) -> None:
+    entry = f"Bash({head}:*)" if tool == "claude" else f"command({head})"
+    override = {"ai": {"command_policy": {"commands": {head: "allow"}}}}
+    allow = _render(tool, {"permissions": {"allow": [entry]}}, override)["permissions"]["allow"]
+    assert entry in allow
 
 
 @pytest.mark.parametrize("tool", TEMPLATES)
