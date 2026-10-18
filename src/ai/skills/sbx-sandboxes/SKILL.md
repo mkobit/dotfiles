@@ -31,6 +31,7 @@ Use `sbx diagnose` with the required platform access, never `docker ps`, `docker
 Keep host credentials, Git review, commits, signing, and pushes on the host.
 Each repository owns its complete kit, toolchain, services, and environment configuration.
 Use `workspace.clone: false` so sandbox edits are immediately visible to the host.
+Combine `clone: false` with Git worktrees to distribute tasks across parallel sandboxes.
 For a private clone and its change-return process, read [Nested execution](references/nested-execution.md).
 
 ## Execute a task
