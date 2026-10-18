@@ -27,3 +27,10 @@ For execution errors, use [CLI automation](cli-automation.md).
 The standard `clone: false` workspace returns file edits immediately to the host checkout.
 
 Use a private clone only when isolation outweighs that fast review loop and the repository specifies the return path.
+
+## Worktree isolation
+
+A worktree sandbox mounts only the worktree path.
+The container cannot resolve `.git` or host task trackers outside that mount.
+Run all branch, commit, and task tracker commands on the host coordinator.
+

@@ -30,6 +30,7 @@ A path can be a directory containing `sbxenv.yaml` or a named environment file.
 Multiple paths deep-merge in order; lists such as `ports` concatenate.
 An explicit path skips the hidden home base layer.
 Use the same `--name` override for each command that addresses an environment.
+Specify `--name <name>` to run parallel sandboxes from one template without name conflicts.
 
 ## Machine output
 
