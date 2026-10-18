@@ -7,7 +7,6 @@ repo             = "eza-community/eza"
 external_type    = "archive-file"
 executable       = true
 checksum_type    = "sha256"
-strip_components = 1
 tag_format       = "v{version}"
 filename_format  = "eza_{target}.tar.gz"
 path_format      = "eza"
