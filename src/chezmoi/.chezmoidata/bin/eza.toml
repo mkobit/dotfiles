@@ -9,7 +9,7 @@ executable       = true
 checksum_type    = "sha256"
 tag_format       = "v{version}"
 filename_format  = "eza_{target}.tar.gz"
-path_format      = "eza"
+path_format      = "./eza"
 url_format       = "{base}/{repo}/releases/download/{tag}/{filename}"
 
 [bin.eza.github_releases.platforms]
