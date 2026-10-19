@@ -1,3 +1,6 @@
+[ai.command_policy.commands]
+"sbx --version" = "allow"
+
 # Retired grants migrate only matching live allow entries.
 # TODO(2026-11-30): Remove these entries after existing installations have applied the grant cleanup.
 # Active SBX permission guidance is in src/ai/skills/sbx-sandboxes/references/permissions.md.

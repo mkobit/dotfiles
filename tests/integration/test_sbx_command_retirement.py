@@ -18,7 +18,6 @@ OLD = {
         "Bash(sbx env exec:*)",
         "Bash(sbx kit pack:*)",
         "Bash(sbx --help:*)",
-        "Bash(sbx --version:*)",
         "Bash(sbx help:*)",
         "Bash(sbx ls:*)",
         "Bash(sbx list:*)",
@@ -29,7 +28,6 @@ OLD = {
         "command(sbx env exec)",
         "command(sbx kit pack)",
         "command(sbx --help)",
-        "command(sbx --version)",
         "command(sbx help)",
         "command(sbx ls)",
         "command(sbx list)",
@@ -76,10 +74,11 @@ def _render(tool: str, live: dict | None = None, override: dict | None = None, s
 
 
 @pytest.mark.parametrize("tool", TEMPLATES)
-def test_fresh_settings_do_not_grant_global_sbx_commands(tool: str) -> None:
+def test_fresh_settings_grant_only_sbx_version_inspection(tool: str) -> None:
     allow = _render(tool)["permissions"]["allow"]
     actual = {entry for entry in allow if entry.startswith(("Bash(sbx ", "command(sbx "))}
-    assert actual == set()
+    expected = "Bash(sbx --version:*)" if tool == "claude" else "command(sbx --version)"
+    assert actual == {expected}
 
 
 @pytest.mark.parametrize("tool", TEMPLATES)

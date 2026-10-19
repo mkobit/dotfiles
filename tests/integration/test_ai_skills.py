@@ -199,11 +199,7 @@ def test_capability_manifest_versions_ignore_legacy_overlay_source(tmp_path):
     source = tmp_path / "source"
     destination = tmp_path / "destination"
     destination.mkdir()
-    for relative_path in (
-        *CAPABILITY_MANIFEST_TEMPLATES,
-        Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/hooks.json.tmpl"),
-        Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex/hooks/hooks.json.tmpl"),
-    ):
+    for relative_path in CAPABILITY_MANIFEST_TEMPLATES:
         template = source / relative_path
         template.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPOSITORY_ROOT / "src/chezmoi" / relative_path, template)
