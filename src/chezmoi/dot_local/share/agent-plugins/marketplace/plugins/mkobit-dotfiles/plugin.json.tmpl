@@ -1,5 +1,4 @@
 {{- $inputs := dict "external" .ai.skills.external "authored" (dig "authored" (dict) .ai.skills) -}}
-{{- $_ := set $inputs "approval_hooks" (include "dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/hooks.json.tmpl") -}}
 {{- range $path := glob (joinPath .chezmoi.sourceDir ".." "ai/skills/**/*") | sortAlpha -}}
 {{-   if eq (lstat $path).type "file" -}}
 {{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
