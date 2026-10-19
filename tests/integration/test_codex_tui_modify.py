@@ -36,7 +36,7 @@ def test_codex_tui_modifier_preserves_matching_toml() -> None:
     template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
     matching = """[tui]
 vim_mode_default = true
-status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "workspace-headline", "task-progress"]
+status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "five-hour-limit", "weekly-limit", "task-progress"]
 status_line_use_colors = true
 
 [runtime]
@@ -75,7 +75,8 @@ value = "preserve"
             "run-state",
             "permissions",
             "context-remaining",
-            "workspace-headline",
+            "five-hour-limit",
+            "weekly-limit",
             "task-progress",
         ],
         "status_line_use_colors": True,
@@ -102,7 +103,8 @@ def test_codex_tui_modifier_adds_managed_defaults_to_base_only_config() -> None:
             "run-state",
             "permissions",
             "context-remaining",
-            "workspace-headline",
+            "five-hour-limit",
+            "weekly-limit",
             "task-progress",
         ],
         "status_line_use_colors": True,
@@ -133,7 +135,7 @@ model_auto_compact_token_limit = 176700
 
 [tui]
 vim_mode_default = true
-status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "workspace-headline", "task-progress"]
+status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "five-hour-limit", "weekly-limit", "task-progress"]
 status_line_use_colors = true
 
 [runtime]
@@ -181,7 +183,7 @@ log_user_prompt = false
 
 [tui]
 vim_mode_default = true
-status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "workspace-headline", "task-progress"]
+status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "five-hour-limit", "weekly-limit", "task-progress"]
 status_line_use_colors = true
 
 [runtime]
@@ -214,7 +216,7 @@ def test_codex_modifier_replaces_stale_optional_limit_and_preserves_unrelated_se
 
 [tui]
 vim_mode_default = true
-status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "workspace-headline", "task-progress"]
+status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "five-hour-limit", "weekly-limit", "task-progress"]
 status_line_use_colors = true
 
 [runtime]
@@ -253,7 +255,8 @@ def test_codex_modifier_manages_preferences_in_explicit_empty_tui_table() -> Non
             "run-state",
             "permissions",
             "context-remaining",
-            "workspace-headline",
+            "five-hour-limit",
+            "weekly-limit",
             "task-progress",
         ],
         "status_line_use_colors": True,
