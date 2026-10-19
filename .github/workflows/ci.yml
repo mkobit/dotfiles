@@ -209,13 +209,16 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
         run: |
+          set -o pipefail
+          report_dir="$RUNNER_TEMP/integration-reports"
+          mkdir -p "$report_dir"
           # externals have no retry option; cached downloads survive, so retries refetch only failures
           for attempt in 1 2 3; do
             chezmoi apply \
               --cache=${{ env.CHEZMOI_CACHE_DIR }} \
               --config=${{ env.CHEZMOI_CONFIG }} \
               --source=${{ github.workspace }} \
-              --destination=${{ env.CHEZMOI_DEST }} && exit 0
+              --destination=${{ env.CHEZMOI_DEST }} 2>&1 | tee "$report_dir/chezmoi-apply-$attempt.log" && exit 0
             echo "::warning::chezmoi apply attempt $attempt failed"
             [ "$attempt" -lt 3 ] && sleep $((attempt * 15))
           done
@@ -243,6 +246,18 @@ jobs:
           HOME: ${{ env.CHEZMOI_DEST }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mise exec -- uv run pytest tests/integration
+          set -o pipefail
+          report_dir="$RUNNER_TEMP/integration-reports"
+          mkdir -p "$report_dir"
+          mise exec -- uv run pytest tests/integration -ra --durations=20 \
+            --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
 
-
+      - name: Upload integration reports
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: integration-reports-${{ matrix.os }}-${{ runner.arch }}
+          path: ${{ runner.temp }}/integration-reports/
+          retention-days: 7
+          if-no-files-found: ignore
