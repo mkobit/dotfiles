@@ -16,6 +16,7 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPOSITORY_ROOT / "src/chezmoi"
 EXTERNAL_TEMPLATE = SOURCE_ROOT / "dot_local/.chezmoiexternals/claude.toml.tmpl"
 LAUNCHER_TEMPLATE = SOURCE_ROOT / "dot_local/bin/symlink_claude.tmpl"
+IGNORE_TEMPLATE = SOURCE_ROOT / "dot_local/bin/.chezmoiignore.tmpl"
 PLATFORMS = [
     ("darwin", "arm64", "darwin-arm64", "d8cb1e5c79684cc12a8bfc813e3a2073406921b6245744b3009be3ab5651d21e"),
     ("darwin", "amd64", "darwin-x64", "c896d2aee12ff4d95861033d9730d3d22dc19e4f32779134d3399ef3dfb0e77a"),
@@ -91,14 +92,86 @@ def test_claude_launcher_uses_destination(tmp_path):
     assert result.stdout.strip() == str(destination / ".local/lib/claude/2.1.283/claude")
 
 
-def test_claude_apply_replaces_installer_launcher_and_preserves_old_binary(tmp_path):
+def _claude_source(tmp_path):
     source = tmp_path / "source"
+    for template in (EXTERNAL_TEMPLATE, LAUNCHER_TEMPLATE, IGNORE_TEMPLATE):
+        if template.is_file():
+            target = source / template.relative_to(SOURCE_ROOT)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(template, target)
+    return source
+
+
+def _apply_claude(tmp_path, source, destination, config):
+    return subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            str(config),
+            "--source",
+            str(source),
+            "--destination",
+            str(destination),
+            "--cache",
+            str(tmp_path / "cache"),
+            "--persistent-state",
+            str(tmp_path / "state.boltdb"),
+            "apply",
+            "--force",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+
+def _stable_file_stat(path):
+    state = path.lstat()
+    return state.st_ino, state.st_mode, state.st_size, state.st_mtime_ns, state.st_ctime_ns
+
+
+@pytest.mark.parametrize("method", ["preinstalled", "none", None, "dotfiles.script", "other"])
+@pytest.mark.parametrize("launcher_type", ["symlink", "file"])
+def test_claude_unmanaged_apply_preserves_existing_launcher(tmp_path, method, launcher_type):
+    source = _claude_source(tmp_path)
     destination = tmp_path / "destination"
-    local_source = source / "dot_local"
-    (local_source / ".chezmoiexternals").mkdir(parents=True)
-    (local_source / "bin").mkdir()
-    shutil.copy(EXTERNAL_TEMPLATE, local_source / ".chezmoiexternals/claude.toml.tmpl")
-    shutil.copy(LAUNCHER_TEMPLATE, local_source / "bin/symlink_claude.tmpl")
+    config = tmp_path / "chezmoi.json"
+    config.write_text(
+        json.dumps({"data": {"claude_code": {"installation_method": method} if method is not None else {}}})
+    )
+    launcher = destination / ".local/bin/claude"
+    launcher.parent.mkdir(parents=True)
+    former_binary = destination / ".local/share/claude/versions/existing"
+    former_binary.parent.mkdir(parents=True)
+    former_binary.write_bytes(b"existing Claude binary\n")
+    former_binary.chmod(0o755)
+    if launcher_type == "symlink":
+        launcher.symlink_to(former_binary)
+    else:
+        launcher.write_bytes(b"#!/bin/sh\nprintf 'existing launcher\\n'\n")
+        launcher.chmod(0o755)
+    original_content = launcher.read_bytes()
+    original_stat = _stable_file_stat(launcher)
+    binary_stat = _stable_file_stat(former_binary)
+
+    result = _apply_claude(tmp_path, source, destination, config)
+
+    assert result.returncode == 0, result.stderr
+    assert launcher.exists(), "Unmanaged Claude launcher was removed"
+    assert launcher.is_symlink() == (launcher_type == "symlink")
+    if launcher_type == "symlink":
+        assert launcher.readlink() == former_binary
+    assert launcher.read_bytes() == original_content
+    assert _stable_file_stat(launcher) == original_stat
+    assert former_binary.read_bytes() == b"existing Claude binary\n"
+    assert _stable_file_stat(former_binary) == binary_stat
+    assert not (destination / ".local/lib/claude").exists()
+    assert not list((tmp_path / "cache").rglob("*"))
+
+
+def test_claude_apply_replaces_installer_launcher_and_preserves_old_binary(tmp_path):
+    source = _claude_source(tmp_path)
+    destination = tmp_path / "destination"
     catalog = tomllib.loads((SOURCE_ROOT / ".chezmoidata/bin/claude.toml").read_text())
     payload = b"#!/bin/sh\nprintf '2.1.283 (Claude Code)\\n'\n"
     downloads = tmp_path / "downloads"
@@ -131,26 +204,7 @@ def test_claude_apply_replaces_installer_launcher_and_preserves_old_binary(tmp_p
     old_binary.write_text("previous installation\n")
     launcher.symlink_to(old_binary)
     try:
-        result = subprocess.run(
-            [
-                "chezmoi",
-                "--config",
-                str(config),
-                "--source",
-                str(source),
-                "--destination",
-                str(destination),
-                "--cache",
-                str(tmp_path / "cache"),
-                "--persistent-state",
-                str(tmp_path / "state.boltdb"),
-                "apply",
-                "--force",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        result = _apply_claude(tmp_path, source, destination, config)
     finally:
         server.shutdown()
         server.server_close()
