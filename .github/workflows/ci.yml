@@ -151,6 +151,19 @@ jobs:
             chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-main-
             chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-
 
+      - name: Cache skill-filter output
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          # Apply uses the runner home; integration pytest uses CHEZMOI_DEST as HOME.
+          path: |
+            ~/.cache/skill-filter
+            ${{ env.CHEZMOI_DEST }}/.cache/skill-filter
+          key: skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/ai/**', 'src/chezmoi/.chezmoi.toml.tmpl', 'src/chezmoi/.chezmoiexternals/ai-*.toml.tmpl') }}
+          restore-keys: |
+            skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-${{ github.head_ref || github.ref_name }}-
+            skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-main-
+            skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-
+
       - name: Cache mise downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
