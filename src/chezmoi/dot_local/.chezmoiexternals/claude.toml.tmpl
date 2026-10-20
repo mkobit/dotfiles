@@ -1,0 +1,17 @@
+{{- $method := dig "claude_code" "installation_method" "none" . -}}
+{{- if eq $method "direct_release" -}}
+{{- $tool := .bin.claude -}}
+{{- $release := $tool.direct_release -}}
+{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
+{{- if not (hasKey $release.platforms $platform) -}}
+{{- fail (printf "bin.claude: no direct_release platform entry for %s" $platform) -}}
+{{- end -}}
+{{- $target := index $release.platforms $platform -}}
+{{- $url := $release.url_format | replace "{version}" $tool.version | replace "{target}" $target -}}
+["lib/claude/{{ $tool.version }}/claude"]
+type = {{ $release.external_type | quote }}
+url = {{ $url | quote }}
+executable = {{ $release.executable }}
+["lib/claude/{{ $tool.version }}/claude".checksum]
+{{ $release.checksum_type }} = {{ index $release.checksums $platform | quote }}
+{{- end -}}
