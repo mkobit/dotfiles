@@ -299,6 +299,12 @@ def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, 
     sentinel = destination / ".local/share/agent-plugins/runtime/sentinel"
     sentinel.parent.mkdir(parents=True)
     sentinel.write_text("keep\n")
+    legacy_package = destination / ".local/share/agent-plugins/marketplace/plugins/superpowers"
+    legacy_package.mkdir(parents=True)
+    (legacy_package / "legacy.txt").write_text("remove\n")
+    foreign_sibling = destination / ".local/share/agent-plugins/marketplace/plugins/custom-plugin"
+    foreign_sibling.mkdir(parents=True)
+    (foreign_sibling / "plugin.json").write_text('{"name":"custom-plugin"}\n')
     old_roots = (
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills",
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude/skills",
@@ -325,6 +331,8 @@ def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, 
     assert sentinel.read_text() == "keep\n"
     for root in old_roots:
         assert not (destination / root / "brainstorming").exists()
+    assert not legacy_package.exists()
+    assert (foreign_sibling / "plugin.json").read_text() == '{"name":"custom-plugin"}\n'
     first_snapshot = _snapshot(destination)
     second_apply = _apply(source, destination, config)
     assert second_apply.returncode == 0, second_apply.stderr
