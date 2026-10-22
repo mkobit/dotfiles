@@ -1,6 +1,9 @@
+import json
 import subprocess
 import tomllib
 from pathlib import Path
+
+import pytest
 
 
 def _render_codex_config(
@@ -36,7 +39,7 @@ def test_codex_tui_modifier_preserves_matching_toml() -> None:
     template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
     matching = """[tui]
 vim_mode_default = true
-status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "five-hour-limit", "weekly-limit", "task-progress"]
+status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "task-progress"]
 status_line_use_colors = true
 
 [runtime]
@@ -75,8 +78,6 @@ value = "preserve"
             "run-state",
             "permissions",
             "context-remaining",
-            "five-hour-limit",
-            "weekly-limit",
             "task-progress",
         ],
         "status_line_use_colors": True,
@@ -103,8 +104,6 @@ def test_codex_tui_modifier_adds_managed_defaults_to_base_only_config() -> None:
             "run-state",
             "permissions",
             "context-remaining",
-            "five-hour-limit",
-            "weekly-limit",
             "task-progress",
         ],
         "status_line_use_colors": True,
@@ -135,7 +134,7 @@ model_auto_compact_token_limit = 176700
 
 [tui]
 vim_mode_default = true
-status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "five-hour-limit", "weekly-limit", "task-progress"]
+status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "task-progress"]
 status_line_use_colors = true
 
 [runtime]
@@ -183,7 +182,7 @@ log_user_prompt = false
 
 [tui]
 vim_mode_default = true
-status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "five-hour-limit", "weekly-limit", "task-progress"]
+status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "task-progress"]
 status_line_use_colors = true
 
 [runtime]
@@ -216,7 +215,7 @@ def test_codex_modifier_replaces_stale_optional_limit_and_preserves_unrelated_se
 
 [tui]
 vim_mode_default = true
-status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "five-hour-limit", "weekly-limit", "task-progress"]
+status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "task-progress"]
 status_line_use_colors = true
 
 [runtime]
@@ -255,10 +254,43 @@ def test_codex_modifier_manages_preferences_in_explicit_empty_tui_table() -> Non
             "run-state",
             "permissions",
             "context-remaining",
-            "five-hour-limit",
-            "weekly-limit",
             "task-progress",
         ],
         "status_line_use_colors": True,
     }
     assert rendered["runtime"] == {"value": "preserve"}
+
+
+def test_codex_personal_init_enables_usage_limits(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("CI", "true")
+    source = Path.cwd() / "src/chezmoi"
+    init_source = tmp_path / "source"
+    init_source.mkdir()
+    (init_source / ".chezmoi.toml.tmpl").write_text((source / ".chezmoi.toml.tmpl").read_text())
+    config = tmp_path / "chezmoi.toml"
+    initialized = subprocess.run(
+        ["chezmoi", "--config", str(config), "--source", str(init_source), "init", "--no-tty"],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    assert initialized.returncode == 0, initialized.stderr
+    data = tomllib.loads(config.read_text())["data"]
+    result = _render_codex_config(
+        source / "dot_codex/modify_private_config.toml",
+        "",
+        json.dumps({"codex": data["codex"]}),
+    )
+    assert result.returncode == 0, result.stderr
+    assert tomllib.loads(result.stdout)["tui"]["status_line"] == [
+        "model-with-reasoning",
+        "current-dir",
+        "project-name",
+        "git-branch",
+        "run-state",
+        "permissions",
+        "context-remaining",
+        "five-hour-limit",
+        "weekly-limit",
+        "task-progress",
+    ]
