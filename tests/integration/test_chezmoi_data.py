@@ -69,7 +69,7 @@ def test_marker_gated_installation_method_contract(chezmoi_data, feature, method
 
 
 @pytest.mark.integration
-def test_chezmoi_data_contains_git_global_ignores_including_worktrees(chezmoi_data):
-    assert "git" in chezmoi_data and "global_ignores" in chezmoi_data["git"]
-    assert ".worktrees/" in chezmoi_data["git"]["global_ignores"]
-    assert ".worktree/" in chezmoi_data["git"]["global_ignores"]
+def test_chezmoi_data_contains_git_ignores_including_worktrees(chezmoi_data):
+    assert "git" in chezmoi_data and "ignores" in chezmoi_data["git"]
+    assert ".worktrees/" in chezmoi_data["git"]["ignores"]
+    assert ".worktree/" in chezmoi_data["git"]["ignores"]

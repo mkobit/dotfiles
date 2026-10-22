@@ -169,9 +169,6 @@ installation_method = "homebrew"
 [data.packages.strace]
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 
-[data.packages.chafa]
-installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
-
 [data.packages.bubblewrap]
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 

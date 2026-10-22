@@ -4,25 +4,25 @@
 # setting `[data.git.personal] name = "…"` etc. in their own chezmoi.toml.tmpl.
 
 [git]
-global_ignores = [
-  "*.py[cod]",
+ignores = [
+  ".DS_Store",
+  ".idea/",
   "*.swp",
   "*~",
-  ".DS_Store",
-  ".agy",
-  ".antigravity/",
-  ".antigravitycli/",
-  ".claude/settings.local.json",
-  ".idea/",
-  ".scratch/",
-  ".worktree/",
-  ".worktrees/",
   "/bazel-*",
-  "__pycache__/",
+  ".scratch/",
   "docs/superpowers/plans/*",
   "docs/superpowers/specs/*",
   "mise.*.local.toml",
   "mise.local.toml",
+  ".antigravity/",
+  ".antigravitycli/",
+  ".agy",
+  "__pycache__/",
+  "*.py[cod]",
+  ".claude/settings.local.json",
+  ".worktrees/",
+  ".worktree/",
 ]
 
 [git.personal]
