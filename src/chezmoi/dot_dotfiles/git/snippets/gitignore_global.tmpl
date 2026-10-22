@@ -1,5 +1,8 @@
+{{- $ignores := dig "git" "global_ignores" list . -}}
+{{- if $ignores -}}
 # Global .gitignore file
 # Documentation: https://git-scm.com/docs/gitignore
-{{- range .git.ignores }}
+{{- range $ignores }}
 {{ . }}
+{{- end }}
 {{- end }}
