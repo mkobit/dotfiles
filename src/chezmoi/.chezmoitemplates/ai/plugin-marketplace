@@ -1,0 +1,28 @@
+{{- $root := .root -}}
+{{- $name := .name -}}
+{{- $host := .host -}}
+{{- $bridge := fromJson (includeTemplate "ai/plugin-bridge" $root) -}}
+{{- $marketplace := index $root.ai.plugin_bridge.marketplaces $name -}}
+{{- $environment := dig "environment" "default" $bridge -}}
+{{- $plugins := list -}}
+{{- range $pluginName, $capability := $bridge.capabilities -}}
+{{-   $hosts := dig "hosts" (dig "hosts" (list) $marketplace) $capability -}}
+{{-   $environments := dig "environments" nil $capability -}}
+{{-   if and (eq (dig "marketplace" "" $capability) $name) (has $host $hosts) (or (eq $environments nil) (has $environment $environments)) -}}
+{{-     $path := dig "package_path" (printf "./plugins/%s/%s" $pluginName $host) $capability -}}
+{{-     $plugin := dict "name" $pluginName "source" $path -}}
+{{-     if eq $host "codex" -}}
+{{-       $_ := set $plugin "source" (dict "source" "local" "path" $path) -}}
+{{-       $_ := set $plugin "policy" (dict "installation" "AVAILABLE" "authentication" "ON_INSTALL") -}}
+{{-       $_ := set $plugin "category" "Productivity" -}}
+{{-     end -}}
+{{-     $plugins = append $plugins $plugin -}}
+{{-   end -}}
+{{- end -}}
+{{- $manifest := dict "name" $name "plugins" $plugins -}}
+{{- if eq $host "claude" -}}
+{{-   $_ := set $manifest "owner" (dict "name" (dig "owner" $name $marketplace)) -}}
+{{- else -}}
+{{-   $_ := set $manifest "interface" (dict "displayName" (dig "display_name" $name $marketplace)) -}}
+{{- end -}}
+{{- $manifest | toPrettyJson -}}
