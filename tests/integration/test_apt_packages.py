@@ -6,6 +6,11 @@ import pytest
     "package,binary",
     [
         pytest.param(
+            "chafa",
+            "chafa",
+            marks=pytest.mark.chezmoi_installation("packages.chafa", methods={"apt"}),
+        ),
+        pytest.param(
             "strace",
             "strace",
             marks=pytest.mark.chezmoi_installation("packages.strace", methods={"apt"}),
