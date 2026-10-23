@@ -36,6 +36,7 @@ def _write_fixture_source(source: Path, repo_root: Path, config: Path, environme
         BRIDGE_TEMPLATE,
         Path(".chezmoitemplates/ai/authored-render-context"),
         Path(".chezmoitemplates/ai/authored-file-entry"),
+        Path(".chezmoitemplates/ai/authored-file-digest"),
     ):
         target_file = source / relative_path
         target_file.parent.mkdir(parents=True, exist_ok=True)

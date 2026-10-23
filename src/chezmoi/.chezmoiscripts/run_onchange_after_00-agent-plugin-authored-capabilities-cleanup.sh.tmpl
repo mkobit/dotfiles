@@ -59,8 +59,10 @@
 {{-         end -}}
 {{-         range $path := glob (joinPath $skillDir "**/*") -}}
 {{-           if eq (lstat $path).type "file" -}}
-{{-             $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
 {{-             $rel := trimPrefix (printf "%s/" $skillDir) $path | trimSuffix ".tmpl" -}}
+{{-             $digest := includeTemplate "ai/authored-file-digest" (dict "root" $ "path" $path "target" $rel) -}}
+{{-             $executable := or (ne (mod (div (lstat $path).perm 64) 2) 0) (ne (mod (div (lstat $path).perm 8) 2) 0) (ne (mod (lstat $path).perm 2) 0) -}}
+{{-             $_ := set $inputs (printf "%s/%s/%s" $capabilityName $skillName $rel) (dict "sha256" $digest "executable" $executable) -}}
 {{-             range $hostName, $hostRootFormat := $hostRoots -}}
 {{-               if and (has $hostName $declaredHosts) (or (eq $state "present") (eq $state $hostName)) -}}
 {{-                 $desired = append $desired (joinPath (printf $hostRootFormat $capabilityName) $skillName $rel) -}}

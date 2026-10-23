@@ -145,10 +145,16 @@ def _initialize_authored_cleanup_source(source: Path, *, include_external: bool 
         (FILTER_INTERPRETER_TEMPLATE, Path(".chezmoitemplates/python/filter-interpreter")),
         (FILTER_INTERPRETER_RESOLVER, Path("src/python/skill_filter/resolve-interpreter.sh")),
     ]
+    source_files.extend(
+        (REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name, Path(".chezmoitemplates/ai") / name)
+        for name in ("authored-render-context", "authored-file-digest", "authored-base-version")
+    )
     if include_external:
-        source_files.extend(
-            (REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name, Path(".chezmoitemplates/ai") / name)
-            for name in ("authored-render-context", "authored-file-entry")
+        source_files.append(
+            (
+                REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai/authored-file-entry",
+                Path(".chezmoitemplates/ai/authored-file-entry"),
+            )
         )
         source_files.append((AUTHORED_SKILLS_EXTERNAL, Path(".chezmoiexternals") / AUTHORED_SKILLS_EXTERNAL.name))
     for source_file, relative_target in source_files:
@@ -207,6 +213,11 @@ def test_capability_manifest_versions_ignore_legacy_overlay_source(tmp_path):
         template = source / relative_path
         template.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(REPOSITORY_ROOT / "src/chezmoi" / relative_path, template)
+
+    for name in ("authored-render-context", "authored-file-digest", "authored-base-version"):
+        target = source / ".chezmoitemplates/ai" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name, target)
 
     base_skill = source.parent / "ai/skills/base/SKILL.md"
     base_skill.parent.mkdir(parents=True)
@@ -695,7 +706,7 @@ def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, 
     shutil.copy2(external, externals / external.name)
     template_root = source / ".chezmoitemplates/ai"
     template_root.mkdir(parents=True)
-    for name in ("authored-render-context", "authored-file-entry"):
+    for name in ("authored-render-context", "authored-file-entry", "authored-file-digest", "authored-base-version"):
         origin = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name
         shutil.copy2(origin, template_root / name)
     cleanup_name = "skills" if kind == "base" else "capabilities"
@@ -844,3 +855,213 @@ def test_authored_templates_reject_invalid_rendering(tmp_path, kind, failure):
     )
     assert result.returncode != 0
     assert ("collision" if failure == "collision" else "fixture render failed") in result.stderr
+
+
+def _rendered_package_fixture(tmp_path: Path, kind: str) -> tuple[Path, Path, Path, Path, list[Path], list[Path]]:
+    """Install real external, manifest, and cleanup templates in an isolated source."""
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    destination.mkdir(parents=True)
+    templates = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
+    shutil.copytree(templates, source / ".chezmoitemplates/ai")
+    external = (
+        AUTHORED_SKILLS_EXTERNAL
+        if kind == "base"
+        else REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
+    )
+    cleanup = (
+        AUTHORED_CLEANUP_SCRIPT
+        if kind == "base"
+        else REPOSITORY_ROOT
+        / "src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl"
+    )
+    for origin, target in {
+        external: source / ".chezmoiexternals" / external.name,
+        cleanup: source / ".chezmoiscripts" / cleanup.name,
+        FILTER_INTERPRETER_TEMPLATE: source / ".chezmoitemplates/python/filter-interpreter",
+        FILTER_INTERPRETER_RESOLVER: source.parent / "python/skill_filter/resolve-interpreter.sh",
+    }.items():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(origin, target)
+    if kind == "base":
+        for relative in (
+            *CAPABILITY_MANIFEST_TEMPLATES,
+            CURSOR_LOCAL_PLUGIN_MANIFEST.relative_to(REPOSITORY_ROOT / "src/chezmoi"),
+        ):
+            target = source / relative
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(REPOSITORY_ROOT / "src/chezmoi" / relative, target)
+        roots = [destination / root / "fixture" for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values()]
+        manifests = [destination / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/plugin.json"]
+        manifests.extend(
+            root.parent.parent / f".{host}-plugin/plugin.json"
+            for host, root in zip(("claude", "codex", "cursor", "cursor"), roots[1:], strict=True)
+        )
+        skill = source.parent / "ai/skills/fixture"
+        selection = '[data.ai.skills.authored]\nfixture = "present"\n[data.ai.skills.external]\n'
+    else:
+        roots = [
+            destination / f".local/share/agent-plugins/marketplace/plugins/example/{host}/skills/fixture"
+            for host in ("claude", "codex", "cursor")
+        ]
+        roots.append(destination / ".cursor/plugins/local/example/skills/fixture")
+        manifests = []
+        for host in ("claude", "codex", "cursor"):
+            relative = Path(
+                f"dot_local/share/agent-plugins/marketplace/plugins/example/{host}/dot_{host}-plugin/plugin.json.tmpl"
+            )
+            wrapper = source / relative
+            wrapper.parent.mkdir(parents=True, exist_ok=True)
+            wrapper.write_text('{{ includeTemplate "ai/authored-plugin-manifest" (dict "root" . "name" "example") }}')
+            manifests.append(
+                destination
+                / f".local/share/agent-plugins/marketplace/plugins/example/{host}/.{host}-plugin/plugin.json"
+            )
+        wrapper = source / "dot_cursor/plugins/local/example/exact_dot_cursor-plugin/plugin.json.tmpl"
+        wrapper.parent.mkdir(parents=True)
+        wrapper.write_text('{{ includeTemplate "ai/authored-plugin-manifest" (dict "root" . "name" "example") }}')
+        manifests.append(destination / ".cursor/plugins/local/example/.cursor-plugin/plugin.json")
+        skill = source.parent / "overlay-plugins/example/skills/fixture"
+        selection = '[data.ai.plugin_bridge.capabilities.example]\ndescription = "Fixture"\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude", "codex", "cursor"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md.tmpl").write_text("{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n")
+    (skill / "name.tmpl.tmpl").write_text("{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n")
+    (skill / "payload.bin").write_bytes(b"\x00\xff{{ plain }}")
+    config = tmp_path / "chezmoi.toml"
+    config.write_text(selection + '[data.fixture]\nvalue = "first"\n')
+    subprocess.run(["git", "init", "--quiet", str(source)], check=True)
+    return source, destination, config, skill, roots, manifests
+
+
+def _package_versions(manifests: list[Path]) -> list[str]:
+    return [json.loads(path.read_text())["version"] for path in manifests]
+
+
+@pytest.mark.parametrize("kind", ["base", "capability"])
+def test_rendered_package_versions_follow_data_and_stable_repeats(tmp_path, kind):
+    """Data overrides change rendered bytes and every real manifest version."""
+    source, destination, config, skill, roots, manifests = _rendered_package_fixture(tmp_path, kind)
+    first = _apply_authored_cleanup(source, destination, config)
+    assert first.returncode == 0, first.stderr
+    original = _package_versions(manifests)
+    assert len(set(original)) == 1
+    repeated = _apply_authored_cleanup(source, destination, config)
+    assert repeated.returncode == 0, repeated.stderr
+    assert _package_versions(manifests) == original
+    stale = roots[0] / "stale-owned.md"
+    stale.write_text("old output\n")
+    if kind == "capability":
+        ownership = destination / ".local/state/dotfiles/agent-plugin-capability-ownership.json"
+        state = json.loads(ownership.read_text())
+        state["paths"].append(stale.relative_to(destination).as_posix())
+        ownership.write_text(json.dumps(state))
+    config.write_text(config.read_text().replace('value = "first"', 'value = "second"'))
+    changed = _apply_authored_cleanup(source, destination, config)
+    assert changed.returncode == 0, changed.stderr
+    assert not stale.exists()
+    for root in roots:
+        assert (root / "SKILL.md").read_text() == "second|SKILL.md\n"
+        assert (root / "name.tmpl").read_text() == "second|name.tmpl\n"
+    assert all(before != after for before, after in zip(original, _package_versions(manifests), strict=True))
+    assert (skill / "SKILL.md.tmpl").read_text() == "{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n"
+
+
+@pytest.mark.parametrize("kind", ["base", "capability"])
+def test_rendered_package_versions_ignore_fixture_location(tmp_path, kind):
+    """Identical rendered bytes and metadata give the same versions in two checkouts."""
+    versions = []
+    for name in ("first", "second"):
+        source, destination, config, _, _, manifests = _rendered_package_fixture(tmp_path / name, kind)
+        result = _apply_authored_cleanup(source, destination, config)
+        assert result.returncode == 0, result.stderr
+        versions.append(_package_versions(manifests))
+    assert versions[0] == versions[1]
+
+
+@pytest.mark.parametrize("kind", ["base", "capability"])
+def test_rendered_package_versions_follow_binary_bytes_and_executable_mode(tmp_path, kind):
+    """Binary bytes and executable mode are part of all manifest versions."""
+    source, destination, config, skill, roots, manifests = _rendered_package_fixture(tmp_path, kind)
+    first = _apply_authored_cleanup(source, destination, config)
+    assert first.returncode == 0, first.stderr
+    original = _package_versions(manifests)
+    payload = skill / "payload.bin"
+    payload.write_bytes(b"\x00\xfe{{ plain }}")
+    changed = _apply_authored_cleanup(source, destination, config)
+    assert changed.returncode == 0, changed.stderr
+    binary_versions = _package_versions(manifests)
+    assert all(before != after for before, after in zip(original, binary_versions, strict=True))
+    payload.chmod(0o755)
+    executable = _apply_authored_cleanup(source, destination, config)
+    assert executable.returncode == 0, executable.stderr
+    assert all(before != after for before, after in zip(binary_versions, _package_versions(manifests), strict=True))
+    for root in roots:
+        assert (root / "payload.bin").read_bytes() == b"\x00\xfe{{ plain }}"
+        assert (root / "payload.bin").stat().st_mode & 0o111
+
+
+@pytest.mark.parametrize("kind", ["base", "capability"])
+def test_rendered_package_cleanup_removes_renamed_and_deleted_templates(tmp_path, kind):
+    """Cleanup tracks rendered names, keeps sibling skills, and converges on repeat apply."""
+    source, destination, config, skill, roots, _ = _rendered_package_fixture(tmp_path, kind)
+    first = _apply_authored_cleanup(source, destination, config)
+    assert first.returncode == 0, first.stderr
+    sibling = roots[0].parent / "local-sibling/SKILL.md"
+    sibling.parent.mkdir()
+    sibling.write_text("keep\n")
+    (skill / "name.tmpl.tmpl").rename(skill / "renamed.tmpl")
+    renamed = _apply_authored_cleanup(source, destination, config)
+    assert renamed.returncode == 0, renamed.stderr
+    for root in roots:
+        assert not (root / "name.tmpl").exists()
+        assert (root / "renamed").read_text() == "first|renamed\n"
+    (skill / "renamed.tmpl").unlink()
+    for _ in range(2):
+        deleted = _apply_authored_cleanup(source, destination, config)
+        assert deleted.returncode == 0, deleted.stderr
+        for root in roots:
+            assert not (root / "renamed").exists()
+            assert (root / "SKILL.md").is_file()
+        assert sibling.read_text() == "keep\n"
+
+
+def test_authored_manifest_normalization_rejects_template_plain_collision(tmp_path):
+    """Manifest normalization rejects collisions even without file externals."""
+    source, destination, config, skill, _, _ = _rendered_package_fixture(tmp_path, "capability")
+    shutil.rmtree(source / ".chezmoiexternals")
+    (skill / "SKILL.md").write_text("plain")
+    result = _apply_authored_cleanup(source, destination, config)
+    assert result.returncode != 0
+    assert "collision" in result.stderr
+
+
+@pytest.mark.parametrize(
+    ("kind", "state"),
+    [
+        ("base", "absent"),
+        ("base", "unlisted"),
+        ("base", "antigravity"),
+        ("capability", "absent"),
+        ("capability", "unlisted"),
+    ],
+)
+def test_rendered_package_does_not_evaluate_inactive_skill_templates(tmp_path, kind, state):
+    """Inactive authored templates must not require data for an enabled package."""
+    source, destination, config, skill, _, manifests = _rendered_package_fixture(tmp_path, kind)
+    inactive = skill.parent / "inactive/SKILL.md.tmpl"
+    inactive.parent.mkdir()
+    inactive.write_text('{{ fail "inactive template rendered" }}')
+    if state != "unlisted":
+        config.write_text(
+            config.read_text().replace('fixture = "present"', f'fixture = "present"\ninactive = "{state}"')
+        )
+    result = _apply_authored_cleanup(source, destination, config)
+    assert result.returncode == 0, result.stderr
+    assert all(path.is_file() for path in manifests)
+    versions = _package_versions(manifests)
+    inactive.write_text('{{ fail "inactive source changed" }}')
+    changed = _apply_authored_cleanup(source, destination, config)
+    assert changed.returncode == 0, changed.stderr
+    assert all(before != after for before, after in zip(versions, _package_versions(manifests), strict=True))
+    for path in destination.rglob("inactive"):
+        assert not path.is_dir()

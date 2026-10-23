@@ -1,0 +1,25 @@
+{{- /* Selection metadata and rendered file records are independent of the checkout path. */ -}}
+{{- $inputs := dict "external" (dig "external" (dict) .ai.skills) "authored" (dig "authored" (dict) .ai.skills) -}}
+{{- $files := dict -}}
+{{- $root := joinPath .chezmoi.sourceDir ".." "ai/skills" -}}
+{{- $authored := dig "authored" (dict) .ai.skills -}}
+{{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
+{{- range $path := glob (joinPath $root "**/*") | sortAlpha -}}
+{{-   if eq (lstat $path).type "file" -}}
+{{-     $relative := trimPrefix (printf "%s/" $root) $path | trimSuffix ".tmpl" -}}
+{{-     if hasKey $files $relative -}}{{- fail (printf "authored skill filename collision: %s" $relative) -}}{{- end -}}
+{{-     $target := splitList "/" $relative | rest | join "/" -}}
+{{-     $state := dig (splitList "/" $relative | first) "absent" $authored -}}
+{{-     $selected := or (has $state (list "present" "claude" "codex" "cursor")) (and (eq $state "antigravity") $antigravityEnabled) -}}
+{{-     $digest := "" -}}
+{{-     if $selected -}}
+{{-       $digest = includeTemplate "ai/authored-file-digest" (dict "root" $ "path" $path "target" $target) -}}
+{{-     else -}}
+{{-       $digest = output "shasum" "-a" "256" $path | trim | splitList " " | first -}}
+{{-     end -}}
+{{-     $executable := or (ne (mod (div (lstat $path).perm 64) 2) 0) (ne (mod (div (lstat $path).perm 8) 2) 0) (ne (mod (lstat $path).perm 2) 0) -}}
+{{-     $_ := set $files $relative (dict "sha256" $digest "executable" $executable) -}}
+{{-   end -}}
+{{- end -}}
+{{- $_ := set $inputs "files" $files -}}
+{{- printf "1.0.0+%s" (trunc 12 (sha256sum (toJson $inputs))) -}}

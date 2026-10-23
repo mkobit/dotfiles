@@ -33,14 +33,30 @@
 {{-     range $path := glob (joinPath $root "**/*") | sortAlpha -}}
 {{-       $type := (lstat $path).type -}}
 {{-       if eq $type "file" -}}
-{{-         $_ := set $sourceFiles (trimPrefix (printf "%s/" $root) $path) (output "shasum" "-a" "256" $path | trim | splitList " " | first) -}}
+{{-         if not (hasPrefix (printf "%s/" $skillRoot) $path) -}}
+{{-           $digest := output "shasum" "-a" "256" $path | trim | splitList " " | first -}}
+{{-           $executable := or (ne (mod (div (lstat $path).perm 64) 2) 0) (ne (mod (div (lstat $path).perm 8) 2) 0) (ne (mod (lstat $path).perm 2) 0) -}}
+{{-           $_ := set $sourceFiles (trimPrefix (printf "%s/" $root) $path) (dict "sha256" $digest "executable" $executable) -}}
+{{-         end -}}
 {{-       else if ne $type "dir" -}}{{- fail (printf "authored plugin %s contains unsupported source entry: %s" $name $path) -}}{{- end -}}
 {{-     end -}}
 {{-     $files := dict -}}
 {{-     range $path := glob (joinPath $skillRoot "**/*") | sortAlpha -}}
 {{-       $type := (lstat $path).type -}}
 {{-       if eq $type "file" -}}
-{{-         $_ := set $files (printf "skills/%s" (trimPrefix (printf "%s/" $skillRoot) $path)) (output "shasum" "-a" "256" $path | trim | splitList " " | first) -}}
+{{-         $relative := trimPrefix (printf "%s/" $skillRoot) $path | trimSuffix ".tmpl" -}}
+{{-         $key := printf "skills/%s" $relative -}}
+{{-         if hasKey $files $key -}}{{- fail (printf "authored skill filename collision: %s" $relative) -}}{{- end -}}
+{{-         $target := splitList "/" $relative | rest | join "/" -}}
+{{-         $state := dig (splitList "/" $relative | first) "absent" $skills -}}
+{{-         $digest := "" -}}
+{{-         if or (eq $state "present") (has $state $hosts) -}}
+{{-           $digest = includeTemplate "ai/authored-file-digest" (dict "root" $ "path" $path "target" $target) -}}
+{{-         else -}}
+{{-           $digest = output "shasum" "-a" "256" $path | trim | splitList " " | first -}}
+{{-         end -}}
+{{-         $executable := or (ne (mod (div (lstat $path).perm 64) 2) 0) (ne (mod (div (lstat $path).perm 8) 2) 0) (ne (mod (lstat $path).perm 2) 0) -}}
+{{-         $_ := set $files $key (dict "sha256" $digest "executable" $executable) -}}
 {{-       else if ne $type "dir" -}}{{- fail (printf "authored plugin %s contains unsupported skill source entry: %s" $name $path) -}}{{- end -}}
 {{-     end -}}
 {{-     $byHost := dict "portable" (dict) -}}

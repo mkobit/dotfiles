@@ -156,7 +156,7 @@ def _initialize_capability_lifecycle_source(tmp_path: Path) -> tuple[Path, Path,
     external_dir = source / ".chezmoiexternals"
     external_dir.mkdir(parents=True)
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
-    for name in ("authored-render-context", "authored-file-entry"):
+    for name in ("authored-render-context", "authored-file-entry", "authored-file-digest"):
         target = source / ".chezmoitemplates/ai" / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
@@ -191,7 +191,7 @@ def test_capability_projects_canonical_domain_brain_skill_tree_to_selected_hosts
     external_dir.mkdir(parents=True)
     assert AUTHORED_CAPABILITIES_EXTERNAL.is_file(), "authored capability external is missing"
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
-    for name in ("authored-render-context", "authored-file-entry"):
+    for name in ("authored-render-context", "authored-file-entry", "authored-file-digest"):
         target = source / ".chezmoitemplates/ai" / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
@@ -254,7 +254,7 @@ def test_capability_projects_stripe_direct_skill_root_and_removes_remote_only_sk
     external_dir = source / ".chezmoiexternals"
     external_dir.mkdir(parents=True)
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
-    for name in ("authored-render-context", "authored-file-entry"):
+    for name in ("authored-render-context", "authored-file-entry", "authored-file-digest"):
         target = source / ".chezmoitemplates/ai" / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
@@ -320,7 +320,12 @@ def test_authored_plugin_manifest_supports_direct_skill_root_and_default_skill_l
     destination.mkdir()
     template_root = source / ".chezmoitemplates/ai"
     template_root.mkdir(parents=True)
-    for template_name in ("authored-plugin-manifest", "authored-plugins"):
+    for template_name in (
+        "authored-plugin-manifest",
+        "authored-plugins",
+        "authored-file-digest",
+        "authored-render-context",
+    ):
         shutil.copy2(AUTHORED_TEMPLATE_ROOT / template_name, template_root / template_name)
     (source / "dot_local/share/stripe-plugin.json.tmpl").parent.mkdir(parents=True)
     (source / "dot_local/share/stripe-plugin.json.tmpl").write_text(
@@ -488,7 +493,7 @@ def test_capability_rejects_paths_outside_the_declared_overlay_schema(
     external_dir = source / ".chezmoiexternals"
     external_dir.mkdir(parents=True)
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
-    for name in ("authored-render-context", "authored-file-entry"):
+    for name in ("authored-render-context", "authored-file-entry", "authored-file-digest"):
         target = source / ".chezmoitemplates/ai" / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
@@ -531,7 +536,7 @@ def test_capability_rejects_a_selected_skill_without_skill_markdown(tmp_path):
     external_dir = source / ".chezmoiexternals"
     external_dir.mkdir(parents=True)
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
-    for name in ("authored-render-context", "authored-file-entry"):
+    for name in ("authored-render-context", "authored-file-entry", "authored-file-digest"):
         target = source / ".chezmoitemplates/ai" / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
@@ -579,7 +584,7 @@ def test_capability_rejects_empty_or_unknown_hosts(tmp_path, hosts, expected_err
     external_dir = source / ".chezmoiexternals"
     external_dir.mkdir(parents=True)
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
-    for name in ("authored-render-context", "authored-file-entry"):
+    for name in ("authored-render-context", "authored-file-entry", "authored-file-digest"):
         target = source / ".chezmoitemplates/ai" / name
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)

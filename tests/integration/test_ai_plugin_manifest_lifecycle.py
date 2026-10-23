@@ -124,7 +124,7 @@ def test_disabled_capability_manifest_cleanup_converges_on_repeat_apply(tmp_path
     (source.parent / "python/skill_filter").mkdir(parents=True)
     shutil.copy2(FILTER_RESOLVER, source.parent / "python/skill_filter/resolve-interpreter.sh")
     (source / ".chezmoitemplates/ai").mkdir(parents=True)
-    for name in ("authored-render-context", "authored-file-entry"):
+    for name in ("authored-render-context", "authored-file-entry", "authored-file-digest"):
         shutil.copy2(
             REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name, source / ".chezmoitemplates/ai" / name
         )
