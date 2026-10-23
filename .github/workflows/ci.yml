@@ -26,6 +26,7 @@ env:
   MISE_CACHE_DIR: /tmp/.mise-cache
   BUN_INSTALL_CACHE_DIR: /tmp/.bun-cache
   CHEZMOI_CACHE_DIR: /tmp/.chezmoi-cache
+  APT_CACHE_DIR: /tmp/.apt-cache
   CHEZMOI_CONFIG: /tmp/.chezmoi-config.toml
   CHEZMOI_DEST: /tmp/chezmoi-test
   CHEZMOI_VERSION: v2.73.2
@@ -141,6 +142,27 @@ jobs:
           PROFILE
           sudo apparmor_parser -r /etc/apparmor.d/bwrap
 
+      - name: Prepare APT download cache
+        id: apt-cache-prepare
+        if: runner.os == 'Linux'
+        run: |
+          mkdir -p "$APT_CACHE_DIR"
+          sudo install -d -o _apt -g root -m 0700 "$APT_CACHE_DIR/partial"
+          printf 'Dir::Cache::archives "%s";\nAPT::Keep-Downloaded-Packages "true";\n' "$APT_CACHE_DIR" \
+            | sudo tee /etc/apt/apt.conf.d/99-ci-download-cache >/dev/null
+          echo "week=$(date -u +%G-%V)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore APT downloads
+        id: apt-cache
+        if: runner.os == 'Linux'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ env.APT_CACHE_DIR }}/*.deb
+          key: apt-v1-${{ matrix.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ steps.apt-cache-prepare.outputs.week }}-${{ hashFiles('src/chezmoi/.chezmoidata/packages/**', 'src/chezmoi/.chezmoi.toml.tmpl') }}
+          restore-keys: |
+            apt-v1-${{ matrix.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
+            apt-v1-${{ matrix.os }}-${{ runner.arch }}-main-
+
       - name: Restore chezmoi downloads
         id: chezmoi-cache
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
@@ -216,6 +238,7 @@ jobs:
 
       - name: Run chezmoi apply
         id: chezmoi-apply
+        timeout-minutes: 20
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
@@ -236,6 +259,14 @@ jobs:
             fi
           done
           exit 1
+
+      # Use unique keys after failed applies so later runs can save more packages.
+      - name: Save APT downloads
+        if: ${{ always() && runner.os == 'Linux' && steps.apt-cache.outputs.cache-primary-key != '' && steps.apt-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ env.APT_CACHE_DIR }}/*.deb
+          key: ${{ steps.chezmoi-apply.outcome == 'success' && steps.apt-cache.outputs.cache-primary-key || format('{0}-{1}-{2}', steps.apt-cache.outputs.cache-primary-key, github.run_id, github.run_attempt) }}
 
       # Save completed downloads even if apply fails or later integration steps fail.
       # Only failed applies use unique keys, so complete caches do not grow on every run.
