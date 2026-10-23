@@ -1,11 +1,15 @@
 ---
 name: technical-writing
-description: Enforces ventilated prose and concise technical writing standards when the user is writing or editing standalone documentation files (e.g., Markdown, AsciiDoc). This skill should not be used for code documentation or docstrings.
+description: >-
+  Use when writing or editing standalone documentation files (Markdown, AsciiDoc).
+  Do not use for code documentation, docstrings, or drafting or revising pull request (PR) titles and descriptions.
 ---
 
 # Technical writing guidelines
 
 Follow these rules when writing standalone documentation.
+For PR titles and descriptions, use the `pull-request-writing` skill if available; otherwise, follow the repository's PR writing guidance.
+PR bodies use prose with one space between sentences.
 
 ## Ventilated prose
 Write one sentence per line.
