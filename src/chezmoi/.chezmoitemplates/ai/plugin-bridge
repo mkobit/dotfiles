@@ -8,4 +8,18 @@
 {{-   end -}}
 {{- end -}}
 {{- $_ := set $bridge "capabilities" $capabilities -}}
+{{- $marketplaces := dict -}}
+{{- range $name, $marketplace := dig "marketplaces" (dict) $bridge -}}
+{{-   $source := dig "external_source" "" $marketplace -}}
+{{-   if or (not $source) (eq (dig "ai" "plugins" $source "installation_method" "none" $) "chezmoi_external") -}}
+{{-     if eq (dig "source_type" "" $marketplace) "generated" -}}
+{{-       $path := dig "source_locator" ".local/share/agent-plugins/marketplace" $marketplace -}}
+{{-       if not (isAbs $path) -}}
+{{-         $_ := set $marketplace "source_locator" (joinPath $.chezmoi.destDir $path) -}}
+{{-       end -}}
+{{-     end -}}
+{{-     $_ := set $marketplaces $name $marketplace -}}
+{{-   end -}}
+{{- end -}}
+{{- $_ := set $bridge "marketplaces" $marketplaces -}}
 {{- toJson $bridge -}}

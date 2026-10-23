@@ -1,6 +1,10 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
   pull_request:
     branches:
       - main
@@ -12,7 +16,7 @@ permissions:
   pull-requests: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
   cancel-in-progress: true
 
 env:
@@ -36,20 +40,15 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: jdx/mise-action@v5.0.1
-        with:
-          # Pin to match .chezmoidata/bin/mise.toml. Without this, the
-          # action falls back to a default that may be yanked from upstream.
-          version: 2026.10.8
+      - uses: ./.github/actions/setup-mise
       - name: Restore uv cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.UV_CACHE_DIR }}
-          key: uv-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}
+          key: uv-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
-            uv-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
-            uv-${{ runner.os }}-main-
-            uv-${{ runner.os }}-
+            uv-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
+            uv-${{ runner.os }}-${{ runner.arch }}-main-
       - name: Install dependencies
         run: uv sync --all-packages --frozen
       - name: Lint (ruff)
@@ -66,14 +65,14 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: jdx/mise-action@v5.0.1
-        with:
-          version: 2026.10.8
+      - uses: ./.github/actions/setup-mise
       - name: Restore uv Python cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.UV_PYTHON_INSTALL_DIR }}
-          key: uv-python-3.8-${{ runner.os }}
+          key: uv-python-3.8-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}
+          restore-keys: |
+            uv-python-3.8-${{ runner.os }}-${{ runner.arch }}-main
       - name: Install Python 3.8
         run: uv python install 3.8
       - name: Test skill_filter on Python 3.8
@@ -92,20 +91,15 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-      - uses: jdx/mise-action@v5.0.1
-        with:
-          # Pin to match .chezmoidata/bin/mise.toml. Without this, the
-          # action falls back to a default that may be yanked from upstream.
-          version: 2026.10.8
+      - uses: ./.github/actions/setup-mise
       - name: Restore uv cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.UV_CACHE_DIR }}
-          key: uv-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}
+          key: uv-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
-            uv-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
-            uv-${{ runner.os }}-main-
-            uv-${{ runner.os }}-
+            uv-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
+            uv-${{ runner.os }}-${{ runner.arch }}-main-
       - name: Install dependencies
         run: uv sync --all-packages --frozen
       - name: Test
@@ -119,7 +113,8 @@ jobs:
     needs: [lint]
     strategy:
       matrix:
-        os: [ubuntu-24.04, macos-15]
+        os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15]
+      fail-fast: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
     steps:
@@ -146,45 +141,55 @@ jobs:
           PROFILE
           sudo apparmor_parser -r /etc/apparmor.d/bwrap
 
-      - name: Cache chezmoi downloads
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      - name: Restore chezmoi downloads
+        id: chezmoi-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.CHEZMOI_CACHE_DIR }}
-          key: chezmoi-cache-v4-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}
+          key: chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}
           restore-keys: |
-            chezmoi-cache-v4-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
-            chezmoi-cache-v4-${{ runner.os }}-main-
-            chezmoi-cache-v4-${{ runner.os }}-
+            chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}-
+            chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
+            chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-main-
+
+      - name: Cache skill-filter output
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          # Apply uses the runner home; integration pytest uses CHEZMOI_DEST as HOME.
+          path: |
+            ~/.cache/skill-filter
+            ${{ env.CHEZMOI_DEST }}/.cache/skill-filter
+          key: skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/ai/**', 'src/chezmoi/.chezmoi.toml.tmpl', 'src/chezmoi/.chezmoiexternals/ai-*.toml.tmpl') }}
+          restore-keys: |
+            skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-${{ github.head_ref || github.ref_name }}-
+            skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-main-
 
       - name: Cache mise downloads
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.MISE_CACHE_DIR }}
-          key: mise-cache-v1-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/bin/mise.toml') }}
+          key: mise-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/bin/mise.toml') }}
           restore-keys: |
-            mise-cache-v1-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
-            mise-cache-v1-${{ runner.os }}-main-
-            mise-cache-v1-${{ runner.os }}-
+            mise-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
+            mise-cache-v1-${{ runner.os }}-${{ runner.arch }}-main-
 
       - name: Cache bun install cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.BUN_INSTALL_CACHE_DIR }}
-          key: bun-cache-v1-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/bin/mise.toml') }}
+          key: bun-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/bin/mise.toml') }}
           restore-keys: |
-            bun-cache-v1-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
-            bun-cache-v1-${{ runner.os }}-main-
-            bun-cache-v1-${{ runner.os }}-
+            bun-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
+            bun-cache-v1-${{ runner.os }}-${{ runner.arch }}-main-
 
       - name: Restore uv cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.UV_CACHE_DIR }}
-          key: uv-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}
+          key: uv-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
-            uv-${{ runner.os }}-${{ github.head_ref || github.ref_name }}-
-            uv-${{ runner.os }}-main-
-            uv-${{ runner.os }}-
+            uv-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
+            uv-${{ runner.os }}-${{ runner.arch }}-main-
 
       - name: Install chezmoi
         run: |
@@ -210,21 +215,36 @@ jobs:
             --no-network
 
       - name: Run chezmoi apply
+        id: chezmoi-apply
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
         run: |
+          set -o pipefail
+          report_dir="$RUNNER_TEMP/integration-reports"
+          mkdir -p "$report_dir"
           # externals have no retry option; cached downloads survive, so retries refetch only failures
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4 5 6; do
             chezmoi apply \
               --cache=${{ env.CHEZMOI_CACHE_DIR }} \
               --config=${{ env.CHEZMOI_CONFIG }} \
               --source=${{ github.workspace }} \
-              --destination=${{ env.CHEZMOI_DEST }} && exit 0
+              --destination=${{ env.CHEZMOI_DEST }} 2>&1 | tee "$report_dir/chezmoi-apply-$attempt.log" && exit 0
             echo "::warning::chezmoi apply attempt $attempt failed"
-            [ "$attempt" -lt 3 ] && sleep $((attempt * 15))
+            if [ "$attempt" -lt 6 ]; then
+              sleep $((15 * 2 ** (attempt - 1)))
+            fi
           done
           exit 1
+
+      # Save completed downloads even if apply fails or later integration steps fail.
+      # Only failed applies use unique keys, so complete caches do not grow on every run.
+      - name: Save chezmoi downloads
+        if: ${{ !cancelled() && (steps.chezmoi-apply.outcome == 'success' || steps.chezmoi-apply.outcome == 'failure') && steps.chezmoi-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ env.CHEZMOI_CACHE_DIR }}
+          key: ${{ steps.chezmoi-apply.outcome == 'success' && steps.chezmoi-cache.outputs.cache-primary-key || format('{0}-{1}-{2}', steps.chezmoi-cache.outputs.cache-primary-key, github.run_id, github.run_attempt) }}
 
       - name: Prune mise cache
         run: |
@@ -248,6 +268,18 @@ jobs:
           HOME: ${{ env.CHEZMOI_DEST }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          mise exec -- uv run pytest tests/integration
+          set -o pipefail
+          report_dir="$RUNNER_TEMP/integration-reports"
+          mkdir -p "$report_dir"
+          mise exec -- uv run pytest tests/integration -ra --durations=20 \
+            --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
 
-
+      - name: Upload integration reports
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+        with:
+          name: integration-reports-${{ matrix.os }}-${{ runner.arch }}
+          path: ${{ runner.temp }}/integration-reports/
+          retention-days: 7
+          if-no-files-found: ignore

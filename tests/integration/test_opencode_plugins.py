@@ -31,15 +31,26 @@ def test_opencode_apply_respects_host_and_plugin_control_plane(tmp_path, ignore_
     destination.mkdir()
     config = tmp_path / "chezmoi.json"
     target = destination / ".config/opencode/opencode.json"
-    package = str(destination / ".local/share/agent-plugins/marketplace/plugins/superpowers")
+    package = str(destination / ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers")
+    legacy = str(destination / ".local/share/agent-plugins/marketplace/plugins/superpowers")
     foreign = {"plugin": ["custom-plugin"], "model": "custom/model"}
     initial = json.dumps({**foreign, "plugin": ["custom-plugin", package]}, indent=2) + "\n"
+    legacy_initial = json.dumps({**foreign, "plugin": ["custom-plugin", legacy]}, indent=2) + "\n"
     data = {"ai": {"plugins": {"superpowers": {}}}, "local": {"bin": {"opencode": {}}}, "mise": {}}
     for host_method, plugin_method, seed, expected in (
         (tool_method, "chezmoi_external", None, None),
         (tool_method, "chezmoi_external", initial, initial),
+        (tool_method, "chezmoi_external", legacy_initial, legacy_initial),
         ("preinstalled", "chezmoi_external", json.dumps(foreign), {**foreign, "plugin": ["custom-plugin", package]}),
+        ("preinstalled", "chezmoi_external", legacy_initial, {**foreign, "plugin": ["custom-plugin", package]}),
+        (
+            "preinstalled",
+            "chezmoi_external",
+            json.dumps({**foreign, "plugin": ["custom-plugin", legacy, package]}),
+            {**foreign, "plugin": ["custom-plugin", package]},
+        ),
         ("preinstalled", "none", None, foreign),
+        ("preinstalled", "none", legacy_initial, foreign),
     ):
         if seed is not None:
             target.parent.mkdir(parents=True, exist_ok=True)

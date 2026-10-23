@@ -17,6 +17,9 @@ PLUGIN_BRIDGE_DATA = SOURCE_ROOT / ".chezmoidata/ai/plugin-bridge.toml"
 MARKETPLACE_TEMPLATES = (
     Path("dot_local/share/agent-plugins/marketplace/dot_claude-plugin/marketplace.json.tmpl"),
     Path("dot_local/share/agent-plugins/marketplace/dot_agents/plugins/marketplace.json.tmpl"),
+    Path("dot_local/share/agent-plugins/marketplaces/superpowers-marketplace/dot_claude-plugin/marketplace.json.tmpl"),
+    Path("dot_local/share/agent-plugins/marketplaces/superpowers-marketplace/dot_agents/plugins/marketplace.json.tmpl"),
+    Path(".chezmoitemplates/ai/plugin-marketplace"),
 )
 BRIDGE_TEMPLATE = Path(".chezmoitemplates/ai/plugin-bridge")
 
@@ -227,15 +230,21 @@ def test_upstream_plugin_gate_controls_marketplaces_and_registration(tmp_path, m
     assert result.returncode == 0, result.stderr
     enabled = method == "chezmoi_external"
     marketplace_root = destination / ".local/share/agent-plugins/marketplace"
+    superpowers_root = destination / ".local/share/agent-plugins/marketplaces/superpowers-marketplace"
     for host_path in (".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json"):
         plugins = {entry["name"]: entry for entry in json.loads((marketplace_root / host_path).read_text())["plugins"]}
-        assert ("superpowers" in plugins) == enabled
+        assert "superpowers" not in plugins
         assert "mkobit-dotfiles" in plugins
+        upstream = json.loads((superpowers_root / host_path).read_text())
+        assert upstream["name"] == "superpowers-marketplace"
+        plugins = {entry["name"]: entry for entry in upstream["plugins"]}
+        assert ("superpowers" in plugins) == enabled
+        assert "mkobit-dotfiles" not in plugins
         if enabled:
             declared_source = plugins["superpowers"]["source"]
             path = declared_source["path"] if isinstance(declared_source, dict) else declared_source
             assert path == "./plugins/superpowers"
-    assert (marketplace_root / "plugins/superpowers").exists() == enabled
+    assert (superpowers_root / "plugins/superpowers").exists() == enabled
     assert (destination / ".cursor/plugins/local/superpowers").exists() == enabled
 
     runner = SOURCE_ROOT / ".chezmoiscripts/run_after_agent-plugin-bridge.sh.tmpl"
@@ -258,14 +267,19 @@ def test_upstream_plugin_gate_controls_marketplaces_and_registration(tmp_path, m
     assert rendered.returncode == 0, rendered.stderr
     payload = json.loads(rendered.stdout.partition("<<'EOF'\n")[2].removesuffix("EOF\n"))
     assert ("superpowers" in payload["plugin_bridge"]["capabilities"]) == enabled
+    assert ("superpowers-marketplace" in payload["plugin_bridge"]["marketplaces"]) == enabled
     if enabled:
         assert payload["plugin_bridge"]["capabilities"]["superpowers"]["package_path"] == "./plugins/superpowers"
+        assert payload["plugin_bridge"]["marketplaces"]["superpowers-marketplace"]["source_locator"] == str(
+            superpowers_root
+        )
     provenance = json.loads((marketplace_root / "bridge-provenance.json").read_text())
     capabilities = {entry["name"]: entry for entry in provenance["capabilities"]}
     assert ("superpowers" in capabilities) == enabled
     assert capabilities["mkobit-dotfiles"]["upstream_sources"] == []
     if enabled:
         assert capabilities["superpowers"]["upstream_sources"][0]["name"] == "superpowers"
+        assert capabilities["superpowers"]["marketplace"] == "superpowers-marketplace"
 
 
 @pytest.mark.parametrize("ignore_layer", ["base", "overlay"])
@@ -278,13 +292,19 @@ def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, 
         "chezmoi_external",
         SOURCE_ROOT if ignore_layer == "base" else overlay_source,
     )
-    package = destination / ".local/share/agent-plugins/marketplace/plugins/superpowers"
+    package = destination / ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers"
     for stale in (package / "stale.txt", package / "nested/stale.txt"):
         stale.parent.mkdir(parents=True, exist_ok=True)
         stale.write_text("stale\n")
     sentinel = destination / ".local/share/agent-plugins/runtime/sentinel"
     sentinel.parent.mkdir(parents=True)
     sentinel.write_text("keep\n")
+    legacy_package = destination / ".local/share/agent-plugins/marketplace/plugins/superpowers"
+    legacy_package.mkdir(parents=True)
+    (legacy_package / "legacy.txt").write_text("remove\n")
+    foreign_sibling = destination / ".local/share/agent-plugins/marketplace/plugins/custom-plugin"
+    foreign_sibling.mkdir(parents=True)
+    (foreign_sibling / "plugin.json").write_text('{"name":"custom-plugin"}\n')
     old_roots = (
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills",
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude/skills",
@@ -311,6 +331,8 @@ def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, 
     assert sentinel.read_text() == "keep\n"
     for root in old_roots:
         assert not (destination / root / "brainstorming").exists()
+    assert not legacy_package.exists()
+    assert (foreign_sibling / "plugin.json").read_text() == '{"name":"custom-plugin"}\n'
     first_snapshot = _snapshot(destination)
     second_apply = _apply(source, destination, config)
     assert second_apply.returncode == 0, second_apply.stderr
@@ -322,7 +344,7 @@ def test_upstream_plugin_disabled_after_install_removes_package(tmp_path, method
     source, destination, config, _ = _upstream_fixture(tmp_path, "chezmoi_external")
     installed = _apply(source, destination, config)
     assert installed.returncode == 0, installed.stderr
-    package = destination / ".local/share/agent-plugins/marketplace/plugins/superpowers"
+    package = destination / ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers"
     cursor_package = destination / ".cursor/plugins/local/superpowers"
     assert package.is_dir()
     assert cursor_package.is_dir()

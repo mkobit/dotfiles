@@ -23,16 +23,16 @@ LEGACY_TARGETS = (
 )
 
 
-def test_sbx_release_catalog_pins_v0_48_0_with_verified_linux_checksums():
-    """Keep the SBX release archive pinned to the verified v0.48.0 assets."""
+def test_sbx_release_catalog_pins_v0_49_1_with_verified_linux_checksums():
+    """Keep the SBX release archive pinned to the verified v0.49.1 assets."""
     with SBX_CATALOG.open("rb") as catalog_file:
         catalog = tomllib.load(catalog_file)
 
     sbx = catalog["bin"]["sbx"]
-    assert sbx["version"] == "0.48.0"
+    assert sbx["version"] == "0.49.1"
     assert sbx["github_releases"]["checksums"] == {
-        "linux_amd64": "609a2e4b881ba9a7fd21543077e53d3b863a6b99eebee1f208e51a097ab56a05",
-        "linux_arm64": "83eb3a2cdebf28b1b8e3e8f5d8e964c60d8bb8323c52447ac947864fdca0fd15",
+        "linux_amd64": "4f2aa3dc6404e3700925e6baeda72ca26d8a36768d2bfe8056f1e8ecdfd4540e",
+        "linux_arm64": "3a3feaf4832ffc070c76e5eddd99fb32aa29a9e686ae9c8ac8117c9ecd49920e",
     }
 
 

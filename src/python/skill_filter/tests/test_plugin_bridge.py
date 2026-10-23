@@ -1462,6 +1462,7 @@ def test_legacy_cleanup_recovers_after_unlink_failure(tmp_path, monkeypatch):
 def test_has_identity_cli_uses_exact_json_identity():
     command = [
         sys.executable,
+        "-S",
         str(plugin_bridge.__file__),
         "has-identity",
         "--field",
@@ -1529,3 +1530,30 @@ def test_reconcile_skips_unavailable_host_and_preserves_previous_ownership(
     plugin_bridge.reconcile(tmp_path, declaration)
 
     assert ownership.read_text(encoding="utf-8") == previous_content
+
+
+@pytest.mark.parametrize(
+    ("declaration", "expected_code"), [({}, 0), ({"environment": "bad/name"}, 2)]
+)
+def test_reconcile_standalone_without_site_packages(
+    tmp_path, declaration, expected_code
+):
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-S",
+            str(plugin_bridge.__file__),
+            "reconcile",
+            "--destination",
+            str(tmp_path),
+        ],
+        input=json.dumps(declaration),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == expected_code, result.stderr
+    if expected_code:
+        assert "invalid environment name" in result.stderr
+    else:
+        assert result.stderr == ""

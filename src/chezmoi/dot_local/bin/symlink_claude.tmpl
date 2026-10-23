@@ -1,0 +1,4 @@
+{{- $method := dig "claude_code" "installation_method" "none" . -}}
+{{- if eq $method "direct_release" -}}
+{{ .chezmoi.destDir }}/.local/lib/claude/{{ .bin.claude.version }}/claude
+{{- end -}}
