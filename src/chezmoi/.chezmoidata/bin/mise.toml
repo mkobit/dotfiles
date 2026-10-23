@@ -1,6 +1,6 @@
 # mise version already includes "v" prefix — tag_format = "{version}" (no added v)
 [bin.mise]
-version = "v2026.9.15"
+version = "v2026.10.8"
 
 [bin.mise.github_releases]
 repo            = "jdx/mise"
@@ -18,10 +18,10 @@ linux_amd64  = "linux-x64"
 linux_arm64  = "linux-arm64"
 
 [bin.mise.github_releases.checksums]
-darwin_arm64 = "ec1edd2d2644e737a3aef3eb549fcac02b42236827787e7183d9a9fe11583c97"
-darwin_amd64 = "780796163f051881666e2e5680ef2cd72132fee4d375bcd90eb4752b5787a206"
-linux_amd64  = "09ea631d6f3e7031d63606a0892dc4c796f9fb57f493bc45937f9f7113c88216"
-linux_arm64  = "385e61f3e76a6781795eea541c45bba4cab32d137b84d961fa97f15cb4521156"
+darwin_arm64 = "dd77de9a7574e38d8409fb06fa85e1581415896639d075987791d8c4e5a57b73"
+darwin_amd64 = "a122fd04db5f2da07d24528ed61109bc82142ca44e821d4faafa05650f6ba627"
+linux_amd64  = "c72477ae6c3a8e7d817a322f43da70e4643e75ee5c21265f1c19c894273b7428"
+linux_arm64  = "6ee0bd8173f1347514f4974d55fb1fae13aa7f6de0a55338adbefa0667cad7e5"
 
 [mise]
 
@@ -32,7 +32,7 @@ activate_shims = false
 cache_prune_age = "60 days"
 disable_hints   = ["self_update"]
 http_retries    = 5
-install_before  = "7d"
+minimum_release_age = "7d"
 log_level     = "warn"
 [mise.settings.npm]
 package_manager = "bun"

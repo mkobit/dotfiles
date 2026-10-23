@@ -565,7 +565,7 @@ def test_root_capability_plugin_manifest_deployed_and_valid(chezmoi_dest):
     assert manifest_path.is_file(), f"{manifest_path} does not exist after chezmoi apply"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     assert manifest["name"] == "mkobit-dotfiles"
-    assert manifest["skills"] == "./skills"
+    assert manifest["skills"] == ["./skills"]
     assert manifest["version"].startswith("1.0.0+")
     _assert_valid_capability_metadata(manifest)
 
@@ -588,6 +588,19 @@ def test_marketplace_manifests_deployed_and_valid(chezmoi_dest):
     claude_source = claude_plugins["mkobit-dotfiles"]["source"]
     claude_path = claude_source["path"] if isinstance(claude_source, dict) else claude_source
     assert claude_path == "./plugins/mkobit-dotfiles/claude"
+
+    superpowers_root = chezmoi_dest / ".local/share/agent-plugins/marketplaces/superpowers-marketplace"
+    superpowers_agents = json.loads((superpowers_root / ".agents/plugins/marketplace.json").read_text(encoding="utf-8"))
+    assert superpowers_agents["name"] == "superpowers-marketplace"
+    superpowers_agents_plugins = {plugin["name"]: plugin for plugin in superpowers_agents["plugins"]}
+    assert "superpowers" in superpowers_agents_plugins
+    assert superpowers_agents_plugins["superpowers"]["source"]["path"] == "./plugins/superpowers"
+
+    superpowers_claude = json.loads((superpowers_root / ".claude-plugin/marketplace.json").read_text(encoding="utf-8"))
+    assert superpowers_claude["name"] == "superpowers-marketplace"
+    superpowers_claude_plugins = {plugin["name"]: plugin for plugin in superpowers_claude["plugins"]}
+    assert "superpowers" in superpowers_claude_plugins
+    assert superpowers_claude_plugins["superpowers"]["source"] == "./plugins/superpowers"
 
     provenance_path = chezmoi_dest / ".local/share/agent-plugins/marketplace/bridge-provenance.json"
     assert provenance_path.is_file(), f"{provenance_path} does not exist after chezmoi apply"

@@ -1,15 +1,1 @@
-{{- $bridge := fromJson (includeTemplate "ai/plugin-bridge" .) -}}
-{{- $marketplace := $bridge.marketplace -}}
-{{- $environment := dig "environment" "default" $bridge -}}
-{{- $plugins := list -}}
-{{- range $name, $capability := $bridge.capabilities -}}
-{{-   $capabilityMarketplace := dig "marketplace" "" $capability -}}
-{{-   $marketplaceDefinition := dig $capabilityMarketplace (dict) $bridge.marketplaces -}}
-{{-   $hosts := dig "hosts" (dig "hosts" (list) $marketplaceDefinition) $capability -}}
-{{-   $environments := dig "environments" nil $capability -}}
-{{-   if and (eq $capabilityMarketplace $marketplace.name) (has "claude" $hosts) (or (eq $environments nil) (has $environment $environments)) -}}
-{{-     $path := dig "package_path" (printf "./plugins/%s/claude" $name) $capability -}}
-{{-     $plugins = append $plugins (dict "name" $name "source" $path) -}}
-{{-   end -}}
-{{- end -}}
-{{- dict "name" $marketplace.name "owner" (dict "name" $marketplace.owner) "plugins" $plugins | toPrettyJson -}}
+{{- includeTemplate "ai/plugin-marketplace" (dict "root" . "name" "dotfiles" "host" "claude") -}}

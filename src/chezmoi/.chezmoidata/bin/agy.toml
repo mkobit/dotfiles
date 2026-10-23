@@ -1,5 +1,5 @@
 [bin.agy]
-version = "1.4.0"
+version = "1.4.4"
 
 [bin.agy.github_releases]
 repo            = "google-antigravity/antigravity-cli"
@@ -19,7 +19,7 @@ linux_amd64  = "linux_x64"
 linux_arm64  = "linux_arm64"
 
 [bin.agy.github_releases.checksums]
-darwin_arm64 = "92b4bfb5b51e7b44ff3dcdb1a3179cb2c31b798a79185e19df3a51ae9ff121c7"
-darwin_amd64 = "60f187b7272cb67852d0cf2143d7331116257f86247a92ecbdcff6a47e99d490"
-linux_amd64  = "fd96967583c1eed94733c039638fa59b71ddbd823c75ebc8dd0e677463565aad"
-linux_arm64  = "cf953adcc69f87d00d71f97c3f35dc723a8669a350accf9a199df781f0523f56"
+darwin_arm64 = "85482aa8969300183f71c9653d9f581248fba7f506342a8eb087f3d2503203bd"
+darwin_amd64 = "12c96c065ac50d36e087c1fda1bba8d6fb4fa7af232d1ef2a44499c2481a52bf"
+linux_amd64  = "9ae4f7f0667a2868e15bb9ad93819ff7527c7187f12d12e3b5191137c726287b"
+linux_arm64  = "57a96abbc94745a5faf4f24e878766a1882b9aa4c4b83ba567717d8206745f5a"

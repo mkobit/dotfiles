@@ -3,6 +3,8 @@
 {{- $capabilities := list -}}
 {{- range $capabilityName := keys $bridge.capabilities | sortAlpha -}}
 {{-   $capability := index $bridge.capabilities $capabilityName -}}
+{{-   $marketplaceName := $capability.marketplace -}}
+{{-   $capabilityMarketplace := index $bridge.marketplaces $marketplaceName -}}
 {{-   $upstreamSources := list -}}
 {{-   $sources := dict -}}
 {{-   if dig "acquisition_destination" false $capability -}}
@@ -29,6 +31,6 @@
 {{-       end -}}
 {{-       $upstreamSources = append $upstreamSources (dict "name" $sourceName "url" $url "ref" $source.ref "sha256" $source.sha256) -}}
 {{-   end -}}
-{{-   $capabilities = append $capabilities (dict "name" $capabilityName "description" $capability.description "source" $marketplace.source "trust_class" $marketplace.trust_class "upstream_sources" $upstreamSources) -}}
+{{-   $capabilities = append $capabilities (dict "name" $capabilityName "description" $capability.description "marketplace" $marketplaceName "source" (dig "source" "local" $capabilityMarketplace) "trust_class" (dig "trust_class" "unknown" $capabilityMarketplace) "upstream_sources" $upstreamSources) -}}
 {{- end -}}
 {{- dict "marketplace" (dict "name" $marketplace.name "owner" $marketplace.owner "source" $marketplace.source "trust_class" $marketplace.trust_class) "capabilities" $capabilities | toPrettyJson -}}

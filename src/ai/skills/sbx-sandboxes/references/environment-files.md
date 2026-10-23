@@ -15,6 +15,7 @@ kits:
 `clone: false` directly mounts the checkout and is the default delegation path.
 
 Changes made by the sandbox are immediately visible to host Git.
+Combine `clone: false` with dedicated Git worktrees to distribute work across parallel sandboxes without file collisions.
 
 Set `clone: true` only for a private clone with an explicit host return process.
 

@@ -27,3 +27,14 @@ For execution errors, use [CLI automation](cli-automation.md).
 The standard `clone: false` workspace returns file edits immediately to the host checkout.
 
 Use a private clone only when isolation outweighs that fast review loop and the repository specifies the return path.
+
+## Parallel task distribution with worktrees
+
+Use Git worktrees with `clone: false` to distribute tasks across parallel sandboxes.
+Each worktree gives one isolated branch checkout on the host to prevent workspace collisions.
+Each parallel sandbox mounts its assigned worktree path directly.
+File changes show immediately in the host worktree for review, testing, and commits.
+A worktree sandbox mounts only the worktree path.
+The container cannot resolve `.git` or host task trackers outside that mount.
+Run all branch, commit, and task tracker commands on the host coordinator.
+

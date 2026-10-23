@@ -35,22 +35,15 @@ Help with `--help` displays usage; it does not grant execution of the underlying
 Claude Code supports skill tool grants during the invoking turn, subject to managed restrictions.
 See [Claude Code skill permissions](https://code.claude.com/docs/en/skills#pre-approve-tools-for-a-skill).
 
-Codex has no supported plugin command-grant mechanism in the installed version.
-A trusted repository can provide persistent `.codex/rules/*.rules` after authorization.
-Codex rules match argument prefixes, not Bash glob patterns:
+The plugin does not supply command approval hooks.
+The skill keeps its approval list in `allowed-tools`.
+Hosts that do not use this field apply their normal command approval checks.
+Use the platform approval process when `sbx` needs host-service access.
 
-```starlark
-prefix_rule(pattern = ["sbx", "env", "exec", ".sbx/sbxenv.yaml", "--"], decision = "allow")
-prefix_rule(pattern = ["sbx", "exec", "project-codex"], decision = "allow")
-```
-
-These examples cover guest writes and do not expire with the skill turn.
-See [Codex rules](https://developers.openai.com/codex/rules).
-
-The shared global command catalog supplies narrow help, listing, and version grants to supported permission renderers.
-Its command heads are literal; do not put globs into that catalog.
-AGY and other hosts must use their supported approval mechanisms where skill metadata is not enforced.
-Cross-tool conversion is outside this skill.
+The shared global command catalog grants `sbx --version` for Claude Code and AGY.
+Other SBX commands use skill grants where supported or the host approval process.
+Its retirement entries remove old generated grants from saved settings.
+An overlay can still declare an explicit grant.
 
 ## Failures and results
 
