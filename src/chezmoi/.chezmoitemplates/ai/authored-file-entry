@@ -1,0 +1,17 @@
+{{- /* A nested context preserves parent file metadata that execute-template resets. */ -}}
+{{- $entry := dict "type" "file" "url" (printf "file://%s" .path) "refreshPeriod" "1s" -}}
+{{- if hasSuffix ".tmpl" .path -}}
+{{-   $context := includeTemplate "ai/authored-render-context" . | fromJson -}}
+{{-   $_ := set $entry "filter" (dict
+        "command" .root.chezmoi.executable
+        "args" (list "--config" "/dev/null" "--config-format" "toml"
+          "--source" .root.chezmoi.sourceDir "--destination" .root.chezmoi.destDir
+          "--working-tree" .root.chezmoi.workingTree "--dry-run"
+          "--persistent-state" (joinPath .root.chezmoi.destDir ".local/state/chezmoi-authored-template-render.boltdb")
+          "--no-tty" "--override-data" (toJson (dict "authored_render" (dict "root" $context "path" .path))) "execute-template"
+          "{{ includeTemplate .authored_render.path .authored_render.root }}")) -}}
+{{- end -}}
+{{- if or (ne (mod (div (lstat .path).perm 64) 2) 0) (ne (mod (div (lstat .path).perm 8) 2) 0) (ne (mod (lstat .path).perm 2) 0) -}}
+{{-   $_ := set $entry "executable" true -}}
+{{- end -}}
+{{- toJson $entry -}}

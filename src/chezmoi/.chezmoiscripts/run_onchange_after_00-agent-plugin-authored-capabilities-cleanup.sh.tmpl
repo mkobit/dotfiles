@@ -54,13 +54,13 @@
 {{-       end -}}
 {{-       if ne $state "absent" -}}
 {{-         $skillDir := joinPath $skillRoot $skillName -}}
-{{-         if not (stat (joinPath $skillDir "SKILL.md")) -}}
+{{-         if not (or (stat (joinPath $skillDir "SKILL.md")) (stat (joinPath $skillDir "SKILL.md.tmpl"))) -}}
 {{-           fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s: missing SKILL.md" $capabilityName $skillName) -}}
 {{-         end -}}
 {{-         range $path := glob (joinPath $skillDir "**/*") -}}
 {{-           if eq (lstat $path).type "file" -}}
 {{-             $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
-{{-             $rel := trimPrefix (printf "%s/" $skillDir) $path -}}
+{{-             $rel := trimPrefix (printf "%s/" $skillDir) $path | trimSuffix ".tmpl" -}}
 {{-             range $hostName, $hostRootFormat := $hostRoots -}}
 {{-               if and (has $hostName $declaredHosts) (or (eq $state "present") (eq $state $hostName)) -}}
 {{-                 $desired = append $desired (joinPath (printf $hostRootFormat $capabilityName) $skillName $rel) -}}

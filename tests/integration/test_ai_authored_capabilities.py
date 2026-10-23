@@ -21,7 +21,7 @@ AUTHORED_TEMPLATE_ROOT = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
 def _add_plugin_wrappers(source: Path) -> None:
     """Add the thin package manifests that accompany external-projected skills."""
     manifest_template = source / ".chezmoitemplates/ai/authored-plugin-manifest"
-    manifest_template.parent.mkdir(parents=True)
+    manifest_template.parent.mkdir(parents=True, exist_ok=True)
     manifest_template.write_text(
         '{{- define "ai/authored-plugin-manifest" -}}'
         '{"name":"{{ .name }}","version":"1.0.0","skills":"./skills"}'
@@ -51,7 +51,7 @@ def _add_plugin_wrappers(source: Path) -> None:
 def _add_stripe_dotfiles_wrappers(source: Path) -> None:
     """Add thin Stripe manifests without adding skill payloads to wrapper trees."""
     manifest_template = source / ".chezmoitemplates/ai/authored-plugin-manifest"
-    manifest_template.parent.mkdir(parents=True)
+    manifest_template.parent.mkdir(parents=True, exist_ok=True)
     manifest_template.write_text(
         '{{- define "ai/authored-plugin-manifest" -}}'
         '{"name":"{{ .name }}","version":"1.0.0","skills":"./skills"}'
@@ -156,6 +156,10 @@ def _initialize_capability_lifecycle_source(tmp_path: Path) -> tuple[Path, Path,
     external_dir = source / ".chezmoiexternals"
     external_dir.mkdir(parents=True)
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
+    for name in ("authored-render-context", "authored-file-entry"):
+        target = source / ".chezmoitemplates/ai" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
     _add_cleanup_script(source)
     subprocess.run(["git", "init", "--quiet", str(source)], check=True)
 
@@ -187,6 +191,10 @@ def test_capability_projects_canonical_domain_brain_skill_tree_to_selected_hosts
     external_dir.mkdir(parents=True)
     assert AUTHORED_CAPABILITIES_EXTERNAL.is_file(), "authored capability external is missing"
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
+    for name in ("authored-render-context", "authored-file-entry"):
+        target = source / ".chezmoitemplates/ai" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
     _add_plugin_wrappers(source)
     subprocess.run(["git", "init", "--quiet", str(source)], check=True)
 
@@ -246,6 +254,10 @@ def test_capability_projects_stripe_direct_skill_root_and_removes_remote_only_sk
     external_dir = source / ".chezmoiexternals"
     external_dir.mkdir(parents=True)
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
+    for name in ("authored-render-context", "authored-file-entry"):
+        target = source / ".chezmoitemplates/ai" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
     _add_cleanup_script(source)
     _add_stripe_dotfiles_wrappers(source)
     subprocess.run(["git", "init", "--quiet", str(source)], check=True)
@@ -476,6 +488,10 @@ def test_capability_rejects_paths_outside_the_declared_overlay_schema(
     external_dir = source / ".chezmoiexternals"
     external_dir.mkdir(parents=True)
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
+    for name in ("authored-render-context", "authored-file-entry"):
+        target = source / ".chezmoitemplates/ai" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
     subprocess.run(["git", "init", "--quiet", str(source)], check=True)
 
     capability_key = json.dumps(capability_name)
@@ -515,6 +531,10 @@ def test_capability_rejects_a_selected_skill_without_skill_markdown(tmp_path):
     external_dir = source / ".chezmoiexternals"
     external_dir.mkdir(parents=True)
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
+    for name in ("authored-render-context", "authored-file-entry"):
+        target = source / ".chezmoitemplates/ai" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
     subprocess.run(["git", "init", "--quiet", str(source)], check=True)
 
     references = source.parent / "custom-support/domain-brain/skills/records/references"
@@ -559,6 +579,10 @@ def test_capability_rejects_empty_or_unknown_hosts(tmp_path, hosts, expected_err
     external_dir = source / ".chezmoiexternals"
     external_dir.mkdir(parents=True)
     shutil.copy2(AUTHORED_CAPABILITIES_EXTERNAL, external_dir / AUTHORED_CAPABILITIES_EXTERNAL.name)
+    for name in ("authored-render-context", "authored-file-entry"):
+        target = source / ".chezmoitemplates/ai" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(AUTHORED_TEMPLATE_ROOT / name, target)
     subprocess.run(["git", "init", "--quiet", str(source)], check=True)
 
     config = tmp_path / "chezmoi.toml"

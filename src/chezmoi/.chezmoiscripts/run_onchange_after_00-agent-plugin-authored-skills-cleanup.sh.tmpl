@@ -175,6 +175,6 @@ PY
 {{-     $_ := set $selectedRoots $antigravity true -}}
 {{-   end -}}
 {{-   range $skillsDir := (list $portable (index $tools "claude") (index $tools "codex") (index $tools "cursor") $cursorLocal $antigravity) }}
-clean_skill {{ joinPath $.chezmoi.destDir $skillsDir $skillName | shellQuote }}{{ if index $selectedRoots $skillsDir }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}{{ end }}
+clean_skill {{ joinPath $.chezmoi.destDir $skillsDir $skillName | shellQuote }}{{ if index $selectedRoots $skillsDir }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | trimSuffix ".tmpl" | shellQuote }}{{ end }}{{ end }}{{ end }}
 {{-   end }}
 {{- end }}

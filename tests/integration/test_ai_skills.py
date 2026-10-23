@@ -146,6 +146,10 @@ def _initialize_authored_cleanup_source(source: Path, *, include_external: bool 
         (FILTER_INTERPRETER_RESOLVER, Path("src/python/skill_filter/resolve-interpreter.sh")),
     ]
     if include_external:
+        source_files.extend(
+            (REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name, Path(".chezmoitemplates/ai") / name)
+            for name in ("authored-render-context", "authored-file-entry")
+        )
         source_files.append((AUTHORED_SKILLS_EXTERNAL, Path(".chezmoiexternals") / AUTHORED_SKILLS_EXTERNAL.name))
     for source_file, relative_target in source_files:
         assert source_file.is_file(), f"missing cleanup fixture dependency: {source_file}"
@@ -672,3 +676,171 @@ def test_codex_reports_no_agent_role_warnings(host):
         line.strip() for line in f"{result.stdout}\n{result.stderr}".splitlines() if "malformed agent role" in line
     ]
     assert not offenders, "codex rejected deployed agent roles:\n" + "\n".join(offenders)
+
+
+@pytest.mark.parametrize("kind", ["base", "capability"])
+@pytest.mark.parametrize("override", [False, True])
+def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, kind, override):
+    """Template entries render parent data once and preserve plain binary resources."""
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    external = (
+        AUTHORED_SKILLS_EXTERNAL
+        if kind == "base"
+        else REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
+    )
+    externals = source / ".chezmoiexternals"
+    externals.mkdir(parents=True)
+    shutil.copy2(external, externals / external.name)
+    template_root = source / ".chezmoitemplates/ai"
+    template_root.mkdir(parents=True)
+    for name in ("authored-render-context", "authored-file-entry"):
+        origin = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name
+        shutil.copy2(origin, template_root / name)
+    cleanup_name = "skills" if kind == "base" else "capabilities"
+    dependencies = {
+        REPOSITORY_ROOT
+        / f"src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-{cleanup_name}-cleanup.sh.tmpl": source
+        / f".chezmoiscripts/run_onchange_after_00-agent-plugin-authored-{cleanup_name}-cleanup.sh.tmpl",
+        FILTER_INTERPRETER_TEMPLATE: source / ".chezmoitemplates/python/filter-interpreter",
+        FILTER_INTERPRETER_RESOLVER: source.parent / "python/skill_filter/resolve-interpreter.sh",
+    }
+    for origin, target in dependencies.items():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(origin, target)
+    data = source / ".chezmoidata/defaults.toml"
+    data.parent.mkdir()
+    data.write_text('[fixture]\nvalue = "catalog"\n')
+    skill = source.parent / ("ai/skills/fixture" if kind == "base" else "overlay-plugins/example/skills/fixture")
+    (skill / "nested").mkdir(parents=True)
+    canonical = skill / "SKILL.md.tmpl"
+    contents = "{{ .fixture.value }}|{{ .chezmoi.destDir }}|{{ .chezmoi.sourceFile }}|{{ .chezmoi.targetFile }}\n"
+    canonical.write_text(contents)
+    (skill / "nested/payload.bin").write_bytes(b"\x00\xff{{ untouched }}")
+    executable = skill / "nested/run.tmpl"
+    executable.write_text("#!/bin/sh\necho {{ .fixture.value }}\n")
+    executable.chmod(0o755)
+    (skill / "nested/name.tmpl.tmpl").write_text("{{ .chezmoi.targetFile }}")
+    (skill / "nested/empty.tmpl").write_text('{{- "" -}}')
+    counter = tmp_path / "hook-count"
+    config = tmp_path / "chezmoi.toml"
+    selection = (
+        '[data.ai.skills.authored]\nfixture = "present"\n[data.local.bin.agy]\ninstallation_method = "preinstalled"\n'
+        if kind == "base"
+        else '[data.ai.plugin_bridge.capabilities.example]\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude", "codex", "cursor"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
+    )
+    config.write_text(
+        '[hooks.read-source-state.pre]\ncommand = "sh"\nargs = ["-c", "echo once >> '
+        + str(counter)
+        + '"]\n'
+        + selection
+        + ('[data.fixture]\nvalue = "override"\n' if override else "")
+    )
+    subprocess.run(["git", "init", "--quiet", str(source)], check=True)
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--source",
+            str(source),
+            "--destination",
+            str(destination),
+            "--config",
+            str(config),
+            "--refresh-externals=always",
+            "apply",
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    value = "override" if override else "catalog"
+    roots = (
+        list(AUTHORED_SKILL_ROOTS.values())
+        if kind == "base"
+        else [
+            Path(f".local/share/agent-plugins/marketplace/plugins/example/{host}/skills")
+            for host in ("claude", "codex", "cursor")
+        ]
+        + [Path(".cursor/plugins/local/example/skills")]
+    )
+    for relative in roots:
+        target = destination / relative / "fixture"
+        assert (target / "SKILL.md").read_text() == f"{value}|{destination}|{canonical}|SKILL.md\n"
+        assert not (target / "SKILL.md.tmpl").exists()
+        assert (target / "nested/payload.bin").read_bytes() == b"\x00\xff{{ untouched }}"
+        assert (target / "nested/run").read_text() == f"#!/bin/sh\necho {value}\n"
+        assert (target / "nested/run").stat().st_mode & 0o111
+        assert (target / "nested/empty").read_bytes() == b""
+        assert (target / "nested/name.tmpl").read_text() == "nested/name.tmpl"
+    assert canonical.read_text() == contents
+    assert counter.read_text() == "once\n"
+    # Remove a template and reapply to check that cleanup owns rendered names.
+    (skill / "nested/run.tmpl").unlink()
+    counter.unlink()
+    repeated = subprocess.run(
+        [
+            "chezmoi",
+            "--source",
+            str(source),
+            "--destination",
+            str(destination),
+            "--config",
+            str(config),
+            "--refresh-externals=always",
+            "apply",
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=30,
+    )
+    assert repeated.returncode == 0, repeated.stderr
+    for relative in roots:
+        target = destination / relative / "fixture"
+        assert (target / "SKILL.md").exists()
+        assert not (target / "nested/run").exists()
+        assert (target / "nested/payload.bin").read_bytes() == b"\x00\xff{{ untouched }}"
+    assert counter.read_text() == "once\n"
+    assert not (destination / ".local/state/chezmoi-authored-template-render.boltdb").exists()
+
+
+@pytest.mark.parametrize("kind", ["base", "capability"])
+@pytest.mark.parametrize("failure", ["collision", "template"])
+def test_authored_templates_reject_invalid_rendering(tmp_path, kind, failure):
+    """Bad templates and normalized filename collisions stop apply."""
+    source = tmp_path / "source"
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    externals = source / ".chezmoiexternals"
+    externals.mkdir(parents=True)
+    external = (
+        AUTHORED_SKILLS_EXTERNAL
+        if kind == "base"
+        else REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
+    )
+    shutil.copy2(external, externals / external.name)
+    templates = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
+    shutil.copytree(templates, source / ".chezmoitemplates/ai")
+    skill = source.parent / ("ai/skills/fixture" if kind == "base" else "overlay-plugins/example/skills/fixture")
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md.tmpl").write_text('{{ fail "fixture render failed" }}' if failure == "template" else "rendered")
+    if failure == "collision":
+        (skill / "SKILL.md").write_text("plain")
+    config = tmp_path / "chezmoi.toml"
+    config.write_text(
+        '[data.ai.skills.authored]\nfixture = "present"\n'
+        if kind == "base"
+        else '[data.ai.plugin_bridge.capabilities.example]\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
+    )
+    result = subprocess.run(
+        ["chezmoi", "--source", str(source), "--destination", str(destination), "--config", str(config), "apply"],
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=30,
+    )
+    assert result.returncode != 0
+    assert ("collision" if failure == "collision" else "fixture render failed") in result.stderr
