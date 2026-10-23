@@ -1,8 +1,11 @@
 {{- /* Normalize independently authored plugin declarations once for all consumers. */ -}}
 {{- $plugins := dict -}}
 {{- $supportedHosts := list "claude" "codex" "cursor" -}}
+{{- $environment := dig "plugin_bridge" "environment" "default" .ai -}}
 {{- range $name, $definition := dig "plugin_bridge" "capabilities" (dict) .ai -}}
 {{-   if hasKey $definition "source_dir" -}}
+{{-     $environments := dig "environments" nil $definition -}}
+{{-     $enabled := or (eq $environments nil) (has $environment $environments) -}}
 {{-     if not (regexMatch "^[a-z0-9][a-z0-9-]*$" $name) -}}{{- fail (printf "invalid authored plugin name %q" $name) -}}{{- end -}}
 {{-     $sourceDir := $definition.source_dir -}}
 {{-     if not (and (kindIs "string" $sourceDir) (regexMatch "^src/overlay-plugins/[a-z0-9][a-z0-9-]*$" $sourceDir)) -}}
@@ -50,7 +53,7 @@
 {{-         $target := splitList "/" $relative | rest | join "/" -}}
 {{-         $state := dig (splitList "/" $relative | first) "absent" $skills -}}
 {{-         $digest := "" -}}
-{{-         if or (eq $state "present") (has $state $hosts) -}}
+{{-         if and $enabled (or (eq $state "present") (has $state $hosts)) -}}
 {{-           $digest = includeTemplate "ai/authored-file-digest" (dict "root" $ "path" $path "target" $target) -}}
 {{-         else -}}
 {{-           $digest = output "shasum" "-a" "256" $path | trim | splitList " " | first -}}

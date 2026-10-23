@@ -1180,3 +1180,30 @@ def test_rendered_package_does_not_evaluate_inactive_skill_templates(tmp_path, k
     assert all(before != after for before, after in zip(versions, _package_versions(manifests), strict=True))
     for path in destination.rglob("inactive"):
         assert not path.is_dir()
+
+
+def test_rendered_package_does_not_evaluate_disabled_environment_templates(tmp_path):
+    """A disabled capability cannot stop active package manifests or apply."""
+    source, destination, config, _, roots, manifests = _rendered_package_fixture(tmp_path, "capability")
+    config.write_text(
+        config.read_text()
+        + '\n[data.ai.plugin_bridge]\nenvironment = "mydev"\n'
+        + '[data.ai.plugin_bridge.capabilities.disabled]\nsource_dir = "src/overlay-plugins/disabled"\n'
+        + 'hosts = ["claude"]\nenvironments = ["mydata"]\n'
+        + '[data.ai.plugin_bridge.capabilities.disabled.skills]\nexample = "present"\n'
+    )
+    inactive = source.parent / "overlay-plugins/disabled/skills/example/SKILL.md.tmpl"
+    inactive.parent.mkdir(parents=True)
+    inactive.write_text('{{ fail "disabled environment template evaluated" }}')
+
+    result = _apply_authored_cleanup(source, destination, config)
+    assert result.returncode == 0, result.stderr
+    assert all(path.is_file() for path in manifests)
+    assert all((root / "SKILL.md").is_file() for root in roots)
+    versions = _package_versions(manifests)
+
+    inactive.write_text('{{ fail "disabled environment source changed" }}')
+    changed = _apply_authored_cleanup(source, destination, config)
+    assert changed.returncode == 0, changed.stderr
+    assert _package_versions(manifests) == versions
+    assert not list(destination.rglob("disabled"))
