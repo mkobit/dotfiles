@@ -141,12 +141,14 @@ jobs:
           PROFILE
           sudo apparmor_parser -r /etc/apparmor.d/bwrap
 
-      - name: Cache chezmoi downloads
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+      - name: Restore chezmoi downloads
+        id: chezmoi-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
         with:
           path: ${{ env.CHEZMOI_CACHE_DIR }}
           key: chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}
           restore-keys: |
+            chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}-
             chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
             chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-main-
 
@@ -213,6 +215,7 @@ jobs:
             --no-network
 
       - name: Run chezmoi apply
+        id: chezmoi-apply
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GOMAXPROCS: "1"
@@ -221,16 +224,27 @@ jobs:
           report_dir="$RUNNER_TEMP/integration-reports"
           mkdir -p "$report_dir"
           # externals have no retry option; cached downloads survive, so retries refetch only failures
-          for attempt in 1 2 3; do
+          for attempt in 1 2 3 4 5 6; do
             chezmoi apply \
               --cache=${{ env.CHEZMOI_CACHE_DIR }} \
               --config=${{ env.CHEZMOI_CONFIG }} \
               --source=${{ github.workspace }} \
               --destination=${{ env.CHEZMOI_DEST }} 2>&1 | tee "$report_dir/chezmoi-apply-$attempt.log" && exit 0
             echo "::warning::chezmoi apply attempt $attempt failed"
-            [ "$attempt" -lt 3 ] && sleep $((attempt * 15))
+            if [ "$attempt" -lt 6 ]; then
+              sleep $((15 * 2 ** (attempt - 1)))
+            fi
           done
           exit 1
+
+      # Save completed downloads even if apply fails or later integration steps fail.
+      # Only failed applies use unique keys, so complete caches do not grow on every run.
+      - name: Save chezmoi downloads
+        if: ${{ !cancelled() && (steps.chezmoi-apply.outcome == 'success' || steps.chezmoi-apply.outcome == 'failure') && steps.chezmoi-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9
+        with:
+          path: ${{ env.CHEZMOI_CACHE_DIR }}
+          key: ${{ steps.chezmoi-apply.outcome == 'success' && steps.chezmoi-cache.outputs.cache-primary-key || format('{0}-{1}-{2}', steps.chezmoi-cache.outputs.cache-primary-key, github.run_id, github.run_attempt) }}
 
       - name: Prune mise cache
         run: |
