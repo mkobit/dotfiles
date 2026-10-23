@@ -1,6 +1,8 @@
+{{- $description := dig "ai" "skills" "content" "technical-writing" "description" "" . -}}
+{{- $instructions := dig "ai" "skills" "content" "technical-writing" "instructions" "" . -}}
 ---
 name: technical-writing
-description: Enforces ventilated prose and concise technical writing standards when the user is writing or editing standalone documentation files (e.g., Markdown, AsciiDoc). This skill should not be used for code documentation or docstrings.
+description: {{ if $description }}{{ $description | quote }}{{ else }}Enforces ventilated prose and concise technical writing standards when the user is writing or editing standalone documentation files (e.g., Markdown, AsciiDoc). This skill should not be used for code documentation or docstrings.{{ end }}
 ---
 
 # Technical writing guidelines
@@ -26,3 +28,4 @@ Focus on self-documenting structure.
 ## Output format
 Do not wrap paragraphs.
 Output text strictly following these rules.
+{{ if $instructions }}{{ printf "\n%s" $instructions }}{{ end -}}

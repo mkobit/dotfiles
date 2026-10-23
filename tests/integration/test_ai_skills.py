@@ -1,3 +1,4 @@
+import hashlib
 import json
 import shutil
 import subprocess
@@ -5,6 +6,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+import yaml
 from chezmoi_test_data import installation_method
 
 # Antigravity remains a direct skill consumer.
@@ -935,6 +937,119 @@ def _rendered_package_fixture(tmp_path: Path, kind: str) -> tuple[Path, Path, Pa
 
 def _package_versions(manifests: list[Path]) -> list[str]:
     return [json.loads(path.read_text())["version"] for path in manifests]
+
+
+def _technical_writing_fixture(tmp_path: Path):
+    """Use the authored technical-writing source with real package output and versions."""
+    source, destination, config, skill, roots, manifests = _rendered_package_fixture(tmp_path, "base")
+    shutil.rmtree(skill)
+    skill = skill.with_name("technical-writing")
+    shutil.copytree(REPOSITORY_ROOT / "src/ai/skills/technical-writing", skill)
+    config.write_text(
+        '[data.ai.skills.authored]\ntechnical-writing = "present"\n[data.ai.skills.external]\n'
+        '[data.local.bin.agy]\ninstallation_method = "preinstalled"\n'
+    )
+    roots = [root.with_name("technical-writing") for root in roots]
+    roots.append(destination / AUTHORED_SKILL_ROOTS["antigravity"] / "technical-writing")
+    return source, destination, config, skill, roots, manifests
+
+
+@pytest.mark.parametrize(
+    "optional_data",
+    [
+        "",
+        "[data.ai.skills.content]\n",
+        '[data.ai.skills.content.technical-writing]\ndescription = ""\ninstructions = ""\n',
+    ],
+    ids=["missing", "empty-parent", "empty-values"],
+)
+def test_technical_writing_default_package_preserves_original_bytes(tmp_path, optional_data):
+    """Missing optional content keeps the original skill bytes in every output."""
+    source, destination, config, skill, roots, manifests = _technical_writing_fixture(tmp_path)
+    config.write_text(config.read_text() + optional_data)
+    original_sources = {path.name: path.read_bytes() for path in skill.iterdir()}
+    result = _apply_authored_cleanup(source, destination, config)
+    assert result.returncode == 0, result.stderr
+    for root in roots:
+        deployed = (root / "SKILL.md").read_bytes()
+        assert (
+            hashlib.sha256(deployed).hexdigest() == "32d9ef77a08a3e57f5fd501efa30ae7e84a3a689f906def8833dae1f4eb52b7b"
+        )
+        assert not (root / "SKILL.md.tmpl").exists()
+    versions = _package_versions(manifests)
+    repeated = _apply_authored_cleanup(source, destination, config)
+    assert repeated.returncode == 0, repeated.stderr
+    assert _package_versions(manifests) == versions
+    assert {path.name: path.read_bytes() for path in skill.iterdir()} == original_sources
+
+
+def test_technical_writing_template_accepts_missing_ai_root(tmp_path):
+    """The optional content path is safe when the entire ai data root is absent."""
+    skill_root = REPOSITORY_ROOT / "src/ai/skills/technical-writing"
+    skill_file = next(path for path in skill_root.iterdir() if path.name.startswith("SKILL.md"))
+    config = tmp_path / "chezmoi.toml"
+    config.write_text("")
+    source = tmp_path / "source"
+    source.mkdir()
+    result = subprocess.run(
+        ["chezmoi", "--source", str(source), "--config", str(config), "execute-template"],
+        capture_output=True,
+        check=False,
+        input=skill_file.read_text(),
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert (
+        hashlib.sha256(result.stdout.encode()).hexdigest()
+        == "32d9ef77a08a3e57f5fd501efa30ae7e84a3a689f906def8833dae1f4eb52b7b"
+    )
+
+
+@pytest.mark.parametrize("content_layer", ["catalog", "control-plane", "instructions-only"])
+def test_technical_writing_content_renders_merged_data_and_changes_package_versions(tmp_path, content_layer):
+    """Content data changes YAML metadata and body bytes without changing the source."""
+    source, destination, config, skill, roots, manifests = _technical_writing_fixture(tmp_path)
+    original_sources = {path.name: path.read_bytes() for path in skill.iterdir()}
+    first = _apply_authored_cleanup(source, destination, config)
+    assert first.returncode == 0, first.stderr
+    original = (roots[0] / "SKILL.md").read_text()
+    original_frontmatter, original_body = original.split("---\n", 2)[1:]
+    original_versions = _package_versions(manifests)
+    description = "Use when: \"quoted\" # content\nKeep 'single quotes' and \\paths."
+    instructions = "## Additional instructions\nKeep the configured instruction.\n"
+    catalog = source / ".chezmoidata/technical-writing.toml"
+    catalog.parent.mkdir()
+    catalog.write_text(
+        "[ai.skills.content.technical-writing]\n"
+        + (f"description = {json.dumps(description)}\n" if content_layer == "catalog" else "")
+        + f"instructions = {json.dumps(instructions)}\n"
+    )
+    if content_layer == "control-plane":
+        catalog.write_text(catalog.read_text() + 'description = "Catalog description"\n')
+        config.write_text(
+            config.read_text()
+            + f"[data.ai.skills.content.technical-writing]\ndescription = {json.dumps(description)}\n"
+        )
+    changed = _apply_authored_cleanup(source, destination, config)
+    assert changed.returncode == 0, changed.stderr
+    for root in roots:
+        deployed = (root / "SKILL.md").read_text()
+        frontmatter, body = deployed.split("---\n", 2)[1:]
+        metadata = yaml.safe_load(frontmatter)
+        assert set(metadata) == {"name", "description"}
+        assert metadata["name"] == "technical-writing"
+        if content_layer == "instructions-only":
+            assert frontmatter == original_frontmatter
+        else:
+            assert metadata["description"] == description
+        assert body == original_body + "\n" + instructions
+        assert not (root / "SKILL.md.tmpl").exists()
+    versions = _package_versions(manifests)
+    assert all(before != after for before, after in zip(original_versions, versions, strict=True))
+    repeated = _apply_authored_cleanup(source, destination, config)
+    assert repeated.returncode == 0, repeated.stderr
+    assert _package_versions(manifests) == versions
+    assert {path.name: path.read_bytes() for path in skill.iterdir()} == original_sources
 
 
 @pytest.mark.parametrize("kind", ["base", "capability"])

@@ -14,9 +14,37 @@ OpenCode V1 receives local package paths in `~/.config/opencode/opencode.json` o
 
 ### Authored skills
 
-create `src/ai/skills/<name>/SKILL.md` for authored skill content.
-declare `<name> = "present"` in `src/chezmoi/.chezmoidata/ai/skills/authored.toml`.
-nested files under `src/ai/skills/<name>/` deploy automatically via `src/chezmoi/.chezmoiexternals/ai-authored-skills.toml.tmpl`.
+create `src/ai/skills/<name>/SKILL.md` for plain authored skill content, or `SKILL.md.tmpl` to use chezmoi Go templates.
+declare `<name> = "present"` in the [authored catalog](../chezmoi/.chezmoidata/ai/skills/authored.toml).
+the [base externals](../chezmoi/.chezmoiexternals/ai-authored-skills.toml.tmpl) and [overlay capability externals](../chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl) deploy nested authored skill files.
+only authored skill files with a final `.tmpl` suffix use template rendering; that suffix is removed from the output name.
+plain files keep their bytes, and both forms keep executable modes.
+source files that map to the same output path cause apply to fail.
+
+the [file entry template](../chezmoi/.chezmoitemplates/ai/authored-file-entry) renders templates with the effective merged data from `.chezmoidata/` and `[data.*]` configuration.
+configuration values take precedence over catalog defaults at the same key path.
+the [render context](../chezmoi/.chezmoitemplates/ai/authored-render-context) sets `chezmoi.sourceFile` to the canonical source path and `chezmoi.targetFile` to the rendered skill-relative name.
+use `chezmoi.destDir` for destination paths and `dig` with safe defaults for optional data.
+use deterministic data; clocks, random values, and live lookups can change package versions on each apply.
+the [base version template](../chezmoi/.chezmoitemplates/ai/authored-base-version) and [capability manifest](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest) calculate versions from rendered content, plain file hashes, executable modes, and selection data.
+
+the [technical-writing template](skills/technical-writing/SKILL.md.tmpl) accepts optional `ai.skills.content.technical-writing.description` and `ai.skills.content.technical-writing.instructions` strings.
+a non-empty description replaces the YAML description with a quoted scalar.
+non-empty instructions follow the unchanged Markdown body after a blank line.
+missing or empty values keep the original description and body bytes.
+catalog defaults use `[ai.skills.content.technical-writing]`; an overlay can override either value in its init template:
+
+```toml
+[data.ai.skills.content.technical-writing]
+description = "Use when writing standalone documentation."
+instructions = "Follow the project style guide."
+```
+
+rendered output uses the existing portable, host, Cursor local, and gated Antigravity paths described above.
+the [base cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-skills-cleanup.sh.tmpl) and [capability cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl) remove owned output with rendered names.
+the [plugin bridge](../python/skill_filter/skill_filter/plugin_bridge.py) registers the generated packages after apply.
+rendering leaves canonical sources unchanged; edit those sources, not deployed copies.
+third-party packages, host conversion, and native package registration keep their existing behavior.
 
 ### Upstream third-party skills
 
