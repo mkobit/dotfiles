@@ -2,6 +2,29 @@
 # and any per-machine scope restriction live in `.chezmoi.toml.tmpl` under
 # `[data.git.personal]`. Overlays can override individual fields here by
 # setting `[data.git.personal] name = "…"` etc. in their own chezmoi.toml.tmpl.
+
+[git]
+global_ignores = [
+  "*.py[cod]",
+  "*.swp",
+  "*~",
+  ".DS_Store",
+  ".agy",
+  ".antigravity/",
+  ".antigravitycli/",
+  ".claude/settings.local.json",
+  ".idea/",
+  ".scratch/",
+  ".worktree/",
+  ".worktrees/",
+  "/bazel-*",
+  "__pycache__/",
+  "docs/superpowers/plans/*",
+  "docs/superpowers/specs/*",
+  "mise.*.local.toml",
+  "mise.local.toml",
+]
+
 [git.personal]
 name = "Mike Kobit"
 email = "mkobit@gmail.com"

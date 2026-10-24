@@ -66,3 +66,10 @@ def test_chezmoi_data_contains_agy_installation_method(chezmoi_data):
 @pytest.mark.parametrize("feature,methods", MARKER_GATED_INSTALLATION_METHODS.items())
 def test_marker_gated_installation_method_contract(chezmoi_data, feature, methods):
     assert required_installation_method(chezmoi_data, feature) in methods
+
+
+@pytest.mark.integration
+def test_chezmoi_data_contains_git_global_ignores_including_worktrees(chezmoi_data):
+    assert "git" in chezmoi_data and "global_ignores" in chezmoi_data["git"]
+    assert ".worktrees/" in chezmoi_data["git"]["global_ignores"]
+    assert ".worktree/" in chezmoi_data["git"]["global_ignores"]
