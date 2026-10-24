@@ -5,11 +5,11 @@ repo = "obra/superpowers"
 ref = "bb92a77741419a4ab5f06e711a283343f1ada0c3"
 sha256 = "496b576d4a4a62c0d72cce4a9e99ff46c57026c07fe503931cbb8afd33006cf2"
 host = "github"
-path = ".local/share/agent-plugins/marketplace/plugins/superpowers"
+path = ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers"
 
 [ai.plugin_bridge.capabilities.superpowers]
 description = "Unmodified upstream Superpowers plugin."
-marketplace = "dotfiles"
+marketplace = "superpowers-marketplace"
 hosts = ["claude", "codex", "cursor"]
 external_source = "superpowers"
 package_path = "./plugins/superpowers"

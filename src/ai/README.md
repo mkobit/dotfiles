@@ -13,6 +13,7 @@ The four stages below describe responsibilities; rendering and host filtering ca
 | Registration and uninstall | The post-apply bridge registers Claude Code and Codex packages and removes stale registrations that it owns. | [Hook](../chezmoi/.chezmoiscripts/run_after_agent-plugin-bridge.sh.tmpl), [bridge](../python/skill_filter/skill_filter/plugin_bridge.py) |
 
 Authored skills and wrappers share the chezmoi Go template engine and effective data; there is no separate renderer or framework.
+Chezmoi generates marketplace manifests from the catalog through the shared [`ai/plugin-marketplace`](../chezmoi/.chezmoitemplates/ai/plugin-marketplace) template.
 Output paths below are relative to `chezmoi.destDir`.
 Portable skills use `.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills/`; host views use sibling `claude/`, `codex/`, and `cursor/` directories.
 Cursor also receives local packages under `.cursor/plugins/local/`.
@@ -151,12 +152,18 @@ The archive pin uses a full commit ref and archive SHA-256.
 Archive hosts use the existing `ai.skills.hosts` catalog, so an overlay can select its package mirror.
 
 [Superpowers v7.0.0](https://github.com/obra/superpowers/tree/bb92a77741419a4ab5f06e711a283343f1ada0c3) deploys the complete repository, with no skill filter or workflow edits.
-Its shared root is `.local/share/agent-plugins/marketplace/plugins/superpowers/`.
-Claude Code and Codex register that root through the local marketplace bridge.
+Its shared root is `.local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers/`.
+Claude Code and Codex register it as `superpowers@superpowers-marketplace`, separate from `mkobit-dotfiles@dotfiles`.
+Each generated marketplace declares its destination-relative `source_locator`, owner, source, trust class, and native hosts in the keyed marketplace catalog.
+[`plugin_declarations.py`](../python/skill_filter/skill_filter/plugin_declarations.py) validates and plans declarations without file writes.
+Each marketplace has one source template per native host, which calls the shared renderer.
+Overlays can add marketplace templates and catalog declarations through the same structure.
+Provenance reports each capability's marketplace, source, and trust class from its own declaration.
 Cursor receives an identical archive at `.cursor/plugins/local/superpowers/` and uses the upstream manifest and hooks there.
 The [upstream OpenCode adapter](https://github.com/obra/superpowers/blob/bb92a77741419a4ab5f06e711a283343f1ada0c3/.opencode/INSTALL.md) uses the shared root as an absolute local package directory in the pinned V1 `plugin` array.
 OpenCode registration also requires `local.bin.opencode.installation_method != "none"`.
-Antigravity keeps its existing parent-directory registration and tool gate.
+OpenCode retires only the old managed Superpowers package reference and preserves unrelated plugin entries.
+Antigravity adds the enabled Superpowers package parent directory and keeps its existing dotfiles registration and tool gate.
 Gemini CLI stays disabled where its tool gate is absent or set to `"none"`.
 The package retains upstream rules, agents, hooks, and runtime helpers.
 Legacy per-skill Superpowers selections stay `"absent"` so apply removes duplicate copies.

@@ -25,6 +25,20 @@ installation_method = "github_releases"
 enabled = false
 log_user_prompt = false
 
+[data.codex.tui]
+status_line = [
+  "model-with-reasoning",
+  "current-dir",
+  "project-name",
+  "git-branch",
+  "run-state",
+  "permissions",
+  "context-remaining",
+  "five-hour-limit",
+  "weekly-limit",
+  "task-progress",
+]
+
 # Beads global defaults; project config overrides ordinary settings.
 # Overlays own these decisions in their init template and can supply arbitrary native config keys.
 [data.beads.global.config]
@@ -85,7 +99,7 @@ installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"githu
 installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"github_releases"{{ end }}
 
 [data.local.bin.chafa]
-installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else if and (eq .chezmoi.os "linux") (or (eq .chezmoi.arch "amd64") (eq .chezmoi.arch "arm")) }}"direct_release"{{ else }}"none"{{ end }}
+installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"none"{{ end }}
 
 # Linux only — no macOS release
 [data.local.bin.opencode]
@@ -167,6 +181,9 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"dotfiles.script"{{ else }}
 installation_method = "homebrew"
 
 [data.packages.strace]
+installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
+
+[data.packages.chafa]
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 
 [data.packages.bubblewrap]
