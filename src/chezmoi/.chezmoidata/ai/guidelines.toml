@@ -6,12 +6,13 @@
 content = """
 ## Writing style
 - Only speak to me in ASD-STE100 Simplified Technical English.
-- Sentence case: headings, commits, PR titles, UI labels — always.
-- Prose and documentation: one sentence per line.
+- Use sentence case in all authored files, including documentation and agent notes, and in headings, commits, PR titles, and UI labels.
+- Prose, documentation, and agent notes: one sentence per line; PR bodies use paragraphs with one space between sentences.
 - Codify tools, commands, and syntax with target output markup.
 - Source links (docs, code, issues) in PR descriptions, Slack drafts, and research summaries.
-- Voice for drafted messages: lowercase body (capitalize proper nouns only), no filler adjectives, front-load the action, fact-driven.
-- Example — instead of "We introduced a shared config to ensure consistency across tools" → "creates `guidelines.toml` as single source for all tools, one-line changes propagate everywhere"."""
+- Slack, email, and Jira message bodies: lowercase except proper nouns; PR bodies use sentence case.
+- Front-load the action, use facts, and omit filler adjectives.
+- Example — instead of "We introduced a shared config to ensure consistency across tools" → "Creates `guidelines.toml` as single source for all tools, one-line changes propagate everywhere"."""
 
 [[ai.guidelines.sections]]
 content = """
