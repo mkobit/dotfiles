@@ -634,7 +634,9 @@ def _initialize_wrapper_source(tmp_path: Path, *, with_skills: bool = True):
         manifest = wrappers / host / f".{host}-plugin/plugin.json.tmpl"
         manifest.parent.mkdir(parents=True)
         manifest.write_text(
-            '{{ includeTemplate "ai/authored-plugin-manifest" (dict "root" . "name" "domain-brain") }}\n',
+            '{{ includeTemplate "ai/authored-plugin-manifest" '
+            f'(dict "root" . "name" "domain-brain" "host" "{host}") '
+            "}}\n",
             encoding="utf-8",
         )
         support = wrappers / host / ".support.json.tmpl"
@@ -651,7 +653,13 @@ def _initialize_wrapper_source(tmp_path: Path, *, with_skills: bool = True):
 
 
 def _write_wrapper_config(
-    config, *, hosts=("claude", "codex", "cursor"), label="first", environment="enabled", with_skills=True
+    config,
+    *,
+    hosts=("claude", "codex", "cursor"),
+    label="first",
+    environment="enabled",
+    with_skills=True,
+    skill_state="present",
 ):
     lines = [
         "[data.fixture]",
@@ -669,7 +677,7 @@ def _write_wrapper_config(
             [
                 'source_dir = "src/overlay-plugins/domain-brain"',
                 "[data.ai.plugin_bridge.capabilities.domain-brain.skills]",
-                'records = "present"',
+                f"records = {json.dumps(skill_state)}",
             ]
         )
     config.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -705,6 +713,33 @@ def test_canonical_wrappers_render_complete_literal_packages(tmp_path, with_skil
         assert (root / "dot_literal.tmpl").read_text() == "literal\n"
         assert not (root / "README.md").exists()
         assert (root / "skills/records/SKILL.md").exists() is with_skills
+
+
+@pytest.mark.parametrize("selected_host,next_host", [("claude", "codex"), ("codex", "cursor"), ("cursor", "claude")])
+def test_canonical_wrapper_skill_paths_follow_each_host_selection(tmp_path, selected_host, next_host):
+    """A manifest must not refer to skills that its host does not receive or no longer owns."""
+    source, destination, config, _ = _initialize_wrapper_source(tmp_path)
+    legacy_manifest = source / "legacy-plugin.json.tmpl"
+    legacy_manifest.write_text(
+        '{{ includeTemplate "ai/authored-plugin-manifest" (dict "root" . "name" "domain-brain") }}\n',
+        encoding="utf-8",
+    )
+    for state in (selected_host, next_host, "absent"):
+        _write_wrapper_config(config, skill_state=state)
+        result = _apply(source, destination, config)
+        assert result.returncode == 0, result.stderr
+        for host, root in zip(("claude", "codex", "cursor", "cursor"), _wrapper_roots(destination), strict=True):
+            manifest = json.loads((root / f".{host}-plugin/plugin.json").read_text())
+            selected = host == state
+            assert ("skills" in manifest) is selected
+            assert (root / "skills").exists() is selected
+            if selected:
+                assert manifest["skills"] == "./skills"
+                assert (root / "skills/records/SKILL.md").is_file()
+        legacy = json.loads((destination / "legacy-plugin.json").read_text())
+        assert ("skills" in legacy) is (state != "absent")
+        if state != "absent":
+            assert legacy["skills"] == "./skills"
 
 
 def test_canonical_wrapper_versions_follow_rendered_data_modes_and_manifest_sources(tmp_path):

@@ -3,7 +3,9 @@
 {{- if not $plugin -}}{{- fail (printf "missing authored plugin declaration: %s" .name) -}}{{- end -}}
 {{- $version := printf "1.0.0+%s" (trunc 12 (sha256sum (toJson $plugin.inputs))) -}}
 {{- $manifest := dict "name" .name "version" $version "description" $plugin.inputs.definition.description -}}
-{{- range $skills := $plugin.hosts -}}
-{{-   if $skills -}}{{- $_ := set $manifest "skills" "./skills" -}}{{- end -}}
+{{- /* For compatibility, callers without a host get the skills path if any host has skills. */ -}}
+{{- $host := dig "host" "" . -}}
+{{- range $hostName, $skills := $plugin.hosts -}}
+{{-   if and $skills (or (not $host) (eq $host $hostName)) -}}{{- $_ := set $manifest "skills" "./skills" -}}{{- end -}}
 {{- end -}}
 {{- $manifest | toPrettyJson -}}
