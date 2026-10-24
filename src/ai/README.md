@@ -2,13 +2,22 @@
 
 ## Architecture overview
 
-manages all skill and plugin assets through Chezmoi under `.chezmoiroot`.
-deploys portable skills to `.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills/`.
-deploys host views to `claude/`, `codex/`, and `cursor/` subdirectories under `.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/`.
-runs post-apply bridge script `run_after_agent-plugin-bridge.sh.tmpl` calling `src/python/skill_filter/skill_filter/plugin_bridge.py` to register marketplaces and plugins in Claude Code and OpenAI Codex.
-Antigravity consumes direct flat skills under `~/.gemini/antigravity-cli/skills/` and discovers plugin bundles via declarative `~/.gemini/config/plugins.json` pointing to `.local/share/agent-plugins/marketplace/plugins`.
-Antigravity skill deployment and configuration are gated on `local.bin.agy.installation_method != 'none'`, allowing work overlays to omit Antigravity entirely.
-OpenCode V1 receives local package paths in `~/.config/opencode/opencode.json` only when its existing tool gate and the plugin package gate are enabled.
+Chezmoi builds and registers skill and plugin packages from canonical sources.
+The four stages below describe responsibilities; rendering and host filtering can run within the same external.
+
+| Stage | Input and result | Source |
+|---|---|---|
+| Source and data | Authored files, pinned archives, and catalog selections combine with init data; effective data changes rendered content. | [Skills](skills/), [catalog](../chezmoi/.chezmoidata/ai/), [init template](../chezmoi/.chezmoi.toml.tmpl) |
+| Generated packages | Packages contain copied plain files, rendered authored `.tmpl` files, and versions based on content and selections. | [File entries](../chezmoi/.chezmoitemplates/ai/authored-file-entry), [package inputs](../chezmoi/.chezmoitemplates/ai/authored-plugins) |
+| Host transformation and bundling | Externals select files, convert upstream agents, and build portable and host package views. | [Skill externals](../chezmoi/.chezmoiexternals/ai-skills.toml.tmpl), [agent externals](../chezmoi/.chezmoiexternals/ai-agents.toml.tmpl), [filter](../python/skill_filter/skill_filter/main.py), [wrappers](../chezmoi/.chezmoiexternals/ai-authored-wrappers.toml.tmpl) |
+| Registration and uninstall | The post-apply bridge registers Claude Code and Codex packages and removes stale registrations that it owns. | [Hook](../chezmoi/.chezmoiscripts/run_after_agent-plugin-bridge.sh.tmpl), [bridge](../python/skill_filter/skill_filter/plugin_bridge.py) |
+
+Authored skills and wrappers share the chezmoi Go template engine and effective data; there is no separate renderer or framework.
+Output paths below are relative to `chezmoi.destDir`.
+Portable skills use `.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills/`; host views use sibling `claude/`, `codex/`, and `cursor/` directories.
+Cursor also receives local packages under `.cursor/plugins/local/`.
+Antigravity reads flat skills from `.gemini/antigravity-cli/skills/` and package paths from `.gemini/config/plugins.json`; both require `local.bin.agy.installation_method != "none"`.
+OpenCode V1 receives local package paths in `.config/opencode/opencode.json` when both its tool gate and the package gate are enabled.
 
 ## Workflows for AI agents
 
@@ -115,6 +124,8 @@ host and environment gates prevent inactive wrapper templates from rendering.
 versions include rendered support files, executable modes, source-relative paths, and selection data.
 the native `.<host>-plugin/plugin.json` manifest uses its raw source hash as a version input to prevent recursive version calculation.
 the manifest itself still renders before delivery.
+Pass `host` to the [manifest helper](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest) so packages with no skills for that host omit `./skills`.
+If you omit `host`, the helper retains legacy behavior and includes `./skills` when any host has selected skills.
 cleanup records exact wrapper target paths and removes only previously recorded files, preserving unknown siblings.
 capabilities without `wrapper_source_dir` retain their existing native package files.
 
