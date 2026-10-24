@@ -1,0 +1,5 @@
+{{- /* Give each authored file the effective parent data and stable file paths. target is already the rendered skill-relative path. */ -}}
+{{- $context := deepCopy .root -}}
+{{- $_ := set $context.chezmoi "sourceFile" .path -}}
+{{- $_ := set $context.chezmoi "targetFile" .target -}}
+{{- toJson $context -}}

@@ -37,7 +37,12 @@ def test_manifest_version_uses_assembled_authored_plugin_snapshot(tmp_path):
 
     templates = source / ".chezmoitemplates/ai"
     templates.mkdir(parents=True)
-    for template_name in ("authored-plugins", "authored-plugin-manifest"):
+    for template_name in (
+        "authored-plugins",
+        "authored-plugin-manifest",
+        "authored-file-digest",
+        "authored-render-context",
+    ):
         shutil.copy2(AUTHORED_TEMPLATE_ROOT / template_name, templates / template_name)
 
     wrapper = source / "dot_local/share/plugin.json.tmpl"

@@ -1,0 +1,10 @@
+{{- $config := dict -}}
+{{- range $name, $definition := dig "plugin_bridge" "capabilities" (dict) (dig "ai" (dict) .) -}}
+{{-   if dig "wrapper_source_dir" "" $definition -}}
+{{-     $inventory := includeTemplate "ai/authored-wrapper-files" (dict "root" $ "name" $name "definition" $definition) | fromJson -}}
+{{-     range $target, $file := $inventory.targets -}}
+{{-       $_ := set $config $target (includeTemplate "ai/authored-file-entry" (dict "root" $ "path" $file.path "target" $file.target) | fromJson) -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- if $config -}}{{- toToml $config -}}{{- end -}}

@@ -1,0 +1,7 @@
+{{- /* Hash the rendered template bytes, or read plain files with a binary-safe hash tool. */ -}}
+{{- if hasSuffix ".tmpl" .path -}}
+{{-   $context := includeTemplate "ai/authored-render-context" . | fromJson -}}
+{{-   includeTemplate .path $context | sha256sum -}}
+{{- else -}}
+{{-   output "shasum" "-a" "256" .path | trim | splitList " " | first -}}
+{{- end -}}

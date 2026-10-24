@@ -34,7 +34,13 @@ def _write_fixture_source(source: Path, repo_root: Path, config: Path, environme
     data_file.parent.mkdir(parents=True)
     shutil.copy2(PLUGIN_BRIDGE_DATA, data_file)
 
-    for relative_path in (*MARKETPLACE_TEMPLATES, BRIDGE_TEMPLATE):
+    for relative_path in (
+        *MARKETPLACE_TEMPLATES,
+        BRIDGE_TEMPLATE,
+        Path(".chezmoitemplates/ai/authored-render-context"),
+        Path(".chezmoitemplates/ai/authored-file-entry"),
+        Path(".chezmoitemplates/ai/authored-file-digest"),
+    ):
         target_file = source / relative_path
         target_file.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(SOURCE_ROOT / relative_path, target_file)

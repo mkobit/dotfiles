@@ -1,11 +1,14 @@
 {{- /* Normalize independently authored plugin declarations once for all consumers. */ -}}
 {{- $plugins := dict -}}
 {{- $supportedHosts := list "claude" "codex" "cursor" -}}
+{{- $environment := dig "plugin_bridge" "environment" "default" .ai -}}
 {{- range $name, $definition := dig "plugin_bridge" "capabilities" (dict) .ai -}}
-{{-   if hasKey $definition "source_dir" -}}
+{{-   if or (hasKey $definition "source_dir") (hasKey $definition "wrapper_source_dir") -}}
+{{-     $environments := dig "environments" nil $definition -}}
+{{-     $enabled := or (eq $environments nil) (has $environment $environments) -}}
 {{-     if not (regexMatch "^[a-z0-9][a-z0-9-]*$" $name) -}}{{- fail (printf "invalid authored plugin name %q" $name) -}}{{- end -}}
-{{-     $sourceDir := $definition.source_dir -}}
-{{-     if not (and (kindIs "string" $sourceDir) (regexMatch "^src/overlay-plugins/[a-z0-9][a-z0-9-]*$" $sourceDir)) -}}
+{{-     $sourceDir := dig "source_dir" "" $definition -}}
+{{-     if and $sourceDir (not (and (kindIs "string" $sourceDir) (regexMatch "^src/overlay-plugins/[a-z0-9][a-z0-9-]*$" $sourceDir))) -}}
 {{-       fail (printf "ai.plugin_bridge.capabilities.%s.source_dir must be a directory under src/overlay-plugins" $name) -}}
 {{-     end -}}
 {{-     $assembledRoot := joinPath $.chezmoi.sourceDir ".." -}}
@@ -21,8 +24,10 @@
 {{-     end -}}
 {{-     $skillsPath := trimPrefix "src/" $skillsSourceDir -}}
 {{-     $skillRoot := joinPath $assembledRoot $skillsPath -}}
+{{-     if $sourceDir -}}
 {{-     range $directory := list (joinPath $assembledRoot "overlay-plugins") $root $skillRoot -}}
 {{-       if not (and (lstat $directory) (eq (lstat $directory).type "dir")) -}}{{- fail (printf "authored plugin source_dir must contain real directories: %s" $directory) -}}{{- end -}}
+{{-     end -}}
 {{-     end -}}
 {{-     $hosts := dig "hosts" $supportedHosts $definition -}}
 {{-     if not (and (kindIs "slice" $hosts) $hosts) -}}{{- fail (printf "authored plugin %s hosts must be a non-empty list" $name) -}}{{- end -}}
@@ -30,18 +35,38 @@
 {{-     $skills := dig "skills" (dict) $definition -}}
 {{-     if not (kindIs "map" $skills) -}}{{- fail (printf "authored plugin %s skills must be a table" $name) -}}{{- end -}}
 {{-     $sourceFiles := dict -}}
+{{-     if $sourceDir -}}
 {{-     range $path := glob (joinPath $root "**/*") | sortAlpha -}}
 {{-       $type := (lstat $path).type -}}
 {{-       if eq $type "file" -}}
-{{-         $_ := set $sourceFiles (trimPrefix (printf "%s/" $root) $path) (output "shasum" "-a" "256" $path | trim | splitList " " | first) -}}
+{{-         if and (not (hasPrefix (printf "%s/" $skillRoot) $path)) (not (and (dig "wrapper_source_dir" "" $definition) (hasPrefix (printf "%s/" (joinPath $assembledRoot (trimPrefix "src/" $definition.wrapper_source_dir))) $path))) -}}
+{{-           $digest := output "shasum" "-a" "256" $path | trim | splitList " " | first -}}
+{{-           $executable := or (ne (mod (div (lstat $path).perm 64) 2) 0) (ne (mod (div (lstat $path).perm 8) 2) 0) (ne (mod (lstat $path).perm 2) 0) -}}
+{{-           $_ := set $sourceFiles (trimPrefix (printf "%s/" $root) $path) (dict "sha256" $digest "executable" $executable) -}}
+{{-         end -}}
 {{-       else if ne $type "dir" -}}{{- fail (printf "authored plugin %s contains unsupported source entry: %s" $name $path) -}}{{- end -}}
 {{-     end -}}
+{{-     end -}}
 {{-     $files := dict -}}
+{{-     if $sourceDir -}}
 {{-     range $path := glob (joinPath $skillRoot "**/*") | sortAlpha -}}
 {{-       $type := (lstat $path).type -}}
 {{-       if eq $type "file" -}}
-{{-         $_ := set $files (printf "skills/%s" (trimPrefix (printf "%s/" $skillRoot) $path)) (output "shasum" "-a" "256" $path | trim | splitList " " | first) -}}
+{{-         $relative := trimPrefix (printf "%s/" $skillRoot) $path | trimSuffix ".tmpl" -}}
+{{-         $key := printf "skills/%s" $relative -}}
+{{-         if hasKey $files $key -}}{{- fail (printf "authored skill filename collision: %s" $relative) -}}{{- end -}}
+{{-         $target := splitList "/" $relative | rest | join "/" -}}
+{{-         $state := dig (splitList "/" $relative | first) "absent" $skills -}}
+{{-         $digest := "" -}}
+{{-         if and $enabled (or (eq $state "present") (has $state $hosts)) -}}
+{{-           $digest = includeTemplate "ai/authored-file-digest" (dict "root" $ "path" $path "target" $target) -}}
+{{-         else -}}
+{{-           $digest = output "shasum" "-a" "256" $path | trim | splitList " " | first -}}
+{{-         end -}}
+{{-         $executable := or (ne (mod (div (lstat $path).perm 64) 2) 0) (ne (mod (div (lstat $path).perm 8) 2) 0) (ne (mod (lstat $path).perm 2) 0) -}}
+{{-         $_ := set $files $key (dict "sha256" $digest "executable" $executable) -}}
 {{-       else if ne $type "dir" -}}{{- fail (printf "authored plugin %s contains unsupported skill source entry: %s" $name $path) -}}{{- end -}}
+{{-     end -}}
 {{-     end -}}
 {{-     $byHost := dict "portable" (dict) -}}
 {{-     range $host := $hosts -}}{{- $_ := set $byHost $host (dict) -}}{{- end -}}
@@ -60,7 +85,12 @@
 {{-         if eq $state "present" -}}{{- $_ := set (index $byHost "portable") $skill $skillFiles -}}{{- end -}}
 {{-       end -}}
 {{-     end -}}
-{{-     $_ := set $plugins $name (dict "source_dir" $sourceDir "skills_source_dir" $skillsSourceDir "hosts" $byHost "inputs" (dict "definition" $definition "source_files" $sourceFiles "skill_files" $files)) -}}
+{{-     $wrapperFiles := dict -}}
+{{-     if dig "wrapper_source_dir" "" $definition -}}
+{{-       $inventory := includeTemplate "ai/authored-wrapper-files" (dict "root" $ "name" $name "definition" $definition) | fromJson -}}
+{{-       $wrapperFiles = $inventory.inputs -}}
+{{-     end -}}
+{{-     $_ := set $plugins $name (dict "source_dir" $sourceDir "skills_source_dir" $skillsSourceDir "hosts" $byHost "inputs" (dict "definition" $definition "source_files" $sourceFiles "skill_files" $files "wrapper_files" $wrapperFiles)) -}}
 {{-   end -}}
 {{- end -}}
 {{- toJson $plugins -}}
