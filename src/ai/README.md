@@ -23,7 +23,7 @@ source files that map to the same output path cause apply to fail.
 
 the [file entry template](../chezmoi/.chezmoitemplates/ai/authored-file-entry) renders templates with the effective merged data from `.chezmoidata/` and `[data.*]` configuration.
 configuration values take precedence over catalog defaults at the same key path.
-the [render context](../chezmoi/.chezmoitemplates/ai/authored-render-context) sets `chezmoi.sourceFile` to the canonical source path and `chezmoi.targetFile` to the rendered skill-relative name.
+the [render context](../chezmoi/.chezmoitemplates/ai/authored-render-context) sets `chezmoi.sourceFile` to the canonical source path and `chezmoi.targetFile` to the rendered skill-relative or wrapper package-relative name.
 use `chezmoi.destDir` for destination paths and `dig` with safe defaults for optional data.
 use deterministic data; clocks, random values, and live lookups can change package versions on each apply.
 the [base version template](../chezmoi/.chezmoitemplates/ai/authored-base-version) and [capability manifest](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest) calculate versions from rendered content, plain file hashes, executable modes, and selection data.
@@ -79,24 +79,44 @@ set explicit `url` on a source table under `[ai.skills.external.<source>]` for o
 url_format = "https://ghe.internal/api/v3/repos/{repo}/tarball/{ref}"
 ```
 
-### Overlay-authored skills
+### Authored plugin packages
 
-set `ai.skills.overlay_authored_source` in overlay configuration to point to a local directory of skills.
-declare skill names under `[ai.skills.authored]` in the overlay catalog with state `"present"` or a specific host name.
-skills present in the overlay source directory take precedence over base authored skills with identical names.
-
-### Dividing into plugins or capabilities
-
-declare capability bundles under `[ai.plugin_bridge.capabilities.<name>]` in `src/chezmoi/.chezmoidata/ai/plugin-bridge.toml`.
-set `marketplace = "dotfiles"` and specify target host list under `hosts`.
+declare each package under `[ai.plugin_bridge.capabilities.<name>]` in the capability catalog.
+set `source_dir` to its source directory under `src/overlay-plugins/`.
+skills use `<source_dir>/skills/` unless `skills_source_dir` names a separate skill root.
+set `wrapper_source_dir` to the canonical host package files and declare the supported `hosts`.
+these paths start with `src/` and refer to the assembled tree.
+select skills under the capability's `skills` table with `"present"`, `"absent"`, or a declared host name.
 
 ```toml
-[ai.plugin_bridge.capabilities.mkobit-dotfiles]
-description = "Base dotfiles capability bundle."
-acquisition_destination = true
+[ai.plugin_bridge.capabilities.example]
+description = "Example capability bundle."
+source_dir = "src/overlay-plugins/example"
+skills_source_dir = "src/overlay-skills"
+wrapper_source_dir = "src/overlay-plugins/example/wrappers"
 marketplace = "dotfiles"
 hosts = ["claude", "codex", "cursor"]
+
+[ai.plugin_bridge.capabilities.example.skills]
+example = "present"
 ```
+
+put host files below `wrappers/claude/`, `wrappers/codex/`, and `wrappers/cursor/` for each declared host.
+use literal target names, such as `claude/.claude-plugin/plugin.json.tmpl` and `codex/.codex-plugin/plugin.json.tmpl`.
+only the final `.tmpl` suffix has special meaning; names such as `dot_claude-plugin` stay literal.
+the [wrapper external](../chezmoi/.chezmoiexternals/ai-authored-wrappers.toml.tmpl) copies plain files, renders templates, and preserves executable modes through the existing [file entry template](../chezmoi/.chezmoitemplates/ai/authored-file-entry).
+it uses the same chezmoi Go template engine and effective data as authored skills.
+it places wrappers beside selected skills at `.local/share/agent-plugins/marketplace/plugins/<name>/<host>/` and copies Cursor packages to `.cursor/plugins/local/<name>/`.
+source-only files such as `AGENTS.md` and `README.md` at `source_dir` stay out of the package.
+only selected skill files and declared wrapper files enter these outputs.
+
+the [wrapper inventory](../chezmoi/.chezmoitemplates/ai/authored-wrapper-files) rejects path escapes, symlinked sources, duplicate target paths, and wrappers that overlap `skills/`.
+host and environment gates prevent inactive wrapper templates from rendering.
+versions include rendered support files, executable modes, source-relative paths, and selection data.
+the native `.<host>-plugin/plugin.json` manifest uses its raw source hash as a version input to prevent recursive version calculation.
+the manifest itself still renders before delivery.
+cleanup records exact wrapper target paths and removes only previously recorded files, preserving unknown siblings.
+capabilities without `wrapper_source_dir` retain their existing native package files.
 
 ### Deselecting or removing skills
 
@@ -152,11 +172,16 @@ apply skill and plugin updates:
 chezmoi apply
 ```
 
-run test suite and linters:
+validate an overlay with its real assembly and `chezmoi init` in a temporary destination, with separate config, cache, and state paths.
+then run a scoped `chezmoi apply` that excludes installation and native registration scripts.
+inspect manifest resource paths and complete Cursor local copies in the output.
+an offline check that excludes remote externals verifies authored packages only; it does not verify remote acquisition or remote installation.
+
+run the focused package tests and linters:
 
 ```sh
 uv run ruff check
 uv run ruff format --check
 uv run ty check
-uv run pytest tests/integration/test_ai_skills.py tests/integration/test_ai_environment_fixtures.py tests/integration/test_opencode_plugins.py
+uv run pytest -p no:cacheprovider -m 'not integration' tests/integration/test_ai_skills.py tests/integration/test_ai_authored_capabilities.py tests/integration/test_ai_plugin_manifest_lifecycle.py tests/integration/test_ai_environment_fixtures.py tests/integration/test_overlay_authored_manifest_snapshot.py tests/integration/test_sbx_plugin_approval.py src/python/skill_filter/tests/
 ```
