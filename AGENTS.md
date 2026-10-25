@@ -7,6 +7,9 @@ Prioritize consistency with this repo's existing patterns, naming, and config st
 
 This repository uses git worktrees — you may be in a worktree on a feature branch, not the main checkout.
 Run `git status` and `git worktree list` before making changes to confirm which one.
+Make repository changes on a feature branch and submit a PR.
+Do not commit or push changes directly to `main`.
+Merge only after required checks pass.
 
 ## Repository structure
 
@@ -55,6 +58,9 @@ This repo's `.claude/settings.json` denies `Edit(...)` on known deployed paths f
 - Agents catalog: `src/chezmoi/.chezmoidata/ai/agents.toml` (pinned upstream selections; no authored agent sources exist yet).
 
 After editing source, preview with `chezmoi diff`, then sync with `chezmoi apply` (optionally scoped to a target path, e.g. `chezmoi apply ~/.claude/CLAUDE.md`).
+Plain `chezmoi apply` must be idempotent and work in both TTY and non-TTY sessions.
+Fix normal apply failures through a PR instead of requiring custom command sequences.
+Report skipped work and unmet prerequisites clearly.
 
 ## Managed environment constraints
 
