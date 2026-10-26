@@ -29,7 +29,7 @@ env:
   APT_CACHE_DIR: /tmp/.apt-cache
   CHEZMOI_CONFIG: /tmp/.chezmoi-config.toml
   CHEZMOI_DEST: /tmp/chezmoi-test
-  CHEZMOI_VERSION: v2.73.2
+  CHEZMOI_VERSION: v2.73.3
 
 defaults:
   run:

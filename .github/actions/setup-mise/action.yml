@@ -16,6 +16,6 @@ runs:
         with open(os.environ["GITHUB_OUTPUT"], "a") as output:
             print(f"version={version.removeprefix('v')}", file=output)
         PY
-    - uses: jdx/mise-action@7a4e45a543138629540c9a1616d08632b893e492
+    - uses: jdx/mise-action@82a612c5ab8bcda7cc5db6b7e81a8e7584c3dc6e
       with:
         version: ${{ steps.mise-version.outputs.version }}
