@@ -46,7 +46,7 @@ def _argument_problems(template_name, target, args):
         yield f"{where} is missing -S; see src/python/skill_filter/README.md"
 
 
-def _problems(template_name, target, command):
+def _problems(template_name, target, command, chezmoi_executable):
     """Yield a description for each way this filter.command is unsafe."""
     where = f"{template_name}: external {target!r} filter.command = {command!r}"
 
@@ -66,6 +66,9 @@ def _problems(template_name, target, command):
         yield f"{where} is not executable"
         return
 
+    if command == chezmoi_executable:
+        return
+
     version = _interpreter_version(command)
     if version is None:
         yield f"{where} did not report a version"
@@ -80,6 +83,10 @@ def test_external_filter_commands_are_pinned_real_interpreters(chezmoi_source_ro
     """Every rendered external's filter.command must be an absolute, non-shim, supported interpreter."""
     templates = sorted((chezmoi_source_root / ".chezmoiexternals").glob("*.tmpl"))
     assert templates, f"no external templates found under {chezmoi_source_root / '.chezmoiexternals'}"
+
+    executable = host.run(chezmoi_command("execute-template", "{{ .chezmoi.executable }}"))
+    assert executable.rc == 0, f"failed to resolve chezmoi executable:\n{executable.stderr}"
+    chezmoi_executable = executable.stdout.strip()
 
     problems = []
     filters_checked = 0
@@ -98,8 +105,9 @@ def test_external_filter_commands_are_pinned_real_interpreters(chezmoi_source_ro
             if command is None:
                 continue
             filters_checked += 1
-            problems.extend(_problems(template.name, target, command))
-            problems.extend(_argument_problems(template.name, target, filter_spec.get("args", [])))
+            problems.extend(_problems(template.name, target, command, chezmoi_executable))
+            if command != chezmoi_executable:
+                problems.extend(_argument_problems(template.name, target, filter_spec.get("args", [])))
 
     assert filters_checked, "no externals declared a filter.command; this guard would silently pass"
     assert not problems, "unsafe external filter interpreters:\n" + "\n".join(problems)
