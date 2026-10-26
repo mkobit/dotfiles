@@ -4,13 +4,8 @@
 {{-     fail (printf "invalid authored skill name %q: use only letters, digits, dot, underscore, and hyphen" $skillName) -}}
 {{-   end -}}
 {{- end -}}
-{{- $inputs := dict "skills" .ai.skills -}}
+{{- $inputs := dict "skills" .ai.skills "version" (includeTemplate "ai/authored-base-version" .) -}}
 {{- $root := joinPath .chezmoi.sourceDir ".." "ai/skills" -}}
-{{- range $path := glob (joinPath $root "**/*") | sortAlpha -}}
-{{-   if eq (lstat $path).type "file" -}}
-{{-     $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
-{{-   end -}}
-{{- end -}}
 {{- $bundle := ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles" -}}
 {{- $tools := dict "claude" (printf "%s/claude/skills" $bundle) "codex" (printf "%s/codex/skills" $bundle) "cursor" (printf "%s/cursor/skills" $bundle) -}}
 {{- $cursorLocal := ".cursor/plugins/local/mkobit-dotfiles/skills" -}}
@@ -175,6 +170,6 @@ PY
 {{-     $_ := set $selectedRoots $antigravity true -}}
 {{-   end -}}
 {{-   range $skillsDir := (list $portable (index $tools "claude") (index $tools "codex") (index $tools "cursor") $cursorLocal $antigravity) }}
-clean_skill {{ joinPath $.chezmoi.destDir $skillsDir $skillName | shellQuote }}{{ if index $selectedRoots $skillsDir }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | shellQuote }}{{ end }}{{ end }}{{ end }}
+clean_skill {{ joinPath $.chezmoi.destDir $skillsDir $skillName | shellQuote }}{{ if index $selectedRoots $skillsDir }}{{ range $path := glob (joinPath $skillDir "**/*") | sortAlpha }}{{ if eq (lstat $path).type "file" }} {{ trimPrefix (printf "%s/" $skillDir) $path | trimSuffix ".tmpl" | shellQuote }}{{ end }}{{ end }}{{ end }}
 {{-   end }}
 {{- end }}

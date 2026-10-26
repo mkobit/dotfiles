@@ -11,6 +11,11 @@
 {{- $inputs := dict "capabilities" $capabilities -}}
 {{- $desired := list -}}
 {{- range $capabilityName, $capability := $capabilities -}}
+{{-   if dig "wrapper_source_dir" "" $capability -}}
+{{-     $inventory := includeTemplate "ai/authored-wrapper-files" (dict "root" $ "name" $capabilityName "definition" $capability) | fromJson -}}
+{{-     $_ := set $inputs (printf "%s/wrappers" $capabilityName) $inventory.inputs -}}
+{{-     range $target := keys $inventory.targets -}}{{- $desired = append $desired $target -}}{{- end -}}
+{{-   end -}}
 {{-   $sourceDir := dig "source_dir" "" $capability -}}
 {{-   $skills := dig "skills" (dict) $capability -}}
 {{-   $environments := dig "environments" nil $capability -}}
@@ -54,13 +59,15 @@
 {{-       end -}}
 {{-       if ne $state "absent" -}}
 {{-         $skillDir := joinPath $skillRoot $skillName -}}
-{{-         if not (stat (joinPath $skillDir "SKILL.md")) -}}
+{{-         if not (or (stat (joinPath $skillDir "SKILL.md")) (stat (joinPath $skillDir "SKILL.md.tmpl"))) -}}
 {{-           fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s: missing SKILL.md" $capabilityName $skillName) -}}
 {{-         end -}}
 {{-         range $path := glob (joinPath $skillDir "**/*") -}}
 {{-           if eq (lstat $path).type "file" -}}
-{{-             $_ := set $inputs $path (output "shasum" "-a" "256" $path | trim) -}}
-{{-             $rel := trimPrefix (printf "%s/" $skillDir) $path -}}
+{{-             $rel := trimPrefix (printf "%s/" $skillDir) $path | trimSuffix ".tmpl" -}}
+{{-             $digest := includeTemplate "ai/authored-file-digest" (dict "root" $ "path" $path "target" $rel) -}}
+{{-             $executable := or (ne (mod (div (lstat $path).perm 64) 2) 0) (ne (mod (div (lstat $path).perm 8) 2) 0) (ne (mod (lstat $path).perm 2) 0) -}}
+{{-             $_ := set $inputs (printf "%s/%s/%s" $capabilityName $skillName $rel) (dict "sha256" $digest "executable" $executable) -}}
 {{-             range $hostName, $hostRootFormat := $hostRoots -}}
 {{-               if and (has $hostName $declaredHosts) (or (eq $state "present") (eq $state $hostName)) -}}
 {{-                 $desired = append $desired (joinPath (printf $hostRootFormat $capabilityName) $skillName $rel) -}}
@@ -140,16 +147,9 @@ class CleanupError(Exception):
 
 PACKAGE_PATH = re.compile(
     r"^\.local/share/agent-plugins/marketplace/plugins/[a-z0-9]+(?:-[a-z0-9]+)*/"
-    r"(?:claude/skills/[a-z0-9]+(?:-[a-z0-9]+)*/.+|"
-    r"codex/skills/[a-z0-9]+(?:-[a-z0-9]+)*/.+|"
-    r"cursor/skills/[a-z0-9]+(?:-[a-z0-9]+)*/.+|"
-    r"claude/\.claude-plugin/plugin\.json|codex/\.codex-plugin/plugin\.json|"
-    r"cursor/\.cursor-plugin/plugin\.json)$"
+    r"(?:claude|codex|cursor)/.+$"
 )
-CURSOR_LOCAL_PATH = re.compile(
-    r"^\.cursor/plugins/local/[a-z0-9]+(?:-[a-z0-9]+)*/"
-    r"(?:skills/[a-z0-9]+(?:-[a-z0-9]+)*/.+|\.cursor-plugin/plugin\.json)$"
-)
+CURSOR_LOCAL_PATH = re.compile(r"^\.cursor/plugins/local/[a-z0-9]+(?:-[a-z0-9]+)*/.+$")
 
 
 def fail(message):
@@ -160,7 +160,7 @@ def checked_relative(value):
     if not isinstance(value, str):
         fail("state contains a non-string path")
     path = PurePosixPath(value)
-    if path.is_absolute() or not path.parts or any(part in ("", ".", "..") for part in path.parts):
+    if path.is_absolute() or not path.parts or any(part in ("", ".", "..") for part in value.split("/")):
         fail("state contains an unsafe path: {!r}".format(value))
     if not (PACKAGE_PATH.fullmatch(value) or CURSOR_LOCAL_PATH.fullmatch(value)):
         fail("state contains a path outside capability-owned roots: {!r}".format(value))
@@ -182,12 +182,8 @@ def reject_symlink_components(destination, relative):
 def package_root(relative):
     parts = relative.parts
     if parts[0] == ".cursor":
-        if ".cursor-plugin" in parts:
-            return Path(*parts[:4])
-        return Path(*parts[:6])
-    if "skills" not in parts:
-        return Path(*parts[:7])
-    return Path(*parts[:9])
+        return Path(*parts[:4])
+    return Path(*parts[:7])
 
 
 def remove_owned_file(destination, relative):

@@ -41,6 +41,10 @@ def _render(path: Path, state: str, source: Path = ROOT) -> dict:
 def test_skill_changes_plugin_version(host: str, tmp_path: Path) -> None:
     source = tmp_path / "source"
     shutil.copytree(ROOT / "src/chezmoi/.chezmoidata", source / "src/chezmoi/.chezmoidata")
+    for name in ("authored-render-context", "authored-file-digest", "authored-base-version"):
+        target = source / "src/chezmoi/.chezmoitemplates/ai" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(ROOT / "src/chezmoi/.chezmoitemplates/ai" / name, target)
     (source / ".chezmoiroot").write_text("src/chezmoi\n")
     manifest = MANIFESTS[host]
     target = source / manifest

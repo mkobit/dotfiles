@@ -1,0 +1,55 @@
+{{- /* Inventory canonical host files once for delivery, versions, and exact cleanup. */ -}}
+{{- $files := dict -}}
+{{- $targets := dict -}}
+{{- $definition := .definition -}}
+{{- $sourceDir := dig "wrapper_source_dir" "" $definition -}}
+{{- $bridge := dig "plugin_bridge" (dict) (dig "ai" (dict) .root) -}}
+{{- $environments := dig "environments" nil $definition -}}
+{{- $enabled := or (eq $environments nil) (has (dig "environment" "default" $bridge) $environments) -}}
+{{- if and $sourceDir $enabled -}}
+{{-   if not (regexMatch "^[a-z0-9]+(-[a-z0-9]+)*$" .name) -}}{{- fail "invalid authored wrapper capability name" -}}{{- end -}}
+{{-   if not (and (kindIs "string" $sourceDir) (regexMatch "^src/[a-z0-9]+(-[a-z0-9]+)*(/[a-z0-9]+(-[a-z0-9]+)*)*$" $sourceDir)) -}}
+{{-     fail (printf "authored wrapper %s has invalid wrapper_source_dir" .name) -}}
+{{-   end -}}
+{{-   $hosts := dig "hosts" (list) $definition -}}
+{{-   if not (and (kindIs "slice" $hosts) $hosts) -}}{{- fail "authored wrapper must declare at least one host" -}}{{- end -}}
+{{-   $wrapperRoot := joinPath .root.chezmoi.sourceDir ".." -}}
+{{-   range $component := splitList "/" (trimPrefix "src/" $sourceDir) -}}
+{{-     $wrapperRoot = joinPath $wrapperRoot $component -}}
+{{-     if not (and (lstat $wrapperRoot) (eq (lstat $wrapperRoot).type "dir")) -}}
+{{-       fail (printf "authored wrapper source requires real directories: %s" $wrapperRoot) -}}
+{{-     end -}}
+{{-   end -}}
+{{-   range $host := $hosts -}}
+{{-     if not (has $host (list "claude" "codex" "cursor")) -}}{{- fail (printf "unknown authored wrapper host %q" $host) -}}{{- end -}}
+{{-     $hostRoot := joinPath $wrapperRoot $host -}}
+{{-     if not (and (lstat $hostRoot) (eq (lstat $hostRoot).type "dir")) -}}{{- fail (printf "authored wrapper host requires a real directory: %s" $hostRoot) -}}{{- end -}}
+{{-     $hostFiles := dict -}}
+{{-     range $path := glob (joinPath $hostRoot "**/*") | sortAlpha -}}
+{{-       $type := (lstat $path).type -}}
+{{-       if eq $type "file" -}}
+{{-         $relative := trimPrefix (printf "%s/" $hostRoot) $path | trimSuffix ".tmpl" -}}
+{{-         if or (not $relative) (contains "\\" $relative) (regexMatch "(^|/)\\.\\.?(/|$)" $relative) -}}{{- fail "unsafe authored wrapper target path" -}}{{- end -}}
+{{-         if or (eq $relative "skills") (hasPrefix "skills/" $relative) -}}{{- fail (printf "authored wrapper overlaps skills subtree: %s" $relative) -}}{{- end -}}
+{{-         range $existing := keys $hostFiles -}}
+{{-           if or (eq $relative $existing) (hasPrefix (printf "%s/" $relative) $existing) (hasPrefix (printf "%s/" $existing) $relative) -}}
+{{-             fail (printf "authored wrapper filename collision: %s" $relative) -}}
+{{-           end -}}
+{{-         end -}}
+{{-         $digest := "" -}}
+{{-         if eq $relative (printf ".%s-plugin/plugin.json" $host) -}}
+{{-           $digest = output "shasum" "-a" "256" $path | trim | splitList " " | first -}}
+{{-         else -}}
+{{-           $digest = includeTemplate "ai/authored-file-digest" (dict "root" $.root "path" $path "target" $relative) -}}
+{{-         end -}}
+{{-         $executable := or (ne (mod (div (lstat $path).perm 64) 2) 0) (ne (mod (div (lstat $path).perm 8) 2) 0) (ne (mod (lstat $path).perm 2) 0) -}}
+{{-         $_ := set $hostFiles $relative (dict "sha256" $digest "executable" $executable) -}}
+{{-         $entry := dict "path" $path "target" $relative -}}
+{{-         $_ := set $targets (printf ".local/share/agent-plugins/marketplace/plugins/%s/%s/%s" $.name $host $relative) $entry -}}
+{{-         if eq $host "cursor" -}}{{- $_ := set $targets (printf ".cursor/plugins/local/%s/%s" $.name $relative) $entry -}}{{- end -}}
+{{-       else if ne $type "dir" -}}{{- fail (printf "unsupported authored wrapper source entry: %s" $path) -}}{{- end -}}
+{{-     end -}}
+{{-     $_ := set $files $host $hostFiles -}}
+{{-   end -}}
+{{- end -}}
+{{- dict "inputs" $files "targets" $targets | toJson -}}

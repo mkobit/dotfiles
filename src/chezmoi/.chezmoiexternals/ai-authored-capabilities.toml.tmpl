@@ -61,18 +61,19 @@
 {{-       end -}}
 {{-       if ne $state "absent" -}}
 {{-         $skillDir := joinPath $skillRoot $skillName -}}
-{{-         if not (stat (joinPath $skillDir "SKILL.md")) -}}
+{{-         if not (or (stat (joinPath $skillDir "SKILL.md")) (stat (joinPath $skillDir "SKILL.md.tmpl"))) -}}
 {{-           fail (printf "ai.plugin_bridge.capabilities.%s.skills.%s: missing SKILL.md" $capabilityName $skillName) -}}
 {{-         end -}}
+{{-         $targets := dict -}}
 {{-         $found := false -}}
 {{-         range $path := glob (joinPath $skillDir "**/*") -}}
 {{-           if eq (lstat $path).type "file" -}}
 {{-             $found = true -}}
 {{-             $rel := trimPrefix (printf "%s/" $skillDir) $path -}}
-{{-             $entry := dict "type" "file" "url" (printf "file://%s" $path) "refreshPeriod" "1s" -}}
-{{-             if or (ne (mod (div (lstat $path).perm 64) 2) 0) (ne (mod (div (lstat $path).perm 8) 2) 0) (ne (mod (lstat $path).perm 2) 0) -}}
-{{-               $_ := set $entry "executable" true -}}
-{{-             end -}}
+{{-             $rel = trimSuffix ".tmpl" $rel -}}
+{{-             if hasKey $targets $rel -}}{{- fail (printf "authored skill filename collision: %s/%s" $skillName $rel) -}}{{- end -}}
+{{-             $_ := set $targets $rel true -}}
+{{-             $entry := includeTemplate "ai/authored-file-entry" (dict "root" $root "path" $path "target" $rel) | fromJson -}}
 {{-             range $hostName, $hostRootFormat := $hostRoots -}}
 {{-               if and (has $hostName $declaredHosts) (or (eq $state "present") (eq $state $hostName)) -}}
 {{-                 $_ := set $config (printf "%s/%s/%s" (printf $hostRootFormat $capabilityName) $skillName $rel) $entry -}}
