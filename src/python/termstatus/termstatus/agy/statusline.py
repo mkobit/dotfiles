@@ -350,7 +350,7 @@ def _vcs_slots(vcs: VcsState | None) -> list[_Slot]:
         return []
     if branch := git_branch(vcs):
         return [_Slot(3, 0, 10, branch)]
-    if vcs.dirty:
+    if vcs.dirty or vcs.untracked:
         dirty_icon = get_icon("dirty") or "!"
         return [_Slot(3, 0, 10, f"{YELLOW}{dirty_icon} dirty{RESET}")]
     return []

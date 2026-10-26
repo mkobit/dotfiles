@@ -170,7 +170,7 @@ async def probe_git(cwd: str) -> VcsState | None:
                 "status",
                 "--porcelain=v2",
                 "--branch",
-                "-uno",
+                "-unormal",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.DEVNULL,
             )
@@ -220,7 +220,16 @@ async def probe_git(cwd: str) -> VcsState | None:
 
 
 def fallback_vcs(payload: AgyPayload) -> VcsState | None:
-    return VcsState(payload.vcs.branch, payload.vcs.dirty, payload.vcs.is_repo) if payload.vcs else None
+    return (
+        VcsState(
+            payload.vcs.branch,
+            payload.vcs.dirty,
+            payload.vcs.is_repo,
+            untracked=payload.vcs.untracked,
+        )
+        if payload.vcs
+        else None
+    )
 
 
 async def resolve_vcs(payload: AgyPayload) -> VcsState | None:
