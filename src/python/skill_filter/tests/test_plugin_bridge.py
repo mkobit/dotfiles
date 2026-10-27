@@ -1,9 +1,15 @@
 from __future__ import annotations
 
+import io
 import json
+import logging
+import os
+import re
 import shutil
 import subprocess
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 import pytest
 
@@ -1561,8 +1567,9 @@ def test_reconcile_standalone_without_site_packages(
 
 @pytest.mark.parametrize("returncode", [0, 7])
 def test_run_reports_timing_without_exposing_arguments_or_output(
-    monkeypatch, capsys, returncode
+    monkeypatch, caplog, capsys, returncode
 ):
+    caplog.set_level(logging.INFO, logger=plugin_bridge.__name__)
     monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/claude")
     monkeypatch.setattr(
         plugin_bridge.subprocess,
@@ -1585,15 +1592,14 @@ def test_run_reports_timing_without_exposing_arguments_or_output(
 
     captured = capsys.readouterr()
     assert captured.out == ""
-    lines = captured.err.splitlines()
+    lines = caplog.messages
     assert len(lines) == 2
     assert "event=start" in lines[0]
     assert "event=end" in lines[1]
     assert f"status={returncode}" in lines[1]
     assert "elapsed_seconds=2.250" in lines[1]
     assert all("host=claude operation=plugin-install" in line for line in lines)
-    assert all("utc=" in line and "Z" in line for line in lines)
-    assert "private" not in captured.err
+    assert "private" not in caplog.text
 
 
 @pytest.mark.parametrize("returncode", [0, 9])
@@ -1605,7 +1611,14 @@ def test_run_preserves_outcome_when_timing_output_fails(
         def write(self, _: str) -> None:
             raise stderr_failure("unavailable")
 
+    monkeypatch.setattr(logging.getLogger(), "handlers", [])
+    monkeypatch.setattr(logging, "raiseExceptions", True)
     monkeypatch.setattr(plugin_bridge.sys, "stderr", UnavailableStderr())
+    monkeypatch.setattr(plugin_bridge.sys, "stdin", io.StringIO("[]"))
+    assert (
+        plugin_bridge.main(["has-identity", "--field", "id", "--expected", "unused"])
+        == 1
+    )
     monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
     monkeypatch.setattr(
         plugin_bridge.subprocess,
@@ -1621,7 +1634,8 @@ def test_run_preserves_outcome_when_timing_output_fails(
         assert plugin_bridge._run("codex", "plugin", "list") == "result"
 
 
-def test_run_uses_safe_label_for_unknown_operation(monkeypatch, capsys):
+def test_run_uses_safe_label_for_unknown_operation(monkeypatch, caplog):
+    caplog.set_level(logging.INFO, logger=plugin_bridge.__name__)
     monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
     monkeypatch.setattr(
         plugin_bridge.subprocess,
@@ -1629,12 +1643,13 @@ def test_run_uses_safe_label_for_unknown_operation(monkeypatch, capsys):
         lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "", ""),
     )
     plugin_bridge._run("codex", "private-operation", "private-argument")
-    output = capsys.readouterr().err
+    output = caplog.text
     assert "operation=host-command" in output
     assert "private" not in output
 
 
-def test_run_reports_launch_failure_and_preserves_exception(monkeypatch, capsys):
+def test_run_reports_launch_failure_and_preserves_exception(monkeypatch, caplog):
+    caplog.set_level(logging.INFO, logger=plugin_bridge.__name__)
     failure = PermissionError("launch failed")
     monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
 
@@ -1645,12 +1660,13 @@ def test_run_reports_launch_failure_and_preserves_exception(monkeypatch, capsys)
     with pytest.raises(PermissionError) as raised:
         plugin_bridge._run("codex", "plugin", "marketplace", "list")
     assert raised.value is failure
-    output = capsys.readouterr().err
+    output = caplog.text
     assert "event=end" in output
     assert "status=error" in output
 
 
-def test_run_times_exec_format_fallback_as_one_operation(monkeypatch, capsys):
+def test_run_times_exec_format_fallback_as_one_operation(monkeypatch, caplog):
+    caplog.set_level(logging.INFO, logger=plugin_bridge.__name__)
     monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
     calls = []
 
@@ -1666,7 +1682,7 @@ def test_run_times_exec_format_fallback_as_one_operation(monkeypatch, capsys):
         ["/host/codex", "plugin", "list"],
         ["/bin/sh", "/host/codex", "plugin", "list"],
     ]
-    assert len(capsys.readouterr().err.splitlines()) == 2
+    assert len(caplog.records) == 2
 
 
 def test_run_does_not_redirect_timing_to_stdout_without_stderr(monkeypatch, capsys):
@@ -1679,3 +1695,50 @@ def test_run_does_not_redirect_timing_to_stdout_without_stderr(monkeypatch, caps
     )
     assert plugin_bridge._run("codex", "plugin", "list") == "result"
     assert capsys.readouterr().out == ""
+
+
+def test_cli_configures_utc_logging_without_exposing_host_output(tmp_path):
+    command = tmp_path / "codex"
+    command.write_text("#!/bin/sh\nprintf 'private output'\n", encoding="utf-8")
+    command.chmod(0o755)
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-S",
+            "-c",
+            (
+                "import sys; "
+                "sys.path.insert(0, sys.argv[1]); "
+                "import plugin_bridge; "
+                "plugin_bridge.reconcile = lambda *_: "
+                "plugin_bridge._run('codex', 'plugin', 'list', 'private-argument'); "
+                "raise SystemExit(plugin_bridge.main(sys.argv[2:]))"
+            ),
+            str(Path(plugin_bridge.__file__).parent),
+            "reconcile",
+            "--destination",
+            str(tmp_path),
+        ],
+        input="{}",
+        env={**os.environ, "PATH": str(tmp_path), "TZ": "Pacific/Honolulu"},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == ""
+    lines = result.stderr.splitlines()
+    assert len(lines) == 2
+    for line in lines:
+        match = re.match(
+            r"plugin-bridge: utc=(\S+) host=codex operation=plugin-list event=", line
+        )
+        assert match, line
+        timestamp = datetime.strptime(match[1], "%Y-%m-%dT%H:%M:%SZ").replace(
+            tzinfo=timezone.utc
+        )
+        assert abs((datetime.now(timezone.utc) - timestamp).total_seconds()) < 10
+    assert "event=start" in lines[0]
+    assert "event=end" in lines[1]
+    assert "status=0" in lines[1]
+    assert "private" not in result.stderr

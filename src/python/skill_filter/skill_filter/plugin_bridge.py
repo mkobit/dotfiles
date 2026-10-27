@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import logging
 import os
 import shutil
 import subprocess
@@ -30,6 +31,9 @@ else:
         _plugin_rows,
         _validate_bridge_declaration,
     )
+
+
+logger = logging.getLogger(__name__)
 
 
 class HostUnavailableError(BridgeError):
@@ -101,20 +105,6 @@ def _checkpoint(path: Path, record: str) -> None:
         ownership.write(f"{record}\n")
 
 
-def _log_timing(host: str, operation: str, event: str, detail: str = "") -> None:
-    try:
-        if sys.stderr is None:
-            return
-        timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-        print(
-            f"plugin-bridge: utc={timestamp} host={host} operation={operation} event={event}{detail}",
-            file=sys.stderr,
-            flush=True,
-        )
-    except (OSError, ValueError):
-        pass
-
-
 def _run(host: str, *args: str) -> str:
     if host not in _NATIVE_HOSTS:
         raise BridgeError(f"unsupported plugin host: {host}")
@@ -139,7 +129,7 @@ def _run(host: str, *args: str) -> str:
         operation = "host-command"
     started = time.monotonic()
     status = "error"
-    _log_timing(host, operation, "start")
+    logger.info("host=%s operation=%s event=start", host, operation)
     try:
         command = shutil.which(host)
         if command is None:
@@ -162,8 +152,12 @@ def _run(host: str, *args: str) -> str:
         return result.stdout
     finally:
         elapsed = time.monotonic() - started
-        _log_timing(
-            host, operation, "end", f" elapsed_seconds={elapsed:.3f} status={status}"
+        logger.info(
+            "host=%s operation=%s event=end elapsed_seconds=%.3f status=%s",
+            host,
+            operation,
+            elapsed,
+            status,
         )
 
 
@@ -677,6 +671,14 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    formatter = logging.Formatter(
+        "plugin-bridge: utc=%(asctime)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%SZ"
+    )
+    formatter.converter = time.gmtime
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+    logging.basicConfig(level=logging.INFO, handlers=[handler])
+    logging.raiseExceptions = False
     args = _parser().parse_args(argv)
     try:
         if args.command == "migrate-ownership":
