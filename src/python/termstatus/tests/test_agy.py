@@ -16,6 +16,7 @@ from termstatus.agy.git import (
     _GIT_STATUS_MAX_BYTES,
     _GIT_TIMEOUT,
     _read_git_stdout,
+    fallback_vcs,
     parse_git_status,
     probe_git,
     resolve_vcs,
@@ -203,6 +204,12 @@ def test_detached_dirty_repository_still_shows_dirty_state() -> None:
     assert "dirty" in strip_ansi(line)
 
 
+def test_detached_untracked_repository_shows_dirty_state() -> None:
+    line = render_statusline(decode_payload({"terminal_width": 80}), VcsState(None, False, True, untracked=True))
+
+    assert "dirty" in strip_ansi(line)
+
+
 def test_quota_without_reset_is_rendered() -> None:
     assert "quota ◕ 50%" in "\n".join(rendered({"quota": {"quota": {"remaining_percentage": 50}}}))
 
@@ -335,6 +342,30 @@ def test_parse_porcelain_v2_and_renders_github_origin_as_osc8_link() -> None:
         VcsState("feature/demo", False, True, "origin/feature/demo", 2, 1, "git@github.com:stripe/example.git"),
     )
     assert "\033]8;;https://github.com/stripe/example\033\\feature/demo\033]8;;\033\\" in line
+
+
+def test_parse_porcelain_v2_with_untracked_files() -> None:
+    vcs = parse_git_status(b"# branch.oid abc123\n# branch.head feature/demo\n? untracked_file.py\n")
+
+    assert vcs == VcsState("feature/demo", False, True, untracked=True)
+
+
+def test_branch_untracked_shows_question_mark_indicator() -> None:
+    untracked_only = git_branch(VcsState("feature/untracked", False, True, untracked=True))
+    assert untracked_only is not None
+    assert "[?]" in strip_ansi(untracked_only)
+    assert "✓" not in untracked_only
+
+    dirty_and_untracked = git_branch(VcsState("feature/both", True, True, untracked=True))
+    assert dirty_and_untracked is not None
+    assert "[! ?]" in strip_ansi(dirty_and_untracked)
+
+
+def test_fallback_vcs_preserves_untracked_state() -> None:
+    payload = decode_payload({"vcs": {"branch": "feature/fallback", "dirty": False, "untracked": True}})
+    vcs = fallback_vcs(payload)
+    assert vcs is not None
+    assert vcs.untracked is True
 
 
 @pytest.mark.asyncio
@@ -677,7 +708,7 @@ async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shar
 
     assert create_process.await_count == 2
     assert [call.args for call in create_process.await_args_list] == [
-        ("git", "-C", "/work/repo", "status", "--porcelain=v2", "--branch", "-uno"),
+        ("git", "-C", "/work/repo", "status", "--porcelain=v2", "--branch", "-unormal"),
         ("git", "-C", "/work/repo", "remote", "get-url", "origin"),
     ]
     assert timeout_deadlines
