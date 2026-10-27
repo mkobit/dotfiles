@@ -33,6 +33,7 @@ class VcsState:
     origin_url: str | None = None
     untracked: bool = False
     rebase: bool = False
+    commit: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -136,6 +137,7 @@ def decode_vcs(raw: Mapping[str, object]) -> VcsState | None:
         normalized_text(raw.get("origin_url")),
         bool(raw.get("untracked", False)),
         bool(raw.get("rebase", False)),
+        normalized_text(raw.get("commit")) or normalized_text(raw.get("oid")),
     )
 
 

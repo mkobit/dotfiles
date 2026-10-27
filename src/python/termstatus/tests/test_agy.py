@@ -198,16 +198,40 @@ def test_enabled_sandbox_is_rendered() -> None:
     )
 
 
-def test_detached_dirty_repository_still_shows_dirty_state() -> None:
-    line = render_statusline(decode_payload({"terminal_width": 80}), VcsState(None, True, True))
+def test_detached_dirty_repository_shows_detached_state_with_dirty_flag() -> None:
+    line = render_statusline(
+        decode_payload({"terminal_width": 80}),
+        VcsState(None, True, True, commit="113285f1a6ea58a80bde1e59f5d626779fd6180a"),
+    )
 
-    assert "dirty" in strip_ansi(line)
+    stripped = strip_ansi(line)
+    assert "(detached@113285f)" in stripped
+    assert "[!]" in stripped
+    assert "dirty" not in stripped
 
 
-def test_detached_untracked_repository_shows_dirty_state() -> None:
-    line = render_statusline(decode_payload({"terminal_width": 80}), VcsState(None, False, True, untracked=True))
+def test_detached_untracked_repository_shows_detached_state_with_untracked_flag() -> None:
+    line = render_statusline(
+        decode_payload({"terminal_width": 80}),
+        VcsState(None, False, True, untracked=True, commit="113285f1a6ea58a80bde1e59f5d626779fd6180a"),
+    )
 
-    assert "dirty" in strip_ansi(line)
+    stripped = strip_ansi(line)
+    assert "(detached@113285f)" in stripped
+    assert "[?]" in stripped
+    assert "dirty" not in stripped
+
+
+def test_detached_clean_repository_shows_detached_state_with_clean_flag() -> None:
+    line = render_statusline(
+        decode_payload({"terminal_width": 80}),
+        VcsState(None, False, True, commit="113285f1a6ea58a80bde1e59f5d626779fd6180a"),
+    )
+
+    stripped = strip_ansi(line)
+    assert "(detached@113285f)" in stripped
+    assert "[✓]" in stripped
+    assert "dirty" not in stripped
 
 
 def test_quota_without_reset_is_rendered() -> None:
@@ -336,7 +360,7 @@ def test_parse_porcelain_v2_and_renders_github_origin_as_osc8_link() -> None:
         b"# branch.oid abc123\n# branch.head feature/demo\n# branch.upstream origin/feature/demo\n# branch.ab +2 -1\n1 .M N... 100644 100644 100644 abc abc file.py\n"
     )
 
-    assert vcs == VcsState("feature/demo", True, True, "origin/feature/demo", 2, 1)
+    assert vcs == VcsState("feature/demo", True, True, "origin/feature/demo", 2, 1, commit="abc123")
     line = render_statusline(
         decode_payload({"terminal_width": 160}),
         VcsState("feature/demo", False, True, "origin/feature/demo", 2, 1, "git@github.com:stripe/example.git"),
@@ -347,7 +371,29 @@ def test_parse_porcelain_v2_and_renders_github_origin_as_osc8_link() -> None:
 def test_parse_porcelain_v2_with_untracked_files() -> None:
     vcs = parse_git_status(b"# branch.oid abc123\n# branch.head feature/demo\n? untracked_file.py\n")
 
-    assert vcs == VcsState("feature/demo", False, True, untracked=True)
+    assert vcs == VcsState("feature/demo", False, True, untracked=True, commit="abc123")
+
+
+def test_parse_porcelain_v2_detached_head_extracts_commit_and_renders_link() -> None:
+    vcs = parse_git_status(b"# branch.oid 113285f1a6ea58a80bde1e59f5d626779fd6180a\n# branch.head (detached)\n")
+
+    assert vcs == VcsState(None, False, True, commit="113285f1a6ea58a80bde1e59f5d626779fd6180a")
+    line = render_statusline(
+        decode_payload({"terminal_width": 160}),
+        VcsState(
+            None,
+            False,
+            True,
+            origin_url="git@github.com:stripe/example.git",
+            commit="113285f1a6ea58a80bde1e59f5d626779fd6180a",
+        ),
+    )
+    assert (
+        "\033]8;;https://github.com/stripe/example/commit/113285f1a6ea58a80bde1e59f5d626779fd6180a\033\\113285f\033]8;;\033\\"
+        in line
+    )
+    assert "(detached@" in line
+    assert "[✓]" in strip_ansi(line)
 
 
 def test_branch_untracked_shows_question_mark_indicator() -> None:
@@ -412,7 +458,7 @@ def test_branch_status_icons() -> None:
 
     complex_vcs = git_branch(VcsState("feature", True, True, ahead=3, behind=1, rebase=True, untracked=True))
     assert complex_vcs is not None
-    assert "rebase" in complex_vcs
+    assert "REBASE" in complex_vcs
     assert "!" in complex_vcs
     assert "?" in complex_vcs
     assert "↑3" in complex_vcs
@@ -848,7 +894,7 @@ async def test_git_probe_keeps_status_when_origin_lookup_fails() -> None:
         return processes.pop(0)
 
     with patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start):
-        assert await probe_git("/work/repo") == VcsState("enriched", False, True)
+        assert await probe_git("/work/repo") == VcsState("enriched", False, True, commit="abc123")
 
 
 @pytest.mark.asyncio
@@ -934,7 +980,7 @@ async def test_git_probe_returns_status_when_origin_stdout_blocks() -> None:
         patch("termstatus.agy.git.asyncio.timeout_at", side_effect=track_timeout_at),
     ):
         started_loop = loop.time()
-        assert await probe_git("/work/repo") == VcsState("enriched", False, True)
+        assert await probe_git("/work/repo") == VcsState("enriched", False, True, commit="abc123")
 
     assert timeout_deadlines
     assert abs(max(timeout_deadlines) - started_loop - _GIT_TIMEOUT.total("seconds")) < 0.01

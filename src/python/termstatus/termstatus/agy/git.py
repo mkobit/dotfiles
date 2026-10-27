@@ -23,13 +23,18 @@ def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState |
     if len(stdout) > _GIT_STATUS_MAX_BYTES:
         return None
     branch: str | None = None
+    commit: str | None = None
     upstream: str | None = None
     ahead = behind = 0
     dirty = saw_header = untracked = rebase = False
     for line in stdout.decode(errors="replace").splitlines():
         if _deadline_expired(deadline):
             return None
-        if line.startswith("# branch.head "):
+        if line.startswith("# branch.oid "):
+            oid = line.removeprefix("# branch.oid ").strip()
+            if oid and not oid.startswith("(") and set(oid) != {"0"}:
+                commit = normalized_text(oid)
+        elif line.startswith("# branch.head "):
             saw_header = True
             value = line.removeprefix("# branch.head ").strip()
             if value.startswith("("):
@@ -56,6 +61,7 @@ def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState |
             behind,
             untracked=untracked,
             rebase=rebase,
+            commit=commit,
         )
         if saw_header and not _deadline_expired(deadline)
         else None
@@ -77,6 +83,7 @@ def _build_vcs(vcs: VcsState, origin_stdout: bytes | None, deadline: float) -> V
             origin_url,
             vcs.untracked,
             vcs.rebase,
+            commit=vcs.commit,
         )
         if not _deadline_expired(deadline)
         else None
@@ -226,6 +233,7 @@ def fallback_vcs(payload: AgyPayload) -> VcsState | None:
             payload.vcs.dirty,
             payload.vcs.is_repo,
             untracked=payload.vcs.untracked,
+            commit=payload.vcs.commit,
         )
         if payload.vcs
         else None
