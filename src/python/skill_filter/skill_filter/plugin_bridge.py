@@ -5,10 +5,12 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import logging
 import os
 import shutil
 import subprocess
 import sys
+import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -29,6 +31,9 @@ else:
         _plugin_rows,
         _validate_bridge_declaration,
     )
+
+
+logger = logging.getLogger(__name__)
 
 
 class HostUnavailableError(BridgeError):
@@ -103,23 +108,57 @@ def _checkpoint(path: Path, record: str) -> None:
 def _run(host: str, *args: str) -> str:
     if host not in _NATIVE_HOSTS:
         raise BridgeError(f"unsupported plugin host: {host}")
-    command = shutil.which(host)
-    if command is None:
-        raise HostUnavailableError(host)
+    operation = "-".join(
+        args[:3] if args[:2] == ("plugin", "marketplace") else args[:2]
+    )
+    if operation not in {
+        "plugin-marketplace-list",
+        "plugin-marketplace-add",
+        "plugin-marketplace-remove",
+        "plugin-marketplace-update",
+        "plugin-marketplace-upgrade",
+        "plugin-list",
+        "plugin-install",
+        "plugin-uninstall",
+        "plugin-add",
+        "plugin-remove",
+        "plugin-update",
+        "plugin-enable",
+        "plugin-disable",
+    }:
+        operation = "host-command"
+    started = time.monotonic()
+    status = "error"
+    logger.info("host=%s operation=%s event=start", host, operation)
     try:
-        result = subprocess.run(
-            [command, *args], capture_output=True, text=True, check=False
+        command = shutil.which(host)
+        if command is None:
+            status = "unavailable"
+            raise HostUnavailableError(host)
+        try:
+            result = subprocess.run(
+                [command, *args], capture_output=True, text=True, check=False
+            )
+        except OSError as error:
+            if error.errno != 8:
+                raise
+            result = subprocess.run(
+                ["/bin/sh", command, *args], capture_output=True, text=True, check=False
+            )
+        status = str(result.returncode)
+        if result.returncode:
+            detail = result.stderr.strip() or result.stdout.strip()
+            raise BridgeError(f"{host} {' '.join(args)} failed: {detail}")
+        return result.stdout
+    finally:
+        elapsed = time.monotonic() - started
+        logger.info(
+            "host=%s operation=%s event=end elapsed_seconds=%.3f status=%s",
+            host,
+            operation,
+            elapsed,
+            status,
         )
-    except OSError as error:
-        if error.errno != 8:
-            raise
-        result = subprocess.run(
-            ["/bin/sh", command, *args], capture_output=True, text=True, check=False
-        )
-    if result.returncode:
-        detail = result.stderr.strip() or result.stdout.strip()
-        raise BridgeError(f"{host} {' '.join(args)} failed: {detail}")
-    return result.stdout
 
 
 def _marketplace_present(host: str, marketplace: str) -> bool:
@@ -632,6 +671,22 @@ def _parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    formatter = logging.Formatter(
+        "plugin-bridge: utc=%(asctime)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%SZ"
+    )
+    formatter.converter = time.gmtime
+    stream = sys.stderr
+    try:
+        # Keep failed log writes out of stderr's interpreter-shutdown buffer.
+        stream = open(  # noqa: SIM115 - The handler uses this stream until process shutdown.
+            sys.stderr.fileno(), "w", buffering=1, closefd=False
+        )
+    except (AttributeError, OSError, ValueError):
+        pass
+    handler = logging.StreamHandler(stream)
+    handler.setFormatter(formatter)
+    logging.basicConfig(level=logging.INFO, handlers=[handler])
+    logging.raiseExceptions = False
     args = _parser().parse_args(argv)
     try:
         if args.command == "migrate-ownership":
