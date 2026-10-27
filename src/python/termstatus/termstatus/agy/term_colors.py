@@ -70,6 +70,7 @@ _ICONS: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(
     {
         "dir": ("📁", "📁"),
         "branch": ("\ue0a0", "🪾"),
+        "detached": ("➦", "➦"),
         "remote": ("\uf0c1", "🔗"),
         "github": ("\ue709", "🔗"),
         "dirty": ("!", "!"),

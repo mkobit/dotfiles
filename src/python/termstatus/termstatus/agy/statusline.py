@@ -105,26 +105,39 @@ def _github_url(remote: str | None) -> str | None:
 
 
 def git_branch(vcs: VcsState) -> str | None:
-    if not (branch := normalized_text(vcs.branch)):
+    if not vcs.is_repo:
         return None
     url = _github_url(vcs.origin_url)
-    branch_link = f"\033]8;;{url}\033\\{branch}\033]8;;\033\\" if url else branch
-    branch_icon = get_icon("branch")
-    icon_prefix = f"{branch_icon} " if branch_icon else ""
+    if branch := normalized_text(vcs.branch):
+        branch_link = f"\033]8;;{url}\033\\{branch}\033]8;;\033\\" if url else branch
+        branch_icon = get_icon("branch")
+        icon_prefix = f"{branch_icon} " if branch_icon else ""
 
-    if upstream := normalized_text(vcs.upstream):
-        remote_link = f"\033]8;;{url}\033\\{upstream}\033]8;;\033\\" if url else upstream
-        pair_text = f"{DIM}<{RESET}{MAGENTA}{branch_link}{RESET} {DIM}→{RESET} {CYAN}{remote_link}{RESET}{DIM}>{RESET}"
+        if upstream := normalized_text(vcs.upstream):
+            remote_link = f"\033]8;;{url}\033\\{upstream}\033]8;;\033\\" if url else upstream
+            pair_text = (
+                f"{DIM}<{RESET}{MAGENTA}{branch_link}{RESET} {DIM}→{RESET} {CYAN}{remote_link}{RESET}{DIM}>{RESET}"
+            )
+        else:
+            pair_text = f"{MAGENTA}{branch_link}{RESET}"
     else:
-        pair_text = f"{MAGENTA}{branch_link}{RESET}"
+        detached_icon = get_icon("detached")
+        icon_prefix = f"{detached_icon} " if detached_icon else ""
+        if commit := normalized_text(vcs.commit):
+            short_hash = commit[:7]
+            commit_url = f"{url}/commit/{commit}" if url else None
+            linked_hash = f"\033]8;;{commit_url}\033\\{short_hash}\033]8;;\033\\" if commit_url else short_hash
+            pair_text = f"{YELLOW}(detached@{linked_hash}){RESET}"
+        else:
+            pair_text = f"{YELLOW}(detached){RESET}"
 
     status_items: list[str] = []
     if vcs.rebase:
-        status_items.append(f"{YELLOW}rebase{RESET}")
+        status_items.append(f"{YELLOW}REBASE{RESET}")
     if vcs.dirty:
         status_items.append(f"{YELLOW}!{RESET}")
     if vcs.untracked:
-        status_items.append(f"{YELLOW}?{RESET}")
+        status_items.append(f"{CYAN}?{RESET}")
     if vcs.ahead:
         status_items.append(f"{CYAN}↑{vcs.ahead}{RESET}")
     if vcs.behind:
@@ -346,13 +359,10 @@ def _quota_slots(payload: AgyPayload) -> list[_Slot]:
 
 
 def _vcs_slots(vcs: VcsState | None) -> list[_Slot]:
-    if not vcs:
+    if not vcs or not vcs.is_repo:
         return []
     if branch := git_branch(vcs):
         return [_Slot(3, 0, 10, branch)]
-    if vcs.dirty or vcs.untracked:
-        dirty_icon = get_icon("dirty") or "!"
-        return [_Slot(3, 0, 10, f"{YELLOW}{dirty_icon} dirty{RESET}")]
     return []
 
 
