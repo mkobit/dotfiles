@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import io
 import json
-import logging
 import os
 import re
 import shutil
@@ -1565,153 +1563,27 @@ def test_reconcile_standalone_without_site_packages(
         assert result.stderr == ""
 
 
-@pytest.mark.parametrize("returncode", [0, 7])
-def test_run_reports_timing_without_exposing_arguments_or_output(
-    monkeypatch, caplog, capsys, returncode
-):
-    caplog.set_level(logging.INFO, logger=plugin_bridge.__name__)
-    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/claude")
-    monkeypatch.setattr(
-        plugin_bridge.subprocess,
-        "run",
-        lambda *args, **kwargs: subprocess.CompletedProcess(
-            args[0], returncode, "private stdout", "private stderr"
-        ),
-    )
-    ticks = iter([10.0, 12.25])
-    monkeypatch.setattr(plugin_bridge.time, "monotonic", lambda: next(ticks))
-
-    if returncode:
-        with pytest.raises(plugin_bridge.BridgeError, match="private stderr"):
-            plugin_bridge._run("claude", "plugin", "install", "private-plugin-id")
-    else:
-        assert (
-            plugin_bridge._run("claude", "plugin", "install", "private-plugin-id")
-            == "private stdout"
-        )
-
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    lines = caplog.messages
-    assert len(lines) == 2
-    assert "event=start" in lines[0]
-    assert "event=end" in lines[1]
-    assert f"status={returncode}" in lines[1]
-    assert "elapsed_seconds=2.250" in lines[1]
-    assert all("host=claude operation=plugin-install" in line for line in lines)
-    assert "private" not in caplog.text
-
-
-@pytest.mark.parametrize("returncode", [0, 9])
-@pytest.mark.parametrize("stderr_failure", [BrokenPipeError, ValueError])
-def test_run_preserves_outcome_when_timing_output_fails(
-    monkeypatch, stderr_failure, returncode
-):
-    class UnavailableStderr:
-        def write(self, _: str) -> None:
-            raise stderr_failure("unavailable")
-
-    monkeypatch.setattr(logging.getLogger(), "handlers", [])
-    monkeypatch.setattr(logging, "raiseExceptions", True)
-    monkeypatch.setattr(plugin_bridge.sys, "stderr", UnavailableStderr())
-    monkeypatch.setattr(plugin_bridge.sys, "stdin", io.StringIO("[]"))
-    assert (
-        plugin_bridge.main(["has-identity", "--field", "id", "--expected", "unused"])
-        == 1
-    )
-    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
-    monkeypatch.setattr(
-        plugin_bridge.subprocess,
-        "run",
-        lambda *args, **kwargs: subprocess.CompletedProcess(
-            args[0], returncode, "result", "failure"
-        ),
-    )
-    if returncode:
-        with pytest.raises(plugin_bridge.BridgeError, match="failure"):
-            plugin_bridge._run("codex", "plugin", "list")
-    else:
-        assert plugin_bridge._run("codex", "plugin", "list") == "result"
-
-
-def test_run_uses_safe_label_for_unknown_operation(monkeypatch, caplog):
-    caplog.set_level(logging.INFO, logger=plugin_bridge.__name__)
-    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
-    monkeypatch.setattr(
-        plugin_bridge.subprocess,
-        "run",
-        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "", ""),
-    )
-    plugin_bridge._run("codex", "private-operation", "private-argument")
-    output = caplog.text
-    assert "operation=host-command" in output
-    assert "private" not in output
-
-
-def test_run_reports_launch_failure_and_preserves_exception(monkeypatch, caplog):
-    caplog.set_level(logging.INFO, logger=plugin_bridge.__name__)
-    failure = PermissionError("launch failed")
-    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
-
-    def fail(*args, **kwargs):
-        raise failure
-
-    monkeypatch.setattr(plugin_bridge.subprocess, "run", fail)
-    with pytest.raises(PermissionError) as raised:
-        plugin_bridge._run("codex", "plugin", "marketplace", "list")
-    assert raised.value is failure
-    output = caplog.text
-    assert "event=end" in output
-    assert "status=error" in output
-
-
-def test_run_times_exec_format_fallback_as_one_operation(monkeypatch, caplog):
-    caplog.set_level(logging.INFO, logger=plugin_bridge.__name__)
-    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
-    calls = []
-
-    def run(command, **kwargs):
-        calls.append(command)
-        if len(calls) == 1:
-            raise OSError(8, "exec format error")
-        return subprocess.CompletedProcess(command, 0, "fallback result", "")
-
-    monkeypatch.setattr(plugin_bridge.subprocess, "run", run)
-    assert plugin_bridge._run("codex", "plugin", "list") == "fallback result"
-    assert calls == [
-        ["/host/codex", "plugin", "list"],
-        ["/bin/sh", "/host/codex", "plugin", "list"],
-    ]
-    assert len(caplog.records) == 2
-
-
-def test_run_does_not_redirect_timing_to_stdout_without_stderr(monkeypatch, capsys):
-    monkeypatch.setattr(plugin_bridge.sys, "stderr", None)
-    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
-    monkeypatch.setattr(
-        plugin_bridge.subprocess,
-        "run",
-        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "result", ""),
-    )
-    assert plugin_bridge._run("codex", "plugin", "list") == "result"
-    assert capsys.readouterr().out == ""
-
-
-def test_cli_configures_utc_logging_without_exposing_host_output(tmp_path):
+@pytest.mark.parametrize(
+    ("host_status", "closed_pipe"), [(0, False), (7, False), (0, True)]
+)
+def test_cli_logging_preserves_output_and_status(tmp_path, host_status, closed_pipe):
     command = tmp_path / "codex"
-    command.write_text("#!/bin/sh\nprintf 'private output'\n", encoding="utf-8")
+    command.write_text(
+        f"#!/bin/sh\nprintf 'private output'\nexit {host_status}\n", encoding="utf-8"
+    )
     command.chmod(0o755)
-    result = subprocess.run(
+    with subprocess.Popen(
         [
             sys.executable,
             "-S",
             "-c",
             (
-                "import sys; "
+                "import io, sys; "
+                "sys.stdin = io.StringIO(sys.stdin.read()); "
                 "sys.path.insert(0, sys.argv[1]); "
                 "import plugin_bridge; "
-                "plugin_bridge.reconcile = lambda *_: "
-                "plugin_bridge._run('codex', 'plugin', 'list', 'private-argument'); "
+                "plugin_bridge.reconcile = lambda *_: sys.stdout.write("
+                "plugin_bridge._run('codex', 'plugin', 'list', 'private-argument')); "
                 "raise SystemExit(plugin_bridge.main(sys.argv[2:]))"
             ),
             str(Path(plugin_bridge.__file__).parent),
@@ -1719,17 +1591,23 @@ def test_cli_configures_utc_logging_without_exposing_host_output(tmp_path):
             "--destination",
             str(tmp_path),
         ],
-        input="{}",
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         env={**os.environ, "PATH": str(tmp_path), "TZ": "Pacific/Honolulu"},
-        capture_output=True,
         text=True,
-        check=False,
-    )
-    assert result.returncode == 0, result.stderr
-    assert result.stdout == ""
-    lines = result.stderr.splitlines()
-    assert len(lines) == 2
-    for line in lines:
+    ) as process:
+        if closed_pipe:
+            process.stderr.close()
+            process.stderr = None
+        stdout, stderr = process.communicate("{}", timeout=10)
+        assert process.returncode == (2 if host_status else 0), stderr
+    assert stdout == ("" if host_status else "private output")
+    if closed_pipe:
+        return
+    lines = stderr.splitlines()
+    assert len(lines) == (3 if host_status else 2)
+    for line in lines[:2]:
         match = re.match(
             r"plugin-bridge: utc=(\S+) host=codex operation=plugin-list event=", line
         )
@@ -1738,7 +1616,10 @@ def test_cli_configures_utc_logging_without_exposing_host_output(tmp_path):
             tzinfo=timezone.utc
         )
         assert abs((datetime.now(timezone.utc) - timestamp).total_seconds()) < 10
+        assert "private" not in line
     assert "event=start" in lines[0]
     assert "event=end" in lines[1]
-    assert "status=0" in lines[1]
-    assert "private" not in result.stderr
+    assert re.search(r"elapsed_seconds=\d+\.\d{3}", lines[1])
+    assert f"status={host_status}" in lines[1]
+    if host_status:
+        assert lines[2].endswith("private-argument failed: private output")

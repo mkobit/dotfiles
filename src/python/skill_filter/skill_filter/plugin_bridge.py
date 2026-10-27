@@ -675,7 +675,15 @@ def main(argv: list[str] | None = None) -> int:
         "plugin-bridge: utc=%(asctime)s %(message)s", datefmt="%Y-%m-%dT%H:%M:%SZ"
     )
     formatter.converter = time.gmtime
-    handler = logging.StreamHandler()
+    stream = sys.stderr
+    try:
+        # Keep failed log writes out of stderr's interpreter-shutdown buffer.
+        stream = open(  # noqa: SIM115 - The handler uses this stream until process shutdown.
+            sys.stderr.fileno(), "w", buffering=1, closefd=False
+        )
+    except (AttributeError, OSError, ValueError):
+        pass
+    handler = logging.StreamHandler(stream)
     handler.setFormatter(formatter)
     logging.basicConfig(level=logging.INFO, handlers=[handler])
     logging.raiseExceptions = False
