@@ -23,7 +23,9 @@ allowed-tools:
 
 # SBX sandboxes
 
-Use only `sbx` to execute, inspect, or debug SBX sandboxes.
+On the host, use only `sbx` to execute, inspect, or debug SBX sandboxes.
+Inside an assigned SBX workspace, run repository commands directly.
+A missing guest `sbx` executable does not require nested SBX or host checks.
 Docker makes the software; the `docker` CLI cannot manage these sandboxes.
 For denied sockets or login-service errors, follow platform escalation and inspect the retry before diagnosing authentication.
 Use `sbx diagnose` with the required platform access, never `docker ps`, `docker exec`, or Docker daemon commands.
@@ -41,9 +43,9 @@ For an existing environment with unchanged configuration, execute the task direc
 Do not require Beads; use the task supplied by the user or coordinator.
 
 1. Supply the task, file ownership, acceptance criteria, required checks, and log location.
-2. Run the command or coding agent through `sbx env exec` or `sbx exec`.
+2. From the host, launch the command or coding agent through `sbx env exec` or `sbx exec`; an existing guest worker runs commands directly.
 3. Review the diff, exit status, and check results on the host.
-4. Report the result and log location; update a task tracker only when the workflow uses one.
+4. Report the result and log location; the authorized host coordinator updates a task tracker only when the workflow uses one.
 
 Run required checks once; repeat after relevant changes or failures.
 Validate, create, or rebuild only when configuration changed or the environment is missing.
@@ -53,7 +55,7 @@ Validate, create, or rebuild only when configuration changed or the environment 
 - [CLI selection](references/cli-automation.md): select commands, output formats, and environment paths.
 - [Authentication](references/authentication.md): misleading login-service errors, access restrictions, expired sessions, and verification codes.
 - [Permissions](references/permissions.md): standard skill grants, tool support, and execution scope.
-- [Agents](references/agents.md): validated Codex execution and AGY setup.
+- [Agents](references/agents.md): host launch, guest context, progress, session recovery, feedback, and AGY setup.
 - [Subagent task](references/subagent-task.md): a reusable specification for a bounded edit, test, and fix loop.
 - [Repository setup](references/repository-setup.md): create a repository-owned kit and environment.
 - [Environment files](references/environment-files.md): workspace boundaries and dynamic host ports.
