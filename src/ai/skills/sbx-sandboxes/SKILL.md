@@ -38,12 +38,17 @@ For a private clone and its change-return process, read [Nested execution](refer
 
 ## Execute a task
 
-For an existing environment with unchanged configuration, execute the task directly.
+For work in SBX, default to a repository-supported AGY, Codex, or other coding harness with one complete bounded prompt.
+Let that worker own implementation, checks, repairs, and evidence from start to finish.
+The host owns task decomposition, authorization, independent review, integration, and publication.
+Use direct SBX commands for probes, setup, and explicit command-only requests, not as a substitute for coding-agent delegation.
+Respect explicitly narrower user requests.
+For an existing environment with unchanged configuration, launch the worker without repeated setup or discovery.
 “Do this task in SBX” authorizes file edits and required checks within that task's scope.
 Do not require Beads; use the task supplied by the user or coordinator.
 
-1. Supply the task, file ownership, acceptance criteria, required checks, and log location.
-2. From the host, launch the command or coding agent through `sbx env exec` or `sbx exec`; an existing guest worker runs commands directly.
+1. Put the task, file ownership, acceptance criteria, required checks, and log location in one complete prompt.
+2. From the host, launch the coding harness through `sbx env exec` or `sbx exec`; the guest worker runs its edit, check, and repair loop directly.
 3. Review the diff, exit status, and check results on the host.
 4. Report the result and log location; the authorized host coordinator updates a task tracker only when the workflow uses one.
 
