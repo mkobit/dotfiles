@@ -9,6 +9,7 @@ import os
 import shutil
 import subprocess
 import sys
+import time
 from collections.abc import Mapping
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -100,26 +101,70 @@ def _checkpoint(path: Path, record: str) -> None:
         ownership.write(f"{record}\n")
 
 
+def _log_timing(host: str, operation: str, event: str, detail: str = "") -> None:
+    try:
+        if sys.stderr is None:
+            return
+        timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+        print(
+            f"plugin-bridge: utc={timestamp} host={host} operation={operation} event={event}{detail}",
+            file=sys.stderr,
+            flush=True,
+        )
+    except (OSError, ValueError):
+        pass
+
+
 def _run(host: str, *args: str) -> str:
     if host not in _NATIVE_HOSTS:
         raise BridgeError(f"unsupported plugin host: {host}")
-    command = shutil.which(host)
-    if command is None:
-        raise HostUnavailableError(host)
+    operation = "-".join(
+        args[:3] if args[:2] == ("plugin", "marketplace") else args[:2]
+    )
+    if operation not in {
+        "plugin-marketplace-list",
+        "plugin-marketplace-add",
+        "plugin-marketplace-remove",
+        "plugin-marketplace-update",
+        "plugin-marketplace-upgrade",
+        "plugin-list",
+        "plugin-install",
+        "plugin-uninstall",
+        "plugin-add",
+        "plugin-remove",
+        "plugin-update",
+        "plugin-enable",
+        "plugin-disable",
+    }:
+        operation = "host-command"
+    started = time.monotonic()
+    status = "error"
+    _log_timing(host, operation, "start")
     try:
-        result = subprocess.run(
-            [command, *args], capture_output=True, text=True, check=False
+        command = shutil.which(host)
+        if command is None:
+            status = "unavailable"
+            raise HostUnavailableError(host)
+        try:
+            result = subprocess.run(
+                [command, *args], capture_output=True, text=True, check=False
+            )
+        except OSError as error:
+            if error.errno != 8:
+                raise
+            result = subprocess.run(
+                ["/bin/sh", command, *args], capture_output=True, text=True, check=False
+            )
+        status = str(result.returncode)
+        if result.returncode:
+            detail = result.stderr.strip() or result.stdout.strip()
+            raise BridgeError(f"{host} {' '.join(args)} failed: {detail}")
+        return result.stdout
+    finally:
+        elapsed = time.monotonic() - started
+        _log_timing(
+            host, operation, "end", f" elapsed_seconds={elapsed:.3f} status={status}"
         )
-    except OSError as error:
-        if error.errno != 8:
-            raise
-        result = subprocess.run(
-            ["/bin/sh", command, *args], capture_output=True, text=True, check=False
-        )
-    if result.returncode:
-        detail = result.stderr.strip() or result.stdout.strip()
-        raise BridgeError(f"{host} {' '.join(args)} failed: {detail}")
-    return result.stdout
 
 
 def _marketplace_present(host: str, marketplace: str) -> bool:

@@ -1557,3 +1557,125 @@ def test_reconcile_standalone_without_site_packages(
         assert "invalid environment name" in result.stderr
     else:
         assert result.stderr == ""
+
+
+@pytest.mark.parametrize("returncode", [0, 7])
+def test_run_reports_timing_without_exposing_arguments_or_output(
+    monkeypatch, capsys, returncode
+):
+    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/claude")
+    monkeypatch.setattr(
+        plugin_bridge.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0], returncode, "private stdout", "private stderr"
+        ),
+    )
+    ticks = iter([10.0, 12.25])
+    monkeypatch.setattr(plugin_bridge.time, "monotonic", lambda: next(ticks))
+
+    if returncode:
+        with pytest.raises(plugin_bridge.BridgeError, match="private stderr"):
+            plugin_bridge._run("claude", "plugin", "install", "private-plugin-id")
+    else:
+        assert (
+            plugin_bridge._run("claude", "plugin", "install", "private-plugin-id")
+            == "private stdout"
+        )
+
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    lines = captured.err.splitlines()
+    assert len(lines) == 2
+    assert "event=start" in lines[0]
+    assert "event=end" in lines[1]
+    assert f"status={returncode}" in lines[1]
+    assert "elapsed_seconds=2.250" in lines[1]
+    assert all("host=claude operation=plugin-install" in line for line in lines)
+    assert all("utc=" in line and "Z" in line for line in lines)
+    assert "private" not in captured.err
+
+
+@pytest.mark.parametrize("returncode", [0, 9])
+@pytest.mark.parametrize("stderr_failure", [BrokenPipeError, ValueError])
+def test_run_preserves_outcome_when_timing_output_fails(
+    monkeypatch, stderr_failure, returncode
+):
+    class UnavailableStderr:
+        def write(self, _: str) -> None:
+            raise stderr_failure("unavailable")
+
+    monkeypatch.setattr(plugin_bridge.sys, "stderr", UnavailableStderr())
+    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
+    monkeypatch.setattr(
+        plugin_bridge.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0], returncode, "result", "failure"
+        ),
+    )
+    if returncode:
+        with pytest.raises(plugin_bridge.BridgeError, match="failure"):
+            plugin_bridge._run("codex", "plugin", "list")
+    else:
+        assert plugin_bridge._run("codex", "plugin", "list") == "result"
+
+
+def test_run_uses_safe_label_for_unknown_operation(monkeypatch, capsys):
+    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
+    monkeypatch.setattr(
+        plugin_bridge.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "", ""),
+    )
+    plugin_bridge._run("codex", "private-operation", "private-argument")
+    output = capsys.readouterr().err
+    assert "operation=host-command" in output
+    assert "private" not in output
+
+
+def test_run_reports_launch_failure_and_preserves_exception(monkeypatch, capsys):
+    failure = PermissionError("launch failed")
+    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
+
+    def fail(*args, **kwargs):
+        raise failure
+
+    monkeypatch.setattr(plugin_bridge.subprocess, "run", fail)
+    with pytest.raises(PermissionError) as raised:
+        plugin_bridge._run("codex", "plugin", "marketplace", "list")
+    assert raised.value is failure
+    output = capsys.readouterr().err
+    assert "event=end" in output
+    assert "status=error" in output
+
+
+def test_run_times_exec_format_fallback_as_one_operation(monkeypatch, capsys):
+    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
+    calls = []
+
+    def run(command, **kwargs):
+        calls.append(command)
+        if len(calls) == 1:
+            raise OSError(8, "exec format error")
+        return subprocess.CompletedProcess(command, 0, "fallback result", "")
+
+    monkeypatch.setattr(plugin_bridge.subprocess, "run", run)
+    assert plugin_bridge._run("codex", "plugin", "list") == "fallback result"
+    assert calls == [
+        ["/host/codex", "plugin", "list"],
+        ["/bin/sh", "/host/codex", "plugin", "list"],
+    ]
+    assert len(capsys.readouterr().err.splitlines()) == 2
+
+
+def test_run_does_not_redirect_timing_to_stdout_without_stderr(monkeypatch, capsys):
+    monkeypatch.setattr(plugin_bridge.sys, "stderr", None)
+    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda _: "/host/codex")
+    monkeypatch.setattr(
+        plugin_bridge.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(args[0], 0, "result", ""),
+    )
+    assert plugin_bridge._run("codex", "plugin", "list") == "result"
+    assert capsys.readouterr().out == ""

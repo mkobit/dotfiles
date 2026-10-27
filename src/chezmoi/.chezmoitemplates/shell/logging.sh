@@ -8,20 +8,26 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Logging functions
+_chezmoi_log() {
+    local timestamp
+    timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ 2>/dev/null)" || timestamp=unknown
+    printf '%s %b[%s]%b %b\n' "$timestamp" "$1" "$2" "$NC" "$3" 2>/dev/null || true
+}
+
 log_info() {
-    echo -e "${BLUE}[INFO]${NC} $1"
+    _chezmoi_log "$BLUE" INFO "$1"
 }
 
 log_success() {
-    echo -e "${GREEN}[SUCCESS]${NC} $1"
+    _chezmoi_log "$GREEN" SUCCESS "$1"
 }
 
 log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+    _chezmoi_log "$YELLOW" WARN "$1"
 }
 
 log_error() {
-    echo -e "${RED}[ERROR]${NC} $1"
+    _chezmoi_log "$RED" ERROR "$1"
 }
 
 # Utility functions
