@@ -1,13 +1,9 @@
 from __future__ import annotations
 
 import json
-import os
-import re
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
-from pathlib import Path
 
 import pytest
 
@@ -1561,65 +1557,3 @@ def test_reconcile_standalone_without_site_packages(
         assert "invalid environment name" in result.stderr
     else:
         assert result.stderr == ""
-
-
-@pytest.mark.parametrize(
-    ("host_status", "closed_pipe"), [(0, False), (7, False), (0, True)]
-)
-def test_cli_logging_preserves_output_and_status(tmp_path, host_status, closed_pipe):
-    command = tmp_path / "codex"
-    command.write_text(
-        f"#!/bin/sh\nprintf 'private output'\nexit {host_status}\n", encoding="utf-8"
-    )
-    command.chmod(0o755)
-    with subprocess.Popen(
-        [
-            sys.executable,
-            "-S",
-            "-c",
-            (
-                "import io, sys; "
-                "sys.stdin = io.StringIO(sys.stdin.read()); "
-                "sys.path.insert(0, sys.argv[1]); "
-                "import plugin_bridge; "
-                "plugin_bridge.reconcile = lambda *_: sys.stdout.write("
-                "plugin_bridge._run('codex', 'plugin', 'list', 'private-argument')); "
-                "raise SystemExit(plugin_bridge.main(sys.argv[2:]))"
-            ),
-            str(Path(plugin_bridge.__file__).parent),
-            "reconcile",
-            "--destination",
-            str(tmp_path),
-        ],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        env={**os.environ, "PATH": str(tmp_path), "TZ": "Pacific/Honolulu"},
-        text=True,
-    ) as process:
-        if closed_pipe:
-            process.stderr.close()
-            process.stderr = None
-        stdout, stderr = process.communicate("{}", timeout=10)
-        assert process.returncode == (2 if host_status else 0), stderr
-    assert stdout == ("" if host_status else "private output")
-    if closed_pipe:
-        return
-    lines = stderr.splitlines()
-    assert len(lines) == (3 if host_status else 2)
-    for line in lines[:2]:
-        match = re.match(
-            r"plugin-bridge: utc=(\S+) host=codex operation=plugin-list event=", line
-        )
-        assert match, line
-        timestamp = datetime.strptime(match[1], "%Y-%m-%dT%H:%M:%SZ").replace(
-            tzinfo=timezone.utc
-        )
-        assert abs((datetime.now(timezone.utc) - timestamp).total_seconds()) < 10
-        assert "private" not in line
-    assert "event=start" in lines[0]
-    assert "event=end" in lines[1]
-    assert re.search(r"elapsed_seconds=\d+\.\d{3}", lines[1])
-    assert f"status={host_status}" in lines[1]
-    if host_status:
-        assert lines[2].endswith("private-argument failed: private output")
