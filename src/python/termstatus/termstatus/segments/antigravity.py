@@ -15,7 +15,7 @@ AGENT_STATE_COLORS = {
 
 def format_agent_state(payload: AntigravityPayload) -> list[SegmentGenerationResult]:
     state = payload.agent_state
-    if not state:
+    if not bool(state):
         return []
 
     color = AGENT_STATE_COLORS.get(state, WHITE)
@@ -31,7 +31,7 @@ def format_agent_state(payload: AntigravityPayload) -> list[SegmentGenerationRes
 
 
 def format_model_info(payload: AntigravityPayload) -> list[SegmentGenerationResult]:
-    if not payload.model or not payload.model.display_name:
+    if not payload.model or not bool(payload.model.display_name):
         return []
 
     return [
@@ -47,7 +47,7 @@ def format_model_info(payload: AntigravityPayload) -> list[SegmentGenerationResu
 
 def format_workspace_info(payload: AntigravityPayload) -> list[SegmentGenerationResult]:
     cwd = payload.cwd
-    if not cwd:
+    if not bool(cwd):
         return []
 
     basename = Path(cwd).name
@@ -63,11 +63,11 @@ def format_workspace_info(payload: AntigravityPayload) -> list[SegmentGeneration
 
 
 def format_vcs_info(payload: AntigravityPayload) -> list[SegmentGenerationResult]:
-    if not payload.vcs or not payload.vcs.branch:
+    if not payload.vcs or not bool(payload.vcs.branch):
         return []
 
     branch = payload.vcs.branch
-    dirty_marker = "*" if payload.vcs.dirty else ""
+    dirty_marker = "*" if bool(payload.vcs.dirty) else ""
     return [
         SegmentGenerationResult(
             line=3,
@@ -96,14 +96,14 @@ def format_context_usage(payload: AntigravityPayload) -> list[SegmentGenerationR
 
 
 def generate_title(payload: AntigravityPayload) -> str:
-    basename = Path(payload.cwd).name if payload.cwd else None
+    basename = Path(payload.cwd).name if bool(payload.cwd) else None
     display_name = payload.model.display_name if payload.model else None
-    short_id = payload.conversation_id.split("-")[0] if payload.conversation_id else None
+    short_id = payload.conversation_id.split("-")[0] if bool(payload.conversation_id) else None
     candidates = [
-        f"[{payload.agent_state}]" if payload.agent_state else None,
+        f"[{payload.agent_state}]" if bool(payload.agent_state) else None,
         basename,
-        f"({display_name})" if display_name else None,
-        f"- {short_id}" if short_id else None,
+        f"({display_name})" if bool(display_name) else None,
+        f"- {short_id}" if bool(short_id) else None,
     ]
-    parts = [part for part in candidates if part]
+    parts = [part for part in candidates if bool(part)]
     return " ".join(parts) if parts else "Antigravity"

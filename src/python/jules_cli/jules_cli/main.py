@@ -45,7 +45,7 @@ def main_callback(
 
 def run_fzf(items: list[str]) -> str | None:
     """Runs fzf with the given items and returns the selected item."""
-    if not shutil.which("fzf"):
+    if shutil.which("fzf") is None:
         typer.echo("Error: fzf is not installed.", err=True)
         sys.exit(1)
 

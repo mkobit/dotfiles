@@ -19,7 +19,7 @@ class JulesConfig(BaseModel):
 
     @model_validator(mode="after")
     def validate_api_key_path(self) -> Self:
-        if self.api_key_path:
+        if bool(self.api_key_path):
             secret_path = Path(self.api_key_path).expanduser()
             if not secret_path.exists():
                 raise ValueError(f"api_key_path does not exist: {secret_path}")
@@ -27,7 +27,7 @@ class JulesConfig(BaseModel):
 
     @cached_property
     def api_key(self) -> str | None:
-        if self.api_key_path:
+        if bool(self.api_key_path):
             secret_path = Path(self.api_key_path).expanduser()
             try:
                 if secret_path.exists():
@@ -38,7 +38,7 @@ class JulesConfig(BaseModel):
 
 
 def load_config(config_path: str | None = None) -> JulesConfig:
-    if config_path:
+    if bool(config_path):
         p = Path(config_path)
         if not p.exists():
             raise FileNotFoundError(f"Config file not found: {config_path}")
@@ -48,7 +48,7 @@ def load_config(config_path: str | None = None) -> JulesConfig:
         candidates = [
             Path("jules.toml"),
         ]
-        if xdg_config:
+        if bool(xdg_config):
             candidates.append(Path(xdg_config) / "jules" / "config.toml")
 
         # Always check default XDG location (fallback)
@@ -77,12 +77,12 @@ def get_api_key(api_key_override: str | None = None) -> str:
     Checks override first, then config, then legacy XDG config location
     (~/.config/jules/api_key).
     """
-    if api_key_override:
+    if bool(api_key_override):
         return api_key_override
 
     try:
         config = load_config()
-        if config.api_key:
+        if bool(config.api_key):
             return config.api_key
     except Exception as e:
         # If loading fails (e.g., config file malformed), log warning and proceed

@@ -29,7 +29,7 @@ def main(
     ] = "-",
 ) -> None:
     """Transcribe audio files using faster-whisper and Jinja2 templates."""
-    if template_file and template:
+    if template_file is not None and template is not None:
         typer.echo("Error: Cannot provide both --template-file and --template.", err=True)
         raise typer.Exit(code=2)
 

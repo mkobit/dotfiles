@@ -109,7 +109,7 @@ def prompt_shortcut_sync_mode() -> str:
     )
     while True:
         ch = getkey()
-        if mode := _shortcut_mode_for_key(ch):
+        if (mode := _shortcut_mode_for_key(ch)) is not None:
             print(ch)
             return mode
         if ch == "\x03":
@@ -131,7 +131,7 @@ def prompt_shortcut_done_or_recopy(copy_fns: Mapping[str, Callable[[], None]]) -
         if ch in ("\r", "\n"):
             print()
             return
-        if mode := _shortcut_mode_for_key(ch):
+        if (mode := _shortcut_mode_for_key(ch)) is not None:
             print(ch)
             copy_fns[mode]()
             _log.log(OK, "recopied %s payload", mode.replace("_", " "))

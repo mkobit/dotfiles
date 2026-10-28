@@ -108,7 +108,7 @@ def cost_value(value: object) -> float | None:
 def decode_quotas(raw: Mapping[str, object]) -> Mapping[str, Quota]:
     quotas: dict[str, Quota] = {}
     for name, value in raw.items():
-        if not (label := normalized_text(name)):
+        if (label := normalized_text(name)) is None:
             continue
         item = mapping(value)
         remaining = percent(item.get("remaining_percentage"))
@@ -125,7 +125,7 @@ def decode_quotas(raw: Mapping[str, object]) -> Mapping[str, Quota]:
 
 def decode_vcs(raw: Mapping[str, object]) -> VcsState | None:
     branch = normalized_text(raw.get("branch"))
-    if not raw and not branch:
+    if not raw and branch is None:
         return None
     return VcsState(
         branch,

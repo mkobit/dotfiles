@@ -61,7 +61,7 @@ async def test_client_list_sessions() -> None:
     client = JulesClient(api_key="test_key")
 
     async def mock_get(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        if params and params.get("pageToken") == "page-2-token":
+        if params is not None and params.get("pageToken") == "page-2-token":
             return MOCK_LIST_SESSIONS_PAGE_2
         return MOCK_LIST_SESSIONS_PAGE_1
 
@@ -159,7 +159,7 @@ async def test_client_list_sources() -> None:
     client = JulesClient(api_key="test_key")
 
     async def mock_get(endpoint: str, params: dict[str, Any] | None = None) -> dict[str, Any]:
-        if params and params.get("pageToken") == "page-2-token":
+        if params is not None and params.get("pageToken") == "page-2-token":
             return MOCK_LIST_SOURCES_PAGE_2
         return MOCK_LIST_SOURCES_PAGE_1
 

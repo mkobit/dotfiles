@@ -40,7 +40,7 @@ def show_activity(
                     typer.echo(f"Activity: {activity.name}")
                     typer.echo(f"Originator: {activity.originator}")
                     typer.echo(f"Created: {activity.create_time}")
-                    if activity.description:
+                    if bool(activity.description):
                         typer.echo(f"Description: {activity.description}")
             except Exception as e:
                 typer.echo(f"Error: {e}", err=True)

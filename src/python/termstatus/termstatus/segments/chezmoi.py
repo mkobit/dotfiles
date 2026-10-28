@@ -88,9 +88,9 @@ def _format_repo(
     # column boundaries across rows, but the label and branch share one cell here,
     # so a ragged label (e.g. "overlay" vs "base") would still offset the branch
     # text within that cell; label_width pads the label so branches line up too.
-    branch_url = _build_branch_url(info.remote, info.branch) if info.remote else None
+    branch_url = _build_branch_url(info.remote, info.branch) if bool(info.remote) else None
     branch_label = _truncate(info.branch, _MAX_BRANCH_LEN)
-    branch_display = f"\033]8;;{branch_url}\033\\{branch_label}\033]8;;\033\\" if branch_url else branch_label
+    branch_display = f"\033]8;;{branch_url}\033\\{branch_label}\033]8;;\033\\" if bool(branch_url) else branch_label
 
     status_parts = [
         f"{RED}{get_icon('dirty')}{RESET}" if info.dirty else None,
@@ -113,7 +113,7 @@ def _format_repo(
     right_filled = [p for p in right_parts if p is not None]
 
     remote_text = None
-    if info.remote:
+    if bool(info.remote):
         platform_icon = (
             get_icon("github")
             if "github.com" in info.remote
@@ -123,7 +123,7 @@ def _format_repo(
         )
         remote_text = f"\033]8;;{info.remote}\033\\{platform_icon}\033]8;;\033\\"
 
-    if remote_text:
+    if bool(remote_text):
         right_filled = [*right_filled, remote_text]
 
     results = [

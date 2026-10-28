@@ -64,7 +64,7 @@ def _strip_line_comment(line: str) -> str:
     n = len(line)
     while i < n:
         ch = line[i]
-        if in_string:
+        if in_string is not None:
             if ch == "\\":
                 i += 1
             elif ch == in_string:
@@ -108,10 +108,12 @@ def _get_chrome_bookmarklets() -> Mapping[str, str]:
     def find_folder(node: dict[str, Any], name: str) -> dict[str, Any] | None:
         if node.get("name") == name and node.get("type") == "folder":
             return node
-        return next((found for child in node.get("children", []) if (found := find_folder(child, name))), None)
+        return next(
+            (found for child in node.get("children", []) if (found := find_folder(child, name)) is not None), None
+        )
 
     roots = (root for root in bookmarks.get("roots", {}).values() if isinstance(root, dict))
-    folder = next((found for root in roots if (found := find_folder(root, _FOLDER_TITLE))), None)
+    folder = next((found for root in roots if (found := find_folder(root, _FOLDER_TITLE)) is not None), None)
     if folder is None:
         return {}
     return {child["name"]: unquote(child["url"]) for child in folder.get("children", []) if child.get("type") == "url"}
