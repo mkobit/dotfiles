@@ -107,7 +107,7 @@ def format_model_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]
         ),
     ]
 
-    if payload.agent.name:
+    if bool(payload.agent.name):
         results = [
             *results,
             SegmentGenerationResult(
@@ -118,7 +118,7 @@ def format_model_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]
                 segment=Segment(text=f"{MAGENTA}@{payload.agent.name}{RESET}"),
             ),
         ]
-    if style and style.name:
+    if style and bool(style.name):
         results = [
             *results,
             SegmentGenerationResult(
@@ -133,7 +133,7 @@ def format_model_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]
 
 
 def format_session_info(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
-    if not payload.cost.total_duration_ms:
+    if not bool(payload.cost.total_duration_ms):
         return []
 
     elapsed_seconds = payload.cost.total_duration_ms // 1000
@@ -152,7 +152,7 @@ def format_session_info(payload: StatusLineStdIn) -> list[SegmentGenerationResul
 
 
 def format_cost(payload: StatusLineStdIn) -> list[SegmentGenerationResult]:
-    if not payload.cost.total_cost_usd:
+    if not bool(payload.cost.total_cost_usd):
         return []
     return [
         SegmentGenerationResult(

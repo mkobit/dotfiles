@@ -58,13 +58,13 @@ async def probe_terminal_width(payload_width: int | None = None) -> int | None:
         return payload_width
 
     override = os.environ.get("TERMSTATUS_WIDTH")
-    if override:
+    if bool(override):
         parsed = _parse_positive_int(override)
         if parsed is not None:
             return parsed
 
     env_columns = os.environ.get("COLUMNS")
-    if env_columns:
+    if bool(env_columns):
         parsed = _parse_positive_int(env_columns)
         if parsed is not None:
             return parsed
@@ -158,7 +158,7 @@ def render_lines(
         highlight=False,
     )
 
-    if payload is not None and payload.session_name:
+    if payload is not None and bool(payload.session_name):
         session_text = Text.from_ansi(f"{CYAN}#{payload.session_name}{RESET}", no_wrap=True)
         session_text.overflow = "ellipsis"
         renderable = Group(session_text, table)

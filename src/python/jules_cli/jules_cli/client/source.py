@@ -16,7 +16,7 @@ class SourceClient(BaseClient):
         next_page_token = None
         while True:
             params: dict[str, Any] = {}
-            if next_page_token:
+            if bool(next_page_token):
                 params["pageToken"] = next_page_token
 
             data = await self._get("/sources", params=params)
@@ -26,5 +26,5 @@ class SourceClient(BaseClient):
                 yield source
 
             next_page_token = response.next_page_token
-            if not next_page_token:
+            if not bool(next_page_token):
                 break

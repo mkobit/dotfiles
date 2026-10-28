@@ -23,12 +23,12 @@ class Formatter:
             "format_timestamp": format_timestamp,
         }
 
-        if template_file:
+        if template_file is not None:
             path = Path(template_file).resolve()
             env = Environment(loader=FileSystemLoader(str(path.parent)))
             template = env.get_template(path.name)
             return str(template.render(context))
-        if template_string:
+        if template_string is not None:
             template = Template(template_string)
             return str(template.render(context))
         template = Template(Formatter.DEFAULT_TEMPLATE)

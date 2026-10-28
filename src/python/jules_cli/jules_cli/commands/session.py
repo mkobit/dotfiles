@@ -74,7 +74,9 @@ def list_sessions(
                 typer.echo(json.dumps(sessions, indent=2))
             else:
                 async for session in client.list_sessions():
-                    typer.echo(f"{session.name}: {session.title} - {session.state.name if session.state else 'N/A'}")
+                    typer.echo(
+                        f"{session.name}: {session.title} - {session.state.name if session.state is not None else 'N/A'}"
+                    )
 
     asyncio.run(_list())
 
@@ -101,10 +103,10 @@ def show_session(
                 else:
                     typer.echo(f"Session: {session.name}")
                     typer.echo(f"Title: {session.title}")
-                    if session.state:
+                    if session.state is not None:
                         typer.echo(f"State: {session.state.name}")
                     typer.echo(f"Prompt: {session.prompt}")
-                    if session.outputs:
+                    if bool(session.outputs):
                         for output in session.outputs:
                             if output.pull_request:
                                 typer.echo(f"PR: {output.pull_request.url}")

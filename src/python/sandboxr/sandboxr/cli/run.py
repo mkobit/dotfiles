@@ -129,7 +129,7 @@ def run(
     gpg_agent = overrides.gpg_agent if overrides.gpg_agent is not None else gpg_agent
     network = overrides.network if overrides.network is not None else network
     resolved_extra_ro = list(extra_ro or [])
-    if overrides.gh_config:
+    if bool(overrides.gh_config):
         # Real gh session, not a scoped credential: no short-lived or
         # per-usage token issuance exists yet. Read-only only protects the
         # file from tampering inside the sandbox -- it does not limit what

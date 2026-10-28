@@ -82,7 +82,7 @@ def run_filter(
     transform_name: str | None = None,
 ) -> io.BytesIO:
     output = io.BytesIO()
-    transform = TRANSFORMS[transform_name] if transform_name else None
+    transform = TRANSFORMS[transform_name] if transform_name is not None else None
     filter_archive(source, output, selections, strip_components, transform)
     return output
 

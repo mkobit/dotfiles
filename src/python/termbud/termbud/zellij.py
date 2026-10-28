@@ -85,7 +85,7 @@ def _extract(text: str, patterns: list[Pattern]) -> list[Match]:
     results: list[Match] = []
     for p in patterns:
         for m in re.finditer(p["regex"], text, re.MULTILINE):
-            val = (m.group(1) if m.lastindex else m.group(0)).strip()
+            val = (m.group(1) if m.lastindex is not None else m.group(0)).strip()
             if not val:
                 continue
             if (p["label"], val) not in seen:
@@ -107,7 +107,7 @@ def _platform_cmds() -> tuple[str, str]:
         return "open", "pbcopy"
     if "microsoft" in os.uname().release.lower():
         return "wslview", "clip.exe"
-    if os.environ.get("WAYLAND_DISPLAY") or shutil.which("wl-copy"):
+    if bool(os.environ.get("WAYLAND_DISPLAY")) or shutil.which("wl-copy") is not None:
         return "xdg-open", "wl-copy"
     return "xdg-open", "xclip -selection clipboard"
 
@@ -226,5 +226,5 @@ def history_search(
         yank = parts[2] if len(parts) >= 3 else ""
         # Write-back requires source pane ID; blocked by Zellij #4993 (ZELLIJ_ORIGIN_PANE_ID not
         # exposed in Run-spawned panes) and #4136 (focus-previous-pane broken in floating panes).
-        if yank and source_pane_id:
+        if yank and source_pane_id is not None:
             _zellij("write-chars", "--pane-id", source_pane_id, yank)

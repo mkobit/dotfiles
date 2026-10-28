@@ -116,7 +116,7 @@ def claude_render(  # noqa: C901
         bool, typer.Option("--show-errors", help="Display error segments for failed generators.")
     ] = False,
 ) -> None:
-    generator_tuple = tuple(generator) if generator else ()
+    generator_tuple = tuple(generator) if generator is not None else ()
 
     raw_json_str = "{}"
     try:
@@ -136,13 +136,13 @@ def claude_render(  # noqa: C901
         payload = StatusLineStdIn()
 
     cwd_str = payload.workspace.current_dir
-    if not cwd_str and payload.cwd:
+    if not cwd_str and bool(payload.cwd):
         cwd_str = payload.cwd
     cwd = Path(cwd_str).resolve() if cwd_str else Path.cwd()
     is_worktree = bool(payload.workspace.git_worktree)
 
     xdg_cache_home = os.environ.get("XDG_CACHE_HOME")
-    if xdg_cache_home:
+    if bool(xdg_cache_home):
         cache_path = Path(xdg_cache_home) / "termstatus" / "cache.json"
     else:
         cache_path = Path.home() / ".cache" / "termstatus" / "cache.json"
@@ -220,7 +220,7 @@ def claude_render(  # noqa: C901
                                 (r.cache_duration for r in res if hasattr(r, "cache_duration") and r.cache_duration),
                                 None,
                             )
-                            if duration:
+                            if duration is not None:
                                 cache_updates.append((key, list(res), Instant.now() + duration))
                     except Exception as e:
                         logger.debug(f"Failed to set cache for {key}: {e}")

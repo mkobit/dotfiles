@@ -88,11 +88,11 @@ async def _get_branch_and_remote(cwd: Path) -> BranchRemoteInfo:
     remote = None
 
     branch_res = await _run_git_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd)
-    if branch_res:
+    if bool(branch_res):
         branch = branch_res
 
     remote_res = await _run_git_cmd(["git", "ls-remote", "--get-url", "origin"], cwd)
-    if remote_res:
+    if bool(remote_res):
         remote_url = remote_res
         if remote_url.startswith("git@"):
             remote_url = remote_url.replace(":", "/").replace("git@", "https://")
@@ -109,7 +109,7 @@ async def _get_status(cwd: Path) -> GitStatusInfo:
     untracked = False
 
     res = await _run_git_cmd(["git", "status", "--porcelain"], cwd)
-    if res:
+    if bool(res):
         lines = [line for line in res.splitlines() if len(line) >= 2]
         staged = any(line[0] not in (" ", "?") for line in lines)
         dirty = any(line[1] != " " and not line.startswith("??") for line in lines)
@@ -123,7 +123,7 @@ async def _get_ahead_behind(cwd: Path) -> AheadBehindInfo:
     behind = 0
 
     res = await _run_git_cmd(["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"], cwd)
-    if res:
+    if bool(res):
         try:
             a, b = map(int, res.split())
             ahead = a
@@ -136,7 +136,7 @@ async def _get_ahead_behind(cwd: Path) -> AheadBehindInfo:
 
 async def _get_stash_count(cwd: Path) -> int:
     res = await _run_git_cmd(["git", "stash", "list"], cwd)
-    return len(res.splitlines()) if res else 0
+    return len(res.splitlines()) if bool(res) else 0
 
 
 def _build_branch_url(remote: str, branch: str) -> str:
@@ -181,15 +181,15 @@ def format_git_full(info: GitInfo | None) -> list[SegmentGenerationResult]:
         return []
 
     branch_icon = get_icon("worktree") if info.is_worktree else get_icon("branch")
-    branch_url = _build_branch_url(info.remote, info.branch) if info.remote else None
-    branch_display = f"\033]8;;{branch_url}\033\\{info.branch}\033]8;;\033\\" if branch_url else info.branch
+    branch_url = _build_branch_url(info.remote, info.branch) if bool(info.remote) else None
+    branch_display = f"\033]8;;{branch_url}\033\\{info.branch}\033]8;;\033\\" if bool(branch_url) else info.branch
 
     status_parts = [
         f"{RED}{get_icon('dirty')}{RESET}" if info.dirty else None,
         f"{YELLOW}{get_icon('staged')}{RESET}" if info.staged else None,
         f"{CYAN}{get_icon('untracked')}{RESET}" if info.untracked else None,
     ]
-    filled = [s for s in status_parts if s]
+    filled = [s for s in status_parts if s is not None]
     if not filled:
         filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
 
@@ -211,9 +211,9 @@ def format_git_full(info: GitInfo | None) -> list[SegmentGenerationResult]:
         f"{RED}↓{info.behind}{RESET}" if info.behind > 0 else None,
         f"{YELLOW}{get_icon('stash')}{info.stash_count}{RESET}" if info.stash_count > 0 else None,
     ]
-    right_filled = [p for p in right_parts if p]
+    right_filled = [p for p in right_parts if p is not None]
 
-    if info.remote:
+    if bool(info.remote):
         platform_icon = (
             get_icon("github")
             if "github.com" in info.remote

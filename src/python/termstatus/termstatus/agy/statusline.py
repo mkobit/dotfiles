@@ -91,11 +91,15 @@ def _format_cost(cost: float) -> str:
 
 
 def _model_name(model: str | None, effort: str | None) -> str | None:
-    return re.sub(rf"\s*\({re.escape(effort)}\)$", "", model, flags=re.IGNORECASE) if model and effort else model
+    return (
+        re.sub(rf"\s*\({re.escape(effort)}\)$", "", model, flags=re.IGNORECASE)
+        if model is not None and effort is not None
+        else model
+    )
 
 
 def _github_url(remote: str | None) -> str | None:
-    if not remote:
+    if remote is None:
         return None
     match = re.fullmatch(
         r"(?:git@github\.com:|ssh://git@github\.com/|https?://github\.com/|git://github\.com/)([^/:\s]+/[^/\s]+?)(?:\.git)?/?",
@@ -108,13 +112,13 @@ def git_branch(vcs: VcsState) -> str | None:
     if not vcs.is_repo:
         return None
     url = _github_url(vcs.origin_url)
-    if branch := normalized_text(vcs.branch):
-        branch_link = f"\033]8;;{url}\033\\{branch}\033]8;;\033\\" if url else branch
+    if (branch := normalized_text(vcs.branch)) is not None:
+        branch_link = f"\033]8;;{url}\033\\{branch}\033]8;;\033\\" if url is not None else branch
         branch_icon = get_icon("branch")
         icon_prefix = f"{branch_icon} " if branch_icon else ""
 
-        if upstream := normalized_text(vcs.upstream):
-            remote_link = f"\033]8;;{url}\033\\{upstream}\033]8;;\033\\" if url else upstream
+        if (upstream := normalized_text(vcs.upstream)) is not None:
+            remote_link = f"\033]8;;{url}\033\\{upstream}\033]8;;\033\\" if url is not None else upstream
             pair_text = (
                 f"{DIM}<{RESET}{MAGENTA}{branch_link}{RESET} {DIM}→{RESET} {CYAN}{remote_link}{RESET}{DIM}>{RESET}"
             )
@@ -123,10 +127,12 @@ def git_branch(vcs: VcsState) -> str | None:
     else:
         detached_icon = get_icon("detached")
         icon_prefix = f"{detached_icon} " if detached_icon else ""
-        if commit := normalized_text(vcs.commit):
+        if (commit := normalized_text(vcs.commit)) is not None:
             short_hash = commit[:7]
-            commit_url = f"{url}/commit/{commit}" if url else None
-            linked_hash = f"\033]8;;{commit_url}\033\\{short_hash}\033]8;;\033\\" if commit_url else short_hash
+            commit_url = f"{url}/commit/{commit}" if url is not None else None
+            linked_hash = (
+                f"\033]8;;{commit_url}\033\\{short_hash}\033]8;;\033\\" if commit_url is not None else short_hash
+            )
             pair_text = f"{YELLOW}(detached@{linked_hash}){RESET}"
         else:
             pair_text = f"{YELLOW}(detached){RESET}"
@@ -173,7 +179,7 @@ _CELL_BARS: Final[tuple[str, ...]] = ("▂", "▅", "█")
 
 
 def _thinking_cellular_graph(effort: str | None) -> str:
-    if not effort:
+    if effort is None:
         return ""
     low = effort.lower().strip()
     if low in _THINK_LEVELS:
@@ -193,23 +199,23 @@ def _identity_slots(payload: AgyPayload) -> list[_Slot]:
     state = f"{color}[{icon_prefix}{payload.state}]{RESET}"
     slots = [_Slot(0, 0, 1, state)]
     model = _model_name(payload.model, payload.effort)
-    model_text = f"{BOLD}{model}{RESET}" if model else None
+    model_text = f"{BOLD}{model}{RESET}" if model is not None else None
     brain = "🧠 " if use_icons() else ""
     graph = (
         f"{_thinking_cellular_graph(payload.effort)} "
         if use_icons() and _thinking_cellular_graph(payload.effort)
         else ""
     )
-    think_text = f"{brain}{graph}{DIM}think:{RESET}{payload.effort}" if payload.effort else None
-    mode_text = f"{DIM}{payload.execution_mode}{RESET}" if payload.execution_mode else None
-    plan_text = f"{DIM}plan:{RESET}{payload.plan_tier}" if payload.plan_tier else None
+    think_text = f"{brain}{graph}{DIM}think:{RESET}{payload.effort}" if payload.effort is not None else None
+    mode_text = f"{DIM}{payload.execution_mode}{RESET}" if payload.execution_mode is not None else None
+    plan_text = f"{DIM}plan:{RESET}{payload.plan_tier}" if payload.plan_tier is not None else None
 
     sandbox_text = None
     if payload.sandbox and payload.sandbox.enabled:
         net_mode = "net" if payload.sandbox.allow_network else "no-net"
         sandbox_text = f"{DIM}sandbox:{RESET}{net_mode}"
 
-    vim_text = f"{DIM}vim:{payload.vim_mode}{RESET}" if payload.vim_mode else None
+    vim_text = f"{DIM}vim:{payload.vim_mode}{RESET}" if payload.vim_mode is not None else None
 
     values = (
         (1, 30, model_text),
@@ -219,7 +225,7 @@ def _identity_slots(payload: AgyPayload) -> list[_Slot]:
         (5, 105, sandbox_text),
         (6, 125, vim_text),
     )
-    slots.extend(_Slot(0, index, minimum_width, text) for index, minimum_width, text in values if text)
+    slots.extend(_Slot(0, index, minimum_width, text) for index, minimum_width, text in values if text is not None)
     return slots
 
 
@@ -297,12 +303,12 @@ def _format_quota_badge(name: str, quota: Quota, base_label: str, *, is_ambiguou
     meter = _format_meter(quota.remaining)
     icon_text = f" {icon}" if use_icons() else ""
     reset_str = _format_quota_reset_duration(quota.reset_in)
-    reset_text = f" {reset_str}" if reset_str else ""
+    reset_text = f" {reset_str}" if reset_str is not None else ""
     return f"{DIM}[{RESET}{color}{label}{icon_text} {meter}{RESET}{reset_text}{DIM}]{RESET}"
 
 
 def _resource_slots(payload: AgyPayload) -> list[_Slot]:
-    slots = [_Slot(1, 0, 10, _format_directory(payload.cwd))] if payload.cwd else []
+    slots = [_Slot(1, 0, 10, _format_directory(payload.cwd))] if payload.cwd is not None else []
     if payload.remaining_context is not None:
         color = meter_color(payload.remaining_context)
         icon = fullness_icon(payload.remaining_context)
@@ -344,7 +350,7 @@ def _quota_slots(payload: AgyPayload) -> list[_Slot]:
 
     interval_counts: dict[str, int] = {}
     for _, _, interval in valid_quotas:
-        if interval:
+        if interval is not None:
             interval_counts[interval] = interval_counts.get(interval, 0) + 1
 
     quota_parts: list[str] = []
@@ -361,7 +367,7 @@ def _quota_slots(payload: AgyPayload) -> list[_Slot]:
 def _vcs_slots(vcs: VcsState | None) -> list[_Slot]:
     if not vcs or not vcs.is_repo:
         return []
-    if branch := git_branch(vcs):
+    if (branch := git_branch(vcs)) is not None:
         return [_Slot(3, 0, 10, branch)]
     return []
 
@@ -377,7 +383,7 @@ def _activity_slots(payload: AgyPayload) -> list[_Slot]:
         (2, 50, f"{BOLD}{RED}confirm{RESET}" if payload.confirmation_pending else None),
         (3, 65, f"{BLUE}artifacts:{payload.artifact_count}{RESET}" if payload.artifact_count is not None else None),
     )
-    return [_Slot(4, index, minimum_width, text) for index, minimum_width, text in values if text]
+    return [_Slot(4, index, minimum_width, text) for index, minimum_width, text in values if text is not None]
 
 
 def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
@@ -391,5 +397,5 @@ def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
     return "\n".join(
         row
         for line in range(5)
-        if (row := _fit_slots([slot for slot in slots if slot.line == line], payload.terminal_width))
+        if (row := _fit_slots([slot for slot in slots if slot.line == line], payload.terminal_width)) is not None
     )

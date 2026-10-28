@@ -17,7 +17,7 @@ TOKEN_PATH = Path.home() / ".local" / "state" / "ai-policy" / "tokens" / "readon
 
 def _state_dir() -> Path:
     xdg_state = os.environ.get("XDG_STATE_HOME")
-    base = Path(xdg_state) if xdg_state else Path.home() / ".local" / "state"
+    base = Path(xdg_state) if bool(xdg_state) else Path.home() / ".local" / "state"
     return base / "sandboxr"
 
 
@@ -107,12 +107,12 @@ def _git(cwd: Path, *args: str) -> str | None:
 
 def _project_root(cwd: Path) -> Path:
     top = _git(cwd, "rev-parse", "--show-toplevel")
-    return Path(top) if top else cwd
+    return Path(top) if top is not None else cwd
 
 
 def _git_common_dir(cwd: Path, project_root: Path) -> Path | None:
     common = _git(cwd, "rev-parse", "--path-format=absolute", "--git-common-dir")
-    if not common:
+    if common is None:
         return None
     common_path = Path(common)
     if common_path == project_root or project_root in common_path.parents:
@@ -139,7 +139,7 @@ def _readonly_token() -> str | None:
 def _ssh_agent_sock() -> Path | None:
     """Return the host SSH agent socket path, or None if unavailable."""
     sock = os.environ.get("SSH_AUTH_SOCK")
-    if not sock:
+    if not bool(sock):
         return None
     path = Path(sock)
     return path if path.exists() else None
@@ -187,7 +187,7 @@ def _sandbox_spec(
     (home / CACHE_REL).mkdir(parents=True, exist_ok=True)
     extra_env: dict[str, str] = {}
     token = _readonly_token()
-    if token:
+    if token is not None:
         extra_env["GH_TOKEN"] = token
     ssh_sock = _ssh_agent_sock() if ssh_agent else None
     gpg_sock = _gpg_agent_sock() if gpg_agent else None

@@ -19,7 +19,7 @@ class SessionClient(BaseClient):
         next_page_token = None
         while True:
             params: dict[str, Any] = {"pageSize": page_size}
-            if next_page_token:
+            if bool(next_page_token):
                 params["pageToken"] = next_page_token
 
             data = await self._get("/sessions", params=params)
@@ -29,7 +29,7 @@ class SessionClient(BaseClient):
                 yield session
 
             next_page_token = response.next_page_token
-            if not next_page_token:
+            if not bool(next_page_token):
                 break
 
     async def get_session(self, session_id: str) -> Session:

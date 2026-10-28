@@ -241,4 +241,4 @@ def fallback_vcs(payload: AgyPayload) -> VcsState | None:
 
 
 async def resolve_vcs(payload: AgyPayload) -> VcsState | None:
-    return await probe_git(payload.cwd) or fallback_vcs(payload) if payload.cwd else payload.vcs
+    return await probe_git(payload.cwd) or fallback_vcs(payload) if payload.cwd is not None else payload.vcs
