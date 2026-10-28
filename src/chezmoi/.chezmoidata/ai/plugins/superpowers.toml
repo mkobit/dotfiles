@@ -13,3 +13,7 @@ marketplace = "superpowers-marketplace"
 hosts = ["claude", "codex", "cursor"]
 external_source = "superpowers"
 package_path = "./plugins/superpowers"
+
+[ai.plugin_bridge.retired_plugins.superpowers]
+marketplace = "dotfiles"
+hosts = ["claude", "codex"]

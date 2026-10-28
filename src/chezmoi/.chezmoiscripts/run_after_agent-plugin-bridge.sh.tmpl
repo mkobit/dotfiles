@@ -5,7 +5,7 @@ set -eu
 {{- $bridge := fromJson (includeTemplate "ai/plugin-bridge" .) -}}
 {{- $chezmoi := dig "chezmoi" (dict) . -}}
 {{- $destination := dig "destDir" "." $chezmoi -}}
-{{- $registration := dict "environment" (dig "environment" "default" $bridge) "marketplaces" (dig "marketplaces" (dict) $bridge) "plugins" (dig "plugins" (dict) $bridge) "capabilities" (dig "capabilities" (dict) $bridge) -}}
+{{- $registration := dict "environment" (dig "environment" "default" $bridge) "marketplaces" (dig "marketplaces" (dict) $bridge) "plugins" (dig "plugins" (dict) $bridge) "capabilities" (dig "capabilities" (dict) $bridge) "retired_plugins" (dig "retired_plugins" (dict) $bridge) -}}
 {{- $payload := dict "plugin_bridge" $registration -}}
 
 destination={{ $destination | quote }}

@@ -1557,3 +1557,188 @@ def test_reconcile_standalone_without_site_packages(
         assert "invalid environment name" in result.stderr
     else:
         assert result.stderr == ""
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_retired_plugin_removes_unowned_exact_identity_and_retries(
+    tmp_path, monkeypatch, host
+):
+    installed = {"retired@old-market", "retired@new-market", "unrelated@old-market"}
+    unavailable = True
+    removals = []
+
+    def run(command, *args):
+        if unavailable:
+            raise plugin_bridge.HostUnavailableError(command)
+        if args[:2] == ("plugin", "list"):
+            if command == "claude":
+                return json.dumps(
+                    [{"id": name, "enabled": True} for name in sorted(installed)]
+                )
+            return "\n".join(f"{name} enabled" for name in sorted(installed))
+        if args[:2] in (("plugin", "uninstall"), ("plugin", "remove")):
+            removals.append(args[2])
+            installed.discard(args[2])
+            return ""
+        pytest.fail(f"unexpected host operation: {command} {args}")
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    declaration = {
+        "retired_plugins": {"retired": {"marketplace": "old-market", "hosts": [host]}}
+    }
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert installed == {
+        "retired@old-market",
+        "retired@new-market",
+        "unrelated@old-market",
+    }
+    unavailable = False
+    plugin_bridge.reconcile(tmp_path, declaration)
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert installed == {"retired@new-market", "unrelated@old-market"}
+    assert removals == ["retired@old-market"] * (2 if host == "codex" else 1)
+    assert (tmp_path / ".local/state/dotfiles/agent-plugin-ownership").read_text() == ""
+
+
+@pytest.mark.parametrize(
+    "retired",
+    [
+        [],
+        {"bad/name": {"marketplace": "old-market", "hosts": ["claude"]}},
+        {"retired": []},
+        {"retired": {"marketplace": "bad/name", "hosts": ["claude"]}},
+        {"retired": {"marketplace": "old-market"}},
+        {"retired": {"marketplace": "old-market", "hosts": []}},
+        {"retired": {"marketplace": "old-market", "hosts": "claude"}},
+        {"retired": {"marketplace": "old-market", "hosts": ["cursor"]}},
+        {"retired": {"marketplace": "old-market", "hosts": ["claude"], "extra": True}},
+    ],
+)
+def test_retired_plugin_rejects_invalid_declarations_before_mutation(
+    tmp_path, monkeypatch, retired
+):
+    monkeypatch.setattr(
+        plugin_bridge, "_run", lambda *args: pytest.fail("unexpected host operation")
+    )
+    with pytest.raises(plugin_bridge.BridgeError):
+        plugin_bridge.reconcile(tmp_path, {"retired_plugins": retired})
+    assert not (tmp_path / ".local").exists()
+
+
+@pytest.mark.parametrize("kind", ["plugins", "capabilities"])
+def test_retired_plugin_rejects_desired_identity_before_mutation(
+    tmp_path, monkeypatch, kind
+):
+    declaration = _valid_bridge()
+    name = "plugin" if kind == "plugins" else "capability"
+    declaration["plugin_bridge"]["retired_plugins"] = {
+        name: {"marketplace": "market", "hosts": ["claude"]}
+    }
+    monkeypatch.setattr(
+        plugin_bridge, "_run", lambda *args: pytest.fail("unexpected host operation")
+    )
+    with pytest.raises(plugin_bridge.BridgeError, match="desired and retired"):
+        plugin_bridge.reconcile(tmp_path, declaration)
+    assert not (tmp_path / ".local").exists()
+
+
+def test_retired_codex_plugin_removes_registration_absent_from_catalog(
+    tmp_path, monkeypatch
+):
+    registered = {"retired@old-market", "retired@new-market"}
+    removals = []
+
+    def run(host, *args):
+        if args[:2] == ("plugin", "list"):
+            return ""
+        if args[:2] == ("plugin", "remove"):
+            removals.append(args[2])
+            registered.discard(args[2])
+            return "Removed plugin"
+        pytest.fail(f"unexpected host operation: {host} {args}")
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    declaration = {
+        "retired_plugins": {
+            "retired": {"marketplace": "old-market", "hosts": ["codex"]}
+        }
+    }
+    plugin_bridge.reconcile(tmp_path, declaration)
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert registered == {"retired@new-market"}
+    assert removals == ["retired@old-market", "retired@old-market"]
+
+
+def test_retired_codex_plugin_propagates_removal_failure(tmp_path, monkeypatch):
+    def run(host, *args):
+        if args[:2] == ("plugin", "list"):
+            return ""
+        raise plugin_bridge.BridgeError("removal failed")
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    declaration = {
+        "retired_plugins": {
+            "retired": {"marketplace": "old-market", "hosts": ["codex"]}
+        }
+    }
+    with pytest.raises(plugin_bridge.BridgeError, match="removal failed"):
+        plugin_bridge.reconcile(tmp_path, declaration)
+
+
+def test_retired_codex_plugin_removes_registration_without_marketplace(
+    tmp_path, monkeypatch
+):
+    registered = {"retired@removed-market"}
+
+    def run(host, *args):
+        if args == ("plugin", "remove", "retired@removed-market"):
+            registered.discard(args[2])
+            return "Removed plugin"
+        raise plugin_bridge.BridgeError("marketplace is unavailable")
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    declaration = {
+        "retired_plugins": {
+            "retired": {"marketplace": "removed-market", "hosts": ["codex"]}
+        }
+    }
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert registered == set()
+
+
+@pytest.mark.parametrize("initially_unavailable", [False, True])
+def test_retired_codex_plugin_clears_owned_registration_without_marketplace(
+    tmp_path, monkeypatch, initially_unavailable
+):
+    ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+    ownership.parent.mkdir(parents=True)
+    record = "plugin\tcodex\tremoved-market\tretired\n"
+    ownership.write_text(record)
+    registered = {"retired@removed-market"}
+    unavailable = initially_unavailable
+    removals = []
+
+    def run(host, *args):
+        if unavailable:
+            raise plugin_bridge.HostUnavailableError(host)
+        if args == ("plugin", "remove", "retired@removed-market"):
+            registered.discard(args[2])
+            removals.append(args[2])
+            return "Removed plugin"
+        raise plugin_bridge.BridgeError("marketplace is unavailable")
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    declaration = {
+        "retired_plugins": {
+            "retired": {"marketplace": "removed-market", "hosts": ["codex"]}
+        }
+    }
+    if unavailable:
+        plugin_bridge.reconcile(tmp_path, declaration)
+        assert ownership.read_text() == record
+        assert registered == {"retired@removed-market"}
+        unavailable = False
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert registered == set()
+    assert ownership.read_text() == ""
+    assert removals == ["retired@removed-market"]

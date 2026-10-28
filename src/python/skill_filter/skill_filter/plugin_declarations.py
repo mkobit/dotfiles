@@ -133,6 +133,26 @@ def _validate_plugins(
         _validate_order(raw_definition, 200, f"{kind}.{name}")
 
 
+def _retired_plugin_rows(
+    declarations: Mapping[str, object],
+) -> list[tuple[str, str, str]]:
+    rows = []
+    for raw_name, definition in declarations.items():
+        name = _validate_name(raw_name, "retired plugin")
+        if not isinstance(definition, Mapping):
+            raise BridgeError(f"retired_plugins.{name} must be a table")
+        if set(definition) != {"marketplace", "hosts"}:
+            raise BridgeError(
+                f"retired_plugins.{name} requires only marketplace and hosts"
+            )
+        marketplace = _validate_name(definition["marketplace"], "marketplace")
+        hosts = _validate_hosts(definition["hosts"], f"retired_plugins.{name}")
+        if not hosts or set(hosts) - _NATIVE_HOSTS:
+            raise BridgeError(f"retired_plugins.{name} requires native hosts")
+        rows.extend((name, host, marketplace) for host in hosts)
+    return sorted(rows)
+
+
 def _validate_bridge_declaration(declaration: object) -> None:
     if not isinstance(declaration, Mapping):
         raise BridgeError("plugin bridge declaration must be a table")
@@ -141,16 +161,27 @@ def _validate_bridge_declaration(declaration: object) -> None:
         raise BridgeError("ai.plugin_bridge must be a table")
     environment = raw_bridge.get("environment", "default")
     _validate_name(environment, "environment")
-    marketplaces, plugins, capabilities = (
-        raw_bridge.get(key, {}) for key in ("marketplaces", "plugins", "capabilities")
+    marketplaces, plugins, capabilities, retired_plugins = (
+        raw_bridge.get(key, {})
+        for key in ("marketplaces", "plugins", "capabilities", "retired_plugins")
     )
     if not all(
-        isinstance(value, Mapping) for value in (marketplaces, plugins, capabilities)
+        isinstance(value, Mapping)
+        for value in (marketplaces, plugins, capabilities, retired_plugins)
     ):
         raise BridgeError("ai.plugin_bridge declarations must be tables")
     _validate_marketplaces(marketplaces)
     _validate_plugins("plugins", plugins, marketplaces)
     _validate_plugins("capabilities", capabilities, marketplaces)
+    retired = set(_retired_plugin_rows(retired_plugins))
+    for kind, declarations in (("plugins", plugins), ("capabilities", capabilities)):
+        for _, name, host, marketplace in _plugin_rows(
+            kind, declarations, marketplaces, environment
+        ):
+            if (name, host, marketplace) in retired:
+                raise BridgeError(
+                    f"plugin is both desired and retired: {name}@{marketplace} ({host})"
+                )
 
 
 def _native_hosts(raw: object) -> tuple[str, ...]:

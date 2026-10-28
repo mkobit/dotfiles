@@ -21,6 +21,7 @@ if TYPE_CHECKING or bool(__package__):
         BridgeError,
         _marketplace_rows,
         _plugin_rows,
+        _retired_plugin_rows,
         _validate_bridge_declaration,
     )
 else:
@@ -29,6 +30,7 @@ else:
         BridgeError,
         _marketplace_rows,
         _plugin_rows,
+        _retired_plugin_rows,
         _validate_bridge_declaration,
     )
 
@@ -522,29 +524,26 @@ def _ensure_plugin(
     _checkpoint(ownership_file, record)
 
 
-def _remove_stale_record(kind: str, host: str, marketplace: str, plugin: str) -> None:
-    try:
-        if kind == "plugin":
-            if _plugin_present(host, marketplace, plugin):
-                _run(
-                    host,
-                    "plugin",
-                    "uninstall" if host == "claude" else "remove",
-                    f"{plugin}@{marketplace}",
-                )
-                if _plugin_present(host, marketplace, plugin):
-                    raise BridgeError(
-                        f"plugin did not disappear: {plugin}@{marketplace}"
-                    )
-            return
-        if kind != "marketplace":
-            return
-        if _marketplace_present(host, marketplace):
-            _run(host, "plugin", "marketplace", "remove", marketplace)
-            if _marketplace_present(host, marketplace):
-                raise BridgeError(f"marketplace did not disappear: {marketplace}")
-    except HostUnavailableError:
+def _remove_stale_record(
+    kind: str, host: str, marketplace: str, plugin: str, *, force_plugin: bool = False
+) -> None:
+    if kind == "plugin":
+        if force_plugin or _plugin_present(host, marketplace, plugin):
+            _run(
+                host,
+                "plugin",
+                "uninstall" if host == "claude" else "remove",
+                f"{plugin}@{marketplace}",
+            )
+            if not force_plugin and _plugin_present(host, marketplace, plugin):
+                raise BridgeError(f"plugin did not disappear: {plugin}@{marketplace}")
         return
+    if kind != "marketplace":
+        return
+    if _marketplace_present(host, marketplace):
+        _run(host, "plugin", "marketplace", "remove", marketplace)
+        if _marketplace_present(host, marketplace):
+            raise BridgeError(f"marketplace did not disappear: {marketplace}")
 
 
 def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
@@ -635,6 +634,23 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
                 )
             except HostUnavailableError:
                 unavailable_hosts.add(host)
+    for name, host, marketplace in _retired_plugin_rows(
+        raw_bridge.get("retired_plugins", {})
+    ):
+        if host in unavailable_hosts:
+            continue
+        try:
+            # Codex lists marketplace entries, which can omit retired registrations.
+            _remove_stale_record(
+                "plugin", host, marketplace, name, force_plugin=host == "codex"
+            )
+        except HostUnavailableError:
+            unavailable_hosts.add(host)
+            continue
+        record = _identity("plugin", host, marketplace, name)
+        if record in previous:
+            previous.discard(record)
+            _write_ownership(ownership_file, previous | owned_desired)
     for record in sorted(
         previous - desired, key=lambda value: (value.split("\t")[0] != "plugin", value)
     ):
