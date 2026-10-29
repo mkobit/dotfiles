@@ -52,6 +52,11 @@ Keep kit commands reproducible from repository-tracked toolchain files.
 
 ## Lifecycle
 
+Use the approved task authority for needed task-specific setup without another confirmation solely for setup.
+Keep actual platform permissions in effect and do not perform unrelated destructive changes.
+The host coordinator selects or creates the feature branch and worktree before guest delegation.
+Assign one writer to each checkout and verify its mount before launch.
+
 Use this procedure only when the environment is missing or its configuration changed.
 For an existing environment with unchanged configuration, dispatch directly with `sbx env exec`.
 
@@ -63,7 +68,7 @@ sbx kit validate .sbx/kit
 sbx env plan .sbx/sbxenv.yaml
 ```
 
-Create a missing environment with `sbx env create .sbx/sbxenv.yaml` when authorized.
+Create a missing environment with `sbx env create .sbx/sbxenv.yaml` when the approved task needs it.
 For changed configuration, use the plan to identify the required update or rebuild.
 Keep authorized environment removal separate from task execution.
 

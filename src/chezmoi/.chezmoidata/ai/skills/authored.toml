@@ -4,6 +4,7 @@
 beads = "present"
 docker-sandboxes = "absent"
 sbx-sandboxes = "present"
+sbx-orchestrator = "present"
 example_skill = "absent"
 modern-java-patterns = "present"
 pr-reviewer = "absent" # source deleted 2026-06-11; replaced by superpowers requesting/receiving-code-review
