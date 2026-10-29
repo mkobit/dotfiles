@@ -11,7 +11,7 @@ Task: <bounded goal and acceptance criteria>
 Host workspace: <assigned worktree, branch, base revision, and ownership evidence>
 Baseline: <recorded revision and initial dirty, untracked, and relevant diff evidence>
 Durable host record: <task-specific persistent path and discoverable pointer in the calling workflow>
-Environment: <existing environment path and recorded effective sandbox name, including any override>
+Environment: <recorded effective sandbox name, including any override; environment path when used, otherwise none>
 Guest context: <verified absolute workdir, agent executable, required tool versions, and evidence reference>
 Harness and model: <repository-supported harness and selected model if supported>
 Guest prompt: <complete attached guest task prompt with owned paths and checks>
