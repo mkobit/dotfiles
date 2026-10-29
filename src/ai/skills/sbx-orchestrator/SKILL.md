@@ -28,7 +28,8 @@ Respect explicit command-only requests and narrower user scope.
 Use direct SBX commands for probes and command-only work, not as a substitute for a requested coding worker.
 
 The host coordinator owns task selection, branch management, credentials, review, commits, signing, and publication.
-A native host subagent uses host tools to launch a separate guest coding harness.
+When available, a native host subagent uses host tools to launch a separate guest coding harness.
+When no native subagent tool is available, the root coordinator may perform the host supervisor contract directly.
 Its tools do not move into the guest.
 The guest edits, checks, and repairs the assigned files directly in its workspace.
 Task authorization permits this loop without routine nested approval requests.

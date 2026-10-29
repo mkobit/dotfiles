@@ -1,8 +1,8 @@
 # Host supervisor contract
 
-Use this template for a native host subagent that supervises one guest coding worker.
+Use this template for a native host subagent or the root coordinator when no native subagent tool is available.
 Fill every field from the authorized task and attach a separate complete [guest prompt](subagent-task.md).
-The host subagent remains on the host and uses host tools to launch the guest harness.
+The supervisor remains on the host and uses host tools to launch the guest harness.
 Do not send this host contract as the guest task prompt.
 
 ```text
@@ -11,7 +11,7 @@ Task: <bounded goal and acceptance criteria>
 Host workspace: <assigned worktree, branch, base revision, and ownership evidence>
 Baseline: <recorded revision and initial dirty, untracked, and relevant diff evidence>
 Durable host record: <task-specific persistent path and discoverable pointer in the calling workflow>
-Environment: <existing environment path or sandbox name>
+Environment: <existing environment path and recorded effective sandbox name, including any override>
 Guest context: <verified absolute workdir, agent executable, required tool versions, and evidence reference>
 Harness and model: <repository-supported harness and selected model if supported>
 Guest prompt: <complete attached guest task prompt with owned paths and checks>

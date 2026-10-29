@@ -24,6 +24,8 @@ Save the complete prompt, baseline, and launch context in the [durable host reco
 
 Run this launcher on the host, not in the guest.
 Set the environment path, guest executable, and absolute workdir from verified evidence.
+Set `SBX_SANDBOX_NAME` to the recorded effective sandbox name, including any override used for parallel workers.
+Use that same name on every environment command rather than falling back to the configured or derived default.
 Set the selected model and the complete [guest task prompt](subagent-task.md).
 Set `SBX_TASK_LOG` to a host log path whose parent exists.
 The guest report path is separate; a host log path is not a guest mount unless verified.
@@ -34,12 +36,13 @@ Omit the flag when the guest has valid Git metadata and the check is appropriate
 
 ```sh
 environment="${SBX_ENVIRONMENT:?Set SBX_ENVIRONMENT to the selected environment path}"
+sandbox_name="${SBX_SANDBOX_NAME:?Set SBX_SANDBOX_NAME to the recorded effective sandbox name}"
 agent_executable="${CODEX_EXECUTABLE:?Set CODEX_EXECUTABLE to the verified guest executable}"
 guest_workdir="${SBX_GUEST_WORKDIR:?Set SBX_GUEST_WORKDIR to the verified guest workdir}"
 model="${CODEX_MODEL:?Set CODEX_MODEL to the selected task model}"
 prompt="${SBX_TASK_PROMPT:?Set SBX_TASK_PROMPT to the implementation task}"
 task_log="${SBX_TASK_LOG:?Set SBX_TASK_LOG to the host log path}"
-if sbx env exec "$environment" -- sh -c \
+if sbx env exec --name "$sandbox_name" "$environment" -- sh -c \
   'cd "$2" && exec "$1" exec --model "$3" --disable hooks --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check "$4" </dev/null' \
   sbx-codex "$agent_executable" "$guest_workdir" "$model" "$prompt" >"$task_log" 2>&1; then
   status=0
@@ -63,18 +66,20 @@ For host approval boundaries, read [permissions](../../sbx-sandboxes/references/
 First load the durable record and complete the ownership and source checks in [recovery](recovery.md).
 Confirm that the previous writer and child checks stopped before invoking resume.
 Use the recorded session ID, not an unverified most-recent session.
+Set `SBX_SANDBOX_NAME` to the same recorded effective sandbox name used at launch, including any override.
 Set a new host log path so previous evidence is not overwritten.
 Keep the recorded model unless a model change is explicitly authorized.
 
 ```sh
 environment="${SBX_ENVIRONMENT:?Set SBX_ENVIRONMENT to the verified environment path}"
+sandbox_name="${SBX_SANDBOX_NAME:?Set SBX_SANDBOX_NAME to the recorded effective sandbox name}"
 agent_executable="${CODEX_EXECUTABLE:?Set CODEX_EXECUTABLE to the verified guest executable}"
 guest_workdir="${SBX_GUEST_WORKDIR:?Set SBX_GUEST_WORKDIR to the verified guest workdir}"
 model="${CODEX_MODEL:?Set CODEX_MODEL to the recorded task model}"
 prompt="${SBX_TASK_PROMPT:?Set SBX_TASK_PROMPT to the reconciled continuation task}"
 session_id="${SBX_SESSION_ID:?Set SBX_SESSION_ID to the recorded guest session}"
 task_log="${SBX_TASK_LOG:?Set SBX_TASK_LOG to a new host log path}"
-if sbx env exec "$environment" -- sh -c \
+if sbx env exec --name "$sandbox_name" "$environment" -- sh -c \
   'cd "$2" && exec "$1" exec resume --model "$3" --disable hooks --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check "$5" "$4" </dev/null' \
   sbx-codex "$agent_executable" "$guest_workdir" "$model" "$prompt" "$session_id" >"$task_log" 2>&1; then
   status=0

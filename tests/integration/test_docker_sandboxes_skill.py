@@ -187,8 +187,10 @@ def test_codex_launcher_preserves_guest_arguments_logs_and_exit_code(
     fake_sbx.write_text(
         f"#!{sys.executable}\n"
         "import os, sys\n"
-        'assert sys.argv[1:5] == ["env", "exec", os.environ["SBX_ENVIRONMENT"], "--"]\n'
-        "os.execvpe(sys.argv[5], sys.argv[5:], os.environ)\n"
+        'assert sys.argv[1:7] == ["env", "exec", "--name", os.environ["SBX_SANDBOX_NAME"], '
+        'os.environ["SBX_ENVIRONMENT"], "--"]\n'
+        'os.environ["SBX_CAPTURED_SANDBOX_NAME"] = sys.argv[4]\n'
+        "os.execvpe(sys.argv[7], sys.argv[7:], os.environ)\n"
     )
     fake_sbx.chmod(0o755)
     guest = tmp_path / "guest workspace 'quoted'"
@@ -199,6 +201,7 @@ def test_codex_launcher_preserves_guest_arguments_logs_and_exit_code(
         "import json, os, sys\n"
         "from pathlib import Path\n"
         'Path(os.environ["SBX_CAPTURE"]).write_text(json.dumps({"argv": sys.argv[1:], '
+        '"sandbox_name": os.environ["SBX_CAPTURED_SANDBOX_NAME"], '
         '"workdir": str(Path.cwd()), "stdin": sys.stdin.read()}))\n'
         'print("guest stdout")\n'
         'print("guest stderr", file=sys.stderr)\n'
@@ -217,6 +220,7 @@ def test_codex_launcher_preserves_guest_arguments_logs_and_exit_code(
             **os.environ,
             "PATH": f"{tools}{os.pathsep}{os.environ['PATH']}",
             "SBX_ENVIRONMENT": "/project with spaces/.sbx/custom.yaml",
+            "SBX_SANDBOX_NAME": "parallel-worker-override",
             "CODEX_EXECUTABLE": str(executable),
             "SBX_GUEST_WORKDIR": str(guest),
             "CODEX_MODEL": model,
@@ -247,11 +251,34 @@ def test_codex_launcher_preserves_guest_arguments_logs_and_exit_code(
             *([session_id] if resume else []),
             prompt,
         ],
+        "sandbox_name": "parallel-worker-override",
         "workdir": str(guest),
         "stdin": "",
     }
     assert not marker.exists()
     assert set(log.read_text().splitlines()) == {"guest stderr", "guest stdout"}
+
+
+@pytest.mark.parametrize("sandbox_name", [None, ""], ids=["missing", "empty"])
+@pytest.mark.parametrize("resume", [False, True], ids=["launch", "resume"])
+def test_codex_launcher_requires_effective_sandbox_name(sandbox_name: str | None, resume: bool) -> None:
+    """Reject an absent effective name before attempting a guest launch."""
+    document = (ORCHESTRATOR_DIR / "references/worker-launch.md").read_text(encoding="utf-8")
+    launchers = re.findall(r"```sh\n(.*?)\n```", document, re.DOTALL)
+    environment = {key: value for key, value in os.environ.items() if key != "SBX_SANDBOX_NAME"}
+    environment["SBX_ENVIRONMENT"] = "/project with spaces/.sbx/custom.yaml"
+    if sandbox_name is not None:
+        environment["SBX_SANDBOX_NAME"] = sandbox_name
+    result = subprocess.run(
+        ["sh", "-eu", "-c", launchers[int(resume)]],
+        env=environment,
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode != 0
+    assert "SBX_SANDBOX_NAME: Set SBX_SANDBOX_NAME to the recorded effective sandbox name" in result.stderr
 
 
 def test_skill_ships_direct_mounted_project_environment_templates():
