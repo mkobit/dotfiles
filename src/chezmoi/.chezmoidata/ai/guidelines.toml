@@ -7,7 +7,8 @@ content = """
 ## Writing style
 - Only speak to me in ASD-STE100 Simplified Technical English.
 - Use sentence case in all authored files, including documentation and agent notes, and in headings, commits, PR titles, and UI labels.
-- Prose, documentation, and agent notes: one sentence per line; PR bodies use paragraphs with one space between sentences.
+- Documentation source files and agent notes: one sentence per line.
+- Generated prose, scorecards, summaries, and message/PR bodies: one physical line per paragraph or bullet, with one space between sentences.
 - Codify tools, commands, and syntax with target output markup.
 - Source links (docs, code, issues) in PR descriptions, Slack drafts, and research summaries.
 - Slack, email, and Jira message bodies: lowercase except proper nouns; PR bodies use sentence case.
