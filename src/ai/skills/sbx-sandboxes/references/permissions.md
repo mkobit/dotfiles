@@ -3,6 +3,9 @@
 Task authorization defines the permitted work.
 Platform approval defines whether a command can run outside the current sandbox.
 A runtime failure does not grant new authority.
+Reuse approved task authority for routine edits, checks, repairs, and needed task-specific worktree or environment setup.
+Do not request another confirmation solely because the task needs setup.
+Ask only for missing task authority, actual platform permission, unavailable credential action, scope expansion, or a destructive unrelated change.
 
 ## Standard skill grants
 
@@ -26,8 +29,9 @@ They also cover exec options such as user, workdir, and environment input; use o
 Review the selected environment and task scope before execution.
 A path pattern does not freeze the contents of an environment file.
 
-Lifecycle changes, credential changes, diagnostic upload, sandbox removal, and publication require their own task authority and platform approval.
-A command grant does not authorize those actions.
+Needed task-specific lifecycle setup can use the existing approved task authority.
+Credential changes, diagnostic upload, unrelated removal, and publication are not implied by permission to implement a task.
+A command grant does not expand task authority or bypass an actual platform restriction.
 Help with `--help` displays usage; it does not grant execution of the underlying operation.
 
 ## Host support
@@ -52,4 +56,5 @@ A login service error can come from restricted access.
 Once host-service restrictions are confirmed, use the required platform access for later `sbx` commands; the CLI is a host client, and workloads still run in SBX.
 Use [Authentication](authentication.md) to distinguish these failures from expired sessions and sign-in failures.
 Request only the reusable command head needed by the task; never the whole `sbx` prefix.
+Where supported, use a narrow reusable `sbx env exec` or `sbx exec` prefix for the assigned environment.
 Preserve each failed exit code and report which checks ran in SBX, on the host, or remain blocked.

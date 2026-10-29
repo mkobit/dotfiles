@@ -1,11 +1,17 @@
 import fnmatch
+import json
+import os
+import re
 import shutil
+import subprocess
+import sys
 import tomllib
 from pathlib import Path
 
 import pytest
 import yaml
 from test_ai_skills import (
+    AUTHORED_SKILL_ROOTS,
     CAPABILITY_AUTHORED_SKILL_ROOTS,
     _apply_authored_cleanup,
     _initialize_authored_cleanup_source,
@@ -16,6 +22,23 @@ SKILL_DIR = REPO_ROOT / "src" / "ai" / "skills" / "sbx-sandboxes"
 SKILL_FILE = SKILL_DIR / "SKILL.md"
 REFERENCES_DIR = SKILL_DIR / "references"
 TEMPLATES_DIR = SKILL_DIR / "templates"
+ORCHESTRATOR_DIR = SKILL_DIR.with_name("sbx-orchestrator")
+MOVED_REFERENCES = ("subagent-task.md", "nested-execution.md")
+
+
+def _assert_deployed_skill_trees(destination: Path) -> None:
+    for root in AUTHORED_SKILL_ROOTS.values():
+        for skill_dir in (SKILL_DIR, ORCHESTRATOR_DIR):
+            deployed = destination / root / skill_dir.name
+            expected = {
+                path.relative_to(skill_dir): path.read_bytes() for path in skill_dir.rglob("*") if path.is_file()
+            }
+            actual = {path.relative_to(deployed): path.read_bytes() for path in deployed.rglob("*") if path.is_file()}
+            assert actual == expected
+            assert not any(path.is_symlink() for path in deployed.rglob("*"))
+        for name in MOVED_REFERENCES:
+            assert not (destination / root / "sbx-sandboxes/references" / name).exists()
+            assert (destination / root / "sbx-orchestrator/references" / name).is_file()
 
 
 @pytest.mark.parametrize(
@@ -41,9 +64,10 @@ TEMPLATES_DIR = SKILL_DIR / "templates"
         "sbx exec routine-flow-agy agy --help",
     ],
 )
-def test_skill_grants_execution_and_discovery(command: str) -> None:
+@pytest.mark.parametrize("skill_dir", [SKILL_DIR, ORCHESTRATOR_DIR], ids=["sandboxes", "orchestrator"])
+def test_skill_grants_execution_and_discovery(command: str, skill_dir: Path) -> None:
     """Cover discovery and guest execution patterns in the package metadata."""
-    metadata = yaml.safe_load(SKILL_FILE.read_text(encoding="utf-8").split("---", 2)[1])
+    metadata = yaml.safe_load((skill_dir / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1])
     patterns = [entry.removeprefix("Bash(").removesuffix(")") for entry in metadata["allowed-tools"]]
     assert any(fnmatch.fnmatchcase(command, pattern) for pattern in patterns)
 
@@ -59,21 +83,28 @@ def test_skill_grants_execution_and_discovery(command: str) -> None:
         "sbx env create environment.yaml",
     ],
 )
-def test_skill_does_not_grant_lifecycle_or_upload(command: str) -> None:
+@pytest.mark.parametrize("skill_dir", [SKILL_DIR, ORCHESTRATOR_DIR], ids=["sandboxes", "orchestrator"])
+def test_skill_does_not_grant_lifecycle_or_upload(command: str, skill_dir: Path) -> None:
     """Keep lifecycle changes and report uploads outside the grants."""
-    metadata = yaml.safe_load(SKILL_FILE.read_text(encoding="utf-8").split("---", 2)[1])
+    metadata = yaml.safe_load((skill_dir / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1])
     patterns = [entry.removeprefix("Bash(").removesuffix(")") for entry in metadata["allowed-tools"]]
     assert not any(fnmatch.fnmatchcase(command, pattern) for pattern in patterns)
 
 
-def test_renamed_skill_deploys_and_removes_old_copies(tmp_path: Path) -> None:
-    """Deploy the renamed package and remove only retired skill copies."""
+@pytest.mark.parametrize("installed_old_skill", [False, True], ids=["fresh", "upgrade"])
+def test_split_skills_deploy_and_remove_old_copies(tmp_path: Path, installed_old_skill: bool) -> None:
+    """Deploy both complete trees and remove retired files without changing other packages."""
     source, destination = tmp_path / "source", tmp_path / "destination"
     destination.mkdir()
     _initialize_authored_cleanup_source(source, include_external=True)
     catalog = tomllib.loads((REPO_ROOT / "src/chezmoi/.chezmoidata/ai/skills/authored.toml").read_text())
-    selected = {name: catalog["ai"]["skills"]["authored"][name] for name in ("docker-sandboxes", "sbx-sandboxes")}
-    shutil.copytree(SKILL_DIR, source / "src/ai/skills/sbx-sandboxes")
+    selected = {
+        name: catalog["ai"]["skills"]["authored"][name]
+        for name in ("docker-sandboxes", "sbx-sandboxes", "sbx-orchestrator")
+    }
+    assert selected == {"docker-sandboxes": "absent", "sbx-sandboxes": "present", "sbx-orchestrator": "present"}
+    for skill_dir in (SKILL_DIR, ORCHESTRATOR_DIR):
+        shutil.copytree(skill_dir, source / "src/ai/skills" / skill_dir.name)
     direct_roots = (".claude/skills", ".codex/skills", ".cursor/skills", ".gemini/antigravity-cli/skills")
     for root in (*CAPABILITY_AUTHORED_SKILL_ROOTS.values(), *direct_roots):
         old = destination / root / "docker-sandboxes/SKILL.md"
@@ -95,11 +126,28 @@ def test_renamed_skill_deploys_and_removes_old_copies(tmp_path: Path) -> None:
             source / "src/chezmoi" / target / ".chezmoiremove.tmpl",
         )
     config = tmp_path / "chezmoi.toml"
-    config.write_text(
-        "[data.ai.skills.authored]\n"
-        + "".join(f'{name} = "{state}"\n' for name, state in selected.items())
-        + '\n[data.ai.skills.external]\n[data.ai.agents.external]\n[data.local.bin.agy]\ninstallation_method = "system"\n'
-    )
+
+    def write_config(states: dict[str, str]) -> None:
+        config.write_text(
+            "[data.ai.skills.authored]\n"
+            + "".join(f'{name} = "{state}"\n' for name, state in states.items())
+            + '\n[data.ai.skills.external]\n[data.ai.agents.external]\n[data.local.bin.agy]\ninstallation_method = "system"\n'
+        )
+
+    if installed_old_skill:
+        old_references = source / "src/ai/skills/sbx-sandboxes/references"
+        for name in MOVED_REFERENCES:
+            shutil.copy2(ORCHESTRATOR_DIR / "references" / name, old_references / name)
+        write_config({**selected, "sbx-orchestrator": "absent"})
+        initial = _apply_authored_cleanup(source, destination, config)
+        assert initial.returncode == 0, initial.stderr
+        for root in AUTHORED_SKILL_ROOTS.values():
+            for name in MOVED_REFERENCES:
+                assert (destination / root / "sbx-sandboxes/references" / name).is_file()
+        for name in MOVED_REFERENCES:
+            (old_references / name).unlink()
+
+    write_config(selected)
     result = _apply_authored_cleanup(source, destination, config)
     assert result.returncode == 0, result.stderr
     for root in (*CAPABILITY_AUTHORED_SKILL_ROOTS.values(), *direct_roots):
@@ -109,37 +157,101 @@ def test_renamed_skill_deploys_and_removes_old_copies(tmp_path: Path) -> None:
         assert not (cache / "mkobit-dotfiles/1.0.0/skills/docker-sandboxes").exists()
         assert (cache / "mkobit-dotfiles/1.0.0/skills/other-skill/SKILL.md").is_file()
         assert (cache / "other-plugin/1.0.0/skills/docker-sandboxes/SKILL.md").is_file()
-    for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values():
-        deployed = destination / root / "sbx-sandboxes"
-        assert (deployed / "SKILL.md").read_bytes() == SKILL_FILE.read_bytes()
-        assert (deployed / "references/subagent-task.md").is_file()
+    _assert_deployed_skill_trees(destination)
 
 
-def test_skill_describes_host_coordinated_repository_sandboxes():
-    """Keep host coordination and repository ownership explicit."""
-    skill = SKILL_FILE.read_text(encoding="utf-8")
+@pytest.mark.parametrize("skill_dir", [SKILL_DIR, ORCHESTRATOR_DIR], ids=["sandboxes", "orchestrator"])
+def test_skill_local_links_resolve_in_the_deployed_pair(skill_dir: Path) -> None:
+    """Resolve reference links within the pair that is copied to each skill root."""
+    for document in skill_dir.rglob("*.md"):
+        for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", document.read_text(encoding="utf-8")):
+            if "://" in target or target.startswith("#"):
+                continue
+            resolved = (document.parent / target.split("#", 1)[0]).resolve()
+            assert resolved.is_file(), f"Broken link in {document}: {target}"
+            assert resolved.is_relative_to(SKILL_DIR) or resolved.is_relative_to(ORCHESTRATOR_DIR)
 
-    for required in (
-        "sbx",
-        "repository-owned",
-        "clone: false",
-        "immediately visible",
-        "commits, signing, and pushes",
-        "private clone",
-        "references/repository-setup.md",
-        "references/environment-files.md",
-        "references/agents.md",
-        "references/nested-execution.md",
-    ):
-        assert required in skill, f"Missing {required!r} in {SKILL_FILE}"
 
-    setup_file = REFERENCES_DIR / "repository-setup.md"
-    setup = setup_file.read_text(encoding="utf-8")
-    for required in (
-        "sbx env create .sbx/sbxenv.yaml",
-        "Remove the environment only when authorized",
-    ):
-        assert required in setup, f"Missing {required!r} in {setup_file}"
+@pytest.mark.parametrize("worker_exit_code", [0, 23], ids=["success", "failure"])
+@pytest.mark.parametrize("resume", [False, True], ids=["launch", "resume"])
+def test_codex_launcher_preserves_guest_arguments_logs_and_exit_code(
+    tmp_path: Path, worker_exit_code: int, resume: bool
+) -> None:
+    """Run the documented shell with fake SBX and Codex processes, not a live sandbox."""
+    document = (ORCHESTRATOR_DIR / "references/worker-launch.md").read_text(encoding="utf-8")
+    launchers = re.findall(r"```sh\n(.*?)\n```", document, re.DOTALL)
+    assert len(launchers) == 2
+    tools = tmp_path / "host tools"
+    tools.mkdir()
+    fake_sbx = tools / "sbx"
+    fake_sbx.write_text(
+        f"#!{sys.executable}\n"
+        "import os, sys\n"
+        'assert sys.argv[1:5] == ["env", "exec", os.environ["SBX_ENVIRONMENT"], "--"]\n'
+        "os.execvpe(sys.argv[5], sys.argv[5:], os.environ)\n"
+    )
+    fake_sbx.chmod(0o755)
+    guest = tmp_path / "guest workspace 'quoted'"
+    guest.mkdir()
+    executable = guest / "guest codex"
+    executable.write_text(
+        f"#!{sys.executable}\n"
+        "import json, os, sys\n"
+        "from pathlib import Path\n"
+        'Path(os.environ["SBX_CAPTURE"]).write_text(json.dumps({"argv": sys.argv[1:], '
+        '"workdir": str(Path.cwd()), "stdin": sys.stdin.read()}))\n'
+        'print("guest stdout")\n'
+        'print("guest stderr", file=sys.stderr)\n'
+        'sys.exit(int(os.environ["SBX_WORKER_EXIT_CODE"]))\n'
+    )
+    executable.chmod(0o755)
+    capture = tmp_path / "captured.json"
+    log = tmp_path / "host log.txt"
+    marker = tmp_path / "must-not-exist"
+    prompt = f"Keep 'quotes', \"double quotes\", $variables, and newlines.\n$(touch {marker}); exit 91"
+    model = "model 'literal' $variable"
+    session_id = f"session 'literal' $(touch {marker})"
+    result = subprocess.run(
+        ["sh", "-eu", "-c", launchers[int(resume)]],
+        env={
+            **os.environ,
+            "PATH": f"{tools}{os.pathsep}{os.environ['PATH']}",
+            "SBX_ENVIRONMENT": "/project with spaces/.sbx/custom.yaml",
+            "CODEX_EXECUTABLE": str(executable),
+            "SBX_GUEST_WORKDIR": str(guest),
+            "CODEX_MODEL": model,
+            "SBX_TASK_PROMPT": prompt,
+            "SBX_TASK_LOG": str(log),
+            "SBX_SESSION_ID": session_id,
+            "SBX_CAPTURE": str(capture),
+            "SBX_WORKER_EXIT_CODE": str(worker_exit_code),
+        },
+        input="Host stdin must not reach the guest.\n",
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=10,
+    )
+    assert result.returncode == worker_exit_code, result.stderr
+    evidence = json.loads(capture.read_text())
+    assert evidence == {
+        "argv": [
+            "exec",
+            *(["resume"] if resume else []),
+            "--model",
+            model,
+            "--disable",
+            "hooks",
+            "--dangerously-bypass-approvals-and-sandbox",
+            "--skip-git-repo-check",
+            *([session_id] if resume else []),
+            prompt,
+        ],
+        "workdir": str(guest),
+        "stdin": "",
+    }
+    assert not marker.exists()
+    assert set(log.read_text().splitlines()) == {"guest stderr", "guest stdout"}
 
 
 def test_skill_ships_direct_mounted_project_environment_templates():
@@ -189,7 +301,8 @@ def test_skill_documents_the_confirmation_gated_agy_kit_allowlist_prerequisite()
         assert required in agents
 
 
-def test_skill_has_no_host_managed_guest_customization_paths():
+@pytest.mark.parametrize("skill_dir", [SKILL_DIR, ORCHESTRATOR_DIR], ids=["sandboxes", "orchestrator"])
+def test_skill_has_no_host_managed_guest_customization_paths(skill_dir: Path):
     """Keep guest contents wholly owned by the consuming repository."""
     prohibited = (
         "optional-host-overlays",
@@ -202,7 +315,7 @@ def test_skill_has_no_host_managed_guest_customization_paths():
         "sbx.personal",
     )
 
-    for path in SKILL_DIR.rglob("*"):
+    for path in skill_dir.rglob("*"):
         if path.is_file():
             content = path.read_text(encoding="utf-8")
             for phrase in prohibited:
