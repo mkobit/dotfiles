@@ -33,21 +33,9 @@ def test_zsh_initialization(host):
     # configuration errors. rc may be non-zero for the same reason (e.g. a shell
     # init snippet whose last statement is an `if [[ -o zle ]]` block that is
     # skipped without a terminal).
-    known_benign_warnings = [
-        "not interactive and can't open terminal",
-        "compinit: initialization aborted",
-        "inappropriate ioctl for device",
-        "zsh: command not found: compdef",
-        "can't change option: zle",
-        "stty: 'standard input'",
-        "(eval):1:",
-        "(eval):2:",
-        "not a tty",
-        "no job control in this shell",
-    ]
     stderr_lower = result.stderr.lower()
-    for warning in known_benign_warnings:
-        stderr_lower = stderr_lower.replace(warning.lower(), "")
+    for warning in KNOWN_BENIGN_ZSH_WARNINGS:
+        stderr_lower = stderr_lower.replace(warning, "")
 
     if (
         "error" in stderr_lower
@@ -56,3 +44,32 @@ def test_zsh_initialization(host):
         or "unknown command or service" in stderr_lower
     ):
         pytest.fail(f"Potential errors found during zsh startup:\n{result.stderr}\nFiltered Stderr:\n{stderr_lower}")
+
+
+KNOWN_BENIGN_ZSH_WARNINGS = [
+    "not interactive and can't open terminal",
+    "compinit: initialization aborted",
+    "inappropriate ioctl for device",
+    "zsh: command not found: compdef",
+    "can't change option: zle",
+    "stty: 'standard input'",
+    "(eval):1:",
+    "(eval):2:",
+    "not a tty",
+    "no job control in this shell",
+]
+
+
+@pytest.mark.integration
+def test_zsh_interactive_login_loads_cleanly(host):
+    """Verify that a zsh interactive login shell sources config without errors."""
+    result = host.run("zsh -i -l -c 'exit'")
+    assert result.rc == 0, f"zsh interactive login shell exited with {result.rc}\nstderr: {result.stderr}"
+    stderr_lower = result.stderr.lower()
+    for warning in KNOWN_BENIGN_ZSH_WARNINGS:
+        stderr_lower = stderr_lower.replace(warning, "")
+    assert (
+        "error" not in stderr_lower
+        and "command not found" not in stderr_lower
+        and "unknown command or service" not in stderr_lower
+    ), f"Errors found during zsh startup:\n{result.stderr}"
