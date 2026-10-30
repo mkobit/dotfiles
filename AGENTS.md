@@ -146,6 +146,16 @@ These commands retain Ruff and ty settings from `pyproject.toml` and use `.venv`
 Do not change `uv.lock` or disable checks to accommodate machine restrictions; CI continues to use the frozen lockfile.
 Report the exact tool versions used for local checks.
 
+To find newer versions, query the configured approved index with the commands below; uv respects its configured minimum release age.
+
+```bash
+uv run --no-project --refresh-package ruff --with ruff ruff --version
+uv run --no-project --refresh-package ty --with ty ty --version
+```
+
+Package availability does not establish permission to run it; retain the previous working version if execution is blocked.
+Use the versions reported by successful commands as candidates, run all three checks above with those versions, and update `RUFF_VERSION` and `TY_VERSION` only after the checks pass.
+
 ## Zellij layout system
 
 Each environment owns its layout files directly — no cross-repo injection.
