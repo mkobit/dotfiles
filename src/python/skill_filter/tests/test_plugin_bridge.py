@@ -1623,9 +1623,9 @@ def test_retired_plugin_rejects_desired_identity_before_mutation(
 ):
     declaration = _valid_bridge()
     name = "plugin" if kind == "plugins" else "capability"
-    declaration["plugin_bridge"]["retired_plugins"] = {
-        name: {"marketplace": "market", "hosts": ["claude"]}
-    }
+    bridge = declaration["plugin_bridge"]
+    assert isinstance(bridge, dict)
+    bridge["retired_plugins"] = {name: {"marketplace": "market", "hosts": ["claude"]}}
     monkeypatch.setattr(
         plugin_bridge, "_run", lambda *args: pytest.fail("unexpected host operation")
     )
