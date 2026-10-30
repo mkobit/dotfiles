@@ -34,7 +34,7 @@ def test_zsh_initialization(host):
     # init snippet whose last statement is an `if [[ -o zle ]]` block that is
     # skipped without a terminal).
     stderr_lower = result.stderr.lower()
-    for warning in KNOWN_BENIGN_ZSH_WARNINGS:
+    for warning in _KNOWN_BENIGN_ZSH_WARNINGS:
         stderr_lower = stderr_lower.replace(warning, "")
 
     if (
@@ -46,7 +46,7 @@ def test_zsh_initialization(host):
         pytest.fail(f"Potential errors found during zsh startup:\n{result.stderr}\nFiltered Stderr:\n{stderr_lower}")
 
 
-KNOWN_BENIGN_ZSH_WARNINGS = [
+_KNOWN_BENIGN_ZSH_WARNINGS = [
     "not interactive and can't open terminal",
     "compinit: initialization aborted",
     "inappropriate ioctl for device",
@@ -66,10 +66,8 @@ def test_zsh_interactive_login_loads_cleanly(host):
     result = host.run("zsh -i -l -c 'exit'")
     assert result.rc == 0, f"zsh interactive login shell exited with {result.rc}\nstderr: {result.stderr}"
     stderr_lower = result.stderr.lower()
-    for warning in KNOWN_BENIGN_ZSH_WARNINGS:
+    for warning in _KNOWN_BENIGN_ZSH_WARNINGS:
         stderr_lower = stderr_lower.replace(warning, "")
-    assert (
-        "error" not in stderr_lower
-        and "command not found" not in stderr_lower
-        and "unknown command or service" not in stderr_lower
-    ), f"Errors found during zsh startup:\n{result.stderr}"
+    error_keywords = ["error", "command not found", "unknown command or service"]
+    found_errors = [kw for kw in error_keywords if kw in stderr_lower]
+    assert not found_errors, f"Errors ({', '.join(found_errors)}) found during zsh startup:\n{result.stderr}"
