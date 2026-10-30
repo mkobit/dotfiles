@@ -24,12 +24,12 @@ Required: mise merges the global config into any `mise install -C <dir>` call, s
 
 Root `mise.toml` sets `locked = true` (restored by #575 after a prior regression); script `07` installs with no override, by design — this is what keeps `uv` pinned to the committed `mise.lock`.
 If a locked install ever fails, regenerate the stale lockfile (`mise lock`, or the global one above) — never add `MISE_LOCKED=0` to the script.
-Watch for this in agent PRs (e.g. Jules) that hit a locked-install failure and "fix" it by disabling the check instead.
+Watch for this in agent PRs that hit a locked-install failure and "fix" it by disabling the check instead.
 
 ### Updating tools and relocking
 
 Follow these steps exactly when updating any mise-managed tool version.
-Do not substitute alternative commands — especially in Jules, where `mise lock` destroys the shell session permanently and irrevocably.
+Do not substitute alternative commands.
 
 1. Update the version in `src/chezmoi/.chezmoidata/bin/mise.toml` under `[mise.global_tools.<tool>]` (catalog).
    New tools also require a BOM entry in `src/chezmoi/.chezmoi.toml.tmpl` under `[data.local.mise.global_tools.<tool>]` with `installation_method = "mise"`, followed by `chezmoi init` to propagate.
