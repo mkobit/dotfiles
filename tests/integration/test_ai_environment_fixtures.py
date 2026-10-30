@@ -272,6 +272,10 @@ def test_upstream_plugin_gate_controls_marketplaces_and_registration(tmp_path, m
     )
     assert rendered.returncode == 0, rendered.stderr
     payload = json.loads(rendered.stdout.partition("<<'EOF'\n")[2].removesuffix("EOF\n"))
+    assert payload["plugin_bridge"]["retired_plugins"]["superpowers"] == {
+        "marketplace": "dotfiles",
+        "hosts": ["claude", "codex"],
+    }
     assert ("superpowers" in payload["plugin_bridge"]["capabilities"]) == enabled
     assert ("superpowers-marketplace" in payload["plugin_bridge"]["marketplaces"]) == enabled
     if enabled:
