@@ -48,9 +48,7 @@ def test_zsh_initialization(host):
 
 _KNOWN_BENIGN_ZSH_WARNINGS = [
     "not interactive and can't open terminal",
-    "compinit: initialization aborted",
     "inappropriate ioctl for device",
-    "zsh: command not found: compdef",
     "can't change option: zle",
     "stty: 'standard input'",
     "(eval):1:",
@@ -58,6 +56,12 @@ _KNOWN_BENIGN_ZSH_WARNINGS = [
     "not a tty",
     "no job control in this shell",
 ]
+
+
+def assert_every(conditions, msg_fn):
+    """Assert each condition independently (inspector style) with descriptive messages."""
+    for item, ok in conditions:
+        assert ok, msg_fn(item)
 
 
 @pytest.mark.integration
@@ -69,5 +73,7 @@ def test_zsh_interactive_login_loads_cleanly(host):
     for warning in _KNOWN_BENIGN_ZSH_WARNINGS:
         stderr_lower = stderr_lower.replace(warning, "")
     error_keywords = ["error", "command not found", "unknown command or service"]
-    found_errors = [kw for kw in error_keywords if kw in stderr_lower]
-    assert not found_errors, f"Errors ({', '.join(found_errors)}) found during zsh startup:\n{result.stderr}"
+    assert_every(
+        [(kw, kw not in stderr_lower) for kw in error_keywords],
+        lambda kw: f"Error keyword {kw!r} found during zsh startup:\n{result.stderr}",
+    )
