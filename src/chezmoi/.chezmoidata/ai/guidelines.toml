@@ -54,3 +54,10 @@ content = """
 ## Preferences
 - Prefer available agentic file searching and read tools over CLI tools when available.
 - Prefer strict TypeScript configuration."""
+
+[[ai.guidelines.sections]]
+content = """
+## Modern web guidance
+- Repositories that require modern web guidance must track `.agents/skills/modern-web-guidance/` and its installation in `skills-lock.json`.
+- Require `modern-web-guidance` as a local `package.json` devDependency so `bun x modern-web-guidance` works offline in under one second after dependency installation.
+- Respect `minimumReleaseAge`; do not bypass it globally."""

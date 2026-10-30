@@ -624,20 +624,129 @@ def test_marketplace_manifests_deployed_and_valid(chezmoi_dest):
     json.loads(provenance_path.read_text(encoding="utf-8"))
 
 
+GLOBAL_MODERN_WEB_PATHS = (
+    ".local/share/agent-plugins/marketplaces/googlechrome",
+    ".cursor/plugins/local/modern-web-guidance",
+    ".claude/plugins/cache/googlechrome",
+    ".codex/plugins/cache/googlechrome",
+    ".codex/skills/.source-modern-web-guidance",
+    *(
+        f"{agent}/plugins/cache/dotfiles/mkobit-dotfiles/{version}/skills/{skill}"
+        for agent in (".claude", ".codex")
+        for version in ("old", "older")
+        for skill in ("modern-web-guidance", "chrome-extensions")
+    ),
+    *(
+        f"{agent}/skills/{skill}"
+        for agent in (".claude", ".codex", ".cursor", ".gemini/antigravity-cli")
+        for skill in ("modern-web-guidance", "chrome-extensions")
+    ),
+)
+
+
 @pytest.mark.integration
-@pytest.mark.chezmoi_installation("ai.plugins.modern-web-guidance", methods={"chezmoi_external"})
-def test_googlechrome_marketplace_manifests_deployed_and_valid(chezmoi_dest):
-    """Verify both hosts select the complete upstream plugin package."""
-    googlechrome_root = chezmoi_dest / ".local/share/agent-plugins/marketplaces/googlechrome"
-    for host, relative in (
-        ("claude", ".claude-plugin/marketplace.json"),
-        ("codex", ".agents/plugins/marketplace.json"),
+def test_googlechrome_marketplace_removed(chezmoi_dest):
+    """Global guidance copies are absent after apply."""
+    for relative in GLOBAL_MODERN_WEB_PATHS:
+        assert not (chezmoi_dest / relative).exists(), relative
+    for agent in (".claude", ".codex"):
+        cache = chezmoi_dest / agent / "plugins/cache/dotfiles/mkobit-dotfiles"
+        for skill in ("modern-web-guidance", "chrome-extensions"):
+            assert not list(cache.glob(f"*/skills/{skill}")), (agent, skill)
+
+
+@pytest.mark.parametrize("ownership_format", ["current", "legacy", "malformed"])
+def test_global_modern_web_guidance_removal_migrates_existing_copies(tmp_path, ownership_format):
+    """Retirement removes existing global copies and preserves local and unrelated content."""
+    source = tmp_path / "source"
+    source.mkdir()
+    shutil.copy2(REPOSITORY_ROOT / "src/chezmoi/.chezmoiremove", source / ".chezmoiremove")
+    cleanup = REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts/run_after_zz-retired-modern-web-guidance.sh.tmpl"
+    for original, target in (
+        (cleanup, source / ".chezmoiscripts" / cleanup.name),
+        (FILTER_INTERPRETER_TEMPLATE, source / ".chezmoitemplates/python/filter-interpreter"),
+        (FILTER_INTERPRETER_RESOLVER, source.parent / "python/skill_filter/resolve-interpreter.sh"),
     ):
-        manifest = json.loads((googlechrome_root / relative).read_text(encoding="utf-8"))
-        assert manifest["name"] == "googlechrome"
-        plugins = {plugin["name"]: plugin for plugin in manifest["plugins"]}
-        source = plugins["modern-web-guidance"]["source"]
-        assert (source["path"] if host == "codex" else source) == "./plugins/modern-web-guidance"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(original, target)
+    for name in ("plugin_bridge.py", "plugin_declarations.py"):
+        target = source.parent / "python/skill_filter/skill_filter" / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(REPOSITORY_ROOT / "src/python/skill_filter/skill_filter" / name, target)
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    config = tmp_path / "chezmoi.toml"
+    config.write_text('[data.zsh]\nprompt = "none"\n')
+    preserved = (
+        "projects/web/.agents/skills/modern-web-guidance",
+        "projects/web/.agents/skills/chrome-extensions",
+        ".local/share/agent-plugins/marketplaces/superpowers-marketplace",
+        ".cursor/plugins/local/unrelated",
+        ".claude/plugins/cache/unrelated",
+        ".codex/plugins/cache/unrelated",
+        ".claude/plugins/cache/dotfiles/mkobit-dotfiles/old/skills/unrelated",
+        ".codex/plugins/cache/dotfiles/mkobit-dotfiles/old/skills/unrelated",
+        ".claude/skills/unrelated",
+        ".codex/skills/unrelated",
+        ".cursor/skills/unrelated",
+        ".gemini/antigravity-cli/skills/unrelated",
+    )
+    for relative in (*GLOBAL_MODERN_WEB_PATHS, *preserved):
+        directory = destination / relative
+        directory.mkdir(parents=True)
+        (directory / "sentinel").write_text(relative)
+    state = destination / ".local/state/dotfiles"
+    state.mkdir(parents=True)
+    ownership = state / "agent-plugin-ownership"
+    if ownership_format == "legacy":
+        ownership = state / "agent-plugin-ownership.json"
+        ownership.write_text(
+            json.dumps(
+                {
+                    "resources": [
+                        {"kind": "marketplace", "host": "codex", "id": "googlechrome"},
+                        {"kind": "plugin", "host": "claude", "id": "modern-web-guidance@googlechrome"},
+                    ]
+                }
+            )
+        )
+    else:
+        ownership.write_text(
+            "invalid state"
+            if ownership_format == "malformed"
+            else "marketplace\tcodex\tgooglechrome\t\nplugin\tclaude\tgooglechrome\tmodern-web-guidance\n"
+        )
+    late_paths = (
+        ".local/share/agent-plugins/marketplaces/googlechrome",
+        ".claude/plugins/cache/googlechrome",
+        ".codex/plugins/cache/googlechrome",
+    )
+    result = _apply_authored_cleanup(source, destination, config)
+    assert result.returncode == 0, result.stderr
+    assert "Deferred googlechrome cleanup" in result.stderr
+    for relative in GLOBAL_MODERN_WEB_PATHS:
+        assert (destination / relative).exists() == (relative in late_paths), relative
+    for relative in preserved:
+        assert (destination / relative / "sentinel").read_text() == relative
+
+    # Reproduce native reconciliation ordering: the source must survive until
+    # the earlier bridge has inspected it and released native ownership.
+    bridge = source / ".chezmoiscripts/run_after_agent-plugin-bridge.sh.tmpl"
+    bridge.write_text(
+        "#!/usr/bin/env sh\nset -eu\n"
+        'test -f "{{ .chezmoi.destDir }}/.local/share/agent-plugins/marketplaces/googlechrome/sentinel"\n'
+        'rm "{{ .chezmoi.destDir }}/.local/state/dotfiles/' + ownership.name + '"\n'
+    )
+    result = _apply_authored_cleanup(source, destination, config)
+    assert result.returncode == 0, result.stderr
+    bridge.unlink()
+    for _ in range(2):
+        result = _apply_authored_cleanup(source, destination, config)
+        assert result.returncode == 0, result.stderr
+        for relative in GLOBAL_MODERN_WEB_PATHS:
+            assert not (destination / relative).exists(), relative
+        for relative in preserved:
+            assert (destination / relative / "sentinel").read_text() == relative
 
 
 @pytest.mark.integration

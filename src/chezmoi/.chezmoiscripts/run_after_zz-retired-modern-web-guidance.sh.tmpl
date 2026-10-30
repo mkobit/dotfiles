@@ -1,0 +1,40 @@
+#!/usr/bin/env sh
+set -eu
+
+{{ $python := includeTemplate "python/filter-interpreter" . -}}
+exec {{ $python | quote }} -S - {{ .chezmoi.destDir | quote }} {{ joinPath .chezmoi.sourceDir ".." "python/skill_filter/skill_filter" | quote }} <<'PY'
+import shutil
+import sys
+from pathlib import Path
+
+sys.path.insert(0, sys.argv[2])
+from plugin_bridge import BridgeError, _read_ownership, _validate_state_root, migrate_ownership
+
+destination = Path(sys.argv[1])
+try:
+    state = _validate_state_root(destination)
+    ownership = state / "agent-plugin-ownership"
+    legacy = state / "agent-plugin-ownership.json"
+    if ownership.exists():
+        records = _read_ownership(ownership)
+    elif legacy.exists():
+        records = migrate_ownership(legacy).splitlines()
+    else:
+        records = []
+    if any(record.split("\t")[2] == "googlechrome" for record in records):
+        raise ValueError("native googlechrome ownership remains; native CLI may be unavailable")
+except (BridgeError, OSError, ValueError, TypeError, KeyError, AttributeError) as error:
+    print(f"Deferred googlechrome cleanup: {error}; next apply will retry.", file=sys.stderr)
+    sys.exit(0)
+
+for relative in (
+    ".local/share/agent-plugins/marketplaces/googlechrome",
+    ".claude/plugins/cache/googlechrome",
+    ".codex/plugins/cache/googlechrome",
+):
+    path = destination / relative
+    if path.is_symlink():
+        path.unlink()
+    elif path.exists():
+        shutil.rmtree(path)
+PY
