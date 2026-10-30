@@ -130,6 +130,22 @@ When adding features, keep them overlay-friendly:
 
 If an install fails due to a package being too new, check for a minimum release age setting in the relevant config (mise, uv, etc.) and use an older version that satisfies it.
 
+### Local Python checks
+
+If machine restrictions prevent the locked Ruff or ty version from running, use versions available from the machine's approved package index and permitted to run.
+Configure the index outside this repository through uv configuration or `UV_DEFAULT_INDEX`; use Artifactory where required.
+Set `RUFF_VERSION` and `TY_VERSION` to those versions, then run from the repository root:
+
+```bash
+uv run --no-project --with "ruff==${RUFF_VERSION}" ruff check .
+uv run --no-project --with "ruff==${RUFF_VERSION}" ruff format --check .
+uv run --no-project --with "ty==${TY_VERSION}" ty check --python .venv
+```
+
+These commands retain Ruff and ty settings from `pyproject.toml` and use `.venv` for type-check dependencies.
+Do not change `uv.lock` or disable checks to accommodate machine restrictions; CI continues to use the frozen lockfile.
+Report the exact tool versions used for local checks.
+
 ## Zellij layout system
 
 Each environment owns its layout files directly — no cross-repo injection.
