@@ -3,6 +3,8 @@
 Continue related edits, checks, and repairs in the same guest session when the installed harness supports it.
 Use supported controls for task-specific observation intervals and execution limits.
 Do not assume a fixed stall timeout or resume syntax.
+Measure duration and detect stalls using monotonic time, check logs, and active process status.
+Do not conclude that a worker is stalled from file timestamps or wall clocks.
 Preserve session identity when available, workspace, base revision, phase, active check, last completed check, exit codes, and log location.
 
 ## Durable host task record
@@ -38,6 +40,9 @@ Return incomplete status and durable evidence pointers to the immediate calling 
 
 Inspect the captured log and supported process or check state before intervention.
 Silence alone does not prove a stall.
+Beta upgrades and daemon restarts stop all running sandboxes.
+They do not continue execution without operator action.
+After a daemon restart, inspect `sbx list`, start the sandbox, verify that mounted worktrees and artifacts remain, and continue the single-writer session.
 A disconnected client can leave the guest worker or a child check running.
 Preserve the existing task evidence and determine whether the original writer is still active.
 Reconnect only with supported observation controls; do not start a resumed writer while an old writer can still run.

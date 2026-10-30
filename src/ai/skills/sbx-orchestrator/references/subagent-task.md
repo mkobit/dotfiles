@@ -5,10 +5,12 @@ Fill all task fields before launch; do not require the guest to reconstruct the 
 
 ```text
 Role: You are a separate guest coding process inside the assigned SBX sandbox.
-Task: <bounded implementation goal and relevant context>
+Task: <bounded implementation goal or repository task ID (such as a Bead ID)>
 Workspace: <verified absolute guest workdir, assigned host worktree identity, and base revision>
 Baseline and checkpoint: <initial changes, prior task changes, required continuation work, and host record pointer>
-Optional issue context: <supplied host issue ID and relevant task context, or none; do not access a copied tracker database>
+Optional issue context: <supplied host issue ID and relevant task context, or none; read directly with bd --readonly -C <workdir> without copying the database>
+Tracker access: Use read-only tracker commands (such as bd --readonly); write only explicitly authorized notes or comments.
+Dependencies: Maintain independent locked dependencies in each worktree; do not share or symlink dependency directories.
 Tools: <verified guest executable, required tool versions, and evidence reference>
 Owned files: <explicit paths or modules>
 Other writers: You are not alone; preserve others' changes and stay within owned paths.
@@ -17,7 +19,7 @@ Acceptance criteria: <observable required behavior>
 Checks: <exact required build, test, lint, and other commands>
 Guest report: <guest-writable report path>
 Host log: <host output log path, not a guest mount unless verified>
-Progress: <supported session identity and task-specific observation or execution limits>
+Progress: <supported session identity and task-specific observation intervals using monotonic time; do not use file timestamps>
 Milestones: Return phase, known changes, checks, failures, and remaining work so the supervisor can update the durable host record before an abrupt exit.
 Execution: Run edits, checks, and repairs directly in this guest; do not run nested SBX or move checks to the host.
 Authorization: The assigned task permits the guest edit, check, and repair loop without routine nested approvals.

@@ -48,8 +48,12 @@ It does not permit host policy changes or broader task scope.
 
 Use direct mounts by default; edits return immediately to the assigned host worktree.
 A private clone needs an explicit change-return path before launch.
+Each worktree must use its own locked dependencies.
+Do not share or symlink dependency directories such as `node_modules`.
 Do not replace a disconnected worker until the old writer has stopped and exclusive ownership is confirmed.
 Silence or disconnect does not prove termination.
+When the repository uses a task tracker, supply the task identifier.
+The worker reads task specifications directly from the tracker using read-only commands.
 Use a supplied Beads issue only when the existing host workflow uses it.
 
 ## Read when needed
