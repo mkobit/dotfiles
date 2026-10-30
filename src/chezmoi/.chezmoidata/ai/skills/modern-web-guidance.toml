@@ -2,9 +2,9 @@
 # its skills-src content is bundled into the modern-web-guidance skill's guides here).
 [ai.skills.external.modern-web-guidance]
 repo = "GoogleChrome/modern-web-guidance"
-ref = "22ab18dfb50a5d7e3bdcf471c14076a5534eae4e" # v0.0.190, 2026-09-21
-sha256 = "b45ea5e0bcde7bf367ab8457749c5367a2a4e09c242e4088374c17597839760a"
+ref = "4f2b13e25c5815b3f080ca0d983e828d96561a0f" # v0.0.196
+sha256 = "13c185b157bfc3c392fc14d5e1f32790761f1af54d57e8893386aa3f0f8bdd7b"
 
 [ai.skills.external.modern-web-guidance.skills]
-chrome-extensions = "present"
-modern-web-guidance = "present"
+chrome-extensions = "antigravity"
+modern-web-guidance = "antigravity"

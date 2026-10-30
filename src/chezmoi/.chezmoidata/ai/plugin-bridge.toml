@@ -26,6 +26,17 @@ trust_class = "upstream"
 hosts = ["claude", "codex"]
 order = 110
 
+[ai.plugin_bridge.marketplaces.googlechrome]
+source_type = "generated"
+external_source = "modern-web-guidance"
+source_locator = ".local/share/agent-plugins/marketplaces/googlechrome"
+owner = "GoogleChrome"
+source = "local"
+display_name = "GoogleChrome"
+trust_class = "upstream"
+hosts = ["claude", "codex"]
+order = 120
+
 [ai.plugin_bridge.capabilities.mkobit-dotfiles]
 description = "Base dotfiles capability bundle."
 acquisition_destination = true
