@@ -24,9 +24,11 @@ Save the complete prompt, baseline, and launch context in the [durable host reco
 
 Run this launcher on the host, not in the guest.
 Set the environment path, guest executable, and absolute workdir from verified evidence.
+If `PATH` does not resolve the agent binary, pass the verified absolute path rather than diagnosing a missing tool.
 Set `SBX_SANDBOX_NAME` to the recorded effective sandbox name, including any override used for parallel workers.
 Use that same name on every environment command rather than falling back to the configured or derived default.
 Set the selected model and the complete [guest task prompt](subagent-task.md).
+When the repository uses a tracker (such as Beads), pass the task identifier directly; the worker inspects the task using `bd --readonly -C <workdir>` without prompt repetition.
 Set `SBX_TASK_LOG` to a host log path whose parent exists.
 The guest report path is separate; a host log path is not a guest mount unless verified.
 These examples cover a host-verified worktree whose guest `.git` metadata is outside the mount.
@@ -40,7 +42,7 @@ sandbox_name="${SBX_SANDBOX_NAME:?Set SBX_SANDBOX_NAME to the recorded effective
 agent_executable="${CODEX_EXECUTABLE:?Set CODEX_EXECUTABLE to the verified guest executable}"
 guest_workdir="${SBX_GUEST_WORKDIR:?Set SBX_GUEST_WORKDIR to the verified guest workdir}"
 model="${CODEX_MODEL:?Set CODEX_MODEL to the selected task model}"
-prompt="${SBX_TASK_PROMPT:?Set SBX_TASK_PROMPT to the implementation task}"
+prompt="${SBX_TASK_PROMPT:?Set SBX_TASK_PROMPT to the implementation task or task ID}"
 task_log="${SBX_TASK_LOG:?Set SBX_TASK_LOG to the host log path}"
 if sbx env exec --name "$sandbox_name" "$environment" -- sh -c \
   'cd "$2" && exec "$1" exec --model "$3" --disable hooks --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check "$4" </dev/null' \

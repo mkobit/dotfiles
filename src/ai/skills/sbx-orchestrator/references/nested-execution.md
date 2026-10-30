@@ -6,9 +6,13 @@ Use one assigned worktree for each concurrent writer.
 The host coordinator selects or creates the feature branch and worktree before delegation under the approved task authority.
 With `workspace.clone: false`, guest edits return immediately to that host worktree.
 No patch transfer or guest commit is needed for a direct mount.
+Each worktree must keep its own isolated, locked dependencies (such as `bun install --frozen-lockfile`).
+Do not share or symlink dependency directories across worktrees.
 The host reviews the diff after the writer stops; visible edits alone do not prove completion.
 A worktree mount can leave `.git` metadata or host task records outside the guest mount.
-Keep branch operations and tracker writes on the host.
+Supply read-only tracker access when the guest worker needs to inspect task definitions.
+Keep branch operations, issue creation, and state transitions on the host coordinator.
+Write only explicitly authorized notes or comments.
 
 Use `clone: true` as a deliberate private-clone option.
 Before launch, verify the clone base identity and the change-return artifact and transport.
