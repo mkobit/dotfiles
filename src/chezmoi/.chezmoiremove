@@ -60,3 +60,19 @@ install-asdf.sh
 .dotfiles/bash/snippets
 .dotfiles/external/eza-completions
 .dotfiles/external/eza-completions/**
+
+# Retired global modern web guidance; repositories own local installations.
+.cursor/plugins/local/modern-web-guidance
+.claude/skills/modern-web-guidance
+.claude/skills/chrome-extensions
+.codex/skills/modern-web-guidance
+.codex/skills/chrome-extensions
+.cursor/skills/modern-web-guidance
+.cursor/skills/chrome-extensions
+.gemini/antigravity-cli/skills/modern-web-guidance
+.gemini/antigravity-cli/skills/chrome-extensions
+.codex/skills/.source-modern-web-guidance
+.claude/plugins/cache/dotfiles/mkobit-dotfiles/*/skills/modern-web-guidance
+.claude/plugins/cache/dotfiles/mkobit-dotfiles/*/skills/chrome-extensions
+.codex/plugins/cache/dotfiles/mkobit-dotfiles/*/skills/modern-web-guidance
+.codex/plugins/cache/dotfiles/mkobit-dotfiles/*/skills/chrome-extensions

@@ -82,9 +82,9 @@ sha256 = "cc7e99ab1f744f2a97960d1a1953e0bdf951e7f64a1044f89e0180079835ec2d"
 "project-management/project-manager-senior" = "absent"
 # Rejected 2026-08-18: context-footprint trim; no UI/visual-design workflow here.
 "design/design-ui-designer" = "absent"
-# Rejected 2026-08-18: context-footprint trim; CSS/design-system slice is
-# already covered by modern-web-guidance (GoogleChrome-maintained), and its
-# architecture-ownership slice duplicates software-architect/backend-architect.
+# Rejected 2026-08-18: context-footprint trim.
+# CSS/design-system guidance belongs in repository-local modern-web-guidance where needed.
+# The architecture-ownership slice duplicates software-architect/backend-architect.
 "design/design-ux-architect" = "absent"
 "design/design-ux-researcher" = "absent"
 # Rejected 2026-08-18: context-footprint trim; keeping only
