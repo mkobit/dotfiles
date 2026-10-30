@@ -625,6 +625,22 @@ def test_marketplace_manifests_deployed_and_valid(chezmoi_dest):
 
 
 @pytest.mark.integration
+@pytest.mark.chezmoi_installation("ai.plugins.modern-web-guidance", methods={"chezmoi_external"})
+def test_googlechrome_marketplace_manifests_deployed_and_valid(chezmoi_dest):
+    """Verify both hosts select the complete upstream plugin package."""
+    googlechrome_root = chezmoi_dest / ".local/share/agent-plugins/marketplaces/googlechrome"
+    for host, relative in (
+        ("claude", ".claude-plugin/marketplace.json"),
+        ("codex", ".agents/plugins/marketplace.json"),
+    ):
+        manifest = json.loads((googlechrome_root / relative).read_text(encoding="utf-8"))
+        assert manifest["name"] == "googlechrome"
+        plugins = {plugin["name"]: plugin for plugin in manifest["plugins"]}
+        source = plugins["modern-web-guidance"]["source"]
+        assert (source["path"] if host == "codex" else source) == "./plugins/modern-web-guidance"
+
+
+@pytest.mark.integration
 def test_plugin_bridge_ownership_state(chezmoi_dest):
     """Verify agent-plugin ownership state file contains valid tab-separated records."""
     state_file = chezmoi_dest / ".local/state/dotfiles/agent-plugin-ownership"
