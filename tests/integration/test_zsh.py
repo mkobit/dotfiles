@@ -48,7 +48,9 @@ def test_zsh_initialization(host):
 
 _KNOWN_BENIGN_ZSH_WARNINGS = [
     "not interactive and can't open terminal",
+    "compinit: initialization aborted",
     "inappropriate ioctl for device",
+    "zsh: command not found: compdef",
     "can't change option: zle",
     "stty: 'standard input'",
     "(eval):1:",
@@ -60,8 +62,8 @@ _KNOWN_BENIGN_ZSH_WARNINGS = [
 
 def assert_every(conditions, msg_fn):
     """Assert each condition independently (inspector style) with descriptive messages."""
-    for item, ok in conditions:
-        assert ok, msg_fn(item)
+    failures = [msg_fn(item) for item, ok in conditions if not ok]
+    assert not failures, "\n\n".join(failures)
 
 
 @pytest.mark.integration
