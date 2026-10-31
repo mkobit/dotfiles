@@ -2,6 +2,11 @@
 
 ## Workspace ownership
 
+Default to repo-local `.worktrees/<task>` when project rules permit it.
+Before creation, check project rules, write boundaries, existing worktrees, branch, base revision, and exclusive ownership.
+Use `git check-ignore .worktrees/` and `git worktree list` as applicable.
+Record the path and reason for any required exception.
+A repo-local worktree does not remove platform protection of Git metadata; use required host access for Git operations.
 Use one assigned worktree for each concurrent writer.
 The host coordinator selects or creates the feature branch and worktree before delegation under the approved task authority.
 With `workspace.clone: false`, guest edits return immediately to that host worktree.
@@ -10,7 +15,7 @@ Each worktree must keep its own isolated, locked dependencies (such as `bun inst
 Do not share or symlink dependency directories across worktrees.
 The host reviews the diff after the writer stops; visible edits alone do not prove completion.
 A worktree mount can leave `.git` metadata or host task records outside the guest mount.
-Supply read-only tracker access when the guest worker needs to inspect task definitions.
+Use the verified [read-only task context](subagent-task.md#read-only-task-context) route when the guest needs task definitions.
 Keep branch operations, issue creation, and state transitions on the host coordinator.
 Write only explicitly authorized notes or comments.
 
@@ -23,7 +28,7 @@ The host checks artifact paths, base identity, and conflicts before applying the
 Preserve baseline and received-diff evidence in the [durable record](recovery.md).
 If no return path exists, report the blocker; do not assume private-clone edits are visible on the host.
 Do not use guest commits, pushes, or credentials as an implicit return process.
-Do not automatically commit or push on the host.
+Perform host publication only under the task authority and repository rules in [task delivery](#task-delivery).
 
 ## Required final handoff
 
@@ -51,6 +56,22 @@ Return this concise stable summary to the immediate calling or orchestrating thr
 The supervisor or root owns the final completion and integration judgment.
 The host coordinator verifies returned changes and performs independent review before integration.
 Run required checks once and repeat only after related changes or failures.
+
+## Task delivery
+
+Guest completion is not task delivery.
+Root inspects the final diff and documentation, resolves review findings, and runs all required checks.
+Under the task authority, commit on a feature branch, push, open a PR, and check required PR results.
+Merge only under repository rules and explicit approval requirements.
+For a supplied Bead, link the PR, final revision, check results, and review evidence to that issue and sync authoritative tracker state.
+Keep the issue open until delivery and root verification are recorded.
+If tracker access is unavailable, return the exact evidence for the owning root to attach; do not create another tracker.
+
+Preserve required evidence before cleanup.
+Before removal, confirm no active writers, unreturned changes, or needed artifacts remain.
+Under the applicable authority, remove task-owned environments, worktrees, temporary reader databases, logs, and branches.
+Preserve unrelated or original environments and user work.
+List kept resources and reasons, and report incomplete delivery explicitly.
 
 ## Optional Beads workflow
 

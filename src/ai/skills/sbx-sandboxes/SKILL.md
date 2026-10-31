@@ -36,12 +36,9 @@ Use `sbx diagnose` with the required platform access, never `docker ps`, `docker
 Keep host credentials, Git review, commits, signing, and pushes on the host.
 Each repository owns its complete kit, toolchain, services, and environment configuration.
 Use `workspace.clone: false` so sandbox edits are immediately visible to the host.
-Use a separate worktree for each concurrent writer.
-Each Git worktree must use its own locked dependencies.
-Do not share or symlink dependency directories such as `node_modules`.
+Use the [workspace contract](../sbx-orchestrator/references/nested-execution.md#workspace-ownership) for worktrees and isolated locked dependencies.
 Separate sandbox container status (`sbx list`) from agent binary lookup failures and command exit codes.
-A daemon restart stops all sandboxes.
-Restart the target sandbox, verify that worktrees remain, and continue the single worker.
+For a restart or lost client, follow [recovery](../sbx-orchestrator/references/recovery.md) before resume or replacement.
 For a private clone and its change-return process, use [SBX orchestrator](../sbx-orchestrator/SKILL.md).
 
 ## Select the work

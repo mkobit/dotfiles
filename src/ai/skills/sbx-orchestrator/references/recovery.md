@@ -16,7 +16,8 @@ No global schema, tracker, scheduler, update script, or process framework is req
 
 Record the complete task and launch prompt, owned scope, and acceptance criteria.
 Record sandbox identity, the assigned worktree or private clone and base identity, and relevant configuration.
-Record the installed harness, selected model, session identity, and log, checkpoint, and artifact paths.
+Record the installed harness, selected model and thinking effort, session identity, and log, checkpoint, and artifact paths.
+Record pending host operations, including launch calls, with their known state and evidence.
 Preserve initial revision, dirty-state, untracked-file, and relevant diff evidence before the guest writes.
 Record known task changes separately from this baseline so later edits can be attributed.
 Include completed and required checks with exit codes, remaining work, exact failures, and last known worker and child-check state.
@@ -38,11 +39,15 @@ Return incomplete status and durable evidence pointers to the immediate calling 
 
 ## Observe a worker
 
+Observe existing sessions and mounted logs before more probes or dispatch.
 Inspect the captured log and supported process or check state before intervention.
+Resolve a pending launch call and record whether it started a writer before another launch.
+A missing client handle is not proof that the launch failed.
 Silence alone does not prove a stall.
-Beta upgrades and daemon restarts stop all running sandboxes.
-They do not continue execution without operator action.
-After a daemon restart, inspect `sbx list`, start the sandbox, verify that mounted worktrees and artifacts remain, and continue the single-writer session.
+A reported daemon restart alone does not prove writer or child-process termination.
+Inspect `sbx list` and supported process or session state.
+If observation needs a sandbox start, start only the recorded environment without launching a writer.
+Verify mounted worktrees and artifacts, then follow the termination and ownership gate below before resume.
 A disconnected client can leave the guest worker or a child check running.
 Preserve the existing task evidence and determine whether the original writer is still active.
 Reconnect only with supported observation controls; do not start a resumed writer while an old writer can still run.

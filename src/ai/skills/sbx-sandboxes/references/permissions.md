@@ -7,6 +7,16 @@ Reuse approved task authority for routine edits, checks, repairs, and needed tas
 Do not request another confirmation solely because the task needs setup.
 Ask only for missing task authority, actual platform permission, unavailable credential action, scope expansion, or a destructive unrelated change.
 
+## Readable commands
+
+Separate host setup and publication access from guest edit and check authority.
+Guest bypass flags affect only the guest process; they grant no host access.
+Show short direct commands with the selected environment, model, and thinking setting visible for coding launches.
+Keep literal task data separate from command evaluation; see the [launcher](../../sbx-orchestrator/references/worker-launch.md).
+Do not hide large setup or launcher programs behind helper paths or request broad command grants.
+Record each extra approval cause, such as protected Git metadata, network, or process access.
+Do not infer dialog counts from tool calls or promise an exact approval total.
+
 ## Standard skill grants
 
 `allowed-tools` uses standard skill metadata with `Bash(...)` patterns.
