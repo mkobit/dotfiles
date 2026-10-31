@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
-from jules_cli.config import load_config
+from jules_cli.config import get_api_key, load_config
 
 
 def test_load_config_defaults() -> None:
@@ -106,3 +106,15 @@ def test_load_config_invalid_toml(tmp_path: Path) -> None:
     # Invalid toml results in returning None which becomes JulesConfig() default
     cfg = load_config(str(config_file))
     assert cfg.api_key is None
+
+
+def test_get_api_key_legacy_fallback(tmp_path: Path) -> None:
+    legacy_file = tmp_path / "jules" / "api_key"
+    legacy_file.parent.mkdir(parents=True)
+    legacy_file.write_text("  legacy_key_123 \n")
+
+    with (
+        patch.dict(os.environ, {"XDG_CONFIG_HOME": str(tmp_path)}),
+        patch("jules_cli.config.load_config", return_value=load_config()),
+    ):
+        assert get_api_key() == "legacy_key_123"
