@@ -12,8 +12,9 @@ Host workspace: <assigned worktree, branch, base revision, and ownership evidenc
 Baseline: <recorded revision and initial dirty, untracked, and relevant diff evidence>
 Durable host record: <task-specific persistent path and discoverable pointer in the calling workflow>
 Environment: <recorded effective sandbox name, including any override; environment path when used, otherwise none>
-Guest context: <verified absolute workdir, agent executable, required tool versions, and evidence reference>
-Harness and model: <repository-supported harness and selected model if supported>
+Guest context: <verified readiness record, including mount, absolute workdir, harness, tools, dependencies, Git and read-only task context>
+Harness and model: <repository-supported harness, verified model name, thinking effort, and setting source>
+Shared limits: <batch limit, all active coding and review agents, allowance and reset evidence with observation time>
 Guest prompt: <complete attached guest task prompt with owned paths and checks>
 Host log: <host output log path>
 Guest report: <guest report path and verified host retrieval method>
@@ -45,3 +46,21 @@ Evidence: Include workspace, base revision, guest report path, and any unverifie
 
 Use [worker launch](worker-launch.md) for the guest process and [recovery](recovery.md) for interrupted sessions.
 The supervisor reports evidence; root review and integration remain separate quality gates.
+
+## Shared limits
+
+Before launch, select Sol for suitable tasks and Astra only when task complexity requires it.
+Verify available model names and set thinking effort for the task through supported harness controls.
+Count all active coding and review agents against shared quota, rate limits, and host resources.
+Set a batch limit before launch; queue, serialize, or reduce concurrent work when capacity requires it.
+Keep repository limits in the task contract.
+For Storagemaxxing, retain its current limit of two guest coding workers; this is not a global limit.
+
+Record available primary and secondary allowance, reset information, and observation time; use `unknown` when evidence is unavailable.
+Cumulative cached input includes repeated context; report it separately from unique context size.
+Do not invent a per-worker hard token or spend limit.
+On a rate-limit response, stop new launches and preserve sessions until recovery is permitted.
+Use [recovery](recovery.md) for the interrupted task.
+
+After readiness is proved, give each guest its complete loop.
+Use recorded milestones and logs for supervision; repeat discovery only after relevant changes or failures.

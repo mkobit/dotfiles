@@ -25,7 +25,9 @@ Keep host secrets, bindings, registries, and local-command MCP servers outside t
 
 Run `sbx env plan .sbx/sbxenv.yaml` before creation.
 
-Recreate an environment after changing its kit, workspace, ports, or environment variables.
+After changing kit, workspace, ports, or environment variables, use the [lifecycle plan](repository-setup.md#lifecycle).
+Preserve incomplete work and follow the [recovery ownership gate](../../sbx-orchestrator/references/recovery.md#resume-or-replace-a-worker) before any replacement writer.
+Rebuild or removal needs the applicable authority and preserved evidence.
 
 ## Ports
 

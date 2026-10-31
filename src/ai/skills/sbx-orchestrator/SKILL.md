@@ -27,7 +27,8 @@ Use this skill when the authorized task calls for delegated coding in SBX.
 Respect explicit command-only requests and narrower user scope.
 Use direct SBX commands for probes and command-only work, not as a substitute for a requested coding worker.
 
-The host coordinator owns task selection, branch management, credentials, review, commits, signing, and publication.
+The root coordinator owns task division, unresolved questions, risk, integration, final review, and publication.
+It also owns branch management, credentials, commits, and signing.
 When available, a native host subagent uses host tools to launch a separate guest coding harness.
 When no native subagent tool is available, the root coordinator may perform the host supervisor contract directly.
 Its tools do not move into the guest.
@@ -39,22 +40,15 @@ It does not permit host policy changes or broader task scope.
 
 ## Coordinate a task
 
-1. Select or create the feature branch and worktree on the host and confirm one writer per checkout.
+1. Use the [workspace contract](references/nested-execution.md#workspace-ownership) to select the feature branch and worktree.
 2. Save the complete task and baseline in a [durable host record](references/recovery.md) with a discoverable task pointer.
 3. Give the supervisor the [host contract](references/host-supervisor.md) and a separate [guest prompt](references/subagent-task.md).
-4. Verify the installed guest harness and use the [worker launcher](references/worker-launch.md).
+4. Prove [environment readiness](../sbx-sandboxes/references/repository-setup.md#environment-readiness), set [shared limits](references/host-supervisor.md#shared-limits), and use the [worker launcher](references/worker-launch.md).
 5. Update the record at milestones and use [recovery](references/recovery.md) for any interruption.
 6. Return complete or incomplete status to the immediate calling thread for host review of the [handoff](references/nested-execution.md).
 
-Use direct mounts by default; edits return immediately to the assigned host worktree.
-A private clone needs an explicit change-return path before launch.
-Each worktree must use its own locked dependencies.
-Do not share or symlink dependency directories such as `node_modules`.
-Do not replace a disconnected worker until the old writer has stopped and exclusive ownership is confirmed.
-Silence or disconnect does not prove termination.
-When the repository uses a task tracker, supply the task identifier.
-The worker reads task specifications directly from the tracker using read-only commands.
-Use a supplied Beads issue only when the existing host workflow uses it.
+Use the [task context contract](references/subagent-task.md#read-only-task-context) when a task ID is supplied.
+Guest completion starts host review; use [task delivery](references/nested-execution.md#task-delivery) for closeout.
 
 ## Read when needed
 

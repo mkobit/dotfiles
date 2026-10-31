@@ -28,7 +28,12 @@ If `PATH` does not resolve the agent binary, pass the verified absolute path rat
 Set `SBX_SANDBOX_NAME` to the recorded effective sandbox name, including any override used for parallel workers.
 Use that same name on every environment command rather than falling back to the configured or derived default.
 Set the selected model and the complete [guest task prompt](subagent-task.md).
-When the repository uses a tracker (such as Beads), pass the task identifier directly; the worker inspects the task using `bd --readonly -C <workdir>` without prompt repetition.
+Set task thinking effort through a supported guest harness setting before launch.
+For these Codex examples, verify the effective guest `model_reasoning_effort` configuration and record its source and value.
+Show the operation, effective environment name, model, and thinking value beside each launch or resume command.
+If the effective setting cannot be verified, stop before launch.
+Use the [shared limits](host-supervisor.md#shared-limits) record for model selection and batch capacity.
+When a task ID is supplied, use the verified [read-only task context](subagent-task.md#read-only-task-context) route and complete prompt fields.
 Set `SBX_TASK_LOG` to a host log path whose parent exists.
 The guest report path is separate; a host log path is not a guest mount unless verified.
 These examples cover a host-verified worktree whose guest `.git` metadata is outside the mount.
