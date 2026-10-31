@@ -79,7 +79,8 @@ Use Beads only when the existing host workflow supplies an issue.
 Record that exact issue ID and verified host tracker location in the task-specific durable record.
 Pass issue and task context to the guest; the guest returns evidence without copying or writing the tracker database.
 After review, the authorized host updates that specific issue.
-Use installed `bd --help` and `bd <command> --help` for syntax, consistent with the authored Beads skill.
+Before invoking `bd` on the host, use installed `bd --help` and `bd <command> --help` for syntax, consistent with the authored Beads skill.
+For guest access, use the selected [read-only task context](subagent-task.md#read-only-task-context) route.
 Do not require a `bd` installation, create a tracker, invent a paused status, or select another task automatically.
 Quota or token interruption leaves the task unfinished and must not close the issue.
 

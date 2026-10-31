@@ -50,7 +50,9 @@ Use [change return and handoff](nested-execution.md) to complete the report.
 ## Read-only task context
 
 A Bead ID does not replace scope, acceptance criteria, exact checks, or baseline evidence in the prompt.
-Before launch, verify installed `bd --help`, command help, and guest context routing with a read-only query for the supplied ID.
+Before launch, select and verify the read-only context route for the supplied ID.
+If that route uses `bd`, verify installed `bd --help`, command help, and guest context routing with a read-only query.
+For a text snapshot, verify guest access, readability, issue identity, and freshness; `bd` is not required.
 Do not assume a host tracker is inside the guest mount.
 For the recorded Beads 1.3.1 snapshot route, `-C` overrides `BEADS_DIR`; do not add `-C` to that route.
 Use only the verified command and routing in the task contract.

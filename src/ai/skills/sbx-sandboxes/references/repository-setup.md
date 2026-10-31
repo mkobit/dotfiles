@@ -81,7 +81,7 @@ Remove the environment only when authorized.
 
 Before concurrent launches, prove one representative environment with direct checks.
 Record the effective sandbox name, environment configuration, mount mapping, and absolute guest workdir.
-Verify the installed harness executable and help, runtime tools, locked dependencies, Git context, and [read-only task context](../../sbx-orchestrator/references/subagent-task.md#read-only-task-context).
+Verify the installed harness executable and help, runtime tools, locked dependencies, Git context, and the selected [read-only task context](../../sbx-orchestrator/references/subagent-task.md#read-only-task-context).
 Run required tools, such as `mise --version` and `bun --version`, and the repository's dependency check.
 An installer exit of zero does not prove those tools work.
 Use the verified absolute executable when `PATH` lookup fails.
