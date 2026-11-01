@@ -65,6 +65,22 @@ def test_main_template_string(mock_transcriber: MagicMock, tmp_path: Path) -> No
     assert "custom: Hello" in result.output
 
 
+def test_main_template_and_template_file_conflict(tmp_path: Path) -> None:
+    audio_file = tmp_path / "test.wav"
+    audio_file.write_text("dummy")
+    template_file = tmp_path / "template.j2"
+    template_file.write_text("template")
+
+    runner = CliRunner()
+    result = runner.invoke(
+        cli,
+        [str(audio_file), "--template", "custom", "--template-file", str(template_file)],
+    )
+
+    assert result.exit_code == 2
+    assert "Error: Cannot provide both --template-file and --template." in result.output
+
+
 def test_faster_whisper_transcriber_init() -> None:
     with patch("transcribe.transcriber.WhisperModel") as mock_model:
         t = FasterWhisperTranscriber()
