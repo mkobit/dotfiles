@@ -20,6 +20,23 @@ def test_zsh_non_interactive_no_zoxide_doctor(host):
     )
 
 
+# Filter out known warnings caused by running an interactive shell without a
+# true TTY. These are structural limitations of the test environment, not
+# configuration errors.
+KNOWN_BENIGN_WARNINGS = [
+    "not interactive and can't open terminal",
+    "compinit: initialization aborted",
+    "inappropriate ioctl for device",
+    "zsh: command not found: compdef",
+    "can't change option: zle",
+    "stty: 'standard input'",
+    "(eval):1:",
+    "(eval):2:",
+    "not a tty",
+    "no job control in this shell",
+]
+
+
 @pytest.mark.integration
 def test_zsh_initialization(host):
     """Verify that zsh initializes without errors."""
@@ -28,25 +45,10 @@ def test_zsh_initialization(host):
     # This ensures .zprofile and .zshrc are sourced.
     result = host.run("zsh -i -c 'exit'")
 
-    # Filter out known warnings caused by running an interactive shell without a
-    # true TTY. These are structural limitations of the test environment, not
-    # configuration errors. rc may be non-zero for the same reason (e.g. a shell
-    # init snippet whose last statement is an `if [[ -o zle ]]` block that is
-    # skipped without a terminal).
-    known_benign_warnings = [
-        "not interactive and can't open terminal",
-        "compinit: initialization aborted",
-        "inappropriate ioctl for device",
-        "zsh: command not found: compdef",
-        "can't change option: zle",
-        "stty: 'standard input'",
-        "(eval):1:",
-        "(eval):2:",
-        "not a tty",
-        "no job control in this shell",
-    ]
+    # rc may be non-zero for the same reason (e.g. a shell init snippet whose
+    # last statement is an `if [[ -o zle ]]` block that is skipped without a terminal).
     stderr_lower = result.stderr.lower()
-    for warning in known_benign_warnings:
+    for warning in KNOWN_BENIGN_WARNINGS:
         stderr_lower = stderr_lower.replace(warning.lower(), "")
 
     if (
@@ -56,3 +58,18 @@ def test_zsh_initialization(host):
         or "unknown command or service" in stderr_lower
     ):
         pytest.fail(f"Potential errors found during zsh startup:\n{result.stderr}\nFiltered Stderr:\n{stderr_lower}")
+
+
+@pytest.mark.integration
+def test_zsh_interactive_login_loads_cleanly(host):
+    """Verify that a zsh interactive login shell sources config without errors."""
+    result = host.run("zsh -i -l -c 'exit'")
+    assert result.rc == 0, f"zsh interactive login shell exited with {result.rc}\nstderr: {result.stderr}"
+    stderr_lower = result.stderr.lower()
+    for warning in KNOWN_BENIGN_WARNINGS:
+        stderr_lower = stderr_lower.replace(warning, "")
+    assert (
+        "error" not in stderr_lower
+        and "command not found" not in stderr_lower
+        and "unknown command or service" not in stderr_lower
+    ), f"Errors found during zsh startup:\n{result.stderr}"
