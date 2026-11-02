@@ -23,3 +23,13 @@ Do not change `storagemaxxing`, `canopy`, or an overlay as part of this PR.
 - Forwarded SSH signing cannot pass a live test until an SSH agent has a selected signing key.
 - Existing host signed commits use GPG; this does not prove guest GPG subkey transport.
 - `main` has no GitHub branch protection. Add explicit required CI check names to repository workflow configuration before automatic merge.
+
+## Shared kit repositories
+
+Consider a separate kit repository only after the dotfiles kit passes fresh creation tests.
+Keep this as follow-up work.
+Identify shared runtime inputs, ownership, version pins, and consuming-repository checks before distribution.
+Each consuming repository must retain its complete, reproducible environment definition.
+
+Review [sbx/mise-kit](https://hub.docker.com/r/sbx/mise-kit) for adoption across repositories after the dotfiles proof.
+Pin the selected artifact and keep each repository's toolchain and checks explicit.

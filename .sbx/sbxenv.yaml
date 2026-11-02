@@ -1,6 +1,8 @@
 schemaVersion: "1"
 name: dotfiles-sbx-rearch
 agent: codex
+sandboxOptions:
+  template: docker.io/docker/sandbox-templates@sha256:982f4518e7e5544e92a23e7fb7eaca9cd5ce9c7178782155a628c92ed723d9de
 workspace:
   path: ..
   clone: false

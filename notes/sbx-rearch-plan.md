@@ -17,6 +17,7 @@ Keep host coordination separate from guest execution.
 - Keep private keys and raw tokens out of prompts, logs, and tracked files.
 - Use mise for task and verification entry points.
 - Do not change other repositories during this implementation.
+- Sandboxes must be essentially fully reproducible from scratch through tracked kits; separate kit repositories are follow-up work.
 
 ## Review focus
 
@@ -29,7 +30,7 @@ Keep host coordination separate from guest execution.
 ## Tasks
 
 - [x] 1. Audit current catalogs, source paths, CLI support, and verification.
-- [ ] 2. Add schema and settings setup with tests for absent, disabled, and overridden decisions.
+- [x] 2. Add schema and settings setup with tests for absent, disabled, and overridden decisions.
 - [ ] 3. Add guest signing, secret proxy, policy preservation, and skill import with fake CLI tests.
 - [ ] 4. Update permissions through the shared catalog and native modifiers; test live-setting preservation.
 - [ ] 5. Update SBX skills and add architect, worker, bootstrap, and improvement skills; test deployment and references.

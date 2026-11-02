@@ -17,7 +17,7 @@ permissions:
 
 environment:
   variables:
-    PATH: /home/agent/.local/bin:/usr/local/bin:/usr/bin:/bin
+    PATH: /home/agent/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
     MISE_YES: "1"
     MISE_MINIMUM_RELEASE_AGE: "7d"
     UV_PROJECT_ENVIRONMENT: /home/agent/.local/share/dotfiles/venv

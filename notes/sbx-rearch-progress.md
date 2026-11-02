@@ -96,3 +96,57 @@ Do not use manual post-create installs or environment patches for the new proof.
 
 Task 2 schema changes have passed 22 focused tests and are under independent review.
 Task 3 remains paused until schema review and fresh kit creation pass.
+
+## Reproducibility requirement
+
+The user requires sandboxes to be essentially fully reproducible from scratch.
+A tracked repository kit must supply the complete toolchain and runtime configuration through native creation.
+No manual post-create install, environment patch, or previous guest state may be required.
+Separate kit repositories are permitted as a later follow-up, not part of this change.
+Record mutable upstream inputs and pin them through supported kit mechanisms where available.
+
+## Fresh creation test
+
+- Native kit setup ran automatically in 34.3 seconds.
+- Creation warned that the guest Docker daemon did not start.
+- The first normal `sbx env exec` exited 125 with the same error.
+- Fresh runtime and test acceptance have not passed.
+- No manual guest repair or environment patch is permitted as the fix.
+- Investigation is limited to supported SBX diagnostics and tracked kit/base configuration.
+- The default built-in base image is mutable; supported digest pinning is under inspection.
+
+## Skill import interface
+
+SBX `0.50.1` imports from fixed host skill roots and has no source-path option.
+Keep plugin caches unchanged.
+Use owned materialized copies under `.agents/skills` for the selected authored skills.
+Reuse existing deployment ownership records where possible.
+The design authorizes native `sbx skills import --force`, including its all-root precedence and replacement behavior.
+Automatic removal must be limited to copies and store entries with proven dotfiles ownership.
+
+## Runtime investigation
+
+Host SBX diagnostics passed: 16 passed, 0 failed.
+SBX cannot copy logs from the failed guest because `sbx cp` also requires guest runtime startup.
+The kit PATH omitted the standard system command directories.
+The tracked PATH is corrected; a separate native creation test uses `dotfiles-sbx-rearch-kitcheck-path`.
+This is a test of a tracked correction, not a manual repair of the failed guest.
+A zero exit from environment creation alone must not count as worker readiness.
+
+## Mise kit candidate
+
+The user recommends [sbx/mise-kit](https://hub.docker.com/r/sbx/mise-kit).
+A read-only delegate will check its source, immutable pin, composition, and release-age behavior.
+Prefer native kit composition over the npm bootstrap if fresh creation remains reproducible.
+Do not create a separate kit repository or change another repository for this assessment.
+
+## Fresh kit acceptance
+
+The final digest-pinned definition passed native creation from scratch.
+Environment: `dotfiles-sbx-rearch-kitcheck-pinned`.
+Automatic tracked setup completed in 43.2 seconds.
+Inherited settings, Python `3.14.7`, and guest-only dependency paths passed assertions.
+The normal frozen repository test command passed 22 tests in 33.82 seconds.
+No post-create installation, runtime export, or `--env` patch was used.
+Evidence: [Kit reproduction report](sbx-rearch-tasks/kit-reproduction-report.md).
+Task 3 can now use this verified environment.
