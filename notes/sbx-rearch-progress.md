@@ -32,3 +32,29 @@ No implementation code has changed.
 
 No product question is pending after the first audit.
 Record any new questions here and present them together when they block implementation.
+
+## Baseline checks
+
+- `mise exec -- uv run --frozen pytest tests/integration/test_sbx.py tests/integration/test_sbx_command_retirement.py tests/integration/test_mise.py -q`: 45 passed in 35.61 seconds on base `7aa2fb19`.
+- The first test attempt could not write the uv cache; the approved host retry passed.
+- Approved `sbx diagnose`: 16 passed, 0 failed, 2 expected skips.
+- Earlier SBX database errors came from restricted host access; the daemon did not need repair.
+- The plan review found no blocking product question.
+- Shared interfaces: `ai.workflow.enabled`, `ai.sandbox`, `ai.signing`, `ai.ollama`, and existing `sbx.settings.skills_default_mode`.
+- Required-check configuration must be explicit or obtained from branch requirements; missing checks must prevent automatic merge.
+
+- `gh api repos/mkobit/dotfiles/branches/main/protection/required_status_checks` returned HTTP 404, `Branch not protected`.
+- Automatic PR merge therefore needs a tracked, nonempty required-check list for dotfiles.
+
+## Task 2 launch
+
+- Host supervisor: `implement_config`.
+- Guest environment: `.sbx/sbxenv.yaml`, effective name `dotfiles-sbx-rearch`.
+- Guest workspace: the feature worktree, direct mounted.
+- Guest Codex: `/home/agent/.local/bin/codex`, version `0.165.0`.
+- Selected model: `gpt-6.1-sol`; reasoning effort: `high`.
+- Batch limit: one guest coding worker; allowance and reset data: unknown.
+- Scope: workflow catalog, personal opt-ins, and schema tests only.
+- Guest commits are disabled for this migration task; root signs reviewed commits on the host.
+- Prompt, baseline, and launch evidence: `.sbx/task-context/config/` (local runtime records).
+- Guest toolchain setup is in progress; missing mise and Chezmoi currently prevent tests.
