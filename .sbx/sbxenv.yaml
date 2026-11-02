@@ -1,0 +1,8 @@
+schemaVersion: "1"
+name: dotfiles-sbx-rearch
+agent: codex
+workspace:
+  path: ..
+  clone: false
+kits:
+  - ./kit

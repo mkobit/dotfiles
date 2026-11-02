@@ -58,3 +58,28 @@ Record any new questions here and present them together when they block implemen
 - Guest commits are disabled for this migration task; root signs reviewed commits on the host.
 - Prompt, baseline, and launch evidence: `.sbx/task-context/config/` (local runtime records).
 - Guest toolchain setup is in progress; missing mise and Chezmoi currently prevent tests.
+
+## Environment checks
+
+- Repository kit validation, guest shell syntax, and tool probes passed.
+- Guest tools: mise `2026.10.23`, uv `0.12.10`, Chezmoi `2.74.0`, Python `3.14.7`.
+- Guest dependencies use `/home/agent/.local/share/dotfiles/venv`; host `.venv` is not shared.
+- The first task launch exited 125 on a Docker login-store lock before a writer started.
+- The supervisor proved that no old writer remained, then retried successfully.
+- Active guest session: `01a19a1c-3bfe-7741-b855-3c24c3d307e7`.
+- Environment files are under independent review before commit.
+
+## Required CI checks
+
+GitHub jobs for run `41378483668` establish these exact names:
+
+- `lint`
+- `skill-filter-compat`
+- `test (ubuntu-24.04)`
+- `test (macos-15)`
+- `integration (ubuntu-24.04)`
+- `integration (ubuntu-24.04-arm)`
+- `integration (macos-15)`
+
+Use this nonempty set for dotfiles PR delivery.
+Source: [CI jobs](https://github.com/mkobit/dotfiles/actions/runs/41378483668).

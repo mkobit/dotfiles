@@ -16,3 +16,10 @@ Record completed and skipped deployment checks here before PR completion.
 Apply and verify this change in dotfiles first.
 Then review each repository's tracked kit, verification tasks, Beads storage, branch protection, and signing support before adoption.
 Do not change `storagemaxxing`, `canopy`, or an overlay as part of this PR.
+
+## Verified host prerequisites
+
+- `ssh-add -l` failed both with restricted access and approved host access: no authentication agent connection exists.
+- Forwarded SSH signing cannot pass a live test until an SSH agent has a selected signing key.
+- Existing host signed commits use GPG; this does not prove guest GPG subkey transport.
+- `main` has no GitHub branch protection. Add explicit required CI check names to repository workflow configuration before automatic merge.
