@@ -5,6 +5,7 @@ import pytest
 
 from termstatus.segments.chezmoi import (
     _BASE_RELATIVE_PATH,
+    _build_branch_url,
     _format_repo,
     detect_chezmoi_root,
     generate_chezmoi_segment,
@@ -147,6 +148,19 @@ class TestFormatRepo:
         body_text = results[1].segment.text
         assert "…" in body_text
         assert "feature/a-very-long-branch-name-that-should-be-truncated" not in body_text
+
+
+class TestBuildBranchUrl:
+    def test_head_returns_remote_directly(self):
+        assert _build_branch_url("https://github.com/user/repo", "HEAD") == "https://github.com/user/repo"
+
+    def test_gitlab_remote_uses_dash_tree(self):
+        url = _build_branch_url("https://gitlab.com/group/repo", "main")
+        assert url == "https://gitlab.com/group/repo/-/tree/main"
+
+    def test_standard_remote_uses_tree(self):
+        url = _build_branch_url("https://github.com/user/repo", "feature-branch")
+        assert url == "https://github.com/user/repo/tree/feature-branch"
 
 
 @pytest.mark.asyncio
