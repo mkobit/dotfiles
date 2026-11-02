@@ -1,0 +1,40 @@
+# Capabilities only; selections belong in the init control plane.
+# Consumers must use dig with these defaults when an overlay omits a decision.
+
+[ai.workflow]
+description = "Global AI workflow tasks."
+# enabled: false
+
+[ai.sandbox]
+# provider: "none" (select "sbx" to configure Docker Sandboxes)
+# default_clone_mode: false (use a direct workspace mount)
+# network_policy: "" (select "balanced" to initialize an absent policy)
+# proxy_gh_secret: false (configure the github host resolver)
+# sync_skills: false (import selected ai.skills.authored entries)
+# Use sbx.settings.skills_default_mode for skills mode, with "" as the default.
+# Its opt-in values are "readonly", "readwrite", and "off".
+# Keep sbx.settings.kit_allowed_sources independent of workflow selection.
+
+[ai.sandbox.providers.sbx]
+description = "Docker Sandboxes with direct workspace mounts or isolated clones."
+
+[ai.signing]
+# mode: "host-default"
+# ssh_public_key: ""
+# gpg_subkey_id: ""
+
+[ai.signing.modes.host-default]
+description = "Keep existing signing settings."
+
+[ai.signing.modes.ssh-forwarded]
+description = "Use forwarded SSH signing with an explicit public key or an existing configured key after a guest signing proof."
+
+[ai.signing.modes.gpg-subkey]
+description = "Use an explicit GPG signing subkey; an empty subkey ID is an unmet prerequisite."
+
+[ai.ollama]
+description = "Opt-in local model routes for SBX, OpenCode, and Pi."
+# enabled: false
+# host_url: ""
+# sandbox_url: ""
+# default_coder_model: ""

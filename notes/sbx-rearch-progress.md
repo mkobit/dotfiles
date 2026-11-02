@@ -83,3 +83,16 @@ GitHub jobs for run `41378483668` establish these exact names:
 
 Use this nonempty set for dotfiles PR delivery.
 Source: [CI jobs](https://github.com/mkobit/dotfiles/actions/runs/41378483668).
+
+## Kit orchestration correction
+
+The user requires tool installation through the repository kit.
+The first guest was created before the toolchain definition was complete, then prepared with manual setup commands.
+That sequence does not prove repeatable kit creation.
+The tracked kit now declares setup, but a fresh creation test is required before later worker launches.
+`audit_sbx` owns this test with a separate environment name, `dotfiles-sbx-rearch-kitcheck`.
+Preserve the first guest and its logs.
+Do not use manual post-create installs or environment patches for the new proof.
+
+Task 2 schema changes have passed 22 focused tests and are under independent review.
+Task 3 remains paused until schema review and fresh kit creation pass.
