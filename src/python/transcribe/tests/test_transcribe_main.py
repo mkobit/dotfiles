@@ -16,16 +16,9 @@ def mock_transcriber() -> Generator[MagicMock, None, None]:
         yield mock
 
 
-def test_main_help() -> None:
-    runner = CliRunner()
-    result = runner.invoke(cli, ["--help"])
-    assert result.exit_code == 0
-    assert "Transcribe audio files" in result.output
-
-
-def test_main_default(mock_transcriber: MagicMock, tmp_path: Path) -> None:
+@pytest.fixture
+def mock_transcribe_result(mock_transcriber: MagicMock) -> MagicMock:
     instance = mock_transcriber.return_value
-
     segment = TranscriptionSegment(start=0.0, end=1.0, text="Hello")
     info = TranscriptionInfo(language="en", language_probability=1.0, duration=1.0)
 
@@ -33,7 +26,17 @@ def test_main_default(mock_transcriber: MagicMock, tmp_path: Path) -> None:
         yield segment
 
     instance.transcribe.return_value = (segment_gen(), info)
+    return instance
 
+
+def test_main_help() -> None:
+    runner = CliRunner()
+    result = runner.invoke(cli, ["--help"])
+    assert result.exit_code == 0
+    assert "Transcribe audio files" in result.output
+
+
+def test_main_default(mock_transcribe_result: MagicMock, tmp_path: Path) -> None:
     audio_file = tmp_path / "test.wav"
     audio_file.write_text("dummy")
 
@@ -44,17 +47,7 @@ def test_main_default(mock_transcriber: MagicMock, tmp_path: Path) -> None:
     assert "Hello" in result.output
 
 
-def test_main_template_string(mock_transcriber: MagicMock, tmp_path: Path) -> None:
-    instance = mock_transcriber.return_value
-
-    segment = TranscriptionSegment(start=0.0, end=1.0, text="Hello")
-    info = TranscriptionInfo(language="en", language_probability=1.0, duration=1.0)
-
-    def segment_gen() -> Generator[TranscriptionSegment, None, None]:
-        yield segment
-
-    instance.transcribe.return_value = (segment_gen(), info)
-
+def test_main_template_string(mock_transcribe_result: MagicMock, tmp_path: Path) -> None:
     audio_file = tmp_path / "test.wav"
     audio_file.write_text("dummy")
 
