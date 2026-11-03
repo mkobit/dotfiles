@@ -1,0 +1,395 @@
+{{- $enabled := and (eq (dig "ai" "sandbox" "provider" "none" .) "sbx") (ne (dig "local" "bin" "sbx" "installation_method" "none" .) "none") (dig "ai" "sandbox" "sync_skills" false .) -}}
+{{- $selected := list -}}
+{{- if $enabled -}}
+{{-   range $name, $state := dig "ai" "skills" "authored" dict . -}}
+{{-     if eq $state "present" -}}{{- $selected = append $selected $name -}}{{- end -}}
+{{-   end -}}
+{{- end -}}
+{{- $python := includeTemplate "python/filter-interpreter" . -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec {{ $python | shellQuote }} -S - {{ .chezmoi.destDir | shellQuote }} {{ $enabled | toJson | shellQuote }} {{ $selected | toJson | shellQuote }} <<'PY'
+import hashlib
+import json
+import os
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+
+class SyncError(Exception):
+    pass
+
+
+def report(message):
+    print("sbx-skills: " + message, file=sys.stderr)
+
+
+def name(value):
+    if (not isinstance(value, str) or not re.fullmatch(r"[A-Za-z0-9._-]+", value)
+            or value in (".", "..")):
+        raise SyncError("unsafe skill name")
+    return value
+
+
+def relative(value):
+    if (not isinstance(value, str) or not value or "\\" in value
+            or any(part in ("", ".", "..") for part in value.split("/"))):
+        raise SyncError("unsafe receipt path")
+    return Path(value)
+
+
+def digest(value):
+    if not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value):
+        raise SyncError("invalid receipt digest")
+    return value
+
+
+def owned_identity(value):
+    if not isinstance(value, dict) or set(value) != {"sha256", "mode"}:
+        raise SyncError("invalid receipt file identity")
+    digest(value["sha256"])
+    if type(value["mode"]) is not int or not 0 <= value["mode"] <= 0o777:
+        raise SyncError("invalid receipt file mode")
+
+
+def checked(path):
+    # Check every existing component, including ancestors of the destination.
+    current = Path(path.anchor)
+    for part in path.parts[1:]:
+        current /= part
+        try:
+            mode = current.lstat().st_mode
+        except FileNotFoundError:
+            break
+        if stat.S_ISLNK(mode):
+            raise SyncError("refusing symlink path: " + str(current))
+    return path
+
+
+def exists(path):
+    checked(path)
+    return path.exists()
+
+
+def file_identity(path, portable=False):
+    checked(path)
+    mode = path.stat().st_mode
+    if not stat.S_ISREG(mode):
+        raise SyncError("collision at non-file: " + str(path))
+    return {"sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+            "mode": stat.S_IMODE(mode) & (0o777 if portable else 0o7777)}
+
+
+def atomic(path, payload, mode=0o600):
+    checked(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    checked(path.parent)
+    descriptor, temporary = tempfile.mkstemp(prefix=path.name + ".tmp-", dir=str(path.parent))
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fchmod(stream.fileno(), mode)
+            os.fsync(stream.fileno())
+        checked(path)
+        os.replace(temporary, path)
+        directory = os.open(str(path.parent), os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            os.fsync(directory)
+        finally:
+            os.close(directory)
+    finally:
+        if os.path.exists(temporary):
+            os.unlink(temporary)
+
+
+def save():
+    atomic(state_file, (json.dumps(state, sort_keys=True) + "\n").encode("utf-8"))
+
+
+def load():
+    if not exists(state_file):
+        return {"version": 2, "skills": {}, "imports": {}}
+    if not state_file.is_file():
+        raise SyncError("receipt is not a regular file")
+    value = json.loads(state_file.read_text(encoding="utf-8"))
+    if (not isinstance(value, dict) or value.get("version") != 2
+            or not isinstance(value.get("skills"), dict) or not isinstance(value.get("imports"), dict)):
+        raise SyncError("unsupported ownership receipt; digest-only legacy receipts need manual review")
+    for skill, entry in value["skills"].items():
+        name(skill)
+        if not isinstance(entry, dict) or not isinstance(entry.get("files"), dict):
+            raise SyncError("invalid skill ownership receipt")
+        for path, identity in entry["files"].items():
+            relative(path)
+            owned_identity(identity)
+        pending = entry.get("pending")
+        if pending is not None:
+            if not isinstance(pending, dict) or set(pending) != {"path", "identity"}:
+                raise SyncError("invalid pending write receipt")
+            relative(pending["path"])
+            owned_identity(pending["identity"])
+        if not isinstance(entry.get("directories"), list):
+            raise SyncError("invalid directory ownership receipt")
+        for path in entry["directories"]:
+            relative(path)
+    for skill, identity in value["imports"].items():
+        name(skill)
+        digest(identity)
+    return value
+
+
+def walk_error(error):
+    raise error
+
+
+def inventory(root):
+    if not exists(root) or not root.is_dir():
+        raise SyncError("Skipping missing portable skill: " + root.name)
+    files = {}
+    for directory, directories, filenames in os.walk(root, followlinks=False, onerror=walk_error):
+        for child in directories + filenames:
+            path = checked(Path(directory) / child)
+            mode = path.stat().st_mode
+            if stat.S_ISREG(mode):
+                files[path.relative_to(root).as_posix()] = file_identity(path, portable=True)
+            elif not stat.S_ISDIR(mode):
+                raise SyncError("unsupported portable entry: " + str(path))
+    if "SKILL.md" not in files:
+        raise SyncError("Skipping portable skill without SKILL.md: " + root.name)
+    return files
+
+
+def remove_file(root, path, identity):
+    target = checked(root / relative(path))
+    if exists(target):
+        if file_identity(target) != identity:
+            report("Collision: preserving modified owned file " + str(target))
+            return False
+        target.unlink()
+    return True
+
+
+def prune(root, entry, remove_root=False):
+    # Only receipt-owned directories can be removed, and only when empty.
+    for path in sorted(entry["directories"], key=lambda p: (-len(Path(p).parts), p)):
+        target = checked(root / relative(path))
+        try:
+            target.rmdir()
+        except FileNotFoundError:
+            pass
+        except OSError:
+            continue
+        entry["directories"].remove(path)
+    if remove_root:
+        try:
+            checked(root).rmdir()
+        except FileNotFoundError:
+            pass
+        except OSError:
+            report("Collision: preserving non-owned content in " + str(root))
+            return False
+        return True
+    return False
+
+
+def check_owned_tree(root, entry):
+    ready = True
+    if not exists(root):
+        return ready
+    if not root.is_dir():
+        raise SyncError("Collision: owned root is no longer a directory " + str(root))
+    for directory, directories, filenames in os.walk(root, followlinks=False, onerror=walk_error):
+        for child in directories + filenames:
+            target = checked(Path(directory) / child)
+            path = target.relative_to(root).as_posix()
+            mode = target.stat().st_mode
+            owned = ((stat.S_ISREG(mode) and path in entry["files"])
+                     or (stat.S_ISDIR(mode) and path in entry["directories"]))
+            if not owned:
+                report("Collision: preserving non-owned content " + str(target))
+                ready = False
+    return ready
+
+
+def recover_pending(root, entry):
+    pending = entry.get("pending")
+    if pending is None:
+        return
+    path = pending["path"]
+    target = checked(root / relative(path))
+    prior = entry["files"].get(path)
+    if exists(target):
+        current = file_identity(target)
+        if current == pending["identity"]:
+            entry["files"][path] = current
+        elif current != prior:
+            raise SyncError("Collision: preserving changed pending file " + str(target))
+    elif prior is not None:
+        raise SyncError("Collision: missing prior pending file " + str(target))
+    # A prior match or a missing new file means replacement did not complete.
+    # A pending match proves the replacement completed before the receipt did.
+    del entry["pending"]
+    save()
+
+
+def clean(skill):
+    root = checked(copies / skill)
+    entry = state["skills"][skill]
+    recover_pending(root, entry)
+    check_owned_tree(root, entry)
+    for path, identity in list(entry["files"].items()):
+        if remove_file(root, path, identity):
+            del entry["files"][path]
+            save()
+    if prune(root, entry, remove_root=not entry["files"]):
+        del state["skills"][skill]
+    save()
+
+
+def ensure_directories(root, parent, entry):
+    candidate = root
+    for part in parent.relative_to(root).parts:
+        candidate = checked(candidate / part)
+        path = candidate.relative_to(root).as_posix()
+        if exists(candidate):
+            if not candidate.is_dir() or path not in entry["directories"]:
+                raise SyncError("Collision: unowned directory " + str(candidate))
+        else:
+            candidate.mkdir()
+            if path not in entry["directories"]:
+                entry["directories"].append(path)
+            save()
+
+
+def copy_skill(skill, files):
+    source = portable / skill
+    root = checked(copies / skill)
+    entry = state["skills"].get(skill)
+    if entry is not None:
+        recover_pending(root, entry)
+    if entry is None:
+        if exists(root):
+            raise SyncError("Collision: unowned source " + str(root))
+        root.mkdir(parents=True)
+        entry = {"files": {}, "directories": []}
+        state["skills"][skill] = entry
+        save()
+    elif not exists(root):
+        root.mkdir(parents=True)
+    elif not root.is_dir():
+        raise SyncError("Collision: owned root is no longer a directory " + str(root))
+
+    if not check_owned_tree(root, entry):
+        return False
+    ready = True
+    for path, identity in list(entry["files"].items()):
+        if path not in files:
+            if remove_file(root, path, identity):
+                del entry["files"][path]
+                save()
+            else:
+                ready = False
+    prune(root, entry)
+    save()
+    for path, identity in sorted(files.items()):
+        target = checked(root / relative(path))
+        prior = entry["files"].get(path)
+        if exists(target):
+            if prior is None or file_identity(target) != prior:
+                report("Collision: preserving source file " + str(target))
+                ready = False
+                continue
+            if prior == identity:
+                continue
+        ensure_directories(root, target.parent, entry)
+        original = checked(source / relative(path))
+        payload = original.read_bytes()
+        current_source = {"sha256": hashlib.sha256(payload).hexdigest(),
+                          "mode": stat.S_IMODE(original.stat().st_mode) & 0o777}
+        if current_source != identity:
+            raise SyncError("Skipping portable file changed during copy: " + str(original))
+        # Persist the bounded intent before replacement. The old identity stays
+        # valid until the completed write is committed to the receipt.
+        entry["pending"] = {"path": path, "identity": identity}
+        save()
+        atomic(target, payload, identity["mode"])
+        entry["files"][path] = identity
+        del entry["pending"]
+        save()
+    return ready
+
+
+def fingerprint(files):
+    return hashlib.sha256(json.dumps(files, sort_keys=True).encode("utf-8")).hexdigest()
+
+
+def main(enabled, selected):
+    for skill in selected:
+        name(skill)
+    # Disabled setup without a receipt must leave destination state untouched.
+    if not enabled and not exists(state_file):
+        return
+    global state
+    state = load()
+    ready = True
+    for skill in sorted(set(state["skills"]) - set(selected)):
+        try:
+            clean(skill)
+        except (OSError, SyncError) as error:
+            report(str(error))
+            ready = False
+    for skill in sorted(set(state["imports"]) - set(selected)):
+        # Name and old import digest cannot establish CURRENT shared-store identity.
+        report("Stale shared-store skill " + skill + ": current store identity unavailable; kept for manual review.")
+
+    payloads = {}
+    for skill in selected:
+        try:
+            files = inventory(portable / skill)
+            if not copy_skill(skill, files):
+                ready = False
+            payloads[skill] = fingerprint(files)
+        except (OSError, SyncError) as error:
+            report(str(error))
+            ready = False
+    if not enabled or not selected or not ready:
+        return
+    if all(state["imports"].get(skill) == identity for skill, identity in payloads.items()):
+        return
+    save()  # Persist copy ownership before attempting the native service operation.
+    sbx = shutil.which("sbx")
+    if sbx is None:
+        report("SBX is unavailable. Skipping import; pending copies will retry.")
+        return
+    # Native import scans all fixed host roots. The first root wins; force replaces
+    # store payloads. This is explicitly authorized, including other root skills.
+    try:
+        result = subprocess.run([sbx, "skills", "import", "--force"],
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    except OSError:
+        report("SBX is unavailable. Skipping import; pending copies will retry.")
+        return
+    if result.returncode:
+        report("Skipping failed SBX import; pending copies will retry.")
+        return
+    state["imports"].update(payloads)
+    save()
+
+
+destination = Path(sys.argv[1])
+portable = destination / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills"
+copies = destination / ".agents/skills"
+state_file = destination / ".local/state/dotfiles/sbx-skills-ownership.json"
+try:
+    main(json.loads(sys.argv[2]), json.loads(sys.argv[3]))
+except (OSError, ValueError, SyncError) as error:
+    report(str(error))
+    raise SystemExit(1)
+PY

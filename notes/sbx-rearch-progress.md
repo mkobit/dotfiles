@@ -28,7 +28,8 @@ Tasks 1 and 2 are complete.
 The repository kit passed fresh native creation and 22 tests without manual setup.
 The last signed checkpoint is `bea458d1`.
 [Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the completed checkpoints.
-Task 3 implementation passed 116 tests and is in its first independent-review fix cycle.
+Task 3 passed 137 tests and independent repair review.
+Root ShellCheck and native read-only output checks passed; the source is ready for its signed commit.
 The pinned `sbx/mise-kit` assessment is also resuming.
 Later setup, skills, permission, model, task, deployment, and final verification work remains.
 
@@ -216,3 +217,12 @@ The authoritative handoff-branch claim must succeed before either machine starts
 Use native host delegates, isolated Chezmoi rendering, and fake SBX on the work machine.
 The home coordinator retains real sandbox checks and integration.
 See [the work-machine handoff](sbx-rearch-work-machine.md).
+
+## Task 3 completion
+
+Both review defects are repaired: durable pending identities recover interrupted copies, and mode changes affect copies and imports.
+Final source hashes match the 137-test report.
+Independent scoped review found no remaining important defect.
+Root ShellCheck `0.11.0` passed both rendered hooks; the native skills-mode output matches the convergence parser.
+See [the setup report](sbx-rearch-tasks/setup-report.md).
+The remote work-machine handoff is published on `docs/sbx-rearch-handoff` at `24972e2a`.

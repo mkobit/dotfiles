@@ -1,0 +1,75 @@
+{{- $enabled := and (eq (dig "ai" "sandbox" "provider" "none" .) "sbx") (ne (dig "local" "bin" "sbx" "installation_method" "none" .) "none") -}}
+{{- if $enabled -}}
+{{- $python := includeTemplate "python/filter-interpreter" . -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec {{ $python | shellQuote }} -S - {{ dict "mode" (dig "sbx" "settings" "skills_default_mode" "" .) "policy" (dig "ai" "sandbox" "network_policy" "" .) "resolver" (dig "ai" "sandbox" "proxy_gh_secret" false .) | toJson | shellQuote }} <<'PY'
+import json
+import shutil
+import subprocess
+import sys
+
+
+def report(message):
+    print("sbx-workflow: " + message, file=sys.stderr)
+
+
+def call(*args, read=False):
+    # Resolver output can contain credentials. Never forward CLI output or errors.
+    result = subprocess.run([sbx, *args], stdout=subprocess.PIPE if read else subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL, text=True)
+    if result.returncode:
+        report("Skipping failed SBX operation: " + " ".join(args[:2]) + ".")
+        return None
+    return result.stdout if read else ""
+
+
+def records(args, key):
+    raw = call(*args, read=True)
+    if raw is None:
+        return None
+    try:
+        value = json.loads(raw)
+    except ValueError:
+        value = None
+    if not isinstance(value, dict) or not isinstance(value.get(key), list):
+        report("Skipping invalid SBX list response for " + key + ".")
+        return None
+    return value[key]
+
+
+def main(desired):
+    mode = desired["mode"]
+    if mode in ("readonly", "readwrite", "off"):
+        current = call("settings", "get", "skills.defaultMode", read=True)
+        if current is not None and current.strip() != mode:
+            call("settings", "set", "skills.defaultMode", mode)
+    elif mode:
+        report("Skipping unsupported skills.defaultMode.")
+
+    if desired["policy"] == "balanced":
+        rules = records(("policy", "ls", "--type", "network", "--format", "json"), "rules")
+        if rules == [] and call("policy", "init", "balanced") is None:
+            # The verified list schema cannot distinguish initialized empty policy.
+            report("Skipping balanced policy initialization: native init refused; no reset or retry.")
+
+    if desired["resolver"] is True:
+        secrets = records(("secret", "ls", "--global", "--service", "github", "--format", "json"), "secrets")
+        if secrets == []:
+            call("secret", "set", "github", "--command", "gh auth token")
+        elif secrets:
+            # Only the empty native sample is verified. Do not guess metadata keys.
+            report("Existing global GitHub entry preserved; desired resolver not verified.")
+
+
+sbx = shutil.which("sbx")
+if sbx is None:
+    report("SBX is unavailable. Skipping workflow configuration.")
+else:
+    try:
+        main(json.loads(sys.argv[1]))
+    except OSError:
+        report("SBX is unavailable. Skipping workflow configuration.")
+PY
+{{- end -}}
