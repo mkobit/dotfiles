@@ -256,3 +256,16 @@ Preserve unrelated settings and named permission definitions.
 Test a valid existing modern selector, a valid legacy configuration, and their unattended profile layers.
 Use `on-request` on the host and `never` only in the explicit guest profile.
 The guest launcher can continue to use supported command-line overrides; it must not assume a host profile file is mounted.
+
+## Configured permission precedence
+
+For catalog `ask`, remove an old exact catalog grant unless the current per-tool configuration explicitly ensures it.
+An explicit per-tool ensure remains a tool-specific exception to catalog `ask`.
+Catalog `deny` wins and excludes the matching allow from rendered output.
+Preserve unrelated ensures, explicit removals, and existing native deny rules.
+Do not relax a pre-existing native deny merely because the catalog changes to `allow` or `ask`.
+Document that a broad unmanaged allow can still grant a command.
+
+For modern Codex inputs, the managed host selector becomes `:workspace` and named permission definitions remain intact.
+Legacy inputs keep a compatible `workspace-write` scheme.
+The explicit unattended profile must use the matching selector scheme and must not become the host default.

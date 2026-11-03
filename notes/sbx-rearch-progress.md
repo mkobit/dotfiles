@@ -5,6 +5,20 @@ Branch: `feat/sbx-rearch`.
 Base: `7aa2fb19`.
 Workspace: `.worktrees/feat-sbx-rearch`.
 
+## Resume here
+
+Use `feat/sbx-rearch` as the shared long-lived base feature branch.
+Tasks 1–3 are complete; task 3 is signed at `bbc2e758` with 137 passing tests and independent review.
+[Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the completed checkpoints.
+Task 4 permissions are active under `implement_permissions` for the current coordinator.
+Its scope is the command catalog, Claude/AGY/Codex settings, the unattended profile, and permission tests.
+Local execution record: `.sbx/task-context/permissions/`.
+Task 6 model routing is unassigned; the separate work-machine reservation and claim procedure are superseded.
+The overlay work machine can use native subagents and fake-SBX tests for coordinated offline work.
+Real sandbox and live endpoint checks require a capable machine.
+See [the collaboration guide](sbx-rearch-work-machine.md).
+Later permissions, skills, model routing, global tasks, deployment, and final verification remain.
+
 ## Decisions
 
 - Use the design note as the authorized implementation scope.
@@ -21,17 +35,6 @@ Workspace: `.worktrees/feat-sbx-rearch`.
 - SBX version: `0.50.1`.
 - The current root checkout is `main`; implementation has a separate feature worktree.
 - Worktree creation required platform approval because Git metadata is read-only in the sandbox.
-
-## Current state
-
-Tasks 1 and 2 are complete.
-The repository kit passed fresh native creation and 22 tests without manual setup.
-The last signed checkpoint is `bea458d1`.
-[Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the completed checkpoints.
-Task 3 passed 137 tests and independent repair review.
-Root ShellCheck and native read-only output checks passed; the source is ready for its signed commit.
-The pinned `sbx/mise-kit` assessment is also resuming.
-Later setup, skills, permission, model, task, deployment, and final verification work remains.
 
 ## Human questions
 
@@ -226,3 +229,27 @@ Independent scoped review found no remaining important defect.
 Root ShellCheck `0.11.0` passed both rendered hooks; the native skills-mode output matches the convergence parser.
 See [the setup report](sbx-rearch-tasks/setup-report.md).
 The remote work-machine handoff is published on `docs/sbx-rearch-handoff` at `24972e2a`.
+
+## Shared-branch clarification
+
+The user prefers collaboration through a long-lived feature branch, with shared context available from the overlay.
+The earlier separate cross-machine handoff and Git claim workflow was more complex than needed and is superseded.
+Keep context and ordinary unit/file ownership updates on `feat/sbx-rearch`.
+The overlay session can contribute offline implementation and review without real SBX execution.
+Use normal Git collaboration and retain independent reviewers.
+
+## Host path-rule decision
+
+Do not add a parent-directory deny rule that also denies the current workspace.
+The AGY directory matcher can include the workspace when its parent is denied.
+Use verified native workspace rules and document their limits; keep the real worker filesystem boundary in SBX.
+The permission worker must verify Claude matching separately before adding a corresponding rule.
+Source: [AGY matching rules](https://antigravity.google/docs/permissions/#supported-cli-actions-and-matching-rules).
+
+## Permission implementation decisions
+
+Keep explicit per-tool ensure entries as exceptions to common catalog `ask`.
+Catalog `deny` wins; preserve unrelated native entries and pre-existing deny rules.
+The managed modern Codex host selector is `:workspace`, while named definitions remain intact.
+Legacy settings use compatible `workspace-write` fields.
+The explicit guest profile matches the host selector scheme and does not change the host default to full access.

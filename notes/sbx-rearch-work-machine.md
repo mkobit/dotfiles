@@ -1,97 +1,55 @@
-# Work-machine handoff
+# Overlay collaboration
 
-Use this machine for isolated implementation and review with native subagents.
-Real SBX execution is not available here and is not required for the assigned offline work.
-Do not install SBX or change host policy to work around that limit.
-Keep real sandbox, signing, credential-proxy, and model-endpoint checks pending for the home coordinator.
+Use `mkobit/dotfiles:feat/sbx-rearch` as the shared, long-lived feature branch.
+Keep the plan, progress, decisions, questions, verification, and manual follow-up work in `notes/` on that branch.
+Continue review through [draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014).
+Keep the shared feature branch and draft PR open while base and overlay collaboration continues.
 
-## Branches and current state
+## Shared context
 
-- Integration branch: `feat/sbx-rearch`.
-- Draft PR: [#1014](https://github.com/mkobit/dotfiles/pull/1014).
-- Handoff and task claim branch: `docs/sbx-rearch-handoff`.
-- Work-machine implementation branch: `feat/sbx-rearch-model-routing`.
-- Plan: [implementation plan](sbx-rearch-plan.md).
-- Progress: [decisions and verification](sbx-rearch-progress.md).
+- [Plan](sbx-rearch-plan.md)
+- [Progress and decisions](sbx-rearch-progress.md)
+- [Manual follow-up work](sbx-rearch-follow-ups.md)
+- [Task briefs and reports](sbx-rearch-tasks/)
 
-Fetch both remote branches before work.
-Use the current remote progress note; do not repeat completed tasks.
-The home coordinator owns integration, task 3 repairs, permissions, skills, global task execution, and real SBX checks.
-Task 6 model routing is available for work-machine execution under the claim protocol below.
-Other repositories and new kit repositories remain follow-up work.
+An overlay session can read the [current shared progress](https://github.com/mkobit/dotfiles/blob/feat/sbx-rearch/notes/sbx-rearch-progress.md) through approved read-only GitHub access when no base checkout is available.
+Use the base repository's feature branch for base changes.
+Keep assigned overlay-specific changes in the overlay repository and record the related base commit.
+Do not copy base implementation files into the overlay to share context.
 
-## Claim before implementation
+## Work-machine execution
 
-The authoritative record is `notes/sbx-rearch-work-claim.json` on the remote `docs/sbx-rearch-handoff` branch.
-Do not use a copied record on an implementation branch as authority.
-
-1. Fetch the handoff branch and create a separate coordination worktree from its current remote head.
-2. Read the record. A new claim requires `status == ready` and empty `owner` and `run_id`. Stop for every other state, including a claim with the same machine label.
-3. Change `status` from `ready` to `claimed`, set `owner` to `work-machine` or `home`, and add a unique `run_id`.
-4. Commit the record with configured signing and push `HEAD:refs/heads/docs/sbx-rearch-handoff` without force.
-5. Start implementation only after that push succeeds. A rejected push means another session changed the record; fetch and inspect it before any work.
-
-This normal fast-forward push prevents two sessions from claiming the same task.
-Do not rebase a losing claim over another owner's claim or replace an active owner.
-The home coordinator can claim the same task if it is still ready when needed.
-An interrupted owner keeps the claim until its writer has stopped and its work is recovered or released.
-Resume and completion updates require both the saved owner and run ID.
-After an uncertain push result, fetch and inspect the remote record; resume only when both identities match the saved claim, and do not create a second claim.
-
-## Task 6 ownership
-
-Read [the model routing brief](sbx-rearch-tasks/model-routing.md).
-Own only:
-
-- `src/chezmoi/dot_config/opencode/modify_opencode.json`.
-- `src/chezmoi/dot_pi/agent/modify_models.json` and `modify_settings.json`.
-- The Pi target gate in `src/chezmoi/.chezmoiignore.tmpl`.
-- `src/chezmoi/.chezmoiscripts/run_after_08_configure-local-models.sh.tmpl`.
-- `tests/integration/test_ollama_routing.py` and directly related existing OpenCode tests.
-- `notes/sbx-rearch-work-machine-report.md` for the handoff report.
-
-Use a separate implementation worktree from the latest `origin/feat/sbx-rearch`.
-Do not edit the coordination worktree's source or push code to the integration branch.
-Do not depend on uncommitted home-worker files.
-Preserve other sessions' changes.
-
-Use native host subagents for the edit, test, repair, and independent review cycle.
+Real SBX execution is unavailable on the work machine.
+Use native host subagents for assigned implementation, testing, repair, and independent review in isolated worktrees.
 Use real Chezmoi rendering with isolated destinations and fake SBX executables.
-Do not run the real `sbx` executable or apply settings to the managed work-machine destination.
-Do not change the overlay or enable SBX there.
+Do not install SBX, enable it in the overlay, change host policy, or mutate live settings for these tests.
+Keep real sandbox, signing, credential-proxy, and model-endpoint checks pending for a machine that supports them.
 
-The model hook gate is provider `sbx`, a non-`none` SBX installation method, and `ai.ollama.enabled`.
-`ai.workflow.enabled` gates global tasks only.
-Absent overlay decisions must remain a no-op.
-Declared SBX values must converge on ordinary apply, with unrelated provider and feature metadata preserved.
+Respect the overlay's control plane and safe defaults.
+Missing sandbox decisions must make no changes.
+Any intended SBX setting mutation must be represented in Chezmoi source and tested for convergence on ordinary apply.
+Use approved-index tool versions under the repository guidance if locked tools cannot run; record exact versions without changing the lockfile or release-age rules.
 
-Write failing behavior tests, implement the minimum change, and run focused tests and Ruff.
-Use approved-index tool versions under the repository guidance if the locked tools cannot run on this machine.
-Report exact versions; do not change the lockfile or release-age rules.
-Keep commits small and signed.
-Use an independent reviewer before handoff.
+## Collaboration rules
 
-## Return work
+Read the latest shared progress before starting a unit.
+Record who owns the unit and its files in the shared progress note before parallel edits.
+Preserve other sessions' work and do not repeat completed or active tasks.
+Commit small verified units with configured signing and keep the progress and evidence current.
 
-Stop all code writers, push `feat/sbx-rearch-model-routing`, and report its commit range.
-Open a draft PR with base `feat/sbx-rearch` for the home coordinator to review.
-Update the authoritative claim to `ready-for-review` with the branch and head SHA through the same non-force push protocol.
-Keep the owner and run identity in the record.
-Do not merge the integration PR or close the overall work.
+Integrate remote changes at a stopped-worker checkpoint.
+Use ordinary fast-forward pushes; if the remote has changed, fetch, review, and reconcile unpublished work before retrying.
+Do not force-push or rewrite published history.
+Dispatch an independent reviewer for each unit and retain unresolved findings in the notes.
+The separate cross-machine handoff and Git claim procedure is superseded by this shared-branch workflow.
 
-The report must list changed files, tests and exit codes, tool versions, decisions, unresolved questions, active processes, and checks that require the home machine.
-Record no-SBX checks as unrun; do not treat them as passed.
-The home coordinator reviews the returned diff, resolves shared-file conflicts, and runs real sandbox checks before integration.
-
-## Continuation prompt
+## Overlay-session prompt
 
 ```markdown
-Continue task 6 for the SBX rearchitecture in mkobit/dotfiles.
-Read notes/sbx-rearch-work-machine.md and the current remote progress note.
-This work machine cannot execute SBX. Use native host subagents in isolated worktrees and fake-SBX tests under the explicit offline scope in that handoff.
-Claim task 6 on origin/docs/sbx-rearch-handoff with a normal fast-forward push before editing source. Stop if another owner has claimed it.
-Create feat/sbx-rearch-model-routing from the latest origin/feat/sbx-rearch.
-Implement only the files assigned in the handoff and model-routing brief. Do not repeat completed work, edit home-owned files, change an overlay, install SBX, or mutate live settings.
-Use separate implementation and independent review delegates. Preserve all other work. Commit verified units with signatures and push the work branch.
-Write notes/sbx-rearch-work-machine-report.md, then set the authoritative claim to ready-for-review with the branch and head SHA. Leave native SBX and live endpoint checks for the home coordinator.
+Collaborate on the existing SBX rearchitecture through mkobit/dotfiles:feat/sbx-rearch and draft PR #1014.
+Read the current plan, progress, decisions, task briefs, and follow-up notes from that shared branch. If the base checkout is unavailable, read https://github.com/mkobit/dotfiles/blob/feat/sbx-rearch/notes/sbx-rearch-progress.md through approved read-only GitHub access.
+This work machine cannot run SBX. Use native host subagents in isolated worktrees, real Chezmoi rendering with temporary destinations, and fake-SBX tests for assigned offline work. Do not install or enable SBX or change live settings here.
+Coordinate unit and file ownership in the shared progress note. Preserve active work and do not repeat completed tasks. Keep base changes on the shared base feature branch and assigned overlay changes in the overlay repository.
+Commit small verified units with signatures, use independent reviewers, and update the shared notes with commands, results, exact tool versions, decisions, questions, and unrun runtime checks. Integrate remote changes only after local writers stop. Use normal fast-forward pushes and preserve published history.
+Continue through the current incomplete plan. Keep real SBX and live endpoint verification pending for a capable machine, and retain all manual follow-up work in notes/.
 ```
