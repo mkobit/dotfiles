@@ -4,7 +4,6 @@ import io
 import json
 import os
 import time
-import unittest
 from pathlib import Path
 from typing import override
 from unittest.mock import AsyncMock, Mock, patch
@@ -24,7 +23,7 @@ def wide_terminal(monkeypatch):
     monkeypatch.setenv("COLUMNS", "200")
 
 
-class TestMainSmoke(unittest.TestCase):
+class TestMainSmoke:
     """Smoke tests verifying the CLI entry point runs end-to-end."""
 
     @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/termstatus_test_cache"})
@@ -63,12 +62,12 @@ class TestMainSmoke(unittest.TestCase):
             # we should pass the payload directly to `invoke`.
             result = runner.invoke(cli, ["claude", "render"], input=payload)
 
-        self.assertEqual(result.exit_code, 0)
+        assert result.exit_code == 0
         all_output = result.stdout
-        self.assertIn("Claude 3", all_output)
-        self.assertIn("MySession", all_output)
-        self.assertIn("0.42", all_output)
-        self.assertIn("/100k", all_output)
+        assert "Claude 3" in all_output
+        assert "MySession" in all_output
+        assert "0.42" in all_output
+        assert "/100k" in all_output
 
     @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/termstatus_test_cache"})
     def test_runs_with_empty_payload(self) -> None:
@@ -77,11 +76,11 @@ class TestMainSmoke(unittest.TestCase):
             runner = CliRunner()
             result = runner.invoke(cli, ["claude", "render"], input="{}")
 
-        self.assertEqual(result.exit_code, 0)
-        self.assertGreater(len(result.stdout), 0)
+        assert result.exit_code == 0
+        assert len(result.stdout) > 0
 
 
-class TestShortenPath(unittest.TestCase):
+class TestShortenPath:
     def test_home_relative_short(self) -> None:
         home = Path("/home/user")
         with patch.object(Path, "home", return_value=home):
@@ -245,7 +244,3 @@ def test_claude_render_with_unknown_payload_fields(tmp_path):
         assert result.exit_code == 0
         assert "Sonnet 3.7 Custom" in result.stdout
         assert "$3.50" in result.stdout
-
-
-if __name__ == "__main__":
-    unittest.main()
