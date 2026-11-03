@@ -49,3 +49,11 @@ See [the assessment](sbx-rearch-tasks/mise-kit-assessment.md) for primary source
 Consider a shared Beads HTTP or SQL service only after the host-owned route works.
 Verify transport, host service supervision, sandbox network rules, authentication, and Chezmoi convergence first.
 Do not infer raw SQL connectivity from an HTTP host-service example.
+
+## AGY literal command heads
+
+Review the existing renderer against the pinned AGY client for literal command heads with punctuation, such as `./check`.
+Current escaping omits the native `regex:` selector and can fail to match those heads.
+The new base command grants contain no affected characters.
+Add a native matching check and explicit migration coverage before changing this existing behavior.
+See [the review checkpoint](sbx-rearch-tasks/permissions-report.md).

@@ -10,7 +10,8 @@ Workspace: `.worktrees/feat-sbx-rearch`.
 Use `feat/sbx-rearch` as the shared long-lived base feature branch.
 Tasks 1–3 are complete; task 3 is signed at `bbc2e758` with 137 passing tests and independent review.
 [Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the completed checkpoints.
-Task 4 permissions passed 86 renderer tests and are under independent review by `review_permissions`.
+Task 4 permissions passed 86 renderer tests and independent review.
+Its implementation is ready for a signed commit; initialized deployment and CI remain open gates.
 Its scope is the command catalog, Claude/AGY/Codex settings, the unattended profile, and permission tests.
 Local execution record: `.sbx/task-context/permissions/`.
 The macOS ancestor-alias repair passed 142 tests, root ShellCheck, and independent review.
@@ -276,3 +277,11 @@ Root ShellCheck `0.11.0` passed the current rendered hook.
 The source hashes match the tested report.
 Native macOS CI remains required after publication.
 See [the repair report](sbx-rearch-tasks/macos-ci-fix.md).
+
+## Permission review checkpoint
+
+Independent review found no blocking defect in the task 4 implementation.
+All 16 reported source hashes match the current files.
+The available renderer gate passed 86 tests; full initialized deployment remains pending.
+The existing AGY literal-head escaping limit is recorded for overlay collaboration and final review.
+See [the permission report](sbx-rearch-tasks/permissions-report.md).

@@ -1,3 +1,9 @@
+# Host defaults. Keep the selector scheme compatible with the live base file.
+[codex.permissions]
+approval_policy = "on-request"
+default_permissions = ":workspace"
+sandbox_mode = "workspace-write"
+
 [codex.tui]
 vim_mode_default = true
 

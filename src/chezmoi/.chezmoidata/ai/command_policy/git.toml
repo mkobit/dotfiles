@@ -1,12 +1,9 @@
-# Local, commit-or-object-level git operations: no remote/network write, no
-# irrecoverable data loss (reflog covers commit history even across rebase).
-# Deliberately excluded — do not add:
-#   - "git push": the actual remote-write / code-leak risk this list is
-#     scoped around; always prompt.
-#   - "git reset", "git clean": can permanently destroy uncommitted/untracked
-#     work with no reflog entry to recover from, and command-head matching
-#     can't separate safe flags (--soft) from destructive ones (--hard, -fd);
-#     always prompt for both, in full.
+# Local Git operations and the selected workflow push.
+# Bare git push and force push are not granted. The shipping task must check
+# the branch, remote, PR identity, and head revision before publication.
+# Command-head matching does not validate appended arguments.
+# git reset and git clean can destroy uncommitted or untracked work.
+# Keep them outside this allow catalog.
 [ai.command_policy.commands]
 "git add" = "allow"
 "git blame" = "allow"
@@ -24,6 +21,7 @@
 "git merge-base" = "allow"
 "git mv" = "allow"
 "git pull" = "allow"
+"git push --set-upstream origin HEAD" = "allow"
 "git rebase" = "allow"
 "git remote -v" = "allow"
 "git restore" = "allow"

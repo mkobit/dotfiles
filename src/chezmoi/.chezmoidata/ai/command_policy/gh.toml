@@ -1,8 +1,18 @@
-# Read-only gh pr subcommands: query PR/CI state, no mutation of the PR
-# itself or of anything on GitHub (no merge/close/comment/edit/review/etc).
+# Selected GitHub workflow operations and read-only inspection.
+# These grants do not authorize comments, mail, auth, secrets, or account changes.
 [ai.command_policy.commands]
 "gh pr checks" = "allow"
 "gh pr diff" = "allow"
 "gh pr list" = "allow"
 "gh pr status" = "allow"
 "gh pr view" = "allow"
+"gh pr create" = "allow"
+"gh pr ready" = "allow"
+"gh pr merge" = "allow"
+"gh issue create" = "allow"
+"gh issue view" = "allow"
+"gh issue list" = "allow"
+"gh run view" = "allow"
+"gh run list" = "allow"
+"gh run watch" = "allow"
+"gh repo view" = "allow"
