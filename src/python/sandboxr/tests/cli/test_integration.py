@@ -1,5 +1,6 @@
 """CLI integration tests verifying fail-closed on-hold guard."""
 
+import pytest
 from typer.testing import CliRunner
 
 from sandboxr.main import app
@@ -7,20 +8,16 @@ from sandboxr.main import app
 runner = CliRunner()
 
 
-def test_run_fails_closed_when_on_hold():
-    result = runner.invoke(app, ["run", "--", "bash"])
-    assert result.exit_code == 1
-    assert "error: sandboxr is currently on hold" in result.output
-
-
-def test_shell_fails_closed_when_on_hold():
-    result = runner.invoke(app, ["shell"])
-    assert result.exit_code == 1
-    assert "error: sandboxr is currently on hold" in result.output
-
-
-def test_doctor_fails_closed_when_on_hold():
-    result = runner.invoke(app, ["doctor"])
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["run", "--", "bash"],
+        ["shell"],
+        ["doctor"],
+    ],
+)
+def test_commands_fail_closed_when_on_hold(args: list[str]) -> None:
+    result = runner.invoke(app, args)
     assert result.exit_code == 1
     assert "error: sandboxr is currently on hold" in result.output
 
