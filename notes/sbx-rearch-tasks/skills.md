@@ -245,3 +245,14 @@ Do not repeat implementation after a confirmed merge when only host close remain
 Any manual SBX setting adjustment must have a corresponding Chezmoi source change.
 Ordinary apply must correct changes to declared managed values.
 Keep missing overlay decisions as a no-op and preserve unmanaged state.
+
+## Codex configuration compatibility
+
+The current [OpenAI configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference) confirms separate profile files and both legacy sandbox selectors and named permission profiles.
+It forbids combining `default_permissions` with `sandbox_mode` or `sandbox_workspace_write`.
+Keep the host and unattended profile on a compatible selector scheme.
+Do not add legacy sandbox keys to a valid live configuration that already selects `default_permissions`.
+Preserve unrelated settings and named permission definitions.
+Test a valid existing modern selector, a valid legacy configuration, and their unattended profile layers.
+Use `on-request` on the host and `never` only in the explicit guest profile.
+The guest launcher can continue to use supported command-line overrides; it must not assume a host profile file is mounted.

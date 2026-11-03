@@ -28,7 +28,7 @@ Tasks 1 and 2 are complete.
 The repository kit passed fresh native creation and 22 tests without manual setup.
 The last signed checkpoint is `bea458d1`.
 [Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the completed checkpoints.
-Task 3 is recovering from a usage-limit stop before source edits.
+Task 3 implementation passed 116 tests and is in its first independent-review fix cycle.
 The pinned `sbx/mise-kit` assessment is also resuming.
 Later setup, skills, permission, model, task, deployment, and final verification work remains.
 
@@ -194,3 +194,25 @@ Keep a shared tracker service as follow-up work.
 A clean main checkout can launch work after exclusive ownership is established; create the assigned feature branch after claim.
 Shipping still rejects main and detached HEAD.
 See [the route contract](sbx-rearch-tasks/tracker-route.md).
+
+## Task 3 review
+
+The four-file setup implementation passed 116 tests, Ruff, and rendered Bash checks.
+Independent review found two P2 defects before commit:
+
+- File replacement can complete before receipt persistence; interruption then blocks later normal apply.
+- Source executable-mode changes do not update the copy or its import fingerprint.
+
+The original guest will add regression tests and repair both defects in the same verified environment.
+Keep unrelated user changes protected.
+No task 3 source commit is complete yet.
+
+## Work-machine execution
+
+The user requested remote guidance to use the work machine quota without SBX execution.
+Publish the handoff on `docs/sbx-rearch-handoff` and keep integration on `feat/sbx-rearch`.
+Task 6 is the independent offline work package.
+The authoritative handoff-branch claim must succeed before either machine starts that task.
+Use native host delegates, isolated Chezmoi rendering, and fake SBX on the work machine.
+The home coordinator retains real sandbox checks and integration.
+See [the work-machine handoff](sbx-rearch-work-machine.md).

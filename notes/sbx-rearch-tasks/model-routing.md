@@ -50,7 +50,8 @@ Current `run --help` hides model flags while this feature is disabled.
 Native `settings set` accepts raw JSON according to the setting type and can reject administrator conflicts.
 
 An ordinary apply hook reads all three records before it writes.
-It requires the established SBX workflow gate plus `ai.ollama.enabled`.
+It requires provider `sbx`, a non-`none` SBX installation method, and `ai.ollama.enabled`.
+The global task flag `ai.workflow.enabled` does not gate this setup.
 It sets the platform boolean only when false.
 It copies the feature object and changes only `enabled` to `true`.
 It copies the provider map and the existing managed provider object, then sets these owned fields:
