@@ -384,6 +384,7 @@ def main(enabled, selected):
 
 
 destination = Path(sys.argv[1])
+destination = destination.parent.resolve() / destination.name
 portable = destination / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills"
 copies = destination / ".agents/skills"
 state_file = destination / ".local/state/dotfiles/sbx-skills-ownership.json"

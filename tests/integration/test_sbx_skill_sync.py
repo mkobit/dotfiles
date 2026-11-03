@@ -605,3 +605,73 @@ def test_legacy_digest_only_receipt_is_preserved_without_mode_claim(tmp_path, en
     assert (h.destination / RECEIPT).read_text() == saved
     assert (target.read_bytes(), target.stat().st_mode) == before
     assert h.calls() == [IMPORT]
+
+
+@pytest.fixture
+def parent_alias(tmp_path):
+    physical = tmp_path / "physical"
+    physical.mkdir()
+    h = harness(physical)
+    alias = tmp_path / "parent-alias"
+    alias.symlink_to(physical, target_is_directory=True)
+    return h, alias / "destination"
+
+
+def test_disabled_sync_with_parent_alias_and_no_receipt_is_noop(parent_alias):
+    h, aliased_destination = parent_alias
+    h.destination = aliased_destination
+    h.run(decisions(sync_skills=False), apply=True)
+    assert not (h.destination / RECEIPT).exists()
+    assert not (h.destination / ".agents").exists()
+    assert (h.destination / PORTABLE / "alpha/SKILL.md").read_text() == "already rendered destination and decisions\n"
+    assert not h.calls()
+
+
+def test_enabled_sync_with_parent_alias_copies_and_imports(parent_alias):
+    h, aliased_destination = parent_alias
+    h.destination = aliased_destination
+    h.run(sync_data(), apply=True)
+    target = h.destination / ".agents/skills/alpha/SKILL.md"
+    assert target.read_text() == "already rendered destination and decisions\n"
+    assert not target.is_symlink()
+    assert receipt(h)["imports"]["alpha"]
+    assert (h.root / "fake-store/alpha/SKILL.md").read_text() == "already rendered destination and decisions\n"
+    assert h.calls() == [IMPORT]
+
+
+def test_disabled_sync_with_parent_alias_cleans_prior_owned_copy(parent_alias):
+    h, aliased_destination = parent_alias
+    # Create the prior receipt through the physical path so failure occurs at cleanup.
+    h.run(sync_data(), apply=True)
+    h.destination = aliased_destination
+    output = h.run(decisions(sync_skills=False), apply=True)
+    assert not (h.destination / ".agents/skills/alpha").exists()
+    assert "alpha" not in receipt(h)["skills"]
+    assert (h.root / "fake-store/alpha/SKILL.md").read_text() == "already rendered destination and decisions\n"
+    assert "alpha" in output and "identity" in output.lower()
+    assert h.calls() == [IMPORT]
+
+
+@pytest.mark.parametrize("enabled", [False, True], ids=["disabled-sync", "enabled-sync"])
+def test_destination_symlink_below_parent_alias_is_rejected(parent_alias, enabled):
+    h, aliased_destination = parent_alias
+    referent = h.root / "destination-referent"
+    h.destination.rename(referent)
+    h.destination.symlink_to(referent, target_is_directory=True)
+    h.destination = aliased_destination
+    data = sync_data() if enabled else decisions(sync_skills=False)
+    h.render(data)
+    result = subprocess.run(
+        h.command("apply", data=data),
+        capture_output=True,
+        text=True,
+        check=False,
+        env={**os.environ, "PATH": str(h.bin) + os.pathsep + os.environ["PATH"]},
+    )
+    assert result.returncode != 0
+    assert "symlink" in result.stderr.lower()
+    assert h.destination.is_symlink()
+    assert not (referent / RECEIPT).exists()
+    assert not (referent / ".agents").exists()
+    assert (referent / PORTABLE / "alpha/SKILL.md").read_text() == "already rendered destination and decisions\n"
+    assert not h.calls()

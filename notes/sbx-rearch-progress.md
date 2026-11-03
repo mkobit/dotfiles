@@ -10,9 +10,11 @@ Workspace: `.worktrees/feat-sbx-rearch`.
 Use `feat/sbx-rearch` as the shared long-lived base feature branch.
 Tasks 1–3 are complete; task 3 is signed at `bbc2e758` with 137 passing tests and independent review.
 [Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the completed checkpoints.
-Task 4 permissions are active under `implement_permissions` for the current coordinator.
+Task 4 permissions passed 86 renderer tests and are under independent review by `review_permissions`.
 Its scope is the command catalog, Claude/AGY/Codex settings, the unattended profile, and permission tests.
 Local execution record: `.sbx/task-context/permissions/`.
+The macOS ancestor-alias repair passed 142 tests, root ShellCheck, and independent review.
+Native macOS CI confirmation remains open; the repair is ready for its signed commit.
 Task 6 model routing is unassigned; the separate work-machine reservation and claim procedure are superseded.
 The overlay work machine can use native subagents and fake-SBX tests for coordinated offline work.
 Real sandbox and live endpoint checks require a capable machine.
@@ -253,3 +255,24 @@ Catalog `deny` wins; preserve unrelated native entries and pre-existing deny rul
 The managed modern Codex host selector is `:workspace`, while named definitions remain intact.
 Legacy settings use compatible `workspace-write` fields.
 The explicit guest profile matches the host selector scheme and does not change the host default to full access.
+
+## macOS CI repair
+
+[CI run 41652944917](https://github.com/mkobit/dotfiles/actions/runs/41652944917) passed Linux amd64/arm64 integration, unit tests, lint, and Python 3.8 compatibility.
+macOS apply failed before pytest in all six attempts because the sync hook rejected the system `/tmp` alias above the declared destination boundary.
+An isolated execution of the exact hook reproduced the failure.
+The repair must accept legitimate ancestor aliases above destDir while retaining checks at destDir and below it.
+See [the investigation](sbx-rearch-tasks/macos-ci-investigation.md).
+
+Task 4 renderer tests passed: 86 passed, 33 deselected.
+The full focused command reported missing guest deployment prerequisites: 111 passed, 1 skipped, 2 failed, and 5 setup errors.
+Tests and markers remain unchanged; initialized deployment and CI checks remain required.
+
+## macOS repair verification
+
+The one-line parent-resolution repair passed all 142 focused tests and independent review.
+The target root and managed descendants still reject symlinks.
+Root ShellCheck `0.11.0` passed the current rendered hook.
+The source hashes match the tested report.
+Native macOS CI remains required after publication.
+See [the repair report](sbx-rearch-tasks/macos-ci-fix.md).
