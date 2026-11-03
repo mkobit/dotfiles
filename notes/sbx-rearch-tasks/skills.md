@@ -232,3 +232,16 @@ Native AGY file-deny syntax still needs current documentation verification durin
 Current shared command-head matching cannot enforce all argument safety rules; do not make stronger claims.
 Successful proxy setup alone does not prove every `gh` command works in a guest; retain the end-to-end prerequisite check.
 Account signing-key registration and unavailable credential actions remain manual follow-up work.
+
+## Updated tracker and convergence contracts
+
+Use [the host-coordinator tracker route](tracker-route.md) for this implementation.
+The host atomically claims and supplies a complete frozen snapshot and actor.
+The guest reads that snapshot and must not claim again or require a guest Beads database.
+The guest can complete authorized Git and PR work; the host independently confirms the merge and unchanged requirements before authoritative close.
+Record unrelated work and blocked questions for the designated tracker owner.
+Do not repeat implementation after a confirmed merge when only host close remains pending.
+
+Any manual SBX setting adjustment must have a corresponding Chezmoi source change.
+Ordinary apply must correct changes to declared managed values.
+Keep missing overlay decisions as a no-op and preserve unmanaged state.

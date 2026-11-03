@@ -24,9 +24,13 @@ Workspace: `.worktrees/feat-sbx-rearch`.
 
 ## Current state
 
-Task 1 is complete.
-SBX execution readiness is under inspection.
-No implementation code has changed.
+Tasks 1 and 2 are complete.
+The repository kit passed fresh native creation and 22 tests without manual setup.
+The last signed checkpoint is `bea458d1`.
+[Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the completed checkpoints.
+Task 3 is recovering from a usage-limit stop before source edits.
+The pinned `sbx/mise-kit` assessment is also resuming.
+Later setup, skills, permission, model, task, deployment, and final verification work remains.
 
 ## Human questions
 
@@ -150,3 +154,43 @@ The normal frozen repository test command passed 22 tests in 33.82 seconds.
 No post-create installation, runtime export, or `--env` patch was used.
 Evidence: [Kit reproduction report](sbx-rearch-tasks/kit-reproduction-report.md).
 Task 3 can now use this verified environment.
+
+## Recovery on 2026-11-02
+
+The user requested continuation.
+Both active delegates stopped at a usage limit.
+The task 3 guest log records session `01a19a59-08f4-7d31-a82a-bb6b8a13450d`; no task 3 source edits exist.
+Preserve that session, confirm old-writer termination, then resume in the same verified guest.
+The current time check is `2026-11-02 12:25 UTC`, after the reported reset times.
+Do not rebuild the environment or repeat completed schema work.
+
+## First PR verification
+
+All seven checks passed for checkpoint `bea458d1` in [CI run 41384373588](https://github.com/mkobit/dotfiles/actions/runs/41384373588).
+This includes lint, Python 3.8 compatibility, tests on Linux and macOS, and integration on Linux amd64, Linux arm64, and macOS.
+Later source changes still require their own verification.
+
+## Mise kit decision
+
+Keep the fresh-tested kit for the current implementation.
+The native mise mixin is a pinned adoption candidate with an older mise release and guest-wide trust configuration.
+Record adoption checks in the follow-up note before use in other repositories.
+
+## SBX settings convergence
+
+The user requires any manual SBX setting change to be codified in Chezmoi source.
+Normal apply must restore declared managed values after drift.
+Settings hooks must read live state, preserve unrelated fields, and set changed managed values only.
+Tests must cover drift correction, a repeated no-op apply, and retry after an unavailable service.
+No host SBX setting mutation has been reported in the research or kit setup work.
+Keep missing overlay decisions as a no-op and preserve existing custom policy.
+
+## Tracker route decision
+
+Use host-owned claim, immutable acceptance snapshot, and host close for both direct and clone workers.
+The guest receives complete task context and does not need a Beads database or tracker credentials.
+The host independently confirms the merged PR and unchanged material requirements before close.
+Keep a shared tracker service as follow-up work.
+A clean main checkout can launch work after exclusive ownership is established; create the assigned feature branch after claim.
+Shipping still rejects main and detached HEAD.
+See [the route contract](sbx-rearch-tasks/tracker-route.md).

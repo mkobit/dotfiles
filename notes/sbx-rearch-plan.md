@@ -14,6 +14,7 @@ Keep host coordination separate from guest execution.
 - Put personal opt-ins in `.chezmoi.toml.tmpl`; missing overlay decisions must disable side effects.
 - Use `chezmoi.destDir` for target paths.
 - Preserve unrelated live configuration and existing custom SBX policy.
+- Codify any manual SBX setting mutation in Chezmoi; ordinary apply must correct drift in declared managed values.
 - Keep private keys and raw tokens out of prompts, logs, and tracked files.
 - Use mise for task and verification entry points.
 - Do not change other repositories during this implementation.
@@ -30,8 +31,9 @@ Keep host coordination separate from guest execution.
 ## Tasks
 
 - [x] 1. Audit current catalogs, source paths, CLI support, and verification.
-- [x] 2. Add schema and settings setup with tests for absent, disabled, and overridden decisions.
-- [ ] 3. Add guest signing, secret proxy, policy preservation, and skill import with fake CLI tests.
+- [x] 2. Add schema and personal choices with tests for absent, disabled, and overridden decisions.
+- [ ] 3. Add secret proxy, policy preservation, settings convergence, and skill import with fake CLI tests.
+  Guest signing execution and preflight belong to task 7.
 - [ ] 4. Update permissions through the shared catalog and native modifiers; test live-setting preservation.
 - [ ] 5. Update SBX skills and add architect, worker, bootstrap, and improvement skills; test deployment and references.
 - [ ] 6. Add Ollama routes through native configuration; test disabled and repeated apply behavior.

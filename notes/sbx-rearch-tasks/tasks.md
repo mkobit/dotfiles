@@ -9,6 +9,8 @@ Root owns commits, signing actions, review, and publication for this migration.
 ## Owned files
 
 - Modify `mise.toml`: add repository `check`, `test`, and `verify` tasks.
+- Create `.agent-workflow.json` with the explicit nonempty CI check set recorded in the progress note.
+- Extend `.sbx/kit/` only for required worker tools that the pinned base does not provide; verify fresh creation after a kit change.
 - Modify `src/chezmoi/dot_config/mise/config.toml.tmpl`: emit workflow tasks from a map when `dig "ai" "workflow" "enabled" false .` is true.
 - Create `src/chezmoi/dot_local/bin/tools/executable_dotfiles-agent.py`: standard-library Python helper with `argparse` and no runtime dependencies.
 - Create `src/chezmoi/dot_config/dotfiles/private_agent-workflow.json.tmpl`: rendered runtime configuration.
@@ -102,7 +104,8 @@ Perform read-only preflight before a claim:
 2. Check that `mise run verify` exists in repository configuration.
 3. Verify the selected harness and SBX environment.
 4. Verify direct or clone ownership and the change-return contract.
-5. Prove required Git, tracker, credential proxy, signing, and task availability in the guest.
+5. Prove required guest Git, credential proxy, signing, and task availability.
+   For the selected host-coordinator tracker route, prove tracker identity and readiness on the host.
 6. Save a durable launch record before starting a writer.
 
 Use an existing repository-owned `sbxenv.yaml` or the configured explicit environment path.
@@ -127,7 +130,11 @@ Preserve pending launch state to prevent a second writer after a disconnected cl
 Only use supported observation or resume controls.
 A zero harness exit status does not prove task completion.
 
-Direct mode requires a clean feature branch and one active writer in the assigned workspace.
+Direct mode requires a clean checkout and one active writer in the assigned workspace.
+A clean base-branch checkout may start a new assignment.
+After the atomic claim, create the validated assigned feature branch before implementation.
+Do not require users to create a feature branch before automatic issue selection.
+Shipping must reject the base branch.
 The root may retain its orchestration branch when explicit ownership and bounded edits are provided.
 A linked worktree can expose a `.git` file that points outside the mount.
 Reject guest Git in that state unless a verified return contract leaves commits on the host.
@@ -292,3 +299,21 @@ The local command interface was checked with `mise run --help`, `mise tasks --he
 - [GitHub checks](https://cli.github.com/manual/gh_pr_checks).
 - [GitHub merge](https://cli.github.com/manual/gh_pr_merge).
 - [Beads v1.3.1 source](https://github.com/gastownhall/beads/tree/v1.3.1).
+
+## Integration decisions
+
+Task 6 supplies custom native SBX provider ID `ollama-configured`; host Pi/OpenCode use provider ID `ollama`.
+Native SBX routing supports local built-in Claude Code, Codex, and OpenCode, with the required feature flags.
+Reject unsupported model-route and harness combinations before claiming work.
+The authoritative host/guest Beads route needs a verified transport contract; do not treat shared filenames as shared server access.
+A separate read-only architecture report will define that interface before implementation.
+
+## Authoritative tracker contract
+
+Use [the host-owned route](tracker-route.md) for direct and clone modes in this implementation.
+The host claims with one saved actor and freezes the complete acceptance snapshot.
+The guest receives that snapshot and must not initialize, copy, or claim a separate tracker.
+Guest Beads is not required for this route.
+After guest delivery, the host independently verifies merge identity and unchanged material requirements, then closes through the saved tracker directory.
+A failed close leaves a recoverable pending-close state; it must not repeat implementation or open another PR.
+Keep shared network tracker services as follow-up work.
