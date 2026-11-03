@@ -1,11 +1,12 @@
 {
   "task": 6,
-  "status": "ready",
+  "status": "superseded",
   "owner": "",
   "run_id": "",
   "integration_branch": "feat/sbx-rearch",
   "work_branch": "feat/sbx-rearch-model-routing",
   "head_sha": "",
   "pull_request": "",
-  "report": "notes/sbx-rearch-work-machine-report.md"
+  "report": "notes/sbx-rearch-work-machine-report.md",
+  "shared_branch": "feat/sbx-rearch"
 }
