@@ -12,14 +12,16 @@ Use `feat/sbx-rearch` as the shared long-lived base feature branch.
 Tasks 1–3 have reviewed implementation commits.
 The macOS ancestor-alias repair and task 4 passed all seven CI checks at `d54ded96`.
 Task 4 is complete after initialized Linux amd64/arm64 and macOS deployment checks.
-Task 5a passed fresh scenario evaluation and independent re-review; root is signing its checkpoint.
+Task 5a is signed and published at `6711c42f` after fresh scenario evaluation and independent re-review.
 Its scope is the SBX skill authority references, `worker-handoff`, its catalog entry, and related tests.
 The repaired version passed 76 focused tests and 42 broader deployment tests before a description-only correction.
 Final static checks passed after that correction; the extra full test attempt stopped at quota and is incomplete.
 The fixed application cases score 10 of 10, and both independent findings are resolved.
 Local record: `.sbx/task-context/skills-worker/`.
 Task 6 model routing is active under `implement_model_routing` after proof that the previous guest and child checks stopped.
-Task 7 repository verification and required-check configuration are prepared under `implement_workflow_tasks`, queued after task 6.
+Task 7 repository verification and required-check configuration are active under `implement_workflow_tasks` in a separate isolated worktree.
+That unit owns only `mise.toml` and `.agent-workflow.json`.
+The architect skill is prepared under `implement_architect_skill` and waits for the original guest workspace to be free.
 The overlay work machine can use native subagents and fake-SBX tests for coordinated offline work.
 Real sandbox and live endpoint checks require a capable machine.
 See [the collaboration guide](sbx-rearch-work-machine.md).
@@ -328,3 +330,19 @@ Independent re-review resolved both earlier findings and found no new material d
 The reviewer verified all 26 final source hashes and checked the local references.
 See [the worker skill report](sbx-rearch-tasks/worker-skill-report.md).
 Runtime shipping, signing/proxy execution, and real tracker close remain task 7 and integration work.
+
+## Parallel execution ownership
+
+Capacity is two guest coding workers, each with its own workspace and environment.
+Each workspace has one writer.
+Root retains review, integration, signing, and publication on the shared `feat/sbx-rearch` branch.
+
+| Unit | Owner | Workspace and environment | Owned source |
+| --- | --- | --- | --- |
+| Model routing | `implement_model_routing` | `.worktrees/feat-sbx-rearch`; `dotfiles-sbx-rearch-kitcheck-pinned` | OpenCode/Pi modifiers, Pi ignore gate, hook `08`, routing tests |
+| Repository verification | `implement_workflow_tasks` | `.worktrees/feat-sbx-rearch-verify`; `dotfiles-sbx-rearch-verify` | `mise.toml`, `.agent-workflow.json` |
+| Architect skill, queued | `implement_architect_skill` | Original guest after its prior writer stops | New skill, authored entry, focused skill tests |
+
+The verification worktree starts at `6711c42f` on local execution branch `feat/sbx-rearch-verify`.
+Root will inspect its returned diff and commit the accepted unit on the shared branch.
+No worker may change signing identities, credentials, host settings, or other repositories.
