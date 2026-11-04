@@ -52,3 +52,8 @@
 {{- if not (dig "ai" "workflow" "enabled" false .) }}
 .codex/unattended.config.toml
 {{- end }}
+
+{{- if not (dig "ai" "ollama" "enabled" false .) }}
+.pi/agent/models.json
+.pi/agent/settings.json
+{{- end }}

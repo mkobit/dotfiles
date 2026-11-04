@@ -36,7 +36,7 @@ Keep host coordination separate from guest execution.
   Guest signing execution and preflight belong to task 7.
 - [x] 4. Update permissions through the shared catalog and native modifiers; test live-setting preservation.
 - [ ] 5. Update SBX skills and add architect, worker, bootstrap, and improvement skills; test deployment and references.
-- [ ] 6. Add Ollama routes through native configuration; test disabled and repeated apply behavior.
+- [x] 6. Add Ollama routes through native configuration; test disabled and repeated apply behavior.
 - [ ] 7. Add global architect, worker, PR, and bootstrap tasks plus repository verify tasks; test command arguments, claim races, branch safety, and CI handling.
 - [ ] 8. Run integrated checks, independent review, scoped deployment, and a test-repository handoff.
 - [ ] 9. Submit a PR, inspect GitHub checks, repair failures, and record the adoption guide and manual follow-up work.

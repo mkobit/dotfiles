@@ -18,14 +18,14 @@ The repaired version passed 76 focused tests and 42 broader deployment tests bef
 Final static checks passed after that correction; the extra full test attempt stopped at quota and is incomplete.
 The fixed application cases score 10 of 10, and both independent findings are resolved.
 Local record: `.sbx/task-context/skills-worker/`.
-Task 6 model routing is active under `implement_model_routing` after proof that the previous guest and child checks stopped.
+Task 6 model routing passed tests and independent review; root is signing its checkpoint.
 Task 7 repository verification and required-check configuration are active under `implement_workflow_tasks` in a separate isolated worktree.
 That unit owns only `mise.toml` and `.agent-workflow.json`.
-The architect skill is prepared under `implement_architect_skill` and waits for the original guest workspace to be free.
+The architect skill is active under `implement_architect_skill` after the model-routing guest stopped.
 The overlay work machine can use native subagents and fake-SBX tests for coordinated offline work.
 Real sandbox and live endpoint checks require a capable machine.
 See [the collaboration guide](sbx-rearch-work-machine.md).
-Skills, model routing, global tasks, deployment, and final verification remain.
+Three skills, global tasks, deployment, and final verification remain.
 
 ## Decisions
 
@@ -339,10 +339,18 @@ Root retains review, integration, signing, and publication on the shared `feat/s
 
 | Unit | Owner | Workspace and environment | Owned source |
 | --- | --- | --- | --- |
-| Model routing | `implement_model_routing` | `.worktrees/feat-sbx-rearch`; `dotfiles-sbx-rearch-kitcheck-pinned` | OpenCode/Pi modifiers, Pi ignore gate, hook `08`, routing tests |
+| Model routing, review accepted | `implement_model_routing` | Original guest stopped | OpenCode/Pi modifiers, Pi ignore gate, hook `08`, routing tests |
 | Repository verification | `implement_workflow_tasks` | `.worktrees/feat-sbx-rearch-verify`; `dotfiles-sbx-rearch-verify` | `mise.toml`, `.agent-workflow.json` |
-| Architect skill, queued | `implement_architect_skill` | Original guest after its prior writer stops | New skill, authored entry, focused skill tests |
+| Architect skill | `implement_architect_skill` | `.worktrees/feat-sbx-rearch`; `dotfiles-sbx-rearch-kitcheck-pinned` | New skill, authored entry, focused skill tests |
 
 The verification worktree starts at `6711c42f` on local execution branch `feat/sbx-rearch-verify`.
 Root will inspect its returned diff and commit the accepted unit on the shared branch.
 No worker may change signing identities, credentials, host settings, or other repositories.
+
+## Model routing acceptance
+
+Task 6 passed 57 focused tests, eight adjacent tests, and static checks, with two existing overlay-only skips.
+Independent review found no correction needed and verified invalid-JSON target preservation.
+Root verified the source hashes and ran ShellCheck `0.11.0` successfully.
+See [the route report](sbx-rearch-tasks/model-routing-report.md).
+Live endpoint, apply, and later source CI checks remain separate integration work.

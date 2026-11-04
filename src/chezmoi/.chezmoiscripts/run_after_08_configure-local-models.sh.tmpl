@@ -1,0 +1,69 @@
+{{- $enabled := and (dig "ai" "ollama" "enabled" false .) (eq (dig "ai" "sandbox" "provider" "none" .) "sbx") (ne (dig "local" "bin" "sbx" "installation_method" "none" .) "none") -}}
+{{- if $enabled -}}
+{{- $python := includeTemplate "python/filter-interpreter" . -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+exec {{ $python | shellQuote }} -S - {{ dict "host" (dig "ai" "ollama" "host_url" "" .) "sandbox" (dig "ai" "ollama" "sandbox_url" "" .) "model" (dig "ai" "ollama" "default_coder_model" "" .) | toJson | shellQuote }} <<'PY'
+import copy
+import json
+import shutil
+import subprocess
+import sys
+
+
+def report(message):
+    print("local-models: unmet prerequisite: " + message, file=sys.stderr)
+
+
+def call(sbx, *args):
+    # Settings can contain credentials. Never forward captured output or errors.
+    result = subprocess.run([sbx, *args], capture_output=True, text=True)
+    if result.returncode:
+        raise ValueError("SBX settings operation failed; check CLI access and administrator policy.")
+    return result.stdout
+
+
+def read_settings(sbx):
+    keys = ("platform.allowExperimentalFeatures", "feature.model", "model.providers")
+    records = [json.loads(call(sbx, "settings", "get", key, "--json")) for key in keys]
+    for record, kind in zip(records, ("bool", "json", "json")):
+        if not isinstance(record, dict) or record.get("type") != kind or "value" not in record:
+            raise ValueError("SBX returned an invalid settings record.")
+    platform, feature, providers = [record["value"] for record in records]
+    if type(platform) is not bool:
+        raise ValueError("SBX returned an invalid platform value.")
+    if (records[1].get("feature_flag") is not True or not isinstance(feature, dict)
+            or type(feature.get("enabled")) is not bool):
+        raise ValueError("SBX returned an invalid model feature value.")
+    if not isinstance(providers, dict) or any(not isinstance(value, dict) for value in providers.values()):
+        raise ValueError("SBX returned an invalid model provider value.")
+    return keys, [platform, feature, providers]
+
+
+def main(desired):
+    if not all(isinstance(value, str) and value.rstrip("/") for value in desired.values()):
+        report("Set both service roots and the default coder model.")
+        return
+    sbx = shutil.which("sbx")
+    if sbx is None:
+        report("SBX is unavailable; routing was not configured.")
+        return
+    keys, current = read_settings(sbx)
+    updated = copy.deepcopy(current)
+    updated[0] = True
+    updated[1]["enabled"] = True
+    provider = updated[2].setdefault("ollama-configured", {})
+    provider.update(url=desired["host"].rstrip("/") + "/v1", wire="openai", name="Ollama (configured)")
+    for key, before, after in zip(keys, current, updated):
+        if before != after:
+            call(sbx, "settings", "set", key, json.dumps(after))
+
+
+try:
+    main(json.loads(sys.argv[1]))
+except (OSError, ValueError, UnicodeError):
+    # Do not include exceptions: a JSON parse error can contain private values.
+    report("SBX routing did not converge; check setting records, CLI access, and administrator policy. Apply again after repair.")
+PY
+{{- end -}}
