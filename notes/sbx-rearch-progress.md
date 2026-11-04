@@ -8,19 +8,18 @@ Workspace: `.worktrees/feat-sbx-rearch`.
 ## Resume here
 
 Use `feat/sbx-rearch` as the shared long-lived base feature branch.
-Tasks 1–3 are complete; task 3 is signed at `bbc2e758` with 137 passing tests and independent review.
-[Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the completed checkpoints.
-Task 4 permissions passed 86 renderer tests and independent review.
-Its implementation is ready for a signed commit; initialized deployment and CI remain open gates.
-Its scope is the command catalog, Claude/AGY/Codex settings, the unattended profile, and permission tests.
-Local execution record: `.sbx/task-context/permissions/`.
-The macOS ancestor-alias repair passed 142 tests, root ShellCheck, and independent review.
-Native macOS CI confirmation remains open; the repair is ready for its signed commit.
-Task 6 model routing is unassigned; the separate work-machine reservation and claim procedure are superseded.
+[Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the published checkpoints.
+Tasks 1–3 have reviewed implementation commits.
+The macOS ancestor-alias repair is signed at `ce0f456d` and passed 142 tests; native macOS CI confirmation remains open.
+Task 4 is signed at `6cf67c08`; 86 renderer tests and independent review passed, while initialized deployment and CI remain open gates.
+Task 5a is preparing baseline scenarios under `implement_workflow_skills` before source edits.
+Its scope is the SBX skill authority references, `worker-handoff`, its catalog entry, and related tests.
+Local record: `.sbx/task-context/skills-worker/`.
+Task 6 model routing remains unassigned.
 The overlay work machine can use native subagents and fake-SBX tests for coordinated offline work.
 Real sandbox and live endpoint checks require a capable machine.
 See [the collaboration guide](sbx-rearch-work-machine.md).
-Later permissions, skills, model routing, global tasks, deployment, and final verification remain.
+Skills, model routing, global tasks, deployment, and final verification remain.
 
 ## Decisions
 
@@ -285,3 +284,10 @@ All 16 reported source hashes match the current files.
 The available renderer gate passed 86 tests; full initialized deployment remains pending.
 The existing AGY literal-head escaping limit is recorded for overlay collaboration and final review.
 See [the permission report](sbx-rearch-tasks/permissions-report.md).
+
+## Published implementation checkpoints
+
+The macOS path repair is signed at `ce0f456d`.
+The reviewed permission implementation is signed at `6cf67c08`.
+Both need full initialized CI confirmation after publication.
+The next source unit is the worker skill and shared SBX authority contract.
