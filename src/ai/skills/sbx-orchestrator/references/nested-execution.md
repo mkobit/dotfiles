@@ -2,33 +2,59 @@
 
 ## Workspace ownership
 
+The root selects the environment, delivery mode, feature branch, base revision, and workspace before the writer starts.
 Default to repo-local `.worktrees/<task>` when project rules permit it.
-Before creation, check project rules, write boundaries, existing worktrees, branch, base revision, and exclusive ownership.
+Check write boundaries, existing worktrees, initial changes, and exclusive ownership.
 Use `git check-ignore .worktrees/` and `git worktree list` as applicable.
-Record the path and reason for any required exception.
-A repo-local worktree does not remove platform protection of Git metadata; use required host access for Git operations.
-Use one assigned worktree for each concurrent writer.
-The host coordinator selects or creates the feature branch and worktree before delegation under the approved task authority.
-With `workspace.clone: false`, guest edits return immediately to that host worktree.
-No patch transfer or guest commit is needed for a direct mount.
-Each worktree must keep its own isolated, locked dependencies (such as `bun install --frozen-lockfile`).
-Do not share or symlink dependency directories across worktrees.
-The host reviews the diff after the writer stops; visible edits alone do not prove completion.
-A worktree mount can leave `.git` metadata or host task records outside the guest mount.
-Use the verified [read-only task context](subagent-task.md#read-only-task-context) route when the guest needs task definitions.
-Keep branch operations, issue creation, and state transitions on the host coordinator.
-Write only explicitly authorized notes or comments.
+Record exceptions and use one exclusive workspace for each writer.
+Each workspace keeps its own locked dependencies; do not share or symlink dependency directories.
+Each consuming repository owns its complete tracked kit and runtime assets for fresh reproduction.
+Do not depend on host-global tools or install replacements outside that kit.
 
-Use `clone: true` as a deliberate private-clone option.
-Before launch, verify the clone base identity and the change-return artifact and transport.
-Define how the host receives the diff, untracked and binary files, deletions, and required evidence.
-For example, use an authorized patch or artifact export that preserves the task's file changes.
-Deliver the returned changes into the root-owned feature worktree, not a separate unreviewed checkout.
-The host checks artifact paths, base identity, and conflicts before applying the artifact.
-Preserve baseline and received-diff evidence in the [durable record](recovery.md).
-If no return path exists, report the blocker; do not assume private-clone edits are visible on the host.
-Do not use guest commits, pushes, or credentials as an implicit return process.
-Perform host publication only under the task authority and repository rules in [task delivery](#task-delivery).
+### Verified autonomous delivery
+
+The host must verify and record all prerequisites before it assigns guest Git or PR work:
+
+- Usable guest Git metadata, expected repository, assigned feature branch, and base revision.
+- Exclusive workspace ownership, separate from tracker claim ownership.
+- Signing proof with the configured public key or subkey.
+- Successful required Git and GitHub CLI operations through the configured proxy.
+- A real repository `mise run verify` gate and a defined, nonempty required-CI source.
+- The [host-coordinator tracker contract](tracker.md), including the frozen snapshot and unique launch actor when an issue is supplied.
+
+With these proofs and task authority, the guest may use its assigned branch, implement, check, sign, push, and run `mise run pr:ship`.
+The root retains architecture, scope, task division, environment selection, credentials setup, recovery, independent review, and final judgment.
+Do not weaken signing or checks, copy raw tokens, or add host metadata mounts to make preflight pass.
+Missing autonomous prerequisites are blockers; do not silently change the task to host delivery.
+The repository must provide these interfaces and tracked runtime assets before autonomous launch.
+They are required interfaces, not a claim that dotfiles currently implements them.
+See [SBX delivery](delivery.md) for head, CI, independent review acceptance, and merge evidence.
+Autonomous merge requires root acceptance of independent review for the same final tested head and repository/PR scope.
+The guest retains its complete assignment/session while review-ready; a new head invalidates acceptance.
+
+### Direct mount and edit-only host delivery
+
+With `workspace.clone: false`, edits return immediately to the assigned host worktree.
+Record mount mapping, branch, base, initial changes, and the selected return mode.
+A linked worktree can point to Git metadata outside the mount.
+If that metadata is inaccessible, use an explicit edit-only host-delivery contract with host-verified repository and base evidence.
+The guest must not branch, commit, sign, push, or ship in this mode.
+Do not add metadata mounts to change the mode.
+Direct whole-unit SBX launch remains valid for this edit, check, and repair loop.
+The host reviews returned edits after the writer stops and performs authorized delivery.
+Visible edits alone do not prove completion.
+
+### Private clone
+
+Use `workspace.clone: true` only as an explicit private-clone option.
+Before launch, verify the guest repository and base, assigned branch, and return transport.
+For autonomous delivery, record the branch or PR return path and validate any returned `sandbox-NAME` branch identity.
+Successful guest branch publication does not require a second host patch application.
+For edit-only delivery, define an artifact route for tracked, untracked, binary, and deleted files and the check evidence.
+The host validates paths, base identity, and conflicts before it applies that artifact to the assigned feature worktree.
+Preserve baseline and return evidence in the [durable record](recovery.md).
+If no return route exists, report the blocker; private-clone edits are not visible on the host.
+Both workspace modes use the same host-owned tracker route.
 
 ## Required final handoff
 
@@ -59,30 +85,19 @@ Run required checks once and repeat only after related changes or failures.
 
 ## Task delivery
 
-Guest completion is not task delivery.
-Root inspects the final diff and documentation, resolves review findings, and runs all required checks.
-Under the task authority, commit on a feature branch, push, open a PR, and check required PR results.
-Merge only under repository rules and explicit approval requirements.
-For a supplied Bead, link the PR, final revision, check results, and review evidence to that issue and sync authoritative tracker state.
-Keep the issue open until delivery and root verification are recorded.
-If tracker access is unavailable, return the exact evidence for the owning root to attach; do not create another tracker.
+Guest process completion alone does not prove delivery.
+For autonomous work, use the [SBX delivery contract](delivery.md).
+For edit-only work, root reviews the diff, resolves findings, runs required checks, and performs authorized feature-branch delivery.
+Root dispatches independent review before integration in both modes.
+Autonomous delivery must pass the head-bound review gate before merge; guest merged completion cannot start that review.
+For a supplied issue, use [host merge confirmation and close](tracker.md#merge-confirmation-and-close).
+Keep the claim open for queued or unconfirmed merge and for changed requirements.
+Return exact evidence to the tracker owner if access is unavailable.
 
 Preserve required evidence before cleanup.
-Before removal, confirm no active writers, unreturned changes, or needed artifacts remain.
-Under the applicable authority, remove task-owned environments, worktrees, temporary reader databases, logs, and branches.
-Preserve unrelated or original environments and user work.
-List kept resources and reasons, and report incomplete delivery explicitly.
-
-## Optional Beads workflow
-
-Use Beads only when the existing host workflow supplies an issue.
-Record that exact issue ID and verified host tracker location in the task-specific durable record.
-Pass issue and task context to the guest; the guest returns evidence without copying or writing the tracker database.
-After review, the authorized host updates that specific issue.
-Before invoking `bd` on the host, use installed `bd --help` and `bd <command> --help` for syntax, consistent with the authored Beads skill.
-For guest access, use the selected [read-only task context](subagent-task.md#read-only-task-context) route.
-Do not require a `bd` installation, create a tracker, invent a paused status, or select another task automatically.
-Quota or token interruption leaves the task unfinished and must not close the issue.
+Confirm no active writers or checks, unreturned changes, or needed artifacts remain before removal.
+Remove only authorized task-owned resources and preserve user work.
+Report kept resources and incomplete delivery explicitly.
 
 ## Task feedback
 

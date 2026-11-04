@@ -338,6 +338,7 @@ Keep this migration's shared feature branch in its explicit edit-only route.
 
 Bind CI results to the expected commit SHA and wait for registration within a bounded deadline.
 Empty or stale results cannot pass, and PR check summaries alone do not prove the result SHA.
+Use the [verified response shapes](ci-parser-contract.md) for pagination and exact-head check-run validation.
 Keep existing draft PRs draft and retain the local feature branch after delivery.
 
 ## Guest task interface

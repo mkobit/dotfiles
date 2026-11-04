@@ -16,13 +16,13 @@ Use the same five fixed application cases before and after the change.
 The readers received source instructions and case facts, but no rubric or prior answers.
 The cases are planning exercises; they do not authorize real publication.
 
-| Case | Baseline | First implementation |
-| --- | --- | --- |
-| Verified guest delivery | 0: forbids authorized guest Git delivery | 0: permits delivery but can merge before host review |
-| Host claim route | 2 | 2 |
-| CI head change | 2 | 2 |
-| Interrupted session | 2 | 2 |
-| Settings convergence | 2 | 2 |
+| Case | Baseline | First implementation | Repair |
+| --- | --- | --- | --- |
+| Verified guest delivery | 0: forbids authorized guest Git delivery | 0: permits delivery but can merge before host review | 2 |
+| Host claim route | 2 | 2 | 2 |
+| CI head change | 2 | 2 | 2 |
+| Interrupted session | 2 | 2 | 2 |
+| Settings convergence | 2 | 2 | 2 |
 
 Both initial totals are 8 of 10.
 The first implementation permits guest delivery, but its review order still fails the authority rule.
@@ -42,4 +42,23 @@ The reviewer independently ran both focused test modules: 70 passed.
 The original guest owns both repairs.
 Require root-dispatched acceptance for the final tested head before merge, and invalidate acceptance when that head changes.
 Keep required references local to each independently selected skill.
-Mixed selection and partial removal tests, a fresh scenario reader, and independent review remain required before commit.
+## Repair checks
+
+The mixed-selection regression run failed 6 tests before the repair.
+The repair passed 76 focused tests and 42 broader tests, with 16 deselected.
+The only later source change was the worker trigger description.
+Final Ruff, format, three frontmatter checks, and 86 file and heading links passed after that correction.
+An extra focused attempt stopped at quota and has no completed result.
+It is not counted as passed.
+
+All 26 final source hashes match manifest SHA256 `7f027a697768b7cb23bb0fddb3ba2218abbedd26985531b4062e53ba54dd89bf`.
+No guest writer or child check remained at recovery.
+
+A fresh reader applied the same five cases to the repaired source.
+The score is 10 of 10.
+Its delivery answer permits guest signing and PR preparation, then requires `review-ready` and root acceptance for the same tested head before merge.
+All four controls remain safe.
+Local answers: `/tmp/sbx-rearch-skill-green-worker-repair.md`.
+Independent source re-review resolved both findings and found no new material defect.
+The reviewer also verified all 26 source hashes and checked local references without repeating the completed suites.
+Root accepted this unit for a signed checkpoint.

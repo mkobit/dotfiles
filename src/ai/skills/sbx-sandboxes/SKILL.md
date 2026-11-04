@@ -33,8 +33,11 @@ Docker makes the software; the `docker` CLI cannot manage these sandboxes.
 For denied sockets or login-service errors, follow platform escalation and inspect the retry before diagnosing authentication.
 Use `sbx diagnose` with the required platform access, never `docker ps`, `docker exec`, or Docker daemon commands.
 
-Keep host credentials, Git review, commits, signing, and pushes on the host.
-Each repository owns its complete kit, toolchain, services, and environment configuration.
+The root owns credentials setup, scope, environment selection, recovery, independent review, and final judgment.
+Permit assigned guest Git, signing, push, and shipping only under the [verified autonomous contract](../sbx-orchestrator/references/nested-execution.md#verified-autonomous-delivery).
+Keep explicit edit-only host delivery when guest Git metadata is inaccessible.
+Each consuming repository owns its complete tracked kit, runtime assets, toolchain, services, and environment configuration.
+Do not rely on ad hoc installations, host-global configuration, or a new kit project in another repository.
 Use `workspace.clone: false` so sandbox edits are immediately visible to the host.
 Use the [workspace contract](../sbx-orchestrator/references/nested-execution.md#workspace-ownership) for worktrees and isolated locked dependencies.
 Separate sandbox container status (`sbx list`) from agent binary lookup failures and command exit codes.

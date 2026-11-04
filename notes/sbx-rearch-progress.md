@@ -10,15 +10,16 @@ Workspace: `.worktrees/feat-sbx-rearch`.
 Use `feat/sbx-rearch` as the shared long-lived base feature branch.
 [Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the published checkpoints.
 Tasks 1–3 have reviewed implementation commits.
-The macOS ancestor-alias repair is signed at `ce0f456d` and passed 142 tests; native macOS CI confirmation remains open.
-Task 4 is signed at `6cf67c08`; 86 renderer tests and independent review passed, while initialized deployment and CI remain open gates.
-Task 5a is repairing two independent review findings under `implement_workflow_skills`.
+The macOS ancestor-alias repair and task 4 passed all seven CI checks at `d54ded96`.
+Task 4 is complete after initialized Linux amd64/arm64 and macOS deployment checks.
+Task 5a passed fresh scenario evaluation and independent re-review; root is signing its checkpoint.
 Its scope is the SBX skill authority references, `worker-handoff`, its catalog entry, and related tests.
-The first version passed 70 focused tests and 42 broader deployment tests.
-Review requires exact-head independent acceptance before merge and safe mixed skill selections.
+The repaired version passed 76 focused tests and 42 broader deployment tests before a description-only correction.
+Final static checks passed after that correction; the extra full test attempt stopped at quota and is incomplete.
+The fixed application cases score 10 of 10, and both independent findings are resolved.
 Local record: `.sbx/task-context/skills-worker/`.
-Task 6 model routing has completed read-only preparation under `implement_model_routing`.
-It waits for task 5a to stop before its guest starts.
+Task 6 model routing is active under `implement_model_routing` after proof that the previous guest and child checks stopped.
+Task 7 repository verification and required-check configuration are prepared under `implement_workflow_tasks`, queued after task 6.
 The overlay work machine can use native subagents and fake-SBX tests for coordinated offline work.
 Real sandbox and live endpoint checks require a capable machine.
 See [the collaboration guide](sbx-rearch-work-machine.md).
@@ -308,3 +309,22 @@ Task 7 guest task delivery has a [verified interface report](sbx-rearch-tasks/gu
 Its static shim and explicit runtime assets still need implementation and fresh-kit integration checks.
 The [task 7 corrections](sbx-rearch-tasks/task7-refinement.md) define exact-head review pause/resume, remote base resolution, and CI registration checks.
 No new product question is required for those contracts.
+
+## Recovery and CI confirmation
+
+The user requested resumption after the quota stop.
+At `2026-11-04 04:25 UTC`, the supervisor proved that no task 5a writer or child check remained.
+All 26 final source hashes match manifest `7f027a697768b7cb23bb0fddb3ba2218abbedd26985531b4062e53ba54dd89bf`.
+The extra focused test attempt has no completed result; completed repair checks remain valid except for the documented trigger-description delta.
+
+All seven required checks passed for `d54ded96` in [CI run 41757852465](https://github.com/mkobit/dotfiles/actions/runs/41757852465).
+This confirms the macOS ancestor-alias repair and initialized permission deployment on Linux amd64, Linux arm64, and macOS.
+Later uncommitted skill and model changes are not covered by that CI result.
+
+## Worker skill acceptance
+
+The repaired worker and SBX authority contract passed all five fixed application cases, scoring 10 of 10.
+Independent re-review resolved both earlier findings and found no new material defect.
+The reviewer verified all 26 final source hashes and checked the local references.
+See [the worker skill report](sbx-rearch-tasks/worker-skill-report.md).
+Runtime shipping, signing/proxy execution, and real tracker close remain task 7 and integration work.

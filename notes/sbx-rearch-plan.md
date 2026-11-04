@@ -34,7 +34,7 @@ Keep host coordination separate from guest execution.
 - [x] 2. Add schema and personal choices with tests for absent, disabled, and overridden decisions.
 - [x] 3. Add secret proxy, policy preservation, settings convergence, and skill import with fake CLI tests.
   Guest signing execution and preflight belong to task 7.
-- [ ] 4. Update permissions through the shared catalog and native modifiers; test live-setting preservation.
+- [x] 4. Update permissions through the shared catalog and native modifiers; test live-setting preservation.
 - [ ] 5. Update SBX skills and add architect, worker, bootstrap, and improvement skills; test deployment and references.
 - [ ] 6. Add Ollama routes through native configuration; test disabled and repeated apply behavior.
 - [ ] 7. Add global architect, worker, PR, and bootstrap tasks plus repository verify tasks; test command arguments, claim races, branch safety, and CI handling.

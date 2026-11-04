@@ -10,4 +10,5 @@ modern-java-patterns = "present"
 pr-reviewer = "absent" # source deleted 2026-06-11; replaced by superpowers requesting/receiving-code-review
 technical-writing = "present"
 typescript-expert = "absent" # source deleted 2026-06-11; find a publicly maintained replacement
+worker-handoff = "present"
 write-agent-context = "present"
