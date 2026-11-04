@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-CODEX_RELEASE_INSTALLATION = pytest.mark.chezmoi_installation("local.bin.codex", methods={"github_releases"})
+codex_release_installation = pytest.mark.chezmoi_installation("local.bin.codex", methods={"github_releases"})
 
 
 @pytest.mark.integration
@@ -24,7 +24,7 @@ def test_codex_config_toml_is_valid(host, chezmoi_dest):
 
 
 @pytest.mark.integration
-@CODEX_RELEASE_INSTALLATION
+@codex_release_installation
 def test_codex_version(host):
     """Verify codex --version runs successfully on supported platforms."""
     result = host.run("codex --version")
@@ -32,7 +32,7 @@ def test_codex_version(host):
 
 
 @pytest.mark.integration
-@CODEX_RELEASE_INSTALLATION
+@codex_release_installation
 def test_codex_code_mode_host_help(host):
     """Verify codex-code-mode-host --help runs successfully on supported platforms."""
     result = host.run("codex-code-mode-host --help")
@@ -40,7 +40,7 @@ def test_codex_code_mode_host_help(host):
 
 
 @pytest.mark.integration
-@CODEX_RELEASE_INSTALLATION
+@codex_release_installation
 def test_codex_doctor_local_environment(host):
     """Verify codex doctor reports healthy local installation and config."""
     result = host.run("TERM=xterm-256color codex doctor --json")
@@ -58,7 +58,7 @@ def test_codex_doctor_local_environment(host):
 
 
 @pytest.mark.integration
-@CODEX_RELEASE_INSTALLATION
+@codex_release_installation
 def test_codex_package_structure(host, chezmoi_dest):
     """Verify codex package layout includes manifest and helper binaries."""
     package_dir = chezmoi_dest / ".local" / "lib" / "codex"
