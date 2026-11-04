@@ -12,8 +12,10 @@ Use `feat/sbx-rearch` as the shared long-lived base feature branch.
 Tasks 1–3 have reviewed implementation commits.
 The macOS ancestor-alias repair is signed at `ce0f456d` and passed 142 tests; native macOS CI confirmation remains open.
 Task 4 is signed at `6cf67c08`; 86 renderer tests and independent review passed, while initialized deployment and CI remain open gates.
-Task 5a is preparing baseline scenarios under `implement_workflow_skills` before source edits.
+Task 5a is repairing two independent review findings under `implement_workflow_skills`.
 Its scope is the SBX skill authority references, `worker-handoff`, its catalog entry, and related tests.
+The first version passed 70 focused tests and 42 broader deployment tests.
+Review requires exact-head independent acceptance before merge and safe mixed skill selections.
 Local record: `.sbx/task-context/skills-worker/`.
 Task 6 model routing remains unassigned.
 The overlay work machine can use native subagents and fake-SBX tests for coordinated offline work.
@@ -215,13 +217,10 @@ No task 3 source commit is complete yet.
 
 ## Work-machine execution
 
-The user requested remote guidance to use the work machine quota without SBX execution.
-Publish the handoff on `docs/sbx-rearch-handoff` and keep integration on `feat/sbx-rearch`.
-Task 6 is the independent offline work package.
-The authoritative handoff-branch claim must succeed before either machine starts that task.
+Use `feat/sbx-rearch` for shared base work and the [overlay collaboration guide](sbx-rearch-work-machine.md) to resume.
 Use native host delegates, isolated Chezmoi rendering, and fake SBX on the work machine.
-The home coordinator retains real sandbox checks and integration.
-See [the work-machine handoff](sbx-rearch-work-machine.md).
+Keep real sandbox checks on a capable machine.
+The earlier `docs/sbx-rearch-handoff` and claim procedure are superseded.
 
 ## Task 3 completion
 
@@ -291,3 +290,18 @@ The macOS path repair is signed at `ce0f456d`.
 The reviewed permission implementation is signed at `6cf67c08`.
 Both need full initialized CI confirmation after publication.
 The next source unit is the worker skill and shared SBX authority contract.
+
+## Worker skill review
+
+Task 5a passed its first test and scenario checks, but independent review found two defects before commit.
+Autonomous delivery must obtain root-dispatched independent review for the final tested head before merge.
+The guest can prepare its commit and PR, report `review-ready`, and wait for that result within the same assigned unit.
+A changed head invalidates the review result.
+Supported mixed skill selections must keep required local references available.
+The original guest owns both repairs and regression tests.
+
+[CI run 41753535575](https://github.com/mkobit/dotfiles/actions/runs/41753535575) stopped at Ruff Markdown code-block formatting in the macOS investigation note.
+The quote correction is included in the next checkpoint; the initialized matrix has not run for this checkpoint.
+
+Task 7 guest task delivery has a [verified interface report](sbx-rearch-tasks/guest-task-contract.md).
+Its static shim and explicit runtime assets still need implementation and fresh-kit integration checks.

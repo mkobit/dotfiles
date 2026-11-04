@@ -66,7 +66,7 @@ Core reproduction:
 body = source.split("<<'PY'\n", 1)[1].rsplit("\nPY", 1)[0]
 # Supply sys.argv = ['sync-hook', '/tmp/sbx-ci-investigation-41652944917-nonexistent', 'false', '[]'].
 # Patch only Path.lstat('/tmp').st_mode from stat.S_IFDIR to stat.S_IFLNK.
-exec(compile(body, 'current-sync-hook', 'exec'), {})
+exec(compile(body, "current-sync-hook", "exec"), {})
 ```
 
 This validates the failure mechanism on Linux without a macOS guest or filesystem changes.

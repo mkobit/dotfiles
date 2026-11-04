@@ -317,3 +317,9 @@ Guest Beads is not required for this route.
 After guest delivery, the host independently verifies merge identity and unchanged material requirements, then closes through the saved tracker directory.
 A failed close leaves a recoverable pending-close state; it must not repeat implementation or open another PR.
 Keep shared network tracker services as follow-up work.
+
+## Guest task interface
+
+Use the [guest task interface report](guest-task-contract.md) for the tracked static `pr:ship` task and runtime file transport.
+Host-global task configuration is not present in the guest by default.
+Preserve the guest global tool settings and verify the discovered task source before launch.
