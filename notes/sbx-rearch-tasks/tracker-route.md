@@ -115,6 +115,9 @@ Do not add metadata mounts to change this mode.
 
 ## Merge confirmation and close
 
+Require independent root-dispatched review acceptance for the final tested head before guest merge.
+Use the [review and resume contract](task7-refinement.md#add-the-review-pause).
+The host retains that acceptance and rejects stale or guest-created review authority.
 The guest may run all authorized PR steps through confirmed merge, then return the PR URL, repository, branch, head SHA, and checks evidence.
 Its result is `merge-confirmed-close-pending`, not completed work.
 This is a proposed state name, not an existing Beads status.
@@ -127,6 +130,7 @@ bd -C TRACKER_DIRECTORY show BEAD_ID --json
 ```
 
 Require `MERGED`, the expected PR head SHA, repository, head branch, and base branch.
+Require the saved independent review acceptance to cover that same assignment, PR, and head.
 Require that the tracker still identifies the claimed issue and expected owner.
 Compare the current description, design, acceptance criteria, dependencies, and agreed scope with the frozen assignment snapshot.
 If these requirements changed, preserve the open issue and report the difference for host review, even when the PR merged.
@@ -219,19 +223,12 @@ If a shared service is implemented later, its host service and SBX settings must
 Repository kit/environment files must reproduce the guest configuration.
 Other repositories and new kit repositories remain follow-up work.
 
-## Draft changes required
+## Accepted brief corrections
 
-The current `tasks.md` launch section conflicts with the required main-checkout behavior: it requires a clean feature branch before launch.
-Replace that sentence with the exclusive-ownership, claim, then branch sequence above.
-Limit the test that rejects main/default branches to shipping; add a launch test that accepts clean main.
-
-Preflight item 5 currently requires tracker availability in the guest.
-Make it route-specific: host readiness for `host-coordinator`; guest connectivity and authoritative identity for a future shared route.
-
-The draft already permits a snapshot and one tracker owner for clones.
-Extend this to direct mode and make host close an explicit required completion step.
-PR delivery step 13 already names the designated owner, but guest `pr:ship` needs the pending-close return contract above.
-The generic worker prompt currently requires guest `pr:ship` in all cases; preserve the edit-only migration exception.
+The task brief now permits a clean base checkout before claim and feature-branch creation.
+Host tracker readiness applies to both direct and clone modes; guest Beads is not required.
+Shipping returns a pending host-close result and preserves the edit-only migration exception.
+Resolve the remote base SHA before claim and require exact-head independent review before merge, as specified in the correction report.
 
 ## Required tests and prerequisites
 

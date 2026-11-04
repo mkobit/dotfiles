@@ -1,5 +1,9 @@
 # RFC & Implementation Spec: Autonomous Handoff Swarm & Skill Refactor (`mkobit/dotfiles`)
 
+Implementation uses the [accepted plan](sbx-rearch-plan.md), [shared progress](sbx-rearch-progress.md), and [task 7 corrections](sbx-rearch-tasks/task7-refinement.md).
+Those records supersede the shell examples and guest tracker steps below where installed CLI behavior or later decisions differ.
+Use host claim and close, exact-head independent review before merge, and the shared long-lived feature branch for this migration.
+
 > **Execution Prompt for Implementing Agent**
 >
 > You are tasked with implementing a major architectural shift in this Chezmoi repository (`mkobit/dotfiles`).

@@ -17,7 +17,8 @@ Its scope is the SBX skill authority references, `worker-handoff`, its catalog e
 The first version passed 70 focused tests and 42 broader deployment tests.
 Review requires exact-head independent acceptance before merge and safe mixed skill selections.
 Local record: `.sbx/task-context/skills-worker/`.
-Task 6 model routing remains unassigned.
+Task 6 model routing has completed read-only preparation under `implement_model_routing`.
+It waits for task 5a to stop before its guest starts.
 The overlay work machine can use native subagents and fake-SBX tests for coordinated offline work.
 Real sandbox and live endpoint checks require a capable machine.
 See [the collaboration guide](sbx-rearch-work-machine.md).
@@ -293,7 +294,7 @@ The next source unit is the worker skill and shared SBX authority contract.
 
 ## Worker skill review
 
-Task 5a passed its first test and scenario checks, but independent review found two defects before commit.
+Task 5a passed its first test checks, but the scenario exercise and independent review leave two defects before commit.
 Autonomous delivery must obtain root-dispatched independent review for the final tested head before merge.
 The guest can prepare its commit and PR, report `review-ready`, and wait for that result within the same assigned unit.
 A changed head invalidates the review result.
@@ -305,3 +306,5 @@ The quote correction is included in the next checkpoint; the initialized matrix 
 
 Task 7 guest task delivery has a [verified interface report](sbx-rearch-tasks/guest-task-contract.md).
 Its static shim and explicit runtime assets still need implementation and fresh-kit integration checks.
+The [task 7 corrections](sbx-rearch-tasks/task7-refinement.md) define exact-head review pause/resume, remote base resolution, and CI registration checks.
+No new product question is required for those contracts.

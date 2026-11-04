@@ -5,6 +5,8 @@ Use the accepted schema and installed CLI interfaces below.
 Other workers own schema, SBX setup, permissions, and skills.
 Do not change their files without coordination.
 Root owns commits, signing actions, review, and publication for this migration.
+The [task 7 corrections](task7-refinement.md) take precedence where they amend the initial sequence below.
+Use its four bounded implementation units; do not enable unfinished commands as successful placeholders.
 
 ## Owned files
 
@@ -57,6 +59,7 @@ Provide these commands with useful `--help` output:
 ```text
 mise run agent:architect --agent claude [--sandbox]
 mise run agent:work [--bead ID] --agent claude [--clone] [--model MODEL]
+mise run agent:work --resume RUN_ID [--review FILE]
 mise run pr:ship BEAD_ID
 mise run repo:bootstrap [--check-command COMMAND] [--test-command COMMAND] [--dry-run]
 ```
@@ -220,7 +223,7 @@ A missing key or a pinentry requirement is an unmet prerequisite; retain it in t
 10. Re-read the head and require the same SHA.
 11. Merge with `gh pr merge PR --squash --match-head-commit SHA`.
 12. Query `gh pr view PR --json state,headRefOid,url` and require `state == MERGED` with the expected head.
-13. Close the correct bead using `bd close ID --reason TEXT` through its designated tracker owner.
+13. Return `merge-confirmed-close-pending`; the host independently confirms identity and closes through its saved tracker route.
 
 Use installed `gh pr checks PR --json name,bucket,state,link` for machine output.
 Use `gh pr checks PR --required` where required protections provide the set.
@@ -317,6 +320,25 @@ Guest Beads is not required for this route.
 After guest delivery, the host independently verifies merge identity and unchanged material requirements, then closes through the saved tracker directory.
 A failed close leaves a recoverable pending-close state; it must not repeat implementation or open another PR.
 Keep shared network tracker services as follow-up work.
+
+## Review and resume contract
+
+Before merge, require independent root-dispatched review acceptance for the exact tested head and frozen assignment.
+The guest can prepare its commit and PR, then pause at `review-ready` without completing or replacing its assigned unit.
+The host saves review evidence outside guest-controlled state and uses `agent:work --resume RUN_ID --review FILE`.
+The resume path must retain the run, actor, claim, environment, workspace, branch, PR, and snapshot.
+A changed head invalidates review, local verification, and CI evidence.
+Do not merge without acceptance and do not ask the user to approve routine review.
+See the correction report for result fields, phases, no-writer checks, and close-only recovery.
+
+Resolve the configured remote base SHA before claim; a stale local ref or the caller's feature HEAD is insufficient.
+Direct autonomous work needs a clean exclusive checkout at that SHA.
+Clone work must prove the expected base object, task availability, and return route before claim.
+Keep this migration's shared feature branch in its explicit edit-only route.
+
+Bind CI results to the expected commit SHA and wait for registration within a bounded deadline.
+Empty or stale results cannot pass, and PR check summaries alone do not prove the result SHA.
+Keep existing draft PRs draft and retain the local feature branch after delivery.
 
 ## Guest task interface
 

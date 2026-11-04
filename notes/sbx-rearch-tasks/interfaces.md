@@ -26,15 +26,19 @@ Keep `ai.skills.authored` and `ai.command_policy.commands` as existing maps.
 Do not add a duplicate `ai.sandbox.skills_mode` value.
 Do not change existing `sbx.settings.kit_allowed_sources` semantics.
 
-Task 3 may add `src/chezmoi/.chezmoiscripts/run_after_06_configure-sbx-workflow.sh.tmpl` and `src/chezmoi/.chezmoiscripts/run_onchange_after_sync-sbx-skills.sh.tmpl`.
-Task 3 may add a guest signing configuration under `src/chezmoi/dot_local/share/dotfiles/sbx/`.
-Task 3 must establish the exact signing consumer path before its implementation.
-Tests belong in `tests/integration/test_sbx_workflow.py`.
-The guest report uses `.sbx/task-context/config/guest-report.md`.
+Task 3 uses ordinary apply hooks `run_after_06_configure-sbx-workflow.sh.tmpl` and `run_after_07_sync-sbx-skills.sh.tmpl`.
+Its tests are `test_sbx_workflow_setup.py` and `test_sbx_skill_sync.py`.
+See [the setup report](setup-report.md).
+Task 7 owns guest signing preflight and configuration; task 3 does not prove guest signing.
 
 Use the existing portable source at `.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills` under `chezmoi.destDir`.
 Do not modify plugin caches.
 If SBX cannot import this source directly, stage only task-owned files with an ownership check.
 Report unsupported removal behavior.
 
-Task 6 is deferred until root authorizes it.
+Task 6 uses [the model route contract](model-routing.md).
+Task 7 uses [the corrected task contract](task7-refinement.md) and [guest task transport](guest-task-contract.md).
+Its helper, runtime projection, assignment snapshot, state, and exact-head review acceptance share one saved run identity.
+The tracked kit supplies the static task wrapper; the host supplies explicit run assets.
+Host state retains tracker authority, the frozen assignment, review acceptance, and close evidence.
+Guest state cannot select a new tracker or authorize host close.
