@@ -34,14 +34,14 @@ def _assert_local_links(root: Path) -> None:
                 assert fragment in slugs, f"Broken heading link in {document}: {target}"
 
 
-def _workflow_fixture(tmp_path):
+def _workflow_fixture(tmp_path, skill_names=WORKFLOW_SKILLS):
     source, destination = tmp_path / "source", tmp_path / "destination"
     destination.mkdir()
     _initialize_authored_cleanup_source(source, include_external=True)
     gemini = source / "src/chezmoi/dot_gemini"
     gemini.mkdir()
     shutil.copy2(REPO_ROOT / "src/chezmoi/dot_gemini/.chezmoiremove.tmpl", gemini / ".chezmoiremove.tmpl")
-    for name in WORKFLOW_SKILLS:
+    for name in skill_names:
         shutil.copytree(SKILLS_ROOT / name, source / "src/ai/skills" / name)
     config = tmp_path / "chezmoi.toml"
 
@@ -59,6 +59,11 @@ def _workflow_fixture(tmp_path):
 
 
 @pytest.mark.parametrize(
+    "skill_names",
+    [WORKFLOW_SKILLS, ("architect-scoping",), (*WORKFLOW_SKILLS, "architect-scoping")],
+    ids=["workflow", "architect", "combined"],
+)
+@pytest.mark.parametrize(
     ("selection", "expected_hosts"),
     [
         ("present", frozenset(AUTHORED_SKILL_ROOTS)),
@@ -68,16 +73,21 @@ def _workflow_fixture(tmp_path):
         ("antigravity", frozenset({"antigravity"})),
     ],
 )
-def test_workflow_skills_deploy_select_repeat_and_remove(tmp_path, selection, expected_hosts):
+def test_workflow_skills_deploy_select_repeat_and_remove(tmp_path, selection, expected_hosts, skill_names):
     """Apply the real named trees, follow deployed links, and converge host selection and cleanup."""
     catalog = tomllib.loads((REPO_ROOT / "src/chezmoi/.chezmoidata/ai/skills/authored.toml").read_text())
     assert catalog["ai"]["skills"]["authored"]["worker-handoff"] == "present"
     assert (SKILLS_ROOT / "worker-handoff/SKILL.md").is_file()
     assert (SKILLS_ROOT / "worker-handoff/references/delivery.md").is_file()
-    _, destination, apply_states = _workflow_fixture(tmp_path)
+    for name in skill_names:
+        assert catalog["ai"]["skills"]["authored"][name] == "present"
+        assert (SKILLS_ROOT / name / "SKILL.md").is_file()
+        if name == "architect-scoping":
+            _assert_local_links(SKILLS_ROOT / name)
+    _, destination, apply_states = _workflow_fixture(tmp_path, skill_names)
 
     def apply(state):
-        apply_states(dict.fromkeys(WORKFLOW_SKILLS, state))
+        apply_states(dict.fromkeys(skill_names, state))
 
     # Install everywhere before narrowing so selection must also remove old copies.
     apply("present")
@@ -85,10 +95,11 @@ def test_workflow_skills_deploy_select_repeat_and_remove(tmp_path, selection, ex
     installed = {}
     for host, relative in AUTHORED_SKILL_ROOTS.items():
         root = destination / relative
-        for name in WORKFLOW_SKILLS:
+        for name in skill_names:
             deployed = root / name
             if host in expected_hosts:
                 assert _tree_bytes(deployed) == _tree_bytes(SKILLS_ROOT / name)
+                assert not deployed.is_symlink()
                 assert not any(path.is_symlink() for path in deployed.rglob("*"))
             else:
                 assert not deployed.exists()
@@ -108,7 +119,7 @@ def test_workflow_skills_deploy_select_repeat_and_remove(tmp_path, selection, ex
     for _ in range(2):
         apply("absent")
         for relative in AUTHORED_SKILL_ROOTS.values():
-            for name in WORKFLOW_SKILLS:
+            for name in skill_names:
                 assert not (destination / relative / name).exists()
         assert sibling.read_text() == "Keep this local skill.\n"
 
@@ -159,6 +170,48 @@ def test_workflow_skills_mixed_selection_preserves_links_and_partial_removal(tmp
             deployed = root / name
             if worker_selected if name == "worker-handoff" else sbx_selected:
                 assert _tree_bytes(deployed) == _tree_bytes(SKILLS_ROOT / name)
+                assert not any(path.is_symlink() for path in deployed.rglob("*"))
+            else:
+                assert not deployed.exists()
+        _assert_local_links(root)
+        assert (root / "unmanaged/SKILL.md").read_bytes() == b"Keep this local skill.\n"
+        installed[host] = _tree_bytes(root)
+    manifest = destination / ".cursor/plugins/local/mkobit-dotfiles/.cursor-plugin/plugin.json"
+    manifest_bytes = manifest.read_bytes()
+    apply(states)
+    for host, relative in AUTHORED_SKILL_ROOTS.items():
+        assert _tree_bytes(destination / relative) == installed[host]
+        _assert_local_links(destination / relative)
+    assert manifest.read_bytes() == manifest_bytes
+    assert unmanaged.read_bytes() == b'{"keep": true}\n'
+
+
+@pytest.mark.parametrize(
+    ("architect_selection", "worker_selection"),
+    [("present", "absent"), ("absent", "present"), ("claude", "codex"), ("codex", "claude")],
+)
+def test_architect_selection_preserves_independent_skills_and_state(tmp_path, architect_selection, worker_selection):
+    """Converge independent architect and worker selections without changing unrelated copies."""
+    skill_names = (*WORKFLOW_SKILLS, "architect-scoping")
+    _, destination, apply = _workflow_fixture(tmp_path, skill_names)
+    apply(dict.fromkeys(skill_names, "present"))
+    for relative in AUTHORED_SKILL_ROOTS.values():
+        sibling = destination / relative / "unmanaged/SKILL.md"
+        sibling.parent.mkdir()
+        sibling.write_bytes(b"Keep this local skill.\n")
+    unmanaged = destination / "unmanaged-state.json"
+    unmanaged.write_bytes(b'{"keep": true}\n')
+    states = dict.fromkeys(WORKFLOW_SKILLS[:2], "present")
+    states.update({"worker-handoff": worker_selection, "architect-scoping": architect_selection})
+    apply(states)
+    installed = {}
+    for host, relative in AUTHORED_SKILL_ROOTS.items():
+        root = destination / relative
+        for name, selection in states.items():
+            deployed = root / name
+            if selection == "present" or selection == host.removesuffix("-local"):
+                assert _tree_bytes(deployed) == _tree_bytes(SKILLS_ROOT / name)
+                assert not deployed.is_symlink()
                 assert not any(path.is_symlink() for path in deployed.rglob("*"))
             else:
                 assert not deployed.exists()
