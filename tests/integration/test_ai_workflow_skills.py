@@ -60,8 +60,14 @@ def _workflow_fixture(tmp_path, skill_names=WORKFLOW_SKILLS):
 
 @pytest.mark.parametrize(
     "skill_names",
-    [WORKFLOW_SKILLS, ("architect-scoping",), (*WORKFLOW_SKILLS, "architect-scoping")],
-    ids=["workflow", "architect", "combined"],
+    [
+        WORKFLOW_SKILLS,
+        ("architect-scoping",),
+        (*WORKFLOW_SKILLS, "architect-scoping"),
+        ("repo-bootstrap",),
+        (*WORKFLOW_SKILLS, "architect-scoping", "repo-bootstrap"),
+    ],
+    ids=["workflow", "architect", "combined", "bootstrap", "bootstrap-combined"],
 )
 @pytest.mark.parametrize(
     ("selection", "expected_hosts"),
@@ -82,7 +88,7 @@ def test_workflow_skills_deploy_select_repeat_and_remove(tmp_path, selection, ex
     for name in skill_names:
         assert catalog["ai"]["skills"]["authored"][name] == "present"
         assert (SKILLS_ROOT / name / "SKILL.md").is_file()
-        if name == "architect-scoping":
+        if name in {"architect-scoping", "repo-bootstrap"}:
             _assert_local_links(SKILLS_ROOT / name)
     _, destination, apply_states = _workflow_fixture(tmp_path, skill_names)
 
@@ -186,13 +192,16 @@ def test_workflow_skills_mixed_selection_preserves_links_and_partial_removal(tmp
     assert unmanaged.read_bytes() == b'{"keep": true}\n'
 
 
+@pytest.mark.parametrize("independent_skill", ["architect-scoping", "repo-bootstrap"], ids=["architect", "bootstrap"])
 @pytest.mark.parametrize(
-    ("architect_selection", "worker_selection"),
+    ("independent_selection", "worker_selection"),
     [("present", "absent"), ("absent", "present"), ("claude", "codex"), ("codex", "claude")],
 )
-def test_architect_selection_preserves_independent_skills_and_state(tmp_path, architect_selection, worker_selection):
-    """Converge independent architect and worker selections without changing unrelated copies."""
-    skill_names = (*WORKFLOW_SKILLS, "architect-scoping")
+def test_independent_selection_preserves_skills_and_state(
+    tmp_path, independent_skill, independent_selection, worker_selection
+):
+    """Converge independent skill and worker selections without changing unrelated copies."""
+    skill_names = (*WORKFLOW_SKILLS, independent_skill)
     _, destination, apply = _workflow_fixture(tmp_path, skill_names)
     apply(dict.fromkeys(skill_names, "present"))
     for relative in AUTHORED_SKILL_ROOTS.values():
@@ -202,7 +211,7 @@ def test_architect_selection_preserves_independent_skills_and_state(tmp_path, ar
     unmanaged = destination / "unmanaged-state.json"
     unmanaged.write_bytes(b'{"keep": true}\n')
     states = dict.fromkeys(WORKFLOW_SKILLS[:2], "present")
-    states.update({"worker-handoff": worker_selection, "architect-scoping": architect_selection})
+    states.update({"worker-handoff": worker_selection, independent_skill: independent_selection})
     apply(states)
     installed = {}
     for host, relative in AUTHORED_SKILL_ROOTS.items():

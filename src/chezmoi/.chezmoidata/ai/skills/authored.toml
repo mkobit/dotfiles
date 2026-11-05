@@ -9,6 +9,7 @@ sbx-orchestrator = "present"
 example_skill = "absent"
 modern-java-patterns = "present"
 pr-reviewer = "absent" # source deleted 2026-06-11; replaced by superpowers requesting/receiving-code-review
+repo-bootstrap = "present"
 technical-writing = "present"
 typescript-expert = "absent" # source deleted 2026-06-11; find a publicly maintained replacement
 worker-handoff = "present"

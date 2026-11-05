@@ -23,17 +23,21 @@ The architect skill passed 25 deployment tests, final static checks, a fresh app
 The repository verification tasks and required-check configuration are included in this departure checkpoint.
 Their full local run has one unresolved existing timing failure; its narrower retry and the blocked build passed.
 See [the verification limit](sbx-rearch-tasks/repo-verify-report.md) before claiming a full pass.
-Both coding guests stopped before source recovery; no new implementation writer is assigned.
+The previous coding guests stopped before source recovery.
+The `repo-bootstrap` skill is included in this checkpoint after 39 deployment tests, static checks, and independent review.
+See [the bootstrap report](sbx-rearch-tasks/bootstrap-skill-report.md) for the temporary test-environment limit.
+The global bootstrap command and other task 7 code remain pending.
+No next implementation unit is assigned on this machine.
 The overlay work machine can use native subagents and fake-SBX tests for coordinated offline work.
 Real sandbox and live endpoint checks require a capable machine.
 See [the collaboration guide](sbx-rearch-work-machine.md).
-Two skills, global workflow commands and helper, deployment, and final verification remain.
+One skill, global workflow commands and helper, deployment, and final verification remain.
 
 ### Continue from the work machine
 
 Pull `feat/sbx-rearch` and read this section first.
 Five of nine main plan items are complete; the workflow helper is the largest remaining item.
-The remaining skills are `repo-bootstrap` and `retro-self-improve`.
+The remaining skill is `retro-self-improve`.
 Then implement task 7's global commands and helper in the bounded units from [the corrected contract](sbx-rearch-tasks/task7-refinement.md).
 Those source units are open for work-machine assignment after recording file ownership here.
 Use native host subagents, temporary Chezmoi destinations, and fake SBX tests as authorized in [the collaboration guide](sbx-rearch-work-machine.md).
@@ -41,6 +45,8 @@ Keep real SBX, signing/proxy, clone transport, local-model lifecycle, and live e
 Respect [the native model interface limit](sbx-rearch-tasks/env-model-contract.md); no environment model flags are supported.
 Update the explicit verification test list for the now-available model tests and later helper tests.
 Keep the shared branch and draft PR open.
+For this checkpoint, the user requested quota conservation with 18% of the weekly quota left.
+Keep the next offline units on the work machine and reserve native verification for this machine.
 
 ## Decisions
 
