@@ -31,6 +31,9 @@ Reference: [Lessons from building Claude Code: How we use skills](https://claude
 
 ## SBX sandboxes skill
 
-Treat the host agent as the bounded coordinator that reviews plans and retains Git, signing, and publishing authority.
+The root owns architecture, scope, task division, environment selection, credentials setup, recovery, independent review, and final judgment.
+Allow assigned guest Git, signing, push, and shipping only under the [verified autonomous contract](sbx-orchestrator/references/nested-execution.md#verified-autonomous-delivery).
+Keep explicit edit-only host delivery when linked-worktree Git metadata is inaccessible.
+Use the [host-coordinator tracker route](sbx-orchestrator/references/tracker.md); the host claims once and closes only after independent merge and requirement checks.
 Default tracked agent environments to a direct-mounted workspace so sandbox edits are immediately visible to the host; document private clones as an explicit alternative.
 Require each consuming repository to own its complete project kit, including runtimes, executable tools, native packages, network access, ports, services, and checks.

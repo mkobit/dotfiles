@@ -37,7 +37,10 @@ def _render_codex_config(
 
 def test_codex_tui_modifier_preserves_matching_toml() -> None:
     template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
-    matching = """[tui]
+    matching = """approval_policy = "on-request"
+default_permissions = ":workspace"
+
+[tui]
 vim_mode_default = true
 status_line = ["model-with-reasoning", "current-dir", "project-name", "git-branch", "run-state", "permissions", "context-remaining", "task-progress"]
 status_line_use_colors = true
@@ -130,6 +133,8 @@ def test_codex_modifier_adds_optional_auto_compaction_limit() -> None:
 def test_codex_modifier_preserves_exactly_matching_optional_limit_byte_for_byte() -> None:
     template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
     existing = """# preserve this comment
+approval_policy = "on-request"
+default_permissions = ":workspace"
 model_auto_compact_token_limit = 176700
 
 [tui]
@@ -171,7 +176,10 @@ def test_codex_modifier_adds_telemetry_settings() -> None:
 
 def test_codex_modifier_preserves_matching_telemetry_settings_byte_for_byte() -> None:
     template = Path.cwd() / "src/chezmoi/dot_codex/modify_private_config.toml"
-    existing = """[analytics]
+    existing = """approval_policy = "on-request"
+default_permissions = ":workspace"
+
+[analytics]
 enabled = false
 
 [feedback]

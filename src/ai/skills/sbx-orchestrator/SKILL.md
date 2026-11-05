@@ -27,8 +27,9 @@ Use this skill when the authorized task calls for delegated coding in SBX.
 Respect explicit command-only requests and narrower user scope.
 Use direct SBX commands for probes and command-only work, not as a substitute for a requested coding worker.
 
-The root coordinator owns task division, unresolved questions, risk, integration, final review, and publication.
-It also owns branch management, credentials, commits, and signing.
+The root coordinator owns architecture, scope, task division, environment selection, credentials setup, recovery, independent review, and final judgment.
+It selects and records either [verified autonomous delivery or edit-only host delivery](references/nested-execution.md#workspace-ownership).
+An assigned guest may sign, push, and ship only under the verified autonomous contract.
 When available, a native host subagent uses host tools to launch a separate guest coding harness.
 When no native subagent tool is available, the root coordinator may perform the host supervisor contract directly.
 Its tools do not move into the guest.
@@ -47,14 +48,17 @@ It does not permit host policy changes or broader task scope.
 5. Update the record at milestones and use [recovery](references/recovery.md) for any interruption.
 6. Return complete or incomplete status to the immediate calling thread for host review of the [handoff](references/nested-execution.md).
 
-Use the [task context contract](references/subagent-task.md#read-only-task-context) when a task ID is supplied.
-Guest completion starts host review; use [task delivery](references/nested-execution.md#task-delivery) for closeout.
+Use the [host-coordinator tracker route](references/tracker.md) when a task ID is supplied.
+The host claims once and supplies the complete frozen issue snapshot and actor; the guest must not claim again.
+For autonomous delivery, the guest reports review-ready before merge and retains its complete assignment/session.
+The root dispatches independent review of the final tested head and returns acceptance for that head and repository/PR scope.
+Use the [review gate](references/delivery.md#independent-review-before-merge) before merge and [task delivery](references/nested-execution.md#task-delivery) for closeout.
 
 ## Read when needed
 
 - [SBX sandboxes](../sbx-sandboxes/SKILL.md): lifecycle, configuration, authentication, permissions, CLI facts, and AGY setup.
 - [Worker launch](references/worker-launch.md): installed harness capabilities and tested Codex examples.
-- [Host supervisor contract](references/host-supervisor.md): complete host-only task template.
-- [Guest task prompt](references/subagent-task.md): complete guest edit, check, and repair template.
+- [Host supervisor contract](references/host-supervisor.md): host launch and supervision template.
+- [Guest task prompt](references/subagent-task.md): guest prompt with an explicit delivery mode.
 - [Progress and recovery](references/recovery.md): durable task records, interruptions, and safe resume.
 - [Change return and handoff](references/nested-execution.md): workspace return, final state, and feedback.

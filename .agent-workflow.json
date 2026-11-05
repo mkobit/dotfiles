@@ -1,0 +1,11 @@
+{
+  "required_checks": [
+    "lint",
+    "skill-filter-compat",
+    "test (ubuntu-24.04)",
+    "test (macos-15)",
+    "integration (ubuntu-24.04)",
+    "integration (ubuntu-24.04-arm)",
+    "integration (macos-15)"
+  ]
+}

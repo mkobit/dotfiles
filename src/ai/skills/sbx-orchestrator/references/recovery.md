@@ -21,7 +21,11 @@ Record pending host operations, including launch calls, with their known state a
 Preserve initial revision, dirty-state, untracked-file, and relevant diff evidence before the guest writes.
 Record known task changes separately from this baseline so later edits can be attributed.
 Include completed and required checks with exit codes, remaining work, exact failures, and last known worker and child-check state.
-Include the supplied host issue ID and verified tracker location only when the existing workflow provides them.
+Include the selected delivery mode and its authority proofs.
+Preserve review-ready phase, final tested head, independent review evidence, and host acceptance with its head and repository/PR scope.
+Retain the same complete assignment/session while review is pending; a new head invalidates acceptance and requires new review.
+When an issue is supplied, preserve the saved tracker route and identity, unique launch actor, full frozen snapshot, material-requirements hash, claim outcome, and merge/close phase.
+Keep claim outcome unknown after a timeout until the host reconciles the same tracker and actor.
 
 Update the record at launch, observed milestones, interruptions, and return.
 Before long checks or a possible abrupt exit, preserve the latest known changes, phase, and check state when possible.
@@ -74,4 +78,8 @@ If resume is unsupported, build one complete new [guest prompt](subagent-task.md
 Do not start a second active writer.
 Run required checks after resumed edits and record their current exit codes.
 Keep host permissions unchanged and do not ask the guest for routine edit or check approval.
-Report any still-active process in the [final handoff](nested-execution.md).
+No writer or child check may remain active at handoff.
+If termination cannot be proved, report incomplete status and the last known process state.
+For `merge-confirmed-close-pending`, recover only independent confirmation and authoritative close through the [saved tracker route](tracker.md#merge-confirmation-and-close).
+Do not repeat implementation or create another PR.
+Report process evidence in the [final handoff](nested-execution.md).

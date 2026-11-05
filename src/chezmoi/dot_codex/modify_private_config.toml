@@ -3,6 +3,17 @@
 {{- if .chezmoi.stdin -}}
 {{-   $config = fromToml .chezmoi.stdin -}}
 {{- end -}}
+{{- /* Modern selectors cannot be combined with legacy sandbox keys. */ -}}
+{{- $legacyPermissions := and (not (hasKey $config "default_permissions")) (or (hasKey $config "sandbox_mode") (hasKey $config "sandbox_workspace_write")) -}}
+{{- $approvalPolicy := dig "codex" "permissions" "approval_policy" "on-request" . -}}
+{{- $defaultPermissions := dig "codex" "permissions" "default_permissions" ":workspace" . -}}
+{{- $sandboxMode := dig "codex" "permissions" "sandbox_mode" "workspace-write" . -}}
+{{- $permissionsMatch := eq (dig "default_permissions" "" $config) $defaultPermissions -}}
+{{- if $legacyPermissions -}}
+{{-   $permissionsMatch = eq (dig "sandbox_mode" "" $config) $sandboxMode -}}
+{{- else -}}
+{{-   $permissionsMatch = and $permissionsMatch (not (hasKey $config "sandbox_mode")) (not (hasKey $config "sandbox_workspace_write")) -}}
+{{- end -}}
 {{- $vimModeDefault := dig "codex" "tui" "vim_mode_default" true . -}}
 {{- $statusLine := dig "codex" "tui" "status_line" (list) . -}}
 {{- $statusLineUseColors := dig "codex" "tui" "status_line_use_colors" true . -}}
@@ -13,6 +24,8 @@
 {{- $autoCompactTokenLimit := dig "ai" "context_management" "codex" "auto_compact_token_limit" nil . -}}
 {{- $hasAutoCompactTokenLimit := ne $autoCompactTokenLimit nil -}}
 {{- $matches := and
+        $permissionsMatch
+        (eq (dig "approval_policy" "" $config) $approvalPolicy)
         (eq (dig "tui" "vim_mode_default" nil $config) $vimModeDefault)
         (deepEqual (dig "tui" "status_line" nil $config) $statusLine)
         (eq (dig "tui" "status_line_use_colors" nil $config) $statusLineUseColors)
@@ -46,6 +59,13 @@
 {{-   .chezmoi.stdin -}}
 {{- else -}}
 {{-   warnf "Codex managed settings changed; rewriting config.toml may canonicalize formatting" -}}
+{{-   $config = set $config "approval_policy" $approvalPolicy -}}
+{{-   if $legacyPermissions -}}
+{{-     $config = set $config "sandbox_mode" $sandboxMode -}}
+{{-   else -}}
+{{-     $config = omit $config "sandbox_mode" "sandbox_workspace_write" -}}
+{{-     $config = set $config "default_permissions" $defaultPermissions -}}
+{{-   end -}}
 {{-   $config = $config | setValueAtPath "tui.vim_mode_default" $vimModeDefault -}}
 {{-   $config = $config | setValueAtPath "tui.status_line" $statusLine -}}
 {{-   $config = $config | setValueAtPath "tui.status_line_use_colors" $statusLineUseColors -}}

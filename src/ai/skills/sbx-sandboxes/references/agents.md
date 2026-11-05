@@ -17,9 +17,13 @@ The AGY contrib kit needs the narrow `github.com/docker/` source prefix.
 Require confirmation before changing that setting when the session authorization does not already cover it.
 
 The setting replaces the complete allowlist, so preserve existing approved entries while adding the required prefix.
+Any manual adjustment must have a matching Chezmoi source change.
+Ordinary apply must restore declared values and preserve unmanaged values.
+Keep an omitted overlay decision as a safe no-op; preview and repeat apply to prove convergence.
+Assign source correction to its owner rather than changing another repository or installing a replacement kit.
 
 If SBX cannot resolve `agent: antigravity`, stop and report the preflight output rather than falling back to a host launcher.
 
 The first AGY run can require a user-completed Google OAuth flow through Docker’s credential proxy.
 
-Keep commits, signing, and pushes on the host.
+Use the [verified delivery-mode contract](../../sbx-orchestrator/references/nested-execution.md#workspace-ownership) for guest Git, signing, and push authority.
