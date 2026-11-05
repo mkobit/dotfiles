@@ -4,6 +4,8 @@ Use `mkobit/dotfiles:feat/sbx-rearch` as the shared, long-lived feature branch.
 Keep the plan, progress, decisions, questions, verification, and manual follow-up work in `notes/` on that branch.
 Continue review through [draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014).
 Keep the shared feature branch and draft PR open while base and overlay collaboration continues.
+The current source checkpoint and next unassigned units are at the top of [the progress note](sbx-rearch-progress.md).
+Review [the repository verification limit](sbx-rearch-tasks/repo-verify-report.md) before reporting a complete local pass.
 
 ## Shared context
 

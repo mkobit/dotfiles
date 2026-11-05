@@ -18,14 +18,29 @@ The repaired version passed 76 focused tests and 42 broader deployment tests bef
 Final static checks passed after that correction; the extra full test attempt stopped at quota and is incomplete.
 The fixed application cases score 10 of 10, and both independent findings are resolved.
 Local record: `.sbx/task-context/skills-worker/`.
-Task 6 model routing passed tests and independent review; root is signing its checkpoint.
-Task 7 repository verification and required-check configuration are active under `implement_workflow_tasks` in a separate isolated worktree.
-That unit owns only `mise.toml` and `.agent-workflow.json`.
-The architect skill is active under `implement_architect_skill` after the model-routing guest stopped.
+Task 6 model routing is signed at `e43691a9`; all seven CI checks passed in run `41777701533`.
+The architect skill passed 25 deployment tests, final static checks, a fresh application case, and independent review.
+The repository verification tasks and required-check configuration are included in this departure checkpoint.
+Their full local run has one unresolved existing timing failure; its narrower retry and the blocked build passed.
+See [the verification limit](sbx-rearch-tasks/repo-verify-report.md) before claiming a full pass.
+Both coding guests stopped before source recovery; no new implementation writer is assigned.
 The overlay work machine can use native subagents and fake-SBX tests for coordinated offline work.
 Real sandbox and live endpoint checks require a capable machine.
 See [the collaboration guide](sbx-rearch-work-machine.md).
-Three skills, global tasks, deployment, and final verification remain.
+Two skills, global workflow commands and helper, deployment, and final verification remain.
+
+### Continue from the work machine
+
+Pull `feat/sbx-rearch` and read this section first.
+Five of nine main plan items are complete; the workflow helper is the largest remaining item.
+The remaining skills are `repo-bootstrap` and `retro-self-improve`.
+Then implement task 7's global commands and helper in the bounded units from [the corrected contract](sbx-rearch-tasks/task7-refinement.md).
+Those source units are open for work-machine assignment after recording file ownership here.
+Use native host subagents, temporary Chezmoi destinations, and fake SBX tests as authorized in [the collaboration guide](sbx-rearch-work-machine.md).
+Keep real SBX, signing/proxy, clone transport, local-model lifecycle, and live endpoint checks for a capable machine.
+Respect [the native model interface limit](sbx-rearch-tasks/env-model-contract.md); no environment model flags are supported.
+Update the explicit verification test list for the now-available model tests and later helper tests.
+Keep the shared branch and draft PR open.
 
 ## Decisions
 
@@ -331,7 +346,7 @@ The reviewer verified all 26 final source hashes and checked the local reference
 See [the worker skill report](sbx-rearch-tasks/worker-skill-report.md).
 Runtime shipping, signing/proxy execution, and real tracker close remain task 7 and integration work.
 
-## Parallel execution ownership
+## Previous parallel execution ownership
 
 Capacity is two guest coding workers, each with its own workspace and environment.
 Each workspace has one writer.
@@ -340,8 +355,8 @@ Root retains review, integration, signing, and publication on the shared `feat/s
 | Unit | Owner | Workspace and environment | Owned source |
 | --- | --- | --- | --- |
 | Model routing, review accepted | `implement_model_routing` | Original guest stopped | OpenCode/Pi modifiers, Pi ignore gate, hook `08`, routing tests |
-| Repository verification | `implement_workflow_tasks` | `.worktrees/feat-sbx-rearch-verify`; `dotfiles-sbx-rearch-verify` | `mise.toml`, `.agent-workflow.json` |
-| Architect skill | `implement_architect_skill` | `.worktrees/feat-sbx-rearch`; `dotfiles-sbx-rearch-kitcheck-pinned` | New skill, authored entry, focused skill tests |
+| Repository verification, source returned | `implement_workflow_tasks` | `.worktrees/feat-sbx-rearch-verify`; `dotfiles-sbx-rearch-verify` | `mise.toml`, `.agent-workflow.json` |
+| Architect skill, review accepted | `implement_architect_skill` | Original guest stopped | New skill, authored entry, focused skill tests |
 
 The verification worktree starts at `6711c42f` on local execution branch `feat/sbx-rearch-verify`.
 Root will inspect its returned diff and commit the accepted unit on the shared branch.
