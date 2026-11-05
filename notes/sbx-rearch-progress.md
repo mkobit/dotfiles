@@ -9,6 +9,8 @@ Workspace: `.worktrees/feat-sbx-rearch`.
 
 Use `feat/sbx-rearch` as the shared long-lived base feature branch.
 [Draft PR #1014](https://github.com/mkobit/dotfiles/pull/1014) contains the published checkpoints.
+The latest source checkpoint, `df34665d`, passed all seven checks in [CI run 41945194862](https://github.com/mkobit/dotfiles/actions/runs/41945194862).
+The task checklist below the main plan records completed units within unfinished tasks 5 and 7.
 Tasks 1–3 have reviewed implementation commits.
 The macOS ancestor-alias repair and task 4 passed all seven CI checks at `d54ded96`.
 Task 4 is complete after initialized Linux amd64/arm64 and macOS deployment checks.

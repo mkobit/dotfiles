@@ -45,6 +45,25 @@ Each implementation task starts with a failing behavior test where appropriate, 
 Root owns branch management, integration, credentials, and final checks.
 Delegates own bounded files and reports; they must preserve other agents' changes.
 
+## Partial task checkpoints
+
+Task 5:
+
+- [x] Update SBX authority and add `worker-handoff`.
+- [x] Add `architect-scoping`.
+- [x] Add `repo-bootstrap`.
+- [ ] Add `retro-self-improve`.
+
+Task 7:
+
+- [x] Add repository verification tasks and explicit required CI names.
+- [ ] Add global workflow commands, runtime configuration, and guest task assets.
+- [ ] Implement the helper, host claims, review and resume, shipping, and verified host close.
+
+The repository verification declarations are checked in; a complete local verification pass remains open.
+See [the recorded timing-test limit](sbx-rearch-tasks/repo-verify-report.md).
+All seven GitHub checks passed for source checkpoint `df34665d` in [CI run 41945194862](https://github.com/mkobit/dotfiles/actions/runs/41945194862).
+
 ## Interface checks
 
 | Tasks | Shared interface | Resolution |
