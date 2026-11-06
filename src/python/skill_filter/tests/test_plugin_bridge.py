@@ -2588,3 +2588,55 @@ def test_main_refreshes_on_flag_chezmoi_refresh_or_expired_stamp(
 )
 def test_refresh_requested_parses_chezmoi_arguments(arguments, expected):
     assert plugin_bridge._refresh_requested(arguments) is expected
+
+
+@pytest.mark.parametrize("probe_status", [None, 1, 0])
+def test_cli_hosts_register_generated_marketplaces_only_when_the_cli_works(
+    tmp_path, monkeypatch, caplog, probe_status
+):
+    commands = []
+
+    def command(arguments):
+        commands.append(arguments)
+        if arguments[-1] == "--help":
+            return probe_status
+        return 3  # a failed registration is logged, never raised
+
+    monkeypatch.setattr(plugin_bridge, "_cli_host_command", command)
+    caplog.set_level("INFO", logger=plugin_bridge.logger.name)
+    plugin_bridge.reconcile(
+        tmp_path,
+        {
+            "plugin_bridge": {
+                "cli_hosts": ["cursor"],
+                "marketplaces": {
+                    "dotfiles": {
+                        "source_type": "generated",
+                        "source_locator": "/m",
+                        "hosts": ["cursor"],
+                    },
+                    "other": {
+                        "source_type": "public",
+                        "source_locator": "owner/repo",
+                        "hosts": ["cursor"],
+                    },
+                },
+            }
+        },
+    )
+
+    adds = [arguments for arguments in commands if arguments[-1] != "--help"]
+    if probe_status == 0:
+        assert adds == [("cursor-agent", "plugin", "marketplace", "add", "/m")]
+        assert (
+            "host=cursor marketplace=dotfiles operation=plugin-marketplace-add status=3"
+            in caplog.text
+        )
+    else:
+        assert adds == []
+        assert "host=cursor event=unavailable reason=no-plugin-cli" in caplog.text
+
+
+def test_cli_hosts_reject_unknown_hosts(tmp_path):
+    with pytest.raises(plugin_bridge.BridgeError, match="cli_hosts"):
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {"cli_hosts": ["claude"]}})

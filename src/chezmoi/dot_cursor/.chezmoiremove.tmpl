@@ -1,27 +1,16 @@
 {{- /*
-  Emits tombstones for direct Cursor skill roots. A selected capability-bundle
-  skill has a native tombstone so chezmoi status and diff show its cutover from
-  ~/.cursor/skills/<name> to the plugin package. Agent cleanup and the
-  state-manifest hook continue to handle their existing lifecycle cases.
+  Emits tombstones for direct Cursor skill roots. Every catalog and base bare skill
+  deploys inside plugin packages, so old copies under ~/.cursor/skills/<name> go.
+  Base bare and retired names come from the shared ai/retired-skills list.
 */ -}}
-{{- $hasBridge := false -}}
-{{- range $capability := dig "capabilities" (dict) (dig "plugin_bridge" (dict) .ai) -}}
-{{-   if has "cursor" (dig "hosts" (list) $capability) -}}
-{{-     $hasBridge = true -}}
-{{-   end -}}
-{{- end -}}
 {{- range $sourceName, $source := dig "external" (dict) (dig "skills" (dict) .ai) -}}
-{{-   range $skillName, $state := dig "skills" (dict) $source -}}
-{{-     if or $hasBridge (not (or (eq $state "present") (eq $state "cursor"))) }}
-skills/{{ $skillName }}
-{{-     end -}}
-{{-   end -}}
-{{- end -}}
-{{- range $skillName, $state := dig "authored" (dict) (dig "skills" (dict) .ai) -}}
-{{-   if or $hasBridge (not (or (eq $state "present") (eq $state "cursor"))) }}
+{{-   range $skillName, $_ := dig "skills" (dict) $source }}
 skills/{{ $skillName }}
 {{-   end -}}
 {{- end -}}
+{{- range $skillName := includeTemplate "ai/retired-skills" . | fromJson }}
+skills/{{ $skillName }}
+{{- end }}
 
 {{- range $sourceName, $source := dig "external" (dict) (dig "agents" (dict) .ai) -}}
 {{-   range $agentPath, $state := dig "agents" (dict) $source -}}
@@ -29,6 +18,11 @@ skills/{{ $skillName }}
 skills/{{ base $agentPath }}
 {{-     end -}}
 {{-   end -}}
+{{- end -}}
+
+{{- /* Authored plugins reach Cursor through the dotfiles marketplace, not local copies. */ -}}
+{{- range $name, $_ := includeTemplate "ai/authored-plugins" . | fromJson }}
+plugins/local/{{ $name }}
 {{- end -}}
 
 {{- /* Remove only known upstream Cursor packages when acquisition is disabled. */ -}}

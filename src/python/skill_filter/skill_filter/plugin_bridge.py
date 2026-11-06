@@ -30,6 +30,7 @@ from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING or bool(__package__):
     from skill_filter.plugin_declarations import (
+        _CLI_HOSTS,
         _NATIVE_HOSTS,
         BridgeError,
         _marketplace_rows,
@@ -39,6 +40,7 @@ if TYPE_CHECKING or bool(__package__):
     )
 else:
     from plugin_declarations import (
+        _CLI_HOSTS,
         _NATIVE_HOSTS,
         BridgeError,
         _marketplace_rows,
@@ -752,6 +754,76 @@ def _remove_stale_record(kind: str, host: str, marketplace: str, plugin: str) ->
             raise BridgeError(f"marketplace did not disappear: {marketplace}")
 
 
+# Minimal adapters for hosts whose plugin CLI commands are not verified yet.
+# Each adapter names an availability probe and the command that registers a local
+# marketplace directory. A failed probe means the host is unavailable. Nothing here
+# fails apply, and plugin install and ownership are not wired for these hosts yet.
+_CLI_HOST_ADAPTERS: dict[str, dict[str, tuple[str, ...]]] = {
+    "cursor": {
+        "probe": ("cursor-agent", "plugin", "--help"),
+        "marketplace_add": ("cursor-agent", "plugin", "marketplace", "add"),
+    },
+    "antigravity": {
+        "probe": ("agy", "plugin", "--help"),
+        "marketplace_add": ("agy", "plugin", "marketplace", "add"),
+    },
+}
+
+
+def _cli_host_command(command: tuple[str, ...]) -> int | None:
+    """Run a CLI host command; return its exit status, or None when it cannot run."""
+    executable = shutil.which(command[0])
+    if executable is None:
+        return None
+    try:
+        result = subprocess.run(
+            [executable, *command[1:]], capture_output=True, text=True, check=False
+        )
+    except OSError:
+        return None
+    if result.returncode:
+        detail = (result.stderr.strip() or result.stdout.strip()).splitlines()
+        logger.info(
+            "command=%s status=%s detail=%s",
+            " ".join(command[:3]),
+            result.returncode,
+            detail[0] if detail else "",
+        )
+    return result.returncode
+
+
+def _register_cli_hosts(
+    hosts: object, marketplaces: Mapping[str, object], destination: Path
+) -> None:
+    """Register generated marketplaces with each available CLI host."""
+    if not isinstance(hosts, (list, tuple)) or not set(hosts) <= _CLI_HOSTS:
+        raise BridgeError(f"cli_hosts must list hosts from {sorted(_CLI_HOSTS)!r}")
+    for host in hosts:
+        adapter = _CLI_HOST_ADAPTERS[host]
+        if _cli_host_command(adapter["probe"]) != 0:
+            logger.info("host=%s event=unavailable reason=no-plugin-cli", host)
+            continue
+        for name, definition in sorted(marketplaces.items()):
+            if not isinstance(definition, Mapping):
+                continue
+            marketplace_hosts = definition.get("hosts", [])
+            if definition.get("source_type") != "generated" or host not in (
+                marketplace_hosts if isinstance(marketplace_hosts, list) else []
+            ):
+                continue
+            locator = str(
+                definition.get("source_locator")
+                or destination / ".local/share/agent-plugins/marketplace"
+            )
+            status = _cli_host_command((*adapter["marketplace_add"], locator))
+            logger.info(
+                "host=%s marketplace=%s operation=plugin-marketplace-add status=%s",
+                host,
+                name,
+                "unavailable" if status is None else status,
+            )
+
+
 def reconcile(
     destination: Path, declaration: Mapping[str, object], *, refresh: bool = False
 ) -> None:
@@ -935,6 +1007,7 @@ def reconcile(
         or (record.split("\t")[1], record.split("\t")[2]) in unavailable_marketplaces
     }
     _write_ownership(ownership_file, _merge_ownership(retained, owned_desired))
+    _register_cli_hosts(raw_bridge.get("cli_hosts", []), marketplaces, destination)
 
 
 _REFRESH_INTERVAL_SECONDS = 24 * 60 * 60

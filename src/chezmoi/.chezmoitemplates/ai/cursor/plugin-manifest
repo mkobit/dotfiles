@@ -1,0 +1,23 @@
+{{- /*
+  Cursor manifest, .cursor-plugin/plugin.json, of one authored plugin.
+  Arguments: root (root context), name (plugin name), and optional extra (keys merged
+  over the result, such as rules or mcpServers).
+  Output: the manifest, or nothing when the plugin is disabled or Cursor is not
+  selected, so chezmoi removes the file.
+  Reference: https://github.com/cursor/plugins
+*/ -}}
+{{- $plugin := dig .name nil (includeTemplate "ai/authored-plugins" .root | fromJson) -}}
+{{- if not $plugin -}}
+{{-   fail (printf "ai/cursor/plugin-manifest: no authored plugin folder for %q" .name) -}}
+{{- end -}}
+{{- if and $plugin.enabled (has "cursor" $plugin.hosts) -}}
+{{-   $identity := dig "ai" "plugins" .name (dict) .root -}}
+{{-   $selected := includeTemplate "ai/plugin-skills" (dict "root" .root "name" .name "host" "cursor") | fromJson -}}
+{{-   $manifest := dict "name" .name "version" (includeTemplate "ai/plugin-version" .) "description" (dig "description" "" $identity) "author" (dict "name" (dig "author" .root.chezmoi.username $identity)) -}}
+{{-   if $selected.host_dir -}}
+{{-     $_ := set $manifest "skills" (list "./skills" "./cursor/skills") -}}
+{{-   else if $selected.skills -}}
+{{-     $_ := set $manifest "skills" "./skills" -}}
+{{-   end -}}
+{{-   mergeOverwrite $manifest (deepCopy (dig "extra" (dict) .)) | toPrettyJson -}}
+{{- end -}}

@@ -12,7 +12,7 @@ owner = "mkobit"
 source = "local"
 display_name = "Dotfiles"
 trust_class = "owned"
-hosts = ["claude", "codex"]
+hosts = ["claude", "codex", "cursor", "antigravity"]
 order = 100
 
 [ai.plugin_bridge.marketplaces.superpowers-marketplace]
@@ -26,8 +26,6 @@ trust_class = "upstream"
 hosts = ["claude", "codex"]
 order = 110
 
+# The authored mkobit-dotfiles plugin also receives the upstream skills of .chezmoidata/ai/skills/.
 [ai.plugin_bridge.capabilities.mkobit-dotfiles]
-description = "Base dotfiles capability bundle."
 acquisition_destination = true
-marketplace = "dotfiles"
-hosts = ["claude", "codex", "cursor"]

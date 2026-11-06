@@ -1,0 +1,32 @@
+{{- /*
+  Version of one authored plugin: 1.0.0+<digest>.
+  Arguments: root (root context), name (plugin name), and optional extra (manifest keys).
+  The digest covers every file in the plugin folder except host manifests, the
+  .chezmoi* control files, and absent skills (templates by rendered bytes), the
+  identity and decision data, and, for the acquisition destination, the upstream
+  skill pins. It changes with content and data only.
+*/ -}}
+{{- $root := .root -}}
+{{- $plugin := index (includeTemplate "ai/authored-plugins" $root | fromJson) .name -}}
+{{- $decision := dig "ai" "plugin_bridge" "capabilities" .name (dict) $root -}}
+{{- $exceptions := dig "skills" (dict) $decision -}}
+{{- $files := dict -}}
+{{- range $path := glob (joinPath $plugin.source "**/*") | sortAlpha -}}
+{{-   $relative := trimPrefix (printf "%s/" $plugin.source) $path -}}
+{{-   $skip := or (regexMatch "(^|/)exact_dot_[a-z]+-plugin/plugin\\.json(\\.tmpl)?$" $relative) (eq $relative "plugin.json.tmpl") (hasPrefix ".chezmoi" (base $path)) -}}
+{{-   $skill := regexFind "exact_skills/exact_[a-z0-9-]+/" $relative | trimPrefix "exact_skills/exact_" | trimSuffix "/" -}}
+{{-   if and $skill (eq (dig $skill "present" $exceptions) "absent") -}}{{- $skip = true -}}{{- end -}}
+{{-   if and (not $skip) (eq (lstat $path).type "file") -}}
+{{-     if hasSuffix ".tmpl" $path -}}
+{{-       $_ := set $files $relative (includeTemplate $path $root | sha256sum) -}}
+{{-     else -}}
+{{-       $_ := set $files $relative (include $path | sha256sum) -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $externals := dict -}}
+{{- if dig "acquisition_destination" false $decision -}}
+{{-   $externals = dig "ai" "skills" "external" (dict) $root -}}
+{{- end -}}
+{{- $inputs := dict "files" $files "hosts" $plugin.hosts "skills" $plugin.skills "identity" (dig "ai" "plugins" .name (dict) $root) "decision" $decision "externals" $externals "extra" (dig "extra" (dict) .) -}}
+{{- printf "1.0.0+%s" (trunc 12 (sha256sum (toJson $inputs))) -}}

@@ -3,7 +3,7 @@
 
 # Retired grants migrate only matching live allow entries.
 # TODO(2026-11-30): Remove these entries after existing installations have applied the grant cleanup.
-# Active SBX permission guidance is in src/ai/skills/sbx-sandboxes/references/permissions.md.
+# Active SBX permission guidance is in src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles/exact_skills/exact_sbx-sandboxes/exact_references/permissions.md.
 [ai.command_policy.retired_commands]
 "sbx --help" = true
 "sbx --version" = true
