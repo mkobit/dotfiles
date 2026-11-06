@@ -60,7 +60,20 @@ _SKIPPED_NAMES = frozenset(
     {"__pycache__", ".pytest_cache", ".ruff_cache", ".mypy_cache", ".DS_Store"}
 )
 _SKIPPED_SUFFIXES = (".pyc", ".pyo")
-_NATIVE_PREFIXES = ("exact_", "private_", "readonly_", "empty_", "executable_")
+# Chezmoi parses attribute prefixes in a fixed order, verified with a probe of
+# chezmoi 2.72 against https://www.chezmoi.io/reference/source-state-attributes/.
+# Each group matches at most once; a final dot_ or literal_ ends the parse.
+_DIR_ORDER = (("remove_",), ("external_",), ("exact_",), ("private_",), ("readonly_",))
+_FILE_ORDER = (
+    ("create_", "modify_", "remove_", "run_", "symlink_"),
+    ("once_", "onchange_"),
+    ("before_", "after_"),
+    ("encrypted_",),
+    ("private_",),
+    ("readonly_",),
+    ("empty_",),
+    ("executable_",),
+)
 _NATIVE_FORBIDDEN = (
     "create_",
     "modify_",
@@ -132,28 +145,60 @@ def _check_target_name(name: str, path: Path) -> None:
         raise AgentSourceError(f"entry targets a reserved chezmoi name: {path}")
 
 
-def _parse_native_name(name: str, path: Path) -> tuple[str, dict[str, bool]]:
-    """Return the target name and attributes of a native chezmoi source name."""
-    flags = {"executable": False, "empty": False, "template": False}
+def _strip_ordered(name: str, is_dir: bool) -> tuple[str, list[str], bool]:
+    """Strip chezmoi prefixes in chezmoi's fixed order.
+
+    Return the remainder, the matched attribute prefixes, and whether a final
+    ``dot_`` or ``literal_`` ended the parse, so the remainder is literal.
+    """
+    matched: list[str] = []
     remainder = name
-    while True:
-        if remainder.startswith(_NATIVE_FORBIDDEN):
-            raise AgentSourceError(f"native entry uses a forbidden prefix: {path}")
-        if remainder.startswith("dot_"):
-            remainder = "." + remainder[len("dot_") :]
-            break
-        if remainder.startswith("literal_"):
-            remainder = remainder[len("literal_") :]
-            break
-        prefix = next((p for p in _NATIVE_PREFIXES if remainder.startswith(p)), None)
-        if prefix is None:
-            break
-        flags["executable"] |= prefix == "executable_"
-        flags["empty"] |= prefix == "empty_"
-        remainder = remainder[len(prefix) :]
-    if remainder.endswith(".tmpl"):
-        remainder = remainder[: -len(".tmpl")]
-        flags["template"] = True
+    for group in _DIR_ORDER if is_dir else _FILE_ORDER:
+        prefix = next((p for p in group if remainder.startswith(p)), None)
+        if prefix is not None:
+            matched.append(prefix)
+            remainder = remainder[len(prefix) :]
+    if remainder.startswith("dot_"):
+        return "." + remainder[len("dot_") :], matched, True
+    if remainder.startswith("literal_"):
+        return remainder[len("literal_") :], matched, True
+    return remainder, matched, False
+
+
+def _parse_native_name(
+    name: str, path: Path, is_dir: bool
+) -> tuple[str, dict[str, bool]]:
+    """Return the target name and attributes of a native chezmoi source name.
+
+    Prefixes must follow chezmoi's order, so the parsed target always equals
+    the target chezmoi deploys.
+    """
+    remainder, matched, literal = _strip_ordered(name, is_dir)
+    leftover = (
+        None
+        if literal
+        else next((p for p in _CHEZMOI_PREFIXES if remainder.startswith(p)), None)
+    )
+    if any(prefix in _NATIVE_FORBIDDEN for prefix in matched) or (
+        leftover in _NATIVE_FORBIDDEN
+    ):
+        raise AgentSourceError(f"native entry uses a forbidden prefix: {path}")
+    if leftover is not None:
+        raise AgentSourceError(
+            f"native entry prefixes are out of chezmoi order or invalid for a "
+            f"{'directory' if is_dir else 'file'}: {path}"
+        )
+    flags = {
+        "executable": "executable_" in matched,
+        "empty": "empty_" in matched,
+        "template": False,
+    }
+    if not is_dir:
+        if remainder.endswith(".literal"):
+            raise AgentSourceError(f"native entry uses a .literal suffix: {path}")
+        if remainder.endswith(".tmpl"):
+            remainder = remainder[: -len(".tmpl")]
+            flags["template"] = True
     _check_target_name(remainder, path)
     return remainder, flags
 
@@ -178,7 +223,7 @@ def _scan_tree(root: Path, base: Path, native: bool) -> Tree:
                 raise AgentSourceError(f"source symlink is not allowed: {entry}")
             if stat.S_ISDIR(mode):
                 if native:
-                    name, _ = _parse_native_name(entry.name, entry)
+                    name, _ = _parse_native_name(entry.name, entry, True)
                 else:
                     name = entry.name
                     _check_target_name(name, entry)
@@ -194,7 +239,7 @@ def _scan_tree(root: Path, base: Path, native: bool) -> Tree:
                 empty = False
                 name = entry.name
                 if native:
-                    name, flags = _parse_native_name(entry.name, entry)
+                    name, flags = _parse_native_name(entry.name, entry, False)
                     template = flags["template"]
                     executable = flags["executable"]
                     empty = flags["empty"]
@@ -241,7 +286,7 @@ def _scan_skills(
         if not child.is_dir():
             continue
         if native:
-            name, _ = _parse_native_name(child.name, child)
+            name, _ = _parse_native_name(child.name, child, True)
         else:
             name = child.name
         if not name_re.match(name) or name in {".", ".."}:
@@ -615,29 +660,28 @@ def encode_name(
     )
 
 
-def source_target_name(source_name: str) -> str:
-    """Strip chezmoi attributes and ``.tmpl``/``.literal`` from a source name."""
-    name = source_name
-    while True:
-        if name.startswith("literal_"):
-            name = name[len("literal_") :]
-            break
-        if name.startswith("dot_"):
-            name = "." + name[len("dot_") :]
-            break
-        prefix = next((p for p in _CHEZMOI_PREFIXES if name.startswith(p)), None)
-        if prefix is None:
-            break
-        name = name[len(prefix) :]
+def source_target_name(source_name: str, *, is_dir: bool = False) -> str:
+    """Return the target name chezmoi deploys for a source name.
+
+    Prefixes are stripped in chezmoi's order; files also lose ``.literal`` or
+    ``.tmpl`` (then ``.literal``), and directories keep their suffixes.
+    """
+    name, _, _ = _strip_ordered(source_name, is_dir)
+    if is_dir:
+        return name
     if name.endswith(".literal"):
-        name = name[: -len(".literal")]
-    elif name.endswith(".tmpl"):
+        return name[: -len(".literal")]
+    if name.endswith(".tmpl"):
         name = name[: -len(".tmpl")]
+        if name.endswith(".literal"):
+            name = name[: -len(".literal")]
     return name
 
 
-def _source_target_path(path: str) -> str:
-    return "/".join(source_target_name(part) for part in path.split("/"))
+def _source_target_path(path: str, is_dir: bool) -> str:
+    parts = path.split("/")
+    names = [source_target_name(part, is_dir=True) for part in parts[:-1]]
+    return "/".join([*names, source_target_name(parts[-1], is_dir=is_dir)])
 
 
 def is_generated_path(path: str) -> bool:
@@ -782,7 +826,7 @@ def _add_plugin_view(
 def _check_plan_targets(plan: dict[str, Entry]) -> None:
     seen: dict[str, str] = {}
     for path in sorted(plan):
-        target = _source_target_path(path)
+        target = _source_target_path(path, plan[path].kind == "dir")
         other = seen.setdefault(target, path)
         if other != path:
             raise AgentSourceError(f"two sources map to {target}: {other} and {path}")
@@ -889,9 +933,13 @@ def read_manifest(source_root: Path) -> Optional[dict[str, Any]]:
 def _write_manifest(source_root: Path, document: dict[str, Any]) -> None:
     path = source_root / MANIFEST_NAME
     temporary = source_root / (MANIFEST_NAME + ".tmp")
-    temporary.write_text(
-        json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
+    # Unlink a leftover entry, then create without following a symlink.
+    if os.path.lexists(str(temporary)):
+        temporary.unlink()
+    flags = os.O_WRONLY | os.O_CREAT | os.O_EXCL | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(str(temporary), flags, 0o644)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+        handle.write(json.dumps(document, indent=2, sort_keys=True) + "\n")
     os.replace(str(temporary), str(path))
 
 
@@ -910,7 +958,7 @@ def _check_components(source_root: Path, path: str) -> None:
 
 
 def _check_canonical_targets(
-    source_root: Path, path: str, owned: frozenset[str]
+    source_root: Path, path: str, is_dir: bool, owned: frozenset[str]
 ) -> None:
     """Fail when a canonical sibling of ``path`` or an ancestor has its target."""
     parts = path.split("/")
@@ -918,18 +966,24 @@ def _check_canonical_targets(
         directory = source_root.joinpath(*parts[:index])
         if not directory.is_dir():
             return
-        wanted = source_target_name(part)
+        last = index == len(parts) - 1
+        wanted = source_target_name(part, is_dir=is_dir or not last)
         for entry in directory.iterdir():
             relative = "/".join([*parts[:index], entry.name])
             if entry.name == part or entry.name.startswith(".") or relative in owned:
                 continue
-            if source_target_name(entry.name) == wanted:
+            if source_target_name(entry.name, is_dir=entry.is_dir()) == wanted:
                 raise AgentSourceError(
                     f"canonical source {relative} has the same target as {path}"
                 )
 
 
-def _validate(source_root: Path, new_paths: list[str], old_paths: list[str]) -> None:
+def _validate(
+    source_root: Path,
+    plan: dict[str, Entry],
+    new_paths: list[str],
+    old_paths: list[str],
+) -> None:
     owned = frozenset(new_paths) | frozenset(old_paths)
     for path in old_paths:
         _check_components(source_root, path)
@@ -939,7 +993,8 @@ def _validate(source_root: Path, new_paths: list[str], old_paths: list[str]) -> 
             raise AgentSourceError(
                 f"generated path exists but is not in the manifest: {path}"
             )
-        _check_canonical_targets(source_root, path, owned)
+        is_dir = plan[path].kind == "dir"
+        _check_canonical_targets(source_root, path, is_dir, owned)
         if path.endswith("/" + _IGNORE_NAME):
             directory = source_root / path.rpartition("/")[0]
             for name in _CONTROL_NAMES:
@@ -976,7 +1031,7 @@ def _prepare_locked(source_root: Path) -> bool:
     old_paths: list[str] = [] if previous is None else list(previous["paths"])
     plan = plan_projection(source_root, discover(source_root))
     new_paths = top_level_paths(plan)
-    _validate(source_root, new_paths, old_paths)
+    _validate(source_root, plan, new_paths, old_paths)
     plan_digest = digest(plan)
     if (
         previous is not None

@@ -450,7 +450,8 @@ def _manifest(source_root: Path):
 def test_encode_literal_names(name, flags, expected):
     encoded = agent_sources.encode_name(name, **flags)
     assert encoded == expected
-    assert agent_sources.source_target_name(encoded) == name
+    is_dir = flags["kind"] == "dir"
+    assert agent_sources.source_target_name(encoded, is_dir=is_dir) == name
 
 
 @pytest.mark.parametrize("name", ["..", "a/b", "x.literal"])
@@ -856,3 +857,146 @@ def test_projection_applies_with_plain_chezmoi(layout, tmp_path):
         assert records.read_text(encoding="utf-8") == "rendered\n"
     assert (market / "domain-brain/claude/.mcp.json").read_text() == "{}\n"
     assert not (market / "domain-brain/codex/.mcp.json").exists()
+
+
+@pytest.mark.parametrize(
+    ("source_name", "is_dir", "target"),
+    [
+        ("exact_private_readonly_dot_x", True, ".x"),
+        ("exact_literal_dot_x", True, "dot_x"),
+        ("x.tmpl", True, "x.tmpl"),
+        ("private_readonly_empty_executable_x.tmpl", False, "x"),
+        ("empty_executable_dot_x", False, ".x"),
+        ("private_literal_exact_x", False, "exact_x"),
+    ],
+)
+def test_native_names_in_chezmoi_order_are_accepted(source_name, is_dir, target):
+    name, _ = agent_sources._parse_native_name(source_name, Path(source_name), is_dir)
+    assert name == target
+    assert agent_sources.source_target_name(source_name, is_dir=is_dir) == target
+
+
+@pytest.mark.parametrize(
+    ("source_name", "is_dir"),
+    [
+        ("private_exact_x", True),
+        ("readonly_private_x", True),
+        ("empty_x", True),
+        ("empty_private_x", False),
+        ("executable_empty_x", False),
+        ("readonly_private_x", False),
+        ("exact_x", False),
+        ("x.literal", False),
+    ],
+)
+def test_native_names_out_of_chezmoi_order_are_rejected(source_name, is_dir):
+    with pytest.raises(AgentSourceError, match="native entry"):
+        agent_sources._parse_native_name(source_name, Path(source_name), is_dir)
+
+
+@pytest.mark.parametrize(
+    ("skill_dir", "emitted"),
+    [("private_foo", "exact_private_foo"), ("exact_private_foo", "exact_private_foo")],
+)
+def test_forced_exact_native_skill_root_keeps_chezmoi_order(layout, skill_dir, emitted):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "nat", {"native_source": True}, skills=())
+    _write(plugin / "skills" / skill_dir / "SKILL.md")
+    plan = agent_sources.plan_projection(source_root, discover(source_root))
+    skills = f"{MARKET}/exact_nat/exact_claude/exact_skills"
+    assert sorted(p for p in plan if p.startswith(skills + "/")) == [
+        f"{skills}/{emitted}",
+        f"{skills}/{emitted}/SKILL.md",
+    ]
+    assert not any("exact_exact_" in path for path in plan)
+
+
+def test_native_skill_root_out_of_order_fails(layout):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "nat", {"native_source": True}, skills=())
+    _write(plugin / "skills" / "private_exact_foo" / "SKILL.md")
+    with pytest.raises(AgentSourceError, match="out of chezmoi order"):
+        discover(source_root)
+
+
+def _chezmoi_managed(source_root: Path, tmp_path: Path):
+    dest = tmp_path / "dest"
+    dest.mkdir(exist_ok=True)
+    config = _write(tmp_path / "c.toml", "")
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--source",
+            str(source_root),
+            "--destination",
+            str(dest),
+            "--config",
+            str(config),
+            "--cache",
+            str(tmp_path / "cache"),
+            "--persistent-state",
+            str(tmp_path / "state.boltdb"),
+            "managed",
+            "--include",
+            "dirs,files",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={**os.environ, "HOME": str(tmp_path)},
+    )
+    assert result.returncode == 0, result.stderr
+    return set(result.stdout.split())
+
+
+@pytest.mark.skipif(shutil.which("chezmoi") is None, reason="chezmoi is not installed")
+def test_native_inventory_targets_equal_chezmoi_managed(layout, tmp_path):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "nat", {"native_source": True}, skills=())
+    skill = plugin / "skills" / "private_foo"
+    _write(skill / "SKILL.md")
+    _write(skill / "private_readonly_empty_executable_dot_run.sh", "")
+    _write(skill / "exact_private_readonly_dot_refs" / "private_literal_exact_a.md")
+    templates = source_root / ".chezmoitemplates" / "ai"
+    _write(templates / "authored-plugin-manifest", "{}\n")
+    _write(templates / "agent-source-ignore", "")
+    assert agent_sources.prepare(source_root) is True
+    tree = discover(source_root).plugins["nat"].skills["foo"]
+    root = ".local/share/agent-plugins/marketplace/plugins/nat/claude/skills/foo"
+    expected = {f"{root}/{target}" for target in (*tree.dirs, *tree.files)}
+    assert expected == {
+        f"{root}/.run.sh",
+        f"{root}/SKILL.md",
+        f"{root}/.refs",
+        f"{root}/.refs/exact_a.md",
+    }
+    managed = _chezmoi_managed(source_root, tmp_path)
+    assert {path for path in managed if path.startswith(root + "/")} == expected
+
+
+def test_validation_failure_after_publish_keeps_previous_set(layout):
+    _, source_root, authored = layout
+    _fixture(authored)
+    assert agent_sources.prepare(source_root) is True
+    manifest = _manifest(source_root)
+    canonical = _write(source_root / MARKET / "domain-brain" / "plugin.json")
+    before = _snapshot(source_root)
+    with pytest.raises(AgentSourceError, match="same target"):
+        agent_sources.prepare(source_root)
+    assert _snapshot(source_root) == before
+    assert _manifest(source_root) == manifest
+    for path in manifest["paths"]:
+        assert (source_root / path).exists()
+    assert canonical.exists()
+
+
+def test_manifest_temp_symlink_is_not_followed(layout, tmp_path):
+    _, source_root, authored = layout
+    _fixture(authored)
+    outside = _write(tmp_path / "outside.txt", "keep\n")
+    temporary = source_root / (agent_sources.MANIFEST_NAME + ".tmp")
+    temporary.symlink_to(outside)
+    assert agent_sources.prepare(source_root) is True
+    assert outside.read_text(encoding="utf-8") == "keep\n"
+    assert not os.path.lexists(str(temporary))
+    assert _manifest(source_root)["state"] == "complete"
