@@ -714,7 +714,7 @@ def test_global_modern_web_guidance_removal_migrates_existing_copies(tmp_path, o
         ownership.write_text(
             "invalid state"
             if ownership_format == "malformed"
-            else "marketplace\tcodex\tgooglechrome\t\nplugin\tclaude\tgooglechrome\tmodern-web-guidance\n"
+            else "marketplace\tcodex\tgooglechrome\t\towned\nplugin\tclaude\tgooglechrome\tmodern-web-guidance\towned\n"
         )
     late_paths = (
         ".local/share/agent-plugins/marketplaces/googlechrome",
@@ -759,7 +759,8 @@ def test_plugin_bridge_ownership_state(chezmoi_dest):
         if not line:
             continue
         fields = line.split("\t")
-        assert len(fields) == 4, f"expected 4 tab-separated fields in {line!r}, got {len(fields)}"
+        assert len(fields) == 5, f"expected 5 tab-separated fields in {line!r}, got {len(fields)}"
+        assert fields[4] in {"owned", "ambiguous"}, f"invalid provenance in {line!r}"
 
 
 # Tool agent directories actively deployed to by .chezmoiexternals/ai-agents.toml.tmpl.

@@ -1,4 +1,17 @@
-"""Reconcile native Claude and Codex plugin registrations."""
+"""Reconcile native Claude and Codex plugin registrations.
+
+Ownership state lives in ``<dest>/.local/state/dotfiles/agent-plugin-ownership``.
+Each line is ``kind<TAB>host<TAB>marketplace<TAB>plugin<TAB>provenance``.
+``kind`` is ``plugin`` or ``marketplace``; a marketplace line has an empty plugin.
+``provenance`` is ``owned`` or ``ambiguous``.
+Only ``owned`` records drive removal.
+The bridge records ``owned`` only for what it installed (or registered), or for what
+a previous ``owned`` record already covers.
+It never adopts a manual install of a ``public`` or ``internal`` resource.
+It never records a resource from a ``host-provided`` marketplace.
+Four-field lines (the earlier format) and the legacy JSON state are classified by
+``_classify_legacy`` and rewritten before any host mutation.
+"""
 
 from __future__ import annotations
 
@@ -46,6 +59,18 @@ class HostUnavailableError(BridgeError):
         self.host = host
 
 
+class MarketplaceUnavailableError(BridgeError):
+    """Raised when a host-provided marketplace is not registered on a host."""
+
+    def __init__(self, host: str, name: str) -> None:
+        super().__init__(f"host-provided marketplace is unavailable: {name} ({host})")
+        self.host = host
+        self.name = name
+
+
+_PROVENANCES = frozenset({"owned", "ambiguous"})
+
+
 def migrate_ownership(path: Path) -> str:
     payload = json.loads(path.read_text(encoding="utf-8"))
     lines = []
@@ -79,17 +104,74 @@ def _identity(kind: str, host: str, marketplace: str, plugin: str) -> str:
     return f"{kind}\t{host}\t{marketplace}\t{plugin}"
 
 
+def _owned_record(kind: str, host: str, marketplace: str, plugin: str) -> str:
+    return f"{_identity(kind, host, marketplace, plugin)}\towned"
+
+
+def _record_identity(record: str) -> str:
+    return "\t".join(record.split("\t")[:4])
+
+
+def _is_owned(record: str) -> bool:
+    return record.endswith("\towned")
+
+
+def _classify_legacy(record: str, marketplaces: Mapping[str, object]) -> str | None:
+    """Return the provenance for a four-field record, or None to drop it."""
+    marketplace = record.split("\t")[2]
+    definition = marketplaces.get(marketplace)
+    source_type = (
+        definition.get("source_type") if isinstance(definition, Mapping) else None
+    )
+    if source_type == "generated":
+        return "owned"
+    if source_type == "host-provided":
+        return None
+    return "ambiguous"
+
+
 def _read_ownership(path: Path) -> set[str]:
+    """Read validated records; four-field lines are returned unclassified."""
     if not path.exists():
         return set()
     records = set()
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line:
             continue
-        if len(line.split("\t")) != 4:
+        fields = line.split("\t")
+        if len(fields) not in {4, 5} or (
+            len(fields) == 5 and fields[4] not in _PROVENANCES
+        ):
             raise BridgeError(f"invalid ownership record: {line!r}")
         records.add(line)
     return records
+
+
+def _normalize_ownership(
+    records: set[str], marketplaces: Mapping[str, object]
+) -> set[str]:
+    """Return five-field native-host records; ``owned`` wins over ``ambiguous``."""
+    provenance: dict[str, str] = {}
+    for record in records:
+        identity = _record_identity(record)
+        if identity.split("\t")[1] not in _NATIVE_HOSTS:
+            continue
+        kind = (
+            record.split("\t")[4]
+            if record.count("\t") == 4
+            else _classify_legacy(record, marketplaces)
+        )
+        if kind is not None and provenance.get(identity) != "owned":
+            provenance[identity] = kind
+    return {f"{identity}\t{kind}" for identity, kind in provenance.items()}
+
+
+def _merge_ownership(previous: set[str], owned_desired: set[str]) -> set[str]:
+    """Union records, dropping a previous record superseded by a new owned one."""
+    superseded = {_record_identity(record) for record in owned_desired}
+    return owned_desired | {
+        record for record in previous if _record_identity(record) not in superseded
+    }
 
 
 def _write_ownership(path: Path, records: set[str]) -> None:
@@ -418,17 +500,18 @@ def _ensure_marketplace(
     ownership_file: Path,
     desired: set[str],
     owned_desired: set[str],
+    previous_owned: frozenset[str] = frozenset(),
 ) -> None:
-    record = _identity("marketplace", host, name, "")
-    desired.add(record)
+    identity = _identity("marketplace", host, name, "")
+    desired.add(identity)
     if source_type == "host-provided":
+        # Corporate wrappers own it: check presence only, never record.
         if not _marketplace_present(host, name):
-            raise BridgeError(
-                f"host-provided marketplace is unavailable: {name} ({host})"
-            )
+            raise MarketplaceUnavailableError(host, name)
         return
     if not source_locator:
         raise BridgeError(f"marketplace has no source: {name}")
+    record = f"{identity}\towned"
     if source_type == "generated":
         expected = Path(source_locator).resolve()
         registered = _generated_marketplace_source(host, name)
@@ -443,7 +526,8 @@ def _ensure_marketplace(
                 f"marketplace did not register expected source: {name} ({host}); expected {expected}"
             )
     else:
-        if _marketplace_present(host, name):
+        adopted = _marketplace_present(host, name)
+        if adopted:
             _run(
                 host,
                 "plugin",
@@ -455,8 +539,44 @@ def _ensure_marketplace(
             _run(host, "plugin", "marketplace", "add", source_locator)
         if not _marketplace_present(host, name):
             raise BridgeError(f"marketplace did not become available: {name}")
+        if adopted and identity not in previous_owned:
+            return
     owned_desired.add(record)
     _checkpoint(ownership_file, record)
+
+
+def _plugin_status(host: str, marketplace: str, plugin: str) -> tuple[bool, bool]:
+    if host == "claude":
+        present, enabled, _, _ = _claude_plugin_state(marketplace, plugin)
+    elif host == "codex":
+        present, enabled, _, _ = _codex_plugin_state(marketplace, plugin)
+    else:
+        raise BridgeError(f"unsupported plugin host: {host}")
+    return present, enabled
+
+
+def _ensure_installed_and_enabled(host: str, marketplace: str, plugin: str) -> bool:
+    """Install when absent and enable when disabled; never update or remove.
+
+    Returns True when this call installed the plugin.
+    """
+    expected = f"{plugin}@{marketplace}"
+    present, enabled = _plugin_status(host, marketplace, plugin)
+    installed = not present
+    if not present:
+        _run(host, "plugin", "install" if host == "claude" else "add", expected)
+        present, enabled = _plugin_status(host, marketplace, plugin)
+    if present and not enabled:
+        try:
+            # Codex has no enable command; adding again enables it.
+            _run(host, "plugin", "enable" if host == "claude" else "add", expected)
+        except BridgeError as error:
+            if "already enabled" not in str(error).lower():
+                raise
+        present, enabled = _plugin_status(host, marketplace, plugin)
+    if not present or not enabled:
+        raise BridgeError(f"plugin did not become available and enabled: {expected}")
+    return installed
 
 
 def _ensure_plugin(
@@ -468,10 +588,24 @@ def _ensure_plugin(
     owned_desired: set[str],
     manifest_root: Path | None = None,
     package_root: Path | None = None,
+    source_type: str = "generated",
+    previous_owned: frozenset[str] = frozenset(),
 ) -> None:
-    record = _identity("plugin", host, marketplace, plugin)
-    desired.add(record)
+    identity = _identity("plugin", host, marketplace, plugin)
+    record = f"{identity}\towned"
+    desired.add(identity)
     expected = f"{plugin}@{marketplace}"
+    if source_type == "host-provided":
+        # Wrapper-owned: install and enable only; never record ownership.
+        _ensure_installed_and_enabled(host, marketplace, plugin)
+        return
+    if source_type != "generated":
+        installed = _ensure_installed_and_enabled(host, marketplace, plugin)
+        if not installed and identity not in previous_owned:
+            return  # adopted manual install stays unrecorded
+        owned_desired.add(record)
+        _checkpoint(ownership_file, record)
+        return
     if package_root is not None:
         _ensure_package_plugin(host, marketplace, plugin, package_root)
     elif host == "claude":
@@ -561,13 +695,30 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
     state = _validate_state_root(destination)
     ownership_file = state / "agent-plugin-ownership"
     legacy = state / "agent-plugin-ownership.json"
-    if not ownership_file.exists() and legacy.exists():
-        migrated = set(migrate_ownership(legacy).splitlines())
-        _write_ownership(ownership_file, migrated)
+    if ownership_file.exists():
+        raw = _read_ownership(ownership_file)
+    elif legacy.exists():
+        raw = set(migrate_ownership(legacy).splitlines())
+    else:
+        raw = set()
+    previous = _normalize_ownership(raw, marketplaces)
+    if previous != raw or (legacy.exists() and not ownership_file.exists()):
+        # Persist the classified records before any host mutation.
+        _write_ownership(ownership_file, previous)
     if ownership_file.exists() and legacy.exists():
         legacy.unlink()
     unavailable_hosts: set[str] = set()
-    previous, desired, owned_desired = _read_ownership(ownership_file), set(), set()
+    unavailable_marketplaces: set[tuple[str, str]] = set()
+    desired: set[str] = set()
+    owned_desired: set[str] = set()
+    previous_owned = frozenset(
+        _record_identity(record) for record in previous if _is_owned(record)
+    )
+    source_types = {
+        name: str(definition.get("source_type", ""))
+        for name, definition in marketplaces.items()
+        if isinstance(definition, Mapping)
+    }
     marketplace_rows = _marketplace_rows(destination, marketplaces)
     manifest_roots = {
         (name, host): Path(locator)
@@ -606,15 +757,28 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
             continue
         try:
             _ensure_marketplace(
-                host, name, source_type, locator, ownership_file, desired, owned_desired
+                host,
+                name,
+                source_type,
+                locator,
+                ownership_file,
+                desired,
+                owned_desired,
+                previous_owned,
             )
         except HostUnavailableError:
             unavailable_hosts.add(host)
+        except MarketplaceUnavailableError:
+            logger.info("host=%s marketplace=%s event=unavailable", host, name)
+            unavailable_marketplaces.add((host, name))
 
     for kind, declarations in (("capabilities", capabilities), ("plugins", plugins)):
         rows = _plugin_rows(kind, declarations, marketplaces, environment)
         for _, name, host, marketplace in rows:
             if host in unavailable_hosts:
+                continue
+            if (host, marketplace) in unavailable_marketplaces:
+                desired.add(_identity("plugin", host, marketplace, name))
                 continue
             try:
                 _ensure_plugin(
@@ -625,6 +789,8 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
                     desired,
                     owned_desired,
                     manifest_root=manifest_roots.get((marketplace, host)),
+                    source_type=source_types.get(marketplace, "generated"),
+                    previous_owned=previous_owned,
                     **(
                         {"package_root": package_roots[kind, name, host]}
                         if (kind, name, host) in package_roots
@@ -633,27 +799,38 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
                 )
             except HostUnavailableError:
                 unavailable_hosts.add(host)
+    generated_marketplaces = {
+        name for name, source_type in source_types.items() if source_type == "generated"
+    }
     for name, host, marketplace in _retired_plugin_rows(
         raw_bridge.get("retired_plugins", {})
     ):
         if host in unavailable_hosts:
             continue
+        identity = _identity("plugin", host, marketplace, name)
+        if identity not in previous_owned and marketplace not in generated_marketplaces:
+            continue  # not provably ours; keep any ambiguous record
         try:
             _remove_stale_record("plugin", host, marketplace, name)
         except HostUnavailableError:
             unavailable_hosts.add(host)
             continue
-        record = _identity("plugin", host, marketplace, name)
-        if record in previous:
-            previous.discard(record)
-            _write_ownership(ownership_file, previous | owned_desired)
-    for record in sorted(
-        previous - desired, key=lambda value: (value.split("\t")[0] != "plugin", value)
-    ):
-        kind, host, marketplace, plugin = record.split("\t")
-        if host not in _NATIVE_HOSTS:
-            previous.discard(record)
-            continue
+        remaining = {
+            record for record in previous if _record_identity(record) != identity
+        }
+        if remaining != previous:
+            previous = remaining
+            _write_ownership(ownership_file, _merge_ownership(previous, owned_desired))
+    stale = sorted(
+        (
+            record
+            for record in previous
+            if _is_owned(record) and _record_identity(record) not in desired
+        ),
+        key=lambda value: (value.split("\t")[0] != "plugin", value),
+    )
+    for record in stale:
+        kind, host, marketplace, plugin, _ = record.split("\t")
         if host in unavailable_hosts:
             continue
         try:
@@ -662,11 +839,15 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
             unavailable_hosts.add(host)
             continue
         previous.discard(record)
-        _write_ownership(ownership_file, previous | owned_desired)
-    retained_unavailable = {
-        record for record in previous if record.split("\t")[1] in unavailable_hosts
+        _write_ownership(ownership_file, _merge_ownership(previous, owned_desired))
+    retained = {
+        record
+        for record in previous
+        if not _is_owned(record)
+        or record.split("\t")[1] in unavailable_hosts
+        or (record.split("\t")[1], record.split("\t")[2]) in unavailable_marketplaces
     }
-    _write_ownership(ownership_file, owned_desired | retained_unavailable)
+    _write_ownership(ownership_file, _merge_ownership(retained, owned_desired))
 
 
 def _parser() -> argparse.ArgumentParser:
