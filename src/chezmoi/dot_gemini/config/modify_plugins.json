@@ -1,36 +1,26 @@
 {{- /* chezmoi:modify-template */ -}}
-{{- /* Manages ~/.gemini/config/plugins.json */ -}}
-{{- $agyMethod := dig "local" "bin" "agy" "installation_method" "none" . -}}
-{{- if ne $agyMethod "none" -}}
-{{-   $config := dict "entries" list -}}
-{{-   if .chezmoi.stdin -}}
-{{-     $config = fromJson .chezmoi.stdin -}}
-{{-   end -}}
+{{- /*
+  Cleanup only: agy plugins now converge through the agy CLI (plugin bridge), not
+  ~/.gemini/config/plugins.json. This removes the entries an earlier version of this
+  file added, and passes everything else through unchanged. Delete this file once
+  the old entries are gone from every machine.
+*/ -}}
+{{- $old := list (joinPath .chezmoi.destDir ".local/share/agent-plugins/marketplace/plugins") -}}
+{{- $plugin := dig "ai" "plugins" "superpowers" (dict) . -}}
+{{- $old = append $old (dir (joinPath .chezmoi.destDir (dig "path" ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers" $plugin))) -}}
+{{- if .chezmoi.stdin -}}
+{{-   $config := fromJson .chezmoi.stdin -}}
 {{-   $entries := dig "entries" list $config -}}
-{{-   $targets := list (joinPath .chezmoi.destDir ".local/share/agent-plugins/marketplace/plugins") -}}
-{{-   $plugin := dig "ai" "plugins" "superpowers" (dict) . -}}
-{{-   if eq (dig "installation_method" "none" $plugin) "chezmoi_external" -}}
-{{-     $targets = append $targets (dir (joinPath .chezmoi.destDir (dig "path" ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers" $plugin))) -}}
-{{-   end -}}
-{{-   $changed := false -}}
-{{-   range $targetPath := $targets -}}
-{{-     $hasEntry := false -}}
-{{-     range $entries -}}
-{{-       if eq (dig "path" "" .) $targetPath -}}
-{{-         $hasEntry = true -}}
-{{-       end -}}
-{{-     end -}}
-{{-     if not $hasEntry -}}
-{{-       $entries = append $entries (dict "path" $targetPath) -}}
-{{-       $changed = true -}}
+{{-   $kept := list -}}
+{{-   range $entries -}}
+{{-     if not (has (dig "path" "" .) $old) -}}
+{{-       $kept = append $kept . -}}
 {{-     end -}}
 {{-   end -}}
-{{-   if $changed -}}
-{{-     $config = set $config "entries" $entries -}}
-{{-     $config | toPrettyJson | trimSuffix "\n" -}}
-{{-   else -}}
+{{-   if eq (len $kept) (len $entries) -}}
 {{-     .chezmoi.stdin -}}
+{{-   else -}}
+{{-     $config = set $config "entries" $kept -}}
+{{-     $config | toPrettyJson | trimSuffix "\n" -}}
 {{-   end -}}
-{{- else -}}
-{{-   .chezmoi.stdin -}}
 {{- end -}}

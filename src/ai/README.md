@@ -95,10 +95,17 @@ An overlay adds plugins and changes choices; it never edits base files outside i
 Claude Code and Codex install through their plugin CLIs; the bridge records ownership only for installs it performed.
 Cursor has no plugin install command, so no bridge adapter exists for it.
 [`run_onchange_after_agent-plugin-cursor-local`](../chezmoi/.chezmoiscripts/run_onchange_after_agent-plugin-cursor-local.sh.tmpl) copies each enabled authored plugin selected for Cursor from the marketplace folder to `.cursor/plugins/local/<name>/` (with `.cursor-plugin/plugin.json`), and removes the copy of a plugin that is disabled or not selected.
-Antigravity loads the plugin folders through `.gemini/config/plugins.json`.
-When `local.bin.agy.installation_method` is not `"none"`, the bridge also runs `agy plugin install <plugin dir>` for each generated plugin that has a root `plugin.json`, then `agy plugin list --json`.
-The agy commands are unverified; a missing `agy` or a failed command is logged and never fails apply.
-The Antigravity adapter does not record ownership.
+Antigravity converges only through the `agy` CLI, never through `.gemini/config/plugins.json`.
+When `local.bin.agy.installation_method` is not `"none"`, the bridge runs `agy plugin list --json` and compares it with the generated plugin directories that have a root `plugin.json`.
+Those are the `dotfiles` plugins selected for Antigravity, and the Superpowers directory when chezmoi installs it.
+The bridge runs `agy plugin install <plugin dir>` for a missing plugin.
+It runs `agy plugin uninstall <name>` then install when the listed version differs from the generated manifest version.
+It records ownership (`plugin`, `antigravity`) in the same ownership file for each install, and uninstalls an owned plugin that is no longer desired.
+It never uninstalls a plugin that it did not install.
+The list parser accepts a top-level array or an object with a `plugins`, `installed`, `items`, `entries`, or `data` array, with entries that have `name` and optional `version`.
+If `agy` is missing, a probe or command fails, or the list is unparseable, the bridge logs and skips agy for that run; apply never fails because of agy.
+A plugin installed by an earlier bridge run has no ownership record, so the bridge reinstalls it on a version change but never uninstalls it.
+`dot_gemini/config/modify_plugins.json` only removes the old `plugins.json` entries and can be deleted later.
 The bridge refreshes owned external marketplaces on `chezmoi apply -R` (`--refresh-externals`), read from `CHEZMOI_ARGS`, or when the last refresh is older than 24 hours.
 
 ### Skill templates

@@ -1,7 +1,7 @@
 {{- /*
   Antigravity manifest, plugin.json at the plugin root, of one authored plugin.
-  Antigravity reads skills only for now. It loads the plugin folders through
-  .gemini/config/plugins.json.
+  Antigravity reads skills only for now. The plugin bridge installs the plugin folder with
+  `agy plugin install <dir>`; there is no plugins.json route.
   Arguments: root (root context), name (plugin name), and optional extra (keys merged
   over the result).
   Output: the manifest, or nothing when the plugin is disabled, so chezmoi removes the file.

@@ -25,7 +25,8 @@ import shutil
 import subprocess
 import sys
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, cast
 
@@ -167,7 +168,7 @@ def _normalize_ownership(
     provenance: dict[str, str] = {}
     for record in records:
         identity = _record_identity(record)
-        if identity.split("\t")[1] not in _NATIVE_HOSTS:
+        if identity.split("\t")[1] not in _NATIVE_HOSTS | _CLI_HOSTS:
             continue
         kind = (
             record.split("\t")[4]
@@ -765,14 +766,19 @@ def _remove_stale_record(kind: str, host: str, marketplace: str, plugin: str) ->
             raise BridgeError(f"marketplace did not disappear: {marketplace}")
 
 
-# Antigravity (agy) installs a plugin from a local directory. The commands are unverified,
-# so every failure is logged and never fails apply. Cursor has no plugin install command;
-# chezmoi converges it by copying plugins to ~/.cursor/plugins/local/<name>/ instead.
+# Antigravity (agy) installs a plugin from a local directory with its own CLI; it has no
+# ~/.gemini/config/plugins.json route. The commands are lightly verified, so every failure is
+# logged and never fails apply. The same ownership file as the other hosts records installs
+# (kind ``plugin``, host ``antigravity``). Cursor has no plugin install command; chezmoi
+# converges it by copying plugins to ~/.cursor/plugins/local/<name>/ instead.
 _AGY_PROBE = ("agy", "plugin", "--help")
+_AGY_LIST = ("agy", "plugin", "list", "--json")
+# The ``list --json`` schema is unverified: accept a top-level list or an object holding one.
+_AGY_LIST_KEYS = ("plugins", "installed", "items", "entries", "data")
 
 
-def _cli_host_command(command: tuple[str, ...]) -> int | None:
-    """Run a CLI host command; return its exit status, or None when it cannot run."""
+def _cli_host_command(command: tuple[str, ...]) -> tuple[int, str] | None:
+    """Run a CLI host command; return (exit status, stdout), or None when it cannot run."""
     executable = shutil.which(command[0])
     if executable is None:
         return None
@@ -795,25 +801,103 @@ def _cli_host_command(command: tuple[str, ...]) -> int | None:
             result.returncode,
             detail[0] if detail else "",
         )
-    return result.returncode
+    return result.returncode, result.stdout
 
 
-def _register_cli_hosts(
-    hosts: object, marketplaces: Mapping[str, object], destination: Path
-) -> None:
-    """Install each generated plugin directory into agy with ``agy plugin install <dir>``."""
-    if not isinstance(hosts, (list, tuple)) or not set(hosts) <= _CLI_HOSTS:
-        raise BridgeError(f"cli_hosts must list hosts from {sorted(_CLI_HOSTS)!r}")
-    if "antigravity" not in hosts:
-        return
-    if _cli_host_command(_AGY_PROBE) != 0:
-        logger.info("host=antigravity event=unavailable reason=no-plugin-cli")
-        return
-    for name, definition in sorted(marketplaces.items()):
+def _parse_agy_plugins(output: str) -> dict[str, str | None] | None:
+    """Return installed agy plugin names with their version (None when not listed).
+
+    Returns None when the output cannot be parsed, so the caller changes nothing.
+    """
+    try:
+        payload = json.loads(output)
+    except ValueError:
+        return None
+    if isinstance(payload, Mapping):
+        payload = next(
+            (
+                payload[key]
+                for key in _AGY_LIST_KEYS
+                if isinstance(payload.get(key), list)
+            ),
+            None,
+        )
+    if not isinstance(payload, list):
+        return None
+    installed: dict[str, str | None] = {}
+    for entry in payload:
+        if isinstance(entry, str):
+            installed[entry] = None
+        elif isinstance(entry, Mapping) and isinstance(entry.get("name"), str):
+            version = entry.get("version")
+            installed[entry["name"]] = version if isinstance(version, str) else None
+    if payload and not installed:
+        return None
+    return installed
+
+
+@dataclass(frozen=True)
+class _DirectoryHost:
+    """A host that installs a plugin from a generated directory.
+
+    A new host of this kind (for example Cursor, with list = directories in
+    ~/.cursor/plugins/local, install = copy, uninstall = remove) adds one instance here
+    and one entry in ``_DIRECTORY_HOSTS``; ``_converge_directory_host`` stays unchanged.
+    """
+
+    name: str
+    manifest: str  # manifest path relative to a generated plugin directory
+    probe: Callable[[], bool]  # True when the host can be used at all
+    list_installed: Callable[[], dict[str, str | None] | None]  # None: unparseable
+    install: Callable[[str, Path], bool]
+    uninstall: Callable[[str], bool]
+
+
+def _agy_command(name: str, *command: str) -> bool:
+    """Run an agy plugin command; log the outcome and return True on exit status 0."""
+    result = _cli_host_command(("agy", "plugin", *command))
+    logger.info(
+        "host=antigravity plugin=%s operation=plugin-%s status=%s",
+        name,
+        command[0],
+        "unavailable" if result is None else result[0],
+    )
+    return result is not None and result[0] == 0
+
+
+def _agy_probe() -> bool:
+    result = _cli_host_command(_AGY_PROBE)
+    return result is not None and result[0] == 0
+
+
+def _agy_list() -> dict[str, str | None] | None:
+    result = _cli_host_command(_AGY_LIST)
+    return (
+        _parse_agy_plugins(result[1]) if result is not None and result[0] == 0 else None
+    )
+
+
+_AGY = _DirectoryHost(
+    name="antigravity",
+    manifest="plugin.json",
+    probe=_agy_probe,
+    list_installed=_agy_list,
+    install=lambda name, directory: _agy_command(name, "install", str(directory)),
+    uninstall=lambda name: _agy_command(name, "uninstall", name),
+)
+_DIRECTORY_HOSTS = {_AGY.name: _AGY}
+
+
+def _desired_directories(
+    host: _DirectoryHost, marketplaces: Mapping[str, object], destination: Path
+) -> dict[str, tuple[str, Path, str | None]]:
+    """Map plugin name to (marketplace, directory, manifest version) for a host."""
+    desired: dict[str, tuple[str, Path, str | None]] = {}
+    for marketplace, definition in sorted(marketplaces.items()):
         if not isinstance(definition, Mapping):
             continue
         marketplace_hosts = definition.get("hosts", [])
-        if definition.get("source_type") != "generated" or "antigravity" not in (
+        if definition.get("source_type") != "generated" or host.name not in (
             marketplace_hosts if isinstance(marketplace_hosts, list) else []
         ):
             continue
@@ -823,18 +907,83 @@ def _register_cli_hosts(
                 or destination / ".local/share/agent-plugins/marketplace"
             )
         )
-        for plugin_dir in sorted((root / "plugins").glob("*/plugin.json")):
-            status = _cli_host_command(
-                ("agy", "plugin", "install", str(plugin_dir.parent))
+        for manifest_path in sorted((root / "plugins").glob(f"*/{host.manifest}")):
+            plugin_dir = (
+                root / "plugins" / manifest_path.relative_to(root / "plugins").parts[0]
             )
-            logger.info(
-                "host=antigravity marketplace=%s plugin=%s operation=plugin-install status=%s",
-                name,
-                plugin_dir.parent.name,
-                "unavailable" if status is None else status,
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                manifest = {}
+            if not isinstance(manifest, Mapping):
+                manifest = {}
+            name = manifest.get("name")
+            version = manifest.get("version")
+            desired[name if isinstance(name, str) else plugin_dir.name] = (
+                marketplace,
+                plugin_dir,
+                version if isinstance(version, str) else None,
             )
-    # Confirmation only; the output is not parsed.
-    _cli_host_command(("agy", "plugin", "list", "--json"))
+    return desired
+
+
+def _converge_directory_host(
+    host: _DirectoryHost,
+    marketplaces: Mapping[str, object],
+    destination: Path,
+    ownership_file: Path,
+) -> None:
+    """Install missing or changed plugins, uninstall owned and undesired ones.
+
+    Plugins that the bridge did not install are never uninstalled. An unusable host or an
+    unparseable list changes nothing. Failures are logged and never raised.
+    """
+    if not host.probe():
+        logger.info("host=%s event=unavailable reason=no-plugin-cli", host.name)
+        return
+    installed = host.list_installed()
+    if installed is None:
+        logger.info("host=%s event=skipped reason=unparseable-plugin-list", host.name)
+        return
+    desired = _desired_directories(host, marketplaces, destination)
+    records = _read_ownership(ownership_file)
+    removed: set[str] = set()
+    added: set[str] = set()
+    for name, (marketplace, plugin_dir, version) in sorted(desired.items()):
+        if name in installed:
+            listed_version = installed[name]
+            if listed_version is None or version is None or listed_version == version:
+                continue
+            if not host.uninstall(name):
+                continue
+        if host.install(name, plugin_dir):
+            added.add(_owned_record("plugin", host.name, marketplace, name))
+    for record in sorted(records):
+        _, record_host, marketplace, name, provenance = record.split("\t")
+        if record_host != host.name or provenance != "owned":
+            continue
+        if desired.get(name, ("",))[0] == marketplace:
+            continue  # still desired: keep the record
+        # A name desired from another marketplace keeps its install; only the record goes.
+        if name in desired or name not in installed or host.uninstall(name):
+            removed.add(record)
+    if added or removed:
+        _write_ownership(ownership_file, _merge_ownership(records - removed, added))
+
+
+def _register_cli_hosts(
+    hosts: object,
+    marketplaces: Mapping[str, object],
+    destination: Path,
+    ownership_file: Path,
+) -> None:
+    """Converge each host listed in ``cli_hosts`` through its directory adapter."""
+    if not isinstance(hosts, (list, tuple)) or not set(hosts) <= _CLI_HOSTS:
+        raise BridgeError(f"cli_hosts must list hosts from {sorted(_CLI_HOSTS)!r}")
+    for name in hosts:
+        _converge_directory_host(
+            _DIRECTORY_HOSTS[name], marketplaces, destination, ownership_file
+        )
 
 
 def reconcile(
@@ -1009,8 +1158,8 @@ def reconcile(
     )
     for record in stale:
         kind, host, marketplace, plugin, _ = record.split("\t")
-        if host in unavailable_hosts:
-            continue
+        if host in unavailable_hosts or host in _CLI_HOSTS:
+            continue  # agy records are converged by _register_cli_hosts
         try:
             _remove_stale_record(kind, host, marketplace, plugin)
         except HostUnavailableError:
@@ -1023,10 +1172,13 @@ def reconcile(
         for record in previous
         if not _is_owned(record)
         or record.split("\t")[1] in unavailable_hosts
+        or record.split("\t")[1] in _CLI_HOSTS
         or (record.split("\t")[1], record.split("\t")[2]) in unavailable_marketplaces
     }
     _write_ownership(ownership_file, _merge_ownership(retained, owned_desired))
-    _register_cli_hosts(raw_bridge.get("cli_hosts", []), marketplaces, destination)
+    _register_cli_hosts(
+        raw_bridge.get("cli_hosts", []), marketplaces, destination, ownership_file
+    )
 
 
 _REFRESH_INTERVAL_SECONDS = 24 * 60 * 60

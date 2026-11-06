@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -2588,64 +2589,196 @@ def test_refresh_requested_parses_chezmoi_arguments(arguments, expected):
     assert plugin_bridge._refresh_requested(arguments) is expected
 
 
-@pytest.mark.parametrize("probe_status", [None, 1, 0])
-def test_agy_installs_generated_plugin_directories_only_when_the_cli_works(
+class _FakeAgy:
+    """Fake ``agy`` CLI: ``_cli_host_command`` answers from a mutable installed list."""
+
+    def __init__(
+        self, installed, *, list_output=None, probe_status=0, install_status=0
+    ):
+        self.installed = dict(installed)  # name -> version
+        self.list_output = list_output
+        self.probe_status = probe_status
+        self.install_status = install_status
+        self.commands = []
+
+    def __call__(self, command):
+        self.commands.append(command)
+        if self.probe_status is None:
+            return None
+        if command[-1] == "--help":
+            return self.probe_status, ""
+        if command[2] == "list":
+            if self.list_output is not None:
+                return 0, self.list_output
+            return 0, json.dumps(
+                {
+                    "plugins": [
+                        {"name": n, "version": v} for n, v in self.installed.items()
+                    ]
+                }
+            )
+        if command[2] == "install":
+            if self.install_status == 0:
+                manifest = json.loads((Path(command[3]) / "plugin.json").read_text())
+                self.installed[manifest["name"]] = manifest.get("version")
+            return self.install_status, ""
+        if command[2] == "uninstall":
+            self.installed.pop(command[3], None)
+            return 0, ""
+        raise AssertionError(command)
+
+    def mutations(self):
+        return [c for c in self.commands if c[2] in {"install", "uninstall"}]
+
+
+def _agy_setup(tmp_path, monkeypatch, fake, plugins):
+    """Generate plugin dirs (name -> version) and reconcile with agy as the only CLI host."""
+    marketplace = tmp_path / "m"
+    for name, version in plugins.items():
+        (marketplace / "plugins" / name).mkdir(parents=True, exist_ok=True)
+        (marketplace / "plugins" / name / "plugin.json").write_text(
+            json.dumps({"name": name, "version": version})
+        )
+    (marketplace / "plugins" / "no-manifest").mkdir(parents=True, exist_ok=True)
+    monkeypatch.setattr(plugin_bridge, "_cli_host_command", fake)
+
+    def reconcile():
+        plugin_bridge.reconcile(
+            tmp_path,
+            {
+                "plugin_bridge": {
+                    "cli_hosts": ["antigravity"],
+                    "marketplaces": {
+                        "dotfiles": {
+                            "source_type": "generated",
+                            "source_locator": str(marketplace),
+                            "hosts": ["antigravity"],
+                        },
+                        "other": {
+                            "source_type": "public",
+                            "source_locator": "owner/repo",
+                            "hosts": ["antigravity"],
+                        },
+                    },
+                }
+            },
+        )
+
+    return marketplace, reconcile
+
+
+def _agy_record(name):
+    return f"plugin\tantigravity\tdotfiles\t{name}\towned"
+
+
+def test_agy_installs_missing_plugins_and_records_ownership(tmp_path, monkeypatch):
+    fake = _FakeAgy({})
+    marketplace, reconcile = _agy_setup(
+        tmp_path, monkeypatch, fake, {"a": "1", "b": "1"}
+    )
+    reconcile()
+
+    assert fake.mutations() == [
+        ("agy", "plugin", "install", str(marketplace / "plugins" / name))
+        for name in ("a", "b")
+    ]
+    assert _ownership_file(tmp_path).read_text().splitlines() == [
+        _agy_record("a"),
+        _agy_record("b"),
+    ]
+    reconcile()  # converged: nothing more to do
+    assert len(fake.mutations()) == 2
+
+
+def test_agy_reinstalls_when_the_listed_version_differs(tmp_path, monkeypatch):
+    fake = _FakeAgy({"a": "1"})
+    marketplace, reconcile = _agy_setup(tmp_path, monkeypatch, fake, {"a": "2"})
+    reconcile()
+
+    assert fake.mutations() == [
+        ("agy", "plugin", "uninstall", "a"),
+        ("agy", "plugin", "install", str(marketplace / "plugins" / "a")),
+    ]
+    assert fake.installed == {"a": "2"}
+    assert _agy_record("a") in _ownership_file(tmp_path).read_text()
+
+
+def test_agy_uninstalls_owned_undesired_plugins_only(tmp_path, monkeypatch):
+    fake = _FakeAgy({"gone": "1", "manual": "1", "keep": "1"})
+    _, reconcile = _agy_setup(tmp_path, monkeypatch, fake, {"keep": "1"})
+    ownership = _ownership_file(tmp_path)
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text(f"{_agy_record('gone')}\n{_agy_record('keep')}\n")
+    reconcile()
+
+    assert fake.mutations() == [("agy", "plugin", "uninstall", "gone")]
+    assert fake.installed == {"manual": "1", "keep": "1"}
+    assert ownership.read_text().splitlines() == [_agy_record("keep")]
+
+
+def test_agy_keeps_the_record_when_uninstall_is_not_confirmed(tmp_path, monkeypatch):
+    fake = _FakeAgy({"gone": "1"})
+    original = fake.__call__
+
+    def failing(command):
+        if command[2] == "uninstall":
+            fake.commands.append(command)
+            return 1, ""
+        return original(command)
+
+    _, reconcile = _agy_setup(tmp_path, monkeypatch, failing, {})
+    ownership = _ownership_file(tmp_path)
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text(f"{_agy_record('gone')}\n")
+    reconcile()
+
+    assert ownership.read_text().splitlines() == [_agy_record("gone")]
+
+
+@pytest.mark.parametrize("output", ["not json", '{"unknown": 1}', '[{"id": "x"}]', "3"])
+def test_agy_skips_everything_when_the_list_is_unparseable(
+    tmp_path, monkeypatch, output
+):
+    fake = _FakeAgy({"gone": "1"}, list_output=output)
+    _, reconcile = _agy_setup(tmp_path, monkeypatch, fake, {"a": "1"})
+    ownership = _ownership_file(tmp_path)
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text(f"{_agy_record('gone')}\n")
+    reconcile()
+
+    assert fake.mutations() == []
+    assert ownership.read_text().splitlines() == [_agy_record("gone")]
+
+
+@pytest.mark.parametrize("probe_status", [None, 1])
+def test_agy_does_nothing_when_the_cli_is_unusable(
     tmp_path, monkeypatch, caplog, probe_status
 ):
-    commands = []
-
-    def command(arguments):
-        commands.append(arguments)
-        if arguments[-1] == "--help":
-            return probe_status
-        return 3  # a failed install is logged, never raised
-
-    marketplace = tmp_path / "m"
-    for name in ("with-manifest", "other-with-manifest"):
-        (marketplace / "plugins" / name).mkdir(parents=True)
-        (marketplace / "plugins" / name / "plugin.json").write_text("{}")
-    (marketplace / "plugins" / "no-manifest").mkdir()
-    monkeypatch.setattr(plugin_bridge, "_cli_host_command", command)
+    fake = _FakeAgy({}, probe_status=probe_status)
+    _, reconcile = _agy_setup(tmp_path, monkeypatch, fake, {"a": "1"})
     caplog.set_level("INFO", logger=plugin_bridge.logger.name)
-    plugin_bridge.reconcile(
-        tmp_path,
-        {
-            "plugin_bridge": {
-                "cli_hosts": ["antigravity"],
-                "marketplaces": {
-                    "dotfiles": {
-                        "source_type": "generated",
-                        "source_locator": str(marketplace),
-                        "hosts": ["antigravity"],
-                    },
-                    "other": {
-                        "source_type": "public",
-                        "source_locator": "owner/repo",
-                        "hosts": ["antigravity"],
-                    },
-                },
-            }
-        },
-    )
+    reconcile()
 
-    installs = [
-        arguments
-        for arguments in commands
-        if arguments[:3] == ("agy", "plugin", "install")
-    ]
-    if probe_status == 0:
-        assert installs == [
-            ("agy", "plugin", "install", str(marketplace / "plugins" / name))
-            for name in ("other-with-manifest", "with-manifest")
-        ]
-        assert ("agy", "plugin", "list", "--json") in commands
-        assert (
-            "host=antigravity marketplace=dotfiles plugin=with-manifest operation=plugin-install status=3"
-            in caplog.text
-        )
-    else:
-        assert installs == []
-        assert "host=antigravity event=unavailable reason=no-plugin-cli" in caplog.text
+    assert fake.mutations() == []
+    assert "host=antigravity event=unavailable reason=no-plugin-cli" in caplog.text
+
+
+def test_agy_failed_install_is_logged_and_not_recorded(tmp_path, monkeypatch, caplog):
+    fake = _FakeAgy({}, install_status=3)
+    _, reconcile = _agy_setup(tmp_path, monkeypatch, fake, {"a": "1"})
+    caplog.set_level("INFO", logger=plugin_bridge.logger.name)
+    reconcile()
+
+    assert "host=antigravity plugin=a operation=plugin-install status=3" in caplog.text
+    assert _agy_record("a") not in _ownership_file(tmp_path).read_text()
+
+
+@pytest.mark.parametrize(
+    "output",
+    ['[{"name": "a", "version": "1"}]', '{"installed": ["a"]}', "[]"],
+)
+def test_parse_agy_plugins_accepts_lists_and_objects(output):
+    assert plugin_bridge._parse_agy_plugins(output) is not None
 
 
 def test_cli_hosts_reject_unknown_hosts(tmp_path):

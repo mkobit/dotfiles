@@ -23,7 +23,8 @@ owner = "obra"
 source = "local"
 display_name = "Superpowers"
 trust_class = "upstream"
-hosts = ["claude", "codex"]
+# antigravity: agy installs a plugin directory here only when it has a root plugin.json.
+hosts = ["claude", "codex", "antigravity"]
 order = 110
 
 # The authored mkobit-dotfiles plugin also receives the upstream skills of .chezmoidata/ai/skills/.
