@@ -352,3 +352,45 @@ def test_directory_and_file_target_collisions_fail(layout):
     _write(plugin / "skills" / "foo" / "x" / "b")
     with pytest.raises(AgentSourceError, match="two sources map"):
         discover(source_root)
+
+
+@pytest.mark.parametrize("root", ["ai/skills", "overlay-plugins"])
+def test_symlinked_discovery_roots_fail(layout, tmp_path, root):
+    _, source_root, authored = layout
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    (authored / root).parent.mkdir(parents=True, exist_ok=True)
+    (authored / root).symlink_to(elsewhere)
+    with pytest.raises(AgentSourceError, match="symlink"):
+        discover(source_root)
+
+
+def test_symlinked_wrapper_host_directory_fails(layout, tmp_path):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "p")
+    (tmp_path / "elsewhere").mkdir()
+    (plugin / "wrappers").mkdir()
+    (plugin / "wrappers" / "claude").symlink_to(tmp_path / "elsewhere")
+    with pytest.raises(AgentSourceError, match="unknown wrapper"):
+        discover(source_root)
+
+
+def test_hidden_bare_skill_and_plugin_directories_fail(layout):
+    _, source_root, authored = layout
+    _write(authored / "ai" / "skills" / ".chezmoiignore" / "SKILL.md")
+    with pytest.raises(AgentSourceError, match="invalid skill name"):
+        discover(source_root)
+    shutil.rmtree(authored / "ai" / "skills" / ".chezmoiignore")
+    _plugin(authored, ".hidden")
+    with pytest.raises(AgentSourceError, match="hidden"):
+        discover(source_root)
+
+
+def test_directory_and_file_collision_fails(layout):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "nat", {"native_source": True}, skills=())
+    _write(plugin / "skills" / "foo" / "SKILL.md")
+    _write(plugin / "skills" / "foo" / "exact_x" / "a")
+    _write(plugin / "skills" / "foo" / "x")
+    with pytest.raises(AgentSourceError, match="two sources map"):
+        discover(source_root)

@@ -36,7 +36,7 @@ BARE_VIEWS = {
     "antigravity": ".gemini/antigravity-cli/skills",
 }
 
-_BARE_NAME = re.compile(r"^[A-Za-z0-9._-]+$")
+_BARE_NAME = re.compile(r"^[A-Za-z0-9_-][A-Za-z0-9._-]*$")
 _PLUGIN_NAME = re.compile(r"^[a-z0-9][a-z0-9-]*$")
 _SEGMENT = r"[a-z0-9]+(-[a-z0-9]+)*"
 _SOURCE_DIR = re.compile(rf"^src/{_SEGMENT}(/{_SEGMENT})*$")
@@ -368,14 +368,19 @@ def _load_plugin(identity: PluginIdentity, base: Path) -> PluginSource:
 
 
 def discover(source_root: Path) -> Inventory:
-    """Discover authored roots beside ``source_root``; read only."""
+    """Discover authored roots beside ``source_root``; read only.
+
+    A symlink anywhere in an authored tree, including root-level files, fails.
+    """
     authored = source_root.parent
     base = authored.parent
     inventory = Inventory(authored=authored)
     skills_root = authored / "ai" / "skills"
+    _reject_symlink(skills_root)
     if skills_root.is_dir():
         inventory.bare_skills = _scan_skills(skills_root, base, False, _BARE_NAME)
     plugins_root = authored / "overlay-plugins"
+    _reject_symlink(plugins_root)
     if plugins_root.is_dir():
         for child in sorted(plugins_root.iterdir(), key=lambda item: item.name):
             if _is_skipped(child.name):
@@ -383,6 +388,8 @@ def discover(source_root: Path) -> Inventory:
             _reject_symlink(child)
             if not child.is_dir():
                 continue
+            if child.name.startswith("."):
+                raise AgentSourceError(f"plugin directory name is hidden: {child}")
             identity = load_identity(child, authored)
             if identity.name in inventory.plugins:
                 raise AgentSourceError(f"duplicate plugin name: {identity.name}")
