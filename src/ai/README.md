@@ -93,9 +93,12 @@ An overlay adds plugins and changes choices; it never edits base files outside i
 ### Hosts
 
 Claude Code and Codex install through their plugin CLIs; the bridge records ownership only for installs it performed.
-Cursor reads `.cursor-plugin/marketplace.json`; the bridge registers the marketplace through `cursor-agent plugin marketplace add` when `cursor-agent plugin --help` works, and otherwise logs the host as unavailable.
-Antigravity reads skills only for now: it loads the plugin folders through `.gemini/config/plugins.json`, and the bridge probes `agy plugin` only when `local.bin.agy.installation_method` is not `"none"`.
-The Cursor and Antigravity CLI adapters are minimal: they do not install plugins or record ownership yet.
+Cursor has no plugin install command, so no bridge adapter exists for it.
+[`run_onchange_after_agent-plugin-cursor-local`](../chezmoi/.chezmoiscripts/run_onchange_after_agent-plugin-cursor-local.sh.tmpl) copies each enabled authored plugin selected for Cursor from the marketplace folder to `.cursor/plugins/local/<name>/` (with `.cursor-plugin/plugin.json`), and removes the copy of a plugin that is disabled or not selected.
+Antigravity loads the plugin folders through `.gemini/config/plugins.json`.
+When `local.bin.agy.installation_method` is not `"none"`, the bridge also runs `agy plugin install <plugin dir>` for each generated plugin that has a root `plugin.json`, then `agy plugin list --json`.
+The agy commands are unverified; a missing `agy` or a failed command is logged and never fails apply.
+The Antigravity adapter does not record ownership.
 The bridge refreshes owned external marketplaces on `chezmoi apply -R` (`--refresh-externals`), read from `CHEZMOI_ARGS`, or when the last refresh is older than 24 hours.
 
 ### Skill templates

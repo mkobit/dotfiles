@@ -139,7 +139,6 @@ def test_plugin_host_manifest_deployed_and_valid(chezmoi_dest, plugin_host):
         assert not (direct_skills_dir / plugin_skill.name).exists(), (
             f"{plugin_skill.name} remains in {direct_skills_dir}"
         )
-    assert not (chezmoi_dest / ".cursor/plugins/local/mkobit-dotfiles").exists()
 
 
 @pytest.mark.integration
@@ -188,7 +187,7 @@ def test_host_skill_roots_tombstone_base_and_retired_skills():
         for name in ("beads", "technical-writing", "docker-sandboxes", "example_skill"):
             assert f"{prefix}{name}" in lines, (relative, name)
     cursor = set(_render("dot_cursor/.chezmoiremove.tmpl").splitlines())
-    assert "plugins/local/mkobit-dotfiles" in cursor
+    assert "plugins/local/mkobit-dotfiles" not in cursor
 
 
 GLOBAL_MODERN_WEB_PATHS = (

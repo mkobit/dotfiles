@@ -75,6 +75,7 @@ def _fixture(tmp_path: Path) -> tuple[Path, Path, Path]:
         ".chezmoiignore.tmpl",
         ".chezmoidata/ai/plugin-bridge.toml",
         ".chezmoiscripts/run_onchange_before_00-agent-plugin-deselect.sh.tmpl",
+        ".chezmoiscripts/run_onchange_after_agent-plugin-cursor-local.sh.tmpl",
         "dot_local/share/agent-plugins/marketplace/dot_claude-plugin/marketplace.json.tmpl",
         "dot_local/share/agent-plugins/marketplace/dot_agents/plugins/marketplace.json.tmpl",
         "dot_local/share/agent-plugins/marketplace/dot_cursor-plugin/marketplace.json.tmpl",
@@ -175,6 +176,11 @@ def test_plugin_folders_converge_through_native_apply(tmp_path):
     assert beta["mcpServers"] == "./.mcp.json"
     assert "skills" not in beta
     assert not (plugins / "beta/.cursor-plugin/plugin.json").exists()
+    # Cursor loads plugins only from ~/.cursor/plugins/local/<name>/.
+    cursor_local = destination / ".cursor/plugins/local"
+    assert _json(cursor_local / "alpha/.cursor-plugin/plugin.json")["name"] == "alpha"
+    assert (cursor_local / "alpha/skills/two/SKILL.md").read_text() == "# Two\n"
+    assert not (cursor_local / "beta").exists()
     assert _sources(destination, ".claude-plugin/marketplace.json") == {
         "alpha": "./plugins/alpha",
         "beta": "./plugins/beta/claude",
@@ -183,10 +189,21 @@ def test_plugin_folders_converge_through_native_apply(tmp_path):
     assert _sources(destination, ".cursor-plugin/marketplace.json") == {"alpha": "./plugins/alpha"}
     assert _chezmoi(source, destination, config, "diff") == ""
 
+    # A bytecode cache stays in an exact_ folder, and an undeployed README does not change the version.
+    cache = plugins / "alpha/skills/two/__pycache__"
+    cache.mkdir()
+    (cache / "x.pyc").write_bytes(b"bytecode")
+    (source / PLUGINS / "exact_alpha/README.md").write_text("# Alpha\n")
+    _chezmoi(source, destination, config, "apply")
+    assert (cache / "x.pyc").read_bytes() == b"bytecode"
+    assert not (plugins / "alpha/README.md").exists()
+    assert _json(plugins / "alpha/.claude-plugin/plugin.json")["version"] == alpha["version"]
+
     version = alpha["version"]
     (source / PLUGINS / "exact_alpha/exact_skills/exact_one/SKILL.md").write_text("# One, edited\n")
     _chezmoi(source, destination, config, "apply")
     assert (plugins / "alpha/skills/one/SKILL.md").read_text() == "# One, edited\n"
+    assert (cursor_local / "alpha/skills/one/SKILL.md").read_text() == "# One, edited\n"
     assert _json(plugins / "alpha/.claude-plugin/plugin.json")["version"] != version
 
     _config(
@@ -199,6 +216,7 @@ def test_plugin_folders_converge_through_native_apply(tmp_path):
     assert not (plugins / "alpha/.cursor-plugin/plugin.json").exists()
     assert _json(plugins / "alpha/.codex-plugin/plugin.json")["interface"]["capabilities"] == ["two"]
     assert _sources(destination, ".cursor-plugin/marketplace.json") == {}
+    assert not (cursor_local / "alpha").exists()
 
     # Selecting the skill again restores it without a prompt; disabling beta removes its folder.
     _config(config, beta="enabled = false\n")

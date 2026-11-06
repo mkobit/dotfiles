@@ -2,7 +2,7 @@
   Version of one authored plugin: 1.0.0+<digest>.
   Arguments: root (root context), name (plugin name), and optional extra (manifest keys).
   The digest covers every file in the plugin folder except host manifests, the
-  .chezmoi* control files, and absent skills (templates by rendered bytes), the
+  .chezmoi* control files, AGENTS.md and the plugin README.md (never deployed), and absent skills (templates by rendered bytes), the
   identity and decision data, and, for the acquisition destination, the upstream
   skill pins. It changes with content and data only.
 */ -}}
@@ -13,7 +13,7 @@
 {{- $files := dict -}}
 {{- range $path := glob (joinPath $plugin.source "**/*") | sortAlpha -}}
 {{-   $relative := trimPrefix (printf "%s/" $plugin.source) $path -}}
-{{-   $skip := or (regexMatch "(^|/)exact_dot_[a-z]+-plugin/plugin\\.json(\\.tmpl)?$" $relative) (eq $relative "plugin.json.tmpl") (hasPrefix ".chezmoi" (base $path)) -}}
+{{-   $skip := or (regexMatch "(^|/)exact_dot_[a-z]+-plugin/plugin\\.json(\\.tmpl)?$" $relative) (eq $relative "plugin.json.tmpl") (hasPrefix ".chezmoi" (base $path)) (eq (base $path) "AGENTS.md") (eq $relative "README.md") -}}
 {{-   $skill := regexFind "exact_skills/exact_[a-z0-9-]+/" $relative | trimPrefix "exact_skills/exact_" | trimSuffix "/" -}}
 {{-   if and $skill (eq (dig $skill "present" $exceptions) "absent") -}}{{- $skip = true -}}{{- end -}}
 {{-   if and (not $skip) (eq (lstat $path).type "file") -}}

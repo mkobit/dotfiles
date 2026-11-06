@@ -20,11 +20,6 @@ skills/{{ base $agentPath }}
 {{-   end -}}
 {{- end -}}
 
-{{- /* Authored plugins reach Cursor through the dotfiles marketplace, not local copies. */ -}}
-{{- range $name, $_ := includeTemplate "ai/authored-plugins" . | fromJson }}
-plugins/local/{{ $name }}
-{{- end -}}
-
 {{- /* Remove only known upstream Cursor packages when acquisition is disabled. */ -}}
 {{- range $name, $capability := dig "ai" "plugin_bridge" "capabilities" (dict) . -}}
 {{-   $source := dig "external_source" "" $capability -}}

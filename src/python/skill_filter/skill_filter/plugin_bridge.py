@@ -765,20 +765,10 @@ def _remove_stale_record(kind: str, host: str, marketplace: str, plugin: str) ->
             raise BridgeError(f"marketplace did not disappear: {marketplace}")
 
 
-# Minimal adapters for hosts whose plugin CLI commands are not verified yet.
-# Each adapter names an availability probe and the command that registers a local
-# marketplace directory. A failed probe means the host is unavailable. Nothing here
-# fails apply, and plugin install and ownership are not wired for these hosts yet.
-_CLI_HOST_ADAPTERS: dict[str, dict[str, tuple[str, ...]]] = {
-    "cursor": {
-        "probe": ("cursor-agent", "plugin", "--help"),
-        "marketplace_add": ("cursor-agent", "plugin", "marketplace", "add"),
-    },
-    "antigravity": {
-        "probe": ("agy", "plugin", "--help"),
-        "marketplace_add": ("agy", "plugin", "marketplace", "add"),
-    },
-}
+# Antigravity (agy) installs a plugin from a local directory. The commands are unverified,
+# so every failure is logged and never fails apply. Cursor has no plugin install command;
+# chezmoi converges it by copying plugins to ~/.cursor/plugins/local/<name>/ instead.
+_AGY_PROBE = ("agy", "plugin", "--help")
 
 
 def _cli_host_command(command: tuple[str, ...]) -> int | None:
@@ -788,9 +778,14 @@ def _cli_host_command(command: tuple[str, ...]) -> int | None:
         return None
     try:
         result = subprocess.run(
-            [executable, *command[1:]], capture_output=True, text=True, check=False
+            [executable, *command[1:]],
+            capture_output=True,
+            text=True,
+            check=False,
+            stdin=subprocess.DEVNULL,
+            timeout=30,
         )
-    except OSError:
+    except (OSError, subprocess.TimeoutExpired):
         return None
     if result.returncode:
         detail = (result.stderr.strip() or result.stdout.strip()).splitlines()
@@ -806,33 +801,40 @@ def _cli_host_command(command: tuple[str, ...]) -> int | None:
 def _register_cli_hosts(
     hosts: object, marketplaces: Mapping[str, object], destination: Path
 ) -> None:
-    """Register generated marketplaces with each available CLI host."""
+    """Install each generated plugin directory into agy with ``agy plugin install <dir>``."""
     if not isinstance(hosts, (list, tuple)) or not set(hosts) <= _CLI_HOSTS:
         raise BridgeError(f"cli_hosts must list hosts from {sorted(_CLI_HOSTS)!r}")
-    for host in hosts:
-        adapter = _CLI_HOST_ADAPTERS[host]
-        if _cli_host_command(adapter["probe"]) != 0:
-            logger.info("host=%s event=unavailable reason=no-plugin-cli", host)
+    if "antigravity" not in hosts:
+        return
+    if _cli_host_command(_AGY_PROBE) != 0:
+        logger.info("host=antigravity event=unavailable reason=no-plugin-cli")
+        return
+    for name, definition in sorted(marketplaces.items()):
+        if not isinstance(definition, Mapping):
             continue
-        for name, definition in sorted(marketplaces.items()):
-            if not isinstance(definition, Mapping):
-                continue
-            marketplace_hosts = definition.get("hosts", [])
-            if definition.get("source_type") != "generated" or host not in (
-                marketplace_hosts if isinstance(marketplace_hosts, list) else []
-            ):
-                continue
-            locator = str(
+        marketplace_hosts = definition.get("hosts", [])
+        if definition.get("source_type") != "generated" or "antigravity" not in (
+            marketplace_hosts if isinstance(marketplace_hosts, list) else []
+        ):
+            continue
+        root = Path(
+            str(
                 definition.get("source_locator")
                 or destination / ".local/share/agent-plugins/marketplace"
             )
-            status = _cli_host_command((*adapter["marketplace_add"], locator))
+        )
+        for plugin_dir in sorted((root / "plugins").glob("*/plugin.json")):
+            status = _cli_host_command(
+                ("agy", "plugin", "install", str(plugin_dir.parent))
+            )
             logger.info(
-                "host=%s marketplace=%s operation=plugin-marketplace-add status=%s",
-                host,
+                "host=antigravity marketplace=%s plugin=%s operation=plugin-install status=%s",
                 name,
+                plugin_dir.parent.name,
                 "unavailable" if status is None else status,
             )
+    # Confirmation only; the output is not parsed.
+    _cli_host_command(("agy", "plugin", "list", "--json"))
 
 
 def reconcile(

@@ -3,7 +3,13 @@
   disabled plugins, unselected host_dirs packages, and absent skills.
   The root .chezmoiignore.tmpl includes this; an overlay that owns that file includes it too.
   run_onchange_before_00-agent-plugin-deselect moves already deployed copies out, and back when they are selected again.
+  A plugin README.md is source documentation and is not deployed (ai/plugin-version skips it).
+  Python bytecode caches are ignored too, so an exact_ folder keeps what skill scripts create when they run.
 */ -}}
+**/__pycache__
+**/__pycache__/**
+**/*.pyc
+.local/share/agent-plugins/marketplace/plugins/*/README.md
 {{- range $name, $plugin := includeTemplate "ai/authored-plugins" . | fromJson -}}
 {{-   range $path := $plugin.deselected }}
 {{ $path }}

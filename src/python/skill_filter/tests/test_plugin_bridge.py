@@ -2589,7 +2589,7 @@ def test_refresh_requested_parses_chezmoi_arguments(arguments, expected):
 
 
 @pytest.mark.parametrize("probe_status", [None, 1, 0])
-def test_cli_hosts_register_generated_marketplaces_only_when_the_cli_works(
+def test_agy_installs_generated_plugin_directories_only_when_the_cli_works(
     tmp_path, monkeypatch, caplog, probe_status
 ):
     commands = []
@@ -2598,46 +2598,59 @@ def test_cli_hosts_register_generated_marketplaces_only_when_the_cli_works(
         commands.append(arguments)
         if arguments[-1] == "--help":
             return probe_status
-        return 3  # a failed registration is logged, never raised
+        return 3  # a failed install is logged, never raised
 
+    marketplace = tmp_path / "m"
+    for name in ("with-manifest", "other-with-manifest"):
+        (marketplace / "plugins" / name).mkdir(parents=True)
+        (marketplace / "plugins" / name / "plugin.json").write_text("{}")
+    (marketplace / "plugins" / "no-manifest").mkdir()
     monkeypatch.setattr(plugin_bridge, "_cli_host_command", command)
     caplog.set_level("INFO", logger=plugin_bridge.logger.name)
     plugin_bridge.reconcile(
         tmp_path,
         {
             "plugin_bridge": {
-                "cli_hosts": ["cursor"],
+                "cli_hosts": ["antigravity"],
                 "marketplaces": {
                     "dotfiles": {
                         "source_type": "generated",
-                        "source_locator": "/m",
-                        "hosts": ["cursor"],
+                        "source_locator": str(marketplace),
+                        "hosts": ["antigravity"],
                     },
                     "other": {
                         "source_type": "public",
                         "source_locator": "owner/repo",
-                        "hosts": ["cursor"],
+                        "hosts": ["antigravity"],
                     },
                 },
             }
         },
     )
 
-    adds = [arguments for arguments in commands if arguments[-1] != "--help"]
+    installs = [
+        arguments
+        for arguments in commands
+        if arguments[:3] == ("agy", "plugin", "install")
+    ]
     if probe_status == 0:
-        assert adds == [("cursor-agent", "plugin", "marketplace", "add", "/m")]
+        assert installs == [
+            ("agy", "plugin", "install", str(marketplace / "plugins" / name))
+            for name in ("other-with-manifest", "with-manifest")
+        ]
+        assert ("agy", "plugin", "list", "--json") in commands
         assert (
-            "host=cursor marketplace=dotfiles operation=plugin-marketplace-add status=3"
+            "host=antigravity marketplace=dotfiles plugin=with-manifest operation=plugin-install status=3"
             in caplog.text
         )
     else:
-        assert adds == []
-        assert "host=cursor event=unavailable reason=no-plugin-cli" in caplog.text
+        assert installs == []
+        assert "host=antigravity event=unavailable reason=no-plugin-cli" in caplog.text
 
 
 def test_cli_hosts_reject_unknown_hosts(tmp_path):
     with pytest.raises(plugin_bridge.BridgeError, match="cli_hosts"):
-        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {"cli_hosts": ["claude"]}})
+        plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {"cli_hosts": ["cursor"]}})
 
 
 @pytest.mark.parametrize("host", ["claude", "codex"])

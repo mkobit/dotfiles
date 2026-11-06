@@ -1,5 +1,7 @@
 # Shellcheck for chezmoi-templated shell scripts
 
+Superseded paths: skills now live in native plugin folders under `src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/`; the `src/ai/skills/` tree and the `ai-authored-skills` external no longer exist.
+
 ## Problem
 
 Chezmoi manages roughly 35 shell scripts and shell-producing templates (`.chezmoiscripts/*`, root-level `run_onchange_after_*`, `modify_*`, scattered `executable_*` hook/tool wrappers — templated and plain alike).

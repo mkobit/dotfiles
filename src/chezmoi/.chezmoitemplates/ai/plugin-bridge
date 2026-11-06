@@ -37,8 +37,8 @@
 {{-   end -}}
 {{- end -}}
 {{- $_ := set $bridge "marketplaces" $marketplaces -}}
-{{- /* Hosts whose plugin CLI only registers generated marketplaces; agy is opt-in. */ -}}
-{{- $cliHosts := list "cursor" -}}
+{{- /* Hosts whose plugin CLI installs generated plugin directories; agy is opt-in. */ -}}
+{{- $cliHosts := list -}}
 {{- if ne (dig "local" "bin" "agy" "installation_method" "none" .) "none" -}}
 {{-   $cliHosts = append $cliHosts "antigravity" -}}
 {{- end -}}
