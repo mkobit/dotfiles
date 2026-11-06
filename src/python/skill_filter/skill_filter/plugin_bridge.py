@@ -9,6 +9,7 @@ The bridge records ``owned`` only for what it installed (or registered), or for 
 a previous ``owned`` record already covers.
 It never adopts a manual or earlier install, including from a ``host-provided`` marketplace.
 It never registers, updates, or records a ``host-provided`` marketplace itself.
+A four-field host-provided plugin record migrates as owned only while it is declared.
 Four-field lines (the earlier format) and the legacy JSON state are classified by
 ``_classify_legacy`` and rewritten before any host mutation.
 """
@@ -118,9 +119,17 @@ def _is_owned(record: str) -> bool:
     return record.endswith("\towned")
 
 
-def _classify_legacy(record: str, marketplaces: Mapping[str, object]) -> str | None:
-    """Return the provenance for a four-field record, or None to drop it."""
-    marketplace = record.split("\t")[2]
+def _classify_legacy(
+    record: str,
+    marketplaces: Mapping[str, object],
+    declared: frozenset[tuple[str, str]] = frozenset(),
+) -> str | None:
+    """Return the provenance for a four-field record, or None to drop it.
+
+    The earlier bridge installed every declared plugin, so a host-provided plugin
+    that is still declared migrates as owned; other host-provided records drop.
+    """
+    _, _, marketplace, plugin = record.split("\t")
     definition = marketplaces.get(marketplace)
     source_type = (
         definition.get("source_type") if isinstance(definition, Mapping) else None
@@ -128,7 +137,7 @@ def _classify_legacy(record: str, marketplaces: Mapping[str, object]) -> str | N
     if source_type == "generated":
         return "owned"
     if source_type == "host-provided":
-        return None
+        return "owned" if plugin and (marketplace, plugin) in declared else None
     return "ambiguous"
 
 
@@ -150,7 +159,9 @@ def _read_ownership(path: Path) -> set[str]:
 
 
 def _normalize_ownership(
-    records: set[str], marketplaces: Mapping[str, object]
+    records: set[str],
+    marketplaces: Mapping[str, object],
+    declared: frozenset[tuple[str, str]] = frozenset(),
 ) -> set[str]:
     """Return five-field native-host records; ``owned`` wins over ``ambiguous``."""
     provenance: dict[str, str] = {}
@@ -161,7 +172,7 @@ def _normalize_ownership(
         kind = (
             record.split("\t")[4]
             if record.count("\t") == 4
-            else _classify_legacy(record, marketplaces)
+            else _classify_legacy(record, marketplaces, declared)
         )
         if kind is not None and provenance.get(identity) != "owned":
             provenance[identity] = kind
@@ -854,7 +865,13 @@ def reconcile(
         raw = set(migrate_ownership(legacy).splitlines())
     else:
         raw = set()
-    previous = _normalize_ownership(raw, marketplaces)
+    declared = frozenset(
+        (str(definition.get("marketplace", "")), name)
+        for table in (plugins, capabilities)
+        for name, definition in table.items()
+        if isinstance(definition, Mapping)
+    )
+    previous = _normalize_ownership(raw, marketplaces, declared)
     if previous != raw or (legacy.exists() and not ownership_file.exists()):
         # Persist the classified records before any host mutation.
         _write_ownership(ownership_file, previous)

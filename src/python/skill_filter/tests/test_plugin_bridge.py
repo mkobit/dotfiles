@@ -2638,3 +2638,43 @@ def test_cli_hosts_register_generated_marketplaces_only_when_the_cli_works(
 def test_cli_hosts_reject_unknown_hosts(tmp_path):
     with pytest.raises(plugin_bridge.BridgeError, match="cli_hosts"):
         plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {"cli_hosts": ["claude"]}})
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_legacy_declared_host_provided_record_migrates_owned_then_uninstalls(
+    tmp_path, monkeypatch, host
+):
+    ownership = _ownership_file(tmp_path)
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text(
+        f"plugin\t{host}\tmarket\tdemo\nplugin\t{host}\tmarket\tundeclared\n"
+    )
+    installed = {"demo@market", "undeclared@market"}
+    mutations = []
+
+    def run(command, *args):
+        if args[:3] == ("plugin", "marketplace", "list"):
+            return '[{"name":"market"}]' if host == "claude" else "market  /x\n"
+        if args[:2] == ("plugin", "list"):
+            records = [
+                {"id": n, "pluginId": n, "installed": True, "enabled": True}
+                for n in sorted(installed)
+            ]
+            return json.dumps(records if host == "claude" else {"installed": records})
+        mutations.append(args)
+        if args[:2] in {("plugin", "uninstall"), ("plugin", "remove")}:
+            installed.discard(args[2])
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    declaration = _public_declaration(host, "host-provided")
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert ownership.read_text() == f"plugin\t{host}\tmarket\tdemo\towned\n"
+    assert mutations == []
+
+    declaration["plugin_bridge"]["plugins"].clear()
+    plugin_bridge.reconcile(tmp_path, declaration)
+    removal = "uninstall" if host == "claude" else "remove"
+    assert mutations == [("plugin", removal, "demo@market")]
+    assert installed == {"undeclared@market"}
+    assert ownership.read_text() == ""
