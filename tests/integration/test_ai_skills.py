@@ -37,7 +37,6 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORED_CLEANUP_SCRIPT = (
     REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-skills-cleanup.sh.tmpl"
 )
-AUTHORED_SKILLS_EXTERNAL = REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-skills.toml.tmpl"
 CURSOR_LOCAL_SKILLS_REMOVE = (
     REPOSITORY_ROOT / "src/chezmoi/dot_cursor/plugins/local/mkobit-dotfiles/.chezmoiremove.tmpl"
 )
@@ -61,12 +60,17 @@ AUTHORED_SKILL_ROOTS = {
 CAPABILITY_AUTHORED_SKILL_ROOTS = {
     root_name: root for root_name, root in AUTHORED_SKILL_ROOTS.items() if root_name != "antigravity"
 }
-CAPABILITY_MANIFEST_TEMPLATES = (
-    Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/plugin.json.tmpl"),
-    Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude/dot_claude-plugin/plugin.json.tmpl"),
-    Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex/dot_codex-plugin/plugin.json.tmpl"),
-    Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/cursor/dot_cursor-plugin/plugin.json.tmpl"),
+
+
+BUNDLE_MANIFESTS = (
+    Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/plugin.json"),
+    *(
+        Path(f".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/{host}/.{host}-plugin/plugin.json")
+        for host in ("claude", "codex", "cursor")
+    ),
+    Path(".cursor/plugins/local/mkobit-dotfiles/.cursor-plugin/plugin.json"),
 )
+ANTIGRAVITY_ON = '[data.local.bin.agy]\ninstallation_method = "preinstalled"\n'
 
 
 def _entries(directory: Path) -> list[Path]:
@@ -108,6 +112,15 @@ def assert_entries_are_valid_skills(skills_dir: Path, allowed_marker_files: froz
             assert_is_skill(child)
 
 
+def _has_files(directory: Path) -> bool:
+    """Return whether a skill root holds files.
+
+    A generated ignore pattern also hides a deselected root from .chezmoiremove,
+    so the legacy cleanup empties that root but leaves the directory itself.
+    """
+    return any(path.is_file() for path in directory.rglob("*"))
+
+
 def _apply_authored_cleanup(source: Path, destination: Path, config: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
@@ -128,7 +141,8 @@ def _apply_authored_cleanup(source: Path, destination: Path, config: Path) -> su
     )
 
 
-def _initialize_authored_cleanup_source(source: Path, *, include_external: bool = False) -> None:
+def _initialize_authored_cleanup_source(source: Path) -> None:
+    """Add the legacy cleanup script and its removal templates; agent_source_fixture deploys skills."""
     source_root = source / "src/chezmoi"
     source_files = [
         (AUTHORED_CLEANUP_SCRIPT, Path(".chezmoiscripts") / AUTHORED_CLEANUP_SCRIPT.name),
@@ -149,16 +163,8 @@ def _initialize_authored_cleanup_source(source: Path, *, include_external: bool 
     ]
     source_files.extend(
         (REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name, Path(".chezmoitemplates/ai") / name)
-        for name in ("authored-render-context", "authored-file-digest", "authored-base-version")
+        for name in ("agent-sources", "authored-render-context", "authored-file-digest", "authored-base-version")
     )
-    if include_external:
-        source_files.append(
-            (
-                REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai/authored-file-entry",
-                Path(".chezmoitemplates/ai/authored-file-entry"),
-            )
-        )
-        source_files.append((AUTHORED_SKILLS_EXTERNAL, Path(".chezmoiexternals") / AUTHORED_SKILLS_EXTERNAL.name))
     for source_file, relative_target in source_files:
         assert source_file.is_file(), f"missing cleanup fixture dependency: {source_file}"
         target = source_root / relative_target
@@ -206,24 +212,10 @@ def _assert_valid_capability_metadata(manifest: dict[str, object]) -> None:
     }
 
 
-def test_capability_manifest_versions_ignore_legacy_overlay_source(tmp_path):
+def test_capability_manifest_versions_ignore_legacy_overlay_source(agent_source_fixture, tmp_path):
     """Base capability versions only depend on base-projected skill inputs."""
-    source = tmp_path / "source"
-    destination = tmp_path / "destination"
-    destination.mkdir()
-    for relative_path in CAPABILITY_MANIFEST_TEMPLATES:
-        template = source / relative_path
-        template.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(REPOSITORY_ROOT / "src/chezmoi" / relative_path, template)
-
-    for name in ("authored-render-context", "authored-file-digest", "authored-base-version"):
-        target = source / ".chezmoitemplates/ai" / name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name, target)
-
-    base_skill = source.parent / "ai/skills/base/SKILL.md"
-    base_skill.parent.mkdir(parents=True)
-    base_skill.write_text("# Base\n", encoding="utf-8")
+    fixture = agent_source_fixture
+    _write_skill(fixture, "base", {"SKILL.md": "# Base\n"})
     first_overlay = tmp_path / "first-overlay"
     second_overlay = tmp_path / "second-overlay"
     first_overlay.mkdir()
@@ -231,28 +223,14 @@ def test_capability_manifest_versions_ignore_legacy_overlay_source(tmp_path):
     (first_overlay / "SKILL.md").write_text("# First\n", encoding="utf-8")
     (second_overlay / "SKILL.md").write_text("# Second\n", encoding="utf-8")
 
-    def config_for(overlay_source: Path) -> Path:
-        config = tmp_path / f"{overlay_source.name}.toml"
-        config.write_text(
-            "\n".join(
-                [
-                    "[data.ai.skills]",
-                    f"overlay_authored_source = {json.dumps(str(overlay_source))}",
-                    "",
-                    "[data.ai.skills.authored]",
-                    "",
-                    "[data.ai.skills.external]",
-                    "",
-                ]
-            ),
-            encoding="utf-8",
+    def versions_for(overlay_source: Path) -> dict[str, str]:
+        fixture.write_config(
+            f"[data.ai.skills]\noverlay_authored_source = {json.dumps(str(overlay_source))}\n"
+            "[data.ai.skills.external]\n"
         )
-        return config
+        return _render_capability_manifest_versions(fixture.repo, fixture.destination, fixture.config)
 
-    first_versions = _render_capability_manifest_versions(source, destination, config_for(first_overlay))
-    second_versions = _render_capability_manifest_versions(source, destination, config_for(second_overlay))
-
-    assert first_versions == second_versions
+    assert versions_for(first_overlay) == versions_for(second_overlay)
 
 
 @pytest.mark.parametrize(
@@ -266,13 +244,12 @@ def test_capability_manifest_versions_ignore_legacy_overlay_source(tmp_path):
     ],
 )
 def test_authored_skill_cleanup_prunes_renamed_nested_file_from_every_catalog_owned_root(
-    tmp_path, state, antigravity_enabled, expected_roots
+    agent_source_fixture, state, antigravity_enabled, expected_roots
 ):
     """A renamed authored skill file converges every catalog-owned package root."""
-    source = tmp_path / "source"
-    destination = tmp_path / "destination"
-    destination.mkdir()
-    _initialize_authored_cleanup_source(source, include_external=True)
+    source = agent_source_fixture.repo
+    destination = agent_source_fixture.destination
+    _initialize_authored_cleanup_source(source)
 
     skill_source = source / "src/ai/skills" / "fixture"
     (skill_source / "references").mkdir(parents=True)
@@ -280,8 +257,8 @@ def test_authored_skill_cleanup_prunes_renamed_nested_file_from_every_catalog_ow
     stale_source = skill_source / "references" / "old-name.md"
     stale_source.write_text("old\n", encoding="utf-8")
 
-    config = tmp_path / "chezmoi.toml"
-    config.write_text(
+    config = agent_source_fixture.config
+    agent_source_fixture.write_config(
         "\n".join(
             [
                 "[data.ai.skills.authored]",
@@ -291,8 +268,7 @@ def test_authored_skill_cleanup_prunes_renamed_nested_file_from_every_catalog_ow
                 f'installation_method = "{"system" if antigravity_enabled else "none"}"',
                 "",
             ]
-        ),
-        encoding="utf-8",
+        )
     )
 
     for root_name, root in CAPABILITY_AUTHORED_SKILL_ROOTS.items():
@@ -308,7 +284,7 @@ def test_authored_skill_cleanup_prunes_renamed_nested_file_from_every_catalog_ow
     first_apply = _apply_authored_cleanup(source, destination, config)
     assert first_apply.returncode == 0, first_apply.stderr
     for root_name, root in CAPABILITY_AUTHORED_SKILL_ROOTS.items():
-        assert (destination / root / "fixture").exists() is (root_name in expected_roots)
+        assert _has_files(destination / root / "fixture") is (root_name in expected_roots)
         assert (destination / root / "fixture/references/old-name.md").exists() is (root_name in expected_roots)
 
     stale_source.rename(skill_source / "references" / "new-name.md")
@@ -323,19 +299,20 @@ def test_authored_skill_cleanup_prunes_renamed_nested_file_from_every_catalog_ow
         assert (destination / root / "external-skill/SKILL.md").is_file()
 
 
-def test_authored_skill_cleanup_removes_disabled_canonical_skill_from_every_capability_package_root(tmp_path):
+def test_authored_skill_cleanup_removes_disabled_canonical_skill_from_every_capability_package_root(
+    agent_source_fixture,
+):
     """Disabling an authored skill removes its package copies, including Cursor's local plugin."""
-    source = tmp_path / "source"
-    destination = tmp_path / "destination"
-    destination.mkdir()
-    _initialize_authored_cleanup_source(source, include_external=True)
+    source = agent_source_fixture.repo
+    destination = agent_source_fixture.destination
+    _initialize_authored_cleanup_source(source)
 
     skill_source = source / "src/ai/skills/fixture"
     skill_source.mkdir(parents=True)
     (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
 
-    config = tmp_path / "chezmoi.toml"
-    config.write_text(
+    config = agent_source_fixture.config
+    agent_source_fixture.write_config(
         "\n".join(
             [
                 "[data.ai.skills.authored]",
@@ -349,8 +326,7 @@ def test_authored_skill_cleanup_removes_disabled_canonical_skill_from_every_capa
                 'installation_method = "system"',
                 "",
             ]
-        ),
-        encoding="utf-8",
+        )
     )
 
     first_apply = _apply_authored_cleanup(source, destination, config)
@@ -364,7 +340,7 @@ def test_authored_skill_cleanup_removes_disabled_canonical_skill_from_every_capa
     assert manifest["description"] == "Base dotfiles capability bundle."
     assert manifest["skills"] == "./skills"
 
-    config.write_text(
+    agent_source_fixture.write_config(
         "\n".join(
             [
                 "[data.ai.skills.authored]",
@@ -378,14 +354,13 @@ def test_authored_skill_cleanup_removes_disabled_canonical_skill_from_every_capa
                 'installation_method = "system"',
                 "",
             ]
-        ),
-        encoding="utf-8",
+        )
     )
 
     second_apply = _apply_authored_cleanup(source, destination, config)
     assert second_apply.returncode == 0, second_apply.stderr
     for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values():
-        assert not (destination / root / "fixture").exists()
+        assert not _has_files(destination / root / "fixture")
 
 
 def test_authored_skill_cleanup_rejects_shell_metacharacters_without_executing_them(tmp_path):
@@ -830,18 +805,68 @@ def test_codex_reports_no_agent_role_warnings(host):
     assert not offenders, "codex rejected deployed agent roles:\n" + "\n".join(offenders)
 
 
+def _assert_bare_templates_render_effective_data(fixture, tmp_path: Path, override: bool) -> None:
+    """Chezmoi renders generated bare skill templates natively, once, with effective data."""
+    data = fixture.source / ".chezmoidata/defaults.toml"
+    data.write_text('[fixture]\nvalue = "catalog"\n')
+    contents = "{{ .fixture.value }}|{{ .chezmoi.destDir }}|{{ .chezmoi.sourceFile }}|{{ .chezmoi.targetFile }}\n"
+    skill = _write_skill(
+        fixture,
+        "fixture",
+        {
+            "SKILL.md.tmpl": contents,
+            "nested/payload.bin": b"\x00\xff{{ untouched }}",
+            "nested/run.tmpl": "#!/bin/sh\necho {{ .fixture.value }}\n",
+            "nested/name.tmpl.tmpl": "{{ .chezmoi.targetFile }}",
+            "nested/empty.tmpl": '{{- "" -}}',
+        },
+    )
+    (skill / "nested/run.tmpl").chmod(0o755)
+    counter = tmp_path / "hook-count"
+    fixture.write_config(ANTIGRAVITY_ON + ('[data.fixture]\nvalue = "override"\n' if override else ""), counter=counter)
+    _apply_and_check(fixture)
+    assert counter.read_text() == "once\n"
+    value = "override" if override else "catalog"
+    for root in AUTHORED_SKILL_ROOTS.values():
+        target = fixture.destination / root / "fixture"
+        source_path = fixture.run("source-path", str(target / "SKILL.md"))
+        assert source_path.returncode == 0, source_path.stderr
+        generated = Path(source_path.stdout.strip()).relative_to(fixture.source).as_posix()
+        assert generated.endswith("/exact_fixture/SKILL.md.tmpl")
+        expected = f"{value}|{fixture.destination}|{generated}|{target / 'SKILL.md'}\n"
+        assert (target / "SKILL.md").read_text() == expected
+        assert not (target / "SKILL.md.tmpl").exists()
+        assert (target / "nested/payload.bin").read_bytes() == b"\x00\xff{{ untouched }}"
+        assert (target / "nested/run").read_text() == f"#!/bin/sh\necho {value}\n"
+        assert (target / "nested/run").stat().st_mode & 0o111
+        # Native chezmoi skips a template that renders empty unless the source has empty_.
+        assert not (target / "nested/empty").exists()
+        assert (target / "nested/name.tmpl").read_text() == str(target / "nested/name.tmpl")
+    assert (skill / "SKILL.md.tmpl").read_text() == contents
+    # Remove a template and reapply: exact skill roots prune the rendered name.
+    (skill / "nested/run.tmpl").unlink()
+    counter.unlink()
+    _apply_and_check(fixture)
+    for root in AUTHORED_SKILL_ROOTS.values():
+        target = fixture.destination / root / "fixture"
+        assert (target / "SKILL.md").exists()
+        assert not (target / "nested/run").exists()
+        assert (target / "nested/payload.bin").read_bytes() == b"\x00\xff{{ untouched }}"
+    assert counter.read_text() == "once\n"
+    assert not (fixture.destination / ".local/state/chezmoi-authored-template-render.boltdb").exists()
+
+
 @pytest.mark.parametrize("kind", ["base", "capability"])
 @pytest.mark.parametrize("override", [False, True])
-def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, kind, override):
+def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, agent_source_factory, kind, override):
     """Template entries render parent data once and preserve plain binary resources."""
+    if kind == "base":
+        _assert_bare_templates_render_effective_data(agent_source_factory(tmp_path), tmp_path, override)
+        return
     source = tmp_path / "source"
     destination = tmp_path / "destination"
     destination.mkdir()
-    external = (
-        AUTHORED_SKILLS_EXTERNAL
-        if kind == "base"
-        else REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
-    )
+    external = REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
     externals = source / ".chezmoiexternals"
     externals.mkdir(parents=True)
     shutil.copy2(external, externals / external.name)
@@ -850,7 +875,7 @@ def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, 
     for name in ("authored-render-context", "authored-file-entry", "authored-file-digest", "authored-base-version"):
         origin = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name
         shutil.copy2(origin, template_root / name)
-    cleanup_name = "skills" if kind == "base" else "capabilities"
+    cleanup_name = "capabilities"
     dependencies = {
         REPOSITORY_ROOT
         / f"src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-{cleanup_name}-cleanup.sh.tmpl": source
@@ -864,7 +889,7 @@ def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, 
     data = source / ".chezmoidata/defaults.toml"
     data.parent.mkdir()
     data.write_text('[fixture]\nvalue = "catalog"\n')
-    skill = source.parent / ("ai/skills/fixture" if kind == "base" else "overlay-plugins/example/skills/fixture")
+    skill = source.parent / "overlay-plugins/example/skills/fixture"
     (skill / "nested").mkdir(parents=True)
     canonical = skill / "SKILL.md.tmpl"
     contents = "{{ .fixture.value }}|{{ .chezmoi.destDir }}|{{ .chezmoi.sourceFile }}|{{ .chezmoi.targetFile }}\n"
@@ -877,11 +902,7 @@ def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, 
     (skill / "nested/empty.tmpl").write_text('{{- "" -}}')
     counter = tmp_path / "hook-count"
     config = tmp_path / "chezmoi.toml"
-    selection = (
-        '[data.ai.skills.authored]\nfixture = "present"\n[data.local.bin.agy]\ninstallation_method = "preinstalled"\n'
-        if kind == "base"
-        else '[data.ai.plugin_bridge.capabilities.example]\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude", "codex", "cursor"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
-    )
+    selection = '[data.ai.plugin_bridge.capabilities.example]\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude", "codex", "cursor"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
     config.write_text(
         '[hooks.read-source-state.pre]\ncommand = "sh"\nargs = ["-c", "echo once >> '
         + str(counter)
@@ -909,15 +930,10 @@ def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, 
     )
     assert result.returncode == 0, result.stderr
     value = "override" if override else "catalog"
-    roots = (
-        list(AUTHORED_SKILL_ROOTS.values())
-        if kind == "base"
-        else [
-            Path(f".local/share/agent-plugins/marketplace/plugins/example/{host}/skills")
-            for host in ("claude", "codex", "cursor")
-        ]
-        + [Path(".cursor/plugins/local/example/skills")]
-    )
+    roots = [
+        Path(f".local/share/agent-plugins/marketplace/plugins/example/{host}/skills")
+        for host in ("claude", "codex", "cursor")
+    ] + [Path(".cursor/plugins/local/example/skills")]
     for relative in roots:
         target = destination / relative / "fixture"
         assert (target / "SKILL.md").read_text() == f"{value}|{destination}|{canonical}|SKILL.md\n"
@@ -961,86 +977,82 @@ def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, 
 
 @pytest.mark.parametrize("kind", ["base", "capability"])
 @pytest.mark.parametrize("failure", ["collision", "template"])
-def test_authored_templates_reject_invalid_rendering(tmp_path, kind, failure):
+def test_authored_templates_reject_invalid_rendering(tmp_path, agent_source_factory, kind, failure):
     """Bad templates and normalized filename collisions stop apply."""
-    source = tmp_path / "source"
-    destination = tmp_path / "destination"
-    destination.mkdir()
-    externals = source / ".chezmoiexternals"
-    externals.mkdir(parents=True)
-    external = (
-        AUTHORED_SKILLS_EXTERNAL
-        if kind == "base"
-        else REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
-    )
-    shutil.copy2(external, externals / external.name)
-    templates = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
-    shutil.copytree(templates, source / ".chezmoitemplates/ai")
-    skill = source.parent / ("ai/skills/fixture" if kind == "base" else "overlay-plugins/example/skills/fixture")
+    if kind == "base":
+        fixture = agent_source_factory(tmp_path)
+        skill = fixture.authored / "ai/skills/fixture"
+    else:
+        source = tmp_path / "source"
+        destination = tmp_path / "destination"
+        destination.mkdir()
+        externals = source / ".chezmoiexternals"
+        externals.mkdir(parents=True)
+        external = REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
+        shutil.copy2(external, externals / external.name)
+        templates = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
+        shutil.copytree(templates, source / ".chezmoitemplates/ai")
+        skill = source.parent / "overlay-plugins/example/skills/fixture"
     skill.mkdir(parents=True)
     (skill / "SKILL.md.tmpl").write_text('{{ fail "fixture render failed" }}' if failure == "template" else "rendered")
     if failure == "collision":
         (skill / "SKILL.md").write_text("plain")
-    config = tmp_path / "chezmoi.toml"
-    config.write_text(
-        '[data.ai.skills.authored]\nfixture = "present"\n'
-        if kind == "base"
-        else '[data.ai.plugin_bridge.capabilities.example]\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
-    )
-    result = subprocess.run(
-        ["chezmoi", "--source", str(source), "--destination", str(destination), "--config", str(config), "apply"],
-        capture_output=True,
-        check=False,
-        text=True,
-        timeout=30,
-    )
-    assert result.returncode != 0
-    assert ("collision" if failure == "collision" else "fixture render failed") in result.stderr
-
-
-def _rendered_package_fixture(tmp_path: Path, kind: str) -> tuple[Path, Path, Path, Path, list[Path], list[Path]]:
-    """Install real external, manifest, and cleanup templates in an isolated source."""
-    source = tmp_path / "source"
-    destination = tmp_path / "destination"
-    destination.mkdir(parents=True)
-    templates = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
-    shutil.copytree(templates, source / ".chezmoitemplates/ai")
-    external = (
-        AUTHORED_SKILLS_EXTERNAL
-        if kind == "base"
-        else REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
-    )
-    cleanup = (
-        AUTHORED_CLEANUP_SCRIPT
-        if kind == "base"
-        else REPOSITORY_ROOT
-        / "src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl"
-    )
-    for origin, target in {
-        external: source / ".chezmoiexternals" / external.name,
-        cleanup: source / ".chezmoiscripts" / cleanup.name,
-        FILTER_INTERPRETER_TEMPLATE: source / ".chezmoitemplates/python/filter-interpreter",
-        FILTER_INTERPRETER_RESOLVER: source.parent / "python/skill_filter/resolve-interpreter.sh",
-    }.items():
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(origin, target)
     if kind == "base":
-        for relative in (
-            *CAPABILITY_MANIFEST_TEMPLATES,
-            CURSOR_LOCAL_PLUGIN_MANIFEST.relative_to(REPOSITORY_ROOT / "src/chezmoi"),
-        ):
-            target = source / relative
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(REPOSITORY_ROOT / "src/chezmoi" / relative, target)
-        roots = [destination / root / "fixture" for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values()]
-        manifests = [destination / ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/plugin.json"]
-        manifests.extend(
-            root.parent.parent / f".{host}-plugin/plugin.json"
-            for host, root in zip(("claude", "codex", "cursor", "cursor"), roots[1:], strict=True)
+        result = fixture.run("apply")
+        # Preparation rejects a template and a plain file with the same target name.
+        collision = "two sources map to SKILL.md"
+    else:
+        config = tmp_path / "chezmoi.toml"
+        config.write_text(
+            '[data.ai.plugin_bridge.capabilities.example]\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
         )
-        skill = source.parent / "ai/skills/fixture"
+        result = subprocess.run(
+            ["chezmoi", "--source", str(source), "--destination", str(destination), "--config", str(config), "apply"],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=30,
+        )
+        collision = "collision"
+    assert result.returncode != 0
+    assert (collision if failure == "collision" else "fixture render failed") in result.stderr
+
+
+def _rendered_package_fixture(
+    tmp_path: Path, kind: str, agent_sources
+) -> tuple[Path, Path, Path, Path, list[Path], list[Path]]:
+    """Install real templates in an isolated source.
+
+    Base packages come from the preparation hook in an agent source fixture.
+    Capability packages still use the authored capability externals and cleanup.
+    """
+    if kind == "base":
+        fixture = agent_sources(tmp_path)
+        source, destination, config = fixture.source, fixture.destination, fixture.config
+        roots = [destination / root / "fixture" for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values()]
+        manifests = [destination / path for path in BUNDLE_MANIFESTS]
+        skill = fixture.authored / "ai/skills/fixture"
         selection = '[data.ai.skills.authored]\nfixture = "present"\n[data.ai.skills.external]\n'
     else:
+        source = tmp_path / "source"
+        destination = tmp_path / "destination"
+        destination.mkdir(parents=True)
+        config = tmp_path / "chezmoi.toml"
+        templates = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
+        shutil.copytree(templates, source / ".chezmoitemplates/ai")
+        external = REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
+        cleanup = (
+            REPOSITORY_ROOT
+            / "src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl"
+        )
+        for origin, target in {
+            external: source / ".chezmoiexternals" / external.name,
+            cleanup: source / ".chezmoiscripts" / cleanup.name,
+            FILTER_INTERPRETER_TEMPLATE: source / ".chezmoitemplates/python/filter-interpreter",
+            FILTER_INTERPRETER_RESOLVER: source.parent / "python/skill_filter/resolve-interpreter.sh",
+        }.items():
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(origin, target)
         roots = [
             destination / f".local/share/agent-plugins/marketplace/plugins/example/{host}/skills/fixture"
             for host in ("claude", "codex", "cursor")
@@ -1064,33 +1076,42 @@ def _rendered_package_fixture(tmp_path: Path, kind: str) -> tuple[Path, Path, Pa
         manifests.append(destination / ".cursor/plugins/local/example/.cursor-plugin/plugin.json")
         skill = source.parent / "overlay-plugins/example/skills/fixture"
         selection = '[data.ai.plugin_bridge.capabilities.example]\ndescription = "Fixture"\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude", "codex", "cursor"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
+        subprocess.run(["git", "init", "--quiet", str(source)], check=True)
     skill.mkdir(parents=True)
     (skill / "SKILL.md.tmpl").write_text("{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n")
     (skill / "name.tmpl.tmpl").write_text("{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n")
     (skill / "payload.bin").write_bytes(b"\x00\xff{{ plain }}")
-    config = tmp_path / "chezmoi.toml"
-    config.write_text(selection + '[data.fixture]\nvalue = "first"\n')
-    subprocess.run(["git", "init", "--quiet", str(source)], check=True)
+    if kind == "base":
+        fixture.write_config(selection + '[data.fixture]\nvalue = "first"\n')
+    else:
+        config.write_text(selection + '[data.fixture]\nvalue = "first"\n')
     return source, destination, config, skill, roots, manifests
+
+
+def _rendered_target_file(kind: str, root: Path, name: str) -> str:
+    """Return .chezmoi.targetFile as a package template sees it.
+
+    Native chezmoi rendering gives the absolute target path; capability file
+    externals give the package-relative name.
+    """
+    return str(root / name) if kind == "base" else name
 
 
 def _package_versions(manifests: list[Path]) -> list[str]:
     return [json.loads(path.read_text())["version"] for path in manifests]
 
 
-def _technical_writing_fixture(tmp_path: Path):
+def _technical_writing_fixture(agent_source_fixture):
     """Use the authored technical-writing source with real package output and versions."""
-    source, destination, config, skill, roots, manifests = _rendered_package_fixture(tmp_path, "base")
-    shutil.rmtree(skill)
-    skill = skill.with_name("technical-writing")
+    fixture = agent_source_fixture
+    skill = fixture.authored / "ai/skills/technical-writing"
     shutil.copytree(REPOSITORY_ROOT / "src/ai/skills/technical-writing", skill)
-    config.write_text(
-        '[data.ai.skills.authored]\ntechnical-writing = "present"\n[data.ai.skills.external]\n'
-        '[data.local.bin.agy]\ninstallation_method = "preinstalled"\n'
+    fixture.write_config(
+        '[data.ai.skills.authored]\ntechnical-writing = "present"\n[data.ai.skills.external]\n' + ANTIGRAVITY_ON
     )
-    roots = [root.with_name("technical-writing") for root in roots]
-    roots.append(destination / AUTHORED_SKILL_ROOTS["antigravity"] / "technical-writing")
-    return source, destination, config, skill, roots, manifests
+    roots = [fixture.destination / root / "technical-writing" for root in AUTHORED_SKILL_ROOTS.values()]
+    manifests = [fixture.destination / path for path in BUNDLE_MANIFESTS]
+    return fixture.source, fixture.destination, fixture.config, skill, roots, manifests
 
 
 @pytest.mark.parametrize(
@@ -1102,9 +1123,9 @@ def _technical_writing_fixture(tmp_path: Path):
     ],
     ids=["missing", "empty-parent", "empty-values"],
 )
-def test_technical_writing_default_package_preserves_original_bytes(tmp_path, optional_data):
+def test_technical_writing_default_package_preserves_original_bytes(agent_source_fixture, optional_data):
     """Missing optional content keeps the original skill bytes in every output."""
-    source, destination, config, skill, roots, manifests = _technical_writing_fixture(tmp_path)
+    source, destination, config, skill, roots, manifests = _technical_writing_fixture(agent_source_fixture)
     config.write_text(config.read_text() + optional_data)
     original_sources = {path.name: path.read_bytes() for path in skill.iterdir()}
     result = _apply_authored_cleanup(source, destination, config)
@@ -1145,9 +1166,11 @@ def test_technical_writing_template_accepts_missing_ai_root(tmp_path):
 
 
 @pytest.mark.parametrize("content_layer", ["catalog", "control-plane", "instructions-only"])
-def test_technical_writing_content_renders_merged_data_and_changes_package_versions(tmp_path, content_layer):
+def test_technical_writing_content_renders_merged_data_and_changes_package_versions(
+    agent_source_fixture, content_layer
+):
     """Content data changes YAML metadata and body bytes without changing the source."""
-    source, destination, config, skill, roots, manifests = _technical_writing_fixture(tmp_path)
+    source, destination, config, skill, roots, manifests = _technical_writing_fixture(agent_source_fixture)
     original_sources = {path.name: path.read_bytes() for path in skill.iterdir()}
     first = _apply_authored_cleanup(source, destination, config)
     assert first.returncode == 0, first.stderr
@@ -1157,7 +1180,7 @@ def test_technical_writing_content_renders_merged_data_and_changes_package_versi
     description = "Use when: \"quoted\" # content\nKeep 'single quotes' and \\paths."
     instructions = "## Additional instructions\nKeep the configured instruction.\n"
     catalog = source / ".chezmoidata/technical-writing.toml"
-    catalog.parent.mkdir()
+    catalog.parent.mkdir(exist_ok=True)
     catalog.write_text(
         "[ai.skills.content.technical-writing]\n"
         + (f"description = {json.dumps(description)}\n" if content_layer == "catalog" else "")
@@ -1192,9 +1215,11 @@ def test_technical_writing_content_renders_merged_data_and_changes_package_versi
 
 
 @pytest.mark.parametrize("kind", ["base", "capability"])
-def test_rendered_package_versions_follow_data_and_stable_repeats(tmp_path, kind):
+def test_rendered_package_versions_follow_data_and_stable_repeats(tmp_path, agent_source_factory, kind):
     """Data overrides change rendered bytes and every real manifest version."""
-    source, destination, config, skill, roots, manifests = _rendered_package_fixture(tmp_path, kind)
+    source, destination, config, skill, roots, manifests = _rendered_package_fixture(
+        tmp_path, kind, agent_source_factory
+    )
     first = _apply_authored_cleanup(source, destination, config)
     assert first.returncode == 0, first.stderr
     original = _package_versions(manifests)
@@ -1214,18 +1239,20 @@ def test_rendered_package_versions_follow_data_and_stable_repeats(tmp_path, kind
     assert changed.returncode == 0, changed.stderr
     assert not stale.exists()
     for root in roots:
-        assert (root / "SKILL.md").read_text() == "second|SKILL.md\n"
-        assert (root / "name.tmpl").read_text() == "second|name.tmpl\n"
+        assert (root / "SKILL.md").read_text() == f"second|{_rendered_target_file(kind, root, 'SKILL.md')}\n"
+        assert (root / "name.tmpl").read_text() == f"second|{_rendered_target_file(kind, root, 'name.tmpl')}\n"
     assert all(before != after for before, after in zip(original, _package_versions(manifests), strict=True))
     assert (skill / "SKILL.md.tmpl").read_text() == "{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n"
 
 
 @pytest.mark.parametrize("kind", ["base", "capability"])
-def test_rendered_package_versions_ignore_fixture_location(tmp_path, kind):
+def test_rendered_package_versions_ignore_fixture_location(tmp_path, agent_source_factory, kind):
     """Identical rendered bytes and metadata give the same versions in two checkouts."""
     versions = []
     for name in ("first", "second"):
-        source, destination, config, _, _, manifests = _rendered_package_fixture(tmp_path / name, kind)
+        source, destination, config, _, _, manifests = _rendered_package_fixture(
+            tmp_path / name, kind, agent_source_factory
+        )
         result = _apply_authored_cleanup(source, destination, config)
         assert result.returncode == 0, result.stderr
         versions.append(_package_versions(manifests))
@@ -1233,9 +1260,11 @@ def test_rendered_package_versions_ignore_fixture_location(tmp_path, kind):
 
 
 @pytest.mark.parametrize("kind", ["base", "capability"])
-def test_rendered_package_versions_follow_binary_bytes_and_executable_mode(tmp_path, kind):
+def test_rendered_package_versions_follow_binary_bytes_and_executable_mode(tmp_path, agent_source_factory, kind):
     """Binary bytes and executable mode are part of all manifest versions."""
-    source, destination, config, skill, roots, manifests = _rendered_package_fixture(tmp_path, kind)
+    source, destination, config, skill, roots, manifests = _rendered_package_fixture(
+        tmp_path, kind, agent_source_factory
+    )
     first = _apply_authored_cleanup(source, destination, config)
     assert first.returncode == 0, first.stderr
     original = _package_versions(manifests)
@@ -1255,9 +1284,9 @@ def test_rendered_package_versions_follow_binary_bytes_and_executable_mode(tmp_p
 
 
 @pytest.mark.parametrize("kind", ["base", "capability"])
-def test_rendered_package_cleanup_removes_renamed_and_deleted_templates(tmp_path, kind):
+def test_rendered_package_cleanup_removes_renamed_and_deleted_templates(tmp_path, agent_source_factory, kind):
     """Cleanup tracks rendered names, keeps sibling skills, and converges on repeat apply."""
-    source, destination, config, skill, roots, _ = _rendered_package_fixture(tmp_path, kind)
+    source, destination, config, skill, roots, _ = _rendered_package_fixture(tmp_path, kind, agent_source_factory)
     first = _apply_authored_cleanup(source, destination, config)
     assert first.returncode == 0, first.stderr
     sibling = roots[0].parent / "local-sibling/SKILL.md"
@@ -1268,7 +1297,7 @@ def test_rendered_package_cleanup_removes_renamed_and_deleted_templates(tmp_path
     assert renamed.returncode == 0, renamed.stderr
     for root in roots:
         assert not (root / "name.tmpl").exists()
-        assert (root / "renamed").read_text() == "first|renamed\n"
+        assert (root / "renamed").read_text() == f"first|{_rendered_target_file(kind, root, 'renamed')}\n"
     (skill / "renamed.tmpl").unlink()
     for _ in range(2):
         deleted = _apply_authored_cleanup(source, destination, config)
@@ -1281,7 +1310,7 @@ def test_rendered_package_cleanup_removes_renamed_and_deleted_templates(tmp_path
 
 def test_authored_manifest_normalization_rejects_template_plain_collision(tmp_path):
     """Manifest normalization rejects collisions even without file externals."""
-    source, destination, config, skill, _, _ = _rendered_package_fixture(tmp_path, "capability")
+    source, destination, config, skill, _, _ = _rendered_package_fixture(tmp_path, "capability", None)
     shutil.rmtree(source / ".chezmoiexternals")
     (skill / "SKILL.md").write_text("plain")
     result = _apply_authored_cleanup(source, destination, config)
@@ -1293,15 +1322,14 @@ def test_authored_manifest_normalization_rejects_template_plain_collision(tmp_pa
     ("kind", "state"),
     [
         ("base", "absent"),
-        ("base", "unlisted"),
         ("base", "antigravity"),
         ("capability", "absent"),
         ("capability", "unlisted"),
     ],
 )
-def test_rendered_package_does_not_evaluate_inactive_skill_templates(tmp_path, kind, state):
+def test_rendered_package_does_not_evaluate_inactive_skill_templates(tmp_path, agent_source_factory, kind, state):
     """Inactive authored templates must not require data for an enabled package."""
-    source, destination, config, skill, _, manifests = _rendered_package_fixture(tmp_path, kind)
+    source, destination, config, skill, _, manifests = _rendered_package_fixture(tmp_path, kind, agent_source_factory)
     inactive = skill.parent / "inactive/SKILL.md.tmpl"
     inactive.parent.mkdir()
     inactive.write_text('{{ fail "inactive template rendered" }}')
@@ -1323,7 +1351,7 @@ def test_rendered_package_does_not_evaluate_inactive_skill_templates(tmp_path, k
 
 def test_rendered_package_does_not_evaluate_disabled_environment_templates(tmp_path):
     """A disabled capability cannot stop active package manifests or apply."""
-    source, destination, config, _, roots, manifests = _rendered_package_fixture(tmp_path, "capability")
+    source, destination, config, _, roots, manifests = _rendered_package_fixture(tmp_path, "capability", None)
     config.write_text(
         config.read_text()
         + '\n[data.ai.plugin_bridge]\nenvironment = "mydev"\n'
@@ -1346,3 +1374,238 @@ def test_rendered_package_does_not_evaluate_disabled_environment_templates(tmp_p
     assert changed.returncode == 0, changed.stderr
     assert _package_versions(manifests) == versions
     assert not list(destination.rglob("disabled"))
+
+
+def _write_skill(fixture, name: str, files: dict[str, str | bytes]) -> Path:
+    skill = fixture.authored / "ai/skills" / name
+    for relative, contents in files.items():
+        path = skill / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        if isinstance(contents, bytes):
+            path.write_bytes(contents)
+        else:
+            path.write_text(contents, encoding="utf-8")
+    return skill
+
+
+def _managed_files(fixture) -> set[str]:
+    result = fixture.run("managed", "--include=files")
+    assert result.returncode == 0, result.stderr
+    return set(result.stdout.splitlines())
+
+
+def _skill_views(managed: set[str], skill: str) -> set[str]:
+    return {view for view, root in AUTHORED_SKILL_ROOTS.items() if f"{root}/{skill}/SKILL.md" in managed}
+
+
+def _bundle_versions(fixture) -> list[str]:
+    return [json.loads((fixture.destination / path).read_text())["version"] for path in BUNDLE_MANIFESTS]
+
+
+def _apply_and_check(fixture) -> None:
+    result = fixture.run("apply")
+    assert result.returncode == 0, result.stderr
+
+
+def _assert_stable(fixture) -> None:
+    result = fixture.run("--no-pager", "diff")
+    assert result.returncode == 0, result.stderr
+    assert result.stdout == ""
+
+
+def test_hook_prepares_bare_skills_for_managed_cat_data_and_diff(agent_source_fixture):
+    """The read-source-state hook publishes every view before chezmoi reads the source state."""
+    fixture = agent_source_fixture
+    fixture.write_config(ANTIGRAVITY_ON)
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n", "references/notes.md": "notes\n"})
+    assert not (fixture.source / ".agent-sources-manifest.json").exists()
+
+    managed = _managed_files(fixture)
+    assert _skill_views(managed, "alpha") == set(AUTHORED_SKILL_ROOTS)
+    assert all(f"{root}/alpha/references/notes.md" in managed for root in AUTHORED_SKILL_ROOTS.values())
+    manifest = json.loads((fixture.source / ".agent-sources-manifest.json").read_text())
+    assert manifest["state"] == "complete"
+
+    target = fixture.destination / AUTHORED_SKILL_ROOTS["claude"] / "alpha/SKILL.md"
+    cat = fixture.run("cat", str(target))
+    assert cat.returncode == 0, cat.stderr
+    assert cat.stdout == "# Alpha\n"
+    data = fixture.run("data", "--format=json")
+    assert data.returncode == 0, data.stderr
+    inventory = json.loads(data.stdout)["agent_source_inventory"]
+    assert inventory["generator"] == "skill_filter.agent_sources"
+    assert set(inventory["bare_skills"]) == {"alpha"}
+    diff = fixture.run("--no-pager", "diff")
+    assert diff.returncode == 0, diff.stderr
+    assert "alpha/SKILL.md" in diff.stdout
+
+    _apply_and_check(fixture)
+    for root in AUTHORED_SKILL_ROOTS.values():
+        assert (fixture.destination / root / "alpha/SKILL.md").read_text() == "# Alpha\n"
+    _assert_stable(fixture)
+
+
+def test_added_bare_skill_deploys_without_catalog_entry(agent_source_fixture):
+    """A new skill directory deploys to every default view and changes the bundle version."""
+    fixture = agent_source_fixture
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
+    _apply_and_check(fixture)
+    versions = _bundle_versions(fixture)
+
+    _write_skill(fixture, "beta", {"SKILL.md": "# Beta\n"})
+    _apply_and_check(fixture)
+    for view, root in AUTHORED_SKILL_ROOTS.items():
+        assert (fixture.destination / root / "beta/SKILL.md").is_file() is (view != "antigravity")
+    changed = _bundle_versions(fixture)
+    assert all(before != after for before, after in zip(versions, changed, strict=True))
+    _assert_stable(fixture)
+    assert _bundle_versions(fixture) == changed
+
+
+@pytest.mark.parametrize("antigravity", [True, False], ids=["gate-on", "gate-off"])
+@pytest.mark.parametrize(
+    ("state", "expected"),
+    [("absent", set()), ("claude", {"claude"}), ("antigravity", {"antigravity"})],
+)
+def test_bare_skill_exceptions_ignore_absent_single_host_and_antigravity_gate(
+    agent_source_fixture, state, expected, antigravity
+):
+    """Exceptions and the Antigravity gate select views through the generated ignore files."""
+    fixture = agent_source_fixture
+    fixture.write_config(f'[data.ai.skills.authored]\nfixture = "{state}"\n' + (ANTIGRAVITY_ON if antigravity else ""))
+    _write_skill(fixture, "fixture", {"SKILL.md": "# Fixture\n"})
+    _write_skill(fixture, "other", {"SKILL.md": "# Other\n"})
+    if not antigravity:
+        expected = expected - {"antigravity"}
+    everything = set(AUTHORED_SKILL_ROOTS) if antigravity else set(AUTHORED_SKILL_ROOTS) - {"antigravity"}
+
+    managed = _managed_files(fixture)
+    assert _skill_views(managed, "fixture") == expected
+    assert _skill_views(managed, "other") == everything
+    _apply_and_check(fixture)
+    for view, root in AUTHORED_SKILL_ROOTS.items():
+        assert (fixture.destination / root / "fixture").exists() is (view in expected)
+    _assert_stable(fixture)
+
+
+@pytest.mark.parametrize(("state", "succeeds"), [("present", False), ("claude", False), ("absent", True)])
+def test_bare_skill_exception_for_missing_skill_fails_unless_absent(agent_source_fixture, state, succeeds):
+    """Only an absent exception may name a skill without a source directory."""
+    fixture = agent_source_fixture
+    fixture.write_config(f'[data.ai.skills.authored]\nmissing = "{state}"\n')
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
+    result = fixture.run("managed", "--include=files")
+    assert (result.returncode == 0) is succeeds, result.stderr
+    if not succeeds:
+        assert "ai.skills.authored.missing" in result.stderr
+
+
+def test_bare_skill_template_change_updates_content_and_base_version(agent_source_fixture):
+    """Editing a SKILL.md.tmpl updates every target and every bundle version on the next apply."""
+    fixture = agent_source_fixture
+    fixture.write_config('[data.fixture]\nvalue = "data"\n')
+    skill = _write_skill(fixture, "alpha", {"SKILL.md.tmpl": "first {{ .fixture.value }}\n"})
+    roots = [root for view, root in AUTHORED_SKILL_ROOTS.items() if view != "antigravity"]
+    _apply_and_check(fixture)
+    assert all((fixture.destination / root / "alpha/SKILL.md").read_text() == "first data\n" for root in roots)
+    versions = _bundle_versions(fixture)
+
+    (skill / "SKILL.md.tmpl").write_text("second {{ .fixture.value }}\n", encoding="utf-8")
+    _apply_and_check(fixture)
+    assert all((fixture.destination / root / "alpha/SKILL.md").read_text() == "second data\n" for root in roots)
+    changed = _bundle_versions(fixture)
+    assert all(before != after for before, after in zip(versions, changed, strict=True))
+    _apply_and_check(fixture)
+    assert _bundle_versions(fixture) == changed
+    _assert_stable(fixture)
+
+
+def test_literal_dot_executable_empty_and_attribute_like_names_deploy(agent_source_fixture):
+    """Canonical names deploy literally; modes and empty files survive the projection."""
+    fixture = agent_source_fixture
+    files: dict[str, str | bytes] = {
+        "SKILL.md": "# Alpha\n",
+        ".hidden": "hidden\n",
+        ".config/settings": "settings\n",
+        "run.sh": "#!/bin/sh\necho run\n",
+        "empty.txt": b"",
+        "exact_name.md": "exact\n",
+        "dot_name": "dot\n",
+        "executable_tool": "tool\n",
+        "private_dir/run_me": "nested\n",
+    }
+    skill = _write_skill(fixture, "alpha", files)
+    (skill / "run.sh").chmod(0o755)
+    _apply_and_check(fixture)
+    for view, root in AUTHORED_SKILL_ROOTS.items():
+        target = fixture.destination / root / "alpha"
+        if view == "antigravity":
+            assert not target.exists()
+            continue
+        deployed = {path.relative_to(target).as_posix() for path in target.rglob("*") if path.is_file()}
+        assert deployed == set(files)
+        for relative, contents in files.items():
+            expected = contents if isinstance(contents, bytes) else contents.encode()
+            assert (target / relative).read_bytes() == expected
+        assert (target / "run.sh").stat().st_mode & 0o111
+        assert not (target / "executable_tool").stat().st_mode & 0o111
+    _assert_stable(fixture)
+
+
+def test_failed_preparation_keeps_previous_generated_tree(agent_source_fixture):
+    """Invalid sources stop chezmoi and leave the previous generated tree untouched."""
+    fixture = agent_source_fixture
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
+    _managed_files(fixture)
+    manifest = fixture.source / ".agent-sources-manifest.json"
+    inventory = fixture.source / ".chezmoidata/agent-source-inventory.json"
+    before = (manifest.read_bytes(), inventory.read_bytes())
+
+    broken = _write_skill(fixture, "broken", {"notes.md": "no skill file\n"})
+    failed = fixture.run("managed", "--include=files")
+    assert failed.returncode != 0
+    assert "missing SKILL.md" in failed.stderr
+    assert (manifest.read_bytes(), inventory.read_bytes()) == before
+
+    shutil.rmtree(broken)
+    assert _skill_views(_managed_files(fixture), "alpha") == set(AUTHORED_SKILL_ROOTS) - {"antigravity"}
+
+
+def test_generated_paths_are_gitignored(tmp_path, checkout_config):
+    """Every path that preparation publishes into the real checkout is ignored by git."""
+    source = REPOSITORY_ROOT / "src/chezmoi"
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--source",
+            str(REPOSITORY_ROOT),
+            "--destination",
+            str(tmp_path / "home"),
+            "--config",
+            str(checkout_config),
+            "--persistent-state",
+            str(tmp_path / "chezmoistate.boltdb"),
+            "--cache",
+            str(tmp_path / "cache"),
+            "managed",
+            "--include=files",
+        ],
+        capture_output=True,
+        check=False,
+        text=True,
+        timeout=600,
+    )
+    assert result.returncode == 0, result.stderr
+    manifest = json.loads((source / ".agent-sources-manifest.json").read_text())
+    generated = [f"src/chezmoi/{path}" for path in (*manifest["paths"], ".agent-sources-manifest.json")]
+    assert generated
+    for path in generated:
+        ignored = subprocess.run(["git", "-C", str(REPOSITORY_ROOT), "check-ignore", "-q", path], check=False)
+        assert ignored.returncode == 0, f"{path} is not ignored by git"
+    status = subprocess.run(
+        ["git", "-C", str(REPOSITORY_ROOT), "status", "--porcelain", "--untracked-files=all", "--", *generated],
+        capture_output=True,
+        check=True,
+        text=True,
+    )
+    assert status.stdout == ""

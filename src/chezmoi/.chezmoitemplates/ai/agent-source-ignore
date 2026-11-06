@@ -1,0 +1,40 @@
+{{- /*
+  Render one generated subdirectory .chezmoiignore view from ai/agent-sources.
+  Arguments: root (root context) and view (marketplace-plugins, cursor-local, or antigravity).
+  Preparation writes every view of every source; these patterns drop unselected ones.
+*/ -}}
+{{- $bare := (includeTemplate "ai/agent-sources" .root | fromJson).bare -}}
+{{- $lines := list -}}
+{{- if eq .view "marketplace-plugins" -}}
+{{-   range $name, $skill := $bare.skills -}}
+{{-     if not (has "portable" $skill.views) -}}
+{{-       $lines = concat $lines (list (printf "mkobit-dotfiles/skills/%s" $name) (printf "mkobit-dotfiles/skills/%s/**" $name)) -}}
+{{-     end -}}
+{{-     range $host := list "claude" "codex" "cursor" -}}
+{{-       if not (has $host $skill.views) -}}
+{{-         $lines = concat $lines (list (printf "mkobit-dotfiles/%s/skills/%s" $host $name) (printf "mkobit-dotfiles/%s/skills/%s/**" $host $name)) -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- else if eq .view "cursor-local" -}}
+{{-   range $name, $skill := $bare.skills -}}
+{{-     if not (has "cursor_local" $skill.views) -}}
+{{-       $lines = concat $lines (list (printf "mkobit-dotfiles/skills/%s" $name) (printf "mkobit-dotfiles/skills/%s/**" $name)) -}}
+{{-     end -}}
+{{-   end -}}
+{{- else if eq .view "antigravity" -}}
+{{-   if not $bare.antigravity -}}
+{{-     $lines = list "*" -}}
+{{-   else -}}
+{{-     range $name, $skill := $bare.skills -}}
+{{-       if not (has "antigravity" $skill.views) -}}
+{{-         $lines = concat $lines (list $name (printf "%s/**" $name)) -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- else -}}
+{{-   fail (printf "ai/agent-source-ignore: unknown view %q" .view) -}}
+{{- end -}}
+{{- range $line := $lines }}
+{{ $line }}
+{{- end }}

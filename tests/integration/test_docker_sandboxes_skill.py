@@ -92,11 +92,10 @@ def test_skill_does_not_grant_lifecycle_or_upload(command: str, skill_dir: Path)
 
 
 @pytest.mark.parametrize("installed_old_skill", [False, True], ids=["fresh", "upgrade"])
-def test_split_skills_deploy_and_remove_old_copies(tmp_path: Path, installed_old_skill: bool) -> None:
+def test_split_skills_deploy_and_remove_old_copies(agent_source_fixture, installed_old_skill: bool) -> None:
     """Deploy both complete trees and remove retired files without changing other packages."""
-    source, destination = tmp_path / "source", tmp_path / "destination"
-    destination.mkdir()
-    _initialize_authored_cleanup_source(source, include_external=True)
+    source, destination = agent_source_fixture.repo, agent_source_fixture.destination
+    _initialize_authored_cleanup_source(source)
     catalog = tomllib.loads((REPO_ROOT / "src/chezmoi/.chezmoidata/ai/skills/authored.toml").read_text())
     selected = {
         name: catalog["ai"]["skills"]["authored"][name]
@@ -125,10 +124,10 @@ def test_split_skills_deploy_and_remove_old_copies(tmp_path: Path, installed_old
             REPO_ROOT / "src/chezmoi" / target / ".chezmoiremove.tmpl",
             source / "src/chezmoi" / target / ".chezmoiremove.tmpl",
         )
-    config = tmp_path / "chezmoi.toml"
+    config = agent_source_fixture.config
 
     def write_config(states: dict[str, str]) -> None:
-        config.write_text(
+        agent_source_fixture.write_config(
             "[data.ai.skills.authored]\n"
             + "".join(f'{name} = "{state}"\n' for name, state in states.items())
             + '\n[data.ai.skills.external]\n[data.ai.agents.external]\n[data.local.bin.agy]\ninstallation_method = "system"\n'

@@ -25,18 +25,43 @@ OpenCode V1 receives local package paths in `.config/opencode/opencode.json` whe
 ### Authored skills
 
 Create `src/ai/skills/<name>/SKILL.md` for plain authored skill content, or `SKILL.md.tmpl` to use chezmoi Go templates.
-Declare `<name> = "present"` in the [authored catalog](../chezmoi/.chezmoidata/ai/skills/authored.toml).
-The [base externals](../chezmoi/.chezmoiexternals/ai-authored-skills.toml.tmpl) and [overlay capability externals](../chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl) deploy nested authored skill files.
-Only authored skill files with a final `.tmpl` suffix use template rendering; that suffix is removed from the output name.
-Plain files keep their bytes, and both forms keep executable modes.
-Source files that map to the same output path cause apply to fail.
+Preparation discovers every skill directory that holds `SKILL.md` or `SKILL.md.tmpl`; a skill directory without either fails preparation.
+A new skill deploys to every selected view without a catalog entry.
+The [authored catalog](../chezmoi/.chezmoidata/ai/skills/authored.toml) holds exceptions only: `"absent"`, or one of `"claude"`, `"codex"`, `"cursor"`, and `"antigravity"`.
+An exception for a skill without a source directory fails unless its value is `"absent"`.
 
-The [file entry template](../chezmoi/.chezmoitemplates/ai/authored-file-entry) renders templates with the effective merged data from `.chezmoidata/` and `[data.*]` configuration.
+The [`read-source-state.pre` hook](../chezmoi/.chezmoi.toml.tmpl) runs the [preparation launcher](../python/skill_filter/prepare-agent-sources.sh) before chezmoi reads the source state.
+The [projection module](../python/skill_filter/skill_filter/agent_sources.py) writes native chezmoi source entries for every view into `src/chezmoi`, all or nothing, and lists them in `src/chezmoi/.agent-sources-manifest.json`.
+These generated paths are gitignored; edit the canonical sources, never the generated entries.
+A failed preparation stops chezmoi and keeps the previous generated tree.
+
+| Generated source path in `src/chezmoi` | Target view |
+|---|---|
+| `dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills/exact_<name>/` | Portable package |
+| `dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/<host>/skills/exact_<name>/` | Claude, Codex, and Cursor packages |
+| `dot_cursor/plugins/local/mkobit-dotfiles/skills/exact_<name>/` | Cursor local package |
+| `dot_gemini/antigravity-cli/skills/exact_<name>/` | Antigravity |
+| `.chezmoidata/agent-source-inventory.json` | Data key `agent_source_inventory` |
+
+Generated subdirectory `.chezmoiignore.tmpl` files drop unselected views through [`ai/agent-source-ignore`](../chezmoi/.chezmoitemplates/ai/agent-source-ignore), which reads the selection from [`ai/agent-sources`](../chezmoi/.chezmoitemplates/ai/agent-sources).
+Host views follow `ai.plugin_bridge.default_hosts`, or `ai.plugin_bridge.capabilities.mkobit-dotfiles.hosts` when set; Antigravity also requires `local.bin.agy.installation_method != "none"`.
+`agent_source_inventory` is a reserved data key that preparation generates; never set it in `.chezmoi.toml.tmpl` or `.chezmoidata/`.
+A missing inventory renders as empty, so `chezmoi init` stays valid before the first preparation.
+
+Canonical names deploy literally: preparation encodes leading dots and names that look like chezmoi attributes, and keeps executable modes and empty files.
+Each skill root is `exact_`, so a deleted or renamed source file is removed on the next apply; the shared `skills/` directories stay non-exact because upstream archive externals also write there.
+Only authored skill files with a final `.tmpl` suffix use template rendering; that suffix is removed from the output name.
+A template that renders empty output is not deployed.
+Source files that map to the same output path cause preparation to fail.
+
+Chezmoi renders generated templates natively with the effective merged data from `.chezmoidata/` and `[data.*]` configuration.
 Configuration values take precedence over catalog defaults at the same key path.
-The [render context](../chezmoi/.chezmoitemplates/ai/authored-render-context) sets `chezmoi.sourceFile` to the canonical source path and `chezmoi.targetFile` to the rendered skill-relative or wrapper package-relative name.
+`chezmoi.sourceFile` is the generated source path, for example `dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills/exact_<name>/SKILL.md.tmpl`, and `chezmoi.targetFile` is the absolute target path.
 Use `chezmoi.destDir` for destination paths and `dig` with safe defaults for optional data.
 Use deterministic data; clocks, random values, and live lookups can change package versions on each apply.
-The [base version template](../chezmoi/.chezmoitemplates/ai/authored-base-version) and [capability manifest](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest) calculate versions from rendered content, plain file hashes, executable modes, and selection data.
+The [base version template](../chezmoi/.chezmoitemplates/ai/authored-base-version) calculates the bundle version from inventory tree digests, selections, external skill selections, and rendered digests of templates in selected skills.
+The [capability manifest](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest) calculates capability versions from rendered content, plain file hashes, executable modes, and selection data.
+The [capability externals](../chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl) still deploy overlay capability skill files.
 
 The [technical-writing template](skills/technical-writing/SKILL.md.tmpl) accepts optional `ai.skills.content.technical-writing.description` and `ai.skills.content.technical-writing.instructions` strings.
 A non-empty description replaces the YAML description with a quoted scalar.
@@ -51,7 +76,8 @@ instructions = "Follow the project style guide."
 ```
 
 Rendered output uses the existing portable, host, Cursor local, and gated Antigravity paths described above.
-The [base cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-skills-cleanup.sh.tmpl) and [capability cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl) remove owned output with rendered names.
+The [base cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-skills-cleanup.sh.tmpl) empties deselected skill roots that the catalog names; the generated ignore patterns also hide those roots from `.chezmoiremove`, so the empty root directory remains.
+The [capability cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl) removes owned capability output with rendered names.
 The [plugin bridge](../python/skill_filter/skill_filter/plugin_bridge.py) registers the generated packages after apply.
 Rendering leaves canonical sources unchanged; edit those sources, not deployed copies.
 Third-party packages, host conversion, and native package registration keep their existing behavior.

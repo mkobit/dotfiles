@@ -2,12 +2,26 @@ import json
 import os
 import re
 import shlex
+import shutil
 import subprocess
 from collections.abc import Iterable
+from dataclasses import dataclass
 from pathlib import Path
 
 import pytest
 from chezmoi_test_data import required_installation_method
+
+_REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
+_BUNDLE = Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles")
+_AGENT_SOURCE_FILES = (
+    Path(".chezmoitemplates/python/filter-interpreter"),
+    Path(".chezmoidata/ai/plugin-bridge.toml"),
+    _BUNDLE / "plugin.json.tmpl",
+    *(_BUNDLE / host / f"dot_{host}-plugin/plugin.json.tmpl" for host in ("claude", "codex", "cursor")),
+    Path("dot_cursor/plugins/local/mkobit-dotfiles/exact_dot_cursor-plugin/plugin.json.tmpl"),
+    Path("dot_local/share/agent-plugins/marketplace/dot_agents/plugins/marketplace.json.tmpl"),
+    Path("dot_local/share/agent-plugins/marketplace/dot_claude-plugin/marketplace.json.tmpl"),
+)
 
 
 def pytest_configure(config):
@@ -175,3 +189,125 @@ def pytest_generate_tests(metafunc):
     if "shellcheck_candidate" in metafunc.fixturenames:
         candidates = _shellcheck_candidates()
         metafunc.parametrize("shellcheck_candidate", candidates, ids=lambda c: c["sourceRelative"])
+
+
+@dataclass(frozen=True)
+class AgentSourceFixture:
+    """An isolated base-like checkout whose config runs the real preparation hook."""
+
+    repo: Path
+    source: Path
+    authored: Path
+    destination: Path
+    config: Path
+    state: Path
+    cache: Path
+
+    @classmethod
+    def create(cls, root: Path) -> AgentSourceFixture:
+        """Build ``root/repo`` with the real agent source templates, launcher, and module."""
+        repo = root / "repo"
+        source = repo / "src/chezmoi"
+        origin = _REPOSITORY_ROOT / "src/chezmoi"
+        shutil.copytree(origin / ".chezmoitemplates/ai", source / ".chezmoitemplates/ai")
+        for relative in _AGENT_SOURCE_FILES:
+            (source / relative).parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(origin / relative, source / relative)
+        python_origin = _REPOSITORY_ROOT / "src/python/skill_filter"
+        python_target = repo / "src/python/skill_filter"
+        (python_target / "skill_filter").mkdir(parents=True)
+        for name in ("prepare-agent-sources.sh", "resolve-interpreter.sh"):
+            shutil.copy2(python_origin / name, python_target / name)
+        for module in (python_origin / "skill_filter").glob("*.py"):
+            shutil.copy2(module, python_target / "skill_filter" / module.name)
+        (repo / "src/ai/skills").mkdir(parents=True)
+        (repo / ".chezmoiroot").write_text("src/chezmoi\n", encoding="utf-8")
+        subprocess.run(["git", "init", "--quiet", str(repo)], check=True)
+        destination = root / "destination"
+        destination.mkdir()
+        fixture = cls(
+            repo=repo,
+            source=source,
+            authored=repo / "src",
+            destination=destination,
+            config=root / "chezmoi.toml",
+            state=root / "chezmoistate.boltdb",
+            cache=root / "cache",
+        )
+        fixture.write_config()
+        return fixture
+
+    @property
+    def launcher(self) -> Path:
+        return self.repo / "src/python/skill_filter/prepare-agent-sources.sh"
+
+    def write_config(self, data: str = "", *, counter: Path | None = None) -> None:
+        """Write the hook as base .chezmoi.toml.tmpl renders it, then extra TOML data.
+
+        With ``counter``, the hook appends one line per run before it runs the launcher.
+        """
+        arguments = [str(self.source), str(self.destination)]
+        if counter is None:
+            hook = f"command = {json.dumps(str(self.launcher))}\nargs = {json.dumps(arguments)}\n"
+        else:
+            script = f'echo once >> {shlex.quote(str(counter))} && exec "$0" "$@"'
+            hook = f'command = "sh"\nargs = {json.dumps(["-c", script, str(self.launcher), *arguments])}\n'
+        self.config.write_text(
+            "[hooks.read-source-state.pre]\n"
+            + hook
+            + '[data.ai.plugin_bridge]\ndefault_hosts = ["claude", "codex", "cursor"]\n'
+            + data,
+            encoding="utf-8",
+        )
+
+    def run(self, *args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                "chezmoi",
+                "--source",
+                str(self.repo),
+                "--destination",
+                str(self.destination),
+                "--config",
+                str(self.config),
+                "--persistent-state",
+                str(self.state),
+                "--cache",
+                str(self.cache),
+                *args,
+            ],
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=120,
+        )
+
+
+@pytest.fixture
+def agent_source_fixture(tmp_path):
+    """Return an isolated base-like checkout whose config runs the real preparation hook."""
+    return AgentSourceFixture.create(tmp_path)
+
+
+@pytest.fixture
+def agent_source_factory():
+    """Return ``AgentSourceFixture.create`` for tests that need several or optional checkouts."""
+    return AgentSourceFixture.create
+
+
+@pytest.fixture
+def checkout_config(tmp_path):
+    """Write a config that runs the base preparation hook on this checkout, as base init renders it."""
+    source = _REPOSITORY_ROOT / "src/chezmoi"
+    launcher = _REPOSITORY_ROOT / "src/python/skill_filter/prepare-agent-sources.sh"
+    destination = tmp_path / "checkout-destination"
+    destination.mkdir()
+    config = tmp_path / "checkout-chezmoi.toml"
+    config.write_text(
+        "[hooks.read-source-state.pre]\n"
+        f"command = {json.dumps(str(launcher))}\n"
+        f"args = {json.dumps([str(source), str(destination)])}\n"
+        '[data.ai.plugin_bridge]\ndefault_hosts = ["claude", "codex", "cursor"]\n',
+        encoding="utf-8",
+    )
+    return config

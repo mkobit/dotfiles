@@ -36,11 +36,13 @@ def test_sbx_release_catalog_pins_v0_51_0_with_verified_linux_checksums():
     }
 
 
-def test_sbx_does_not_manage_legacy_host_integration_targets():
+def test_sbx_does_not_manage_legacy_host_integration_targets(checkout_config):
     """Keep SBX limited to its binary rather than host-managed launchers or kits."""
     result = subprocess.run(
         [
             "chezmoi",
+            "--config",
+            str(checkout_config),
             "--source",
             str(CHEZMOI_SOURCE),
             "managed",

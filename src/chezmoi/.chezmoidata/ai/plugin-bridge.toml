@@ -30,4 +30,3 @@ order = 110
 description = "Base dotfiles capability bundle."
 acquisition_destination = true
 marketplace = "dotfiles"
-hosts = ["claude", "codex", "cursor"]

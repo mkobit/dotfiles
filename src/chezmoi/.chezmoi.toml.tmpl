@@ -1,3 +1,10 @@
+# Publish generated agent source entries before chezmoi reads source state.
+# The launcher writes only gitignored paths that its manifest lists.
+# agent_source_inventory is generated data; never set it here.
+[hooks.read-source-state.pre]
+command = {{ joinPath .chezmoi.sourceDir "../python/skill_filter/prepare-agent-sources.sh" | quote }}
+args = [{{ .chezmoi.sourceDir | quote }}, {{ .chezmoi.destDir | quote }}]
+
 [scriptEnv]
 MISE_CONFIG_DIR = "{{ .chezmoi.destDir }}/.config/mise"
 MISE_DATA_DIR   = "{{ .chezmoi.destDir }}/.local/share/mise"
@@ -6,6 +13,10 @@ MISE_STATE_DIR  = "{{ .chezmoi.destDir }}/.local/state/mise"
 # Upstream agent plugins are acquired by chezmoi and registered locally.
 [data.ai.plugins.superpowers]
 installation_method = "chezmoi_external"
+
+# Hosts that authored plugins and bare skills target unless a capability sets hosts.
+[data.ai.plugin_bridge]
+default_hosts = ["claude", "codex", "cursor"]
 
 # BOM — static binaries strongly preferred over package managers.
 # github_releases = static binary download via chezmoi externals

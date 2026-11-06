@@ -38,24 +38,22 @@ def _render(path: Path, state: str, source: Path = ROOT) -> dict:
 
 
 @pytest.mark.parametrize("host", MANIFESTS)
-def test_skill_changes_plugin_version(host: str, tmp_path: Path) -> None:
-    source = tmp_path / "source"
-    shutil.copytree(ROOT / "src/chezmoi/.chezmoidata", source / "src/chezmoi/.chezmoidata")
-    for name in ("authored-render-context", "authored-file-digest", "authored-base-version"):
-        target = source / "src/chezmoi/.chezmoitemplates/ai" / name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(ROOT / "src/chezmoi/.chezmoitemplates/ai" / name, target)
-    (source / ".chezmoiroot").write_text("src/chezmoi\n")
-    manifest = MANIFESTS[host]
-    target = source / manifest
-    target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(ROOT / manifest, target)
-    skill = source / "src/ai/skills/sbx-sandboxes/SKILL.md"
+def test_skill_changes_plugin_version(host: str, agent_source_fixture) -> None:
+    fixture = agent_source_fixture
+    manifest = fixture.repo / MANIFESTS[host]
+    skill = fixture.authored / "ai/skills/sbx-sandboxes/SKILL.md"
     skill.parent.mkdir(parents=True)
+
+    def version() -> str:
+        override = json.dumps({"ai": {"skills": {"authored": {"sbx-sandboxes": "present"}}}})
+        result = fixture.run("execute-template", "--override-data", override, "-f", str(manifest))
+        assert result.returncode == 0, result.stderr
+        return json.loads(result.stdout)["version"]
+
     skill.write_text("# SBX sandboxes\n")
-    before = _render(manifest, "present", source)["version"]
+    before = version()
     skill.write_text("# SBX sandboxes\nUpdated skill.\n")
-    assert _render(manifest, "present", source)["version"] != before
+    assert version() != before
 
 
 def test_retired_hook_files_are_removed_on_apply(tmp_path: Path) -> None:

@@ -6,6 +6,21 @@
 # Local git worktrees (superpowers:using-git-worktrees convention)
 .worktrees/
 
+# Generated agent source projection (src/python/skill_filter/skill_filter/agent_sources.py)
+/src/chezmoi/.agent-sources-manifest.json
+/src/chezmoi/.agent-sources-manifest.json.tmp
+/src/chezmoi/.agent-sources.lock
+/src/chezmoi/.agent-sources.staging/
+/src/chezmoi/.chezmoidata/agent-source-inventory.json
+/src/chezmoi/dot_local/share/agent-plugins/marketplace/plugins/.chezmoiignore.tmpl
+/src/chezmoi/dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills/
+/src/chezmoi/dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/*/skills/
+/src/chezmoi/dot_local/share/agent-plugins/marketplace/plugins/exact_*/
+/src/chezmoi/dot_cursor/plugins/local/.chezmoiignore.tmpl
+/src/chezmoi/dot_cursor/plugins/local/mkobit-dotfiles/skills/
+/src/chezmoi/dot_cursor/plugins/local/exact_*/
+/src/chezmoi/dot_gemini/antigravity-cli/skills/
+
 # Antigravity / agy editor artifacts (also in the chezmoi global gitignore)
 .antigravity/
 .antigravitycli/

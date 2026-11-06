@@ -26,23 +26,10 @@
 {{- $selectedSkills := dict -}}
 {{- $authoredPackagePaths := dict -}}
 {{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
-{{- range $skillName, $state := dig "authored" (dict) $cfg -}}
-{{-   if eq $state "present" -}}
-{{-     $_ := set $authoredPackagePaths (printf "%s/%s" $portable $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
-{{-     if $antigravityEnabled -}}
-{{-       $_ := set $authoredPackagePaths (printf "%s/%s" $antigravity $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
-{{-     end -}}
-{{-     range $_, $skillsDir := $tools -}}
-{{-       $_ := set $authoredPackagePaths (printf "%s/%s" $skillsDir $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
-{{-     end -}}
-{{-     $_ := set $authoredPackagePaths (printf "%s/%s" $cursorLocal $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
-{{-   else if hasKey $tools $state -}}
-{{-     $_ := set $authoredPackagePaths (printf "%s/%s" (index $tools $state) $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
-{{-     if eq $state "cursor" -}}
-{{-       $_ := set $authoredPackagePaths (printf "%s/%s" $cursorLocal $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
-{{-     end -}}
-{{-   else if and (eq $state "antigravity") $antigravityEnabled -}}
-{{-     $_ := set $authoredPackagePaths (printf "%s/%s" $antigravity $skillName) (printf "ai.skills.authored.%s" $skillName) -}}
+{{- $bareViews := dig "agent_source_inventory" "bare_views" (dict) . -}}
+{{- range $skillName, $skill := (includeTemplate "ai/agent-sources" . | fromJson).bare.skills -}}
+{{-   range $view := $skill.views -}}
+{{-     $_ := set $authoredPackagePaths (printf "%s/%s" (index $bareViews $view) $skillName) (printf "bare skill %s" $skillName) -}}
 {{-   end -}}
 {{- end -}}
 {{- range $sourceName, $source := $cfg.external -}}

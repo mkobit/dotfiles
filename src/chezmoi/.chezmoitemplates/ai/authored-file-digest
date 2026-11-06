@@ -1,7 +1,14 @@
-{{- /* Hash the rendered template bytes, or read plain files with a binary-safe hash tool. */ -}}
+{{- /*
+  Digest one authored file in process. Arguments: root, path (absolute canonical
+  path), target (rendered relative name), and sha256 (the inventory hash).
+  Templates hash their rendered bytes; plain files return the inventory sha256.
+  Callers without an inventory record (authored plugins until they move to the
+  inventory) hash the file bytes with include.
+*/ -}}
 {{- if hasSuffix ".tmpl" .path -}}
-{{-   $context := includeTemplate "ai/authored-render-context" . | fromJson -}}
-{{-   includeTemplate .path $context | sha256sum -}}
+{{-   includeTemplate .path (includeTemplate "ai/authored-render-context" . | fromJson) | sha256sum -}}
+{{- else if hasKey . "sha256" -}}
+{{-   .sha256 -}}
 {{- else -}}
-{{-   output "shasum" "-a" "256" .path | trim | splitList " " | first -}}
+{{-   include .path | sha256sum -}}
 {{- end -}}

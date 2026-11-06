@@ -1,0 +1,59 @@
+{{- /*
+  Join the generated agent source inventory with control-plane selection data.
+  Input is the root context; output is JSON that every consumer shares:
+  {"bare": {"enabled_hosts", "antigravity", "skills": {s: {"state", "views"}}}, "plugins": {}}.
+  A missing inventory renders empty, so chezmoi init and a cold chezmoi data stay valid.
+*/ -}}
+{{- $inventory := dig "agent_source_inventory" (dict) . -}}
+{{- if $inventory -}}
+{{-   if or (ne (toString (dig "schema" "" $inventory)) "1") (ne (dig "generator" "" $inventory) "skill_filter.agent_sources") -}}
+{{-     fail "agent_source_inventory: unsupported schema or generator (the key is generated; never set it in configuration)" -}}
+{{-   end -}}
+{{- end -}}
+{{- $bareSkills := dig "bare_skills" (dict) $inventory -}}
+{{- $bridge := dig "ai" "plugin_bridge" (dict) . -}}
+{{- if and (not (hasKey $bridge "default_hosts")) (or $bareSkills (dig "plugins" (dict) $inventory)) -}}
+{{-   fail "ai.plugin_bridge.default_hosts is required when agent sources are discovered" -}}
+{{- end -}}
+{{- $hosts := list "claude" "codex" "cursor" -}}
+{{- $enabledHosts := dig "capabilities" "mkobit-dotfiles" "hosts" (dig "default_hosts" (list) $bridge) $bridge -}}
+{{- range $host := $enabledHosts -}}
+{{-   if not (has $host $hosts) -}}
+{{-     fail (printf "mkobit-dotfiles hosts: unknown host %q (expected one of %s)" $host (join ", " $hosts)) -}}
+{{-   end -}}
+{{- end -}}
+{{- $antigravity := ne (dig "local" "bin" "agy" "installation_method" "none" .) "none" -}}
+{{- $exceptions := dig "ai" "skills" "authored" (dict) . -}}
+{{- $states := concat (list "present" "absent" "antigravity") $hosts -}}
+{{- if $inventory -}}
+{{-   range $name, $state := $exceptions -}}
+{{-     if not (has $state $states) -}}
+{{-       fail (printf "ai.skills.authored.%s: state must be one of %s, got %q" $name (join ", " (sortAlpha $states)) $state) -}}
+{{-     end -}}
+{{-     if and (not (hasKey $bareSkills $name)) (ne $state "absent") -}}
+{{-       fail (printf "ai.skills.authored.%s: no authored skill src/ai/skills/%s; only \"absent\" may name a missing skill" $name $name) -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $skills := dict -}}
+{{- range $name, $_ := $bareSkills -}}
+{{-   $state := dig $name "present" $exceptions -}}
+{{-   $views := list -}}
+{{-   if eq $state "present" -}}
+{{-     $views = append $views "portable" -}}
+{{-   end -}}
+{{-   range $host := $hosts -}}
+{{-     if and (has $host $enabledHosts) (or (eq $state "present") (eq $state $host)) -}}
+{{-       $views = append $views $host -}}
+{{-     end -}}
+{{-   end -}}
+{{-   if or (eq $state "present") (eq $state "cursor") -}}
+{{-     $views = append $views "cursor_local" -}}
+{{-   end -}}
+{{-   if and $antigravity (or (eq $state "present") (eq $state "antigravity")) -}}
+{{-     $views = append $views "antigravity" -}}
+{{-   end -}}
+{{-   $_ := set $skills $name (dict "state" $state "views" $views) -}}
+{{- end -}}
+{{- $bare := dict "enabled_hosts" $enabledHosts "antigravity" $antigravity "skills" $skills -}}
+{{- toJson (dict "bare" $bare "plugins" (dict)) -}}
