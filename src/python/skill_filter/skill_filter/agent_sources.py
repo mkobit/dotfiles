@@ -120,11 +120,16 @@ def _relative(path: Path, root: Path) -> str:
     return path.relative_to(root).as_posix()
 
 
+def _check_target_name(name: str, path: Path) -> None:
+    if not name:
+        raise AgentSourceError(f"entry has an empty target name: {path}")
+    if name.startswith(".chezmoi"):
+        raise AgentSourceError(f"entry targets a reserved chezmoi name: {path}")
+
+
 def _parse_native_name(name: str, path: Path) -> tuple[str, dict[str, bool]]:
     """Return the target name and attributes of a native chezmoi source name."""
     flags = {"executable": False, "empty": False, "template": False}
-    if name.startswith(".chezmoi"):
-        raise AgentSourceError(f"native entry uses a reserved name: {path}")
     remainder = name
     while True:
         if remainder.startswith(_NATIVE_FORBIDDEN):
@@ -144,8 +149,7 @@ def _parse_native_name(name: str, path: Path) -> tuple[str, dict[str, bool]]:
     if remainder.endswith(".tmpl"):
         remainder = remainder[: -len(".tmpl")]
         flags["template"] = True
-    if not remainder:
-        raise AgentSourceError(f"native entry has an empty target name: {path}")
+    _check_target_name(remainder, path)
     return remainder, flags
 
 
@@ -153,6 +157,12 @@ def _scan_tree(root: Path, base: Path, native: bool) -> Tree:
     """Hash every file below ``root``; reject symlinks and special files."""
     dirs: list[str] = []
     files: dict[str, dict[str, Any]] = {}
+    seen: set[str] = set()
+
+    def claim(target: str, entry: Path) -> None:
+        if target in seen:
+            raise AgentSourceError(f"two sources map to {target}: {entry}")
+        seen.add(target)
 
     def walk(directory: Path, target_prefix: str) -> None:
         for entry in sorted(directory.iterdir(), key=lambda item: item.name):
@@ -166,29 +176,32 @@ def _scan_tree(root: Path, base: Path, native: bool) -> Tree:
                     name, _ = _parse_native_name(entry.name, entry)
                 else:
                     name = entry.name
+                    _check_target_name(name, entry)
                 target = target_prefix + name
+                claim(target, entry)
                 dirs.append(target)
                 walk(entry, target + "/")
             elif stat.S_ISREG(mode):
                 if native and entry.name == ".keep":
                     continue
                 template = False
-                executable = bool(mode & 0o111)
+                executable = False
                 empty = False
                 name = entry.name
                 if native:
                     name, flags = _parse_native_name(entry.name, entry)
                     template = flags["template"]
-                    executable = executable or flags["executable"]
+                    executable = flags["executable"]
                     empty = flags["empty"]
                 else:
+                    executable = bool(mode & 0o111)
                     if name.endswith(".tmpl"):
                         name = name[: -len(".tmpl")]
                         template = True
                     empty = entry.stat().st_size == 0
+                    _check_target_name(name, entry)
                 target = target_prefix + name
-                if target in files:
-                    raise AgentSourceError(f"two sources map to {target}: {entry}")
+                claim(target, entry)
                 files[target] = {
                     "source": _relative(entry, base),
                     "sha256": hashlib.sha256(entry.read_bytes()).hexdigest(),
@@ -203,14 +216,24 @@ def _scan_tree(root: Path, base: Path, native: bool) -> Tree:
     return Tree(dirs=tuple(sorted(dirs)), files=files)
 
 
+def _reject_symlink(path: Path) -> None:
+    if path.is_symlink():
+        raise AgentSourceError(f"source symlink is not allowed: {path}")
+
+
 def _is_real_dir(path: Path) -> bool:
     return path.is_dir() and not path.is_symlink()
 
 
-def _scan_skills(skills_root: Path, base: Path, native: bool, name_re: Any):
+def _scan_skills(
+    skills_root: Path, base: Path, native: bool, name_re: Any
+) -> dict[str, Tree]:
     skills: dict[str, Tree] = {}
     for child in sorted(skills_root.iterdir(), key=lambda item: item.name):
-        if _is_skipped(child.name) or not child.is_dir():
+        if _is_skipped(child.name):
+            continue
+        _reject_symlink(child)
+        if not child.is_dir():
             continue
         if native:
             name, _ = _parse_native_name(child.name, child)
@@ -231,6 +254,7 @@ def _resolve_skills_source_dir(
     base = authored.parent
     if value is None:
         default = plugin_dir / "skills"
+        _reject_symlink(default)
         return default if _is_real_dir(default) else None
     if not isinstance(value, str) or not _SOURCE_DIR.match(value):
         raise AgentSourceError(f"invalid skills_source_dir in {plugin_dir}: {value!r}")
@@ -250,7 +274,9 @@ def _resolve_skills_source_dir(
     return current
 
 
-def _json_object(raw: dict[str, Any], key: str, plugin_dir: Path):
+def _json_object(
+    raw: dict[str, Any], key: str, plugin_dir: Path
+) -> Optional[dict[str, Any]]:
     value = raw.get(key)
     if value is not None and not isinstance(value, dict):
         raise AgentSourceError(f"{key} must be an object in {plugin_dir}")
@@ -305,10 +331,13 @@ def load_identity(plugin_dir: Path, authored: Path) -> PluginIdentity:
     )
 
 
-def _load_wrappers(identity: PluginIdentity, base: Path):
+def _load_wrappers(
+    identity: PluginIdentity, base: Path
+) -> tuple[dict[str, Tree], dict[str, dict[str, str]]]:
     wrappers: dict[str, Tree] = {}
     components: dict[str, dict[str, str]] = {}
     root = identity.directory / "wrappers"
+    _reject_symlink(root)
     if not root.is_dir():
         return wrappers, components
     for child in sorted(root.iterdir(), key=lambda item: item.name):
@@ -349,7 +378,10 @@ def discover(source_root: Path) -> Inventory:
     plugins_root = authored / "overlay-plugins"
     if plugins_root.is_dir():
         for child in sorted(plugins_root.iterdir(), key=lambda item: item.name):
-            if _is_skipped(child.name) or not child.is_dir():
+            if _is_skipped(child.name):
+                continue
+            _reject_symlink(child)
+            if not child.is_dir():
                 continue
             identity = load_identity(child, authored)
             if identity.name in inventory.plugins:
@@ -382,10 +414,6 @@ def _tree_document(tree: Tree) -> dict[str, Any]:
         "dirs": list(tree.dirs),
         "files": {target: tree.files[target] for target in sorted(tree.files)},
     }
-
-
-def _relative_dir(path: Path, base: Path) -> str:
-    return _relative(path, base)
 
 
 def inventory_document(inventory: Inventory) -> dict[str, Any]:
@@ -427,11 +455,11 @@ def inventory_document(inventory: Inventory) -> dict[str, Any]:
         }
         root = f"{_MARKETPLACE}/{name}"
         plugins[name] = {
-            "source_dir": _relative_dir(identity.directory, base),
+            "source_dir": _relative(identity.directory, base),
             "skills_source_dir": (
                 None
                 if identity.skills_source_dir is None
-                else _relative_dir(identity.skills_source_dir, base)
+                else _relative(identity.skills_source_dir, base)
             ),
             "description": identity.description,
             "author": identity.author,

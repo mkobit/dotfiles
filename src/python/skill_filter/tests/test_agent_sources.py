@@ -283,3 +283,72 @@ def test_runs_on_python_38_without_site_packages(layout):
     )
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["agent_source_inventory"]["schema"] == 1
+
+
+def test_symlinked_skill_and_plugin_directories_fail(layout, tmp_path):
+    _, source_root, authored = layout
+    elsewhere = tmp_path / "elsewhere"
+    _write(elsewhere / "SKILL.md")
+    (authored / "ai" / "skills").mkdir(parents=True)
+    (authored / "ai" / "skills" / "foo").symlink_to(elsewhere)
+    with pytest.raises(AgentSourceError, match="symlink"):
+        discover(source_root)
+    (authored / "ai" / "skills" / "foo").unlink()
+    plugin = _plugin(authored, "real")
+    (authored / "overlay-plugins" / "linked").symlink_to(plugin)
+    with pytest.raises(AgentSourceError, match="symlink"):
+        discover(source_root)
+    (authored / "overlay-plugins" / "linked").unlink()
+    shutil.rmtree(plugin / "skills")
+    (plugin / "skills").symlink_to(elsewhere)
+    with pytest.raises(AgentSourceError, match="symlink"):
+        discover(source_root)
+
+
+@pytest.mark.parametrize(
+    "native_name", ["dot_chezmoiignore", "literal_.chezmoiignore", "dot_chezmoi.toml"]
+)
+def test_chezmoi_control_targets_are_rejected(layout, native_name):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "nat", {"native_source": True}, skills=())
+    _write(plugin / "skills" / "foo" / "SKILL.md")
+    _write(plugin / "skills" / "foo" / native_name)
+    with pytest.raises(AgentSourceError, match="reserved chezmoi"):
+        discover(source_root)
+
+
+def test_literal_chezmoi_control_target_and_bare_tmpl_name_are_rejected(layout):
+    _, source_root, authored = layout
+    skill = authored / "ai" / "skills" / "beads"
+    _write(skill / "SKILL.md")
+    _write(skill / ".chezmoiignore.tmpl")
+    with pytest.raises(AgentSourceError, match="reserved chezmoi"):
+        discover(source_root)
+    (skill / ".chezmoiignore.tmpl").unlink()
+    _write(skill / ".tmpl")
+    with pytest.raises(AgentSourceError, match="empty target"):
+        discover(source_root)
+
+
+def test_native_executable_comes_from_prefix_only_and_literal_from_mode(layout):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "nat", {"native_source": True}, skills=())
+    _write(plugin / "skills" / "foo" / "SKILL.md", mode=0o755)
+    _write(plugin / "skills" / "foo" / "executable_run.sh")
+    bare = authored / "ai" / "skills" / "beads"
+    _write(bare / "SKILL.md", mode=0o755)
+    document = inventory_document(discover(source_root))["agent_source_inventory"]
+    native = document["plugins"]["nat"]["skills"]["foo"]["files"]
+    assert native["SKILL.md"]["executable"] is False
+    assert native["run.sh"]["executable"] is True
+    assert document["bare_skills"]["beads"]["files"]["SKILL.md"]["executable"] is True
+
+
+def test_directory_and_file_target_collisions_fail(layout):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "nat", {"native_source": True}, skills=())
+    _write(plugin / "skills" / "foo" / "SKILL.md")
+    _write(plugin / "skills" / "foo" / "exact_x" / "a")
+    _write(plugin / "skills" / "foo" / "x" / "b")
+    with pytest.raises(AgentSourceError, match="two sources map"):
+        discover(source_root)
