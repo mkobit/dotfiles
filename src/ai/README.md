@@ -45,6 +45,9 @@ A failed preparation stops chezmoi and keeps the previous generated tree.
 
 Generated subdirectory `.chezmoiignore.tmpl` files drop unselected views through [`ai/agent-source-ignore`](../chezmoi/.chezmoitemplates/ai/agent-source-ignore), which reads the selection from [`ai/agent-sources`](../chezmoi/.chezmoitemplates/ai/agent-sources).
 Host views follow `ai.plugin_bridge.default_hosts`, or `ai.plugin_bridge.capabilities.mkobit-dotfiles.hosts` when set; Antigravity also requires `local.bin.agy.installation_method != "none"`.
+When the Antigravity gate is off, the generated ignore file hides every child, but chezmoi still creates `.gemini/antigravity-cli/skills/` as an empty directory.
+The plugin bridge payload and the capability cleanup use the same effective mkobit-dotfiles hosts.
+An external skill with the same name as a bare skill fails at template time, because a deselected bare skill's ignore pattern would hide it.
 `agent_source_inventory` is a reserved data key that preparation generates; never set it in `.chezmoi.toml.tmpl` or `.chezmoidata/`.
 A missing inventory renders as empty, so `chezmoi init` stays valid before the first preparation.
 

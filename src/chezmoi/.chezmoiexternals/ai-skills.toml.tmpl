@@ -39,6 +39,9 @@
 {{-         fail (printf "duplicate capability skill %q from ai.skills.external.%s and ai.skills.external.%s" $skillName (index $selectedSkills $skillName) $sourceName) -}}
 {{-       end -}}
 {{-       $_ := set $selectedSkills $skillName $sourceName -}}
+{{-       if hasKey (dig "agent_source_inventory" "bare_skills" (dict) $) $skillName -}}
+{{-         fail (printf "ai.skills.external.%s.skills.%s: name equals bare skill src/ai/skills/%s; generated ignore patterns for a deselected bare skill would hide this external, so rename one of them" $sourceName $skillName $skillName) -}}
+{{-       end -}}
 {{-       $externalPackagePaths := list -}}
 {{-       if eq $state "present" -}}
 {{-         $externalPackagePaths = append $externalPackagePaths (printf "%s/%s" $portable $skillName) -}}

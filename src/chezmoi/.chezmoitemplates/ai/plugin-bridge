@@ -7,6 +7,10 @@
 {{-     $_ := set $capabilities $name $capability -}}
 {{-   end -}}
 {{- end -}}
+{{- $bundleHosts := (includeTemplate "ai/agent-sources" . | fromJson).bare.enabled_hosts -}}
+{{- if and (hasKey $capabilities "mkobit-dotfiles") $bundleHosts -}}
+{{-   $_ := set (index $capabilities "mkobit-dotfiles") "hosts" $bundleHosts -}}
+{{- end -}}
 {{- $_ := set $bridge "capabilities" $capabilities -}}
 {{- $marketplaces := dict -}}
 {{- range $name, $marketplace := dig "marketplaces" (dict) $bridge -}}

@@ -1,6 +1,11 @@
 {{- $ai := dig "ai" (dict) . -}}
 {{- $bridge := dig "plugin_bridge" (dict) $ai -}}
-{{- $capabilities := dig "capabilities" (dict) $bridge -}}
+{{- $capabilities := deepCopy (dig "capabilities" (dict) $bridge) -}}
+{{- /* The bare-skill bundle takes its effective hosts, with default_hosts applied, from ai/agent-sources. */ -}}
+{{- $bundleHosts := (includeTemplate "ai/agent-sources" . | fromJson).bare.enabled_hosts -}}
+{{- if and (hasKey $capabilities "mkobit-dotfiles") $bundleHosts -}}
+{{-   $_ := set (index $capabilities "mkobit-dotfiles") "hosts" $bundleHosts -}}
+{{- end -}}
 {{- $environment := dig "environment" "default" $bridge -}}
 {{- $hostRoots := dict
       "claude" ".local/share/agent-plugins/marketplace/plugins/%s/claude/skills"

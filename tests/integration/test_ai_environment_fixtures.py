@@ -20,6 +20,8 @@ MARKETPLACE_TEMPLATES = (
     Path("dot_local/share/agent-plugins/marketplaces/superpowers-marketplace/dot_claude-plugin/marketplace.json.tmpl"),
     Path("dot_local/share/agent-plugins/marketplaces/superpowers-marketplace/dot_agents/plugins/marketplace.json.tmpl"),
     Path(".chezmoitemplates/ai/plugin-marketplace"),
+    # ai/plugin-bridge reads the effective mkobit-dotfiles hosts from ai/agent-sources.
+    Path(".chezmoitemplates/ai/agent-sources"),
 )
 BRIDGE_TEMPLATE = Path(".chezmoitemplates/ai/plugin-bridge")
 

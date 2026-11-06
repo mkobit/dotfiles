@@ -40,6 +40,7 @@ def test_manifest_version_uses_assembled_authored_plugin_snapshot(tmp_path):
     for template_name in (
         "authored-plugins",
         "authored-plugin-manifest",
+        "agent-sources",
         "authored-file-digest",
         "authored-render-context",
     ):

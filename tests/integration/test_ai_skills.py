@@ -872,7 +872,13 @@ def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, 
     shutil.copy2(external, externals / external.name)
     template_root = source / ".chezmoitemplates/ai"
     template_root.mkdir(parents=True)
-    for name in ("authored-render-context", "authored-file-entry", "authored-file-digest", "authored-base-version"):
+    for name in (
+        "agent-sources",
+        "authored-render-context",
+        "authored-file-entry",
+        "authored-file-digest",
+        "authored-base-version",
+    ):
         origin = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name
         shutil.copy2(origin, template_root / name)
     cleanup_name = "capabilities"
@@ -1609,3 +1615,41 @@ def test_generated_paths_are_gitignored(tmp_path, checkout_config):
         text=True,
     )
     assert status.stdout == ""
+
+
+def test_capability_cleanup_keeps_cursor_manifest_with_default_hosts(agent_source_fixture):
+    """Default hosts keep the owned Cursor manifest in the capability cleanup's desired set."""
+    fixture = agent_source_fixture
+    cleanup = "run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl"
+    target = fixture.source / ".chezmoiscripts" / cleanup
+    target.parent.mkdir(parents=True)
+    shutil.copy2(REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts" / cleanup, target)
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
+    manifest = ".cursor/plugins/local/mkobit-dotfiles/.cursor-plugin/plugin.json"
+    state = fixture.destination / ".local/state/dotfiles/agent-plugin-capability-ownership.json"
+    state.parent.mkdir(parents=True)
+    state.write_text(json.dumps({"version": 1, "paths": [manifest]}) + "\n")
+
+    _apply_and_check(fixture)
+    assert json.loads((fixture.destination / manifest).read_text())["name"] == "mkobit-dotfiles"
+    assert json.loads(state.read_text())["paths"] == [manifest]
+
+
+@pytest.mark.parametrize("bare_state", ["present", "absent"])
+def test_external_skill_named_like_bare_skill_fails(agent_source_fixture, bare_state):
+    """An external skill cannot share a bare skill name, whatever the bare skill state."""
+    fixture = agent_source_fixture
+    external = REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-skills.toml.tmpl"
+    target = fixture.source / ".chezmoiexternals" / external.name
+    target.parent.mkdir(parents=True)
+    shutil.copy2(external, target)
+    fixture.write_config(
+        f'[data.ai.skills.authored]\nalpha = "{bare_state}"\n'
+        '[data.ai.skills.hosts.github]\nurl_format = "https://example.invalid/{repo}/{ref}.tar.gz"\n'
+        '[data.ai.skills.external.upstream]\nrepo = "owner/repo"\nref = "0123456789abcdef"\nsha256 = "00"\n'
+        '[data.ai.skills.external.upstream.skills]\nalpha = "present"\n'
+    )
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
+    result = fixture.run("managed", "--include=files")
+    assert result.returncode != 0
+    assert "ai.skills.external.upstream.skills.alpha: name equals bare skill" in result.stderr
