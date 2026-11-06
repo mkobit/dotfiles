@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+import io
 import json
 import shutil
 import subprocess
 import sys
+from typing import Any
 
 import pytest
 
@@ -298,7 +300,7 @@ def test_generated_marketplace_repairs_source_before_plugins_and_stays_current(
     ]
     assert plugins == ["demo", "demo"]
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
-    assert ownership.read_text() == f"marketplace\t{host}\tmarket\t\n"
+    assert ownership.read_text() == f"marketplace\t{host}\tmarket\t\towned\n"
 
 
 @pytest.mark.parametrize("stale_names", [("a", "b"), ("b",)])
@@ -395,7 +397,7 @@ def test_generated_codex_marketplaces_repair_all_missing_roots_before_plugins(
     assert plugins == [("a", "demo-a"), ("b", "demo-b")] * 2
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     assert ownership.read_text() == (
-        "marketplace\tcodex\ta\t\nmarketplace\tcodex\tb\t\n"
+        "marketplace\tcodex\ta\t\towned\nmarketplace\tcodex\tb\t\towned\n"
     )
 
 
@@ -551,7 +553,7 @@ def test_repaired_generated_marketplace_restores_declared_plugin(
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     assert (
         ownership.read_text()
-        == f"marketplace\t{host}\tmarket\t\nplugin\t{host}\tmarket\tdemo\n"
+        == f"marketplace\t{host}\tmarket\t\towned\nplugin\t{host}\tmarket\tdemo\towned\n"
     )
 
 
@@ -674,7 +676,7 @@ def test_reconcile_removes_plugins_before_marketplaces(tmp_path, monkeypatch):
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     ownership.parent.mkdir(parents=True)
     ownership.write_text(
-        "marketplace\tcodex\tz-market\t\nplugin\tcodex\tb-market\tz-plugin\nmarketplace\tclaude\ta-market\t\nplugin\tclaude\ta-market\ta-plugin\n"
+        "marketplace\tcodex\tz-market\t\towned\nplugin\tcodex\tb-market\tz-plugin\towned\nmarketplace\tclaude\ta-market\t\towned\nplugin\tclaude\ta-market\ta-plugin\towned\n"
     )
     calls = []
     installed_plugins = {"a-plugin@a-market", "z-plugin@b-market"}
@@ -731,7 +733,7 @@ def test_successful_removal_is_checkpointed_before_later_failure(tmp_path, monke
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     ownership.parent.mkdir(parents=True)
     ownership.write_text(
-        "plugin\tclaude\tmarket\ta-plugin\nplugin\tclaude\tmarket\tb-plugin\n",
+        "plugin\tclaude\tmarket\ta-plugin\towned\nplugin\tclaude\tmarket\tb-plugin\towned\n",
         encoding="utf-8",
     )
     installed = {"a-plugin@market", "b-plugin@market"}
@@ -757,7 +759,7 @@ def test_successful_removal_is_checkpointed_before_later_failure(tmp_path, monke
         plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
 
     assert ownership.read_text(encoding="utf-8") == (
-        "plugin\tclaude\tmarket\tb-plugin\n"
+        "plugin\tclaude\tmarket\tb-plugin\towned\n"
     )
 
     plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
@@ -802,10 +804,10 @@ def test_successful_registration_is_checkpointed_before_later_failure(
     def ensure(host, marketplace, name, ownership_file, desired, owned, **kwargs):
         nonlocal calls
         calls += 1
-        record = plugin_bridge._identity("plugin", host, marketplace, name)
-        desired.add(record)
+        desired.add(plugin_bridge._identity("plugin", host, marketplace, name))
         if calls == 2:
             raise plugin_bridge.BridgeError("later failure")
+        record = plugin_bridge._owned_record("plugin", host, marketplace, name)
         owned.add(record)
         plugin_bridge._checkpoint(ownership_file, record)
 
@@ -827,10 +829,15 @@ def test_successful_registration_is_checkpointed_before_later_failure(
             },
         )
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
-    assert ownership.read_text() == "plugin\tclaude\tm\ta\n"
+    assert ownership.read_text() == "plugin\tclaude\tm\ta\towned\n"
 
 
-def test_existing_claude_plugin_is_adopted_and_enabled(tmp_path, monkeypatch):
+@pytest.mark.parametrize(
+    ("source_type", "recorded"), [("generated", True), ("public", False)]
+)
+def test_existing_claude_plugin_is_adopted_and_enabled(
+    tmp_path, monkeypatch, source_type, recorded
+):
     calls = []
     enabled = False
 
@@ -846,10 +853,20 @@ def test_existing_claude_plugin_is_adopted_and_enabled(tmp_path, monkeypatch):
     monkeypatch.setattr(plugin_bridge, "_run", run)
     desired, owned = set(), set()
     ownership = tmp_path / "ownership"
-    plugin_bridge._ensure_plugin("claude", "market", "demo", ownership, desired, owned)
-    assert ("claude", "plugin", "update", "demo@market") in calls
+    plugin_bridge._ensure_plugin(
+        "claude",
+        "market",
+        "demo",
+        ownership,
+        desired,
+        owned,
+        source_type=source_type,
+    )
+    assert enabled
     assert ("claude", "plugin", "enable", "demo@market") in calls
-    assert owned == {"plugin\tclaude\tmarket\tdemo"}
+    assert ("claude", "plugin", "update", "demo@market") not in calls
+    assert owned == ({"plugin\tclaude\tmarket\tdemo\towned"} if recorded else set())
+    assert ownership.exists() == recorded
 
 
 def _claude_manifest_root(tmp_path, version):
@@ -900,7 +917,7 @@ def test_current_claude_plugin_is_not_updated(tmp_path, monkeypatch):
         manifest_root=root,
     )
     assert calls == [("claude", "plugin", "list", "--json")]
-    assert owned == {"plugin\tclaude\tmarket\tdemo"}
+    assert owned == {"plugin\tclaude\tmarket\tdemo\towned"}
 
 
 def test_changed_claude_plugin_version_is_updated(tmp_path, monkeypatch):
@@ -919,14 +936,17 @@ def test_changed_claude_plugin_version_is_updated(tmp_path, monkeypatch):
     assert ("claude", "plugin", "update", "demo@market") in calls
 
 
-def test_claude_plugin_without_manifest_root_is_updated(tmp_path, monkeypatch):
+def test_claude_plugin_without_manifest_root_is_not_updated_on_apply(
+    tmp_path, monkeypatch
+):
     calls = []
     _claude_manifest_root(tmp_path, "1.0.0+abc")
     monkeypatch.setattr(plugin_bridge, "_run", _claude_run(calls, "1.0.0+abc", True))
     plugin_bridge._ensure_plugin(
         "claude", "market", "demo", tmp_path / "ownership", set(), set()
     )
-    assert ("claude", "plugin", "update", "demo@market") in calls
+    assert ("claude", "plugin", "update", "demo@market") not in calls
+    assert not [call for call in calls if call[2] in {"install", "uninstall", "enable"}]
 
 
 def test_current_disabled_claude_plugin_is_enabled_without_update(
@@ -969,8 +989,8 @@ def test_reconcile_passes_manifest_root_only_for_generated_marketplaces(
     monkeypatch.setattr(
         plugin_bridge,
         "_ensure_plugin",
-        lambda host, marketplace, name, *args, manifest_root=None: roots.update(
-            {marketplace: manifest_root}
+        lambda host, marketplace, name, *args, manifest_root=None, **kwargs: (
+            roots.update({marketplace: manifest_root})
         ),
     )
     plugin_bridge.reconcile(
@@ -1033,7 +1053,7 @@ def test_existing_codex_plugin_is_not_added_again(tmp_path, monkeypatch):
 
     assert ("codex", "plugin", "add", "demo@market") not in calls
     assert ("codex", "plugin", "remove", "demo@market") not in calls
-    assert owned == {"plugin\tcodex\tmarket\tdemo"}
+    assert owned == {"plugin\tcodex\tmarket\tdemo\towned"}
 
 
 def test_stale_codex_plugin_version_is_reinstalled_from_deployed_manifest(
@@ -1106,7 +1126,9 @@ def test_package_fingerprint_tracks_content_without_absolute_paths(tmp_path, cha
 
 
 @pytest.mark.parametrize("host", ["claude", "codex"])
-def test_package_plugin_refreshes_same_version_content(tmp_path, monkeypatch, host):
+def test_package_plugin_same_version_content_follows_host_policy(
+    tmp_path, monkeypatch, host
+):
     source, installed = tmp_path / "source", tmp_path / "cache"
     source.mkdir()
     (source / "payload").write_text("original\n", encoding="utf-8")
@@ -1160,16 +1182,17 @@ def test_package_plugin_refreshes_same_version_content(tmp_path, monkeypatch, ho
         plugin_bridge._ensure_plugin(
             host, "market", "demo", ownership, set(), set(), package_root=source
         )
-        assert plugin_bridge._package_fingerprint(installed) == (
-            plugin_bridge._package_fingerprint(source)
-        )
         assert json.loads(manifest.read_text())["version"] == "7.0.0"
 
     if host == "claude":
+        assert plugin_bridge._package_fingerprint(installed) == (
+            plugin_bridge._package_fingerprint(source)
+        )
         assert calls.count(("plugin", "uninstall", "demo@market")) == 1
         assert calls.count(("plugin", "install", "demo@market")) == 1
     else:
-        assert calls.count(("plugin", "add", "demo@market", "--json")) == 2
+        # Package versions derive from content, so an equal Codex version is current.
+        assert ("plugin", "add", "demo@market", "--json") not in calls
 
 
 @pytest.mark.parametrize("host", ["claude", "codex"])
@@ -1278,7 +1301,7 @@ def test_package_path_cannot_resolve_outside_marketplace(tmp_path, monkeypatch):
 def test_plugin_removal_requires_verified_absence(tmp_path, monkeypatch):
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     ownership.parent.mkdir(parents=True)
-    ownership.write_text("plugin\tclaude\tmarket\tdemo\n", encoding="utf-8")
+    ownership.write_text("plugin\tclaude\tmarket\tdemo\towned\n", encoding="utf-8")
     calls = []
 
     def run(host, *args):
@@ -1291,7 +1314,9 @@ def test_plugin_removal_requires_verified_absence(tmp_path, monkeypatch):
     with pytest.raises(plugin_bridge.BridgeError, match="did not disappear"):
         plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
 
-    assert ownership.read_text(encoding="utf-8") == ("plugin\tclaude\tmarket\tdemo\n")
+    assert ownership.read_text(encoding="utf-8") == (
+        "plugin\tclaude\tmarket\tdemo\towned\n"
+    )
     assert ("claude", "plugin", "uninstall", "demo@market") in calls
 
 
@@ -1300,7 +1325,7 @@ def test_reconcile_checkpoints_already_absent_plugin_without_removing(
 ):
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     ownership.parent.mkdir(parents=True)
-    ownership.write_text("plugin\tclaude\tmarket\tdemo\n", encoding="utf-8")
+    ownership.write_text("plugin\tclaude\tmarket\tdemo\towned\n", encoding="utf-8")
     calls = []
 
     def run(host, *args):
@@ -1319,7 +1344,7 @@ def test_reconcile_checkpoints_already_absent_plugin_without_removing(
 def test_marketplace_removal_requires_verified_absence(tmp_path, monkeypatch):
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     ownership.parent.mkdir(parents=True)
-    ownership.write_text("marketplace\tclaude\tmarket\t\n", encoding="utf-8")
+    ownership.write_text("marketplace\tclaude\tmarket\t\towned\n", encoding="utf-8")
     calls = []
 
     def run(host, *args):
@@ -1332,7 +1357,9 @@ def test_marketplace_removal_requires_verified_absence(tmp_path, monkeypatch):
     with pytest.raises(plugin_bridge.BridgeError, match="did not disappear"):
         plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
 
-    assert ownership.read_text(encoding="utf-8") == ("marketplace\tclaude\tmarket\t\n")
+    assert ownership.read_text(encoding="utf-8") == (
+        "marketplace\tclaude\tmarket\t\towned\n"
+    )
     assert ("claude", "plugin", "marketplace", "remove", "market") in calls
 
 
@@ -1487,10 +1514,10 @@ def test_reconcile_skips_unavailable_host_and_preserves_previous_ownership(
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     ownership.parent.mkdir(parents=True)
     previous_content = (
-        "marketplace\tclaude\tkept-market\t\n"
-        "marketplace\tclaude\tstale-market\t\n"
-        "plugin\tclaude\tkept-market\tkept-plugin\n"
-        "plugin\tclaude\tstale-market\tstale-plugin\n"
+        "marketplace\tclaude\tkept-market\t\towned\n"
+        "marketplace\tclaude\tstale-market\t\towned\n"
+        "plugin\tclaude\tkept-market\tkept-plugin\towned\n"
+        "plugin\tclaude\tstale-market\tstale-plugin\towned\n"
     )
     ownership.write_text(previous_content, encoding="utf-8")
 
@@ -1551,6 +1578,20 @@ def test_reconcile_standalone_without_site_packages(
         assert result.stderr == ""
 
 
+def _retired_declaration(marketplace, hosts, source_type="generated"):
+    """Declare ``marketplace`` without hosts so only retirement logic runs."""
+    return {
+        "marketplaces": {
+            marketplace: {
+                "source_type": source_type,
+                "hosts": [],
+                **({"source_locator": "owner/repo"} if source_type == "public" else {}),
+            }
+        },
+        "retired_plugins": {"retired": {"marketplace": marketplace, "hosts": hosts}},
+    }
+
+
 @pytest.mark.parametrize("host", ["claude", "codex"])
 def test_retired_plugin_removes_unowned_exact_identity_and_retries(
     tmp_path, monkeypatch, host
@@ -1575,9 +1616,7 @@ def test_retired_plugin_removes_unowned_exact_identity_and_retries(
         pytest.fail(f"unexpected host operation: {command} {args}")
 
     monkeypatch.setattr(plugin_bridge, "_run", run)
-    declaration = {
-        "retired_plugins": {"retired": {"marketplace": "old-market", "hosts": [host]}}
-    }
+    declaration = _retired_declaration("old-market", [host])
     plugin_bridge.reconcile(tmp_path, declaration)
     assert installed == {
         "retired@old-market",
@@ -1590,6 +1629,11 @@ def test_retired_plugin_removes_unowned_exact_identity_and_retries(
     assert installed == {"retired@new-market", "unrelated@old-market"}
     assert removals == ["retired@old-market"] * (2 if host == "codex" else 1)
     assert (tmp_path / ".local/state/dotfiles/agent-plugin-ownership").read_text() == ""
+    # An unowned identity in a public marketplace is not removed.
+    plugin_bridge.reconcile(
+        tmp_path, _retired_declaration("new-market", [host], "public")
+    )
+    assert installed == {"retired@new-market", "unrelated@old-market"}
 
 
 @pytest.mark.parametrize(
@@ -1650,11 +1694,7 @@ def test_retired_codex_plugin_removes_registration_absent_from_catalog(
         pytest.fail(f"unexpected host operation: {host} {args}")
 
     monkeypatch.setattr(plugin_bridge, "_run", run)
-    declaration = {
-        "retired_plugins": {
-            "retired": {"marketplace": "old-market", "hosts": ["codex"]}
-        }
-    }
+    declaration = _retired_declaration("old-market", ["codex"])
     plugin_bridge.reconcile(tmp_path, declaration)
     plugin_bridge.reconcile(tmp_path, declaration)
     assert registered == {"retired@new-market"}
@@ -1668,11 +1708,7 @@ def test_retired_codex_plugin_propagates_removal_failure(tmp_path, monkeypatch):
         raise plugin_bridge.BridgeError("removal failed")
 
     monkeypatch.setattr(plugin_bridge, "_run", run)
-    declaration = {
-        "retired_plugins": {
-            "retired": {"marketplace": "old-market", "hosts": ["codex"]}
-        }
-    }
+    declaration = _retired_declaration("old-market", ["codex"])
     with pytest.raises(plugin_bridge.BridgeError, match="removal failed"):
         plugin_bridge.reconcile(tmp_path, declaration)
 
@@ -1689,11 +1725,7 @@ def test_retired_codex_plugin_removes_registration_without_marketplace(
         raise plugin_bridge.BridgeError("marketplace is unavailable")
 
     monkeypatch.setattr(plugin_bridge, "_run", run)
-    declaration = {
-        "retired_plugins": {
-            "retired": {"marketplace": "removed-market", "hosts": ["codex"]}
-        }
-    }
+    declaration = _retired_declaration("removed-market", ["codex"])
     plugin_bridge.reconcile(tmp_path, declaration)
     assert registered == set()
 
@@ -1704,7 +1736,7 @@ def test_retired_codex_plugin_clears_owned_registration_without_marketplace(
 ):
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     ownership.parent.mkdir(parents=True)
-    record = "plugin\tcodex\tremoved-market\tretired\n"
+    record = "plugin\tcodex\tremoved-market\tretired\towned\n"
     ownership.write_text(record)
     registered = {"retired@removed-market"}
     unavailable = initially_unavailable
@@ -1720,11 +1752,7 @@ def test_retired_codex_plugin_clears_owned_registration_without_marketplace(
         raise plugin_bridge.BridgeError("marketplace is unavailable")
 
     monkeypatch.setattr(plugin_bridge, "_run", run)
-    declaration = {
-        "retired_plugins": {
-            "retired": {"marketplace": "removed-market", "hosts": ["codex"]}
-        }
-    }
+    declaration = _retired_declaration("removed-market", ["codex"])
     if unavailable:
         plugin_bridge.reconcile(tmp_path, declaration)
         assert ownership.read_text() == record
@@ -1757,10 +1785,7 @@ def test_retired_plugin_accepts_cursor_and_removes_only_native_registrations(
         pytest.fail(f"unexpected host operation: {host} {args}")
 
     monkeypatch.setattr(plugin_bridge, "_run", run)
-    plugin_bridge.reconcile(
-        tmp_path,
-        {"retired_plugins": {"retired": {"marketplace": "market", "hosts": hosts}}},
-    )
+    plugin_bridge.reconcile(tmp_path, _retired_declaration("market", hosts))
     assert installed == (
         {"cursor"} if "codex" in hosts else {"claude", "codex", "cursor"}
     )
@@ -1771,7 +1796,7 @@ def test_stale_owned_codex_plugin_removes_registration_absent_from_catalog(
 ):
     ownership = tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
     ownership.parent.mkdir(parents=True)
-    ownership.write_text("plugin\tcodex\told-market\tretired\n")
+    ownership.write_text("plugin\tcodex\told-market\tretired\towned\n")
     registered = {"retired@old-market", "retired@new-market"}
 
     def run(host, *args):
@@ -1786,3 +1811,780 @@ def test_stale_owned_codex_plugin_removes_registration_absent_from_catalog(
     plugin_bridge.reconcile(tmp_path, {})
     assert registered == {"retired@new-market"}
     assert ownership.read_text() == ""
+
+
+def _plugin_cli(host, installed, *, enabled=True):
+    """Fake host CLI tracking installed plugin ids and mutations."""
+    mutations = []
+
+    def run(command, *args):
+        assert command == host
+        if args[:2] == ("plugin", "list"):
+            if host == "claude":
+                return json.dumps(
+                    [{"id": name, "enabled": enabled} for name in sorted(installed)]
+                )
+            return json.dumps(
+                {
+                    "installed": [
+                        {"pluginId": name, "installed": True, "enabled": enabled}
+                        for name in sorted(installed)
+                    ]
+                }
+            )
+        if args[:3] == ("plugin", "marketplace", "list"):
+            return "[]" if host == "claude" else "market  /x\n"
+        mutations.append(args)
+        if args[:2] in {("plugin", "install"), ("plugin", "add")}:
+            installed.add(args[2])
+        elif args[:2] in {("plugin", "uninstall"), ("plugin", "remove")}:
+            installed.discard(args[2])
+        return ""
+
+    return mutations, run
+
+
+def _public_declaration(host, source_type="public"):
+    return {
+        "plugin_bridge": {
+            "marketplaces": {
+                "market": {
+                    "source_type": source_type,
+                    "source_locator": "owner/repo"
+                    if source_type != "host-provided"
+                    else "",
+                    "hosts": [host],
+                }
+            },
+            "plugins": {"demo": {"marketplace": "market", "hosts": [host]}},
+        }
+    }
+
+
+def _ownership_file(tmp_path):
+    return tmp_path / ".local/state/dotfiles/agent-plugin-ownership"
+
+
+def test_manually_installed_public_plugin_is_not_owned_or_removed(
+    tmp_path, monkeypatch
+):
+    mutations, run = _plugin_cli("claude", {"demo@market"})
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    monkeypatch.setattr(plugin_bridge, "_marketplace_present", lambda *args: True)
+    declaration = _public_declaration("claude")
+
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert _ownership_file(tmp_path).read_text() == ""
+    assert ("plugin", "install", "demo@market") not in mutations
+
+    declaration["plugin_bridge"]["plugins"].clear()
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert ("plugin", "uninstall", "demo@market") not in mutations
+    assert _ownership_file(tmp_path).read_text() == ""
+
+
+def test_public_plugin_installed_by_bridge_is_owned_then_removed_when_undesired(
+    tmp_path, monkeypatch
+):
+    installed = set()
+    mutations, run = _plugin_cli("claude", installed)
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    monkeypatch.setattr(plugin_bridge, "_marketplace_present", lambda *args: True)
+    declaration = _public_declaration("claude")
+
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert installed == {"demo@market"}
+    assert "plugin\tclaude\tmarket\tdemo\towned" in (
+        _ownership_file(tmp_path).read_text().splitlines()
+    )
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert mutations.count(("plugin", "install", "demo@market")) == 1
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_host_provided_plugins_are_owned_only_when_the_bridge_installs_them(
+    tmp_path, monkeypatch, host
+):
+    installed = {"demo@market"}
+    state = {"enabled": False}
+    mutations = []
+
+    def run(command, *args):
+        if args[:3] == ("plugin", "marketplace", "list"):
+            return '[{"name":"market"}]' if host == "claude" else "market  /x\n"
+        if args[:2] == ("plugin", "list"):
+            records = [
+                {"id": n, "pluginId": n, "installed": True, "enabled": state["enabled"]}
+                for n in sorted(installed)
+            ]
+            return json.dumps(records if host == "claude" else {"installed": records})
+        mutations.append(args)
+        if args[:2] in {("plugin", "install"), ("plugin", "add")}:
+            installed.add(args[2])
+        elif args[:2] in {("plugin", "uninstall"), ("plugin", "remove")}:
+            installed.discard(args[2])
+        state["enabled"] = True
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    declaration = _public_declaration(host, "host-provided")
+    declaration["plugin_bridge"]["plugins"]["other"] = {
+        "marketplace": "market",
+        "hosts": [host],
+    }
+    plugin_bridge.reconcile(tmp_path, declaration)
+    plugin_bridge.reconcile(tmp_path, declaration)
+
+    verbs = {args[:2] for args in mutations}
+    assert verbs <= {("plugin", "install"), ("plugin", "add"), ("plugin", "enable")}
+    assert _ownership_file(tmp_path).read_text() == (
+        f"plugin\t{host}\tmarket\tother\towned\n"
+    )
+
+    declaration["plugin_bridge"]["plugins"].clear()
+    mutations.clear()
+    plugin_bridge.reconcile(tmp_path, declaration)
+    removal = "uninstall" if host == "claude" else "remove"
+    assert mutations == [("plugin", removal, "other@market")]
+    assert installed == {"demo@market"}
+    assert _ownership_file(tmp_path).read_text() == ""
+
+
+def test_missing_host_provided_marketplace_is_unavailable_without_failing_other_marketplaces(
+    tmp_path, monkeypatch, caplog
+):
+    mutations = []
+
+    def run(command, *args):
+        if args[:3] == ("plugin", "marketplace", "list"):
+            return "[]"
+        if args[:2] == ("plugin", "list"):
+            return "[]"
+        mutations.append(args)
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    registered = []
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_generated_marketplace_source",
+        lambda host, name: registered[-1] if registered else None,
+    )
+    original_run = run
+
+    def run(command, *args):
+        if args[:3] == ("plugin", "marketplace", "add"):
+            registered.append(plugin_bridge.Path(args[3]))
+        return original_run(command, *args)
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    monkeypatch.setattr(
+        plugin_bridge,
+        "_claude_plugin_state",
+        lambda *args: (True, True, "1", None),
+    )
+    declaration = {
+        "plugin_bridge": {
+            "marketplaces": {
+                "corp": {
+                    "source_type": "host-provided",
+                    "hosts": ["claude"],
+                    "order": 1,
+                },
+                "mine": {"source_type": "generated", "hosts": ["claude"], "order": 2},
+            },
+            "plugins": {
+                "wrapped": {"marketplace": "corp", "hosts": ["claude"]},
+                "own": {"marketplace": "mine", "hosts": ["claude"]},
+            },
+        }
+    }
+    caplog.set_level("INFO", logger=plugin_bridge.logger.name)
+    monkeypatch.setattr(plugin_bridge, "_ensure_package_plugin", lambda *args: None)
+    plugin_bridge.reconcile(tmp_path, declaration)
+
+    assert "host=claude marketplace=corp event=unavailable" in caplog.text
+    assert not any("corp" in " ".join(args) for args in mutations)
+    assert any(args[:3] == ("plugin", "marketplace", "add") for args in mutations)
+    assert _ownership_file(tmp_path).read_text() == (
+        "marketplace\tclaude\tmine\t\towned\nplugin\tclaude\tmine\town\towned\n"
+    )
+
+
+def test_owned_record_removed_when_undesired_and_ambiguous_record_preserved(
+    tmp_path, monkeypatch
+):
+    ownership = _ownership_file(tmp_path)
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text(
+        "plugin\tclaude\tmarket\tmine\towned\n"
+        "plugin\tclaude\tmarket\ttheirs\tambiguous\n"
+    )
+    installed = {"mine@market", "theirs@market"}
+    _, run = _plugin_cli("claude", installed)
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    assert installed == {"theirs@market"}
+    assert ownership.read_text() == "plugin\tclaude\tmarket\ttheirs\tambiguous\n"
+
+
+@pytest.mark.parametrize(
+    ("declared", "expected"),
+    [
+        ("generated", "owned"),
+        ("host-provided", None),
+        ("public", "ambiguous"),
+        (None, "ambiguous"),
+    ],
+    ids=[
+        "generated-owned",
+        "host-provided-dropped",
+        "public-ambiguous",
+        "undeclared-ambiguous",
+    ],
+)
+def test_v1_ownership_migration_classifies_records(
+    tmp_path, monkeypatch, declared, expected
+):
+    ownership = _ownership_file(tmp_path)
+    ownership.parent.mkdir(parents=True)
+    ownership.write_text("plugin\tclaude\tmarket\tdemo\n")
+    marketplaces = {}
+    if declared:
+        marketplaces["market"] = {
+            "source_type": declared,
+            "hosts": [],
+            **({"source_locator": "o/r"} if declared == "public" else {}),
+        }
+    migrated = []
+
+    def run(command, *args):
+        # The first host call must already see the migrated file.
+        migrated.append(ownership.read_text())
+        raise plugin_bridge.HostUnavailableError(command)
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    plugin_bridge.reconcile(
+        tmp_path,
+        {
+            "plugin_bridge": {
+                "marketplaces": marketplaces,
+                "retired_plugins": {"x": {"marketplace": "gone", "hosts": ["claude"]}},
+            }
+        },
+    )
+    # An unavailable host keeps every record, so the file shows the migration.
+    wanted = "" if expected is None else f"plugin\tclaude\tmarket\tdemo\t{expected}\n"
+    assert ownership.read_text() == wanted
+
+
+def test_retired_plugin_removal_requires_ownership_or_generated_marketplace(
+    tmp_path, monkeypatch
+):
+    ownership = _ownership_file(tmp_path)
+    ownership.parent.mkdir(parents=True)
+    ambiguous = "plugin\tclaude\tpub\tretired\tambiguous\n"
+    ownership.write_text(ambiguous)
+    installed = {"retired@pub", "retired@gen"}
+    _, run = _plugin_cli("claude", installed)
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    declaration = {
+        "plugin_bridge": {
+            "marketplaces": {
+                "pub": {"source_type": "public", "hosts": [], "source_locator": "o/r"},
+                "gen": {"source_type": "generated", "hosts": []},
+            },
+            "retired_plugins": {"retired": {"marketplace": "pub", "hosts": ["claude"]}},
+        }
+    }
+    retired = declaration["plugin_bridge"]["retired_plugins"]["retired"]
+
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert installed == {"retired@pub", "retired@gen"}
+    assert ownership.read_text() == ambiguous
+
+    retired["marketplace"] = "gen"
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert installed == {"retired@pub"}
+    assert ownership.read_text() == ambiguous
+
+    retired["marketplace"] = "pub"
+    ownership.write_text("plugin\tclaude\tpub\tretired\towned\n")
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert installed == set()
+    assert ownership.read_text() == ""
+
+
+def test_unavailable_host_retains_owned_and_ambiguous_records(tmp_path, monkeypatch):
+    monkeypatch.setattr(plugin_bridge.shutil, "which", lambda command: None)
+    ownership = _ownership_file(tmp_path)
+    ownership.parent.mkdir(parents=True)
+    content = (
+        "plugin\tclaude\tmarket\tmine\towned\n"
+        "plugin\tclaude\tmarket\ttheirs\tambiguous\n"
+    )
+    ownership.write_text(content)
+
+    plugin_bridge.reconcile(tmp_path, {"plugin_bridge": {}})
+
+    assert ownership.read_text() == content
+
+
+def _catalog_host(
+    host,
+    tmp_path,
+    *,
+    marketplace=True,
+    installed_version=None,
+    enabled=True,
+    install_path=None,
+):
+    """Fake host CLI for an external marketplace whose catalog moves from 1.0.0 to 2.0.0 on refresh."""
+    state: dict[str, Any] = {
+        "marketplace": marketplace,
+        "available": "1.0.0",
+        "installed": installed_version,
+        "enabled": enabled,
+        "calls": [],
+    }
+    source = tmp_path / "catalog"
+    manifest = source / ".codex-plugin/plugin.json"
+    manifest.parent.mkdir(parents=True, exist_ok=True)
+
+    def publish():
+        manifest.write_text(json.dumps({"name": "demo", "version": state["available"]}))
+
+    publish()
+
+    def run(command, *args):
+        assert command == host
+        state["calls"].append(args)
+        if args[:3] == ("plugin", "marketplace", "list"):
+            if not state["marketplace"]:
+                return "[]" if host == "claude" else ""
+            return '[{"name": "market"}]' if host == "claude" else "market  /x\n"
+        if args[:2] == ("plugin", "list"):
+            if state["installed"] is None:
+                return "[]" if host == "claude" else '{"installed": []}'
+            if host == "claude":
+                return json.dumps(
+                    [
+                        {
+                            "id": "demo@market",
+                            "version": state["installed"],
+                            "enabled": state["enabled"],
+                            **(
+                                {"installPath": str(install_path)}
+                                if install_path
+                                else {}
+                            ),
+                        }
+                    ]
+                )
+            return json.dumps(
+                {
+                    "installed": [
+                        {
+                            "pluginId": "demo@market",
+                            "installed": True,
+                            "enabled": state["enabled"],
+                            "version": state["installed"],
+                            "source": {"path": str(source)},
+                        }
+                    ]
+                }
+            )
+        if args[:3] == ("plugin", "marketplace", "add"):
+            state["marketplace"] = True
+        elif args[:3] in {
+            ("plugin", "marketplace", "update"),
+            ("plugin", "marketplace", "upgrade"),
+        }:
+            state["available"] = "2.0.0"
+            publish()
+        elif args[:2] in {
+            ("plugin", "install"),
+            ("plugin", "add"),
+            ("plugin", "update"),
+        }:
+            state["installed"] = state["available"]
+            state["enabled"] = True
+        elif args[:2] in {("plugin", "uninstall"), ("plugin", "remove")}:
+            state["installed"] = None
+        elif args[:2] == ("plugin", "enable"):
+            state["enabled"] = True
+        return ""
+
+    return state, run
+
+
+def _mutations(state):
+    return [
+        args
+        for args in state["calls"]
+        if args[:2] != ("plugin", "list")
+        and args[:3] != ("plugin", "marketplace", "list")
+    ]
+
+
+def _owned_records(host):
+    return "".join(
+        f"{kind}\t{host}\tmarket\t{plugin}\towned\n"
+        for kind, plugin in (("marketplace", ""), ("plugin", "demo"))
+    )
+
+
+def _write_owned(tmp_path, host):
+    _ownership_file(tmp_path).parent.mkdir(parents=True)
+    _ownership_file(tmp_path).write_text(_owned_records(host))
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_apply_does_not_refresh_present_public_marketplace(tmp_path, monkeypatch, host):
+    state, run = _catalog_host(
+        host, tmp_path, marketplace=True, installed_version="1.0.0"
+    )
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    _write_owned(tmp_path, host)
+
+    plugin_bridge.reconcile(tmp_path, _public_declaration(host))
+
+    assert _mutations(state) == []
+    assert state["available"] == "1.0.0"
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_apply_adds_absent_public_marketplace_and_installs_plugin(
+    tmp_path, monkeypatch, host
+):
+    state, run = _catalog_host(host, tmp_path, marketplace=False)
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+
+    plugin_bridge.reconcile(tmp_path, _public_declaration(host))
+
+    verb = "install" if host == "claude" else "add"
+    assert _mutations(state) == [
+        ("plugin", "marketplace", "add", "owner/repo"),
+        ("plugin", verb, "demo@market"),
+    ]
+    assert set(_ownership_file(tmp_path).read_text().splitlines()) == set(
+        _owned_records(host).splitlines()
+    )
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_refresh_updates_owned_public_marketplace_then_plugins(
+    tmp_path, monkeypatch, host
+):
+    state, run = _catalog_host(
+        host, tmp_path, marketplace=True, installed_version="1.0.0"
+    )
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    _write_owned(tmp_path, host)
+
+    plugin_bridge.reconcile(tmp_path, _public_declaration(host), refresh=True)
+
+    refresh = "update" if host == "claude" else "upgrade"
+    expected: list[tuple[str, ...]] = [("plugin", "marketplace", refresh, "market")]
+    expected += (
+        [("plugin", "update", "demo@market")]
+        if host == "claude"
+        else [("plugin", "remove", "demo@market"), ("plugin", "add", "demo@market")]
+    )
+    assert _mutations(state) == expected
+    assert state["installed"] == "2.0.0"
+
+    state["calls"].clear()
+    plugin_bridge.reconcile(tmp_path, _public_declaration(host), refresh=True)
+    if host == "codex":
+        assert _mutations(state) == [("plugin", "marketplace", "upgrade", "market")]
+
+
+def test_refresh_does_not_touch_adopted_public_marketplace_or_plugin(
+    tmp_path, monkeypatch
+):
+    state, run = _catalog_host(
+        "claude", tmp_path, marketplace=True, installed_version="1.0.0"
+    )
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+
+    plugin_bridge.reconcile(tmp_path, _public_declaration("claude"), refresh=True)
+
+    assert _mutations(state) == []
+    assert _ownership_file(tmp_path).read_text() == ""
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_refresh_never_touches_host_provided_or_generated_marketplaces(
+    tmp_path, monkeypatch, host
+):
+    state, run = _catalog_host(
+        host, tmp_path, marketplace=True, installed_version="1.0.0"
+    )
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+
+    plugin_bridge.reconcile(
+        tmp_path, _public_declaration(host, "host-provided"), refresh=True
+    )
+    assert _mutations(state) == []
+
+    generated = _public_declaration(host, "generated")
+    generated["plugin_bridge"]["marketplaces"]["market"]["source_locator"] = ""
+    root = tmp_path / ".local/share/agent-plugins/marketplace"
+    monkeypatch.setattr(
+        plugin_bridge, "_generated_marketplace_source", lambda *args: root
+    )
+    plugin_bridge.reconcile(tmp_path, generated, refresh=True)
+    assert not [args for args in _mutations(state) if {"update", "upgrade"} & set(args)]
+    assert state["available"] == "1.0.0"
+
+
+@pytest.mark.parametrize("host", ["claude", "codex"])
+def test_refresh_does_not_change_pinned_archive_marketplace(
+    tmp_path, monkeypatch, host
+):
+    """A generated archive marketplace changes only through its catalog pin, never through refresh."""
+    root = tmp_path / ".local/share/agent-plugins/marketplace"
+    package = root / "plugins/demo"
+    state, run = _catalog_host(
+        host,
+        tmp_path,
+        marketplace=True,
+        installed_version="1.0.0",
+        install_path=package,
+    )
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    monkeypatch.setattr(
+        plugin_bridge, "_generated_marketplace_source", lambda *args: root
+    )
+    declaration = _generated_declaration(host)
+    declaration["plugin_bridge"]["plugins"]["demo"]["package_path"] = "./plugins/demo"
+    (package / f".{host}-plugin").mkdir(parents=True)
+    (package / f".{host}-plugin/plugin.json").write_text(
+        json.dumps({"name": "demo", "version": "1.0.0"})
+    )
+    monkeypatch.setattr(plugin_bridge, "_package_fingerprint", lambda path: "same")
+
+    plugin_bridge.reconcile(tmp_path, declaration, refresh=True)
+
+    assert not [args for args in _mutations(state) if {"update", "upgrade"} & set(args)]
+    assert state["available"] == "1.0.0"
+
+
+def _codex_package(tmp_path, version):
+    package = tmp_path / "package"
+    (package / ".codex-plugin").mkdir(parents=True)
+    (package / ".codex-plugin/plugin.json").write_text(
+        json.dumps({"name": "demo", "version": version})
+    )
+    return package
+
+
+@pytest.mark.parametrize(
+    ("enabled", "installed_version", "adds"),
+    [(True, "3.0.0", 0), (False, "3.0.0", 1), (True, "2.0.0", 1)],
+)
+def test_unchanged_codex_package_plugin_is_not_added_again(
+    tmp_path, monkeypatch, enabled, installed_version, adds
+):
+    package = _codex_package(tmp_path, "3.0.0")
+    calls = []
+
+    def run(command, *args):
+        calls.append(args)
+        if args == ("plugin", "list", "-m", "market", "--json"):
+            return json.dumps(
+                {
+                    "installed": [
+                        {
+                            "pluginId": "demo@market",
+                            "installed": True,
+                            "enabled": enabled
+                            or ("plugin", "add", "demo@market", "--json") in calls,
+                            "version": installed_version,
+                        }
+                    ]
+                }
+            )
+        if args == ("plugin", "add", "demo@market", "--json"):
+            return json.dumps({"installedPath": str(package)})
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    monkeypatch.setattr(plugin_bridge, "_package_fingerprint", lambda path: "same")
+
+    plugin_bridge._ensure_package_plugin("codex", "market", "demo", package)
+
+    assert calls.count(("plugin", "add", "demo@market", "--json")) == adds
+
+
+def test_disabled_host_provided_codex_plugin_is_not_re_enabled(
+    tmp_path, monkeypatch, caplog
+):
+    state, run = _catalog_host(
+        "codex", tmp_path, marketplace=True, installed_version="1.0.0", enabled=False
+    )
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+
+    with caplog.at_level("INFO"):
+        plugin_bridge.reconcile(tmp_path, _public_declaration("codex", "host-provided"))
+
+    assert _mutations(state) == []
+    assert "event=skip-reenable" in caplog.text
+    assert _ownership_file(tmp_path).read_text() == ""
+
+
+def test_second_unchanged_reconcile_issues_only_list_calls(tmp_path, monkeypatch):
+    """Generated package plugins on both hosts settle after one reconcile."""
+    root = tmp_path / ".local/share/agent-plugins/marketplace"
+    package = root / "plugins/demo"
+    for host in ("claude", "codex"):
+        (package / f".{host}-plugin").mkdir(parents=True)
+        (package / f".{host}-plugin/plugin.json").write_text(
+            json.dumps({"name": "demo", "version": "4.0.0"})
+        )
+    (package / "payload").write_text("content\n")
+    hosts: dict[str, dict[str, Any]] = {
+        host: {"registered": None, "installed": False, "calls": []}
+        for host in ("claude", "codex")
+    }
+
+    def run(host, *args):
+        state = hosts[host]
+        state["calls"].append(args)
+        if args[:3] == ("plugin", "marketplace", "list"):
+            registered = state["registered"]
+            if registered is None:
+                return "[]" if host == "claude" else '{"marketplaces": []}'
+            if host == "claude":
+                return json.dumps(
+                    [{"name": "market", "source": "directory", "path": registered}]
+                )
+            return json.dumps(
+                {
+                    "marketplaces": [
+                        {
+                            "name": "market",
+                            "marketplaceSource": {
+                                "sourceType": "local",
+                                "source": registered,
+                            },
+                        }
+                    ]
+                }
+            )
+        if args[:3] == ("plugin", "marketplace", "add"):
+            state["registered"] = args[3]
+        elif args[:2] == ("plugin", "list"):
+            if not state["installed"]:
+                return "[]" if host == "claude" else '{"installed": []}'
+            if host == "claude":
+                return json.dumps(
+                    [
+                        {
+                            "id": "demo@market",
+                            "version": "4.0.0",
+                            "enabled": True,
+                            "installPath": str(package),
+                        }
+                    ]
+                )
+            return json.dumps(
+                {
+                    "installed": [
+                        {
+                            "pluginId": "demo@market",
+                            "installed": True,
+                            "enabled": True,
+                            "version": "4.0.0",
+                            "source": {"path": str(package)},
+                        }
+                    ]
+                }
+            )
+        elif args[:2] in {("plugin", "install"), ("plugin", "add")}:
+            state["installed"] = True
+            if host == "codex":
+                return json.dumps({"installedPath": str(package)})
+        return ""
+
+    monkeypatch.setattr(plugin_bridge, "_run", run)
+    monkeypatch.setattr(
+        plugin_bridge, "_repair_missing_codex_marketplaces", lambda sources: None
+    )
+    declaration = {
+        "plugin_bridge": {
+            "marketplaces": {
+                "market": {"source_type": "generated", "hosts": ["claude", "codex"]}
+            },
+            "plugins": {
+                "demo": {
+                    "marketplace": "market",
+                    "hosts": ["claude", "codex"],
+                    "package_path": "./plugins/demo",
+                }
+            },
+        }
+    }
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert all(state["installed"] for state in hosts.values())
+    for state in hosts.values():
+        state["calls"].clear()
+
+    plugin_bridge.reconcile(tmp_path, declaration)
+
+    for host, state in hosts.items():
+        assert state["calls"], host
+        assert all(
+            args[:2] == ("plugin", "list")
+            or args[:3] == ("plugin", "marketplace", "list")
+            for args in state["calls"]
+        ), (host, state["calls"])
+
+
+def test_main_refreshes_on_flag_chezmoi_refresh_or_expired_stamp(
+    tmp_path, monkeypatch
+):
+    calls = []
+
+    def fake_reconcile(destination, declaration, *, refresh=False):
+        calls.append(refresh)
+
+    monkeypatch.setattr(plugin_bridge, "reconcile", fake_reconcile)
+    stamp = tmp_path / ".local/state/dotfiles/agent-plugin-refresh"
+    argv = ["reconcile", "--destination", str(tmp_path)]
+
+    def run(env_args="chezmoi apply", extra=()):
+        monkeypatch.setenv("CHEZMOI_ARGS", env_args)
+        monkeypatch.setattr("sys.stdin", io.StringIO("{}"))
+        assert plugin_bridge.main([*argv, *extra]) == 0
+        return calls[-1]
+
+    assert run() is True  # no stamp yet
+    assert stamp.exists()
+    assert run() is False  # inside the 24-hour window: no network refresh
+    assert run(extra=["--refresh"]) is True
+    assert run("chezmoi apply -R") is True
+    assert run("chezmoi --config c apply --refresh-externals --no-tty") is True
+    assert run("chezmoi apply --refresh-externals=never") is False
+    old = stamp.stat().st_mtime - plugin_bridge._REFRESH_INTERVAL_SECONDS - 1
+    plugin_bridge.os.utime(stamp, (old, old))
+    assert run() is True
+
+
+@pytest.mark.parametrize(
+    ("arguments", "expected"),
+    [
+        ("chezmoi apply", False),
+        ("chezmoi apply -R", True),
+        ("chezmoi apply -vR", True),
+        ("chezmoi apply -R=auto", False),
+        ("chezmoi apply --refresh-externals=always", True),
+        ("chezmoi apply -- -R", False),
+        ("", False),
+    ],
+)
+def test_refresh_requested_parses_chezmoi_arguments(arguments, expected):
+    assert plugin_bridge._refresh_requested(arguments) is expected
