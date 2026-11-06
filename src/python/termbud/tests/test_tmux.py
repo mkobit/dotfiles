@@ -117,3 +117,27 @@ def test_tmux_open_url_fzf_fail(mock_subprocess_run):
 
     assert result.exit_code == 1
     assert "Failed to execute fzf" in result.stderr
+
+
+def test_tmux_open_url_ctrl_c_copy(mock_subprocess_run):
+    def side_effect_run(cmd, *args, **kwargs):
+        if cmd[0] == "tmux":
+            mock = MagicMock()
+            mock.stdout = "https://example.com"
+            return mock
+        if cmd[0] == "fzf":
+            mock = MagicMock()
+            mock.stdout = "ctrl-c\nhttps://example.com\n"
+            return mock
+        return MagicMock()
+
+    mock_subprocess_run.side_effect = side_effect_run
+    with patch("sys.platform", "linux"), patch("os.uname") as mock_uname:
+        mock_uname.return_value = MagicMock(release="5.15.0-generic")
+        result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
+
+    assert result.exit_code == 0
+    assert mock_subprocess_run.call_count == 3
+    last_call = mock_subprocess_run.call_args_list[-1]
+    assert last_call[0][0] == ["xclip", "-selection", "clipboard"]
+    assert last_call[1]["input"] == "https://example.com"
