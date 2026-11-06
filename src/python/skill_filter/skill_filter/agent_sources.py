@@ -2,15 +2,20 @@
 
 Standard library only and Python 3.8 compatible: chezmoi runs this before
 uv or mise exist.
-This module reads sources and never writes.
+Discovery reads sources and never writes.
+Projection maps the inventory to chezmoi source entries, and ``prepare``
+publishes them all-or-nothing into the source root.
 """
 
 from __future__ import annotations
 
 import argparse
+import fcntl
 import hashlib
 import json
+import os
 import re
+import shutil
 import stat
 import sys
 from dataclasses import dataclass, field
@@ -503,12 +508,569 @@ def inventory_document(inventory: Inventory) -> dict[str, Any]:
     }
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+# Projection: inventory to chezmoi source entries.
+
+INVENTORY_PATH = ".chezmoidata/agent-source-inventory.json"
+MANIFEST_NAME = ".agent-sources-manifest.json"
+LOCK_NAME = ".agent-sources.lock"
+STAGING_NAME = ".agent-sources.staging"
+MANIFEST_SCHEMA = 1
+_MARKETPLACE_SOURCE = "dot_local/share/agent-plugins/marketplace/plugins"
+_CURSOR_LOCAL_SOURCE = "dot_cursor/plugins/local"
+_ANTIGRAVITY_SOURCE = "dot_gemini/antigravity-cli/skills"
+_BARE_PACKAGE_SOURCE = f"{_MARKETPLACE_SOURCE}/{RESERVED_PLUGIN_NAME}"
+BARE_SOURCE_VIEWS = {
+    "portable": f"{_BARE_PACKAGE_SOURCE}/skills",
+    "claude": f"{_BARE_PACKAGE_SOURCE}/claude/skills",
+    "codex": f"{_BARE_PACKAGE_SOURCE}/codex/skills",
+    "cursor": f"{_BARE_PACKAGE_SOURCE}/cursor/skills",
+    "cursor_local": f"{_CURSOR_LOCAL_SOURCE}/{RESERVED_PLUGIN_NAME}/skills",
+    "antigravity": _ANTIGRAVITY_SOURCE,
+}
+_IGNORE_NAME = ".chezmoiignore.tmpl"
+_CONTROL_NAMES = (".chezmoiignore", ".chezmoiignore.tmpl")
+_FIXED_GENERATED = frozenset(
+    {
+        INVENTORY_PATH,
+        f"{_MARKETPLACE_SOURCE}/{_IGNORE_NAME}",
+        f"{_CURSOR_LOCAL_SOURCE}/{_IGNORE_NAME}",
+        *BARE_SOURCE_VIEWS.values(),
+    }
+)
+_GENERATED_PLUGIN_ROOT = re.compile(
+    rf"^({re.escape(_MARKETPLACE_SOURCE)}|{re.escape(_CURSOR_LOCAL_SOURCE)})"
+    r"/exact_[a-z0-9][a-z0-9-]*$"
+)
+_CHEZMOI_PREFIXES = (
+    "after_",
+    "before_",
+    "create_",
+    "dot_",
+    "empty_",
+    "encrypted_",
+    "exact_",
+    "executable_",
+    "external_",
+    "literal_",
+    "modify_",
+    "once_",
+    "onchange_",
+    "private_",
+    "readonly_",
+    "remove_",
+    "run_",
+    "symlink_",
+)
+_FILE_MODE = 0o644
+_EXECUTABLE_MODE = 0o755
+_DIR_MODE = 0o755
+
+
+@dataclass(frozen=True)
+class Entry:
+    """One generated source entry: a directory, or a file with bytes and mode."""
+
+    kind: str
+    data: bytes = b""
+    mode: int = _DIR_MODE
+
+
+_DIR = Entry("dir")
+
+
+def encode_name(
+    target_name: str,
+    *,
+    kind: str,
+    executable: bool = False,
+    empty: bool = False,
+    template: bool = False,
+    exact: bool = False,
+) -> str:
+    """Return the chezmoi source name for a literal target name."""
+    if kind not in ("file", "dir"):
+        raise ValueError(f"unknown entry kind: {kind!r}")
+    if (
+        target_name in ("", ".", "..")
+        or "/" in target_name
+        or "\\" in target_name
+        or target_name.endswith(".literal")
+    ):
+        raise AgentSourceError(f"unsafe target name: {target_name!r}")
+    if kind == "file" and not template and target_name.endswith(".tmpl"):
+        raise AgentSourceError(f"plain file target ends with .tmpl: {target_name!r}")
+    if target_name.startswith("."):
+        base = "dot_" + target_name[1:]
+    elif target_name.startswith(_CHEZMOI_PREFIXES):
+        base = "literal_" + target_name
+    else:
+        base = target_name
+    if kind == "dir":
+        return ("exact_" if exact else "") + base
+    return (
+        ("empty_" if empty else "")
+        + ("executable_" if executable else "")
+        + base
+        + (".tmpl" if template else "")
+    )
+
+
+def source_target_name(source_name: str) -> str:
+    """Strip chezmoi attributes and ``.tmpl``/``.literal`` from a source name."""
+    name = source_name
+    while True:
+        if name.startswith("literal_"):
+            name = name[len("literal_") :]
+            break
+        if name.startswith("dot_"):
+            name = "." + name[len("dot_") :]
+            break
+        prefix = next((p for p in _CHEZMOI_PREFIXES if name.startswith(p)), None)
+        if prefix is None:
+            break
+        name = name[len(prefix) :]
+    if name.endswith(".literal"):
+        name = name[: -len(".literal")]
+    elif name.endswith(".tmpl"):
+        name = name[: -len(".tmpl")]
+    return name
+
+
+def _source_target_path(path: str) -> str:
+    return "/".join(source_target_name(part) for part in path.split("/"))
+
+
+def is_generated_path(path: str) -> bool:
+    """Return whether ``path`` is a top-level path that preparation may own."""
+    return path in _FIXED_GENERATED or bool(_GENERATED_PLUGIN_ROOT.match(path))
+
+
+def _add_dir(plan: dict[str, Entry], path: str) -> None:
+    existing = plan.get(path)
+    if existing is None:
+        plan[path] = _DIR
+    elif existing.kind != "dir":
+        raise AgentSourceError(f"two sources map to {path}")
+
+
+def _add_file(plan: dict[str, Entry], path: str, entry: Entry) -> None:
+    if path in plan:
+        raise AgentSourceError(f"two sources map to {path}")
+    plan[path] = entry
+
+
+def _text(text: str) -> Entry:
+    return Entry("file", text.encode("utf-8"), _FILE_MODE)
+
+
+def _ignore_entry(view: str) -> Entry:
+    return _text(
+        '{{- includeTemplate "ai/agent-source-ignore" '
+        f'(dict "root" . "view" "{view}") -}}}}\n'
+    )
+
+
+def _manifest_entry(name: str, host: str) -> Entry:
+    return _text(
+        '{{- includeTemplate "ai/authored-plugin-manifest" '
+        f'(dict "root" . "name" "{name}" "host" "{host}") -}}}}\n'
+    )
+
+
+def _encode_dirs(target: str) -> str:
+    return "/".join(
+        encode_name(part, kind="dir", exact=True) for part in target.split("/")
+    )
+
+
+def _source_bytes(base: Path, record: dict[str, Any]) -> bytes:
+    data = (base / record["source"]).read_bytes()
+    if hashlib.sha256(data).hexdigest() != record["sha256"]:
+        raise AgentSourceError(f"source changed during preparation: {record['source']}")
+    return data
+
+
+def _add_literal_tree(
+    plan: dict[str, Entry], root: str, tree: Tree, base: Path
+) -> None:
+    """Encode a literal tree; every directory at or below ``root`` is exact."""
+    _add_dir(plan, root)
+    for target in tree.dirs:
+        _add_dir(plan, f"{root}/{_encode_dirs(target)}")
+    for target, record in sorted(tree.files.items()):
+        parent, _, name = target.rpartition("/")
+        directory = f"{root}/{_encode_dirs(parent)}" if parent else root
+        source_name = encode_name(
+            name,
+            kind="file",
+            executable=record["executable"],
+            empty=record["empty"] and not record["template"],
+            template=record["template"],
+        )
+        mode = _EXECUTABLE_MODE if record["executable"] else _FILE_MODE
+        _add_file(
+            plan,
+            f"{directory}/{source_name}",
+            Entry("file", _source_bytes(base, record), mode),
+        )
+
+
+def _add_native_tree(plan: dict[str, Entry], root: str, source_dir: Path) -> None:
+    """Copy a native tree verbatim, with modes; discovery already validated it."""
+    _add_dir(plan, root)
+    for entry in sorted(source_dir.iterdir(), key=lambda item: item.name):
+        if _is_skipped(entry.name):
+            continue
+        mode = entry.lstat().st_mode
+        path = f"{root}/{entry.name}"
+        if stat.S_ISLNK(mode):
+            raise AgentSourceError(f"source symlink is not allowed: {entry}")
+        if stat.S_ISDIR(mode):
+            _add_native_tree(plan, path, entry)
+        elif stat.S_ISREG(mode):
+            _add_file(plan, path, Entry("file", entry.read_bytes(), mode & 0o777))
+        else:
+            raise AgentSourceError(f"unsupported source file type: {entry}")
+
+
+def _check_wrapper(plugin: PluginSource, host: str, tree: Tree) -> None:
+    manifest = f".{host}-plugin/plugin.json"
+    for target in (*tree.dirs, *tree.files):
+        if target == "skills" or target.startswith("skills/"):
+            raise AgentSourceError(
+                f"wrapper entry under skills/ in {plugin.identity.name}/{host}: {target}"
+            )
+        if target == manifest:
+            raise AgentSourceError(
+                f"wrapper defines the generated manifest in "
+                f"{plugin.identity.name}/{host}: {target}"
+            )
+
+
+def _add_plugin_view(
+    plan: dict[str, Entry], root: str, plugin: PluginSource, host: str, base: Path
+) -> None:
+    identity = plugin.identity
+    _add_dir(plan, root)
+    wrapper = plugin.wrappers.get(host)
+    if wrapper is not None:
+        _check_wrapper(plugin, host, wrapper)
+        if identity.native_source or host in identity.native_wrappers:
+            _add_native_tree(plan, root, identity.directory / "wrappers" / host)
+        else:
+            _add_literal_tree(plan, root, wrapper, base)
+    manifest_dir = f"{root}/{encode_name(f'.{host}-plugin', kind='dir', exact=True)}"
+    _add_dir(plan, manifest_dir)
+    _add_file(
+        plan, f"{manifest_dir}/plugin.json.tmpl", _manifest_entry(identity.name, host)
+    )
+    if not plugin.skills:
+        return
+    skills_dir = f"{root}/{encode_name('skills', kind='dir', exact=True)}"
+    _add_dir(plan, skills_dir)
+    for skill, tree in sorted(plugin.skills.items()):
+        if identity.native_source:
+            source_dir = (base / tree.files["SKILL.md"]["source"]).parent
+            name = source_dir.name
+            emitted = name if name.startswith("exact_") else "exact_" + name
+            _add_native_tree(plan, f"{skills_dir}/{emitted}", source_dir)
+        else:
+            encoded = encode_name(skill, kind="dir", exact=True)
+            _add_literal_tree(plan, f"{skills_dir}/{encoded}", tree, base)
+
+
+def _check_plan_targets(plan: dict[str, Entry]) -> None:
+    seen: dict[str, str] = {}
+    for path in sorted(plan):
+        target = _source_target_path(path)
+        other = seen.setdefault(target, path)
+        if other != path:
+            raise AgentSourceError(f"two sources map to {target}: {other} and {path}")
+
+
+def inventory_text(inventory: Inventory) -> str:
+    return json.dumps(inventory_document(inventory), indent=2, sort_keys=True) + "\n"
+
+
+def plan_projection(source_root: Path, inventory: Inventory) -> dict[str, Entry]:
+    """Map generated ``source_root``-relative paths to entries.
+
+    Views exist only for discovered content: bare skill views when there is a
+    bare skill, plugin views per plugin, and an ignore file per populated view.
+    """
+    del source_root  # Paths are relative; the argument fixes the contract.
+    base = inventory.root
+    plan: dict[str, Entry] = {INVENTORY_PATH: _text(inventory_text(inventory))}
+    if inventory.bare_skills:
+        for root in BARE_SOURCE_VIEWS.values():
+            _add_dir(plan, root)
+            for name, tree in sorted(inventory.bare_skills.items()):
+                encoded = encode_name(name, kind="dir", exact=True)
+                _add_literal_tree(plan, f"{root}/{encoded}", tree, base)
+        _add_file(
+            plan, f"{_ANTIGRAVITY_SOURCE}/{_IGNORE_NAME}", _ignore_entry("antigravity")
+        )
+    if inventory.bare_skills or inventory.plugins:
+        _add_file(
+            plan,
+            f"{_MARKETPLACE_SOURCE}/{_IGNORE_NAME}",
+            _ignore_entry("marketplace-plugins"),
+        )
+        _add_file(
+            plan,
+            f"{_CURSOR_LOCAL_SOURCE}/{_IGNORE_NAME}",
+            _ignore_entry("cursor-local"),
+        )
+    for name, plugin in sorted(inventory.plugins.items()):
+        encoded = encode_name(name, kind="dir", exact=True)
+        market_root = f"{_MARKETPLACE_SOURCE}/{encoded}"
+        _add_dir(plan, market_root)
+        for host in HOSTS:
+            host_root = f"{market_root}/{encode_name(host, kind='dir', exact=True)}"
+            _add_plugin_view(plan, host_root, plugin, host, base)
+        _add_plugin_view(
+            plan, f"{_CURSOR_LOCAL_SOURCE}/{encoded}", plugin, "cursor", base
+        )
+    _check_plan_targets(plan)
+    return plan
+
+
+def top_level_paths(plan: dict[str, Entry]) -> list[str]:
+    """Return the sorted generated paths that own every planned entry."""
+    roots = sorted(path for path in plan if is_generated_path(path))
+    for path in plan:
+        if not any(path == root or path.startswith(root + "/") for root in roots):
+            raise AgentSourceError(f"planned entry outside generated paths: {path}")
+    return roots
+
+
+def digest(plan: dict[str, Entry]) -> str:
+    """Digest every planned path, kind, mode, and content."""
+    hasher = hashlib.sha256()
+    for path in sorted(plan):
+        entry = plan[path]
+        record = [path, entry.kind, entry.mode, hashlib.sha256(entry.data).hexdigest()]
+        hasher.update(json.dumps(record).encode("utf-8") + b"\n")
+    return hasher.hexdigest()
+
+
+# Publication: all-or-nothing replacement of the generated paths.
+
+
+def read_manifest(source_root: Path) -> Optional[dict[str, Any]]:
+    """Return the validated previous manifest, or ``None`` when absent."""
+    path = source_root / MANIFEST_NAME
+    if path.is_symlink():
+        raise AgentSourceError(f"manifest is a symlink: {path}")
+    if not path.exists():
+        return None
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except ValueError as error:
+        raise AgentSourceError(f"invalid manifest {path}: {error}") from error
+    if not isinstance(raw, dict) or raw.get("schema") != MANIFEST_SCHEMA:
+        raise AgentSourceError(f"unsupported manifest schema: {path}")
+    state = raw.get("state")
+    paths = raw.get("paths")
+    if state not in ("complete", "publishing"):
+        raise AgentSourceError(f"unknown manifest state {state!r}: {path}")
+    if (
+        not isinstance(paths, list)
+        or not all(isinstance(item, str) and is_generated_path(item) for item in paths)
+        or len(set(paths)) != len(paths)
+    ):
+        raise AgentSourceError(f"manifest lists a path it cannot own: {path}")
+    expected = str if state == "complete" else type(None)
+    if not isinstance(raw.get("digest"), expected):
+        raise AgentSourceError(f"invalid manifest digest: {path}")
+    return raw
+
+
+def _write_manifest(source_root: Path, document: dict[str, Any]) -> None:
+    path = source_root / MANIFEST_NAME
+    temporary = source_root / (MANIFEST_NAME + ".tmp")
+    temporary.write_text(
+        json.dumps(document, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
+    os.replace(str(temporary), str(path))
+
+
+def _check_components(source_root: Path, path: str) -> None:
+    """Fail on a symlink or non-directory component of a generated path."""
+    parts = path.split("/")
+    current = source_root
+    for index, part in enumerate(parts):
+        current = current / part
+        if current.is_symlink():
+            raise AgentSourceError(f"generated path has a symlink: {current}")
+        if index < len(parts) - 1 and current.exists() and not current.is_dir():
+            raise AgentSourceError(
+                f"generated path parent is not a directory: {current}"
+            )
+
+
+def _check_canonical_targets(
+    source_root: Path, path: str, owned: frozenset[str]
+) -> None:
+    """Fail when a canonical sibling of ``path`` or an ancestor has its target."""
+    parts = path.split("/")
+    for index, part in enumerate(parts):
+        directory = source_root.joinpath(*parts[:index])
+        if not directory.is_dir():
+            return
+        wanted = source_target_name(part)
+        for entry in directory.iterdir():
+            relative = "/".join([*parts[:index], entry.name])
+            if entry.name == part or entry.name.startswith(".") or relative in owned:
+                continue
+            if source_target_name(entry.name) == wanted:
+                raise AgentSourceError(
+                    f"canonical source {relative} has the same target as {path}"
+                )
+
+
+def _validate(source_root: Path, new_paths: list[str], old_paths: list[str]) -> None:
+    owned = frozenset(new_paths) | frozenset(old_paths)
+    for path in old_paths:
+        _check_components(source_root, path)
+    for path in new_paths:
+        _check_components(source_root, path)
+        if os.path.lexists(str(source_root / path)) and path not in old_paths:
+            raise AgentSourceError(
+                f"generated path exists but is not in the manifest: {path}"
+            )
+        _check_canonical_targets(source_root, path, owned)
+        if path.endswith("/" + _IGNORE_NAME):
+            directory = source_root / path.rpartition("/")[0]
+            for name in _CONTROL_NAMES:
+                control = f"{path.rpartition('/')[0]}/{name}"
+                if control not in owned and os.path.lexists(str(directory / name)):
+                    raise AgentSourceError(
+                        f"canonical control file at generated control path: {control}"
+                    )
+
+
+def _remove(path: Path) -> None:
+    if path.is_dir() and not path.is_symlink():
+        shutil.rmtree(str(path))
+    elif os.path.lexists(str(path)):
+        path.unlink()
+
+
+def _write_plan(staging: Path, plan: dict[str, Entry]) -> None:
+    for path in sorted(plan):
+        entry = plan[path]
+        target = staging / path
+        if entry.kind == "dir":
+            target.mkdir(parents=True, exist_ok=True)
+        else:
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(entry.data)
+        target.chmod(entry.mode)
+
+
+def _prepare_locked(source_root: Path) -> bool:
+    staging = source_root / STAGING_NAME
+    _remove(staging)
+    previous = read_manifest(source_root)
+    old_paths: list[str] = [] if previous is None else list(previous["paths"])
+    plan = plan_projection(source_root, discover(source_root))
+    new_paths = top_level_paths(plan)
+    _validate(source_root, new_paths, old_paths)
+    plan_digest = digest(plan)
+    if (
+        previous is not None
+        and previous["state"] == "complete"
+        and previous["digest"] == plan_digest
+        and all(os.path.lexists(str(source_root / path)) for path in old_paths)
+    ):
+        return False
+    _write_plan(staging, plan)
+    _write_manifest(
+        source_root,
+        {
+            "schema": MANIFEST_SCHEMA,
+            "state": "publishing",
+            "paths": sorted(set(old_paths) | set(new_paths)),
+            "digest": None,
+        },
+    )
+    for path in sorted(set(old_paths) | set(new_paths)):
+        _remove(source_root / path)
+    for path in new_paths:
+        target = source_root / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        os.replace(str(staging / path), str(target))
+    _remove(staging)
+    _write_manifest(
+        source_root,
+        {
+            "schema": MANIFEST_SCHEMA,
+            "state": "complete",
+            "paths": new_paths,
+            "digest": plan_digest,
+        },
+    )
+    return True
+
+
+def prepare(source_root: Path) -> bool:
+    """Publish the projection into ``source_root``; return whether it changed.
+
+    An exclusive lock serializes runs. Every validation runs before the first
+    mutation, so a failure keeps the previous generated set. A crash during
+    publication leaves a ``publishing`` manifest that the next run recovers.
+    """
+    source_root = Path(source_root)
+    if source_root.is_symlink() or not source_root.is_dir():
+        raise AgentSourceError(f"source root is not a directory: {source_root}")
+    flags = os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0)
+    descriptor = os.open(str(source_root / LOCK_NAME), flags, 0o644)
+    try:
+        fcntl.flock(descriptor, fcntl.LOCK_EX)
+        return _prepare_locked(source_root)
+    finally:
+        os.close(descriptor)
+
+
+_COMMANDS = ("prepare", "list-generated")
+
+
+def _run_command(argv: Sequence[str]) -> int:
     parser = argparse.ArgumentParser(
-        description="Print the agent source inventory for a chezmoi source root."
+        prog="agent_sources.py",
+        description="Prepare or list generated agent source entries.",
+    )
+    commands = parser.add_subparsers(dest="command", required=True)
+    for name in _COMMANDS:
+        command = commands.add_parser(name)
+        command.add_argument(
+            "--source-root", type=Path, required=True, help="chezmoi source root"
+        )
+    args = parser.parse_args(argv)
+    try:
+        if args.command == "prepare":
+            prepare(args.source_root)
+        else:
+            manifest = read_manifest(args.source_root)
+            for path in [] if manifest is None else manifest["paths"]:
+                print(path)
+    except (AgentSourceError, OSError) as error:
+        print(f"agent-sources: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def main(argv: Optional[Sequence[str]] = None) -> int:
+    arguments = list(sys.argv[1:] if argv is None else argv)
+    if arguments and arguments[0] in _COMMANDS:
+        return _run_command(arguments)
+    parser = argparse.ArgumentParser(
+        description="Print the agent source inventory for a chezmoi source root.",
+        epilog="Subcommands: prepare --source-root S, list-generated --source-root S.",
     )
     parser.add_argument("source_root", type=Path, help="chezmoi source root")
-    args = parser.parse_args(argv)
+    args = parser.parse_args(arguments)
     try:
         document = inventory_document(discover(args.source_root))
     except AgentSourceError as error:

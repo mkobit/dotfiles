@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import subprocess
 import sys
@@ -394,3 +395,464 @@ def test_directory_and_file_collision_fails(layout):
     _write(plugin / "skills" / "foo" / "x")
     with pytest.raises(AgentSourceError, match="two sources map"):
         discover(source_root)
+
+
+# Projection and publication.
+
+MARKET = "dot_local/share/agent-plugins/marketplace/plugins"
+LOCAL = "dot_cursor/plugins/local"
+HOSTS_ = ("claude", "codex", "cursor")
+LAUNCHER = Path(agent_sources.__file__).resolve().parent.parent / (
+    "prepare-agent-sources.sh"
+)
+
+
+def _fixture(authored: Path):
+    _write(authored / "ai" / "skills" / "beads" / "SKILL.md", "beads\n")
+    _plugin(authored, "domain-brain", skills=("records",))
+
+
+def _snapshot(root: Path):
+    state = {}
+    for path in sorted(root.rglob("*")):
+        info = path.lstat()
+        data = path.read_bytes() if path.is_file() else None
+        state[path.relative_to(root).as_posix()] = (
+            info.st_mode,
+            info.st_ino,
+            info.st_mtime_ns,
+            data,
+        )
+    return state
+
+
+def _manifest(source_root: Path):
+    path = source_root / agent_sources.MANIFEST_NAME
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize(
+    ("name", "flags", "expected"),
+    [
+        (".hidden", {"kind": "file"}, "dot_hidden"),
+        ("exact_notes.md", {"kind": "file"}, "literal_exact_notes.md"),
+        ("private_x", {"kind": "dir", "exact": True}, "exact_literal_private_x"),
+        ("run.sh", {"kind": "file", "executable": True}, "executable_run.sh"),
+        ("x", {"kind": "file", "empty": True}, "empty_x"),
+        ("SKILL.md", {"kind": "file", "template": True}, "SKILL.md.tmpl"),
+        (
+            "SKILL.md",
+            {"kind": "file", "template": True, "executable": True},
+            "executable_SKILL.md.tmpl",
+        ),
+    ],
+)
+def test_encode_literal_names(name, flags, expected):
+    encoded = agent_sources.encode_name(name, **flags)
+    assert encoded == expected
+    assert agent_sources.source_target_name(encoded) == name
+
+
+@pytest.mark.parametrize("name", ["..", "a/b", "x.literal"])
+def test_encode_rejects_unsafe_names(name):
+    with pytest.raises(AgentSourceError, match="unsafe target name"):
+        agent_sources.encode_name(name, kind="file")
+
+
+def test_native_tree_copied_verbatim_with_forced_exact_root(layout):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "nat", {"native_source": True}, skills=())
+    _write(plugin / "skills" / "private_foo" / "executable_SKILL.md.tmpl")
+    _write(plugin / "skills" / "private_foo" / "exact_refs" / ".keep", "")
+    _write(plugin / "skills" / "exact_bar" / "SKILL.md")
+    _write(plugin / "wrappers" / "claude" / "dot_mcp.json.tmpl", "{}", mode=0o600)
+    plan = agent_sources.plan_projection(source_root, discover(source_root))
+    host = f"{MARKET}/exact_nat/exact_claude"
+    skill = f"{host}/exact_skills/exact_private_foo"
+    assert plan[f"{skill}/executable_SKILL.md.tmpl"].data == b"x\n"
+    assert plan[f"{skill}/exact_refs/.keep"].data == b""
+    assert f"{host}/exact_skills/exact_bar/SKILL.md" in plan
+    assert plan[f"{host}/dot_mcp.json.tmpl"].mode == 0o600
+    assert f"{LOCAL}/exact_nat/exact_skills/exact_private_foo" in plan
+
+
+@pytest.mark.parametrize(
+    "case", ["run_x.sh", "symlink", "dot_chezmoiignore", "modify_x"]
+)
+def test_native_tree_rejects_scripts_symlink_and_control_names(layout, case):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "nat", {"native_source": True}, skills=())
+    skill = plugin / "skills" / "foo"
+    _write(skill / "SKILL.md")
+    if case == "symlink":
+        (skill / "link").symlink_to(skill / "SKILL.md")
+    else:
+        _write(skill / case)
+    with pytest.raises(AgentSourceError):
+        agent_sources.prepare(source_root)
+    assert not (source_root / agent_sources.MANIFEST_NAME).exists()
+    assert not (source_root / agent_sources.INVENTORY_PATH).exists()
+
+
+def test_projection_layout_matches_resolved_table(layout):
+    _, source_root, authored = layout
+    _fixture(authored)
+    plan = agent_sources.plan_projection(source_root, discover(source_root))
+    bare_roots = [
+        f"{MARKET}/mkobit-dotfiles/skills",
+        f"{MARKET}/mkobit-dotfiles/claude/skills",
+        f"{MARKET}/mkobit-dotfiles/codex/skills",
+        f"{MARKET}/mkobit-dotfiles/cursor/skills",
+        f"{LOCAL}/mkobit-dotfiles/skills",
+        "dot_gemini/antigravity-cli/skills",
+    ]
+    expected = {
+        ".chezmoidata/agent-source-inventory.json",
+        f"{MARKET}/.chezmoiignore.tmpl",
+        f"{LOCAL}/.chezmoiignore.tmpl",
+        "dot_gemini/antigravity-cli/skills/.chezmoiignore.tmpl",
+        f"{MARKET}/exact_domain-brain",
+    }
+    for root in bare_roots:
+        expected |= {root, f"{root}/exact_beads", f"{root}/exact_beads/SKILL.md"}
+    views = [(f"{MARKET}/exact_domain-brain/exact_{host}", host) for host in HOSTS_] + [
+        (f"{LOCAL}/exact_domain-brain", "cursor")
+    ]
+    for root, host in views:
+        expected |= {
+            root,
+            f"{root}/exact_dot_{host}-plugin",
+            f"{root}/exact_dot_{host}-plugin/plugin.json.tmpl",
+            f"{root}/exact_skills",
+            f"{root}/exact_skills/exact_records",
+            f"{root}/exact_skills/exact_records/SKILL.md",
+        }
+    assert set(plan) == expected
+    assert agent_sources.top_level_paths(plan) == sorted(
+        [
+            ".chezmoidata/agent-source-inventory.json",
+            f"{MARKET}/.chezmoiignore.tmpl",
+            f"{LOCAL}/.chezmoiignore.tmpl",
+            f"{MARKET}/exact_domain-brain",
+            f"{LOCAL}/exact_domain-brain",
+            *bare_roots,
+        ]
+    )
+    assert plan[
+        f"{LOCAL}/exact_domain-brain/exact_dot_cursor-plugin/plugin.json.tmpl"
+    ].data == (
+        b'{{- includeTemplate "ai/authored-plugin-manifest" '
+        b'(dict "root" . "name" "domain-brain" "host" "cursor") -}}\n'
+    )
+    assert plan[f"{MARKET}/.chezmoiignore.tmpl"].data == (
+        b'{{- includeTemplate "ai/agent-source-ignore" '
+        b'(dict "root" . "view" "marketplace-plugins") -}}\n'
+    )
+    inventory = plan[".chezmoidata/agent-source-inventory.json"].data.decode()
+    assert inventory == (
+        json.dumps(inventory_document(discover(source_root)), indent=2, sort_keys=True)
+        + "\n"
+    )
+
+
+def test_rejects_target_collision_with_canonical_sibling(layout):
+    _, source_root, authored = layout
+    _fixture(authored)
+    _write(source_root / MARKET / "domain-brain" / "plugin.json")
+    with pytest.raises(AgentSourceError, match="same target"):
+        agent_sources.prepare(source_root)
+    assert not (source_root / agent_sources.MANIFEST_NAME).exists()
+
+
+def test_rejects_canonical_ignore_at_generated_control_path(layout):
+    _, source_root, authored = layout
+    _fixture(authored)
+    _write(source_root / LOCAL / ".chezmoiignore", "x\n")
+    with pytest.raises(AgentSourceError, match="control file"):
+        agent_sources.prepare(source_root)
+    assert not (source_root / agent_sources.MANIFEST_NAME).exists()
+
+
+@pytest.mark.parametrize(
+    "wrapper_file",
+    [
+        ".claude-plugin/plugin.json",
+        ".claude-plugin/plugin.json.tmpl",
+        "skills/x/SKILL.md",
+    ],
+)
+def test_rejects_wrapper_manifest_and_wrapper_under_skills(layout, wrapper_file):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "p")
+    _write(plugin / "wrappers" / "claude" / wrapper_file)
+    with pytest.raises(AgentSourceError, match="wrapper"):
+        agent_sources.prepare(source_root)
+
+
+@pytest.mark.parametrize(
+    ("identity", "names"),
+    [
+        ({}, ["a", "a.tmpl"]),
+        ({"native_wrappers": ["claude"]}, ["dot_claude-plugin/extra.json"]),
+    ],
+)
+def test_rejects_template_plain_collision(layout, identity, names):
+    _, source_root, authored = layout
+    plugin = _plugin(authored, "p", identity)
+    for name in names:
+        _write(plugin / "wrappers" / "claude" / name)
+    with pytest.raises(AgentSourceError, match="two sources map"):
+        agent_sources.prepare(source_root)
+
+
+def test_failed_preparation_leaves_previous_tree_and_manifest_unchanged(layout):
+    _, source_root, authored = layout
+    _fixture(authored)
+    assert agent_sources.prepare(source_root) is True
+    before = _snapshot(source_root)
+    skill = authored / "ai" / "skills" / "beads"
+    _write(skill / "changed.md")
+    (skill / "link").symlink_to(skill / "SKILL.md")
+    with pytest.raises(AgentSourceError, match="symlink"):
+        agent_sources.prepare(source_root)
+    assert _snapshot(source_root) == before
+
+
+def test_publishing_manifest_recovers_after_interrupted_publish(layout, monkeypatch):
+    _, source_root, authored = layout
+    _fixture(authored)
+    assert agent_sources.prepare(source_root) is True
+    _write(authored / "ai" / "skills" / "beads" / "SKILL.md", "changed\n")
+    real_replace = os.replace
+    calls = []
+
+    def crash_after_manifest(source, destination):
+        calls.append(destination)
+        if len(calls) == 3:
+            raise OSError("simulated crash")
+        real_replace(source, destination)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(agent_sources.os, "replace", crash_after_manifest)
+        with pytest.raises(OSError, match="simulated crash"):
+            agent_sources.prepare(source_root)
+    interrupted = _manifest(source_root)
+    assert interrupted["state"] == "publishing"
+    assert interrupted["digest"] is None
+    assert agent_sources.prepare(source_root) is True
+    manifest = _manifest(source_root)
+    assert manifest["state"] == "complete"
+    assert not (source_root / agent_sources.STAGING_NAME).exists()
+    plan = agent_sources.plan_projection(source_root, discover(source_root))
+    assert manifest["paths"] == agent_sources.top_level_paths(plan)
+    assert manifest["digest"] == agent_sources.digest(plan)
+    for path, entry in plan.items():
+        if entry.kind == "file":
+            assert (source_root / path).read_bytes() == entry.data
+    portable = source_root / MARKET / "mkobit-dotfiles/skills/exact_beads/SKILL.md"
+    assert portable.read_text(encoding="utf-8") == "changed\n"
+
+
+def test_unchanged_sources_do_not_rewrite(layout):
+    _, source_root, authored = layout
+    _fixture(authored)
+    assert agent_sources.prepare(source_root) is True
+    inventory = source_root / agent_sources.INVENTORY_PATH
+    manifest = source_root / agent_sources.MANIFEST_NAME
+    before = [(p.stat().st_ino, p.stat().st_mtime_ns) for p in (inventory, manifest)]
+    assert agent_sources.prepare(source_root) is False
+    after = [(p.stat().st_ino, p.stat().st_mtime_ns) for p in (inventory, manifest)]
+    assert after == before
+
+
+def test_stale_generated_paths_listed_in_manifest_are_replaced_not_merged(layout):
+    _, source_root, authored = layout
+    _fixture(authored)
+    old = _plugin(authored, "old-plugin")
+    extra = _write(authored / "ai" / "skills" / "beads" / "extra.md")
+    assert agent_sources.prepare(source_root) is True
+    portable = source_root / MARKET / "mkobit-dotfiles/skills/exact_beads"
+    assert (portable / "extra.md").exists()
+    _write(portable / "stray.md")
+    shutil.rmtree(old)
+    extra.unlink()
+    assert agent_sources.prepare(source_root) is True
+    assert not (source_root / MARKET / "exact_old-plugin").exists()
+    assert not (source_root / LOCAL / "exact_old-plugin").exists()
+    assert sorted(p.name for p in portable.iterdir()) == ["SKILL.md"]
+    assert f"{MARKET}/exact_old-plugin" not in _manifest(source_root)["paths"]
+
+
+def test_unlisted_preexisting_generated_path_fails(layout):
+    _, source_root, authored = layout
+    _fixture(authored)
+    _write(source_root / LOCAL / "exact_domain-brain" / "keep.md")
+    before = _snapshot(source_root)
+    with pytest.raises(AgentSourceError, match="not in the manifest"):
+        agent_sources.prepare(source_root)
+    after = _snapshot(source_root)
+    after.pop(agent_sources.LOCK_NAME)
+    assert after == before
+
+
+def test_symlinked_generated_path_component_fails(layout, tmp_path):
+    _, source_root, authored = layout
+    _fixture(authored)
+    (tmp_path / "elsewhere").mkdir()
+    (source_root / "dot_cursor").symlink_to(tmp_path / "elsewhere")
+    with pytest.raises(AgentSourceError, match="symlink"):
+        agent_sources.prepare(source_root)
+    assert list((tmp_path / "elsewhere").iterdir()) == []
+
+
+def test_concurrent_prepare_serializes_on_lock(layout):
+    import fcntl
+    import time
+
+    _, source_root, authored = layout
+    _fixture(authored)
+    module_dir = str(Path(agent_sources.__file__).resolve().parent)
+    code = (
+        "import sys; from pathlib import Path; sys.path.insert(0, sys.argv[1]); "
+        "import agent_sources; print(agent_sources.prepare(Path(sys.argv[2])))"
+    )
+    lock = os.open(str(source_root / agent_sources.LOCK_NAME), os.O_RDWR | os.O_CREAT)
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        runs = [
+            subprocess.Popen(
+                [sys.executable, "-S", "-c", code, module_dir, str(source_root)],
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+            )
+            for _ in range(2)
+        ]
+        time.sleep(0.5)
+        assert [run.poll() for run in runs] == [None, None]
+    finally:
+        os.close(lock)
+    results = [run.communicate(timeout=60) for run in runs]
+    assert [run.returncode for run in runs] == [0, 0], results
+    assert sorted(out.strip() for out, _ in results) == ["False", "True"]
+    assert _manifest(source_root)["state"] == "complete"
+
+
+def test_cli_prepare_and_list_generated(layout):
+    _, source_root, authored = layout
+    command = [sys.executable, "-S", agent_sources.__file__]
+    listed = subprocess.run(
+        [*command, "list-generated", "--source-root", str(source_root)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert (listed.returncode, listed.stdout) == (0, "")
+    _fixture(authored)
+    prepared = subprocess.run(
+        [*command, "prepare", "--source-root", str(source_root)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert prepared.returncode == 0, prepared.stderr
+    listed = subprocess.run(
+        [*command, "list-generated", "--source-root", str(source_root)],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert listed.stdout.splitlines() == _manifest(source_root)["paths"]
+    _write(source_root / LOCAL / ".chezmoiignore")
+    failed = subprocess.run(
+        [*command, "prepare", "--source-root", str(source_root)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert failed.returncode == 1
+    assert failed.stderr.startswith("agent-sources: canonical control file")
+
+
+def test_launcher_runs_with_system_python(layout):
+    _, source_root, authored = layout
+    _fixture(authored)
+    result = subprocess.run(
+        ["sh", str(LAUNCHER), str(source_root), "/nonexistent"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert (source_root / agent_sources.INVENTORY_PATH).is_file()
+    assert _manifest(source_root)["state"] == "complete"
+
+
+@pytest.mark.skipif(shutil.which("chezmoi") is None, reason="chezmoi is not installed")
+def test_projection_applies_with_plain_chezmoi(layout, tmp_path):
+    _, source_root, authored = layout
+    skill = authored / "ai" / "skills" / "beads"
+    _write(skill / "SKILL.md", "beads\n")
+    _write(skill / "scripts" / "run.sh", "#!/bin/sh\n", mode=0o755)
+    _write(skill / "empty.txt", "")
+    _write(skill / ".hidden", "h\n")
+    _write(skill / "exact_notes.md", "n\n")
+    (skill / "assets").mkdir()
+    plugin = _plugin(authored, "domain-brain", skills=())
+    _write(plugin / "skills" / "records" / "SKILL.md.tmpl", '{{ "rendered" }}\n')
+    _write(plugin / "wrappers" / "claude" / ".mcp.json.tmpl", "{}\n", mode=0o755)
+    templates = source_root / ".chezmoitemplates" / "ai"
+    _write(templates / "authored-plugin-manifest", '{"name": "{{ .name }}"}\n')
+    _write(templates / "agent-source-ignore", "")
+    assert agent_sources.prepare(source_root) is True
+    dest = tmp_path / "dest"
+    dest.mkdir()
+    config = _write(tmp_path / "c.toml", "")
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--source",
+            str(source_root),
+            "--destination",
+            str(dest),
+            "--config",
+            str(config),
+            "--cache",
+            str(tmp_path / "cache"),
+            "--persistent-state",
+            str(tmp_path / "state.boltdb"),
+            "apply",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        env={**os.environ, "HOME": str(tmp_path)},
+    )
+    assert result.returncode == 0, result.stderr
+    market = dest / ".local/share/agent-plugins/marketplace/plugins"
+    for view in (
+        market / "mkobit-dotfiles/skills/beads",
+        market / "mkobit-dotfiles/claude/skills/beads",
+        dest / ".cursor/plugins/local/mkobit-dotfiles/skills/beads",
+        dest / ".gemini/antigravity-cli/skills/beads",
+    ):
+        assert (view / "SKILL.md").read_text(encoding="utf-8") == "beads\n"
+        assert (view / "scripts/run.sh").stat().st_mode & 0o111
+        assert (view / "empty.txt").read_bytes() == b""
+        assert (view / ".hidden").read_text(encoding="utf-8") == "h\n"
+        assert (view / "exact_notes.md").read_text(encoding="utf-8") == "n\n"
+        assert (view / "assets").is_dir()
+        assert list((view / "assets").iterdir()) == []
+    for root, host in [
+        (market / "domain-brain/claude", "claude"),
+        (market / "domain-brain/codex", "codex"),
+        (dest / ".cursor/plugins/local/domain-brain", "cursor"),
+    ]:
+        manifest = root / f".{host}-plugin/plugin.json"
+        assert json.loads(manifest.read_text(encoding="utf-8")) == {
+            "name": "domain-brain"
+        }
+        records = root / "skills/records/SKILL.md"
+        assert records.read_text(encoding="utf-8") == "rendered\n"
+    assert (market / "domain-brain/claude/.mcp.json").read_text() == "{}\n"
+    assert not (market / "domain-brain/codex/.mcp.json").exists()

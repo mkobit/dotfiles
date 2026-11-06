@@ -45,6 +45,22 @@ It validates both the desired and prior state before deleting stale recorded dir
 EOF
 ```
 
+## Agent source preparation
+
+`prepare-agent-sources.sh` projects authored skills and plugins beside a chezmoi source root into generated chezmoi source entries inside that root.
+
+```sh
+src/python/skill_filter/prepare-agent-sources.sh <source-root> [<dest-dir>]
+```
+
+It resolves an interpreter with `resolve-interpreter.sh` (from `<dest-dir>`, else `CHEZMOI_DEST_DIR`) and runs `skill_filter/agent_sources.py prepare --source-root <source-root>` with `-S`.
+Discovery reads `<source-root>/../ai/skills`, `<source-root>/../overlay-plugins`, and any `skills_source_dir` a plugin names.
+Preparation takes an exclusive lock on `<source-root>/.agent-sources.lock`, runs every validation before the first write, stages the projection in `<source-root>/.agent-sources.staging/`, and then replaces the generated paths.
+`<source-root>/.agent-sources-manifest.json` lists the generated paths; preparation owns those paths and nothing else.
+A failed run keeps the previous generated set, a run with unchanged sources writes nothing, and a `publishing` manifest left by an interrupted run is rebuilt on the next run.
+`agent_sources.py list-generated --source-root <source-root>` prints the manifest paths, one per line, and nothing when no manifest exists.
+Both commands exit 1 with `agent-sources: <message>` on stderr when they fail.
+
 ## Extension point
 
 The archive-in/archive-out contract is the seam for future per-tool content transformation (the rulette idea).
