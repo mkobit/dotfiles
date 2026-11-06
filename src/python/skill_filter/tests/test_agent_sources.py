@@ -128,6 +128,18 @@ def test_skills_source_dir_reads_shared_overlay_skills(layout):
     assert set(plugin["skills"]) == {"mermaid-sharing"}
 
 
+def test_skills_source_dir_resolves_inside_assembled_authored_root(tmp_path):
+    authored = tmp_path / "overlay" / ".chezmoiroot.assembled"
+    source_root = authored / "chezmoi"
+    source_root.mkdir(parents=True)
+    _write(tmp_path / "overlay" / "src" / "overlay-skills" / "checkout" / "SKILL.md")
+    _write(authored / "overlay-skills" / "assembled" / "SKILL.md")
+    _plugin(authored, "p", {"skills_source_dir": "src/overlay-skills"}, skills=())
+    plugin = discover(source_root).plugins["p"]
+    assert plugin.identity.skills_source_dir == authored / "overlay-skills"
+    assert set(plugin.skills) == {"assembled"}
+
+
 def test_skills_source_dir_rejects_escape_and_symlink(layout):
     root, _, authored = layout
     (root / "outside").mkdir()

@@ -1,7 +1,10 @@
 {{- /*
   Join the generated agent source inventory with control-plane selection data.
   Input is the root context; output is JSON that every consumer shares:
-  {"bare": {"enabled_hosts", "antigravity", "skills": {s: {"state", "views"}}}, "plugins": {}}.
+  {"bare": {"enabled_hosts", "antigravity", "skills": {s: {"state", "views"}}},
+   "plugins": {n: {"enabled", "marketplace", "description", "hosts": {h: {"skills", "components"}},
+                   "cursor_local", "version_inputs"}}}.
+  Plugin hosts list only selected hosts; a disabled plugin has no hosts.
   A missing inventory renders empty, so chezmoi init and a cold chezmoi data stay valid.
 */ -}}
 {{- $inventory := dig "agent_source_inventory" (dict) . -}}
@@ -56,4 +59,59 @@
 {{-   $_ := set $skills $name (dict "state" $state "views" $views) -}}
 {{- end -}}
 {{- $bare := dict "enabled_hosts" $enabledHosts "antigravity" $antigravity "skills" $skills -}}
-{{- toJson (dict "bare" $bare "plugins" (dict)) -}}
+{{- $environment := dig "environment" "default" $bridge -}}
+{{- $plugins := dict -}}
+{{- range $name, $plugin := dig "plugins" (dict) $inventory -}}
+{{-   $capability := dig "capabilities" $name (dict) $bridge -}}
+{{-   $prefix := printf "ai.plugin_bridge.capabilities.%s" $name -}}
+{{-   $pluginHosts := dig "hosts" $bridge.default_hosts $capability -}}
+{{-   if not (and (kindIs "slice" $pluginHosts) $pluginHosts) -}}
+{{-     fail (printf "%s.hosts: must be a non-empty list" $prefix) -}}
+{{-   end -}}
+{{-   range $host := $pluginHosts -}}
+{{-     if not (has $host $hosts) -}}
+{{-       fail (printf "%s.hosts: unknown host %q (expected one of %s)" $prefix $host (join ", " $hosts)) -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $environments := dig "environments" nil $capability -}}
+{{-   if and (ne $environments nil) (not (kindIs "slice" $environments)) -}}
+{{-     fail (printf "%s.environments: must be a list" $prefix) -}}
+{{-   end -}}
+{{-   $enabled := or (eq $environments nil) (has $environment $environments) -}}
+{{-   $skillStates := dig "skills" (dict) $capability -}}
+{{-   $pluginStates := concat (list "present" "absent") $hosts -}}
+{{-   range $skill, $state := $skillStates -}}
+{{-     if not (has $state $pluginStates) -}}
+{{-       fail (printf "%s.skills.%s: state must be one of %s, got %q" $prefix $skill (join ", " (sortAlpha $pluginStates)) $state) -}}
+{{-     end -}}
+{{-     if and (not (hasKey $plugin.skills $skill)) (ne $state "absent") -}}
+{{-       fail (printf "%s.skills.%s: plugin %s has no skill %s; only \"absent\" may name a missing skill" $prefix $skill $name $skill) -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $selectedHosts := dict -}}
+{{-   if $enabled -}}
+{{-     range $host := $hosts -}}
+{{-       if has $host $pluginHosts -}}
+{{-         $hostSkills := list -}}
+{{-         range $skill := keys $plugin.skills | sortAlpha -}}
+{{-           $state := dig $skill "present" $skillStates -}}
+{{-           if or (eq $state "present") (eq $state $host) -}}
+{{-             $hostSkills = append $hostSkills $skill -}}
+{{-           end -}}
+{{-         end -}}
+{{-         $components := dig "wrappers" $host "components" (dict) $plugin -}}
+{{-         $_ := set $selectedHosts $host (dict "skills" $hostSkills "components" $components) -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $cursorLocal := hasKey $selectedHosts "cursor" -}}
+{{-   $selection := dict "enabled" $enabled "hosts" $selectedHosts "cursor_local" $cursorLocal -}}
+{{-   $_ := set $plugins $name (dict
+        "enabled" $enabled
+        "marketplace" (dig "marketplace" "dotfiles" $capability)
+        "description" $plugin.description
+        "hosts" $selectedHosts
+        "cursor_local" $cursorLocal
+        "version_inputs" (dict "digest" $plugin.digest "selection" $selection)) -}}
+{{- end -}}
+{{- toJson (dict "bare" $bare "plugins" $plugins) -}}

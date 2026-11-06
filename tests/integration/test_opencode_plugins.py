@@ -22,7 +22,6 @@ def test_opencode_apply_respects_host_and_plugin_control_plane(tmp_path, ignore_
     for relative in (
         ".chezmoiignore.tmpl",
         "dot_config/opencode/modify_opencode.json",
-        ".chezmoitemplates/ai/authored-plugin-manifest-ignore",
     ):
         target = source / relative
         target.parent.mkdir(parents=True, exist_ok=True)

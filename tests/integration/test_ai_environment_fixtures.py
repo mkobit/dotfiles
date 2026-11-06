@@ -12,7 +12,6 @@ import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPOSITORY_ROOT / "src/chezmoi"
-AUTHORED_CAPABILITIES_EXTERNAL = SOURCE_ROOT / ".chezmoiexternals/ai-authored-capabilities.toml.tmpl"
 PLUGIN_BRIDGE_DATA = SOURCE_ROOT / ".chezmoidata/ai/plugin-bridge.toml"
 MARKETPLACE_TEMPLATES = (
     Path("dot_local/share/agent-plugins/marketplace/dot_claude-plugin/marketplace.json.tmpl"),
@@ -24,57 +23,6 @@ MARKETPLACE_TEMPLATES = (
     Path(".chezmoitemplates/ai/agent-sources"),
 )
 BRIDGE_TEMPLATE = Path(".chezmoitemplates/ai/plugin-bridge")
-
-
-def _write_fixture_source(source: Path, repo_root: Path, config: Path, environment: str) -> None:
-    (source / ".chezmoiexternals").mkdir(parents=True)
-    shutil.copy2(
-        AUTHORED_CAPABILITIES_EXTERNAL,
-        source / ".chezmoiexternals/ai-authored-capabilities.toml.tmpl",
-    )
-    data_file = source / ".chezmoidata/ai/plugin-bridge.toml"
-    data_file.parent.mkdir(parents=True)
-    shutil.copy2(PLUGIN_BRIDGE_DATA, data_file)
-
-    for relative_path in (
-        *MARKETPLACE_TEMPLATES,
-        BRIDGE_TEMPLATE,
-        Path(".chezmoitemplates/ai/authored-render-context"),
-        Path(".chezmoitemplates/ai/authored-file-entry"),
-        Path(".chezmoitemplates/ai/authored-file-digest"),
-    ):
-        target_file = source / relative_path
-        target_file.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(SOURCE_ROOT / relative_path, target_file)
-
-    capabilities = {
-        "mydev-capability": "mydev",
-        "mydata-capability": "mydata",
-    }
-    config_lines = [
-        "[data.ai.plugin_bridge]",
-        f"environment = {json.dumps(environment)}",
-        "",
-    ]
-    for capability, enabled_environment in capabilities.items():
-        skill = repo_root / "src/overlay-plugins" / capability / "skills/example/SKILL.md"
-        skill.parent.mkdir(parents=True, exist_ok=True)
-        skill.write_text(f"# {capability}\n", encoding="utf-8")
-        config_lines.extend(
-            [
-                f"[data.ai.plugin_bridge.capabilities.{capability}]",
-                f'description = "Fixture capability for {enabled_environment}."',
-                f'source_dir = "src/overlay-plugins/{capability}"',
-                'marketplace = "dotfiles"',
-                'hosts = ["claude", "codex", "cursor"]',
-                f"environments = [{json.dumps(enabled_environment)}]",
-                "",
-                f"[data.ai.plugin_bridge.capabilities.{capability}.skills]",
-                'example = "present"',
-                "",
-            ]
-        )
-    config.write_text("\n".join(config_lines), encoding="utf-8")
 
 
 def _apply(source: Path, destination: Path, config: Path) -> subprocess.CompletedProcess[str]:
@@ -117,6 +65,28 @@ def _snapshot(destination: Path) -> dict[str, bytes]:
     }
 
 
+def _environment_fixture(fixture, environment: str, extra: str = "") -> None:
+    """Write two environment-scoped plugins and a shared plugin with a mydata skill exclusion."""
+    for name, enabled in (("mydev-capability", "mydev"), ("mydata-capability", "mydata")):
+        fixture.write_plugin(name, skills={"example": {"SKILL.md": f"# {name}\n"}})
+        extra += f'[data.ai.plugin_bridge.capabilities.{name}]\nenvironments = ["{enabled}"]\n'
+    fixture.write_plugin(
+        "stripe-dotfiles",
+        skills={name: {"SKILL.md": f"# {name}\n"} for name in ("writing", "jira-slack-to-jira")},
+    )
+    if environment == "mydata":
+        extra += '[data.ai.plugin_bridge.capabilities.stripe-dotfiles.skills]\njira-slack-to-jira = "absent"\n'
+    fixture.write_config(extra)
+    text = fixture.config.read_text(encoding="utf-8")
+    hosts = 'default_hosts = ["claude", "codex", "cursor"]\n'
+    fixture.config.write_text(text.replace(hosts, f"{hosts}environment = {json.dumps(environment)}\n", 1))
+
+
+def _marketplace_plugins(destination: Path, host_path: str) -> dict[str, dict]:
+    manifest = destination / ".local/share/agent-plugins/marketplace" / host_path
+    return {entry["name"]: entry for entry in json.loads(manifest.read_text())["plugins"]}
+
+
 @pytest.mark.parametrize(
     ("environment", "selected", "absent"),
     [
@@ -124,35 +94,87 @@ def _snapshot(destination: Path) -> dict[str, bytes]:
         ("mydata", "mydata-capability", "mydev-capability"),
     ],
 )
-def test_environment_fixture_selects_capability_and_cursor_projection(tmp_path, environment, selected, absent):
-    """The selected environment gets its marketplace entry and fresh Cursor skill projection."""
-    repo_root = tmp_path / "repo"
-    source = repo_root / "src/chezmoi"
-    destination = tmp_path / "destination"
-    destination.mkdir()
-    config = tmp_path / "chezmoi.toml"
-    _write_fixture_source(source, repo_root, config, environment)
+def test_environment_fixture_selects_capability_and_cursor_projection(
+    agent_source_fixture, environment, selected, absent
+):
+    """The selected environment gets its marketplace entry, Cursor copy, and mydata skill exclusions."""
+    fixture = agent_source_fixture
+    _environment_fixture(fixture, environment)
+    managed = fixture.managed_files()
+    local = ".cursor/plugins/local"
+    assert f"{local}/{selected}/skills/example/SKILL.md" in managed
+    assert not any(path.startswith(f"{local}/{absent}/") for path in managed)
+    excluded = f"{local}/stripe-dotfiles/skills/jira-slack-to-jira/SKILL.md"
+    assert (excluded in managed) is (environment == "mydev")
+    assert f"{local}/stripe-dotfiles/skills/writing/SKILL.md" in managed
 
-    first_apply = _apply(source, destination, config)
+    first_apply = fixture.run("apply")
     assert first_apply.returncode == 0, first_apply.stderr
+    expected_names = {"mkobit-dotfiles", "stripe-dotfiles", selected}
+    for host_path in (".claude-plugin/marketplace.json", ".agents/plugins/marketplace.json"):
+        assert set(_marketplace_plugins(fixture.destination, host_path)) == expected_names
+    assert (fixture.destination / local / selected / "skills/example/SKILL.md").read_text() == f"# {selected}\n"
+    assert not (fixture.destination / local / absent).exists()
+    package = fixture.destination / ".local/share/agent-plugins/marketplace/plugins/stripe-dotfiles"
+    for root in (
+        package / "claude/skills",
+        package / "codex/skills",
+        fixture.destination / local / "stripe-dotfiles/skills",
+    ):
+        assert (root / "jira-slack-to-jira").exists() is (environment == "mydev")
 
-    claude_marketplace = destination / ".local/share/agent-plugins/marketplace/.claude-plugin/marketplace.json"
-    codex_marketplace = destination / ".local/share/agent-plugins/marketplace/.agents/plugins/marketplace.json"
-    claude_names = {plugin["name"] for plugin in json.loads(claude_marketplace.read_text())["plugins"]}
-    codex_names = {plugin["name"] for plugin in json.loads(codex_marketplace.read_text())["plugins"]}
-    expected_names = {"mkobit-dotfiles", selected}
-    assert claude_names == expected_names
-    assert codex_names == expected_names
-
-    selected_skill = destination / ".cursor/plugins/local" / selected / "skills/example/SKILL.md"
-    absent_skill = destination / ".cursor/plugins/local" / absent / "skills/example/SKILL.md"
-    assert selected_skill.read_text(encoding="utf-8") == f"# {selected}\n"
-    assert not absent_skill.exists()
-
-    first_snapshot = _snapshot(destination)
-    second_apply = _apply(source, destination, config)
+    first_snapshot = _snapshot(fixture.destination)
+    diff = fixture.run("--no-pager", "diff")
+    assert diff.returncode == 0, diff.stderr
+    assert diff.stdout == ""
+    second_apply = fixture.run("apply")
     assert second_apply.returncode == 0, second_apply.stderr
-    assert _snapshot(destination) == first_snapshot
+    assert _snapshot(fixture.destination) == first_snapshot
+
+
+def test_marketplace_lists_inventory_plugins_for_selected_hosts(agent_source_fixture):
+    """Marketplace entries and the bridge payload come from the inventory and its host selection."""
+    fixture = agent_source_fixture
+    skill = {"one": {"SKILL.md": "# One\n"}}
+    fixture.write_plugin("everywhere", skills=skill)
+    fixture.write_plugin("claude-only", skills=skill)
+    fixture.write_plugin("disabled", skills=skill)
+    fixture.write_config(
+        '[data.ai.plugin_bridge.capabilities.claude-only]\nhosts = ["claude"]\n'
+        '[data.ai.plugin_bridge.capabilities.disabled]\nenvironments = ["elsewhere"]\n'
+    )
+    result = fixture.run("apply")
+    assert result.returncode == 0, result.stderr
+
+    claude = _marketplace_plugins(fixture.destination, ".claude-plugin/marketplace.json")
+    codex = _marketplace_plugins(fixture.destination, ".agents/plugins/marketplace.json")
+    assert set(claude) == {"mkobit-dotfiles", "everywhere", "claude-only"}
+    assert set(codex) == {"mkobit-dotfiles", "everywhere"}
+    assert claude["claude-only"]["source"] == "./plugins/claude-only/claude"
+    assert codex["everywhere"]["source"] == {"source": "local", "path": "./plugins/everywhere/codex"}
+
+    bridge = fixture.run("execute-template", '{{ includeTemplate "ai/plugin-bridge" . }}')
+    assert bridge.returncode == 0, bridge.stderr
+    capabilities = json.loads(bridge.stdout)["capabilities"]
+    assert "disabled" not in capabilities
+    assert capabilities["claude-only"] == {
+        "description": "claude-only fixture plugin.",
+        "marketplace": "dotfiles",
+        "hosts": ["claude"],
+    }
+    assert capabilities["everywhere"]["hosts"] == ["claude", "codex", "cursor"]
+    provenance = SOURCE_ROOT / "dot_local/share/agent-plugins/marketplace/bridge-provenance.json.tmpl"
+    rendered = fixture.run("execute-template", "--override-data", '{"ai": {"skills": {}}}', "-f", str(provenance))
+    assert rendered.returncode == 0, rendered.stderr
+    entries = {entry["name"]: entry for entry in json.loads(rendered.stdout)["capabilities"]}
+    assert set(entries) == {"mkobit-dotfiles", "everywhere", "claude-only"}
+    assert entries["everywhere"]["description"] == "everywhere fixture plugin."
+    assert entries["everywhere"]["trust_class"] == "owned"
+
+    fixture.write_config('[data.ai.plugin_bridge.capabilities.everywhere]\nexternal_source = "superpowers"\n')
+    collision = fixture.run("execute-template", '{{ includeTemplate "ai/plugin-bridge" . }}')
+    assert collision.returncode != 0
+    assert "discovered plugin name equals an upstream or bundle capability" in collision.stderr
 
 
 def _upstream_fixture(
@@ -177,7 +199,6 @@ def _upstream_fixture(
         Path("dot_codex/.chezmoiremove.tmpl"),
         Path("dot_cursor/.chezmoiremove.tmpl"),
         Path("dot_gemini/.chezmoiremove.tmpl"),
-        Path(".chezmoitemplates/ai/authored-plugin-manifest-ignore"),
         Path(".chezmoitemplates/python/filter-interpreter"),
     )
     for relative in files:

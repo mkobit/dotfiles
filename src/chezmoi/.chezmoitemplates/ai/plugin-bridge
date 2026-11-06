@@ -1,13 +1,26 @@
 {{- /* Keep native registration consistent with upstream package acquisition. */ -}}
 {{- $bridge := deepCopy (dig "ai" "plugin_bridge" (dict) .) -}}
+{{- $sources := includeTemplate "ai/agent-sources" . | fromJson -}}
+{{- $declared := dig "capabilities" (dict) $bridge -}}
 {{- $capabilities := dict -}}
-{{- range $name, $capability := dig "capabilities" (dict) $bridge -}}
+{{- /* Discovered plugins come from the inventory; data keys of the same name are selection exceptions. */ -}}
+{{- range $name, $plugin := $sources.plugins -}}
+{{-   $data := dig $name (dict) $declared -}}
+{{-   if or (hasKey $data "external_source") (hasKey $data "acquisition_destination") -}}
+{{-     fail (printf "ai.plugin_bridge.capabilities.%s: discovered plugin name equals an upstream or bundle capability" $name) -}}
+{{-   end -}}
+{{-   if $plugin.enabled -}}
+{{-     $capability := dict "description" $plugin.description "marketplace" $plugin.marketplace "hosts" (keys $plugin.hosts | sortAlpha) -}}
+{{-     $_ := set $capabilities $name (mergeOverwrite $capability (deepCopy $data)) -}}
+{{-   end -}}
+{{- end -}}
+{{- range $name, $capability := $declared -}}
 {{-   $source := dig "external_source" "" $capability -}}
-{{-   if or (not $source) (eq (dig "ai" "plugins" $source "installation_method" "none" $) "chezmoi_external") -}}
+{{-   if and (not (hasKey $sources.plugins $name)) (or (not $source) (eq (dig "ai" "plugins" $source "installation_method" "none" $) "chezmoi_external")) -}}
 {{-     $_ := set $capabilities $name $capability -}}
 {{-   end -}}
 {{- end -}}
-{{- $bundleHosts := (includeTemplate "ai/agent-sources" . | fromJson).bare.enabled_hosts -}}
+{{- $bundleHosts := $sources.bare.enabled_hosts -}}
 {{- if and (hasKey $capabilities "mkobit-dotfiles") $bundleHosts -}}
 {{-   $_ := set (index $capabilities "mkobit-dotfiles") "hosts" $bundleHosts -}}
 {{- end -}}

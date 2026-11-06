@@ -87,12 +87,13 @@
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
+{{- /* Generated exact_<plugin> manifests are native entries; only the mkobit-dotfiles bundle keeps canonical manifests. */ -}}
 {{- $marketplaceRoot := joinPath $.chezmoi.sourceDir "dot_local/share/agent-plugins/marketplace/plugins" -}}
 {{- range $manifest := glob (joinPath $marketplaceRoot "**/plugin.json.tmpl") -}}
 {{-   if eq (lstat $manifest).type "file" -}}
 {{-     $relative := trimPrefix (printf "%s/" $marketplaceRoot) $manifest -}}
 {{-     $segments := splitList "/" $relative -}}
-{{-     if eq (len $segments) 4 -}}
+{{-     if and (eq (len $segments) 4) (eq (index $segments 0) "mkobit-dotfiles") -}}
 {{-       $capabilityName := index $segments 0 -}}
 {{-       $capability := dig $capabilityName nil $capabilities -}}
 {{-       if $capability -}}
@@ -112,7 +113,7 @@
 {{-   if eq (lstat $manifest).type "file" -}}
 {{-     $relative := trimPrefix (printf "%s/" $cursorRoot) $manifest -}}
 {{-     $segments := splitList "/" $relative -}}
-{{-     if and (eq (len $segments) 3) (eq (index $segments 1) "exact_dot_cursor-plugin") (eq (index $segments 2) "plugin.json.tmpl") -}}
+{{-     if and (eq (len $segments) 3) (eq (index $segments 0) "mkobit-dotfiles") (eq (index $segments 1) "exact_dot_cursor-plugin") (eq (index $segments 2) "plugin.json.tmpl") -}}
 {{-       $capabilityName := index $segments 0 -}}
 {{-       $capability := dig $capabilityName nil $capabilities -}}
 {{-       if $capability -}}

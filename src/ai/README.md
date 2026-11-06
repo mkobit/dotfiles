@@ -8,8 +8,8 @@ The four stages below describe responsibilities; rendering and host filtering ca
 | Stage | Input and result | Source |
 |---|---|---|
 | Source and data | Authored files, pinned archives, and catalog selections combine with init data; effective data changes rendered content. | [Skills](skills/), [catalog](../chezmoi/.chezmoidata/ai/), [init template](../chezmoi/.chezmoi.toml.tmpl) |
-| Generated packages | Packages contain copied plain files, rendered authored `.tmpl` files, and versions based on content and selections. | [File entries](../chezmoi/.chezmoitemplates/ai/authored-file-entry), [package inputs](../chezmoi/.chezmoitemplates/ai/authored-plugins) |
-| Host transformation and bundling | Externals select files, convert upstream agents, and build portable and host package views. | [Skill externals](../chezmoi/.chezmoiexternals/ai-skills.toml.tmpl), [agent externals](../chezmoi/.chezmoiexternals/ai-agents.toml.tmpl), [filter](../python/skill_filter/skill_filter/main.py), [wrappers](../chezmoi/.chezmoiexternals/ai-authored-wrappers.toml.tmpl) |
+| Generated packages | Preparation projects authored skills and plugins into native chezmoi entries; chezmoi renders `.tmpl` files, and versions follow content and selections. | [Projection](../python/skill_filter/skill_filter/agent_sources.py), [selection](../chezmoi/.chezmoitemplates/ai/agent-sources) |
+| Host transformation and bundling | Externals select files, convert upstream agents, and build portable and host package views. | [Skill externals](../chezmoi/.chezmoiexternals/ai-skills.toml.tmpl), [agent externals](../chezmoi/.chezmoiexternals/ai-agents.toml.tmpl), [filter](../python/skill_filter/skill_filter/main.py) |
 | Registration and uninstall | The post-apply bridge registers Claude Code and Codex packages and removes stale registrations that it owns. | [Hook](../chezmoi/.chezmoiscripts/run_after_agent-plugin-bridge.sh.tmpl), [bridge](../python/skill_filter/skill_filter/plugin_bridge.py) |
 
 Authored skills and wrappers share the chezmoi Go template engine and effective data; there is no separate renderer or framework.
@@ -63,8 +63,7 @@ Configuration values take precedence over catalog defaults at the same key path.
 Use `chezmoi.destDir` for destination paths and `dig` with safe defaults for optional data.
 Use deterministic data; clocks, random values, and live lookups can change package versions on each apply.
 The [base version template](../chezmoi/.chezmoitemplates/ai/authored-base-version) calculates the bundle version from inventory tree digests, selections, external skill selections, and rendered digests of templates in selected skills.
-The [capability manifest](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest) calculates capability versions from rendered content, plain file hashes, executable modes, and selection data.
-The [capability externals](../chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl) still deploy overlay capability skill files.
+The [plugin manifest](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest) calculates authored plugin versions the same way; see [Authored plugin packages](#authored-plugin-packages).
 
 The [technical-writing template](skills/technical-writing/SKILL.md.tmpl) accepts optional `ai.skills.content.technical-writing.description` and `ai.skills.content.technical-writing.instructions` strings.
 A non-empty description replaces the YAML description with a quoted scalar.
@@ -80,7 +79,7 @@ instructions = "Follow the project style guide."
 
 Rendered output uses the existing portable, host, Cursor local, and gated Antigravity paths described above.
 The [base cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-skills-cleanup.sh.tmpl) empties deselected skill roots that the catalog names; the generated ignore patterns also hide those roots from `.chezmoiremove`, so the empty root directory remains.
-The [capability cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl) removes owned capability output with rendered names.
+The [capability cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl) only keeps the mkobit-dotfiles Cursor manifest in its ownership state; authored plugins are native entries.
 The [plugin bridge](../python/skill_filter/skill_filter/plugin_bridge.py) registers the generated packages after apply.
 Rendering leaves canonical sources unchanged; edit those sources, not deployed copies.
 Third-party packages, host conversion, and native package registration keep their existing behavior.
@@ -120,44 +119,80 @@ url_format = "https://ghe.internal/api/v3/repos/{repo}/tarball/{ref}"
 
 ### Authored plugin packages
 
-Declare each package under `[ai.plugin_bridge.capabilities.<name>]` in the capability catalog.
-Set `source_dir` to its source directory under `src/overlay-plugins/`.
-Skills use `<source_dir>/skills/` unless `skills_source_dir` names a separate skill root.
-Set `wrapper_source_dir` to the canonical host package files and declare the supported `hosts`.
-These paths start with `src/` and refer to the assembled tree.
-Select skills under the capability's `skills` table with `"present"`, `"absent"`, or a declared host name.
+Each directory `src/overlay-plugins/<dir>/` with an identity file `plugin.json` is one plugin; preparation discovers it, so it needs no catalog entry.
+A plugin directory without `plugin.json` fails preparation.
 
-```toml
-[ai.plugin_bridge.capabilities.example]
-description = "Example capability bundle."
-source_dir = "src/overlay-plugins/example"
-skills_source_dir = "src/overlay-skills"
-wrapper_source_dir = "src/overlay-plugins/example/wrappers"
-marketplace = "dotfiles"
-hosts = ["claude", "codex", "cursor"]
+| Identity key | Meaning |
+|---|---|
+| `description` | Required; copied into every generated manifest and marketplace entry. |
+| `name` | Installed plugin name; defaults to the directory name. `mkobit-dotfiles` is reserved for the bare-skill bundle. |
+| `skills_source_dir` | Exception: a shared skill root such as `src/overlay-skills`, instead of `<dir>/skills/`. The leading `src/` names the authored root of the tree that preparation reads, which in an overlay is the assembled tree, not the checkout. |
+| `native_source` | `true` marks the skills tree and every wrapper directory as native chezmoi source. |
+| `native_wrappers` | A list of hosts whose `wrappers/<host>/` directories are native chezmoi source. |
+| `author`, `interface` | Optional objects copied verbatim into the Codex manifest only. |
 
-[ai.plugin_bridge.capabilities.example.skills]
-example = "present"
+```json
+{
+  "name": "mikekobit-writing",
+  "description": "Writing skills.",
+  "native_wrappers": ["cursor"]
+}
 ```
 
-Put host files below `wrappers/claude/`, `wrappers/codex/`, and `wrappers/cursor/` for each declared host.
-Use literal target names, such as `claude/.claude-plugin/plugin.json.tmpl` and `codex/.codex-plugin/plugin.json.tmpl`.
-Only the final `.tmpl` suffix has special meaning; names such as `dot_claude-plugin` stay literal.
-The [wrapper external](../chezmoi/.chezmoiexternals/ai-authored-wrappers.toml.tmpl) copies plain files, renders templates, and preserves executable modes through the existing [file entry template](../chezmoi/.chezmoitemplates/ai/authored-file-entry).
-It uses the same chezmoi Go template engine and effective data as authored skills.
-It places wrappers beside selected skills at `.local/share/agent-plugins/marketplace/plugins/<name>/<host>/` and copies Cursor packages to `.cursor/plugins/local/<name>/`.
-Source-only files such as `AGENTS.md` and `README.md` at `source_dir` stay out of the package.
-Only selected skill files and declared wrapper files enter these outputs.
+Skills are the directories below `skills/` (or `skills_source_dir`) that hold `SKILL.md` or `SKILL.md.tmpl`.
+Optional host files live below `wrappers/claude/`, `wrappers/codex/`, and `wrappers/cursor/`.
+Source-only files such as `AGENTS.md` and `README.md` at the plugin root stay out of the package.
 
-The [wrapper inventory](../chezmoi/.chezmoitemplates/ai/authored-wrapper-files) rejects path escapes, symlinked sources, duplicate target paths, and wrappers that overlap `skills/`.
-Host and environment gates prevent inactive wrapper templates from rendering.
-Versions include rendered support files, executable modes, source-relative paths, and selection data.
-The native `.<host>-plugin/plugin.json` manifest uses its raw source hash as a version input to prevent recursive version calculation.
-The manifest itself still renders before delivery.
-Pass `host` to the [manifest helper](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest) so packages with no skills for that host omit `./skills`.
-If you omit `host`, the helper retains legacy behavior and includes `./skills` when any host has selected skills.
-Cleanup records exact wrapper target paths and removes only previously recorded files, preserving unknown siblings.
-Capabilities without `wrapper_source_dir` retain their existing native package files.
+Preparation projects every plugin into native chezmoi entries for every host view:
+
+| Generated source path in `src/chezmoi` | Target view |
+|---|---|
+| `dot_local/share/agent-plugins/marketplace/plugins/exact_<name>/exact_<host>/` | Claude, Codex, and Cursor packages |
+| `dot_cursor/plugins/local/exact_<name>/` | Cursor local package |
+
+Each view has a generated manifest `.<host>-plugin/plugin.json.tmpl` that calls [`ai/authored-plugin-manifest`](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest).
+The manifest holds `name`, `version`, and `description`, `"skills": "./skills"` when the host has selected skills, and the components that the wrapper carries: `"mcpServers": "./.mcp.json"` for a wrapper `.mcp.json` and `"rules": "./rules"` for a wrapper `rules/` directory.
+The version is `1.0.0+` and 12 hex digits of a digest of the inventory plugin digest, the selection, and the rendered bytes of every selected template, so it changes with content and data only.
+A wrapper file at `.<host>-plugin/plugin.json` or below `skills/` fails preparation, because the manifest and skills are generated.
+Custom wrapper files, such as a `.mcp.json.tmpl` server list or Cursor `rules/`, are the canonical exceptions that stay in `wrappers/<host>/`.
+
+[`ai/agent-sources`](../chezmoi/.chezmoitemplates/ai/agent-sources) joins the inventory with these control-plane exceptions; the generated ignore views drop everything that it does not select:
+
+| Exception | Default |
+|---|---|
+| `ai.plugin_bridge.capabilities.<name>.hosts` | `ai.plugin_bridge.default_hosts` |
+| `ai.plugin_bridge.capabilities.<name>.environments` against `ai.plugin_bridge.environment` | every environment |
+| `ai.plugin_bridge.capabilities.<name>.skills.<skill>` = `"absent"` or a host | `"present"` |
+| `ai.plugin_bridge.capabilities.<name>.marketplace` | `dotfiles` |
+
+```toml
+[data.ai.plugin_bridge.capabilities.toolshed-mcp]
+hosts = ["claude", "codex"]
+
+[data.ai.plugin_bridge.capabilities.stripe-dotfiles.skills]
+jira-slack-to-jira = "absent"
+```
+
+An exception for an unknown skill fails unless its value is `"absent"`.
+The Cursor local package exists only when Cursor is a selected host.
+Unselected hosts, absent skills, and disabled environments are ignored before rendering, so their templates never run.
+[`ai/plugin-bridge`](../chezmoi/.chezmoitemplates/ai/plugin-bridge) adds each enabled plugin to the marketplaces and the bridge payload with its description, marketplace, and selected hosts, then applies any data keys of the same name.
+A plugin name that equals an upstream or bundle capability (`external_source` or `acquisition_destination`) fails.
+
+Literal trees deploy names as written: preparation encodes leading dots and attribute-like names and keeps executable modes and empty files.
+A native tree is copied verbatim as chezmoi source, so `exact_`, `private_`, `readonly_`, `empty_`, `executable_`, `dot_`, `literal_`, the `.tmpl` suffix, and `.keep` placeholders keep their chezmoi meaning.
+Native entries cannot use `create_`, `modify_`, `remove_`, `run_`, `symlink_`, `external_`, `encrypted_`, `once_`, `onchange_`, `before_`, `after_`, or `.chezmoi*` names.
+Preparation always makes the plugin root, each host root, `skills/`, and each skill root exact; nested native directories are exact only when the author writes `exact_`.
+
+The exact boundary: while a plugin view is managed, chezmoi deletes every unmanaged file inside its plugin root, including files that a user adds.
+Never put local notes in a deployed plugin directory.
+Chezmoi keeps ignored entries inside an exact directory, so a deselected host, skill, or plugin stays in the destination until root ownership cleanup removes it.
+The marketplace `plugins/` directory, `.cursor/plugins/local/`, and the `mkobit-dotfiles` host and `skills/` directories are shared and never exact.
+
+Cursor can discover skills from other host paths, so leaving a plugin out of the Cursor views does not guarantee that Cursor cannot see its skills.
+The host selection limits installation, not discovery.
+
+`mkobit-dotfiles` has no identity file: it keeps its bridge declaration and canonical manifest templates, because its package also holds upstream archive skills.
 
 ### Deselecting or removing skills
 
@@ -230,5 +265,5 @@ Run the focused package tests and linters:
 uv run ruff check
 uv run ruff format --check
 uv run ty check
-uv run pytest -p no:cacheprovider -m 'not integration' tests/integration/test_ai_skills.py tests/integration/test_ai_authored_capabilities.py tests/integration/test_ai_plugin_manifest_lifecycle.py tests/integration/test_ai_environment_fixtures.py tests/integration/test_overlay_authored_manifest_snapshot.py tests/integration/test_sbx_plugin_approval.py src/python/skill_filter/tests/
+uv run pytest -p no:cacheprovider -m 'not integration' tests/integration/test_ai_skills.py tests/integration/test_ai_authored_capabilities.py tests/integration/test_ai_plugin_manifest_lifecycle.py tests/integration/test_ai_environment_fixtures.py tests/integration/test_overlay_authored_manifest_snapshot.py tests/integration/test_sbx_plugin_approval.py tests/integration/test_opencode_plugins.py src/python/skill_filter/tests/
 ```

@@ -260,6 +260,36 @@ class AgentSourceFixture:
             encoding="utf-8",
         )
 
+    def write_plugin(
+        self,
+        directory: str,
+        identity: dict | None = None,
+        *,
+        skills: dict[str, dict[str, str | bytes]] | None = None,
+        wrappers: dict[str, dict[str, str | bytes]] | None = None,
+    ) -> Path:
+        """Write an overlay-like plugin: ``plugin.json``, ``skills/<skill>/...``, and ``wrappers/<host>/...``."""
+        root = self.authored / "overlay-plugins" / directory
+        root.mkdir(parents=True, exist_ok=True)
+        body = {"description": f"{directory} fixture plugin.", **(identity or {})}
+        (root / "plugin.json").write_text(json.dumps(body), encoding="utf-8")
+        trees = {f"skills/{name}": files for name, files in (skills or {}).items()}
+        trees.update({f"wrappers/{host}": files for host, files in (wrappers or {}).items()})
+        for prefix, files in trees.items():
+            for relative, contents in files.items():
+                path = root / prefix / relative
+                path.parent.mkdir(parents=True, exist_ok=True)
+                if isinstance(contents, bytes):
+                    path.write_bytes(contents)
+                else:
+                    path.write_text(contents, encoding="utf-8")
+        return root
+
+    def managed_files(self) -> set[str]:
+        result = self.run("managed", "--include=files")
+        assert result.returncode == 0, result.stderr
+        return set(result.stdout.splitlines())
+
     def run(self, *args: str) -> subprocess.CompletedProcess[str]:
         return subprocess.run(
             [

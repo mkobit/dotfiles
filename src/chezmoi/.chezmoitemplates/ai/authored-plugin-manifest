@@ -1,11 +1,44 @@
-{{- $plugins := includeTemplate "ai/authored-plugins" .root | fromJson -}}
-{{- $plugin := index $plugins .name -}}
-{{- if not $plugin -}}{{- fail (printf "missing authored plugin declaration: %s" .name) -}}{{- end -}}
-{{- $version := printf "1.0.0+%s" (trunc 12 (sha256sum (toJson $plugin.inputs))) -}}
-{{- $manifest := dict "name" .name "version" $version "description" $plugin.inputs.definition.description -}}
-{{- /* For compatibility, callers without a host get the skills path if any host has skills. */ -}}
-{{- $host := dig "host" "" . -}}
-{{- range $hostName, $skills := $plugin.hosts -}}
-{{-   if and $skills (or (not $host) (eq $host $hostName)) -}}{{- $_ := set $manifest "skills" "./skills" -}}{{- end -}}
+{{- /*
+  Render the generated host manifest of one discovered authored plugin.
+  Arguments: root (root context), name (plugin name), and host (claude, codex, or cursor).
+  Output: name, version, and description; "./skills" when the host has selected skills;
+  wrapper components (mcpServers, rules); and, for codex only, the identity author and interface.
+  The version digests the plugin inventory digest, the selection, and the rendered
+  bytes of every selected template, so it changes with content and data only.
+*/ -}}
+{{- $plugin := dig "plugins" .name nil (includeTemplate "ai/agent-sources" .root | fromJson) -}}
+{{- if not $plugin -}}{{- fail (printf "ai/authored-plugin-manifest: no discovered plugin %q" .name) -}}{{- end -}}
+{{- $inventory := index .root.agent_source_inventory.plugins .name -}}
+{{- $repository := joinPath .root.chezmoi.sourceDir ".." ".." -}}
+{{- $rendered := dict -}}
+{{- range $host, $selected := $plugin.hosts -}}
+{{-   range $skill := $selected.skills -}}
+{{-     range $target, $record := (index $inventory.skills $skill).files -}}
+{{-       if $record.template -}}
+{{-         $_ := set $rendered (printf "skills/%s/%s" $skill $target) (includeTemplate "ai/authored-file-digest" (dict "root" $.root "path" (joinPath $repository $record.source) "target" $target "sha256" $record.sha256)) -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{-   range $target, $record := dig "wrappers" $host "files" (dict) $inventory -}}
+{{-     if $record.template -}}
+{{-       $_ := set $rendered (printf "%s/%s" $host $target) (includeTemplate "ai/authored-file-digest" (dict "root" $.root "path" (joinPath $repository $record.source) "target" $target "sha256" $record.sha256)) -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $inputs := dict "digest" $plugin.version_inputs.digest "selection" $plugin.version_inputs.selection "rendered" $rendered -}}
+{{- $manifest := dict "name" .name "version" (printf "1.0.0+%s" (trunc 12 (sha256sum (toJson $inputs)))) "description" $plugin.description -}}
+{{- $selected := dig .host (dict) $plugin.hosts -}}
+{{- if dig "skills" (list) $selected -}}
+{{-   $_ := set $manifest "skills" "./skills" -}}
+{{- end -}}
+{{- range $component, $path := dig "components" (dict) $selected -}}
+{{-   $_ := set $manifest $component $path -}}
+{{- end -}}
+{{- if eq .host "codex" -}}
+{{-   range $key := list "author" "interface" -}}
+{{-     if index $inventory $key -}}
+{{-       $_ := set $manifest $key (index $inventory $key) -}}
+{{-     end -}}
+{{-   end -}}
 {{- end -}}
 {{- $manifest | toPrettyJson -}}

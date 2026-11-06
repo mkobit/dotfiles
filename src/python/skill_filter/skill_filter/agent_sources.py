@@ -301,15 +301,16 @@ def _scan_skills(
 def _resolve_skills_source_dir(
     plugin_dir: Path, authored: Path, value: object
 ) -> Optional[Path]:
-    base = authored.parent
     if value is None:
         default = plugin_dir / "skills"
         _reject_symlink(default)
         return default if _is_real_dir(default) else None
     if not isinstance(value, str) or not _SOURCE_DIR.match(value):
         raise AgentSourceError(f"invalid skills_source_dir in {plugin_dir}: {value!r}")
-    current = base
-    for part in value.split("/"):
+    # The leading src/ names the authored root, which is not named src in an
+    # assembled overlay tree, so the remainder resolves inside the authored root.
+    current = authored
+    for part in value.split("/")[1:]:
         current = current / part
         if current.is_symlink():
             raise AgentSourceError(f"skills_source_dir has a symlink: {current}")

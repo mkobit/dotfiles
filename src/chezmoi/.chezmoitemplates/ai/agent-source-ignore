@@ -1,9 +1,13 @@
 {{- /*
   Render one generated subdirectory .chezmoiignore view from ai/agent-sources.
   Arguments: root (root context) and view (marketplace-plugins, cursor-local, or antigravity).
-  Preparation writes every view of every source; these patterns drop unselected ones.
+  Preparation writes every view of every source; these patterns drop unselected ones:
+  disabled plugins, unselected hosts, and unselected skills (a host view with no
+  selected skill also drops its skills directory).
 */ -}}
-{{- $bare := (includeTemplate "ai/agent-sources" .root | fromJson).bare -}}
+{{- $sources := includeTemplate "ai/agent-sources" .root | fromJson -}}
+{{- $bare := $sources.bare -}}
+{{- $inventory := dig "agent_source_inventory" "plugins" (dict) .root -}}
 {{- $lines := list -}}
 {{- if eq .view "marketplace-plugins" -}}
 {{-   range $name, $skill := $bare.skills -}}
@@ -16,10 +20,47 @@
 {{-       end -}}
 {{-     end -}}
 {{-   end -}}
+{{-   range $name, $plugin := $sources.plugins -}}
+{{-     if not $plugin.enabled -}}
+{{-       $lines = concat $lines (list $name (printf "%s/**" $name)) -}}
+{{-     else -}}
+{{-       range $host := list "claude" "codex" "cursor" -}}
+{{-         $selected := dig $host nil $plugin.hosts -}}
+{{-         if not $selected -}}
+{{-           $lines = concat $lines (list (printf "%s/%s" $name $host) (printf "%s/%s/**" $name $host)) -}}
+{{-         else -}}
+{{-           $skillsRoot := printf "%s/%s/skills" $name $host -}}
+{{-           if not $selected.skills -}}
+{{-             $lines = concat $lines (list $skillsRoot (printf "%s/**" $skillsRoot)) -}}
+{{-           end -}}
+{{-           range $skill, $_ := (index $inventory $name).skills -}}
+{{-             if not (has $skill $selected.skills) -}}
+{{-               $lines = concat $lines (list (printf "%s/%s" $skillsRoot $skill) (printf "%s/%s/**" $skillsRoot $skill)) -}}
+{{-             end -}}
+{{-           end -}}
+{{-         end -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
 {{- else if eq .view "cursor-local" -}}
 {{-   range $name, $skill := $bare.skills -}}
 {{-     if not (has "cursor_local" $skill.views) -}}
 {{-       $lines = concat $lines (list (printf "mkobit-dotfiles/skills/%s" $name) (printf "mkobit-dotfiles/skills/%s/**" $name)) -}}
+{{-     end -}}
+{{-   end -}}
+{{-   range $name, $plugin := $sources.plugins -}}
+{{-     if not $plugin.cursor_local -}}
+{{-       $lines = concat $lines (list $name (printf "%s/**" $name)) -}}
+{{-     else -}}
+{{-       $selected := $plugin.hosts.cursor.skills -}}
+{{-       if not $selected -}}
+{{-         $lines = concat $lines (list (printf "%s/skills" $name) (printf "%s/skills/**" $name)) -}}
+{{-       end -}}
+{{-       range $skill, $_ := (index $inventory $name).skills -}}
+{{-         if not (has $skill $selected) -}}
+{{-           $lines = concat $lines (list (printf "%s/skills/%s" $name $skill) (printf "%s/skills/%s/**" $name $skill)) -}}
+{{-         end -}}
+{{-       end -}}
 {{-     end -}}
 {{-   end -}}
 {{- else if eq .view "antigravity" -}}

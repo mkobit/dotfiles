@@ -62,6 +62,22 @@ CAPABILITY_AUTHORED_SKILL_ROOTS = {
 }
 
 
+PLUGIN_SKILL_ROOTS = {
+    **{
+        host: Path(f".local/share/agent-plugins/marketplace/plugins/example/{host}/skills")
+        for host in ("claude", "codex", "cursor")
+    },
+    "cursor-local": Path(".cursor/plugins/local/example/skills"),
+}
+PLUGIN_MANIFESTS = (
+    *(
+        Path(f".local/share/agent-plugins/marketplace/plugins/example/{host}/.{host}-plugin/plugin.json")
+        for host in ("claude", "codex", "cursor")
+    ),
+    Path(".cursor/plugins/local/example/.cursor-plugin/plugin.json"),
+)
+
+
 BUNDLE_MANIFESTS = (
     Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/plugin.json"),
     *(
@@ -805,13 +821,28 @@ def test_codex_reports_no_agent_role_warnings(host):
     assert not offenders, "codex rejected deployed agent roles:\n" + "\n".join(offenders)
 
 
-def _assert_bare_templates_render_effective_data(fixture, tmp_path: Path, override: bool) -> None:
-    """Chezmoi renders generated bare skill templates natively, once, with effective data."""
+def _write_kind_skill(fixture, kind: str, name: str, files: dict[str, str | bytes]) -> Path:
+    """Write a bare skill, or a skill of the overlay-like plugin ``example``."""
+    if kind == "base":
+        return _write_skill(fixture, name, files)
+    return fixture.write_plugin("example", skills={name: files}) / "skills" / name
+
+
+def _kind_roots(kind: str) -> dict[str, Path]:
+    return AUTHORED_SKILL_ROOTS if kind == "base" else PLUGIN_SKILL_ROOTS
+
+
+@pytest.mark.parametrize("kind", ["base", "capability"])
+@pytest.mark.parametrize("override", [False, True])
+def test_authored_templates_render_effective_data_without_child_hooks(agent_source_fixture, tmp_path, kind, override):
+    """Chezmoi renders generated skill templates natively, once, with effective data."""
+    fixture = agent_source_fixture
     data = fixture.source / ".chezmoidata/defaults.toml"
     data.write_text('[fixture]\nvalue = "catalog"\n')
     contents = "{{ .fixture.value }}|{{ .chezmoi.destDir }}|{{ .chezmoi.sourceFile }}|{{ .chezmoi.targetFile }}\n"
-    skill = _write_skill(
+    skill = _write_kind_skill(
         fixture,
+        kind,
         "fixture",
         {
             "SKILL.md.tmpl": contents,
@@ -827,7 +858,7 @@ def _assert_bare_templates_render_effective_data(fixture, tmp_path: Path, overri
     _apply_and_check(fixture)
     assert counter.read_text() == "once\n"
     value = "override" if override else "catalog"
-    for root in AUTHORED_SKILL_ROOTS.values():
+    for root in _kind_roots(kind).values():
         target = fixture.destination / root / "fixture"
         source_path = fixture.run("source-path", str(target / "SKILL.md"))
         assert source_path.returncode == 0, source_path.stderr
@@ -847,7 +878,7 @@ def _assert_bare_templates_render_effective_data(fixture, tmp_path: Path, overri
     (skill / "nested/run.tmpl").unlink()
     counter.unlink()
     _apply_and_check(fixture)
-    for root in AUTHORED_SKILL_ROOTS.values():
+    for root in _kind_roots(kind).values():
         target = fixture.destination / root / "fixture"
         assert (target / "SKILL.md").exists()
         assert not (target / "nested/run").exists()
@@ -857,250 +888,44 @@ def _assert_bare_templates_render_effective_data(fixture, tmp_path: Path, overri
 
 
 @pytest.mark.parametrize("kind", ["base", "capability"])
-@pytest.mark.parametrize("override", [False, True])
-def test_authored_templates_render_effective_data_without_child_hooks(tmp_path, agent_source_factory, kind, override):
-    """Template entries render parent data once and preserve plain binary resources."""
-    if kind == "base":
-        _assert_bare_templates_render_effective_data(agent_source_factory(tmp_path), tmp_path, override)
-        return
-    source = tmp_path / "source"
-    destination = tmp_path / "destination"
-    destination.mkdir()
-    external = REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
-    externals = source / ".chezmoiexternals"
-    externals.mkdir(parents=True)
-    shutil.copy2(external, externals / external.name)
-    template_root = source / ".chezmoitemplates/ai"
-    template_root.mkdir(parents=True)
-    for name in (
-        "agent-sources",
-        "authored-render-context",
-        "authored-file-entry",
-        "authored-file-digest",
-        "authored-base-version",
-    ):
-        origin = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai" / name
-        shutil.copy2(origin, template_root / name)
-    cleanup_name = "capabilities"
-    dependencies = {
-        REPOSITORY_ROOT
-        / f"src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-{cleanup_name}-cleanup.sh.tmpl": source
-        / f".chezmoiscripts/run_onchange_after_00-agent-plugin-authored-{cleanup_name}-cleanup.sh.tmpl",
-        FILTER_INTERPRETER_TEMPLATE: source / ".chezmoitemplates/python/filter-interpreter",
-        FILTER_INTERPRETER_RESOLVER: source.parent / "python/skill_filter/resolve-interpreter.sh",
-    }
-    for origin, target in dependencies.items():
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(origin, target)
-    data = source / ".chezmoidata/defaults.toml"
-    data.parent.mkdir()
-    data.write_text('[fixture]\nvalue = "catalog"\n')
-    skill = source.parent / "overlay-plugins/example/skills/fixture"
-    (skill / "nested").mkdir(parents=True)
-    canonical = skill / "SKILL.md.tmpl"
-    contents = "{{ .fixture.value }}|{{ .chezmoi.destDir }}|{{ .chezmoi.sourceFile }}|{{ .chezmoi.targetFile }}\n"
-    canonical.write_text(contents)
-    (skill / "nested/payload.bin").write_bytes(b"\x00\xff{{ untouched }}")
-    executable = skill / "nested/run.tmpl"
-    executable.write_text("#!/bin/sh\necho {{ .fixture.value }}\n")
-    executable.chmod(0o755)
-    (skill / "nested/name.tmpl.tmpl").write_text("{{ .chezmoi.targetFile }}")
-    (skill / "nested/empty.tmpl").write_text('{{- "" -}}')
-    counter = tmp_path / "hook-count"
-    config = tmp_path / "chezmoi.toml"
-    selection = '[data.ai.plugin_bridge.capabilities.example]\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude", "codex", "cursor"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
-    config.write_text(
-        '[hooks.read-source-state.pre]\ncommand = "sh"\nargs = ["-c", "echo once >> '
-        + str(counter)
-        + '"]\n'
-        + selection
-        + ('[data.fixture]\nvalue = "override"\n' if override else "")
-    )
-    subprocess.run(["git", "init", "--quiet", str(source)], check=True)
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(source),
-            "--destination",
-            str(destination),
-            "--config",
-            str(config),
-            "--refresh-externals=always",
-            "apply",
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
-        timeout=30,
-    )
-    assert result.returncode == 0, result.stderr
-    value = "override" if override else "catalog"
-    roots = [
-        Path(f".local/share/agent-plugins/marketplace/plugins/example/{host}/skills")
-        for host in ("claude", "codex", "cursor")
-    ] + [Path(".cursor/plugins/local/example/skills")]
-    for relative in roots:
-        target = destination / relative / "fixture"
-        assert (target / "SKILL.md").read_text() == f"{value}|{destination}|{canonical}|SKILL.md\n"
-        assert not (target / "SKILL.md.tmpl").exists()
-        assert (target / "nested/payload.bin").read_bytes() == b"\x00\xff{{ untouched }}"
-        assert (target / "nested/run").read_text() == f"#!/bin/sh\necho {value}\n"
-        assert (target / "nested/run").stat().st_mode & 0o111
-        assert (target / "nested/empty").read_bytes() == b""
-        assert (target / "nested/name.tmpl").read_text() == "nested/name.tmpl"
-    assert canonical.read_text() == contents
-    assert counter.read_text() == "once\n"
-    # Remove a template and reapply to check that cleanup owns rendered names.
-    (skill / "nested/run.tmpl").unlink()
-    counter.unlink()
-    repeated = subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(source),
-            "--destination",
-            str(destination),
-            "--config",
-            str(config),
-            "--refresh-externals=always",
-            "apply",
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
-        timeout=30,
-    )
-    assert repeated.returncode == 0, repeated.stderr
-    for relative in roots:
-        target = destination / relative / "fixture"
-        assert (target / "SKILL.md").exists()
-        assert not (target / "nested/run").exists()
-        assert (target / "nested/payload.bin").read_bytes() == b"\x00\xff{{ untouched }}"
-    assert counter.read_text() == "once\n"
-    assert not (destination / ".local/state/chezmoi-authored-template-render.boltdb").exists()
-
-
-@pytest.mark.parametrize("kind", ["base", "capability"])
 @pytest.mark.parametrize("failure", ["collision", "template"])
-def test_authored_templates_reject_invalid_rendering(tmp_path, agent_source_factory, kind, failure):
+def test_authored_templates_reject_invalid_rendering(agent_source_fixture, kind, failure):
     """Bad templates and normalized filename collisions stop apply."""
-    if kind == "base":
-        fixture = agent_source_factory(tmp_path)
-        skill = fixture.authored / "ai/skills/fixture"
-    else:
-        source = tmp_path / "source"
-        destination = tmp_path / "destination"
-        destination.mkdir()
-        externals = source / ".chezmoiexternals"
-        externals.mkdir(parents=True)
-        external = REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
-        shutil.copy2(external, externals / external.name)
-        templates = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
-        shutil.copytree(templates, source / ".chezmoitemplates/ai")
-        skill = source.parent / "overlay-plugins/example/skills/fixture"
-    skill.mkdir(parents=True)
-    (skill / "SKILL.md.tmpl").write_text('{{ fail "fixture render failed" }}' if failure == "template" else "rendered")
+    fixture = agent_source_fixture
+    files: dict[str, str | bytes] = {
+        "SKILL.md.tmpl": '{{ fail "fixture render failed" }}' if failure == "template" else "rendered"
+    }
     if failure == "collision":
-        (skill / "SKILL.md").write_text("plain")
-    if kind == "base":
-        result = fixture.run("apply")
-        # Preparation rejects a template and a plain file with the same target name.
-        collision = "two sources map to SKILL.md"
-    else:
-        config = tmp_path / "chezmoi.toml"
-        config.write_text(
-            '[data.ai.plugin_bridge.capabilities.example]\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
-        )
-        result = subprocess.run(
-            ["chezmoi", "--source", str(source), "--destination", str(destination), "--config", str(config), "apply"],
-            capture_output=True,
-            check=False,
-            text=True,
-            timeout=30,
-        )
-        collision = "collision"
+        files["SKILL.md"] = "plain"
+    _write_kind_skill(fixture, kind, "fixture", files)
+    result = fixture.run("apply")
     assert result.returncode != 0
-    assert (collision if failure == "collision" else "fixture render failed") in result.stderr
+    # Preparation rejects a template and a plain file with the same target name.
+    assert ("two sources map to SKILL.md" if failure == "collision" else "fixture render failed") in result.stderr
 
 
-def _rendered_package_fixture(
-    tmp_path: Path, kind: str, agent_sources
-) -> tuple[Path, Path, Path, Path, list[Path], list[Path]]:
-    """Install real templates in an isolated source.
-
-    Base packages come from the preparation hook in an agent source fixture.
-    Capability packages still use the authored capability externals and cleanup.
-    """
+def _rendered_package_fixture(fixture, kind: str) -> tuple[Path, Path, Path, Path, list[Path], list[Path]]:
+    """Write a rendered skill as a bare skill or as a skill of the plugin ``example``."""
     if kind == "base":
-        fixture = agent_sources(tmp_path)
-        source, destination, config = fixture.source, fixture.destination, fixture.config
-        roots = [destination / root / "fixture" for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values()]
-        manifests = [destination / path for path in BUNDLE_MANIFESTS]
-        skill = fixture.authored / "ai/skills/fixture"
+        roots = [fixture.destination / root / "fixture" for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values()]
+        manifests = [fixture.destination / path for path in BUNDLE_MANIFESTS]
         selection = '[data.ai.skills.authored]\nfixture = "present"\n[data.ai.skills.external]\n'
     else:
-        source = tmp_path / "source"
-        destination = tmp_path / "destination"
-        destination.mkdir(parents=True)
-        config = tmp_path / "chezmoi.toml"
-        templates = REPOSITORY_ROOT / "src/chezmoi/.chezmoitemplates/ai"
-        shutil.copytree(templates, source / ".chezmoitemplates/ai")
-        external = REPOSITORY_ROOT / "src/chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl"
-        cleanup = (
-            REPOSITORY_ROOT
-            / "src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl"
-        )
-        for origin, target in {
-            external: source / ".chezmoiexternals" / external.name,
-            cleanup: source / ".chezmoiscripts" / cleanup.name,
-            FILTER_INTERPRETER_TEMPLATE: source / ".chezmoitemplates/python/filter-interpreter",
-            FILTER_INTERPRETER_RESOLVER: source.parent / "python/skill_filter/resolve-interpreter.sh",
-        }.items():
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(origin, target)
-        roots = [
-            destination / f".local/share/agent-plugins/marketplace/plugins/example/{host}/skills/fixture"
-            for host in ("claude", "codex", "cursor")
-        ]
-        roots.append(destination / ".cursor/plugins/local/example/skills/fixture")
-        manifests = []
-        for host in ("claude", "codex", "cursor"):
-            relative = Path(
-                f"dot_local/share/agent-plugins/marketplace/plugins/example/{host}/dot_{host}-plugin/plugin.json.tmpl"
-            )
-            wrapper = source / relative
-            wrapper.parent.mkdir(parents=True, exist_ok=True)
-            wrapper.write_text('{{ includeTemplate "ai/authored-plugin-manifest" (dict "root" . "name" "example") }}')
-            manifests.append(
-                destination
-                / f".local/share/agent-plugins/marketplace/plugins/example/{host}/.{host}-plugin/plugin.json"
-            )
-        wrapper = source / "dot_cursor/plugins/local/example/exact_dot_cursor-plugin/plugin.json.tmpl"
-        wrapper.parent.mkdir(parents=True)
-        wrapper.write_text('{{ includeTemplate "ai/authored-plugin-manifest" (dict "root" . "name" "example") }}')
-        manifests.append(destination / ".cursor/plugins/local/example/.cursor-plugin/plugin.json")
-        skill = source.parent / "overlay-plugins/example/skills/fixture"
-        selection = '[data.ai.plugin_bridge.capabilities.example]\ndescription = "Fixture"\nsource_dir = "src/overlay-plugins/example"\nhosts = ["claude", "codex", "cursor"]\n[data.ai.plugin_bridge.capabilities.example.skills]\nfixture = "present"\n'
-        subprocess.run(["git", "init", "--quiet", str(source)], check=True)
-    skill.mkdir(parents=True)
-    (skill / "SKILL.md.tmpl").write_text("{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n")
-    (skill / "name.tmpl.tmpl").write_text("{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n")
-    (skill / "payload.bin").write_bytes(b"\x00\xff{{ plain }}")
-    if kind == "base":
-        fixture.write_config(selection + '[data.fixture]\nvalue = "first"\n')
-    else:
-        config.write_text(selection + '[data.fixture]\nvalue = "first"\n')
-    return source, destination, config, skill, roots, manifests
-
-
-def _rendered_target_file(kind: str, root: Path, name: str) -> str:
-    """Return .chezmoi.targetFile as a package template sees it.
-
-    Native chezmoi rendering gives the absolute target path; capability file
-    externals give the package-relative name.
-    """
-    return str(root / name) if kind == "base" else name
+        roots = [fixture.destination / root / "fixture" for root in PLUGIN_SKILL_ROOTS.values()]
+        manifests = [fixture.destination / path for path in PLUGIN_MANIFESTS]
+        selection = ""
+    skill = _write_kind_skill(
+        fixture,
+        kind,
+        "fixture",
+        {
+            "SKILL.md.tmpl": "{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n",
+            "name.tmpl.tmpl": "{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n",
+            "payload.bin": b"\x00\xff{{ plain }}",
+        },
+    )
+    fixture.write_config(selection + '[data.fixture]\nvalue = "first"\n')
+    return fixture.source, fixture.destination, fixture.config, skill, roots, manifests
 
 
 def _package_versions(manifests: list[Path]) -> list[str]:
@@ -1221,11 +1046,9 @@ def test_technical_writing_content_renders_merged_data_and_changes_package_versi
 
 
 @pytest.mark.parametrize("kind", ["base", "capability"])
-def test_rendered_package_versions_follow_data_and_stable_repeats(tmp_path, agent_source_factory, kind):
+def test_rendered_package_versions_follow_data_and_stable_repeats(agent_source_fixture, kind):
     """Data overrides change rendered bytes and every real manifest version."""
-    source, destination, config, skill, roots, manifests = _rendered_package_fixture(
-        tmp_path, kind, agent_source_factory
-    )
+    source, destination, config, skill, roots, manifests = _rendered_package_fixture(agent_source_fixture, kind)
     first = _apply_authored_cleanup(source, destination, config)
     assert first.returncode == 0, first.stderr
     original = _package_versions(manifests)
@@ -1235,18 +1058,13 @@ def test_rendered_package_versions_follow_data_and_stable_repeats(tmp_path, agen
     assert _package_versions(manifests) == original
     stale = roots[0] / "stale-owned.md"
     stale.write_text("old output\n")
-    if kind == "capability":
-        ownership = destination / ".local/state/dotfiles/agent-plugin-capability-ownership.json"
-        state = json.loads(ownership.read_text())
-        state["paths"].append(stale.relative_to(destination).as_posix())
-        ownership.write_text(json.dumps(state))
     config.write_text(config.read_text().replace('value = "first"', 'value = "second"'))
     changed = _apply_authored_cleanup(source, destination, config)
     assert changed.returncode == 0, changed.stderr
     assert not stale.exists()
     for root in roots:
-        assert (root / "SKILL.md").read_text() == f"second|{_rendered_target_file(kind, root, 'SKILL.md')}\n"
-        assert (root / "name.tmpl").read_text() == f"second|{_rendered_target_file(kind, root, 'name.tmpl')}\n"
+        assert (root / "SKILL.md").read_text() == f"second|{root / 'SKILL.md'}\n"
+        assert (root / "name.tmpl").read_text() == f"second|{root / 'name.tmpl'}\n"
     assert all(before != after for before, after in zip(original, _package_versions(manifests), strict=True))
     assert (skill / "SKILL.md.tmpl").read_text() == "{{ .fixture.value }}|{{ .chezmoi.targetFile }}\n"
 
@@ -1257,7 +1075,7 @@ def test_rendered_package_versions_ignore_fixture_location(tmp_path, agent_sourc
     versions = []
     for name in ("first", "second"):
         source, destination, config, _, _, manifests = _rendered_package_fixture(
-            tmp_path / name, kind, agent_source_factory
+            agent_source_factory(tmp_path / name), kind
         )
         result = _apply_authored_cleanup(source, destination, config)
         assert result.returncode == 0, result.stderr
@@ -1266,11 +1084,9 @@ def test_rendered_package_versions_ignore_fixture_location(tmp_path, agent_sourc
 
 
 @pytest.mark.parametrize("kind", ["base", "capability"])
-def test_rendered_package_versions_follow_binary_bytes_and_executable_mode(tmp_path, agent_source_factory, kind):
+def test_rendered_package_versions_follow_binary_bytes_and_executable_mode(agent_source_fixture, kind):
     """Binary bytes and executable mode are part of all manifest versions."""
-    source, destination, config, skill, roots, manifests = _rendered_package_fixture(
-        tmp_path, kind, agent_source_factory
-    )
+    source, destination, config, skill, roots, manifests = _rendered_package_fixture(agent_source_fixture, kind)
     first = _apply_authored_cleanup(source, destination, config)
     assert first.returncode == 0, first.stderr
     original = _package_versions(manifests)
@@ -1290,9 +1106,9 @@ def test_rendered_package_versions_follow_binary_bytes_and_executable_mode(tmp_p
 
 
 @pytest.mark.parametrize("kind", ["base", "capability"])
-def test_rendered_package_cleanup_removes_renamed_and_deleted_templates(tmp_path, agent_source_factory, kind):
-    """Cleanup tracks rendered names, keeps sibling skills, and converges on repeat apply."""
-    source, destination, config, skill, roots, _ = _rendered_package_fixture(tmp_path, kind, agent_source_factory)
+def test_rendered_package_cleanup_removes_renamed_and_deleted_templates(agent_source_fixture, kind):
+    """Exact skill roots track rendered names, keep sibling skills, and converge on repeat apply."""
+    source, destination, config, skill, roots, _ = _rendered_package_fixture(agent_source_fixture, kind)
     first = _apply_authored_cleanup(source, destination, config)
     assert first.returncode == 0, first.stderr
     sibling = roots[0].parent / "local-sibling/SKILL.md"
@@ -1303,7 +1119,7 @@ def test_rendered_package_cleanup_removes_renamed_and_deleted_templates(tmp_path
     assert renamed.returncode == 0, renamed.stderr
     for root in roots:
         assert not (root / "name.tmpl").exists()
-        assert (root / "renamed").read_text() == f"first|{_rendered_target_file(kind, root, 'renamed')}\n"
+        assert (root / "renamed").read_text() == f"first|{root / 'renamed'}\n"
     (skill / "renamed.tmpl").unlink()
     for _ in range(2):
         deleted = _apply_authored_cleanup(source, destination, config)
@@ -1311,17 +1127,8 @@ def test_rendered_package_cleanup_removes_renamed_and_deleted_templates(tmp_path
         for root in roots:
             assert not (root / "renamed").exists()
             assert (root / "SKILL.md").is_file()
-        assert sibling.read_text() == "keep\n"
-
-
-def test_authored_manifest_normalization_rejects_template_plain_collision(tmp_path):
-    """Manifest normalization rejects collisions even without file externals."""
-    source, destination, config, skill, _, _ = _rendered_package_fixture(tmp_path, "capability", None)
-    shutil.rmtree(source / ".chezmoiexternals")
-    (skill / "SKILL.md").write_text("plain")
-    result = _apply_authored_cleanup(source, destination, config)
-    assert result.returncode != 0
-    assert "collision" in result.stderr
+        # A plugin skills directory is exact, so it prunes the unmanaged sibling; the bare host view is shared.
+        assert sibling.exists() is (kind == "base")
 
 
 @pytest.mark.parametrize(
@@ -1330,44 +1137,54 @@ def test_authored_manifest_normalization_rejects_template_plain_collision(tmp_pa
         ("base", "absent"),
         ("base", "antigravity"),
         ("capability", "absent"),
-        ("capability", "unlisted"),
+        ("capability", "codex"),
     ],
 )
-def test_rendered_package_does_not_evaluate_inactive_skill_templates(tmp_path, agent_source_factory, kind, state):
+def test_rendered_package_does_not_evaluate_inactive_skill_templates(agent_source_fixture, kind, state):
     """Inactive authored templates must not require data for an enabled package."""
-    source, destination, config, skill, _, manifests = _rendered_package_fixture(tmp_path, kind, agent_source_factory)
+    fixture = agent_source_fixture
+    source, destination, config, skill, _, manifests = _rendered_package_fixture(fixture, kind)
     inactive = skill.parent / "inactive/SKILL.md.tmpl"
     inactive.parent.mkdir()
     inactive.write_text('{{ fail "inactive template rendered" }}')
-    if state != "unlisted":
+    if kind == "base":
         config.write_text(
             config.read_text().replace('fixture = "present"', f'fixture = "present"\ninactive = "{state}"')
         )
+        active = manifests
+    else:
+        # A codex-only skill stays inactive on the other hosts, which never render it.
+        fixture.write_config(
+            f'[data.ai.plugin_bridge.capabilities.example]\nhosts = ["claude", "cursor"]\n'
+            f'[data.ai.plugin_bridge.capabilities.example.skills]\ninactive = "{state}"\n'
+            '[data.fixture]\nvalue = "first"\n'
+        )
+        active = [path for path in manifests if "/codex/" not in path.as_posix()]
     result = _apply_authored_cleanup(source, destination, config)
     assert result.returncode == 0, result.stderr
-    assert all(path.is_file() for path in manifests)
-    versions = _package_versions(manifests)
+    assert all(path.is_file() for path in active)
+    versions = _package_versions(active)
     inactive.write_text('{{ fail "inactive source changed" }}')
     changed = _apply_authored_cleanup(source, destination, config)
     assert changed.returncode == 0, changed.stderr
-    assert all(before != after for before, after in zip(versions, _package_versions(manifests), strict=True))
+    assert all(before != after for before, after in zip(versions, _package_versions(active), strict=True))
     for path in destination.rglob("inactive"):
         assert not path.is_dir()
 
 
-def test_rendered_package_does_not_evaluate_disabled_environment_templates(tmp_path):
-    """A disabled capability cannot stop active package manifests or apply."""
-    source, destination, config, _, roots, manifests = _rendered_package_fixture(tmp_path, "capability", None)
+def test_rendered_package_does_not_evaluate_disabled_environment_templates(agent_source_fixture):
+    """A disabled plugin cannot stop active package manifests or apply."""
+    fixture = agent_source_fixture
+    source, destination, config, _, roots, manifests = _rendered_package_fixture(fixture, "capability")
+    fixture.write_plugin("disabled", skills={"example": {"SKILL.md.tmpl": '{{ fail "disabled template evaluated" }}'}})
+    inactive = fixture.authored / "overlay-plugins/disabled/skills/example/SKILL.md.tmpl"
     config.write_text(
-        config.read_text()
-        + '\n[data.ai.plugin_bridge]\nenvironment = "mydev"\n'
-        + '[data.ai.plugin_bridge.capabilities.disabled]\nsource_dir = "src/overlay-plugins/disabled"\n'
-        + 'hosts = ["claude"]\nenvironments = ["mydata"]\n'
-        + '[data.ai.plugin_bridge.capabilities.disabled.skills]\nexample = "present"\n'
+        config.read_text().replace(
+            'default_hosts = ["claude", "codex", "cursor"]\n',
+            'default_hosts = ["claude", "codex", "cursor"]\nenvironment = "mydev"\n',
+        )
+        + '[data.ai.plugin_bridge.capabilities.disabled]\nenvironments = ["mydata"]\n'
     )
-    inactive = source.parent / "overlay-plugins/disabled/skills/example/SKILL.md.tmpl"
-    inactive.parent.mkdir(parents=True)
-    inactive.write_text('{{ fail "disabled environment template evaluated" }}')
 
     result = _apply_authored_cleanup(source, destination, config)
     assert result.returncode == 0, result.stderr
