@@ -205,6 +205,9 @@ Each run removes `previous roots - desired roots - protected roots`, deepest fir
 It commits the new state only after every removal succeeds, so a failed removal retries on the next apply.
 Protected roots are external skills from `ai.skills.external`; shared host skill directories and marketplaces are never roots.
 The module rejects roots outside its allowed patterns and symlinked path components.
+A symlinked stale root or destination path fails the whole cleanup on purpose, so a link can never steer a deletion outside the destination; state stays unchanged and every later apply fails until you remove or fix the link by hand.
+Legacy paths that map to no removable root, such as the portable `mkobit-dotfiles/skills` files, are retired from state with a log line and never block cleanup.
+Retired authored skill names live in the [retired skills template](../chezmoi/.chezmoitemplates/ai/retired-skills) with their retirement dates; tombstones for them yield to any current skill of the same name.
 The old `agent-plugin-capability-ownership.json` file is mapped to roots once, then deleted; roots that are still desired, and files of the mkobit-dotfiles bundle manifests, stay.
 Plugin registrations leave through the plugin bridge ownership rules.
 

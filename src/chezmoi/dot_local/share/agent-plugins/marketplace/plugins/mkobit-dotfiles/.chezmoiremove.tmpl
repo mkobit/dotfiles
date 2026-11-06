@@ -19,7 +19,7 @@
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
-{{- range $skillName := list "docker-sandboxes" "pr-reviewer" "typescript-expert" -}}
+{{- range $skillName := (includeTemplate "ai/retired-skills" . | fromJson) -}}
 {{-   range $root := list "skills" "claude/skills" "codex/skills" "cursor/skills" -}}
 {{-     $_ := set $removals (printf "%s/%s" $root $skillName) true -}}
 {{-   end -}}

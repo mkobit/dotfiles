@@ -14,6 +14,6 @@
 skills/{{ $skillName }}
 {{-   end -}}
 {{- end -}}
-{{- range $skillName := list "docker-sandboxes" "pr-reviewer" "typescript-expert" }}
+{{- range $skillName := (includeTemplate "ai/retired-skills" . | fromJson) }}
 skills/{{ $skillName }}
 {{- end -}}

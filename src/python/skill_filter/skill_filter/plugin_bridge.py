@@ -26,7 +26,7 @@ import sys
 import time
 from collections.abc import Mapping
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING or bool(__package__):
     from skill_filter.plugin_declarations import (
@@ -385,6 +385,8 @@ def _refresh_plugin(host: str, marketplace: str, plugin: str) -> None:
     if host == "claude":
         _run(host, "plugin", "update", expected)
         return
+    # Codex has no update command. If `add` fails after `remove`, the plugin stays
+    # uninstalled until the next refresh, and no ownership record is written for it.
     installed, _, installed_version, source_path = _codex_plugin_state(
         marketplace, plugin
     )
@@ -763,10 +765,15 @@ def reconcile(
     marketplaces, plugins, capabilities = (
         raw_bridge.get(key, {}) for key in ("marketplaces", "plugins", "capabilities")
     )
-    if not all(
-        isinstance(value, Mapping) for value in (marketplaces, plugins, capabilities)
+    if not (
+        isinstance(marketplaces, Mapping)
+        and isinstance(plugins, Mapping)
+        and isinstance(capabilities, Mapping)
     ):
         raise BridgeError("ai.plugin_bridge declarations must be tables")
+    marketplaces = cast("Mapping[str, object]", marketplaces)
+    plugins = cast("Mapping[str, object]", plugins)
+    capabilities = cast("Mapping[str, object]", capabilities)
     state = _validate_state_root(destination)
     ownership_file = state / "agent-plugin-ownership"
     legacy = state / "agent-plugin-ownership.json"
@@ -882,7 +889,7 @@ def reconcile(
         name for name, source_type in source_types.items() if source_type == "generated"
     }
     for name, host, marketplace in _retired_plugin_rows(
-        raw_bridge.get("retired_plugins", {})
+        cast("Mapping[str, object]", raw_bridge.get("retired_plugins", {}))
     ):
         if host in unavailable_hosts:
             continue

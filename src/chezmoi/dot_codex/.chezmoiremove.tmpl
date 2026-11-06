@@ -23,7 +23,7 @@ skills/{{ $skillName }}
 {{-   end -}}
 {{- end -}}
 {{- /* Retired authored skills whose sources are deleted. */ -}}
-{{- range $skillName := list "docker-sandboxes" "pr-reviewer" "typescript-expert" }}
+{{- range $skillName := (includeTemplate "ai/retired-skills" . | fromJson) }}
 skills/{{ $skillName }}
 {{- end }}
 

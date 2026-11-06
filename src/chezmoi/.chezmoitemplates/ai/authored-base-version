@@ -5,7 +5,7 @@
 */ -}}
 {{- $bare := (includeTemplate "ai/agent-sources" . | fromJson).bare -}}
 {{- $inventory := dig "agent_source_inventory" "bare_skills" (dict) . -}}
-{{- $repository := joinPath .chezmoi.sourceDir ".." ".." -}}
+{{- $repository := joinPath .chezmoi.sourceDir ".." -}}
 {{- $skills := dict -}}
 {{- range $name, $skill := $inventory -}}
 {{-   $selection := index $bare.skills $name -}}

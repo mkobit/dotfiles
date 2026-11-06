@@ -5,6 +5,7 @@ import json
 import shutil
 import subprocess
 import sys
+from typing import Any
 
 import pytest
 
@@ -2135,7 +2136,7 @@ def _catalog_host(
     install_path=None,
 ):
     """Fake host CLI for an external marketplace whose catalog moves from 1.0.0 to 2.0.0 on refresh."""
-    state = {
+    state: dict[str, Any] = {
         "marketplace": marketplace,
         "available": "1.0.0",
         "installed": installed_version,
@@ -2280,7 +2281,7 @@ def test_refresh_updates_owned_public_marketplace_then_plugins(
     plugin_bridge.reconcile(tmp_path, _public_declaration(host), refresh=True)
 
     refresh = "update" if host == "claude" else "upgrade"
-    expected = [("plugin", "marketplace", refresh, "market")]
+    expected: list[tuple[str, ...]] = [("plugin", "marketplace", refresh, "market")]
     expected += (
         [("plugin", "update", "demo@market")]
         if host == "claude"
@@ -2439,7 +2440,7 @@ def test_second_unchanged_reconcile_issues_only_list_calls(tmp_path, monkeypatch
             json.dumps({"name": "demo", "version": "4.0.0"})
         )
     (package / "payload").write_text("content\n")
-    hosts = {
+    hosts: dict[str, dict[str, Any]] = {
         host: {"registered": None, "installed": False, "calls": []}
         for host in ("claude", "codex")
     }

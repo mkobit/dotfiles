@@ -60,6 +60,10 @@ def test_retired_hook_files_are_removed_on_apply(tmp_path: Path) -> None:
     source = tmp_path / "source"
     source.mkdir()
     shutil.copy2(ROOT / BUNDLE / ".chezmoiremove.tmpl", source / ".chezmoiremove.tmpl")
+    templates = source / ".chezmoitemplates/ai"
+    templates.mkdir(parents=True)
+    for name in ("agent-sources", "retired-skills"):
+        shutil.copy2(ROOT / "src/chezmoi/.chezmoitemplates/ai" / name, templates / name)
     destination = tmp_path / "destination"
     destination.mkdir()
     paths = ("hooks.json", "codex/hooks/hooks.json")

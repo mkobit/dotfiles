@@ -22,7 +22,7 @@ import shutil
 import stat
 import sys
 from pathlib import Path
-from typing import Iterable, Optional, Sequence
+from typing import Dict, Iterable, Mapping, NoReturn, Optional, Sequence, cast
 
 _NAME = r"[A-Za-z0-9_-][A-Za-z0-9._-]*"
 _PLUGIN = r"[a-z0-9][a-z0-9-]*"
@@ -53,7 +53,7 @@ class CleanupError(Exception):
     """Raised when state, input, or a removal is unsafe or fails."""
 
 
-def _fail(message: str) -> None:
+def _fail(message: str) -> NoReturn:
     raise CleanupError(f"agent-source-cleanup: {message}")
 
 
@@ -61,7 +61,6 @@ def checked_root(value: object) -> str:
     """Return ``value`` when it is a relative POSIX path that matches an allowed root."""
     if not isinstance(value, str):
         _fail(f"root is not a string: {value!r}")
-    assert isinstance(value, str)
     parts = value.split("/")
     if value.startswith("/") or any(part in ("", ".", "..") for part in parts):
         _fail(f"unsafe root: {value!r}")
@@ -73,7 +72,6 @@ def checked_root(value: object) -> str:
 def _roots(values: object, description: str) -> set[str]:
     if not isinstance(values, list):
         _fail(f"{description} is not a list")
-    assert isinstance(values, list)
     return {checked_root(value) for value in values}
 
 
@@ -88,7 +86,13 @@ def _read_json(path: Path, description: str) -> Optional[object]:
         return json.loads(text)
     except json.JSONDecodeError as error:
         _fail(f"{description} is not valid JSON: {error}")
-    return None
+
+
+def _retire(value: object, reason: str) -> None:
+    print(
+        f"agent-source-cleanup: retiring legacy path {value!r}: {reason}",
+        file=sys.stderr,
+    )
 
 
 def load_state(path: Path) -> set[str]:
@@ -101,8 +105,7 @@ def load_state(path: Path) -> set[str]:
         or set(decoded) != {"version", "roots"}
     ):
         _fail("state has an unsupported format")
-    assert isinstance(decoded, dict)
-    return _roots(decoded["roots"], "state roots")
+    return _roots(cast(Dict[str, object], decoded)["roots"], "state roots")
 
 
 def legacy_roots(path: Optional[Path]) -> set[str]:
@@ -110,7 +113,9 @@ def legacy_roots(path: Optional[Path]) -> set[str]:
 
     A skill file maps to its skill root; a wrapper file maps to its host or Cursor
     plugin root.
-    A wrapper file of the bare-skill bundle has no removable root and is retired.
+    A wrapper file of the bare-skill bundle, or any path outside the host and Cursor
+    patterns, has no removable root: it is retired from state with a log line and
+    never blocks cleanup.
     """
     if path is None:
         return set()
@@ -123,13 +128,14 @@ def legacy_roots(path: Optional[Path]) -> set[str]:
         or not isinstance(decoded.get("paths"), list)
     ):
         _fail("legacy state has an unsupported format")
-    assert isinstance(decoded, dict)
+    paths = cast("dict[str, list[object]]", decoded)["paths"]
     roots: set[str] = set()
-    for value in decoded["paths"]:
+    for value in paths:
         if not isinstance(value, str) or any(
             part in ("", ".", "..") for part in value.split("/")
         ):
-            _fail(f"legacy state has an unsafe path: {value!r}")
+            _retire(value, "unsafe path")
+            continue
         for pattern in (_LEGACY_PACKAGE, _LEGACY_CURSOR):
             match = pattern.match(value)
             if not match:
@@ -143,7 +149,7 @@ def legacy_roots(path: Optional[Path]) -> set[str]:
                 roots.add(candidate)
             break
         else:
-            _fail(f"legacy state has a path outside capability-owned roots: {value!r}")
+            _retire(value, "outside the host and Cursor plugin patterns")
     return roots
 
 
@@ -232,7 +238,10 @@ def _write_state(destination: Path, state: Path, roots: Iterable[str]) -> None:
 
 
 def cleanup(
-    destination: Path, state: Path, legacy: Optional[Path], payload: dict[str, object]
+    destination: Path,
+    state: Path,
+    legacy: Optional[Path],
+    payload: Mapping[str, object],
 ) -> list[str]:
     """Remove stale roots, then commit the desired set; return the removed roots."""
     desired = _roots(payload.get("desired"), "desired")

@@ -1,0 +1,28 @@
+{{- /*
+  Names of retired authored skills whose old deployed copies need tombstones.
+  Input is the root context; output is a JSON list of names.
+  A name drops out while any current bare, plugin, or external skill uses it,
+  so re-adding a skill never collides with its own tombstone.
+  Add new retirements with their date; remove an entry once no machine can hold the copy.
+*/ -}}
+{{- $retired := dict
+      "docker-sandboxes" "2026-11-06"
+      "pr-reviewer" "2026-11-06"
+      "typescript-expert" "2026-11-06"
+      "jira-format-content" "2026-11-06"
+      "pull-request-writing" "2026-11-06"
+      "writing" "2026-11-06" -}}
+{{- $current := dict -}}
+{{- $sources := includeTemplate "ai/agent-sources" . | fromJson -}}
+{{- range $name, $_ := $sources.bare.skills -}}{{- $_ := set $current $name true -}}{{- end -}}
+{{- range $plugin, $definition := dig "agent_source_inventory" "plugins" (dict) . -}}
+{{-   range $name, $_ := dig "skills" (dict) $definition -}}{{- $_ := set $current $name true -}}{{- end -}}
+{{- end -}}
+{{- range $source, $definition := dig "ai" "skills" "external" (dict) . -}}
+{{-   range $name, $_ := dig "skills" (dict) $definition -}}{{- $_ := set $current $name true -}}{{- end -}}
+{{- end -}}
+{{- $names := list -}}
+{{- range $name := keys $retired | sortAlpha -}}
+{{-   if not (hasKey $current $name) -}}{{- $names = append $names $name -}}{{- end -}}
+{{- end -}}
+{{- toJson $names -}}

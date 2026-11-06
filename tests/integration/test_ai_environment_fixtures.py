@@ -21,6 +21,7 @@ MARKETPLACE_TEMPLATES = (
     Path(".chezmoitemplates/ai/plugin-marketplace"),
     # ai/plugin-bridge reads the effective mkobit-dotfiles hosts from ai/agent-sources.
     Path(".chezmoitemplates/ai/agent-sources"),
+    Path(".chezmoitemplates/ai/retired-skills"),
 )
 BRIDGE_TEMPLATE = Path(".chezmoitemplates/ai/plugin-bridge")
 

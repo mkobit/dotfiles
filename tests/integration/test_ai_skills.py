@@ -1,6 +1,5 @@
 import hashlib
 import json
-import os
 import shutil
 import subprocess
 import tomllib
@@ -363,32 +362,86 @@ def test_unchanged_repeat_apply_runs_no_cleanup(agent_source_fixture):
 
 
 def test_failed_removal_keeps_state_and_retries(agent_source_fixture):
-    """A removal that fails fails the apply, keeps the owned roots, and succeeds once the cause is fixed."""
+    """A symlinked stale root fails the apply, keeps the owned roots, and succeeds once fixed by hand."""
     fixture = agent_source_fixture
     _install_cleanup(fixture)
     _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
     _write_skill(fixture, "beta", {"SKILL.md": "# Beta\n"})
     _apply_and_check(fixture)
     state = fixture.destination / ".local/state/dotfiles/agent-source-roots.json"
+    market = ".local/share/agent-plugins/marketplace/plugins"
+    owned = [*json.loads(state.read_text(encoding="utf-8"))["roots"], f"{market}/stale"]
+    state.write_text(json.dumps({"version": 1, "roots": owned}), encoding="utf-8")
     before = state.read_text(encoding="utf-8")
-    locked = fixture.destination / AUTHORED_SKILL_ROOTS["claude"] / "alpha"
-    (locked / "extra").mkdir()
-    (locked / "extra" / "user.txt").write_text("user\n", encoding="utf-8")
-    (locked / "extra").chmod(0o500)
+    outside = fixture.destination.parent / "outside"
+    outside.mkdir()
+    (outside / "keep.txt").write_text("keep\n", encoding="utf-8")
+    (fixture.destination / market / "stale").symlink_to(outside, target_is_directory=True)
     shutil.rmtree(fixture.authored / "ai/skills/alpha")
-    try:
-        if os.access(locked / "extra", os.W_OK):
-            pytest.skip("directory permissions are not enforced for this user")
-        failed = fixture.run("apply")
-        assert failed.returncode != 0
-        assert state.read_text(encoding="utf-8") == before
-    finally:
-        (locked / "extra").chmod(0o700)
 
+    failed = fixture.run("apply")
+
+    assert failed.returncode != 0
+    assert "symlink" in failed.stderr
+    assert state.read_text(encoding="utf-8") == before
+    assert (outside / "keep.txt").is_file()
+    assert (fixture.destination / AUTHORED_SKILL_ROOTS["claude"] / "alpha").is_dir()
+
+    (fixture.destination / market / "stale").unlink()
     _apply_and_check(fixture)
 
     assert not any(root.exists() for root in _skill_target_roots(fixture, "alpha").values())
-    assert not any(root.endswith("/alpha") for root in _owned_roots(fixture))
+    assert not any(root.endswith(("/alpha", "/stale")) for root in _owned_roots(fixture))
+    assert (outside / "keep.txt").is_file()
+
+
+def _retired_skill_names(fixture) -> list[str]:
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--source",
+            str(fixture.repo),
+            "--destination",
+            str(fixture.destination),
+            "--config",
+            str(fixture.config),
+            "--cache",
+            str(fixture.cache),
+            "execute-template",
+            '{{ includeTemplate "ai/retired-skills" . }}',
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    return json.loads(result.stdout)
+
+
+def test_retired_skill_tombstone_yields_to_a_re_added_skill(agent_source_fixture):
+    """A retired name is tombstoned only while no bare, plugin, or external skill uses it."""
+    fixture = agent_source_fixture
+    assert _retired_skill_names(fixture) == [
+        "docker-sandboxes",
+        "jira-format-content",
+        "pr-reviewer",
+        "pull-request-writing",
+        "typescript-expert",
+        "writing",
+    ]
+
+    _write_skill(fixture, "pr-reviewer", {"SKILL.md": "# Back\n"})
+    fixture.write_plugin(
+        "owner",
+        skills={name: {"SKILL.md": "# Plugin\n"} for name in ("typescript-expert", "writing")},
+    )
+    fixture.write_config('[data.ai.skills.external.up.skills]\ndocker-sandboxes = "present"\n')
+
+    assert _retired_skill_names(fixture) == ["jira-format-content", "pull-request-writing"]
+    for template in ("dot_claude", "dot_cursor", "dot_codex", "dot_gemini"):
+        text = (REPOSITORY_ROOT / "src/chezmoi" / template / ".chezmoiremove.tmpl").read_text(encoding="utf-8")
+        assert "docker-sandboxes" not in text.replace("*/skills/docker-sandboxes", "")
+        assert "ai/retired-skills" in text
 
 
 @pytest.mark.integration
@@ -1243,6 +1296,61 @@ def test_literal_dot_executable_empty_and_attribute_like_names_deploy(agent_sour
         assert (target / "run.sh").stat().st_mode & 0o111
         assert not (target / "executable_tool").stat().st_mode & 0o111
     _assert_stable(fixture)
+
+
+def test_prepared_candidate_tree_survives_rename(agent_source_fixture, tmp_path):
+    """Inventory paths hold nothing from above the authored root, so a renamed candidate stays valid."""
+    fixture = agent_source_fixture
+    _write_skill(fixture, "alpha", {"SKILL.md.tmpl": "# Alpha {{ .chezmoi.os }}\n"})
+    fixture.write_plugin("pkg", skills={"one": {"SKILL.md.tmpl": "# One {{ .chezmoi.os }}\n"}})
+    candidate = tmp_path / "assembled/X.candidate.abc"
+    shutil.copytree(fixture.authored, candidate)
+    prepared = subprocess.run(
+        [str(fixture.launcher), str(candidate / "chezmoi"), str(fixture.destination)],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert prepared.returncode == 0, prepared.stderr
+    inventory = (candidate / "chezmoi/.chezmoidata/agent-source-inventory.json").read_text(encoding="utf-8")
+    assert "X.candidate.abc" not in inventory
+    assert "assembled" not in inventory
+
+    final = tmp_path / "assembled/X"
+    candidate.rename(final)
+    config = tmp_path / "renamed.toml"
+    config.write_text('[data.ai.plugin_bridge]\ndefault_hosts = ["claude", "codex", "cursor"]\n', encoding="utf-8")
+
+    def chezmoi(*args: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [
+                "chezmoi",
+                "--source",
+                str(final / "chezmoi"),
+                "--destination",
+                str(fixture.destination),
+                "--config",
+                str(config),
+                "--cache",
+                str(fixture.cache),
+                "--persistent-state",
+                str(tmp_path / "renamed.boltdb"),
+                *args,
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+
+    managed = chezmoi("managed", "--include=files")
+    assert managed.returncode == 0, managed.stderr
+    manifest = ".local/share/agent-plugins/marketplace/plugins/pkg/claude/.claude-plugin/plugin.json"
+    assert manifest in managed.stdout.splitlines()
+    cat = chezmoi("cat", str(fixture.destination / manifest))
+    assert cat.returncode == 0, cat.stderr
+    assert json.loads(cat.stdout)["name"] == "pkg"
+    bundle = chezmoi("cat", str(fixture.destination / BUNDLE_MANIFESTS[0]))
+    assert bundle.returncode == 0, bundle.stderr
 
 
 def test_failed_preparation_keeps_previous_generated_tree(agent_source_fixture):

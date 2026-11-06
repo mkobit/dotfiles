@@ -21,7 +21,7 @@ antigravity-cli/skills/{{ $skillName }}
 antigravity-cli/skills/{{ $skillName }}
 {{-   end -}}
 {{- end -}}
-{{- range $skillName := list "docker-sandboxes" "pr-reviewer" "typescript-expert" }}
+{{- range $skillName := (includeTemplate "ai/retired-skills" . | fromJson) }}
 antigravity-cli/skills/{{ $skillName }}
 {{- end -}}
 {{- range $sourceName, $source := .ai.agents.external -}}

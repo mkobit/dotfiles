@@ -1,7 +1,7 @@
 from __future__ import annotations
 
+import io
 import json
-import os
 import subprocess
 import sys
 from pathlib import Path
@@ -168,29 +168,74 @@ def test_refuses_symlinked_components_without_deleting_outside(tmp_path):
     assert (outside / "p/SKILL.md").read_text() == "keep"
 
 
-def test_state_unchanged_on_failure_and_retry_succeeds(tmp_path):
+def test_state_unchanged_on_failure_and_retry_succeeds(tmp_path, monkeypatch):
     first = f"{MARKET}/a"
     second = f"{MARKET}/b"
     _touch(tmp_path, f"{first}/SKILL.md")
-    locked = _touch(tmp_path, f"{second}/sub/SKILL.md")
+    _touch(tmp_path, f"{second}/SKILL.md")
     _write_state(tmp_path, [first, second])
     before = (tmp_path / STATE).read_text()
-    locked.parent.chmod(0o500)
-    try:
-        if os.access(str(locked.parent), os.W_OK):
-            pytest.skip("directory permissions are not enforced for this user")
-        failed = _run(tmp_path, [])
-        assert failed.returncode == 1
-        assert (tmp_path / STATE).read_text() == before
-    finally:
-        locked.parent.chmod(0o700)
+    real = agent_source_cleanup._remove_entry
 
-    retried = _run(tmp_path, [])
+    def failing(path):
+        if path.name == "b":
+            raise OSError("injected removal failure")
+        real(path)
 
-    assert retried.returncode == 0, retried.stderr
+    monkeypatch.setattr(agent_source_cleanup, "_remove_entry", failing)
+    payload = {"desired": [], "protected": []}
+    with pytest.raises(OSError, match="injected"):
+        agent_source_cleanup.cleanup(tmp_path, tmp_path / STATE, None, payload)
+    assert (tmp_path / STATE).read_text() == before
+
+    monkeypatch.setattr(agent_source_cleanup, "_remove_entry", real)
+    agent_source_cleanup.cleanup(tmp_path, tmp_path / STATE, None, payload)
+
     assert not (tmp_path / first).exists()
     assert not (tmp_path / second).exists()
     assert _state(tmp_path) == []
+
+
+def test_main_returns_one_and_keeps_state_on_removal_failure(
+    tmp_path, monkeypatch, capsys
+):
+    _touch(tmp_path, f"{MARKET}/a/SKILL.md")
+    _write_state(tmp_path, [f"{MARKET}/a"])
+    before = (tmp_path / STATE).read_text()
+
+    def failing(path):
+        raise OSError("injected removal failure")
+
+    monkeypatch.setattr(agent_source_cleanup, "_remove_entry", failing)
+    monkeypatch.setattr(
+        "sys.stdin", io.StringIO(json.dumps({"desired": [], "protected": []}))
+    )
+
+    code = agent_source_cleanup.main(
+        ["--destination", str(tmp_path), "--state", str(tmp_path / STATE)]
+    )
+
+    assert code == 1
+    assert "injected" in capsys.readouterr().err
+    assert (tmp_path / STATE).read_text() == before
+
+
+def test_unmappable_legacy_paths_are_retired_with_a_log_line(tmp_path):
+    portable = f"{BUNDLE}/skills/portable/SKILL.md"
+    odd = ".claude/skills/x/SKILL.md"
+    gone = f"{MARKET}/gone/codex/.codex-plugin/plugin.json"
+    for path in (portable, odd, gone):
+        _touch(tmp_path, path)
+    _touch(tmp_path, LEGACY, json.dumps({"version": 1, "paths": [portable, odd, gone]}))
+
+    result = _run(tmp_path, [], legacy=True)
+
+    assert result.returncode == 0, result.stderr
+    assert "retiring legacy path" in result.stderr
+    assert (tmp_path / portable).is_file()
+    assert (tmp_path / odd).is_file()
+    assert not (tmp_path / MARKET / "gone").exists()
+    assert not (tmp_path / LEGACY).exists()
 
 
 def test_migrates_legacy_capability_file_state_to_roots(tmp_path):

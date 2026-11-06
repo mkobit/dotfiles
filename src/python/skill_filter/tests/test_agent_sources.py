@@ -63,7 +63,7 @@ def test_identity_name_overrides_directory_for_installed_names(layout):
     document = inventory_document(inventory)["agent_source_inventory"]
     assert (
         document["plugins"]["mikekobit-writing"]["source_dir"]
-        == "src/overlay-plugins/writing"
+        == "overlay-plugins/writing"
     )
 
 
@@ -124,7 +124,7 @@ def test_skills_source_dir_reads_shared_overlay_skills(layout):
     )
     document = inventory_document(discover(source_root))["agent_source_inventory"]
     plugin = document["plugins"]["stripe-dotfiles"]
-    assert plugin["skills_source_dir"] == "src/overlay-skills"
+    assert plugin["skills_source_dir"] == "overlay-skills"
     assert set(plugin["skills"]) == {"mermaid-sharing"}
 
 
@@ -167,7 +167,7 @@ def test_bare_and_plugin_skills_discovered_from_skill_markdown_or_template(layou
     record = document["bare_skills"]["tw"]["files"]["SKILL.md"]
     assert record["template"] is True
     assert record["executable"] is True
-    assert record["source"] == "src/ai/skills/tw/SKILL.md.tmpl"
+    assert record["source"] == "ai/skills/tw/SKILL.md.tmpl"
     assert set(document["plugins"]["writing"]["skills"]) == {"email"}
 
 

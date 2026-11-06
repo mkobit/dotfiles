@@ -9,8 +9,8 @@
 {{- $plugin := dig "plugins" .name nil (includeTemplate "ai/agent-sources" .root | fromJson) -}}
 {{- if not $plugin -}}{{- fail (printf "ai/authored-plugin-manifest: no discovered plugin %q" .name) -}}{{- end -}}
 {{- $inventory := index .root.agent_source_inventory.plugins .name -}}
-{{- /* sourceDir/../.. assumes the <root>/<dir>/chezmoi layout that record.source paths are relative to. */ -}}
-{{- $repository := joinPath .root.chezmoi.sourceDir ".." ".." -}}
+{{- /* Inventory paths are relative to sourceDir/.., the directory that holds chezmoi/, ai/ and overlay-plugins/. */ -}}
+{{- $repository := joinPath .root.chezmoi.sourceDir ".." -}}
 {{- $rendered := dict -}}
 {{- range $host, $selected := $plugin.hosts -}}
 {{-   range $skill := $selected.skills -}}

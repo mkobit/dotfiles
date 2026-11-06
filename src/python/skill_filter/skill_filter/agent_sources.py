@@ -127,7 +127,12 @@ class Inventory:
 
     @property
     def root(self) -> Path:
-        return self.authored.parent
+        """Directory that inventory paths are relative to: the parent of ``chezmoi/``.
+
+        It is the authored root itself, so no path names the directory above it and a
+        renamed candidate tree stays valid.
+        """
+        return self.authored
 
 
 def _is_skipped(name: str) -> bool:
@@ -424,7 +429,7 @@ def discover(source_root: Path) -> Inventory:
     A symlink anywhere in an authored tree, including root-level files, fails.
     """
     authored = source_root.parent
-    base = authored.parent
+    base = authored
     inventory = Inventory(authored=authored)
     skills_root = authored / "ai" / "skills"
     _reject_symlink(skills_root)
@@ -480,7 +485,7 @@ def inventory_document(inventory: Inventory) -> dict[str, Any]:
     bare: dict[str, Any] = {}
     for name, tree in sorted(inventory.bare_skills.items()):
         bare[name] = {
-            "source_dir": f"src/ai/skills/{name}",
+            "source_dir": f"ai/skills/{name}",
             "native": False,
             **_tree_document(tree),
             "digest": _tree_digest(tree),
