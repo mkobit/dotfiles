@@ -1,5 +1,6 @@
 import hashlib
 import json
+import os
 import shutil
 import subprocess
 import tomllib
@@ -35,8 +36,9 @@ CAPABILITY_PLUGIN_DIRS = [
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 AUTHORED_CLEANUP_SCRIPT = (
-    REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-skills-cleanup.sh.tmpl"
+    REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-source-root-cleanup.sh.tmpl"
 )
+CLEANUP_MODULE = REPOSITORY_ROOT / "src/python/skill_filter/skill_filter/agent_source_cleanup.py"
 CURSOR_LOCAL_SKILLS_REMOVE = (
     REPOSITORY_ROOT / "src/chezmoi/dot_cursor/plugins/local/mkobit-dotfiles/.chezmoiremove.tmpl"
 )
@@ -128,15 +130,6 @@ def assert_entries_are_valid_skills(skills_dir: Path, allowed_marker_files: froz
             assert_is_skill(child)
 
 
-def _has_files(directory: Path) -> bool:
-    """Return whether a skill root holds files.
-
-    A generated ignore pattern also hides a deselected root from .chezmoiremove,
-    so the legacy cleanup empties that root but leaves the directory itself.
-    """
-    return any(path.is_file() for path in directory.rglob("*"))
-
-
 def _apply_authored_cleanup(source: Path, destination: Path, config: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
@@ -158,7 +151,7 @@ def _apply_authored_cleanup(source: Path, destination: Path, config: Path) -> su
 
 
 def _initialize_authored_cleanup_source(source: Path) -> None:
-    """Add the legacy cleanup script and its removal templates; agent_source_fixture deploys skills."""
+    """Add the root cleanup script, its module, and removal templates; agent_source_fixture deploys skills."""
     source_root = source / "src/chezmoi"
     source_files = [
         (AUTHORED_CLEANUP_SCRIPT, Path(".chezmoiscripts") / AUTHORED_CLEANUP_SCRIPT.name),
@@ -190,6 +183,9 @@ def _initialize_authored_cleanup_source(source: Path) -> None:
     resolver = source / "src/python/skill_filter/resolve-interpreter.sh"
     resolver.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(FILTER_INTERPRETER_RESOLVER, resolver)
+    module = source / "src/python/skill_filter/skill_filter" / CLEANUP_MODULE.name
+    module.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(CLEANUP_MODULE, module)
     subprocess.run(["git", "init", "--quiet", str(source)], check=True)
 
 
@@ -249,276 +245,150 @@ def test_capability_manifest_versions_ignore_legacy_overlay_source(agent_source_
     assert versions_for(first_overlay) == versions_for(second_overlay)
 
 
+def _install_cleanup(fixture) -> None:
+    """Add the root cleanup script and its module to an agent_source_fixture checkout."""
+    _initialize_authored_cleanup_source(fixture.repo)
+
+
+def _skill_target_roots(fixture, skill: str) -> dict[str, Path]:
+    return {view: fixture.destination / root / skill for view, root in AUTHORED_SKILL_ROOTS.items()}
+
+
+def _owned_roots(fixture) -> list[str]:
+    state = fixture.destination / ".local/state/dotfiles/agent-source-roots.json"
+    return json.loads(state.read_text(encoding="utf-8"))["roots"]
+
+
+def test_deleted_bare_skill_source_is_removed_on_next_apply(agent_source_fixture):
+    """Deleting src/ai/skills/<name> removes the deployed skill from every root, with no catalog key."""
+    fixture = agent_source_fixture
+    _install_cleanup(fixture)
+    fixture.write_config(ANTIGRAVITY_ON)
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n", "references/notes.md": "notes\n"})
+    _write_skill(fixture, "beta", {"SKILL.md": "# Beta\n"})
+    _apply_and_check(fixture)
+    assert all(root.is_dir() for root in _skill_target_roots(fixture, "alpha").values())
+    assert any(root.endswith("/alpha") for root in _owned_roots(fixture))
+
+    shutil.rmtree(fixture.authored / "ai/skills/alpha")
+    _apply_and_check(fixture)
+
+    assert not any(root.exists() for root in _skill_target_roots(fixture, "alpha").values())
+    assert all((root / "SKILL.md").is_file() for root in _skill_target_roots(fixture, "beta").values())
+    assert not any(root.endswith("/alpha") for root in _owned_roots(fixture))
+    _assert_stable(fixture)
+
+
 @pytest.mark.parametrize(
-    ("state", "antigravity_enabled", "expected_roots"),
-    [
-        ("present", True, frozenset(CAPABILITY_AUTHORED_SKILL_ROOTS)),
-        ("claude", True, frozenset({"claude"})),
-        ("antigravity", True, frozenset()),
-        ("present", False, frozenset({"portable", "claude", "codex", "cursor", "cursor-local"})),
-        ("antigravity", False, frozenset()),
-    ],
+    ("state", "kept"),
+    [("absent", set()), ("claude", {"claude"}), ("cursor", {"cursor", "cursor-local"})],
 )
-def test_authored_skill_cleanup_prunes_renamed_nested_file_from_every_catalog_owned_root(
-    agent_source_fixture, state, antigravity_enabled, expected_roots
-):
-    """A renamed authored skill file converges every catalog-owned package root."""
-    source = agent_source_fixture.repo
-    destination = agent_source_fixture.destination
-    _initialize_authored_cleanup_source(source)
+def test_deselected_bare_skill_host_is_removed(agent_source_fixture, state, kept):
+    """Selecting fewer hosts, or setting a skill to absent, removes the deselected skill directories."""
+    fixture = agent_source_fixture
+    _install_cleanup(fixture)
+    fixture.write_config(ANTIGRAVITY_ON)
+    _write_skill(fixture, "fixture", {"SKILL.md": "# Fixture\n", "references/notes.md": "notes\n"})
+    _write_skill(fixture, "other", {"SKILL.md": "# Other\n"})
+    _apply_and_check(fixture)
+    assert all(root.is_dir() for root in _skill_target_roots(fixture, "fixture").values())
 
-    skill_source = source / "src/ai/skills" / "fixture"
-    (skill_source / "references").mkdir(parents=True)
-    (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
-    stale_source = skill_source / "references" / "old-name.md"
-    stale_source.write_text("old\n", encoding="utf-8")
+    fixture.write_config(f'[data.ai.skills.authored]\nfixture = "{state}"\n' + ANTIGRAVITY_ON)
+    _apply_and_check(fixture)
 
-    config = agent_source_fixture.config
-    agent_source_fixture.write_config(
-        "\n".join(
-            [
-                "[data.ai.skills.authored]",
-                f'fixture = "{state}"',
-                "",
-                "[data.local.bin.agy]",
-                f'installation_method = "{"system" if antigravity_enabled else "none"}"',
-                "",
-            ]
-        )
-    )
-
-    for root_name, root in CAPABILITY_AUTHORED_SKILL_ROOTS.items():
-        if root_name not in expected_roots:
-            skill_target = destination / root / "fixture"
-            (skill_target / "references").mkdir(parents=True)
-            (skill_target / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
-            (skill_target / "references" / "old-name.md").write_text("old\n", encoding="utf-8")
-        unrelated = destination / root / "external-skill"
-        unrelated.mkdir(parents=True)
-        (unrelated / "SKILL.md").write_text("# External\n", encoding="utf-8")
-
-    first_apply = _apply_authored_cleanup(source, destination, config)
-    assert first_apply.returncode == 0, first_apply.stderr
-    for root_name, root in CAPABILITY_AUTHORED_SKILL_ROOTS.items():
-        assert _has_files(destination / root / "fixture") is (root_name in expected_roots)
-        assert (destination / root / "fixture/references/old-name.md").exists() is (root_name in expected_roots)
-
-    stale_source.rename(skill_source / "references" / "new-name.md")
-
-    second_apply = _apply_authored_cleanup(source, destination, config)
-    assert second_apply.returncode == 0, second_apply.stderr
-    for root_name, root in CAPABILITY_AUTHORED_SKILL_ROOTS.items():
-        stale_target = destination / root / "fixture/references/old-name.md"
-        assert not stale_target.exists()
-        assert (destination / root / "fixture/references/new-name.md").exists() is (root_name in expected_roots)
-        assert (destination / root / "fixture/SKILL.md").exists() is (root_name in expected_roots)
-        assert (destination / root / "external-skill/SKILL.md").is_file()
+    for view, root in _skill_target_roots(fixture, "fixture").items():
+        assert root.exists() is (view in kept), view
+    assert all((root / "SKILL.md").is_file() for root in _skill_target_roots(fixture, "other").values())
+    _assert_stable(fixture)
 
 
-def test_authored_skill_cleanup_removes_disabled_canonical_skill_from_every_capability_package_root(
-    agent_source_fixture,
-):
-    """Disabling an authored skill removes its package copies, including Cursor's local plugin."""
-    source = agent_source_fixture.repo
-    destination = agent_source_fixture.destination
-    _initialize_authored_cleanup_source(source)
+def test_deleted_nested_skill_file_is_pruned_by_exact_dirs(agent_source_fixture):
+    """A deleted nested source file leaves every deployed root through exact_ directories."""
+    fixture = agent_source_fixture
+    _install_cleanup(fixture)
+    fixture.write_config(ANTIGRAVITY_ON)
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n", "references/old.md": "old\n", "references/keep.md": "k\n"})
+    _apply_and_check(fixture)
+    assert all((root / "references/old.md").is_file() for root in _skill_target_roots(fixture, "alpha").values())
 
-    skill_source = source / "src/ai/skills/fixture"
-    skill_source.mkdir(parents=True)
-    (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
+    (fixture.authored / "ai/skills/alpha/references/old.md").unlink()
+    _apply_and_check(fixture)
 
-    config = agent_source_fixture.config
-    agent_source_fixture.write_config(
-        "\n".join(
-            [
-                "[data.ai.skills.authored]",
-                'fixture = "present"',
-                "",
-                "[data.ai.skills.external]",
-                "",
-                "[data.ai.agents.external]",
-                "",
-                "[data.local.bin.agy]",
-                'installation_method = "system"',
-                "",
-            ]
-        )
-    )
-
-    first_apply = _apply_authored_cleanup(source, destination, config)
-    assert first_apply.returncode == 0, first_apply.stderr
-    for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values():
-        assert (destination / root / "fixture/SKILL.md").is_file()
-    cursor_manifest = destination / ".cursor/plugins/local/mkobit-dotfiles/.cursor-plugin/plugin.json"
-    manifest = json.loads(cursor_manifest.read_text(encoding="utf-8"))
-    assert manifest["name"] == "mkobit-dotfiles"
-    assert manifest["version"].startswith("1.0.0+")
-    assert manifest["description"] == "Base dotfiles capability bundle."
-    assert manifest["skills"] == "./skills"
-
-    agent_source_fixture.write_config(
-        "\n".join(
-            [
-                "[data.ai.skills.authored]",
-                'fixture = "absent"',
-                "",
-                "[data.ai.skills.external]",
-                "",
-                "[data.ai.agents.external]",
-                "",
-                "[data.local.bin.agy]",
-                'installation_method = "system"',
-                "",
-            ]
-        )
-    )
-
-    second_apply = _apply_authored_cleanup(source, destination, config)
-    assert second_apply.returncode == 0, second_apply.stderr
-    for root in CAPABILITY_AUTHORED_SKILL_ROOTS.values():
-        assert not _has_files(destination / root / "fixture")
+    for root in _skill_target_roots(fixture, "alpha").values():
+        assert not (root / "references/old.md").exists()
+        assert (root / "references/keep.md").is_file()
 
 
-def test_authored_skill_cleanup_rejects_shell_metacharacters_without_executing_them(tmp_path):
-    """An invalid catalog key cannot become shell syntax in the rendered cleanup hook."""
-    source = tmp_path / "source"
-    destination = tmp_path / "destination"
-    destination.mkdir()
-    _initialize_authored_cleanup_source(source)
+def test_cleanup_preserves_unowned_siblings_and_external_skills(agent_source_fixture):
+    """Only roots an earlier apply owned are removed; siblings and external skill roots stay."""
+    fixture = agent_source_fixture
+    _install_cleanup(fixture)
+    fixture.write_config(ANTIGRAVITY_ON + '[data.ai.skills.external.upstream.skills]\nvendored = "present"\n')
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
+    destination = fixture.destination
+    siblings = [destination / root / "unowned" / "SKILL.md" for root in AUTHORED_SKILL_ROOTS.values()]
+    vendored = [destination / root / "vendored" / "SKILL.md" for root in AUTHORED_SKILL_ROOTS.values()]
+    for path in (*siblings, *vendored):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("keep\n", encoding="utf-8")
+    state = destination / ".local/state/dotfiles/agent-source-roots.json"
+    state.parent.mkdir(parents=True)
+    owned = [f"{root.as_posix()}/vendored" for root in AUTHORED_SKILL_ROOTS.values()]
+    state.write_text(json.dumps({"version": 1, "roots": owned}), encoding="utf-8")
 
-    malicious_name = "$(touch${IFS}injected)"
-    config = tmp_path / "chezmoi.toml"
-    config.write_text(
-        "\n".join(
-            [
-                "[data.ai.skills.authored]",
-                f'{json.dumps(malicious_name)} = "claude"',
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
+    _apply_and_check(fixture)
 
-    result = _apply_authored_cleanup(source, destination, config)
-
-    assert result.returncode != 0
-    assert "invalid authored skill name" in result.stderr
-    assert not (tmp_path / "injected").exists()
-
-
-@pytest.mark.parametrize("symlink_level", ["managed-root", "skill-root"])
-def test_authored_skill_cleanup_rejects_symlink_escape_without_deleting_outside(tmp_path, symlink_level):
-    """Cleanup refuses a symlinked managed root or skill root before traversal."""
-    source = tmp_path / "source"
-    destination = tmp_path / "destination"
-    _initialize_authored_cleanup_source(source)
-
-    skill_source = source / "src/ai/skills" / "fixture"
-    skill_source.mkdir(parents=True)
-    (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
-    config = tmp_path / "chezmoi.toml"
-    config.write_text(
-        "\n".join(
-            [
-                "[data.ai.skills.authored]",
-                'fixture = "claude"',
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
-
-    managed_root = destination / AUTHORED_SKILL_ROOTS["claude"]
-    outside_skill = tmp_path / "outside" / "fixture"
-    (outside_skill / "references").mkdir(parents=True)
-    sentinel = outside_skill / "references" / "old-name.md"
-    sentinel.write_text("keep\n", encoding="utf-8")
-    if symlink_level == "managed-root":
-        managed_root.parent.mkdir(parents=True)
-        managed_root.symlink_to(outside_skill.parent, target_is_directory=True)
-    else:
-        managed_root.mkdir(parents=True)
-        (managed_root / "fixture").symlink_to(outside_skill, target_is_directory=True)
-
-    result = _apply_authored_cleanup(source, destination, config)
-
-    assert result.returncode != 0
-    assert "symlink" in result.stderr
-    assert sentinel.read_text(encoding="utf-8") == "keep\n"
+    assert all(path.read_text(encoding="utf-8") == "keep\n" for path in (*siblings, *vendored))
+    assert not any(root.endswith("/vendored") for root in _owned_roots(fixture))
+    shutil.rmtree(fixture.authored / "ai/skills/alpha")
+    _apply_and_check(fixture)
+    assert all(path.is_file() for path in (*siblings, *vendored))
 
 
-def test_authored_skill_cleanup_handles_newline_descendant_without_escaping_root(tmp_path):
-    """A newline-bearing descendant cannot become an outside deletion target."""
-    source = tmp_path / "source"
-    destination = tmp_path / "destination"
-    _initialize_authored_cleanup_source(source)
+def test_unchanged_repeat_apply_runs_no_cleanup(agent_source_fixture):
+    """The run_onchange script reruns only when the desired and protected roots change."""
+    fixture = agent_source_fixture
+    _install_cleanup(fixture)
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
+    _apply_and_check(fixture)
+    state = fixture.destination / ".local/state/dotfiles/agent-source-roots.json"
+    state.unlink()
 
-    skill_source = source / "src/ai/skills" / "fixture"
-    skill_source.mkdir(parents=True)
-    (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
-    config = tmp_path / "chezmoi.toml"
-    config.write_text(
-        "\n".join(
-            [
-                "[data.ai.skills.authored]",
-                'fixture = "claude"',
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
+    _apply_and_check(fixture)
+    assert not state.exists()
 
-    skill_target = destination / AUTHORED_SKILL_ROOTS["claude"] / "fixture"
-    skill_target.mkdir(parents=True)
-    (skill_target / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
-    sentinel = tmp_path / "outside" / "sentinel"
-    sentinel.parent.mkdir()
-    sentinel.write_text("keep\n", encoding="utf-8")
-    mirrored_sentinel = skill_target / "payload\n" / Path(*sentinel.parts[1:])
-    mirrored_sentinel.parent.mkdir(parents=True)
-    mirrored_sentinel.write_text("stale\n", encoding="utf-8")
-
-    result = _apply_authored_cleanup(source, destination, config)
-
-    assert result.returncode == 0, result.stderr
-    assert sentinel.read_text(encoding="utf-8") == "keep\n"
-    assert not mirrored_sentinel.exists()
+    _write_skill(fixture, "beta", {"SKILL.md": "# Beta\n"})
+    _apply_and_check(fixture)
+    assert state.is_file()
 
 
-def test_authored_skill_cleanup_propagates_descendant_symlink_refusal(tmp_path):
-    """A descendant symlink aborts traversal without touching its outside target."""
-    source = tmp_path / "source"
-    destination = tmp_path / "destination"
-    _initialize_authored_cleanup_source(source)
+def test_failed_removal_keeps_state_and_retries(agent_source_fixture):
+    """A removal that fails fails the apply, keeps the owned roots, and succeeds once the cause is fixed."""
+    fixture = agent_source_fixture
+    _install_cleanup(fixture)
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
+    _write_skill(fixture, "beta", {"SKILL.md": "# Beta\n"})
+    _apply_and_check(fixture)
+    state = fixture.destination / ".local/state/dotfiles/agent-source-roots.json"
+    before = state.read_text(encoding="utf-8")
+    locked = fixture.destination / AUTHORED_SKILL_ROOTS["claude"] / "alpha"
+    (locked / "extra").mkdir()
+    (locked / "extra" / "user.txt").write_text("user\n", encoding="utf-8")
+    (locked / "extra").chmod(0o500)
+    shutil.rmtree(fixture.authored / "ai/skills/alpha")
+    try:
+        if os.access(locked / "extra", os.W_OK):
+            pytest.skip("directory permissions are not enforced for this user")
+        failed = fixture.run("apply")
+        assert failed.returncode != 0
+        assert state.read_text(encoding="utf-8") == before
+    finally:
+        (locked / "extra").chmod(0o700)
 
-    skill_source = source / "src/ai/skills" / "fixture"
-    skill_source.mkdir(parents=True)
-    (skill_source / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
-    skill_target = destination / AUTHORED_SKILL_ROOTS["claude"] / "fixture"
-    skill_target.mkdir(parents=True)
-    (skill_target / "SKILL.md").write_text("# Fixture\n", encoding="utf-8")
-    sentinel = tmp_path / "outside" / "sentinel"
-    sentinel.parent.mkdir()
-    sentinel.write_text("keep\n", encoding="utf-8")
-    escape = skill_target / "escape"
-    escape.symlink_to(sentinel.parent, target_is_directory=True)
-    config = tmp_path / "chezmoi.toml"
-    config.write_text(
-        "\n".join(
-            [
-                "[data.ai.skills.authored]",
-                'fixture = "claude"',
-                "",
-            ]
-        ),
-        encoding="utf-8",
-    )
-    result = _apply_authored_cleanup(source, destination, config)
+    _apply_and_check(fixture)
 
-    assert result.returncode != 0
-    assert "symlink descendant" in result.stderr
-    assert escape.is_symlink()
-    assert sentinel.read_text(encoding="utf-8") == "keep\n"
+    assert not any(root.exists() for root in _skill_target_roots(fixture, "alpha").values())
+    assert not any(root.endswith("/alpha") for root in _owned_roots(fixture))
 
 
 @pytest.mark.integration
@@ -1434,22 +1304,34 @@ def test_generated_paths_are_gitignored(tmp_path, checkout_config):
     assert status.stdout == ""
 
 
-def test_capability_cleanup_keeps_cursor_manifest_with_default_hosts(agent_source_fixture):
-    """Default hosts keep the owned Cursor manifest in the capability cleanup's desired set."""
+def test_old_capability_state_naming_native_files_is_migrated_without_deleting_them(agent_source_fixture):
+    """The retired capability ownership file maps to roots; natively managed plugin files survive."""
     fixture = agent_source_fixture
-    cleanup = "run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl"
-    target = fixture.source / ".chezmoiscripts" / cleanup
-    target.parent.mkdir(parents=True)
-    shutil.copy2(REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts" / cleanup, target)
-    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
-    manifest = ".cursor/plugins/local/mkobit-dotfiles/.cursor-plugin/plugin.json"
-    state = fixture.destination / ".local/state/dotfiles/agent-plugin-capability-ownership.json"
-    state.parent.mkdir(parents=True)
-    state.write_text(json.dumps({"version": 1, "paths": [manifest]}) + "\n")
+    _install_cleanup(fixture)
+    fixture.write_plugin("live", skills={"one": {"SKILL.md": "# One\n"}})
+    manifest = ".local/share/agent-plugins/marketplace/plugins/live/codex/.codex-plugin/plugin.json"
+    cursor_manifest = ".cursor/plugins/local/mkobit-dotfiles/.cursor-plugin/plugin.json"
+    stale = ".local/share/agent-plugins/marketplace/plugins/gone/claude/skills/s/SKILL.md"
+    stale_cursor = ".cursor/plugins/local/gone/rules/r.mdc"
+    destination = fixture.destination
+    for relative in (stale, stale_cursor):
+        (destination / relative).parent.mkdir(parents=True)
+        (destination / relative).write_text("stale\n", encoding="utf-8")
+    legacy = destination / ".local/state/dotfiles/agent-plugin-capability-ownership.json"
+    legacy.parent.mkdir(parents=True)
+    legacy.write_text(
+        json.dumps({"version": 1, "paths": [manifest, cursor_manifest, stale, stale_cursor]}), encoding="utf-8"
+    )
 
     _apply_and_check(fixture)
-    assert json.loads((fixture.destination / manifest).read_text())["name"] == "mkobit-dotfiles"
-    assert json.loads(state.read_text())["paths"] == [manifest]
+
+    assert json.loads((destination / manifest).read_text())["name"] == "live"
+    assert json.loads((destination / cursor_manifest).read_text())["name"] == "mkobit-dotfiles"
+    assert not (destination / ".local/share/agent-plugins/marketplace/plugins/gone").exists()
+    assert not (destination / ".cursor/plugins/local/gone").exists()
+    assert not legacy.exists()
+    assert (destination / ".local/state/dotfiles/agent-source-roots.json").is_file()
+    _assert_stable(fixture)
 
 
 @pytest.mark.parametrize("bare_state", ["present", "absent"])

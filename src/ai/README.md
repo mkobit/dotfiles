@@ -78,8 +78,7 @@ instructions = "Follow the project style guide."
 ```
 
 Rendered output uses the existing portable, host, Cursor local, and gated Antigravity paths described above.
-The [base cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-skills-cleanup.sh.tmpl) empties deselected skill roots that the catalog names; the generated ignore patterns also hide those roots from `.chezmoiremove`, so the empty root directory remains.
-The [capability cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl) only keeps the mkobit-dotfiles Cursor manifest in its ownership state; authored plugins are native entries.
+The [root cleanup](#deselecting-or-removing-skills) removes deleted and deselected roots.
 The [plugin bridge](../python/skill_filter/skill_filter/plugin_bridge.py) registers the generated packages after apply.
 Rendering leaves canonical sources unchanged; edit those sources, not deployed copies.
 Third-party packages, host conversion, and native package registration keep their existing behavior.
@@ -196,9 +195,22 @@ The host selection limits installation, not discovery.
 
 ### Deselecting or removing skills
 
-Set state to `"absent"` in the relevant catalog TOML file to deselect an authored or upstream skill.
-Never delete catalog keys for removed skills, which leaves deployed files unmanaged.
-`.chezmoiremove.tmpl` templates in each plugin host view and `dot_gemini/` tombstone and prune absent skills on `chezmoi apply`.
+Authored skills and plugins converge without catalog keys.
+Delete a skill or plugin source, deselect a host, set a skill exception to `"absent"`, or disable a plugin environment, and the next apply removes the deployed root.
+Upstream skills in `src/chezmoi/.chezmoidata/ai/skills/<source>.toml` still need state `"absent"`; their `.chezmoiremove.tmpl` tombstones prune the installed copy, so never delete those keys.
+
+chezmoi keeps ignored entries inside `exact_` directories, so deselected roots stay deployed until the [root cleanup](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-source-root-cleanup.sh.tmpl) runs.
+The script records the roots it owns in `~/.local/state/dotfiles/agent-source-roots.json`.
+Each run removes `previous roots - desired roots - protected roots`, deepest first, through the [cleanup module](../python/skill_filter/skill_filter/agent_source_cleanup.py).
+It commits the new state only after every removal succeeds, so a failed removal retries on the next apply.
+Protected roots are external skills from `ai.skills.external`; shared host skill directories and marketplaces are never roots.
+The module rejects roots outside its allowed patterns and symlinked path components.
+The old `agent-plugin-capability-ownership.json` file is mapped to roots once, then deleted; roots that are still desired, and files of the mkobit-dotfiles bundle manifests, stay.
+Plugin registrations leave through the plugin bridge ownership rules.
+
+Boundary: removing an owned root deletes every file inside it, including files a user added there.
+Put unmanaged files outside owned skill and plugin roots.
+Only `example_skill` keeps an `"absent"` key in the authored catalog; it stays in the repository and deploys nowhere.
 
 ## Upstream plugin packages
 

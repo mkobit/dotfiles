@@ -5,7 +5,6 @@ import re
 import shutil
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
 
 import pytest
@@ -96,12 +95,7 @@ def test_split_skills_deploy_and_remove_old_copies(agent_source_fixture, install
     """Deploy both complete trees and remove retired files without changing other packages."""
     source, destination = agent_source_fixture.repo, agent_source_fixture.destination
     _initialize_authored_cleanup_source(source)
-    catalog = tomllib.loads((REPO_ROOT / "src/chezmoi/.chezmoidata/ai/skills/authored.toml").read_text())
-    selected = {
-        name: catalog["ai"]["skills"]["authored"][name]
-        for name in ("docker-sandboxes", "sbx-sandboxes", "sbx-orchestrator")
-    }
-    assert selected == {"docker-sandboxes": "absent", "sbx-sandboxes": "present", "sbx-orchestrator": "present"}
+    selected = {"sbx-sandboxes": "present", "sbx-orchestrator": "present"}
     for skill_dir in (SKILL_DIR, ORCHESTRATOR_DIR):
         shutil.copytree(skill_dir, source / "src/ai/skills" / skill_dir.name)
     direct_roots = (".claude/skills", ".codex/skills", ".cursor/skills", ".gemini/antigravity-cli/skills")

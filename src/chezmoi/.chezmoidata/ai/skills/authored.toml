@@ -1,13 +1,7 @@
-# Authored skills: full directory trees under src/ai/skills/<name>/ in this repo,
-# deployed via file:// externals (see .chezmoiexternals/ai-authored-skills.toml.tmpl).
+# Authored skill exceptions. Skills are discovered from src/ai/skills/<name>/ and deploy to every
+# selected view without a key; a key here only deselects: "absent", or one of "claude", "codex",
+# "cursor", "antigravity". Catalog-level exclusions of sources that stay in the repository live here:
+# example_skill is a sample that deploys nowhere.
+# Deleting a skill source needs no key; the root cleanup removes its deployed roots.
 [ai.skills.authored]
-beads = "present"
-docker-sandboxes = "absent"
-sbx-sandboxes = "present"
-sbx-orchestrator = "present"
 example_skill = "absent"
-modern-java-patterns = "present"
-pr-reviewer = "absent" # source deleted 2026-06-11; replaced by superpowers requesting/receiving-code-review
-technical-writing = "present"
-typescript-expert = "absent" # source deleted 2026-06-11; find a publicly maintained replacement
-write-agent-context = "present"

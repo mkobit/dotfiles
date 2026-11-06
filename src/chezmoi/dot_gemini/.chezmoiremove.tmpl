@@ -16,10 +16,13 @@ antigravity-cli/skills/{{ $skillName }}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
-{{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
-{{-   if not (or (eq $state "present") (eq $state "antigravity")) }}
+{{- range $skillName, $skill := (includeTemplate "ai/agent-sources" . | fromJson).bare.skills -}}
+{{-   if not (has "antigravity" $skill.views) }}
 antigravity-cli/skills/{{ $skillName }}
 {{-   end -}}
+{{- end -}}
+{{- range $skillName := list "docker-sandboxes" "pr-reviewer" "typescript-expert" }}
+antigravity-cli/skills/{{ $skillName }}
 {{- end -}}
 {{- range $sourceName, $source := .ai.agents.external -}}
 {{-   range $agentPath, $state := dig "agents" (dict) $source -}}

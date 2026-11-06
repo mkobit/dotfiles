@@ -17,11 +17,15 @@ skills/{{ $skillName }}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
-{{- range $skillName, $state := dig "authored" (dict) (dig "skills" (dict) .ai) -}}
-{{-   if or $hasBridge (not (or (eq $state "present") (eq $state "cursor"))) }}
+{{- range $skillName, $skill := (includeTemplate "ai/agent-sources" . | fromJson).bare.skills -}}
+{{-   if or $hasBridge (not (or (eq $skill.state "present") (eq $skill.state "cursor"))) }}
 skills/{{ $skillName }}
 {{-   end -}}
 {{- end -}}
+{{- /* Retired authored skills whose sources are deleted. */ -}}
+{{- range $skillName := list "docker-sandboxes" "pr-reviewer" "typescript-expert" }}
+skills/{{ $skillName }}
+{{- end }}
 
 {{- range $sourceName, $source := dig "external" (dict) (dig "agents" (dict) .ai) -}}
 {{-   range $agentPath, $state := dig "agents" (dict) $source -}}

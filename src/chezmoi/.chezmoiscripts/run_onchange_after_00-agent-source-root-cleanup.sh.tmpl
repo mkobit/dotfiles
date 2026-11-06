@@ -1,0 +1,73 @@
+{{- /*
+  Removes agent source roots that an earlier apply owned and the current selection no
+  longer names: deleted or deselected bare skills, hosts, skills, plugins, and plugin
+  environments. chezmoi keeps ignored entries inside exact_ directories, so this root-level
+  cleanup is the only remover for them. Removing a root deletes every file inside it,
+  including unmanaged files a user added. Shared host skill directories and marketplaces
+  are never roots; external skill roots are protected. See src/ai/README.md.
+*/ -}}
+{{- $sources := includeTemplate "ai/agent-sources" . | fromJson -}}
+{{- $marketplace := ".local/share/agent-plugins/marketplace/plugins" -}}
+{{- $bundle := printf "%s/mkobit-dotfiles" $marketplace -}}
+{{- $cursorLocal := ".cursor/plugins/local" -}}
+{{- $antigravity := ".gemini/antigravity-cli/skills" -}}
+{{- $viewRoots := dict
+      "portable" (printf "%s/skills" $bundle)
+      "claude" (printf "%s/claude/skills" $bundle)
+      "codex" (printf "%s/codex/skills" $bundle)
+      "cursor" (printf "%s/cursor/skills" $bundle)
+      "cursor_local" (printf "%s/mkobit-dotfiles/skills" $cursorLocal)
+      "antigravity" $antigravity -}}
+{{- $desired := list -}}
+{{- range $name, $skill := $sources.bare.skills -}}
+{{-   range $view := $skill.views -}}
+{{-     $desired = append $desired (printf "%s/%s" (index $viewRoots $view) $name) -}}
+{{-   end -}}
+{{- end -}}
+{{- range $name, $plugin := $sources.plugins -}}
+{{-   if $plugin.enabled -}}
+{{-     $desired = append $desired (printf "%s/%s" $marketplace $name) -}}
+{{-     range $host, $selected := $plugin.hosts -}}
+{{-       $desired = append $desired (printf "%s/%s/%s" $marketplace $name $host) -}}
+{{-       range $skill := $selected.skills -}}
+{{-         $desired = append $desired (printf "%s/%s/%s/skills/%s" $marketplace $name $host $skill) -}}
+{{-       end -}}
+{{-     end -}}
+{{-     if $plugin.cursor_local -}}
+{{-       $desired = append $desired (printf "%s/%s" $cursorLocal $name) -}}
+{{-       range $skill := (dig "cursor" "skills" (list) $plugin.hosts) -}}
+{{-         $desired = append $desired (printf "%s/%s/skills/%s" $cursorLocal $name $skill) -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- $protected := list -}}
+{{- range $sourceName, $source := dig "external" (dict) (dig "skills" (dict) .ai) -}}
+{{-   range $skillName, $_ := dig "skills" (dict) $source -}}
+{{-     range $root := values $viewRoots -}}
+{{-       $protected = append $protected (printf "%s/%s" $root $skillName) -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- range $sourceName, $source := dig "external" (dict) (dig "agents" (dict) .ai) -}}
+{{-   range $agentPath, $_ := dig "agents" (dict) $source -}}
+{{-     $protected = append $protected (printf "%s/%s" $antigravity (base $agentPath)) -}}
+{{-   end -}}
+{{- end -}}
+{{- $payload := dict "desired" ($desired | uniq | sortAlpha) "protected" ($protected | uniq | sortAlpha) -}}
+{{- $python := includeTemplate "python/filter-interpreter" . -}}
+{{- $helper := joinPath .chezmoi.sourceDir ".." "python/skill_filter/skill_filter/agent_source_cleanup.py" -}}
+#!/bin/sh
+set -eu
+set -f
+
+# agent-source-roots: {{ sha256sum (toJson $payload) }}
+destination={{ .chezmoi.destDir | shellQuote }}
+state_dir="$destination/.local/state/dotfiles"
+
+exec {{ $python | shellQuote }} -S {{ $helper | shellQuote }} \
+    --destination "$destination" \
+    --state "$state_dir/agent-source-roots.json" \
+    --legacy-state "$state_dir/agent-plugin-capability-ownership.json" <<'EOF'
+{{ toJson $payload }}
+EOF

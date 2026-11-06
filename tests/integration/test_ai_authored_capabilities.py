@@ -1,9 +1,11 @@
 """Integration coverage for authored plugins delivered as generated native entries."""
 
 import json
+import shutil
 import stat
 
 import pytest
+from test_ai_skills import _install_cleanup
 
 MARKET = ".local/share/agent-plugins/marketplace/plugins"
 CURSOR_LOCAL = ".cursor/plugins/local"
@@ -390,4 +392,61 @@ def test_manifest_version_follows_rendered_data_and_is_stable_on_repeat(agent_so
     (root / "skills/one/payload.bin").chmod(0o755)
     assert versions() not in (first, data_changed, source_changed)
     assert versions() == versions()
+    _assert_stable(fixture)
+
+
+def test_deleted_plugin_identity_removes_package_and_cursor_roots(agent_source_fixture):
+    """Deleting a plugin directory removes its package and Cursor-local roots; unowned plugins stay."""
+    fixture = agent_source_fixture
+    _install_cleanup(fixture)
+    fixture.write_plugin("doomed", skills={"one": {"SKILL.md": "# One\n"}})
+    fixture.write_plugin("survivor", skills={"one": {"SKILL.md": "# One\n"}})
+    unowned = [fixture.destination / MARKET / "manual" / "SKILL.md", fixture.destination / CURSOR_LOCAL / "manual/x"]
+    for path in unowned:
+        path.parent.mkdir(parents=True)
+        path.write_text("keep\n", encoding="utf-8")
+    _apply(fixture)
+    assert (fixture.destination / MARKET / "doomed/claude/skills/one/SKILL.md").is_file()
+    assert (fixture.destination / CURSOR_LOCAL / "doomed/skills/one/SKILL.md").is_file()
+
+    shutil.rmtree(fixture.authored / "overlay-plugins/doomed")
+    _apply(fixture)
+
+    assert not (fixture.destination / MARKET / "doomed").exists()
+    assert not (fixture.destination / CURSOR_LOCAL / "doomed").exists()
+    assert (fixture.destination / MARKET / "survivor/codex/skills/one/SKILL.md").is_file()
+    assert all(path.read_text(encoding="utf-8") == "keep\n" for path in unowned)
+    _assert_stable(fixture)
+
+
+def test_deselected_plugin_host_and_environment_remove_roots(agent_source_fixture):
+    """A deselected host, an absent skill, and a disabled environment leave the destination on apply."""
+    fixture = agent_source_fixture
+    _install_cleanup(fixture)
+    skills = {name: {"SKILL.md": f"# {name}\n"} for name in ("one", "two", "three")}
+    fixture.write_plugin("hosted", skills=skills)
+    fixture.write_plugin("seasonal", skills={"one": {"SKILL.md": "# One\n"}})
+    fixture.write_config(_capability("seasonal", environments=["default"]))
+    _apply(fixture)
+    destination = fixture.destination
+    for host in HOSTS:
+        assert (destination / MARKET / f"hosted/{host}/skills/two/SKILL.md").is_file()
+    assert (destination / CURSOR_LOCAL / "hosted/skills/three/SKILL.md").is_file()
+    assert (destination / MARKET / "seasonal/claude/skills/one/SKILL.md").is_file()
+
+    fixture.write_config(
+        _capability("hosted", hosts=["claude", "codex"], skills={"two": "codex", "three": "absent"})
+        + _capability("seasonal", environments=["prod"])
+    )
+    _apply(fixture)
+
+    assert not (destination / MARKET / "hosted/cursor").exists()
+    assert not (destination / CURSOR_LOCAL / "hosted").exists()
+    assert not (destination / MARKET / "hosted/claude/skills/two").exists()
+    assert (destination / MARKET / "hosted/codex/skills/two/SKILL.md").is_file()
+    for host in ("claude", "codex"):
+        assert (destination / MARKET / f"hosted/{host}/skills/one/SKILL.md").is_file()
+        assert not (destination / MARKET / f"hosted/{host}/skills/three").exists()
+    assert not (destination / MARKET / "seasonal").exists()
+    assert not (destination / CURSOR_LOCAL / "seasonal").exists()
     _assert_stable(fixture)

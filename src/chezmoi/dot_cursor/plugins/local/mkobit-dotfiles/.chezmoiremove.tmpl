@@ -1,11 +1,9 @@
 {{- /*
-  Removes Cursor-local plugin skill directories when their catalog state no
-  longer selects Cursor. Paths are relative to this plugin's target root.
+  Removes deselected external skills and retired authored skills from the Cursor-local
+  plugin. Paths are relative to this plugin's target root. Bare skill roots are exact_
+  and cleaned by the root cleanup.
 */ -}}
 {{- $record := dict -}}
-{{- range $skillName, $state := dig "authored" (dict) (dig "skills" (dict) .ai) -}}
-{{-   $_ := set $record $skillName $state -}}
-{{- end -}}
 {{- range $sourceName, $source := dig "external" (dict) (dig "skills" (dict) .ai) -}}
 {{-   range $skillName, $state := dig "skills" (dict) $source -}}
 {{-     $_ := set $record $skillName $state -}}
@@ -15,4 +13,7 @@
 {{-   if not (or (eq $state "present") (eq $state "cursor")) }}
 skills/{{ $skillName }}
 {{-   end -}}
+{{- end -}}
+{{- range $skillName := list "docker-sandboxes" "pr-reviewer" "typescript-expert" }}
+skills/{{ $skillName }}
 {{- end -}}

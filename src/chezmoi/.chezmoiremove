@@ -76,3 +76,6 @@ install-asdf.sh
 .claude/plugins/cache/dotfiles/mkobit-dotfiles/*/skills/chrome-extensions
 .codex/plugins/cache/dotfiles/mkobit-dotfiles/*/skills/modern-web-guidance
 .codex/plugins/cache/dotfiles/mkobit-dotfiles/*/skills/chrome-extensions
+
+# Retired render-state database of the removed authored template cleanup.
+.local/state/chezmoi-authored-template-render.boltdb

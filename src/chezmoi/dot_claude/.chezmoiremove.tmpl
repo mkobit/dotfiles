@@ -1,8 +1,8 @@
 {{- /*
   Emits tombstones for direct Claude skill roots. A selected capability-bundle
   skill has a native tombstone so chezmoi status and diff show its cutover from
-  ~/.claude/skills/<name> to the plugin package. The state-manifest cleanup
-  hook still handles history-aware deleted or renamed skill keys and sources.
+  ~/.claude/skills/<name> to the plugin package. Bare skill names come from
+  ai/agent-sources; deleted sources need no catalog key.
 */ -}}
 {{- $hasBridge := false -}}
 {{- range $capability := dig "capabilities" (dict) (dig "plugin_bridge" (dict) .ai) -}}
@@ -17,12 +17,14 @@ skills/{{ $skillName }}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
-{{- range $skillName, $state := dig "authored" (dict) (dig "skills" (dict) .ai) -}}
-{{-   if or $hasBridge (not (or (eq $state "present") (eq $state "claude"))) }}
+{{- range $skillName, $skill := (includeTemplate "ai/agent-sources" . | fromJson).bare.skills -}}
+{{-   if or $hasBridge (not (or (eq $skill.state "present") (eq $skill.state "claude"))) }}
 skills/{{ $skillName }}
 {{-   end -}}
 {{- end -}}
-
-{{- if eq (dig "ai" "skills" "authored" "docker-sandboxes" "" .) "absent" }}
-plugins/cache/dotfiles/mkobit-dotfiles/*/skills/docker-sandboxes
+{{- /* Retired authored skills whose sources are deleted. */ -}}
+{{- range $skillName := list "docker-sandboxes" "pr-reviewer" "typescript-expert" }}
+skills/{{ $skillName }}
 {{- end }}
+
+plugins/cache/dotfiles/mkobit-dotfiles/*/skills/docker-sandboxes
