@@ -3,6 +3,7 @@
   Arguments: root (root context), name (plugin name), and host (claude, codex, or cursor).
   Output: name, version, and description; "./skills" when the host has selected skills;
   wrapper components (mcpServers, rules); and, for codex only, the identity author and interface.
+  An interface without a capabilities key gets the selected skill names of the host as capabilities.
   The version digests the plugin inventory digest, the selection, and the rendered
   bytes of every selected template, so it changes with content and data only.
 */ -}}
@@ -40,6 +41,10 @@
 {{-     if index $inventory $key -}}
 {{-       $_ := set $manifest $key (index $inventory $key) -}}
 {{-     end -}}
+{{-   end -}}
+{{-   $interface := dig "interface" (dict) $manifest -}}
+{{-   if and $interface (not (hasKey $interface "capabilities")) (dig "skills" (list) $selected) -}}
+{{-     $_ := set $manifest "interface" (merge (dict "capabilities" $selected.skills) $interface) -}}
 {{-   end -}}
 {{- end -}}
 {{- $manifest | toPrettyJson -}}

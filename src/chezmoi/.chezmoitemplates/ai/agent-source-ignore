@@ -3,12 +3,13 @@
   Arguments: root (root context) and view (marketplace-plugins, cursor-local, or antigravity).
   Preparation writes every view of every source; these patterns drop unselected ones:
   disabled plugins, unselected hosts, and unselected skills (a host view with no
-  selected skill also drops its skills directory).
+  selected skill also drops its skills directory). Every view also ignores Python
+  bytecode caches, so an exact owned root keeps what skill scripts create at runtime.
 */ -}}
 {{- $sources := includeTemplate "ai/agent-sources" .root | fromJson -}}
 {{- $bare := $sources.bare -}}
 {{- $inventory := dig "agent_source_inventory" "plugins" (dict) .root -}}
-{{- $lines := list -}}
+{{- $lines := list "**/__pycache__" "**/__pycache__/**" "**/*.pyc" -}}
 {{- if eq .view "marketplace-plugins" -}}
 {{-   range $name, $skill := $bare.skills -}}
 {{-     if not (has "portable" $skill.views) -}}
@@ -65,7 +66,7 @@
 {{-   end -}}
 {{- else if eq .view "antigravity" -}}
 {{-   if not $bare.antigravity -}}
-{{-     $lines = list "*" -}}
+{{-     $lines = concat $lines (list "*") -}}
 {{-   else -}}
 {{-     range $name, $skill := $bare.skills -}}
 {{-       if not (has "antigravity" $skill.views) -}}
