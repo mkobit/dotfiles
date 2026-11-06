@@ -31,7 +31,7 @@ The measurements should work without a terminal and should not require full debu
 Resolved for authored plugins on 2026-11-06.
 Each authored plugin is one native source folder under [`exact_plugins/`](../src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/), which Claude, Codex, Cursor, and Antigravity share.
 Chezmoi renders templates, removes deleted files through `exact_` folders, and shows changes in `chezmoi diff`.
-The remaining friction is selection: entries ignored inside an `exact_` folder stay deployed, so a [small script](../src/chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-deselect.sh.tmpl) removes deselected content.
+The remaining friction is selection: entries ignored inside an `exact_` folder stay deployed, so a [small script](../src/chezmoi/.chezmoiscripts/run_onchange_before_00-agent-plugin-deselect.sh.tmpl) moves deselected content to a stash and back when it is selected again, because chezmoi prompts when a managed entry was removed outside chezmoi.
 The [archive filter](../src/python/skill_filter/skill_filter/main.py) still selects upstream skills.
 
 ### Desired behavior

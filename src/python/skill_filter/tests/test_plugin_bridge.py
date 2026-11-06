@@ -2544,9 +2544,7 @@ def test_second_unchanged_reconcile_issues_only_list_calls(tmp_path, monkeypatch
         ), (host, state["calls"])
 
 
-def test_main_refreshes_on_flag_chezmoi_refresh_or_expired_stamp(
-    tmp_path, monkeypatch
-):
+def test_main_refreshes_on_flag_chezmoi_refresh_or_expired_stamp(tmp_path, monkeypatch):
     calls = []
 
     def fake_reconcile(destination, declaration, *, refresh=False):

@@ -2,43 +2,30 @@ import fnmatch
 import json
 import os
 import re
-import shutil
 import subprocess
 import sys
-import tomllib
 from pathlib import Path
 
 import pytest
 import yaml
-from test_ai_skills import (
-    AUTHORED_SKILL_ROOTS,
-    CAPABILITY_AUTHORED_SKILL_ROOTS,
-    _apply_authored_cleanup,
-    _initialize_authored_cleanup_source,
-)
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-SKILL_DIR = REPO_ROOT / "src" / "ai" / "skills" / "sbx-sandboxes"
+SKILLS_SOURCE = (
+    REPO_ROOT / "src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles/exact_skills"
+)
+SKILL_DIR = SKILLS_SOURCE / "exact_sbx-sandboxes"
 SKILL_FILE = SKILL_DIR / "SKILL.md"
-REFERENCES_DIR = SKILL_DIR / "references"
-TEMPLATES_DIR = SKILL_DIR / "templates"
-ORCHESTRATOR_DIR = SKILL_DIR.with_name("sbx-orchestrator")
-MOVED_REFERENCES = ("subagent-task.md", "nested-execution.md")
+REFERENCES_DIR = SKILL_DIR / "exact_references"
+TEMPLATES_DIR = SKILL_DIR / "exact_templates"
+ORCHESTRATOR_DIR = SKILLS_SOURCE / "exact_sbx-orchestrator"
 
 
-def _assert_deployed_skill_trees(destination: Path) -> None:
-    for root in AUTHORED_SKILL_ROOTS.values():
-        for skill_dir in (SKILL_DIR, ORCHESTRATOR_DIR):
-            deployed = destination / root / skill_dir.name
-            expected = {
-                path.relative_to(skill_dir): path.read_bytes() for path in skill_dir.rglob("*") if path.is_file()
-            }
-            actual = {path.relative_to(deployed): path.read_bytes() for path in deployed.rglob("*") if path.is_file()}
-            assert actual == expected
-            assert not any(path.is_symlink() for path in deployed.rglob("*"))
-        for name in MOVED_REFERENCES:
-            assert not (destination / root / "sbx-sandboxes/references" / name).exists()
-            assert (destination / root / "sbx-orchestrator/references" / name).is_file()
+def _source_path(directory: Path, relative: str) -> Path:
+    """Resolve a deployed relative path in the source tree, where folders carry exact_."""
+    path = directory
+    for part in Path(relative).parts:
+        path = path / part if part == ".." or (path / part).exists() else path / f"exact_{part}"
+    return path.resolve()
 
 
 @pytest.mark.parametrize(
@@ -91,75 +78,6 @@ def test_skill_does_not_grant_lifecycle_or_upload(command: str, skill_dir: Path)
     assert not any(fnmatch.fnmatchcase(command, pattern) for pattern in patterns)
 
 
-@pytest.mark.parametrize("installed_old_skill", [False, True], ids=["fresh", "upgrade"])
-def test_split_skills_deploy_and_remove_old_copies(tmp_path: Path, installed_old_skill: bool) -> None:
-    """Deploy both complete trees and remove retired files without changing other packages."""
-    source, destination = tmp_path / "source", tmp_path / "destination"
-    destination.mkdir()
-    _initialize_authored_cleanup_source(source, include_external=True)
-    catalog = tomllib.loads((REPO_ROOT / "src/chezmoi/.chezmoidata/ai/skills/authored.toml").read_text())
-    selected = {
-        name: catalog["ai"]["skills"]["authored"][name]
-        for name in ("docker-sandboxes", "sbx-sandboxes", "sbx-orchestrator")
-    }
-    assert selected == {"docker-sandboxes": "absent", "sbx-sandboxes": "present", "sbx-orchestrator": "present"}
-    for skill_dir in (SKILL_DIR, ORCHESTRATOR_DIR):
-        shutil.copytree(skill_dir, source / "src/ai/skills" / skill_dir.name)
-    direct_roots = (".claude/skills", ".codex/skills", ".cursor/skills", ".gemini/antigravity-cli/skills")
-    for root in (*CAPABILITY_AUTHORED_SKILL_ROOTS.values(), *direct_roots):
-        old = destination / root / "docker-sandboxes/SKILL.md"
-        old.parent.mkdir(parents=True, exist_ok=True)
-        old.write_text("old skill")
-    for host in (".claude", ".codex"):
-        for package, skill in (
-            ("mkobit-dotfiles", "docker-sandboxes"),
-            ("mkobit-dotfiles", "other-skill"),
-            ("other-plugin", "docker-sandboxes"),
-        ):
-            cached = destination / host / "plugins/cache/dotfiles" / package / "1.0.0/skills" / skill / "SKILL.md"
-            cached.parent.mkdir(parents=True, exist_ok=True)
-            cached.write_text("cached")
-    for target in ("dot_claude", "dot_codex", "dot_cursor", "dot_gemini"):
-        (source / "src/chezmoi" / target).mkdir(parents=True, exist_ok=True)
-        shutil.copy2(
-            REPO_ROOT / "src/chezmoi" / target / ".chezmoiremove.tmpl",
-            source / "src/chezmoi" / target / ".chezmoiremove.tmpl",
-        )
-    config = tmp_path / "chezmoi.toml"
-
-    def write_config(states: dict[str, str]) -> None:
-        config.write_text(
-            "[data.ai.skills.authored]\n"
-            + "".join(f'{name} = "{state}"\n' for name, state in states.items())
-            + '\n[data.ai.skills.external]\n[data.ai.agents.external]\n[data.local.bin.agy]\ninstallation_method = "system"\n'
-        )
-
-    if installed_old_skill:
-        old_references = source / "src/ai/skills/sbx-sandboxes/references"
-        for name in MOVED_REFERENCES:
-            shutil.copy2(ORCHESTRATOR_DIR / "references" / name, old_references / name)
-        write_config({**selected, "sbx-orchestrator": "absent"})
-        initial = _apply_authored_cleanup(source, destination, config)
-        assert initial.returncode == 0, initial.stderr
-        for root in AUTHORED_SKILL_ROOTS.values():
-            for name in MOVED_REFERENCES:
-                assert (destination / root / "sbx-sandboxes/references" / name).is_file()
-        for name in MOVED_REFERENCES:
-            (old_references / name).unlink()
-
-    write_config(selected)
-    result = _apply_authored_cleanup(source, destination, config)
-    assert result.returncode == 0, result.stderr
-    for root in (*CAPABILITY_AUTHORED_SKILL_ROOTS.values(), *direct_roots):
-        assert not (destination / root / "docker-sandboxes").exists()
-    for host in (".claude", ".codex"):
-        cache = destination / host / "plugins/cache/dotfiles"
-        assert not (cache / "mkobit-dotfiles/1.0.0/skills/docker-sandboxes").exists()
-        assert (cache / "mkobit-dotfiles/1.0.0/skills/other-skill/SKILL.md").is_file()
-        assert (cache / "other-plugin/1.0.0/skills/docker-sandboxes/SKILL.md").is_file()
-    _assert_deployed_skill_trees(destination)
-
-
 @pytest.mark.parametrize("skill_dir", [SKILL_DIR, ORCHESTRATOR_DIR], ids=["sandboxes", "orchestrator"])
 def test_skill_local_links_resolve_in_the_deployed_pair(skill_dir: Path) -> None:
     """Resolve reference links within the pair that is copied to each skill root."""
@@ -167,7 +85,7 @@ def test_skill_local_links_resolve_in_the_deployed_pair(skill_dir: Path) -> None
         for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", document.read_text(encoding="utf-8")):
             if "://" in target or target.startswith("#"):
                 continue
-            resolved = (document.parent / target.split("#", 1)[0]).resolve()
+            resolved = _source_path(document.parent, target.split("#", 1)[0])
             assert resolved.is_file(), f"Broken link in {document}: {target}"
             assert resolved.is_relative_to(SKILL_DIR) or resolved.is_relative_to(ORCHESTRATOR_DIR)
 
@@ -178,7 +96,7 @@ def test_codex_launcher_preserves_guest_arguments_logs_and_exit_code(
     tmp_path: Path, worker_exit_code: int, resume: bool
 ) -> None:
     """Run the documented shell with fake SBX and Codex processes, not a live sandbox."""
-    document = (ORCHESTRATOR_DIR / "references/worker-launch.md").read_text(encoding="utf-8")
+    document = (ORCHESTRATOR_DIR / "exact_references/worker-launch.md").read_text(encoding="utf-8")
     launchers = re.findall(r"```sh\n(.*?)\n```", document, re.DOTALL)
     assert len(launchers) == 2
     tools = tmp_path / "host tools"
@@ -263,7 +181,7 @@ def test_codex_launcher_preserves_guest_arguments_logs_and_exit_code(
 @pytest.mark.parametrize("resume", [False, True], ids=["launch", "resume"])
 def test_codex_launcher_requires_effective_sandbox_name(sandbox_name: str | None, resume: bool) -> None:
     """Reject an absent effective name before attempting a guest launch."""
-    document = (ORCHESTRATOR_DIR / "references/worker-launch.md").read_text(encoding="utf-8")
+    document = (ORCHESTRATOR_DIR / "exact_references/worker-launch.md").read_text(encoding="utf-8")
     launchers = re.findall(r"```sh\n(.*?)\n```", document, re.DOTALL)
     environment = {key: value for key, value in os.environ.items() if key != "SBX_SANDBOX_NAME"}
     environment["SBX_ENVIRONMENT"] = "/project with spaces/.sbx/custom.yaml"

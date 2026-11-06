@@ -2,7 +2,7 @@
   Ignore lines for authored plugin content that the init decisions deselect:
   disabled plugins, unselected host_dirs packages, and absent skills.
   The root .chezmoiignore.tmpl includes this; an overlay that owns that file includes it too.
-  run_onchange_after_00-agent-plugin-deselect removes already deployed copies.
+  run_onchange_before_00-agent-plugin-deselect moves already deployed copies out, and back when they are selected again.
 */ -}}
 {{- range $name, $plugin := includeTemplate "ai/authored-plugins" . | fromJson -}}
 {{-   range $path := $plugin.deselected }}
