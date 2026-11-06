@@ -12,6 +12,8 @@ destination={{ $destination | quote }}
 python_command={{ $python | quote }}
 bridge_helper={{ joinPath .chezmoi.sourceDir ".." "python/skill_filter/skill_filter/plugin_bridge.py" | quote }}
 
-exec "$python_command" -S "$bridge_helper" reconcile --destination "$destination" <<'EOF'
+# DOTFILES_AGENT_PLUGIN_REFRESH=1 also updates owned public and internal marketplaces.
+# shellcheck disable=SC2086
+exec "$python_command" -S "$bridge_helper" reconcile --destination "$destination" ${DOTFILES_AGENT_PLUGIN_REFRESH:+--refresh} <<'EOF'
 {{ toJson $payload }}
 EOF

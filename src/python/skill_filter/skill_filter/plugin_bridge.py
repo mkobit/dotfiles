@@ -367,6 +367,41 @@ def _package_fingerprint(root: Path) -> str:
     return fingerprint.hexdigest()
 
 
+def _package_manifest_version(package_root: Path, host: str) -> str | None:
+    """Return the version in the package's host manifest, or None when it has none."""
+    try:
+        manifest = json.loads(
+            (package_root / f".{host}-plugin/plugin.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError):
+        return None
+    version = manifest.get("version") if isinstance(manifest, Mapping) else None
+    return version if isinstance(version, str) and version else None
+
+
+def _refresh_plugin(host: str, marketplace: str, plugin: str) -> None:
+    """Update an owned plugin of a refreshed marketplace; Codex reinstalls on a new version."""
+    expected = f"{plugin}@{marketplace}"
+    if host == "claude":
+        _run(host, "plugin", "update", expected)
+        return
+    installed, _, installed_version, source_path = _codex_plugin_state(
+        marketplace, plugin
+    )
+    if not installed or source_path is None:
+        return
+    try:
+        available = _codex_manifest_version(source_path, plugin)
+    except BridgeError:
+        logger.info(
+            "host=%s plugin=%s event=refresh-skipped reason=no-version", host, expected
+        )
+        return
+    if available != installed_version:
+        _run(host, "plugin", "remove", expected)
+        _run(host, "plugin", "add", expected)
+
+
 def _ensure_package_plugin(
     host: str, marketplace: str, plugin: str, package_root: Path
 ) -> None:
@@ -388,6 +423,17 @@ def _ensure_package_plugin(
             _run(host, "plugin", "enable", expected)
         present, enabled, _, installed_root = _claude_plugin_state(marketplace, plugin)
     elif host == "codex":
+        installed, enabled, installed_version, _ = _codex_plugin_state(
+            marketplace, plugin
+        )
+        deployed_version = _package_manifest_version(package_root, "codex")
+        if (
+            installed
+            and enabled
+            and deployed_version is not None
+            and installed_version == deployed_version
+        ):
+            return  # the version is content-derived, so equal versions mean equal content
         response = json.loads(_run(host, "plugin", "add", expected, "--json"))
         installed_path = (
             response.get("installedPath") if isinstance(response, Mapping) else None
@@ -501,14 +547,16 @@ def _ensure_marketplace(
     desired: set[str],
     owned_desired: set[str],
     previous_owned: frozenset[str] = frozenset(),
-) -> None:
+    refresh: bool = False,
+) -> bool:
+    """Register the marketplace; return True when ``refresh`` updated an owned one."""
     identity = _identity("marketplace", host, name, "")
     desired.add(identity)
     if source_type == "host-provided":
         # Corporate wrappers own it: check presence only, never record.
         if not _marketplace_present(host, name):
             raise MarketplaceUnavailableError(host, name)
-        return
+        return False
     if not source_locator:
         raise BridgeError(f"marketplace has no source: {name}")
     record = f"{identity}\towned"
@@ -527,7 +575,11 @@ def _ensure_marketplace(
             )
     else:
         adopted = _marketplace_present(host, name)
-        if adopted:
+        if adopted and identity not in previous_owned:
+            return False  # adopted manual registration: never updated or recorded
+        if not adopted:
+            _run(host, "plugin", "marketplace", "add", source_locator)
+        elif refresh:
             _run(
                 host,
                 "plugin",
@@ -535,14 +587,14 @@ def _ensure_marketplace(
                 "update" if host == "claude" else "upgrade",
                 name,
             )
-        else:
-            _run(host, "plugin", "marketplace", "add", source_locator)
         if not _marketplace_present(host, name):
             raise BridgeError(f"marketplace did not become available: {name}")
-        if adopted and identity not in previous_owned:
-            return
+        owned_desired.add(record)
+        _checkpoint(ownership_file, record)
+        return refresh and adopted
     owned_desired.add(record)
     _checkpoint(ownership_file, record)
+    return False
 
 
 def _plugin_status(host: str, marketplace: str, plugin: str) -> tuple[bool, bool]:
@@ -555,10 +607,15 @@ def _plugin_status(host: str, marketplace: str, plugin: str) -> tuple[bool, bool
     return present, enabled
 
 
-def _ensure_installed_and_enabled(host: str, marketplace: str, plugin: str) -> bool:
+def _ensure_installed_and_enabled(
+    host: str, marketplace: str, plugin: str, *, reenable_codex: bool = True
+) -> bool:
     """Install when absent and enable when disabled; never update or remove.
 
     Returns True when this call installed the plugin.
+    With ``reenable_codex`` false, a disabled Codex plugin that this call did not
+    install stays disabled and the skip is logged, because Codex can only enable
+    by adding again.
     """
     expected = f"{plugin}@{marketplace}"
     present, enabled = _plugin_status(host, marketplace, plugin)
@@ -566,6 +623,17 @@ def _ensure_installed_and_enabled(host: str, marketplace: str, plugin: str) -> b
     if not present:
         _run(host, "plugin", "install" if host == "claude" else "add", expected)
         present, enabled = _plugin_status(host, marketplace, plugin)
+    if (
+        present
+        and not enabled
+        and host == "codex"
+        and not installed
+        and not reenable_codex
+    ):
+        logger.info(
+            "host=%s plugin=%s event=skip-reenable reason=host-provided", host, expected
+        )
+        return installed
     if present and not enabled:
         try:
             # Codex has no enable command; adding again enables it.
@@ -590,6 +658,7 @@ def _ensure_plugin(
     package_root: Path | None = None,
     source_type: str = "generated",
     previous_owned: frozenset[str] = frozenset(),
+    refresh: bool = False,
 ) -> None:
     identity = _identity("plugin", host, marketplace, plugin)
     record = f"{identity}\towned"
@@ -597,12 +666,14 @@ def _ensure_plugin(
     expected = f"{plugin}@{marketplace}"
     if source_type == "host-provided":
         # Wrapper-owned: install and enable only; never record ownership.
-        _ensure_installed_and_enabled(host, marketplace, plugin)
+        _ensure_installed_and_enabled(host, marketplace, plugin, reenable_codex=False)
         return
     if source_type != "generated":
         installed = _ensure_installed_and_enabled(host, marketplace, plugin)
         if not installed and identity not in previous_owned:
             return  # adopted manual install stays unrecorded
+        if refresh and not installed:
+            _refresh_plugin(host, marketplace, plugin)
         owned_desired.add(record)
         _checkpoint(ownership_file, record)
         return
@@ -613,7 +684,8 @@ def _ensure_plugin(
             marketplace, plugin
         )
         deployed_version = _claude_manifest_version(manifest_root, plugin)
-        current = deployed_version is not None and installed_version == deployed_version
+        # Without a deployed version there is nothing to compare: never update.
+        current = deployed_version is None or installed_version == deployed_version
         if not (present and enabled and current):
             if not present:
                 _run(host, "plugin", "install", expected)
@@ -679,7 +751,10 @@ def _remove_stale_record(kind: str, host: str, marketplace: str, plugin: str) ->
             raise BridgeError(f"marketplace did not disappear: {marketplace}")
 
 
-def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
+def reconcile(
+    destination: Path, declaration: Mapping[str, object], *, refresh: bool = False
+) -> None:
+    """Register declared marketplaces and plugins; ``refresh`` also updates owned external catalogs."""
     _validate_bridge_declaration(declaration)
     raw_bridge = declaration.get("plugin_bridge", declaration)
     if not isinstance(raw_bridge, Mapping):
@@ -752,11 +827,12 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
         )
     except HostUnavailableError:
         unavailable_hosts.add("codex")
+    refreshed: set[tuple[str, str]] = set()
     for _, name, host, source_type, locator in marketplace_rows:
         if host in unavailable_hosts:
             continue
         try:
-            _ensure_marketplace(
+            if _ensure_marketplace(
                 host,
                 name,
                 source_type,
@@ -765,7 +841,9 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
                 desired,
                 owned_desired,
                 previous_owned,
-            )
+                refresh,
+            ):
+                refreshed.add((host, name))
         except HostUnavailableError:
             unavailable_hosts.add(host)
         except MarketplaceUnavailableError:
@@ -789,8 +867,9 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
                     desired,
                     owned_desired,
                     manifest_root=manifest_roots.get((marketplace, host)),
-                    source_type=source_types.get(marketplace, "generated"),
+                    source_type=source_types[marketplace],
                     previous_owned=previous_owned,
+                    **({"refresh": True} if (host, marketplace) in refreshed else {}),
                     **(
                         {"package_root": package_roots[kind, name, host]}
                         if (kind, name, host) in package_roots
@@ -808,6 +887,8 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
         if host in unavailable_hosts:
             continue
         identity = _identity("plugin", host, marketplace, name)
+        if (host, marketplace) in unavailable_marketplaces:
+            continue  # the wrapper-owned marketplace is not registered here
         if identity not in previous_owned and marketplace not in generated_marketplaces:
             continue  # not provably ours; keep any ambiguous record
         try:
@@ -860,6 +941,11 @@ def _parser() -> argparse.ArgumentParser:
     identity.add_argument("--expected", required=True)
     reconcile_parser = commands.add_parser("reconcile")
     reconcile_parser.add_argument("--destination", required=True, type=Path)
+    reconcile_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="update owned public and internal marketplaces and their owned plugins",
+    )
     return parser
 
 
@@ -887,7 +973,7 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "has-identity":
             return 0 if has_identity(sys.stdin.read(), args.field, args.expected) else 1
         else:
-            reconcile(args.destination, json.load(sys.stdin))
+            reconcile(args.destination, json.load(sys.stdin), refresh=args.refresh)
         return 0
     except (
         BridgeError,

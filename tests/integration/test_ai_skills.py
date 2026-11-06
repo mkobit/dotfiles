@@ -1352,3 +1352,46 @@ def test_external_skill_named_like_bare_skill_fails(agent_source_fixture, bare_s
     result = fixture.run("managed", "--include=files")
     assert result.returncode != 0
     assert "ai.skills.external.upstream.skills.alpha: name equals bare skill" in result.stderr
+
+
+def test_bridge_script_requests_refresh_only_from_environment(agent_source_fixture):
+    """The bridge script passes --refresh only through the DOTFILES_AGENT_PLUGIN_REFRESH expansion."""
+    fixture = agent_source_fixture
+    _install_cleanup(fixture)
+    script = REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts/run_after_agent-plugin-bridge.sh.tmpl"
+    target = fixture.source / ".chezmoiscripts" / script.name
+    shutil.copy2(script, target)
+    shutil.copy2(
+        REPOSITORY_ROOT / "src/python/skill_filter/skill_filter/plugin_bridge.py",
+        fixture.repo / "src/python/skill_filter/skill_filter/plugin_bridge.py",
+    )
+    _write_skill(fixture, "alpha", {"SKILL.md": "# Alpha\n"})
+
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--source",
+            str(fixture.repo),
+            "--destination",
+            str(fixture.destination),
+            "--config",
+            str(fixture.config),
+            "--cache",
+            str(fixture.cache),
+            "execute-template",
+            "--file",
+            str(target),
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    lines = [line for line in result.stdout.splitlines() if line.startswith("exec ")]
+    assert len(lines) == 1
+    assert "reconcile --destination" in lines[0]
+    assert lines[0].endswith("${DOTFILES_AGENT_PLUGIN_REFRESH:+--refresh} <<'EOF'")
+    assert "# shellcheck disable=SC2086" in result.stdout
+    expansion = "${DOTFILES_AGENT_PLUGIN_REFRESH:+--refresh}"
+    assert "--refresh" not in result.stdout.replace(expansion, "")

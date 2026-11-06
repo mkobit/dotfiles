@@ -244,6 +244,22 @@ Gemini CLI stays disabled where its tool gate is absent or set to `"none"`.
 The package retains upstream rules, agents, hooks, and runtime helpers.
 Legacy per-skill Superpowers selections stay `"absent"` so apply removes duplicate copies.
 
+Apply never updates an external catalog.
+Archive packages change only when their catalog pins change, and the bridge skips `plugin add` for a Codex package plugin that is installed, enabled, and at the version in the deployed `.codex-plugin/plugin.json`.
+Package versions derive from content digests, so an equal version means equal content.
+The bridge installs and enables a plugin from a `host-provided` marketplace when it is missing, but never updates, uninstalls, or records it.
+It does not re-enable a disabled host-provided Codex plugin that it did not install, because Codex can enable only by adding again; it logs `event=skip-reenable` instead.
+
+### Refreshing external catalogs
+
+Set `DOTFILES_AGENT_PLUGIN_REFRESH=1` for one apply, or run `plugin_bridge.py reconcile --destination D --refresh`, to refresh external catalogs.
+Refresh covers marketplaces with `source_type` `public` or `internal` that the bridge owns, meaning it registered them; it skips registrations that a user added.
+Per host, it runs `plugin marketplace update` (Claude) or `plugin marketplace upgrade` (Codex).
+It then updates the owned plugins of those marketplaces: Claude runs `plugin update`, and Codex removes and adds a plugin when its installed version differs from the refreshed catalog.
+Refresh never touches `host-provided` marketplaces such as the corporate wrapper, or `generated` marketplaces such as pinned archives.
+Apply without the variable adds an absent `public` or `internal` marketplace and never updates a present one.
+`DISABLE_AUTOUPDATER = "true"` in `.chezmoidata/claude_code.toml` stays unchanged; whether to set `FORCE_AUTOUPDATE_PLUGINS` is a separate proposal.
+
 ## Upstream agents
 
 Agents follow the pin-and-select model via `src/chezmoi/.chezmoidata/ai/agents.toml` and `src/chezmoi/.chezmoiexternals/ai-agents.toml.tmpl`.
