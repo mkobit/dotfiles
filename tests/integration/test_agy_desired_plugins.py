@@ -80,7 +80,7 @@ def test_agy_desired_set_matches_the_rendered_plugins(tmp_path, superpowers_meth
 
     bridge = json.loads(_chezmoi(tmp_path, "execute-template", '{{ includeTemplate "ai/plugin-bridge" . }}'))
     assert bridge["cli_hosts"] == ["antigravity"]
-    desired = plugin_bridge._desired_directories(plugin_bridge._AGY, bridge["marketplaces"], destination)
+    desired = plugin_bridge._desired_agy_plugins(bridge["marketplaces"], destination)
     assert set(desired) == expected
     for name, (_, plugin_dir, version) in desired.items():
         assert version == _agy_manifest(plugin_dir)["version"], name
