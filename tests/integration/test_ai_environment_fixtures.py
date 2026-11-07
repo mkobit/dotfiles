@@ -226,12 +226,12 @@ def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, 
     foreign_sibling = destination / ".local/share/agent-plugins/marketplace/plugins/custom-plugin"
     foreign_sibling.mkdir(parents=True)
     (foreign_sibling / "plugin.json").write_text('{"name":"custom-plugin"}\n')
+    # Cursor local copies are replaced by run_onchange_after_agent-plugin-cursor-local, which this fixture omits.
     old_roots = (
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills",
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude/skills",
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex/skills",
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/cursor/skills",
-        ".cursor/plugins/local/mkobit-dotfiles/skills",
         ".claude/skills",
         ".codex/skills",
         ".cursor/skills",
