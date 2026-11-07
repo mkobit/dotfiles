@@ -155,7 +155,7 @@ url_format = "https://ghe.internal/api/v3/repos/{repo}/tarball/{ref}"
 
 A `"present"` upstream skill deploys to `plugins/mkobit-dotfiles/skills/<name>`, and also to `.gemini/antigravity-cli/skills/<name>` when Antigravity is enabled.
 A host state such as `"claude"` deploys to `plugins/mkobit-dotfiles/claude/skills/<name>`, which only the Claude manifest lists.
-Set a deselected skill to `"absent"`; never delete its catalog key, so the host `.chezmoiremove.tmpl` files keep pruning old copies.
+Set a deselected skill to `"absent"` so the host `.chezmoiremove.tmpl` files prune copies, then delete the key after about two months; machines that apply later clean leftovers by hand.
 Retired authored skill names live in [`ai/retired-skills`](../chezmoi/.chezmoitemplates/ai/retired-skills).
 
 ## Upstream plugin packages
