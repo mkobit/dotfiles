@@ -6,7 +6,6 @@ dependencies = [
     "termbud",
     "jules-cli",
     "transcribe",
-    "termtext",
     "termstatus",
     "skill-filter",
     "sandboxr",
@@ -33,7 +32,6 @@ members = [
     "src/python/jules_cli",
     "src/python/termstatus",
     "src/python/transcribe",
-    "src/python/termtext",
     "src/python/skill_filter",
     "src/python/sandboxr",
 ]
@@ -43,7 +41,6 @@ browser-sync = { workspace = true }
 termbud = { workspace = true }
 jules-cli = { workspace = true }
 transcribe = { workspace = true }
-termtext = { workspace = true }
 termstatus = { workspace = true }
 skill-filter = { workspace = true }
 sandboxr = { workspace = true }
@@ -137,7 +134,7 @@ ban-relative-imports = "all"
 max-complexity = 15
 
 [tool.ruff.lint.isort]
-known-first-party = ["browser_sync", "termbud", "jules_cli", "termstatus", "transcribe", "termtext", "skill_filter", "sandboxr"]
+known-first-party = ["browser_sync", "termbud", "jules_cli", "termstatus", "transcribe", "skill_filter", "sandboxr"]
 
 [tool.ty.src]
 include = [

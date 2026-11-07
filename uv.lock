@@ -11,7 +11,6 @@ members = [
     "skill-filter",
     "termbud",
     "termstatus",
-    "termtext",
     "transcribe",
 ]
 
@@ -302,7 +301,6 @@ dependencies = [
     { name = "skill-filter" },
     { name = "termbud" },
     { name = "termstatus" },
-    { name = "termtext" },
     { name = "transcribe" },
 ]
 
@@ -324,7 +322,6 @@ requires-dist = [
     { name = "skill-filter", editable = "src/python/skill_filter" },
     { name = "termbud", editable = "src/python/termbud" },
     { name = "termstatus", editable = "src/python/termstatus" },
-    { name = "termtext", editable = "src/python/termtext" },
     { name = "transcribe", editable = "src/python/transcribe" },
 ]
 
@@ -1075,17 +1072,6 @@ dev = [
     { name = "pytest-asyncio", specifier = ">=1.3.0" },
     { name = "ruff", specifier = ">=0.15.22" },
 ]
-
-[[package]]
-name = "termtext"
-version = "0.0.0"
-source = { editable = "src/python/termtext" }
-dependencies = [
-    { name = "rich" },
-]
-
-[package.metadata]
-requires-dist = [{ name = "rich", specifier = ">=14" }]
 
 [[package]]
 name = "tokenizers"
