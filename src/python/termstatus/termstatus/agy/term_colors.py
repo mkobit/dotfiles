@@ -97,9 +97,6 @@ def fullness_icon(remaining_pct: float) -> str:
         return _FULLNESS_ICONS_UTF8[0]
 
 
-moon_icon = fullness_icon
-
-
 def get_icon(key: str) -> str:
     if key in _ICONS:
         pair = _ICONS[key]
