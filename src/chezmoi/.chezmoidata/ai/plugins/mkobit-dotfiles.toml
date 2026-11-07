@@ -1,0 +1,5 @@
+# Identity of the authored mkobit-dotfiles plugin.
+# Its skills are the folders in dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles/exact_skills/.
+[ai.plugins.mkobit-dotfiles]
+description = "Base dotfiles capability bundle."
+author = "mkobit"

@@ -1,0 +1,20 @@
+{{- /*
+  Select the plugin entries of one marketplace for one host.
+  Arguments: root (root context), name (marketplace name), and host.
+  Output: a JSON list of {name, path}, where path is the package directory relative
+  to the marketplace root. Host templates shape the entries.
+*/ -}}
+{{- $bridge := includeTemplate "ai/plugin-bridge" .root | fromJson -}}
+{{- $marketplace := dig "ai" "plugin_bridge" "marketplaces" .name (dict) .root -}}
+{{- $environment := dig "environment" "default" $bridge -}}
+{{- $entries := list -}}
+{{- range $plugin := keys $bridge.capabilities | sortAlpha -}}
+{{-   $capability := index $bridge.capabilities $plugin -}}
+{{-   $hosts := dig "hosts" (dig "hosts" (list) $marketplace) $capability -}}
+{{-   $environments := dig "environments" nil $capability -}}
+{{-   if and (eq (dig "marketplace" "" $capability) $.name) (has $.host $hosts) (or (eq $environments nil) (has $environment $environments)) -}}
+{{-     $path := dig "package_path" (printf "./%s" (dig "host_paths" $.host (printf "plugins/%s" $plugin) $capability)) $capability -}}
+{{-     $entries = append $entries (dict "name" $plugin "path" $path) -}}
+{{-   end -}}
+{{- end -}}
+{{- toJson $entries -}}

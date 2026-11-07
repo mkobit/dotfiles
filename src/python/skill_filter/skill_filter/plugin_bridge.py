@@ -1,4 +1,18 @@
-"""Reconcile native Claude and Codex plugin registrations."""
+"""Reconcile native Claude and Codex plugin registrations.
+
+Ownership state lives in ``<dest>/.local/state/dotfiles/agent-plugin-ownership``.
+Each line is ``kind<TAB>host<TAB>marketplace<TAB>plugin<TAB>provenance``.
+``kind`` is ``plugin`` or ``marketplace``; a marketplace line has an empty plugin.
+``provenance`` is ``owned`` or ``ambiguous``.
+Only ``owned`` records drive removal.
+The bridge records ``owned`` only for what it installed (or registered), or for what
+a previous ``owned`` record already covers.
+It never adopts a manual or earlier install, including from a ``host-provided`` marketplace.
+It never registers, updates, or records a ``host-provided`` marketplace itself.
+A four-field host-provided plugin record migrates as owned only while it is declared.
+Four-field lines (the earlier format) and the legacy JSON state are classified by
+``_classify_legacy`` and rewritten before any host mutation.
+"""
 
 from __future__ import annotations
 
@@ -11,12 +25,14 @@ import shutil
 import subprocess
 import sys
 import time
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, cast
 
 if TYPE_CHECKING or bool(__package__):
     from skill_filter.plugin_declarations import (
+        _CLI_HOSTS,
         _NATIVE_HOSTS,
         BridgeError,
         _marketplace_rows,
@@ -26,6 +42,7 @@ if TYPE_CHECKING or bool(__package__):
     )
 else:
     from plugin_declarations import (
+        _CLI_HOSTS,
         _NATIVE_HOSTS,
         BridgeError,
         _marketplace_rows,
@@ -44,6 +61,18 @@ class HostUnavailableError(BridgeError):
     def __init__(self, host: str) -> None:
         super().__init__(f"required host command is unavailable: {host}")
         self.host = host
+
+
+class MarketplaceUnavailableError(BridgeError):
+    """Raised when a host-provided marketplace is not registered on a host."""
+
+    def __init__(self, host: str, name: str) -> None:
+        super().__init__(f"host-provided marketplace is unavailable: {name} ({host})")
+        self.host = host
+        self.name = name
+
+
+_PROVENANCES = frozenset({"owned", "ambiguous"})
 
 
 def migrate_ownership(path: Path) -> str:
@@ -79,17 +108,84 @@ def _identity(kind: str, host: str, marketplace: str, plugin: str) -> str:
     return f"{kind}\t{host}\t{marketplace}\t{plugin}"
 
 
+def _owned_record(kind: str, host: str, marketplace: str, plugin: str) -> str:
+    return f"{_identity(kind, host, marketplace, plugin)}\towned"
+
+
+def _record_identity(record: str) -> str:
+    return "\t".join(record.split("\t")[:4])
+
+
+def _is_owned(record: str) -> bool:
+    return record.endswith("\towned")
+
+
+def _classify_legacy(
+    record: str,
+    marketplaces: Mapping[str, object],
+    declared: frozenset[tuple[str, str]] = frozenset(),
+) -> str | None:
+    """Return the provenance for a four-field record, or None to drop it.
+
+    The earlier bridge installed every declared plugin, so a host-provided plugin
+    that is still declared migrates as owned; other host-provided records drop.
+    """
+    _, _, marketplace, plugin = record.split("\t")
+    definition = marketplaces.get(marketplace)
+    source_type = (
+        definition.get("source_type") if isinstance(definition, Mapping) else None
+    )
+    if source_type == "generated":
+        return "owned"
+    if source_type == "host-provided":
+        return "owned" if plugin and (marketplace, plugin) in declared else None
+    return "ambiguous"
+
+
 def _read_ownership(path: Path) -> set[str]:
+    """Read validated records; four-field lines are returned unclassified."""
     if not path.exists():
         return set()
     records = set()
     for line in path.read_text(encoding="utf-8").splitlines():
         if not line:
             continue
-        if len(line.split("\t")) != 4:
+        fields = line.split("\t")
+        if len(fields) not in {4, 5} or (
+            len(fields) == 5 and fields[4] not in _PROVENANCES
+        ):
             raise BridgeError(f"invalid ownership record: {line!r}")
         records.add(line)
     return records
+
+
+def _normalize_ownership(
+    records: set[str],
+    marketplaces: Mapping[str, object],
+    declared: frozenset[tuple[str, str]] = frozenset(),
+) -> set[str]:
+    """Return five-field native-host records; ``owned`` wins over ``ambiguous``."""
+    provenance: dict[str, str] = {}
+    for record in records:
+        identity = _record_identity(record)
+        if identity.split("\t")[1] not in _NATIVE_HOSTS | _CLI_HOSTS:
+            continue
+        kind = (
+            record.split("\t")[4]
+            if record.count("\t") == 4
+            else _classify_legacy(record, marketplaces, declared)
+        )
+        if kind is not None and provenance.get(identity) != "owned":
+            provenance[identity] = kind
+    return {f"{identity}\t{kind}" for identity, kind in provenance.items()}
+
+
+def _merge_ownership(previous: set[str], owned_desired: set[str]) -> set[str]:
+    """Union records, dropping a previous record superseded by a new owned one."""
+    superseded = {_record_identity(record) for record in owned_desired}
+    return owned_desired | {
+        record for record in previous if _record_identity(record) not in superseded
+    }
 
 
 def _write_ownership(path: Path, records: set[str]) -> None:
@@ -285,6 +381,43 @@ def _package_fingerprint(root: Path) -> str:
     return fingerprint.hexdigest()
 
 
+def _package_manifest_version(package_root: Path, host: str) -> str | None:
+    """Return the version in the package's host manifest, or None when it has none."""
+    try:
+        manifest = json.loads(
+            (package_root / f".{host}-plugin/plugin.json").read_text(encoding="utf-8")
+        )
+    except (OSError, ValueError):
+        return None
+    version = manifest.get("version") if isinstance(manifest, Mapping) else None
+    return version if isinstance(version, str) and version else None
+
+
+def _refresh_plugin(host: str, marketplace: str, plugin: str) -> None:
+    """Update an owned plugin of a refreshed marketplace; Codex reinstalls on a new version."""
+    expected = f"{plugin}@{marketplace}"
+    if host == "claude":
+        _run(host, "plugin", "update", expected)
+        return
+    # Codex has no update command. If `add` fails after `remove`, the plugin stays
+    # uninstalled until the next refresh, and no ownership record is written for it.
+    installed, _, installed_version, source_path = _codex_plugin_state(
+        marketplace, plugin
+    )
+    if not installed or source_path is None:
+        return
+    try:
+        available = _codex_manifest_version(source_path, plugin)
+    except BridgeError:
+        logger.info(
+            "host=%s plugin=%s event=refresh-skipped reason=no-version", host, expected
+        )
+        return
+    if available != installed_version:
+        _run(host, "plugin", "remove", expected)
+        _run(host, "plugin", "add", expected)
+
+
 def _ensure_package_plugin(
     host: str, marketplace: str, plugin: str, package_root: Path
 ) -> None:
@@ -306,6 +439,17 @@ def _ensure_package_plugin(
             _run(host, "plugin", "enable", expected)
         present, enabled, _, installed_root = _claude_plugin_state(marketplace, plugin)
     elif host == "codex":
+        installed, enabled, installed_version, _ = _codex_plugin_state(
+            marketplace, plugin
+        )
+        deployed_version = _package_manifest_version(package_root, "codex")
+        if (
+            installed
+            and enabled
+            and deployed_version is not None
+            and installed_version == deployed_version
+        ):
+            return  # the version is content-derived, so equal versions mean equal content
         response = json.loads(_run(host, "plugin", "add", expected, "--json"))
         installed_path = (
             response.get("installedPath") if isinstance(response, Mapping) else None
@@ -418,17 +562,20 @@ def _ensure_marketplace(
     ownership_file: Path,
     desired: set[str],
     owned_desired: set[str],
-) -> None:
-    record = _identity("marketplace", host, name, "")
-    desired.add(record)
+    previous_owned: frozenset[str] = frozenset(),
+    refresh: bool = False,
+) -> bool:
+    """Register the marketplace; return True when ``refresh`` updated an owned one."""
+    identity = _identity("marketplace", host, name, "")
+    desired.add(identity)
     if source_type == "host-provided":
+        # Corporate wrappers own it: check presence only, never record.
         if not _marketplace_present(host, name):
-            raise BridgeError(
-                f"host-provided marketplace is unavailable: {name} ({host})"
-            )
-        return
+            raise MarketplaceUnavailableError(host, name)
+        return False
     if not source_locator:
         raise BridgeError(f"marketplace has no source: {name}")
+    record = f"{identity}\towned"
     if source_type == "generated":
         expected = Path(source_locator).resolve()
         registered = _generated_marketplace_source(host, name)
@@ -443,7 +590,12 @@ def _ensure_marketplace(
                 f"marketplace did not register expected source: {name} ({host}); expected {expected}"
             )
     else:
-        if _marketplace_present(host, name):
+        adopted = _marketplace_present(host, name)
+        if adopted and identity not in previous_owned:
+            return False  # adopted manual registration: never updated or recorded
+        if not adopted:
+            _run(host, "plugin", "marketplace", "add", source_locator)
+        elif refresh:
             _run(
                 host,
                 "plugin",
@@ -451,12 +603,64 @@ def _ensure_marketplace(
                 "update" if host == "claude" else "upgrade",
                 name,
             )
-        else:
-            _run(host, "plugin", "marketplace", "add", source_locator)
         if not _marketplace_present(host, name):
             raise BridgeError(f"marketplace did not become available: {name}")
+        owned_desired.add(record)
+        _checkpoint(ownership_file, record)
+        return refresh and adopted
     owned_desired.add(record)
     _checkpoint(ownership_file, record)
+    return False
+
+
+def _plugin_status(host: str, marketplace: str, plugin: str) -> tuple[bool, bool]:
+    if host == "claude":
+        present, enabled, _, _ = _claude_plugin_state(marketplace, plugin)
+    elif host == "codex":
+        present, enabled, _, _ = _codex_plugin_state(marketplace, plugin)
+    else:
+        raise BridgeError(f"unsupported plugin host: {host}")
+    return present, enabled
+
+
+def _ensure_installed_and_enabled(
+    host: str, marketplace: str, plugin: str, *, reenable_codex: bool = True
+) -> bool:
+    """Install when absent and enable when disabled; never update or remove.
+
+    Returns True when this call installed the plugin.
+    With ``reenable_codex`` false, a disabled Codex plugin that this call did not
+    install stays disabled and the skip is logged, because Codex can only enable
+    by adding again.
+    """
+    expected = f"{plugin}@{marketplace}"
+    present, enabled = _plugin_status(host, marketplace, plugin)
+    installed = not present
+    if not present:
+        _run(host, "plugin", "install" if host == "claude" else "add", expected)
+        present, enabled = _plugin_status(host, marketplace, plugin)
+    if (
+        present
+        and not enabled
+        and host == "codex"
+        and not installed
+        and not reenable_codex
+    ):
+        logger.info(
+            "host=%s plugin=%s event=skip-reenable reason=host-provided", host, expected
+        )
+        return installed
+    if present and not enabled:
+        try:
+            # Codex has no enable command; adding again enables it.
+            _run(host, "plugin", "enable" if host == "claude" else "add", expected)
+        except BridgeError as error:
+            if "already enabled" not in str(error).lower():
+                raise
+        present, enabled = _plugin_status(host, marketplace, plugin)
+    if not present or not enabled:
+        raise BridgeError(f"plugin did not become available and enabled: {expected}")
+    return installed
 
 
 def _ensure_plugin(
@@ -468,10 +672,26 @@ def _ensure_plugin(
     owned_desired: set[str],
     manifest_root: Path | None = None,
     package_root: Path | None = None,
+    source_type: str = "generated",
+    previous_owned: frozenset[str] = frozenset(),
+    refresh: bool = False,
 ) -> None:
-    record = _identity("plugin", host, marketplace, plugin)
-    desired.add(record)
+    identity = _identity("plugin", host, marketplace, plugin)
+    record = f"{identity}\towned"
+    desired.add(identity)
     expected = f"{plugin}@{marketplace}"
+    if source_type != "generated":
+        # A disabled host-provided Codex plugin stays disabled: the host wrapper owns it.
+        installed = _ensure_installed_and_enabled(
+            host, marketplace, plugin, reenable_codex=source_type != "host-provided"
+        )
+        if not installed and identity not in previous_owned:
+            return  # adopted manual install stays unrecorded
+        if refresh and not installed:
+            _refresh_plugin(host, marketplace, plugin)
+        owned_desired.add(record)
+        _checkpoint(ownership_file, record)
+        return
     if package_root is not None:
         _ensure_package_plugin(host, marketplace, plugin, package_root)
     elif host == "claude":
@@ -479,7 +699,8 @@ def _ensure_plugin(
             marketplace, plugin
         )
         deployed_version = _claude_manifest_version(manifest_root, plugin)
-        current = deployed_version is not None and installed_version == deployed_version
+        # Without a deployed version there is nothing to compare: never update.
+        current = deployed_version is None or installed_version == deployed_version
         if not (present and enabled and current):
             if not present:
                 _run(host, "plugin", "install", expected)
@@ -545,7 +766,240 @@ def _remove_stale_record(kind: str, host: str, marketplace: str, plugin: str) ->
             raise BridgeError(f"marketplace did not disappear: {marketplace}")
 
 
-def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
+# Antigravity (agy) installs a plugin from a local directory with its own CLI; it has no
+# ~/.gemini/config/plugins.json route. The commands are lightly verified, so every failure is
+# logged and never fails apply. The same ownership file as the other hosts records installs
+# (kind ``plugin``, host ``antigravity``). Cursor has no plugin install command; chezmoi
+# converges it by copying plugins to ~/.cursor/plugins/local/<name>/ instead.
+_AGY_PROBE = ("agy", "plugin", "--help")
+_AGY_LIST = ("agy", "plugin", "list", "--json")
+# The ``list --json`` schema is unverified: accept a top-level list or an object holding one.
+_AGY_LIST_KEYS = ("plugins", "installed", "items", "entries", "data")
+
+
+def _cli_host_command(command: tuple[str, ...]) -> tuple[int, str] | None:
+    """Run a CLI host command; return (exit status, stdout), or None when it cannot run."""
+    executable = shutil.which(command[0])
+    if executable is None:
+        return None
+    try:
+        result = subprocess.run(
+            [executable, *command[1:]],
+            capture_output=True,
+            text=True,
+            check=False,
+            stdin=subprocess.DEVNULL,
+            timeout=30,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    if result.returncode:
+        detail = (result.stderr.strip() or result.stdout.strip()).splitlines()
+        logger.info(
+            "command=%s status=%s detail=%s",
+            " ".join(command[:3]),
+            result.returncode,
+            detail[0] if detail else "",
+        )
+    return result.returncode, result.stdout
+
+
+def _parse_agy_plugins(output: str) -> dict[str, str | None] | None:
+    """Return installed agy plugin names with their version (None when not listed).
+
+    Returns None when the output cannot be parsed, so the caller changes nothing.
+    """
+    try:
+        payload = json.loads(output)
+    except ValueError:
+        return None
+    if isinstance(payload, Mapping):
+        payload = next(
+            (
+                payload[key]
+                for key in _AGY_LIST_KEYS
+                if isinstance(payload.get(key), list)
+            ),
+            None,
+        )
+    if not isinstance(payload, list):
+        return None
+    installed: dict[str, str | None] = {}
+    for entry in payload:
+        if isinstance(entry, str):
+            installed[entry] = None
+        elif isinstance(entry, Mapping) and isinstance(entry.get("name"), str):
+            version = entry.get("version")
+            installed[entry["name"]] = version if isinstance(version, str) else None
+    if payload and not installed:
+        return None
+    return installed
+
+
+@dataclass(frozen=True)
+class _DirectoryHost:
+    """A host that installs a plugin from a generated directory.
+
+    A new host of this kind (for example Cursor, with list = directories in
+    ~/.cursor/plugins/local, install = copy, uninstall = remove) adds one instance here
+    and one entry in ``_DIRECTORY_HOSTS``; ``_converge_directory_host`` stays unchanged.
+    """
+
+    name: str
+    # Manifest paths relative to a generated plugin directory; the first existing one wins.
+    manifests: tuple[str, ...]
+    probe: Callable[[], bool]  # True when the host can be used at all
+    list_installed: Callable[[], dict[str, str | None] | None]  # None: unparseable
+    install: Callable[[str, Path], bool]
+    uninstall: Callable[[str], bool]
+
+
+def _agy_command(name: str, *command: str) -> bool:
+    """Run an agy plugin command; log the outcome and return True on exit status 0."""
+    result = _cli_host_command(("agy", "plugin", *command))
+    logger.info(
+        "host=antigravity plugin=%s operation=plugin-%s status=%s",
+        name,
+        command[0],
+        "unavailable" if result is None else result[0],
+    )
+    return result is not None and result[0] == 0
+
+
+def _agy_probe() -> bool:
+    result = _cli_host_command(_AGY_PROBE)
+    return result is not None and result[0] == 0
+
+
+def _agy_list() -> dict[str, str | None] | None:
+    result = _cli_host_command(_AGY_LIST)
+    return (
+        _parse_agy_plugins(result[1]) if result is not None and result[0] == 0 else None
+    )
+
+
+_AGY = _DirectoryHost(
+    name="antigravity",
+    manifests=("plugin.json", ".antigravity-plugin/plugin.json"),
+    probe=_agy_probe,
+    list_installed=_agy_list,
+    install=lambda name, directory: _agy_command(name, "install", str(directory)),
+    uninstall=lambda name: _agy_command(name, "uninstall", name),
+)
+_DIRECTORY_HOSTS = {_AGY.name: _AGY}
+
+
+def _desired_directories(
+    host: _DirectoryHost, marketplaces: Mapping[str, object], destination: Path
+) -> dict[str, tuple[str, Path, str | None]]:
+    """Map plugin name to (marketplace, directory, manifest version) for a host."""
+    desired: dict[str, tuple[str, Path, str | None]] = {}
+    for marketplace, definition in sorted(marketplaces.items()):
+        if not isinstance(definition, Mapping):
+            continue
+        marketplace_hosts = definition.get("hosts", [])
+        if definition.get("source_type") != "generated" or host.name not in (
+            marketplace_hosts if isinstance(marketplace_hosts, list) else []
+        ):
+            continue
+        root = Path(
+            str(
+                definition.get("source_locator")
+                or destination / ".local/share/agent-plugins/marketplace"
+            )
+        )
+        for plugin_dir in sorted(
+            path for path in (root / "plugins").glob("*") if path.is_dir()
+        ):
+            manifest_path = next(
+                (
+                    plugin_dir / relative
+                    for relative in host.manifests
+                    if (plugin_dir / relative).is_file()
+                ),
+                None,
+            )
+            if manifest_path is None:
+                continue
+            try:
+                manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                manifest = {}
+            if not isinstance(manifest, Mapping):
+                manifest = {}
+            name = manifest.get("name")
+            version = manifest.get("version")
+            desired[name if isinstance(name, str) else plugin_dir.name] = (
+                marketplace,
+                plugin_dir,
+                version if isinstance(version, str) else None,
+            )
+    return desired
+
+
+def _converge_directory_host(
+    host: _DirectoryHost,
+    marketplaces: Mapping[str, object],
+    destination: Path,
+    ownership_file: Path,
+) -> None:
+    """Install missing or changed plugins, uninstall owned and undesired ones.
+
+    Plugins that the bridge did not install are never uninstalled. An unusable host or an
+    unparseable list changes nothing. Failures are logged and never raised.
+    """
+    if not host.probe():
+        logger.info("host=%s event=unavailable reason=no-plugin-cli", host.name)
+        return
+    installed = host.list_installed()
+    if installed is None:
+        logger.info("host=%s event=skipped reason=unparseable-plugin-list", host.name)
+        return
+    desired = _desired_directories(host, marketplaces, destination)
+    records = _read_ownership(ownership_file)
+    removed: set[str] = set()
+    added: set[str] = set()
+    for name, (marketplace, plugin_dir, version) in sorted(desired.items()):
+        if name in installed:
+            listed_version = installed[name]
+            if listed_version is None or version is None or listed_version == version:
+                continue
+            if not host.uninstall(name):
+                continue
+        if host.install(name, plugin_dir):
+            added.add(_owned_record("plugin", host.name, marketplace, name))
+    for record in sorted(records):
+        _, record_host, marketplace, name, provenance = record.split("\t")
+        if record_host != host.name or provenance != "owned":
+            continue
+        if desired.get(name, ("",))[0] == marketplace:
+            continue  # still desired: keep the record
+        # A name desired from another marketplace keeps its install; only the record goes.
+        if name in desired or name not in installed or host.uninstall(name):
+            removed.add(record)
+    if added or removed:
+        _write_ownership(ownership_file, _merge_ownership(records - removed, added))
+
+
+def _register_cli_hosts(
+    hosts: object,
+    marketplaces: Mapping[str, object],
+    destination: Path,
+    ownership_file: Path,
+) -> None:
+    """Converge each host listed in ``cli_hosts`` through its directory adapter."""
+    if not isinstance(hosts, (list, tuple)) or not set(hosts) <= _CLI_HOSTS:
+        raise BridgeError(f"cli_hosts must list hosts from {sorted(_CLI_HOSTS)!r}")
+    for name in hosts:
+        _converge_directory_host(
+            _DIRECTORY_HOSTS[name], marketplaces, destination, ownership_file
+        )
+
+
+def reconcile(
+    destination: Path, declaration: Mapping[str, object], *, refresh: bool = False
+) -> None:
+    """Register declared marketplaces and plugins; ``refresh`` also updates owned external catalogs."""
     _validate_bridge_declaration(declaration)
     raw_bridge = declaration.get("plugin_bridge", declaration)
     if not isinstance(raw_bridge, Mapping):
@@ -554,20 +1008,48 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
     marketplaces, plugins, capabilities = (
         raw_bridge.get(key, {}) for key in ("marketplaces", "plugins", "capabilities")
     )
-    if not all(
-        isinstance(value, Mapping) for value in (marketplaces, plugins, capabilities)
+    if not (
+        isinstance(marketplaces, Mapping)
+        and isinstance(plugins, Mapping)
+        and isinstance(capabilities, Mapping)
     ):
         raise BridgeError("ai.plugin_bridge declarations must be tables")
+    marketplaces = cast("Mapping[str, object]", marketplaces)
+    plugins = cast("Mapping[str, object]", plugins)
+    capabilities = cast("Mapping[str, object]", capabilities)
     state = _validate_state_root(destination)
     ownership_file = state / "agent-plugin-ownership"
     legacy = state / "agent-plugin-ownership.json"
-    if not ownership_file.exists() and legacy.exists():
-        migrated = set(migrate_ownership(legacy).splitlines())
-        _write_ownership(ownership_file, migrated)
+    if ownership_file.exists():
+        raw = _read_ownership(ownership_file)
+    elif legacy.exists():
+        raw = set(migrate_ownership(legacy).splitlines())
+    else:
+        raw = set()
+    declared = frozenset(
+        (str(definition.get("marketplace", "")), name)
+        for table in (plugins, capabilities)
+        for name, definition in table.items()
+        if isinstance(definition, Mapping)
+    )
+    previous = _normalize_ownership(raw, marketplaces, declared)
+    if previous != raw or (legacy.exists() and not ownership_file.exists()):
+        # Persist the classified records before any host mutation.
+        _write_ownership(ownership_file, previous)
     if ownership_file.exists() and legacy.exists():
         legacy.unlink()
     unavailable_hosts: set[str] = set()
-    previous, desired, owned_desired = _read_ownership(ownership_file), set(), set()
+    unavailable_marketplaces: set[tuple[str, str]] = set()
+    desired: set[str] = set()
+    owned_desired: set[str] = set()
+    previous_owned = frozenset(
+        _record_identity(record) for record in previous if _is_owned(record)
+    )
+    source_types = {
+        name: str(definition.get("source_type", ""))
+        for name, definition in marketplaces.items()
+        if isinstance(definition, Mapping)
+    }
     marketplace_rows = _marketplace_rows(destination, marketplaces)
     manifest_roots = {
         (name, host): Path(locator)
@@ -601,20 +1083,36 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
         )
     except HostUnavailableError:
         unavailable_hosts.add("codex")
+    refreshed: set[tuple[str, str]] = set()
     for _, name, host, source_type, locator in marketplace_rows:
         if host in unavailable_hosts:
             continue
         try:
-            _ensure_marketplace(
-                host, name, source_type, locator, ownership_file, desired, owned_desired
-            )
+            if _ensure_marketplace(
+                host,
+                name,
+                source_type,
+                locator,
+                ownership_file,
+                desired,
+                owned_desired,
+                previous_owned,
+                refresh,
+            ):
+                refreshed.add((host, name))
         except HostUnavailableError:
             unavailable_hosts.add(host)
+        except MarketplaceUnavailableError:
+            logger.info("host=%s marketplace=%s event=unavailable", host, name)
+            unavailable_marketplaces.add((host, name))
 
     for kind, declarations in (("capabilities", capabilities), ("plugins", plugins)):
         rows = _plugin_rows(kind, declarations, marketplaces, environment)
         for _, name, host, marketplace in rows:
             if host in unavailable_hosts:
+                continue
+            if (host, marketplace) in unavailable_marketplaces:
+                desired.add(_identity("plugin", host, marketplace, name))
                 continue
             try:
                 _ensure_plugin(
@@ -625,48 +1123,109 @@ def reconcile(destination: Path, declaration: Mapping[str, object]) -> None:
                     desired,
                     owned_desired,
                     manifest_root=manifest_roots.get((marketplace, host)),
-                    **(
-                        {"package_root": package_roots[kind, name, host]}
-                        if (kind, name, host) in package_roots
-                        else {}
-                    ),
+                    source_type=source_types[marketplace],
+                    previous_owned=previous_owned,
+                    refresh=(host, marketplace) in refreshed,
+                    package_root=package_roots.get((kind, name, host)),
                 )
             except HostUnavailableError:
                 unavailable_hosts.add(host)
+    generated_marketplaces = {
+        name for name, source_type in source_types.items() if source_type == "generated"
+    }
     for name, host, marketplace in _retired_plugin_rows(
-        raw_bridge.get("retired_plugins", {})
+        cast("Mapping[str, object]", raw_bridge.get("retired_plugins", {}))
     ):
         if host in unavailable_hosts:
             continue
+        identity = _identity("plugin", host, marketplace, name)
+        if (host, marketplace) in unavailable_marketplaces:
+            continue  # the wrapper-owned marketplace is not registered here
+        if identity not in previous_owned and marketplace not in generated_marketplaces:
+            continue  # not provably ours; keep any ambiguous record
         try:
             _remove_stale_record("plugin", host, marketplace, name)
         except HostUnavailableError:
             unavailable_hosts.add(host)
             continue
-        record = _identity("plugin", host, marketplace, name)
-        if record in previous:
-            previous.discard(record)
-            _write_ownership(ownership_file, previous | owned_desired)
-    for record in sorted(
-        previous - desired, key=lambda value: (value.split("\t")[0] != "plugin", value)
-    ):
-        kind, host, marketplace, plugin = record.split("\t")
-        if host not in _NATIVE_HOSTS:
-            previous.discard(record)
-            continue
-        if host in unavailable_hosts:
-            continue
+        remaining = {
+            record for record in previous if _record_identity(record) != identity
+        }
+        if remaining != previous:
+            previous = remaining
+            _write_ownership(ownership_file, _merge_ownership(previous, owned_desired))
+    stale = sorted(
+        (
+            record
+            for record in previous
+            if _is_owned(record) and _record_identity(record) not in desired
+        ),
+        key=lambda value: (value.split("\t")[0] != "plugin", value),
+    )
+    for record in stale:
+        kind, host, marketplace, plugin, _ = record.split("\t")
+        if host in unavailable_hosts or host in _CLI_HOSTS:
+            continue  # agy records are converged by _register_cli_hosts
         try:
             _remove_stale_record(kind, host, marketplace, plugin)
         except HostUnavailableError:
             unavailable_hosts.add(host)
             continue
         previous.discard(record)
-        _write_ownership(ownership_file, previous | owned_desired)
-    retained_unavailable = {
-        record for record in previous if record.split("\t")[1] in unavailable_hosts
+        _write_ownership(ownership_file, _merge_ownership(previous, owned_desired))
+    retained = {
+        record
+        for record in previous
+        if not _is_owned(record)
+        or record.split("\t")[1] in unavailable_hosts
+        or record.split("\t")[1] in _CLI_HOSTS
+        or (record.split("\t")[1], record.split("\t")[2]) in unavailable_marketplaces
     }
-    _write_ownership(ownership_file, owned_desired | retained_unavailable)
+    _write_ownership(ownership_file, _merge_ownership(retained, owned_desired))
+    _register_cli_hosts(
+        raw_bridge.get("cli_hosts", []), marketplaces, destination, ownership_file
+    )
+
+
+_REFRESH_INTERVAL_SECONDS = 24 * 60 * 60
+
+
+def _refresh_requested(arguments: str) -> bool:
+    """Return True when chezmoi ran with ``-R`` or ``--refresh-externals[=always]``.
+
+    ``arguments`` is ``CHEZMOI_ARGS``, the space-joined command line that chezmoi
+    exports to scripts.
+    """
+    for token in arguments.split()[1:]:
+        if token == "--":
+            break
+        flag, _, value = token.partition("=")
+        if flag == "--refresh-externals" or (
+            flag.startswith("-") and not flag.startswith("--") and flag.endswith("R")
+        ):
+            return value in {"", "always"}
+    return False
+
+
+def _refresh_stamp(destination: Path) -> Path:
+    return _validate_state_root(destination) / "agent-plugin-refresh"
+
+
+def _refresh_due(destination: Path, now: float | None = None) -> bool:
+    """Return True when no refresh is recorded in the last 24 hours."""
+    try:
+        refreshed = _refresh_stamp(destination).stat().st_mtime
+    except FileNotFoundError:
+        return True
+    return (time.time() if now is None else now) - refreshed >= (
+        _REFRESH_INTERVAL_SECONDS
+    )
+
+
+def _mark_refreshed(destination: Path) -> None:
+    stamp = _refresh_stamp(destination)
+    stamp.parent.mkdir(parents=True, exist_ok=True)
+    stamp.touch()
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -679,6 +1238,12 @@ def _parser() -> argparse.ArgumentParser:
     identity.add_argument("--expected", required=True)
     reconcile_parser = commands.add_parser("reconcile")
     reconcile_parser.add_argument("--destination", required=True, type=Path)
+    reconcile_parser.add_argument(
+        "--refresh",
+        action="store_true",
+        help="update owned public and internal marketplaces and their owned plugins;"
+        " also implied by chezmoi -R or a last refresh older than 24 hours",
+    )
     return parser
 
 
@@ -706,7 +1271,14 @@ def main(argv: list[str] | None = None) -> int:
         elif args.command == "has-identity":
             return 0 if has_identity(sys.stdin.read(), args.field, args.expected) else 1
         else:
-            reconcile(args.destination, json.load(sys.stdin))
+            refresh = (
+                args.refresh
+                or _refresh_requested(os.environ.get("CHEZMOI_ARGS", ""))
+                or _refresh_due(args.destination)
+            )
+            reconcile(args.destination, json.load(sys.stdin), refresh=refresh)
+            if refresh:
+                _mark_refreshed(args.destination)
         return 0
     except (
         BridgeError,

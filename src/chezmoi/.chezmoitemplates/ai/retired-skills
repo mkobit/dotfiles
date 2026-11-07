@@ -1,0 +1,21 @@
+{{- /*
+  Skill names whose old copies in shared host skill roots need tombstones.
+  Input: the root context. Output: a JSON list of names.
+  Base bare skills deployed to ~/.claude/skills/ and similar roots before they moved
+  into the mkobit-dotfiles plugin; retired skills are listed with their retirement date.
+  Remove a retired entry once no machine can hold the copy.
+*/ -}}
+{{- $retired := dict
+      "docker-sandboxes" "2026-10-29"
+      "example_skill" "2026-11-06"
+      "pr-reviewer" "2026-06-11"
+      "typescript-expert" "2026-06-11" -}}
+{{- $names := keys $retired -}}
+{{- $bundle := dig "mkobit-dotfiles" (dict) (includeTemplate "ai/authored-plugins" . | fromJson) -}}
+{{- range $skills := dig "skills" (dict) $bundle -}}
+{{-   $names = concat $names $skills -}}
+{{- end -}}
+{{- range $path := dig "deselected" (list) $bundle -}}
+{{-   $names = append $names (base $path) -}}
+{{- end -}}
+{{- toJson ($names | uniq | sortAlpha) -}}

@@ -1,5 +1,7 @@
 # Modern java patterns skill design
 
+Superseded paths: skills now live in native plugin folders under `src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/`; the `src/ai/skills/` tree and the `ai-authored-skills` external no longer exist.
+
 ## Problem
 Java training data overrepresents imperative style.
 For/while loops with `continue`/`break`, deeply nested `if` chains, manual `instanceof`-and-cast, hand-rolled thread pools, and index-based collection access all dominate what coding models have seen.
