@@ -1115,12 +1115,8 @@ def reconcile(
                     manifest_root=manifest_roots.get((marketplace, host)),
                     source_type=source_types[marketplace],
                     previous_owned=previous_owned,
-                    **({"refresh": True} if (host, marketplace) in refreshed else {}),
-                    **(
-                        {"package_root": package_roots[kind, name, host]}
-                        if (kind, name, host) in package_roots
-                        else {}
-                    ),
+                    refresh=(host, marketplace) in refreshed,
+                    package_root=package_roots.get((kind, name, host)),
                 )
             except HostUnavailableError:
                 unavailable_hosts.add(host)

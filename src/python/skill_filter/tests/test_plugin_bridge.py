@@ -1264,7 +1264,7 @@ def test_reconcile_passes_package_root_inside_generated_marketplace(
     assert len(capability_calls) == 2
     assert all(kwargs["package_root"] == package_root for kwargs in capability_calls)
     assert all(
-        "package_root" not in kwargs for name, kwargs in calls if name == "plugin"
+        kwargs["package_root"] is None for name, kwargs in calls if name == "plugin"
     )
 
 
