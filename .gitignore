@@ -286,3 +286,6 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+
+# Superpowers scratch plans and specs
+docs/superpowers/

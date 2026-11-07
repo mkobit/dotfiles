@@ -33,7 +33,6 @@
 #     rare/high-blast-radius bar as "bd migrate".
 #   - "bd repo sync": hydrates issues in from other local repos — not
 #     the agent's own local work.
-# Active grants are scoped to src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles/exact_skills/exact_beads/SKILL.md.
 [ai.command_policy.commands]
 "bd upgrade" = "deny"
 
