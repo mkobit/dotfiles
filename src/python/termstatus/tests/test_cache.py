@@ -130,6 +130,18 @@ async def test_cache_save_io_error(tmp_path: Path, caplog: pytest.LogCaptureFixt
     assert "Failed to save cache to" in caplog.text
 
 
+def test_cache_init_os_error(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
+    """Goals: Gracefully degrade if cache directory creation fails."""
+    blocking_file = tmp_path / "file_blocking_dir"
+    blocking_file.touch()
+
+    with caplog.at_level(logging.DEBUG):
+        cache = SegmentCache(blocking_file / "subdir" / "cache.json")
+
+    assert cache._cache == {}
+    assert "Failed to create cache dir" in caplog.text
+
+
 def test_cache_load_io_error(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     """Goals: Gracefully reset if the cache file is unreadable."""
     readonly_dir = tmp_path / "dir_cannot_be_file"
