@@ -2619,7 +2619,11 @@ class _FakeAgy:
             )
         if command[2] == "install":
             if self.install_status == 0:
-                manifest = json.loads((Path(command[3]) / "plugin.json").read_text())
+                directory = Path(command[3])
+                manifest_path = directory / "plugin.json"
+                if not manifest_path.exists():
+                    manifest_path = directory / ".antigravity-plugin/plugin.json"
+                manifest = json.loads(manifest_path.read_text())
                 self.installed[manifest["name"]] = manifest.get("version")
             return self.install_status, ""
         if command[2] == "uninstall":
@@ -2688,6 +2692,22 @@ def test_agy_installs_missing_plugins_and_records_ownership(tmp_path, monkeypatc
     ]
     reconcile()  # converged: nothing more to do
     assert len(fake.mutations()) == 2
+
+
+def test_agy_installs_a_plugin_with_the_nested_manifest(tmp_path, monkeypatch):
+    fake = _FakeAgy({})
+    marketplace, reconcile = _agy_setup(tmp_path, monkeypatch, fake, {})
+    nested = marketplace / "plugins" / "upstream" / ".antigravity-plugin"
+    nested.mkdir(parents=True)
+    (nested / "plugin.json").write_text(
+        json.dumps({"name": "upstream", "version": "7"})
+    )
+    reconcile()
+    assert fake.mutations() == [
+        ("agy", "plugin", "install", str(marketplace / "plugins" / "upstream"))
+    ]
+    assert fake.installed == {"upstream": "7"}
+    assert _agy_record("upstream") in _ownership_file(tmp_path).read_text()
 
 
 def test_agy_reinstalls_when_the_listed_version_differs(tmp_path, monkeypatch):

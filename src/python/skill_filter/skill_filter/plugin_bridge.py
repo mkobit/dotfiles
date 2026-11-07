@@ -846,7 +846,8 @@ class _DirectoryHost:
     """
 
     name: str
-    manifest: str  # manifest path relative to a generated plugin directory
+    # Manifest paths relative to a generated plugin directory; the first existing one wins.
+    manifests: tuple[str, ...]
     probe: Callable[[], bool]  # True when the host can be used at all
     list_installed: Callable[[], dict[str, str | None] | None]  # None: unparseable
     install: Callable[[str, Path], bool]
@@ -879,7 +880,7 @@ def _agy_list() -> dict[str, str | None] | None:
 
 _AGY = _DirectoryHost(
     name="antigravity",
-    manifest="plugin.json",
+    manifests=("plugin.json", ".antigravity-plugin/plugin.json"),
     probe=_agy_probe,
     list_installed=_agy_list,
     install=lambda name, directory: _agy_command(name, "install", str(directory)),
@@ -907,10 +908,19 @@ def _desired_directories(
                 or destination / ".local/share/agent-plugins/marketplace"
             )
         )
-        for manifest_path in sorted((root / "plugins").glob(f"*/{host.manifest}")):
-            plugin_dir = (
-                root / "plugins" / manifest_path.relative_to(root / "plugins").parts[0]
+        for plugin_dir in sorted(
+            path for path in (root / "plugins").glob("*") if path.is_dir()
+        ):
+            manifest_path = next(
+                (
+                    plugin_dir / relative
+                    for relative in host.manifests
+                    if (plugin_dir / relative).is_file()
+                ),
+                None,
             )
+            if manifest_path is None:
+                continue
             try:
                 manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
             except (OSError, ValueError):

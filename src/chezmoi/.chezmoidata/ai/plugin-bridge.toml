@@ -23,7 +23,7 @@ owner = "obra"
 source = "local"
 display_name = "Superpowers"
 trust_class = "upstream"
-# antigravity: agy installs a plugin directory here only when it has a root plugin.json.
+# antigravity: agy installs a plugin directory here only when it has plugin.json or .antigravity-plugin/plugin.json (upstream Superpowers ships the latter).
 hosts = ["claude", "codex", "antigravity"]
 order = 110
 

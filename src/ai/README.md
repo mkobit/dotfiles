@@ -96,8 +96,8 @@ Claude Code and Codex install through their plugin CLIs; the bridge records owne
 Cursor has no plugin install command, so no bridge adapter exists for it.
 [`run_onchange_after_agent-plugin-cursor-local`](../chezmoi/.chezmoiscripts/run_onchange_after_agent-plugin-cursor-local.sh.tmpl) copies each enabled authored plugin selected for Cursor from the marketplace folder to `.cursor/plugins/local/<name>/` (with `.cursor-plugin/plugin.json`), and removes the copy of a plugin that is disabled or not selected.
 Antigravity converges only through the `agy` CLI, never through `.gemini/config/plugins.json`.
-When `local.bin.agy.installation_method` is not `"none"`, the bridge runs `agy plugin list --json` and compares it with the generated plugin directories that have a root `plugin.json`.
-Those are the `dotfiles` plugins selected for Antigravity, and the Superpowers directory when chezmoi installs it.
+When `local.bin.agy.installation_method` is not `"none"`, the bridge runs `agy plugin list --json` and compares it with the plugin directories that have `plugin.json` or `.antigravity-plugin/plugin.json` at their root.
+Those are the authored `dotfiles` plugins, and the Superpowers directory when chezmoi installs it; upstream Superpowers ships its own `.antigravity-plugin/plugin.json`, so chezmoi generates no manifest for it.
 The bridge runs `agy plugin install <plugin dir>` for a missing plugin.
 It runs `agy plugin uninstall <name>` then install when the listed version differs from the generated manifest version.
 It records ownership (`plugin`, `antigravity`) in the same ownership file for each install, and uninstalls an owned plugin that is no longer desired.
