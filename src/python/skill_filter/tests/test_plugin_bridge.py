@@ -362,7 +362,7 @@ def test_no_change_reconcile_reads_each_host_once_and_writes_nothing(tmp_path, f
 
     plugin_bridge.reconcile(tmp_path, declaration)
 
-    assert len(fake.reads) <= 6
+    assert len(fake.reads) == 4
     assert fake.writes == []
     assert _records(tmp_path) == records
 
@@ -888,13 +888,17 @@ def test_owned_undesired_records_are_removed_plugins_first_and_others_kept(
     assert _records(tmp_path) == ["plugin\tclaude\tmarket\tamb\tambiguous"]
 
 
-def test_owned_record_for_an_absent_plugin_is_dropped_without_host_commands(
+def test_owned_record_for_an_absent_codex_plugin_is_removed_once_then_dropped(
     tmp_path, fake
 ):
     _write_records(tmp_path, "plugin\tcodex\tmarket\tgone\towned")
+    fake.fail.add(("plugin", "remove", "gone@market"))  # not installed
+    plugin_bridge.reconcile(tmp_path, _declaration({}))
+    assert fake.writes == [("codex", "plugin", "remove", "gone@market")]
+    assert _records(tmp_path) == []
+    fake.calls.clear()
     plugin_bridge.reconcile(tmp_path, _declaration({}))
     assert fake.writes == []
-    assert _records(tmp_path) == []
 
 
 def test_removal_requires_verified_absence(tmp_path, fake):

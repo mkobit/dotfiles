@@ -584,10 +584,17 @@ def _ensure_package_plugin(host: _Host, expected: str, package_root: Path) -> No
 
 
 def _remove_plugin(host: _Host, expected: str) -> None:
+    if expected not in host.plugins:
+        if not host.claude:
+            # Codex lists can omit stale registrations that stay in its config.
+            try:
+                host.uninstall(expected)
+            except BridgeError as error:
+                logger.info("%s", error)  # not installed: nothing to remove
+        return
+    host.uninstall(expected)
     if expected in host.plugins:
-        host.uninstall(expected)
-        if expected in host.plugins:
-            raise BridgeError(f"plugin did not disappear: {expected}")
+        raise BridgeError(f"plugin did not disappear: {expected}")
 
 
 def _remove_marketplace(host: _Host, name: str) -> None:
