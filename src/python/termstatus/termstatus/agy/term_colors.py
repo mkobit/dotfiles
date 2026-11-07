@@ -1,36 +1,30 @@
 import math
-import os
 from collections.abc import Mapping
 from types import MappingProxyType
 from typing import Final
 
-RESET: Final[str] = "\033[0m"
-BOLD: Final[str] = "\033[1m"
-DIM: Final[str] = "\033[2m"
-
-RED: Final[str] = "\033[31m"
-GREEN: Final[str] = "\033[32m"
-YELLOW: Final[str] = "\033[33m"
-BLUE: Final[str] = "\033[34m"
-MAGENTA: Final[str] = "\033[35m"
-CYAN: Final[str] = "\033[36m"
-WHITE: Final[str] = "\033[37m"
-
-BRIGHT_GREEN: Final[str] = "\033[92m"
-DARK_GREY: Final[str] = "\033[90m"
-ORANGE: Final[str] = "\033[38;5;208m"
-AMBER: Final[str] = "\033[38;5;214m"
-SKY_BLUE: Final[str] = "\033[38;5;75m"
+from termstatus.segments.constants import (
+    AMBER,
+    CYAN,
+    DIM,
+    GREEN,
+    MAGENTA,
+    ORANGE,
+    RED,
+    RESET,
+    YELLOW,
+    use_icons,
+)
 
 SEPARATOR: Final[str] = f" {DIM}•{RESET} "
 
 _STATE_COLORS: Final[Mapping[str, str]] = MappingProxyType(
     {
-        "idle": "\033[2m",
-        "thinking": "\033[36m",
-        "working": "\033[38;5;214m",
-        "tool_use": "\033[35m",
-        "initializing": "\033[33m",
+        "idle": DIM,
+        "thinking": CYAN,
+        "working": AMBER,
+        "tool_use": MAGENTA,
+        "initializing": YELLOW,
     }
 )
 
@@ -58,12 +52,6 @@ def meter_color(remaining_pct: float) -> str:
         return RED
     except TypeError, ValueError:
         return RED
-
-
-def use_icons() -> bool:
-    return (
-        os.environ.get("CLAUDE_STATUSLINE_NO_ICONS", "0") != "1" and os.environ.get("TERMSTATUS_NO_ICONS", "0") != "1"
-    )
 
 
 _ICONS: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(

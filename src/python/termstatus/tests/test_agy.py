@@ -31,19 +31,9 @@ from termstatus.agy.statusline import (
     render_statusline,
     strip_ansi,
 )
-from termstatus.agy.term_colors import (
-    _STATE_COLORS,
-    CYAN,
-    DIM,
-    GREEN,
-    ORANGE,
-    RED,
-    YELLOW,
-    fullness_icon,
-    meter_color,
-    moon_icon,
-)
+from termstatus.agy.term_colors import _STATE_COLORS, fullness_icon, meter_color, moon_icon
 from termstatus.main import main
+from termstatus.segments.constants import CYAN, DIM, GREEN, ORANGE, RED, YELLOW
 
 FULL_PAYLOAD = {
     "agent_state": "working",
