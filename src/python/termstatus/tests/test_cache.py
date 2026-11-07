@@ -130,14 +130,13 @@ async def test_cache_save_io_error(tmp_path: Path, caplog: pytest.LogCaptureFixt
     assert "Failed to save cache to" in caplog.text
 
 
-def test_cache_init_os_error(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture) -> None:
+def test_cache_init_os_error(tmp_path: Path, caplog: pytest.LogCaptureFixture) -> None:
     """Goals: Gracefully degrade if cache directory creation fails."""
-    def mock_mkdir(*args, **kwargs):
-        raise OSError("Permission denied")
+    blocking_file = tmp_path / "file_blocking_dir"
+    blocking_file.touch()
 
-    monkeypatch.setattr(Path, "mkdir", mock_mkdir)
     with caplog.at_level(logging.DEBUG):
-        cache = SegmentCache(tmp_path / "subdir" / "cache.json")
+        cache = SegmentCache(blocking_file / "subdir" / "cache.json")
 
     assert cache._cache == {}
     assert "Failed to create cache dir" in caplog.text
