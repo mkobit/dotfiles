@@ -1,0 +1,28 @@
+{{- /*
+  Codex manifest, .codex-plugin/plugin.json, of one authored plugin.
+  Arguments: root (root context), name (plugin name), and optional extra (keys merged
+  over the result, such as mcpServers or interface fields).
+  Output: the manifest, or nothing when the plugin is disabled or Codex is not
+  selected, so chezmoi removes the file. interface.capabilities lists the skill names.
+  Reference: https://developers.openai.com/codex/plugins
+*/ -}}
+{{- $plugin := dig .name nil (includeTemplate "ai/authored-plugins" .root | fromJson) -}}
+{{- if not $plugin -}}
+{{-   fail (printf "ai/codex/plugin-manifest: no authored plugin folder for %q" .name) -}}
+{{- end -}}
+{{- if and $plugin.enabled (has "codex" $plugin.hosts) -}}
+{{-   $identity := dig "ai" "plugins" .name (dict) .root -}}
+{{-   $selected := includeTemplate "ai/plugin-skills" (dict "root" .root "name" .name "host" "codex") | fromJson -}}
+{{-   $manifest := dict "name" .name "version" (includeTemplate "ai/plugin-version" .) "description" (dig "description" "" $identity) "author" (dict "name" (dig "author" .root.chezmoi.username $identity)) -}}
+{{-   if $selected.host_dir -}}
+{{-     $_ := set $manifest "skills" (list "./skills" "./codex/skills") -}}
+{{-   else if $selected.skills -}}
+{{-     $_ := set $manifest "skills" "./skills" -}}
+{{-   end -}}
+{{-   $interface := dict "displayName" .name "shortDescription" $manifest.description "developerName" $manifest.author.name "category" "Productivity" -}}
+{{-   if $selected.skills -}}
+{{-     $_ := set $interface "capabilities" $selected.skills -}}
+{{-   end -}}
+{{-   $_ := set $manifest "interface" $interface -}}
+{{-   mergeOverwrite $manifest (deepCopy (dig "extra" (dict) .)) | toPrettyJson -}}
+{{- end -}}

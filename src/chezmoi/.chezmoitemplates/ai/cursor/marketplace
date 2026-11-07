@@ -1,0 +1,12 @@
+{{- /*
+  Cursor marketplace, .cursor-plugin/marketplace.json, of one generated marketplace.
+  Arguments: root (root context) and name (marketplace name).
+  The bridge registers the marketplace folder with the Cursor CLI when it is available.
+  Reference: https://github.com/cursor/plugins
+*/ -}}
+{{- $marketplace := dig "ai" "plugin_bridge" "marketplaces" .name (dict) .root -}}
+{{- $plugins := list -}}
+{{- range $entry := includeTemplate "ai/marketplace-plugins" (dict "root" .root "name" .name "host" "cursor") | fromJson -}}
+{{-   $plugins = append $plugins (dict "name" $entry.name "source" $entry.path) -}}
+{{- end -}}
+{{- dict "name" .name "owner" (dict "name" (dig "owner" .name $marketplace)) "plugins" $plugins | toPrettyJson -}}

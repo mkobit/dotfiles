@@ -12,67 +12,15 @@ import pytest
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPOSITORY_ROOT / "src/chezmoi"
-AUTHORED_CAPABILITIES_EXTERNAL = SOURCE_ROOT / ".chezmoiexternals/ai-authored-capabilities.toml.tmpl"
 PLUGIN_BRIDGE_DATA = SOURCE_ROOT / ".chezmoidata/ai/plugin-bridge.toml"
 MARKETPLACE_TEMPLATES = (
     Path("dot_local/share/agent-plugins/marketplace/dot_claude-plugin/marketplace.json.tmpl"),
     Path("dot_local/share/agent-plugins/marketplace/dot_agents/plugins/marketplace.json.tmpl"),
+    Path("dot_local/share/agent-plugins/marketplace/dot_cursor-plugin/marketplace.json.tmpl"),
     Path("dot_local/share/agent-plugins/marketplaces/superpowers-marketplace/dot_claude-plugin/marketplace.json.tmpl"),
     Path("dot_local/share/agent-plugins/marketplaces/superpowers-marketplace/dot_agents/plugins/marketplace.json.tmpl"),
-    Path(".chezmoitemplates/ai/plugin-marketplace"),
 )
 BRIDGE_TEMPLATE = Path(".chezmoitemplates/ai/plugin-bridge")
-
-
-def _write_fixture_source(source: Path, repo_root: Path, config: Path, environment: str) -> None:
-    (source / ".chezmoiexternals").mkdir(parents=True)
-    shutil.copy2(
-        AUTHORED_CAPABILITIES_EXTERNAL,
-        source / ".chezmoiexternals/ai-authored-capabilities.toml.tmpl",
-    )
-    data_file = source / ".chezmoidata/ai/plugin-bridge.toml"
-    data_file.parent.mkdir(parents=True)
-    shutil.copy2(PLUGIN_BRIDGE_DATA, data_file)
-
-    for relative_path in (
-        *MARKETPLACE_TEMPLATES,
-        BRIDGE_TEMPLATE,
-        Path(".chezmoitemplates/ai/authored-render-context"),
-        Path(".chezmoitemplates/ai/authored-file-entry"),
-        Path(".chezmoitemplates/ai/authored-file-digest"),
-    ):
-        target_file = source / relative_path
-        target_file.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(SOURCE_ROOT / relative_path, target_file)
-
-    capabilities = {
-        "mydev-capability": "mydev",
-        "mydata-capability": "mydata",
-    }
-    config_lines = [
-        "[data.ai.plugin_bridge]",
-        f"environment = {json.dumps(environment)}",
-        "",
-    ]
-    for capability, enabled_environment in capabilities.items():
-        skill = repo_root / "src/overlay-plugins" / capability / "skills/example/SKILL.md"
-        skill.parent.mkdir(parents=True, exist_ok=True)
-        skill.write_text(f"# {capability}\n", encoding="utf-8")
-        config_lines.extend(
-            [
-                f"[data.ai.plugin_bridge.capabilities.{capability}]",
-                f'description = "Fixture capability for {enabled_environment}."',
-                f'source_dir = "src/overlay-plugins/{capability}"',
-                'marketplace = "dotfiles"',
-                'hosts = ["claude", "codex", "cursor"]',
-                f"environments = [{json.dumps(enabled_environment)}]",
-                "",
-                f"[data.ai.plugin_bridge.capabilities.{capability}.skills]",
-                'example = "present"',
-                "",
-            ]
-        )
-    config.write_text("\n".join(config_lines), encoding="utf-8")
 
 
 def _apply(source: Path, destination: Path, config: Path) -> subprocess.CompletedProcess[str]:
@@ -102,8 +50,6 @@ def _apply(source: Path, destination: Path, config: Path) -> subprocess.Complete
 def _snapshot(destination: Path) -> dict[str, bytes]:
     roots = [
         destination / ".local/share/agent-plugins/marketplace",
-        destination / ".cursor/plugins/local/mydev-capability",
-        destination / ".cursor/plugins/local/mydata-capability",
         destination / ".cursor/plugins/local/superpowers",
     ]
     return {
@@ -113,44 +59,6 @@ def _snapshot(destination: Path) -> dict[str, bytes]:
         for path in root.rglob("*")
         if path.is_file()
     }
-
-
-@pytest.mark.parametrize(
-    ("environment", "selected", "absent"),
-    [
-        ("mydev", "mydev-capability", "mydata-capability"),
-        ("mydata", "mydata-capability", "mydev-capability"),
-    ],
-)
-def test_environment_fixture_selects_capability_and_cursor_projection(tmp_path, environment, selected, absent):
-    """The selected environment gets its marketplace entry and fresh Cursor skill projection."""
-    repo_root = tmp_path / "repo"
-    source = repo_root / "src/chezmoi"
-    destination = tmp_path / "destination"
-    destination.mkdir()
-    config = tmp_path / "chezmoi.toml"
-    _write_fixture_source(source, repo_root, config, environment)
-
-    first_apply = _apply(source, destination, config)
-    assert first_apply.returncode == 0, first_apply.stderr
-
-    claude_marketplace = destination / ".local/share/agent-plugins/marketplace/.claude-plugin/marketplace.json"
-    codex_marketplace = destination / ".local/share/agent-plugins/marketplace/.agents/plugins/marketplace.json"
-    claude_names = {plugin["name"] for plugin in json.loads(claude_marketplace.read_text())["plugins"]}
-    codex_names = {plugin["name"] for plugin in json.loads(codex_marketplace.read_text())["plugins"]}
-    expected_names = {"mkobit-dotfiles", selected}
-    assert claude_names == expected_names
-    assert codex_names == expected_names
-
-    selected_skill = destination / ".cursor/plugins/local" / selected / "skills/example/SKILL.md"
-    absent_skill = destination / ".cursor/plugins/local" / absent / "skills/example/SKILL.md"
-    assert selected_skill.read_text(encoding="utf-8") == f"# {selected}\n"
-    assert not absent_skill.exists()
-
-    first_snapshot = _snapshot(destination)
-    second_apply = _apply(source, destination, config)
-    assert second_apply.returncode == 0, second_apply.stderr
-    assert _snapshot(destination) == first_snapshot
 
 
 def _upstream_fixture(
@@ -164,24 +72,26 @@ def _upstream_fixture(
         *MARKETPLACE_TEMPLATES,
         BRIDGE_TEMPLATE,
         Path(".chezmoidata/ai/plugin-bridge.toml"),
-        Path(".chezmoidata/ai/plugins/superpowers.toml"),
         Path(".chezmoidata/ai/skills/superpowers.toml"),
         Path(".chezmoiexternals/ai-upstream-plugins.toml.tmpl"),
         Path("dot_local/share/agent-plugins/marketplace/bridge-provenance.json.tmpl"),
         Path("dot_local/share/agent-plugins/.chezmoiremove.tmpl"),
-        Path("dot_local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/.chezmoiremove.tmpl"),
-        Path("dot_cursor/plugins/local/mkobit-dotfiles/.chezmoiremove.tmpl"),
         Path("dot_claude/.chezmoiremove.tmpl"),
         Path("dot_codex/.chezmoiremove.tmpl"),
         Path("dot_cursor/.chezmoiremove.tmpl"),
         Path("dot_gemini/.chezmoiremove.tmpl"),
-        Path(".chezmoitemplates/ai/authored-plugin-manifest-ignore"),
         Path(".chezmoitemplates/python/filter-interpreter"),
     )
     for relative in files:
         target = source / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(SOURCE_ROOT / relative, target)
+    for relative in (
+        Path(".chezmoitemplates/ai"),
+        Path(".chezmoidata/ai/plugins"),
+        Path("dot_local/share/agent-plugins/marketplace/exact_plugins"),
+    ):
+        shutil.copytree(SOURCE_ROOT / relative, source / relative, dirs_exist_ok=True)
     shutil.copy2(ignore_source / ".chezmoiignore.tmpl", source / ".chezmoiignore.tmpl")
     resolver = source.parent / "python/skill_filter/resolve-interpreter.sh"
     resolver.parent.mkdir(parents=True)
@@ -312,15 +222,16 @@ def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, 
     legacy_package = destination / ".local/share/agent-plugins/marketplace/plugins/superpowers"
     legacy_package.mkdir(parents=True)
     (legacy_package / "legacy.txt").write_text("remove\n")
+    # Dotfiles own the generated marketplace plugins/ folder, so an unknown plugin there goes.
     foreign_sibling = destination / ".local/share/agent-plugins/marketplace/plugins/custom-plugin"
     foreign_sibling.mkdir(parents=True)
     (foreign_sibling / "plugin.json").write_text('{"name":"custom-plugin"}\n')
+    # Cursor local copies are replaced by run_onchange_after_agent-plugin-cursor-local, which this fixture omits.
     old_roots = (
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills",
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude/skills",
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/codex/skills",
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/cursor/skills",
-        ".cursor/plugins/local/mkobit-dotfiles/skills",
         ".claude/skills",
         ".codex/skills",
         ".cursor/skills",
@@ -342,7 +253,7 @@ def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, 
     for root in old_roots:
         assert not (destination / root / "brainstorming").exists()
     assert not legacy_package.exists()
-    assert (foreign_sibling / "plugin.json").read_text() == '{"name":"custom-plugin"}\n'
+    assert not foreign_sibling.exists()
     first_snapshot = _snapshot(destination)
     second_apply = _apply(source, destination, config)
     assert second_apply.returncode == 0, second_apply.stderr

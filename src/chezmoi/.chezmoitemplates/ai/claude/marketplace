@@ -1,0 +1,11 @@
+{{- /*
+  Claude Code marketplace, .claude-plugin/marketplace.json, of one generated marketplace.
+  Arguments: root (root context) and name (marketplace name).
+  Reference: https://code.claude.com/docs/en/plugin-marketplaces
+*/ -}}
+{{- $marketplace := dig "ai" "plugin_bridge" "marketplaces" .name (dict) .root -}}
+{{- $plugins := list -}}
+{{- range $entry := includeTemplate "ai/marketplace-plugins" (dict "root" .root "name" .name "host" "claude") | fromJson -}}
+{{-   $plugins = append $plugins (dict "name" $entry.name "source" $entry.path) -}}
+{{- end -}}
+{{- dict "name" .name "owner" (dict "name" (dig "owner" .name $marketplace)) "plugins" $plugins | toPrettyJson -}}

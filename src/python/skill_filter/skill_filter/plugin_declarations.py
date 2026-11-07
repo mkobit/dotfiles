@@ -11,7 +11,9 @@ class BridgeError(RuntimeError):
 
 
 _NATIVE_HOSTS = frozenset({"claude", "codex"})
-_ALL_HOSTS = frozenset({"claude", "codex", "cursor"})
+_ALL_HOSTS = frozenset({"claude", "codex", "cursor", "antigravity"})
+# Hosts whose plugin CLI the bridge only probes and uses to install generated plugin directories.
+_CLI_HOSTS = frozenset({"antigravity"})
 _NAME_CHARS = frozenset(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
 )

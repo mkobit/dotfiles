@@ -320,17 +320,25 @@ def _render_antigravity_externals(template_name: str, agy_method: str) -> dict[s
 
 
 @pytest.mark.integration
-def test_antigravity_plugins_json_appends_destination_rooted_entry_when_missing(tmp_path: Path) -> None:
+def test_antigravity_plugins_json_removes_entries_added_by_earlier_versions(tmp_path: Path) -> None:
     destination = tmp_path / "target"
-    initial = '{"entries": [{"path": "/custom/path"}], "custom": true}'
+    old_marketplace = destination / ".local/share/agent-plugins/marketplace/plugins"
+    old_superpowers = destination / ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins"
+    initial = json.dumps(
+        {
+            "entries": [
+                {"path": str(old_marketplace)},
+                {"path": "/custom/path"},
+                {"path": str(old_superpowers)},
+            ],
+            "custom": True,
+        }
+    )
     result = _render_antigravity_plugins(initial, "github_releases", destination)
     assert result.returncode == 0, result.stderr
     rendered = json.loads(result.stdout)
     assert rendered["custom"] is True
-    assert rendered["entries"] == [
-        {"path": "/custom/path"},
-        {"path": str(destination / ".local/share/agent-plugins/marketplace/plugins")},
-    ]
+    assert rendered["entries"] == [{"path": "/custom/path"}]
 
 
 @pytest.mark.integration
@@ -342,9 +350,8 @@ def test_antigravity_plugins_json_preserves_stdin_when_disabled() -> None:
 
 
 @pytest.mark.integration
-def test_antigravity_plugins_json_preserves_matching_entry_byte_for_byte() -> None:
-    target_path = json.loads(_render_antigravity_plugins("{}", "preinstalled").stdout)["entries"][0]["path"]
-    initial = f'{{\n  "entries": [{{"path": {json.dumps(target_path)}}}],\n  "custom": true\n}}\n'
+def test_antigravity_plugins_json_preserves_stdin_byte_for_byte_without_old_entries() -> None:
+    initial = '{\n  "entries": [{"path": "/custom/path"}],\n  "custom": true\n}\n'
     result = _render_antigravity_plugins(initial, "preinstalled")
     assert result.returncode == 0, result.stderr
     assert result.stdout == initial

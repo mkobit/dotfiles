@@ -3,9 +3,8 @@
   (.chezmoidata/ai/skills.toml) and agents-as-skills
   (.chezmoidata/ai/agents.toml) that do not target
   ~/.gemini/antigravity-cli/skills (antigravity CLI global skills): state
-  "absent", or a tool-name state for another tool. The state-manifest cleanup
-  hook separately handles history-aware deleted or renamed skill keys and
-  removed skill sources.
+  "absent", or a tool-name state for another tool, plus the old flat copies of
+  base bare and retired skills from the shared ai/retired-skills list.
 */ -}}
 {{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
 {{- if $antigravityEnabled -}}
@@ -16,10 +15,9 @@ antigravity-cli/skills/{{ $skillName }}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
-{{- range $skillName, $state := dig "authored" (dict) .ai.skills -}}
-{{-   if not (or (eq $state "present") (eq $state "antigravity")) }}
+{{- /* Base bare skills reach Antigravity through the mkobit-dotfiles plugin, not flat copies. */ -}}
+{{- range $skillName := includeTemplate "ai/retired-skills" . | fromJson }}
 antigravity-cli/skills/{{ $skillName }}
-{{-   end -}}
 {{- end -}}
 {{- range $sourceName, $source := .ai.agents.external -}}
 {{-   range $agentPath, $state := dig "agents" (dict) $source -}}

@@ -1,0 +1,24 @@
+#!/bin/sh
+# Cursor has no plugin install command. It loads a plugin from ~/.cursor/plugins/local/<name>/,
+# so this script copies each authored plugin there from the deployed marketplace folder.
+# A plugin that is disabled or not selected for Cursor is removed from that folder.
+# The version comments make run_onchange run again when a plugin changes.
+# A failed copy prints a warning and never fails apply.
+set -u
+
+destination={{ .chezmoi.destDir | shellQuote }}
+marketplace="$destination/.local/share/agent-plugins/marketplace/plugins"
+cursor_local="$destination/.cursor/plugins/local"
+
+{{ range $name, $plugin := includeTemplate "ai/authored-plugins" . | fromJson -}}
+{{-   if and $plugin.enabled (has "cursor" $plugin.hosts) -}}
+# {{ $name }} {{ includeTemplate "ai/plugin-version" (dict "root" $ "name" $name) }}
+if [ -d "$marketplace/{{ $name }}" ]; then
+    mkdir -p "$cursor_local" && rm -rf "${cursor_local:?}/{{ $name }}" && cp -R "$marketplace/{{ $name }}" "$cursor_local/{{ $name }}" ||
+        printf 'agent-plugin-cursor-local: copy failed: %s\n' {{ $name | quote }} >&2
+fi
+{{    else -}}
+rm -rf "${cursor_local:?}/{{ $name }}"
+{{    end -}}
+{{- end -}}
+exit 0

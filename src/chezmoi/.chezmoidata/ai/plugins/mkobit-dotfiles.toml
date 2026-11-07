@@ -1,0 +1,4 @@
+# Identity of the authored mkobit-dotfiles plugin.
+[ai.plugins.mkobit-dotfiles]
+description = "Base dotfiles capability bundle."
+author = "mkobit"

@@ -1,0 +1,23 @@
+{{- /*
+  Skills that one host package of an authored plugin exposes.
+  Arguments: root (root context), name (plugin name), and host.
+  Output: JSON {"skills": [names], "host_dir": bool}. skills holds the selected source
+  skills of the host package and, for the acquisition destination, upstream skills
+  that are "present" or select this host. host_dir is true when an upstream skill
+  selects this host, so it sits in <host>/skills/ of the plugin.
+*/ -}}
+{{- $plugin := index (includeTemplate "ai/authored-plugins" .root | fromJson) .name -}}
+{{- $skills := dig "skills" .host (list) $plugin -}}
+{{- $hostDir := false -}}
+{{- if dig "ai" "plugin_bridge" "capabilities" .name "acquisition_destination" false .root -}}
+{{-   range $source := dig "ai" "skills" "external" (dict) .root -}}
+{{-     range $skill, $state := dig "skills" (dict) $source -}}
+{{-       if eq $state "present" -}}{{- $skills = append $skills $skill -}}{{- end -}}
+{{-       if eq $state $.host -}}
+{{-         $skills = append $skills $skill -}}
+{{-         $hostDir = true -}}
+{{-       end -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- dict "skills" ($skills | uniq | sortAlpha) "host_dir" $hostDir | toJson -}}
