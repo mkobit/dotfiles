@@ -1,12 +1,10 @@
-import asyncio
-import logging
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import NamedTuple
 
 from whenever import TimeDelta
 
+from termstatus.git_status import probe_git
 from termstatus.layout import Segment, SegmentGenerationResult
 from termstatus.segments.constants import (
     CYAN,
@@ -33,110 +31,12 @@ class GitInfo:
     stash_count: int = 0
 
 
-logger = logging.getLogger(__name__)
-
-
-class Status(NamedTuple):
-    staged: bool
-    untracked: bool
-    dirty: bool
-
-
-class BranchRemoteInfo(NamedTuple):
-    branch: str
-    remote: str | None
-
-
-class GitStatusInfo(NamedTuple):
-    dirty: bool
-    staged: bool
-    untracked: bool
-
-
-class AheadBehindInfo(NamedTuple):
-    ahead: int
-    behind: int
-
-
-async def _run_git_cmd(cmd: list[str], cwd: Path, *, timeout: float = 0.1) -> str | None:
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            *cmd,
-            cwd=cwd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        try:
-            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout)
-            if proc.returncode == 0:
-                return stdout.decode().strip()
-        except TimeoutError:
-            proc.kill()
-            await proc.communicate()
-    except OSError as e:
-        logger.debug(f"Git command failed: {e}")
-    return None
-
-
-async def _check_is_repo(cwd: Path) -> bool:
-    res = await _run_git_cmd(["git", "rev-parse", "--is-inside-work-tree"], cwd)
-    return res == "true"
-
-
-async def _get_branch_and_remote(cwd: Path) -> BranchRemoteInfo:
-    branch = "HEAD"
-    remote = None
-
-    branch_res = await _run_git_cmd(["git", "rev-parse", "--abbrev-ref", "HEAD"], cwd)
-    if bool(branch_res):
-        branch = branch_res
-
-    remote_res = await _run_git_cmd(["git", "ls-remote", "--get-url", "origin"], cwd)
-    if bool(remote_res):
-        remote_url = remote_res
-        if remote_url.startswith("git@"):
-            remote_url = remote_url.replace(":", "/").replace("git@", "https://")
-        if remote_url.endswith(".git"):
-            remote_url = remote_url[:-4]
-        remote = remote_url
-
-    return BranchRemoteInfo(branch=branch, remote=remote)
-
-
-async def _get_status(cwd: Path) -> GitStatusInfo:
-    dirty = False
-    staged = False
-    untracked = False
-
-    res = await _run_git_cmd(["git", "status", "--porcelain"], cwd)
-    if bool(res):
-        lines = [line for line in res.splitlines() if len(line) >= 2]
-        staged = any(line[0] not in (" ", "?") for line in lines)
-        dirty = any(line[1] != " " and not line.startswith("??") for line in lines)
-        untracked = any(line.startswith("??") for line in lines)
-
-    return GitStatusInfo(dirty=dirty, staged=staged, untracked=untracked)
-
-
-async def _get_ahead_behind(cwd: Path) -> AheadBehindInfo:
-    ahead = 0
-    behind = 0
-
-    res = await _run_git_cmd(["git", "rev-list", "--left-right", "--count", "HEAD...@{u}"], cwd)
-    if bool(res):
-        try:
-            a, b = map(int, res.split())
-            ahead = a
-            behind = b
-        except ValueError:
-            pass
-
-    return AheadBehindInfo(ahead=ahead, behind=behind)
-
-
-async def _get_stash_count(cwd: Path) -> int:
-    res = await _run_git_cmd(["git", "stash", "list"], cwd)
-    return len(res.splitlines()) if bool(res) else 0
+def _normalize_remote(url: str | None) -> str | None:
+    if url is None:
+        return None
+    if url.startswith("git@"):
+        url = url.replace(":", "/").replace("git@", "https://")
+    return url.removesuffix(".git")
 
 
 def build_branch_url(remote: str, branch: str) -> str:
@@ -148,27 +48,20 @@ def build_branch_url(remote: str, branch: str) -> str:
 
 
 async def fetch_git_info(cwd: Path, is_worktree: bool) -> GitInfo | None:
-    if not await _check_is_repo(cwd):
+    vcs = await probe_git(str(cwd))
+    if vcs is None:
         return None
-
-    branch_info, status_info, ahead_behind_info, stash_count = await asyncio.gather(
-        _get_branch_and_remote(cwd),
-        _get_status(cwd),
-        _get_ahead_behind(cwd),
-        _get_stash_count(cwd),
-    )
-
     return GitInfo(
-        branch=branch_info.branch,
-        remote=branch_info.remote,
-        dirty=status_info.dirty,
-        staged=status_info.staged,
-        untracked=status_info.untracked,
-        ahead=ahead_behind_info.ahead,
-        behind=ahead_behind_info.behind,
-        is_repo=True,
+        branch=vcs.branch or "HEAD",
+        remote=_normalize_remote(vcs.origin_url),
+        dirty=vcs.dirty,
+        staged=vcs.staged,
+        untracked=vcs.untracked,
+        ahead=vcs.ahead,
+        behind=vcs.behind,
+        is_repo=vcs.is_repo,
         is_worktree=is_worktree,
-        stash_count=stash_count,
+        stash_count=vcs.stash_count,
     )
 
 

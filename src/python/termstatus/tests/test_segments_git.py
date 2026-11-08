@@ -1,17 +1,17 @@
 from pathlib import Path
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
+from termstatus.git_status import VcsState
 from termstatus.segments.constants import (
     CYAN,
-    GREEN,
     RED,
     YELLOW,
     get_icon,
 )
-from termstatus.segments.git import GitInfo, build_branch_url, format_git_full, generate_git_segment
+from termstatus.segments.git import GitInfo, build_branch_url, fetch_git_info, format_git_full, generate_git_segment
 
 
 def _git_info(**overrides: Any) -> GitInfo:
@@ -117,42 +117,36 @@ class TestFormatGitFull:
 
 class TestGenerateGitSegment:
     @pytest.mark.asyncio
-    @patch("asyncio.create_subprocess_exec")
-    async def test_generates_segment_from_git_commands(self, mock_run: MagicMock) -> None:
-        async def side_effect(*cmd: Any, **kwargs: Any) -> Any:
-            stdout = ""
-            if "rev-parse" in cmd and "HEAD" in cmd:
-                stdout = "feature-branch\n"
-            elif "ls-remote" in cmd:
-                stdout = "git@github.com:user/repo.git\n"
-            elif "status" in cmd:
-                stdout = " M modified_file.py\n?? untracked.py\n"
-            elif "rev-list" in cmd:
-                stdout = "1\t0\n"
-            elif "rev-parse" in cmd and "--is-inside-work-tree" in cmd:
-                stdout = "true\n"
-
-            async def mock_communicate() -> tuple[bytes, bytes]:
-                return stdout.encode(), b""
-
-            mock_proc = MagicMock()
-            mock_proc.returncode = 0
-            mock_proc.communicate = mock_communicate
-            return mock_proc
-
-        mock_run.side_effect = side_effect
-
-        with (
-            patch.object(Path, "exists", return_value=False),
-            patch("termstatus.segments.git._check_is_repo", return_value=True),
-        ):
+    async def test_generates_segment_from_probe(self) -> None:
+        vcs = VcsState(
+            "feature-branch",
+            True,
+            True,
+            ahead=1,
+            origin_url="git@github.com:user/repo.git",
+            untracked=True,
+            stash_count=2,
+        )
+        with patch("termstatus.segments.git.probe_git", new=AsyncMock(return_value=vcs)):
             results = await generate_git_segment(Path("/tmp/repo"), False)
 
-        assert len(results) > 0
         text = " ".join(r.segment.text for r in results)
         assert "feature-branch" in text
-        assert "https://github.com/user/repo" in text
-        assert GREEN in text
+        assert "https://github.com/user/repo/tree/feature-branch" in text
+        assert RED in text and CYAN in text
+        assert "↑1" in text and get_icon("stash") in text
+
+    @pytest.mark.asyncio
+    async def test_detached_head_uses_head_label(self) -> None:
+        with patch("termstatus.segments.git.probe_git", new=AsyncMock(return_value=VcsState(None, False, True))):
+            info = await fetch_git_info(Path("/tmp/repo"), True)
+
+        assert info == GitInfo(branch="HEAD", is_worktree=True)
+
+    @pytest.mark.asyncio
+    async def test_not_a_repo_returns_nothing(self) -> None:
+        with patch("termstatus.segments.git.probe_git", new=AsyncMock(return_value=None)):
+            assert await generate_git_segment(Path("/tmp/repo"), False) == []
 
 
 class TestBuildBranchUrl:
