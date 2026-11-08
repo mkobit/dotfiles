@@ -12,6 +12,13 @@ from whenever import TimeDelta
 from termstatus.agy.protocol import AgyPayload, Quota, VcsState, normalized_text
 from termstatus.agy.term_colors import (
     _STATE_COLORS,
+    SEPARATOR,
+    fullness_icon,
+    get_icon,
+    meter_color,
+    state_icon,
+)
+from termstatus.segments.constants import (
     BLUE,
     BOLD,
     CYAN,
@@ -21,13 +28,8 @@ from termstatus.agy.term_colors import (
     MAGENTA,
     RED,
     RESET,
-    SEPARATOR,
     SKY_BLUE,
     YELLOW,
-    fullness_icon,
-    get_icon,
-    meter_color,
-    state_icon,
     use_icons,
 )
 

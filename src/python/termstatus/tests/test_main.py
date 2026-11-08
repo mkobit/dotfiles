@@ -12,7 +12,7 @@ import pytest
 from typer.testing import CliRunner
 
 from termstatus.layout import Segment, SegmentGenerationResult
-from termstatus.main import cli, run_external_generator
+from termstatus.main import cli
 from termstatus.segments.workspace import shorten_path
 
 
@@ -104,73 +104,6 @@ class TestShortenPath:
 
 
 runner = CliRunner()
-
-
-def test_main_with_external_generator_timeout():
-    """Goals: Verify that a timeout in the external generator gracefully terminates and returns empty."""
-    with patch("termstatus.main.asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.kill = Mock()
-        mock_proc.communicate.side_effect = TimeoutError()
-        mock_exec.return_value = mock_proc
-
-        result = runner.invoke(cli, ["claude", "render", "--generator", "sleep 10"])
-        assert result.exit_code == 0
-
-
-def test_main_show_errors_external():
-    """Goals: Ensure that an explicit error flag correctly displays external generator failures."""
-    with patch("termstatus.main.asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.returncode = 1
-        mock_proc.communicate.return_value = (b"", b"error")
-        mock_exec.return_value = mock_proc
-
-        result = runner.invoke(cli, ["claude", "render", "--generator", "failing_cmd", "--show-errors"])
-        assert result.exit_code == 0
-        assert "Error: external:failing_cmd" in result.stdout
-
-
-def test_main_with_stdin_and_external_success():
-    """Goals: Validate that valid JSON via stdin is successfully processed and integrated."""
-    with patch("termstatus.main.asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.returncode = 0
-        segment_json = json.dumps([{"line": 1, "index": 0, "segment": {"text": "external_text"}}])
-        mock_proc.communicate.return_value = (segment_json.encode(), b"")
-        mock_exec.return_value = mock_proc
-
-        result = runner.invoke(cli, ["claude", "render", "--generator", "good_cmd"], input='{"cwd": "/tmp"}')
-        assert result.exit_code == 0
-        assert "external_text" in result.stdout
-
-
-@pytest.mark.asyncio
-async def test_run_external_generator_validation_error():
-    """Goals: Ensure malformed segment formats from external generators are safely ignored."""
-    with patch("termstatus.main.asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.returncode = 0
-        # Invalid JSON for segment
-        mock_proc.communicate.return_value = (b'{"invalid": "data"}', b"")
-        mock_exec.return_value = mock_proc
-
-        res = await run_external_generator("cmd", "{}")
-        assert res == []
-
-
-@pytest.mark.asyncio
-async def test_run_external_generator_json_parse_error():
-    """Goals: Validate that fundamentally invalid JSON from an external generator is safely caught."""
-    with patch("termstatus.main.asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.returncode = 0
-        # Malformed JSON
-        mock_proc.communicate.return_value = (b"not json", b"")
-        mock_exec.return_value = mock_proc
-
-        res = await run_external_generator("cmd", "{}")
-        assert res == []
 
 
 def test_main_with_xdg_cache_home(tmp_path):

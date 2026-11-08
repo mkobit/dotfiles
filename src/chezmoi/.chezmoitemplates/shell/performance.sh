@@ -11,29 +11,23 @@ export HISTSIZE=100000
 export SAVEHIST=100000
 
 # CRITICAL: These ensure history is shared across all tmux panes/windows immediately
+# INC_APPEND_HISTORY writes to history immediately, not on shell exit
+# SHARE_HISTORY shares history between all sessions (tmux essential)
+# HIST_VERIFY shows command with history expansion before running
+# Advanced history deduplication (oh-my-zsh doesn't set these)
+# HIST_EXPIRE_DUPS_FIRST expires duplicate entries first when trimming
+# HIST_IGNORE_ALL_DUPS deletes old entry if new entry is duplicate
+# HIST_FIND_NO_DUPS hides duplicates when searching
+# HIST_SAVE_NO_DUPS does not write duplicate entries to history file
 {{- if eq .shell "zsh" }}
 setopt INC_APPEND_HISTORY
-{{- end }}      # Write to history immediately, not on shell exit
-{{- if eq .shell "zsh" }}
 setopt SHARE_HISTORY
-{{- end }}           # Share history between all sessions (tmux essential)
-{{- if eq .shell "zsh" }}
 setopt HIST_VERIFY
-{{- end }}             # Show command with history expansion before running
-
-# Advanced history deduplication (oh-my-zsh doesn't set these)
-{{- if eq .shell "zsh" }}
 setopt HIST_EXPIRE_DUPS_FIRST
-{{- end }}  # Expire duplicate entries first when trimming
-{{- if eq .shell "zsh" }}
 setopt HIST_IGNORE_ALL_DUPS
-{{- end }}    # Delete old entry if new entry is duplicate
-{{- if eq .shell "zsh" }}
 setopt HIST_FIND_NO_DUPS
-{{- end }}       # Don't display duplicates when searching
-{{- if eq .shell "zsh" }}
 setopt HIST_SAVE_NO_DUPS
-{{- end }}       # Don't write duplicate entries to history file
+{{- end }}
 
 # =============================================================================
 # VI MODE - TMUX OPTIMIZED
@@ -152,29 +146,27 @@ unsetopt FLOW_CONTROL
 [[ -t 0 ]] && stty -ixon
 
 # Speed up job control for tmux environments
+# NO_HUP does not send HUP to background jobs on shell exit
+# NO_CHECK_JOBS does not warn about running jobs on shell exit
+# NO_BEEP disables beeping (annoying in tmux)
 {{- if eq .shell "zsh" }}
 setopt NO_HUP
-{{- end }}                  # Don't send HUP to background jobs on shell exit
-{{- if eq .shell "zsh" }}
 setopt NO_CHECK_JOBS
-{{- end }}           # Don't warn about running jobs on shell exit
-{{- if eq .shell "zsh" }}
 setopt NO_BEEP
-{{- end }}                 # Disable beeping (annoying in tmux)
+{{- end }}
 
 # =============================================================================
 # COMPLETION OPTIMIZATIONS (oh-my-zsh doesn't optimize these)
 # =============================================================================
 # FZF-friendly completion behavior
+# AUTO_MENU off: do not auto-select first completion (better for fzf)
+# MENU_COMPLETE off: do not auto-insert first completion
+# AUTO_LIST lists choices on ambiguous completion
 {{- if eq .shell "zsh" }}
 unsetopt AUTO_MENU
-{{- end }}             # Don't auto-select first completion (better for fzf)
-{{- if eq .shell "zsh" }}
 unsetopt MENU_COMPLETE
-{{- end }}         # Don't auto-insert first completion
-{{- if eq .shell "zsh" }}
 setopt AUTO_LIST
-{{- end }}               # List choices on ambiguous completion
+{{- end }}
 
 # =============================================================================
 # TERMINAL OPTIMIZATIONS FOR NESTED ENVIRONMENTS
@@ -237,14 +229,13 @@ esac
 # ESSENTIAL NAVIGATION (tmux workflow focused)
 # =============================================================================
 # Quick directory navigation (complement to zoxide)
+# AUTO_CD changes directory without typing cd
+# AUTO_PUSHD pushes directories to stack automatically
+# PUSHD_IGNORE_DUPS does not push duplicate directories
 {{- if eq .shell "zsh" }}
 setopt AUTO_CD
+setopt AUTO_PUSHD
+setopt PUSHD_IGNORE_DUPS
 {{- else if eq .shell "bash" }}
 shopt -s autocd
-{{- end }}                 # Change directory without typing cd
-{{- if eq .shell "zsh" }}
-setopt AUTO_PUSHD
-{{- end }}              # Push directories to stack automatically
-{{- if eq .shell "zsh" }}
-setopt PUSHD_IGNORE_DUPS
-{{- end }}       # Don't push duplicate directories
+{{- end }}
