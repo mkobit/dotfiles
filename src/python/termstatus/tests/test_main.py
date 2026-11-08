@@ -138,7 +138,7 @@ def test_git_cancellation_and_p99_latency_under_slow_git():
     durations = []
     iterations = 20
 
-    async def slow_communicate(*args, **kwargs):
+    async def slow_read(*args, **kwargs):
         with contextlib.suppress(asyncio.CancelledError):
             await asyncio.sleep(5.0)
         return b"", b""
@@ -146,7 +146,8 @@ def test_git_cancellation_and_p99_latency_under_slow_git():
     with patch("asyncio.create_subprocess_exec") as mock_exec:
         mock_proc = AsyncMock()
         mock_proc.kill = Mock()
-        mock_proc.communicate.side_effect = slow_communicate
+        mock_proc.returncode = None
+        mock_proc.stdout.read.side_effect = slow_read
         mock_exec.return_value = mock_proc
 
         for _ in range(iterations):

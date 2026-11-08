@@ -1,13 +1,15 @@
 """Agy's statusline JSON contract."""
 
 import math
-import unicodedata
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import TypeGuard
 
 from whenever import TimeDelta
+
+from termstatus.git_status import VcsState
+from termstatus.terminal_text import normalized_text
 
 
 @dataclass(frozen=True, slots=True)
@@ -20,20 +22,6 @@ class Quota:
 class SandboxState:
     enabled: bool
     allow_network: bool
-
-
-@dataclass(frozen=True, slots=True)
-class VcsState:
-    branch: str | None
-    dirty: bool
-    is_repo: bool
-    upstream: str | None = None
-    ahead: int = 0
-    behind: int = 0
-    origin_url: str | None = None
-    untracked: bool = False
-    rebase: bool = False
-    commit: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -61,13 +49,6 @@ def mapping(value: object) -> Mapping[str, object]:
     if not isinstance(value, Mapping):
         return MappingProxyType({})
     return MappingProxyType({key: item for key, item in value.items() if isinstance(key, str)})
-
-
-def normalized_text(value: object) -> str | None:
-    if not isinstance(value, str):
-        return None
-    text = "".join(char for char in value if not unicodedata.category(char).startswith("C")).strip()
-    return text or None
 
 
 def finite_number(value: object) -> TypeGuard[int | float]:

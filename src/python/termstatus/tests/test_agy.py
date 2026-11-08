@@ -1,4 +1,3 @@
-import asyncio
 import io
 import json
 import sys
@@ -12,13 +11,8 @@ import pytest
 from whenever import TimeDelta
 
 from termstatus.agy.cli import render_from_stdin
-from termstatus.agy.git import (
-    _GIT_TIMEOUT,
-    parse_git_status,
-    probe_git,
-    resolve_vcs,
-)
-from termstatus.agy.protocol import Quota, VcsState, decode_payload
+from termstatus.agy.git import fallback_vcs, resolve_vcs
+from termstatus.agy.protocol import Quota, decode_payload
 from termstatus.agy.statusline import (
     _format_quota_label,
     _format_quota_reset_duration,
@@ -29,6 +23,7 @@ from termstatus.agy.statusline import (
     strip_ansi,
 )
 from termstatus.agy.term_colors import fullness_icon, meter_color
+from termstatus.git_status import VcsState, parse_git_status
 from termstatus.main import main
 from termstatus.segments.constants import CYAN, DIM, GREEN, ORANGE, RED, YELLOW
 
@@ -59,15 +54,6 @@ FULL_PAYLOAD = {
     "artifacts": [{"id": "one"}],
     "terminal_width": 160,
 }
-
-
-class AsyncBytesReader:
-    def __init__(self, value: bytes) -> None:
-        self.value = value
-
-    async def read(self, size: int) -> bytes:
-        chunk, self.value = self.value[:size], self.value[size:]
-        return chunk
 
 
 def rendered(raw: Mapping[str, object], vcs: VcsState | None = None) -> list[str]:
@@ -270,7 +256,7 @@ def test_main_dispatches_antigravity_render_without_subprocess(
     monkeypatch.setattr(sys, "argv", ["statusline", "antigravity", "render"])
     monkeypatch.setattr(sys, "stdin", io.StringIO("not json"))
 
-    with patch("termstatus.agy.git.asyncio.create_subprocess_exec") as create_process:
+    with patch("termstatus.git_status.asyncio.create_subprocess_exec") as create_process:
         main()
 
     assert strip_ansi(capsys.readouterr().out) == "[idle]\n"
@@ -330,12 +316,6 @@ def test_parse_porcelain_v2_and_renders_github_origin_as_osc8_link() -> None:
     assert "\033]8;;https://github.com/stripe/example\033\\feature/demo\033]8;;\033\\" in line
 
 
-def test_parse_porcelain_v2_with_untracked_files() -> None:
-    vcs = parse_git_status(b"# branch.oid abc123\n# branch.head feature/demo\n? untracked_file.py\n")
-
-    assert vcs == VcsState("feature/demo", False, True, untracked=True, commit="abc123")
-
-
 def test_parse_porcelain_v2_detached_head_extracts_commit_and_renders_link() -> None:
     vcs = parse_git_status(b"# branch.oid 113285f1a6ea58a80bde1e59f5d626779fd6180a\n# branch.head (detached)\n")
 
@@ -358,10 +338,11 @@ def test_parse_porcelain_v2_detached_head_extracts_commit_and_renders_link() -> 
     assert "[✓]" in strip_ansi(line)
 
 
-def test_parse_git_status_rejects_oversized_stdout() -> None:
-    stdout = b"# branch.head enriched\n" * 3_000
-
-    assert parse_git_status(stdout) is None
+def test_fallback_vcs_preserves_untracked_state() -> None:
+    payload = decode_payload({"vcs": {"branch": "feature/fallback", "dirty": False, "untracked": True}})
+    vcs = fallback_vcs(payload)
+    assert vcs is not None
+    assert vcs.untracked is True
 
 
 def test_osc8_git_branch_uses_only_visible_width_when_fitting_slots() -> None:
@@ -632,247 +613,8 @@ def test_resilience_against_malformed_and_extreme_inputs() -> None:
 
 
 @pytest.mark.asyncio
-async def test_git_probe_launches_exactly_two_commands_and_falls_back_after_shared_deadline() -> None:
-    class FinishedProcess:
-        def __init__(self, stdout: bytes) -> None:
-            self.returncode = 0
-            self.stdout = AsyncBytesReader(stdout)
-
-    processes = [
-        FinishedProcess(b"# branch.oid abc123\n# branch.head enriched\n"),
-        FinishedProcess(b"git@github.com:stripe/example.git\n"),
-    ]
-
-    async def delayed_start(*_args: object, **_kwargs: object) -> FinishedProcess:
-        await asyncio.sleep(_GIT_TIMEOUT.total("seconds") + 0.005)
-        return processes.pop(0)
-
-    loop = asyncio.get_running_loop()
-    timeout_deadlines: list[float] = []
-    timeout_at = asyncio.timeout_at
-
-    def track_timeout_at(deadline: float) -> asyncio.Timeout:
-        timeout_deadlines.append(deadline)
-        return timeout_at(deadline)
-
-    with (
-        patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=delayed_start) as create_process,
-        patch("termstatus.agy.git.asyncio.timeout_at", side_effect=track_timeout_at),
-    ):
-        payload = decode_payload(
-            {
-                "cwd": "/work/repo",
-                "vcs": {"branch": "payload", "dirty": True, "upstream": "stale", "ahead": 2, "behind": 1},
-            }
-        )
-        started_loop = loop.time()
-        assert await resolve_vcs(payload) == VcsState("payload", True, True)
-
-    assert create_process.await_count == 2
-    assert [call.args for call in create_process.await_args_list] == [
-        ("git", "-C", "/work/repo", "status", "--porcelain=v2", "--branch", "-unormal"),
-        ("git", "-C", "/work/repo", "remote", "get-url", "origin"),
-    ]
-    assert timeout_deadlines
-    assert TimeDelta(milliseconds=125) == _GIT_TIMEOUT
-    assert abs(max(timeout_deadlines) - started_loop - _GIT_TIMEOUT.total("seconds")) < 0.01
-
-
-@pytest.mark.asyncio
-async def test_git_probe_falls_back_when_porcelain_parsing_crosses_shared_deadline() -> None:
-    class FinishedProcess:
-        def __init__(self, stdout: bytes) -> None:
-            self.returncode = 0
-            self.stdout = AsyncBytesReader(stdout)
-
-    processes = [
-        FinishedProcess(b"# branch.oid abc123\n# branch.head enriched\n"),
-        FinishedProcess(b"git@github.com:stripe/example.git\n"),
-    ]
-
-    async def start(*_args: object, **_kwargs: object) -> FinishedProcess:
-        return processes.pop(0)
-
-    class DelayedClock:
-        def __init__(self, deadline: float) -> None:
-            self.times = iter((deadline - 0.001, deadline + 0.001))
-
-        def time(self) -> float:
-            return next(self.times)
-
-    def delayed_parse(stdout: bytes, deadline: float) -> VcsState | None:
-        with patch("termstatus.agy.git.asyncio.get_running_loop", return_value=DelayedClock(deadline)):
-            return parse_git_status(stdout, deadline)
-
-    payload = decode_payload({"cwd": "/work/repo", "vcs": {"branch": "payload", "dirty": True}})
-    with (
-        patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start),
-        patch("termstatus.agy.git.parse_git_status", side_effect=delayed_parse),
-    ):
-        assert await resolve_vcs(payload) == VcsState("payload", True, True)
-
-
-@pytest.mark.asyncio
-async def test_git_probe_cancels_stdout_reads_and_reaps_processes_within_deadline() -> None:
-    class SlowProcess:
-        def __init__(self) -> None:
-            self.returncode: int | None = None
-            self.killed = False
-            self.stdout_read_cancelled = False
-            self.wait_started = False
-            self.stdout = self
-
-        async def read(self, _size: int) -> bytes:
-            try:
-                await asyncio.Event().wait()
-            except asyncio.CancelledError:
-                self.stdout_read_cancelled = True
-                raise
-            return b""
-
-        def kill(self) -> None:
-            self.killed = True
-
-        async def wait(self) -> int:
-            self.wait_started = True
-            await asyncio.Event().wait()
-            return 0
-
-    processes = [SlowProcess(), SlowProcess()]
-    launches = processes.copy()
-
-    async def start(*_args: object, **_kwargs: object) -> SlowProcess:
-        return launches.pop(0)
-
-    loop = asyncio.get_running_loop()
-    timeout_deadlines: list[float] = []
-    timeout_at = asyncio.timeout_at
-
-    def track_timeout_at(deadline: float) -> asyncio.Timeout:
-        timeout_deadlines.append(deadline)
-        return timeout_at(deadline)
-
-    with (
-        patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start) as create_process,
-        patch("termstatus.agy.git.asyncio.timeout_at", side_effect=track_timeout_at),
-    ):
-        started_loop = loop.time()
-        assert await probe_git("/work/repo") is None
-
-    assert create_process.await_count == 2
-    assert timeout_deadlines
-    assert abs(max(timeout_deadlines) - started_loop - _GIT_TIMEOUT.total("seconds")) < 0.01
-    assert all(process.killed and process.stdout_read_cancelled and process.wait_started for process in processes)
-
-
-@pytest.mark.asyncio
-async def test_git_probe_reaps_a_process_when_the_other_launch_times_out() -> None:
-    class StartedProcess:
-        def __init__(self) -> None:
-            self.returncode: int | None = None
-            self.killed = False
-            self.waited = False
-
-        def kill(self) -> None:
-            self.killed = True
-
-        async def wait(self) -> int:
-            self.waited = True
-            self.returncode = -9
-            return self.returncode
-
-    process = StartedProcess()
-
-    async def start(*args: object, **_kwargs: object) -> StartedProcess:
-        if args[-3:] == ("remote", "get-url", "origin"):
-            await asyncio.Event().wait()
-        return process
-
-    with patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start):
-        assert await probe_git("/work/repo") is None
-
-    assert process.killed and process.waited
-
-
-@pytest.mark.asyncio
-async def test_git_probe_keeps_status_when_origin_lookup_fails() -> None:
-    class FinishedProcess:
-        def __init__(self, stdout: bytes, returncode: int) -> None:
-            self.returncode = returncode
-            self.stdout = AsyncBytesReader(stdout)
-
-    processes = [
-        FinishedProcess(b"# branch.oid abc123\n# branch.head enriched\n", 0),
-        FinishedProcess(b"", 1),
-    ]
-
-    async def start(*_args: object, **_kwargs: object) -> FinishedProcess:
-        return processes.pop(0)
-
-    with patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start):
-        assert await probe_git("/work/repo") == VcsState("enriched", False, True, commit="abc123")
-
-
-@pytest.mark.asyncio
-async def test_git_probe_returns_status_when_origin_stdout_blocks() -> None:
-    class StatusProcess:
-        def __init__(self) -> None:
-            self.returncode = 0
-            self.stdout = AsyncBytesReader(b"# branch.oid abc123\n# branch.head enriched\n")
-
-    class BlockedOriginProcess:
-        def __init__(self) -> None:
-            self.returncode: int | None = None
-            self.killed = False
-            self.waited = False
-            self.read_cancelled = False
-            self.stdout = self
-
-        async def read(self, _size: int) -> bytes:
-            try:
-                await asyncio.Event().wait()
-            except asyncio.CancelledError:
-                self.read_cancelled = True
-                raise
-            return b""
-
-        def kill(self) -> None:
-            self.killed = True
-
-        async def wait(self) -> int:
-            self.waited = True
-            self.returncode = -9
-            return self.returncode
-
-    origin = BlockedOriginProcess()
-    processes = [StatusProcess(), origin]
-
-    async def start(*_args: object, **_kwargs: object) -> StatusProcess | BlockedOriginProcess:
-        return processes.pop(0)
-
-    loop = asyncio.get_running_loop()
-    timeout_deadlines: list[float] = []
-    timeout_at = asyncio.timeout_at
-
-    def track_timeout_at(deadline: float) -> asyncio.Timeout:
-        timeout_deadlines.append(deadline)
-        return timeout_at(deadline)
-
-    with (
-        patch("termstatus.agy.git.asyncio.create_subprocess_exec", side_effect=start),
-        patch("termstatus.agy.git.asyncio.timeout_at", side_effect=track_timeout_at),
-    ):
-        started_loop = loop.time()
-        assert await probe_git("/work/repo") == VcsState("enriched", False, True, commit="abc123")
-
-    assert timeout_deadlines
-    assert abs(max(timeout_deadlines) - started_loop - _GIT_TIMEOUT.total("seconds")) < 0.01
-    assert origin.killed and origin.waited and origin.read_cancelled
-
-
-@pytest.mark.asyncio
 async def test_git_probe_is_not_started_without_a_cwd() -> None:
-    with patch("termstatus.agy.git.asyncio.create_subprocess_exec") as create_process:
+    with patch("termstatus.git_status.asyncio.create_subprocess_exec") as create_process:
         assert await resolve_vcs(decode_payload({"vcs": {"branch": "payload", "dirty": True}})) == VcsState(
             "payload", True, True
         )
