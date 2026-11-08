@@ -230,3 +230,23 @@ def test_plugin_folders_converge_through_native_apply(tmp_path):
     assert not (plugins / "alpha").exists()
     assert _sources(destination, ".claude-plugin/marketplace.json") == {}
     assert _chezmoi(source, destination, config, "diff") == ""
+
+
+def test_absent_skill_leaves_codex_capabilities_and_bytecode_does_not_deploy(tmp_path):
+    source, destination, config = _fixture(tmp_path)
+    _config(
+        config,
+        extra='[data.ai.plugin_bridge.capabilities.alpha.skills]\none = "absent"\n',
+    )
+    skill = source / PLUGINS / "exact_alpha/exact_skills/exact_two"
+    (skill / "__pycache__").mkdir()
+    (skill / "__pycache__/x.cpython-312.pyc").write_bytes(b"bytecode")
+    (skill / "helper.pyc").write_bytes(b"bytecode")
+
+    _chezmoi(source, destination, config, "apply")
+    package = destination / MARKETPLACE / "plugins/alpha"
+    assert _json(package / ".codex-plugin/plugin.json")["interface"]["capabilities"] == ["two"]
+    assert not (package / "skills/one").exists()
+    assert (package / "skills/two/SKILL.md").is_file()
+    assert not (package / "skills/two/__pycache__").exists()
+    assert not (package / "skills/two/helper.pyc").exists()
