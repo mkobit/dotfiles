@@ -174,8 +174,8 @@ async def _cancel_git_work(
         await asyncio.gather(*waiters, return_exceptions=True)
 
 
-async def probe_git(cwd: str) -> VcsState | None:
-    deadline = asyncio.get_running_loop().time() + _GIT_TIMEOUT.total("seconds")
+async def probe_git(cwd: str, timeout: TimeDelta = _GIT_TIMEOUT) -> VcsState | None:
+    deadline = asyncio.get_running_loop().time() + timeout.total("seconds")
     processes: list[asyncio.subprocess.Process] = []
     communications: list[asyncio.Task[object]] = []
     vcs: VcsState | None = None

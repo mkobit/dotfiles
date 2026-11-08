@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Final
 
 from whenever import TimeDelta
 
@@ -15,6 +16,9 @@ from termstatus.segments.constants import (
     YELLOW,
     get_icon,
 )
+
+# Wider than agy's probe budget: slow git wrappers can exceed 100 ms per call.
+_GIT_TIMEOUT: Final[TimeDelta] = TimeDelta(milliseconds=300)
 
 
 @dataclass
@@ -48,7 +52,7 @@ def build_branch_url(remote: str, branch: str) -> str:
 
 
 async def fetch_git_info(cwd: Path, is_worktree: bool) -> GitInfo | None:
-    vcs = await probe_git(str(cwd))
+    vcs = await probe_git(str(cwd), _GIT_TIMEOUT)
     if vcs is None:
         return None
     return GitInfo(
