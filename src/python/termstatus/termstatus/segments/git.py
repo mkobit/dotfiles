@@ -139,7 +139,7 @@ async def _get_stash_count(cwd: Path) -> int:
     return len(res.splitlines()) if bool(res) else 0
 
 
-def _build_branch_url(remote: str, branch: str) -> str:
+def build_branch_url(remote: str, branch: str) -> str:
     if branch == "HEAD":
         return remote
     if "gitlab.com" in remote:
@@ -147,20 +147,18 @@ def _build_branch_url(remote: str, branch: str) -> str:
     return f"{remote}/tree/{branch}"
 
 
-async def generate_git_segment(cwd: Path, is_worktree: bool) -> Sequence[SegmentGenerationResult]:
+async def fetch_git_info(cwd: Path, is_worktree: bool) -> GitInfo | None:
     if not await _check_is_repo(cwd):
-        return []
-
-    branch_task = asyncio.create_task(_get_branch_and_remote(cwd))
-    status_task = asyncio.create_task(_get_status(cwd))
-    ahead_behind_task = asyncio.create_task(_get_ahead_behind(cwd))
-    stash_task = asyncio.create_task(_get_stash_count(cwd))
+        return None
 
     branch_info, status_info, ahead_behind_info, stash_count = await asyncio.gather(
-        branch_task, status_task, ahead_behind_task, stash_task
+        _get_branch_and_remote(cwd),
+        _get_status(cwd),
+        _get_ahead_behind(cwd),
+        _get_stash_count(cwd),
     )
 
-    info = GitInfo(
+    return GitInfo(
         branch=branch_info.branch,
         remote=branch_info.remote,
         dirty=status_info.dirty,
@@ -173,17 +171,12 @@ async def generate_git_segment(cwd: Path, is_worktree: bool) -> Sequence[Segment
         stash_count=stash_count,
     )
 
-    return format_git_full(info)
+
+async def generate_git_segment(cwd: Path, is_worktree: bool) -> Sequence[SegmentGenerationResult]:
+    return format_git_full(await fetch_git_info(cwd, is_worktree))
 
 
-def format_git_full(info: GitInfo | None) -> list[SegmentGenerationResult]:
-    if not info:
-        return []
-
-    branch_icon = get_icon("worktree") if info.is_worktree else get_icon("branch")
-    branch_url = _build_branch_url(info.remote, info.branch) if bool(info.remote) else None
-    branch_display = f"\033]8;;{branch_url}\033\\{info.branch}\033]8;;\033\\" if bool(branch_url) else info.branch
-
+def format_status_badge(info: GitInfo) -> str:
     status_parts = [
         f"{RED}{get_icon('dirty')}{RESET}" if info.dirty else None,
         f"{YELLOW}{get_icon('staged')}{RESET}" if info.staged else None,
@@ -192,20 +185,10 @@ def format_git_full(info: GitInfo | None) -> list[SegmentGenerationResult]:
     filled = [s for s in status_parts if s is not None]
     if not filled:
         filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
+    return f"[{''.join(filled)}]"
 
-    branch_text = f"{MAGENTA}{branch_icon} {branch_display}{RESET} [{''.join(filled)}]"
 
-    results = [
-        SegmentGenerationResult(
-            line=1,
-            index=10,
-            column=1,
-            segment=Segment(text=branch_text),
-            generator="internal.git",
-            cache_duration=TimeDelta(seconds=5),
-        )
-    ]
-
+def format_right_parts(info: GitInfo) -> list[str]:
     right_parts = [
         f"{GREEN}↑{info.ahead}{RESET}" if info.ahead > 0 else None,
         f"{RED}↓{info.behind}{RESET}" if info.behind > 0 else None,
@@ -222,6 +205,31 @@ def format_git_full(info: GitInfo | None) -> list[SegmentGenerationResult]:
             else get_icon("remote")
         )
         right_filled = [*right_filled, f"\033]8;;{info.remote}\033\\{platform_icon}\033]8;;\033\\"]
+    return right_filled
+
+
+def format_git_full(info: GitInfo | None) -> list[SegmentGenerationResult]:
+    if not info:
+        return []
+
+    branch_icon = get_icon("worktree") if info.is_worktree else get_icon("branch")
+    branch_url = build_branch_url(info.remote, info.branch) if bool(info.remote) else None
+    branch_display = f"\033]8;;{branch_url}\033\\{info.branch}\033]8;;\033\\" if bool(branch_url) else info.branch
+
+    branch_text = f"{MAGENTA}{branch_icon} {branch_display}{RESET} {format_status_badge(info)}"
+
+    results = [
+        SegmentGenerationResult(
+            line=1,
+            index=10,
+            column=1,
+            segment=Segment(text=branch_text),
+            generator="internal.git",
+            cache_duration=TimeDelta(seconds=5),
+        )
+    ]
+
+    right_filled = format_right_parts(info)
 
     if right_filled:
         results = [

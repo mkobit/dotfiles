@@ -11,7 +11,7 @@ from termstatus.segments.constants import (
     YELLOW,
     get_icon,
 )
-from termstatus.segments.git import GitInfo, _build_branch_url, format_git_full, generate_git_segment
+from termstatus.segments.git import GitInfo, build_branch_url, format_git_full, generate_git_segment
 
 
 def _git_info(**overrides: Any) -> GitInfo:
@@ -157,12 +157,12 @@ class TestGenerateGitSegment:
 
 class TestBuildBranchUrl:
     def test_head_returns_remote_directly(self) -> None:
-        assert _build_branch_url("https://github.com/user/repo", "HEAD") == "https://github.com/user/repo"
+        assert build_branch_url("https://github.com/user/repo", "HEAD") == "https://github.com/user/repo"
 
     def test_gitlab_remote_uses_dash_tree(self) -> None:
-        url = _build_branch_url("https://gitlab.com/group/repo", "main")
+        url = build_branch_url("https://gitlab.com/group/repo", "main")
         assert url == "https://gitlab.com/group/repo/-/tree/main"
 
     def test_standard_remote_uses_tree(self) -> None:
-        url = _build_branch_url("https://github.com/user/repo", "feature-branch")
+        url = build_branch_url("https://github.com/user/repo", "feature-branch")
         assert url == "https://github.com/user/repo/tree/feature-branch"

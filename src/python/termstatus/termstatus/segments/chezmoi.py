@@ -6,23 +6,12 @@ from whenever import TimeDelta
 
 from termstatus.layout import Segment, SegmentGenerationResult
 from termstatus.segments.constants import (
-    CYAN,
     DIM,
-    GREEN,
     MAGENTA,
-    RED,
     RESET,
-    YELLOW,
     get_icon,
 )
-from termstatus.segments.git import (
-    GitInfo,
-    _check_is_repo,
-    _get_ahead_behind,
-    _get_branch_and_remote,
-    _get_stash_count,
-    _get_status,
-)
+from termstatus.segments.git import GitInfo, build_branch_url, fetch_git_info, format_right_parts, format_status_badge
 
 _BASE_RELATIVE_PATH = Path("src/base")
 
@@ -36,30 +25,6 @@ def detect_chezmoi_root(cwd: Path) -> Path | None:
     return None
 
 
-async def _fetch_repo_info(repo_path: Path) -> GitInfo | None:
-    if not await _check_is_repo(repo_path):
-        return None
-
-    branch_info, status_info, ahead_behind_info, stash_count = await asyncio.gather(
-        _get_branch_and_remote(repo_path),
-        _get_status(repo_path),
-        _get_ahead_behind(repo_path),
-        _get_stash_count(repo_path),
-    )
-
-    return GitInfo(
-        branch=branch_info.branch,
-        remote=branch_info.remote,
-        dirty=status_info.dirty,
-        staged=status_info.staged,
-        untracked=status_info.untracked,
-        ahead=ahead_behind_info.ahead,
-        behind=ahead_behind_info.behind,
-        is_repo=True,
-        stash_count=stash_count,
-    )
-
-
 _MAX_BRANCH_LEN = 24
 
 
@@ -67,14 +32,6 @@ def _truncate(text: str, max_len: int) -> str:
     if len(text) <= max_len:
         return text
     return text[: max_len - 1] + "…"
-
-
-def _build_branch_url(remote: str, branch: str) -> str:
-    if branch == "HEAD":
-        return remote
-    if "gitlab.com" in remote:
-        return f"{remote}/-/tree/{branch}"
-    return f"{remote}/tree/{branch}"
 
 
 def _format_repo(
@@ -88,43 +45,15 @@ def _format_repo(
     # column boundaries across rows, but the label and branch share one cell here,
     # so a ragged label (e.g. "overlay" vs "base") would still offset the branch
     # text within that cell; label_width pads the label so branches line up too.
-    branch_url = _build_branch_url(info.remote, info.branch) if bool(info.remote) else None
+    branch_url = build_branch_url(info.remote, info.branch) if bool(info.remote) else None
     branch_label = _truncate(info.branch, _MAX_BRANCH_LEN)
     branch_display = f"\033]8;;{branch_url}\033\\{branch_label}\033]8;;\033\\" if bool(branch_url) else branch_label
 
-    status_parts = [
-        f"{RED}{get_icon('dirty')}{RESET}" if info.dirty else None,
-        f"{YELLOW}{get_icon('staged')}{RESET}" if info.staged else None,
-        f"{CYAN}{get_icon('untracked')}{RESET}" if info.untracked else None,
-    ]
-    filled = [s for s in status_parts if s is not None]
-    if not filled:
-        filled = [f"{GREEN}{get_icon('clean')}{RESET}"]
-
     label_prefix = f"{DIM}{label.ljust(label_width)}{RESET}  " if label else ""
     body_text = f"{label_prefix}{MAGENTA}{branch_display}{RESET}"
-    badge_text = f"[{''.join(filled)}]"
+    badge_text = format_status_badge(info)
 
-    right_parts = [
-        f"{GREEN}↑{info.ahead}{RESET}" if info.ahead > 0 else None,
-        f"{RED}↓{info.behind}{RESET}" if info.behind > 0 else None,
-        f"{YELLOW}{get_icon('stash')}{info.stash_count}{RESET}" if info.stash_count > 0 else None,
-    ]
-    right_filled = [p for p in right_parts if p is not None]
-
-    remote_text = None
-    if bool(info.remote):
-        platform_icon = (
-            get_icon("github")
-            if "github.com" in info.remote
-            else get_icon("gitlab")
-            if "gitlab.com" in info.remote
-            else get_icon("remote")
-        )
-        remote_text = f"\033]8;;{info.remote}\033\\{platform_icon}\033]8;;\033\\"
-
-    if bool(remote_text):
-        right_filled = [*right_filled, remote_text]
+    right_filled = format_right_parts(info)
 
     results = [
         SegmentGenerationResult(
@@ -175,8 +104,8 @@ async def generate_chezmoi_segment(cwd: Path, chezmoi_root: Path) -> Sequence[Se
 
     if has_base:
         overlay_info, base_info = await asyncio.gather(
-            _fetch_repo_info(chezmoi_root),
-            _fetch_repo_info(base_path),
+            fetch_git_info(chezmoi_root, False),
+            fetch_git_info(base_path, False),
         )
         if overlay_info is None and base_info is None:
             return []
@@ -186,7 +115,7 @@ async def generate_chezmoi_segment(cwd: Path, chezmoi_root: Path) -> Sequence[Se
             *(_format_repo("base", base_info, line=3, label_width=label_width) if base_info else []),
         ]
 
-    repo_info = await _fetch_repo_info(chezmoi_root)
+    repo_info = await fetch_git_info(chezmoi_root, False)
     if repo_info is None:
         return []
     return [*_format_repo("", repo_info, line=2)]
