@@ -149,6 +149,7 @@ dynamic-function-decorator-return = "ignore"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
+pythonpath = ["."]
 
 [tool.coverage.run]
 source = ["src/python"]

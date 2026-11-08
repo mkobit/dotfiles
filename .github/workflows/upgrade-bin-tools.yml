@@ -1,0 +1,68 @@
+name: Upgrade Binary Tools
+
+on:
+  schedule:
+    # Run weekly at 03:00 UTC on Mondays
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      tool:
+        description: 'Specific tool to upgrade (e.g. agy, codex, or all)'
+        required: false
+        default: 'all'
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install
+
+      - name: Run upgrade script
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          target_tools=("agy" "codex")
+          if [ "${{ github.event.inputs.tool }}" != "" ] && [ "${{ github.event.inputs.tool }}" != "all" ]; then
+            target_tools=("${{ github.event.inputs.tool }}")
+          fi
+
+          for tool in "${target_tools[@]}"; do
+            echo "Checking $tool..."
+            uv run scripts/upgrade_bin_tool.py "$tool"
+          done
+
+      - name: Detect changes and open PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet src/chezmoi/.chezmoidata/bin/; then
+            echo "No updates detected."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          branch="chore/upgrade-bin-tools-$(date +%Y%m%d%H%M%S)"
+          git checkout -b "$branch"
+          git add src/chezmoi/.chezmoidata/bin/
+          git commit -m "chore(deps): update binary tools"
+          git push origin "$branch"
+
+          gh pr create \
+            --base main \
+            --head "$branch" \
+            --title "chore(deps): update binary tools" \
+            --body "Automated binary tools upgrade run by GitHub Actions."
