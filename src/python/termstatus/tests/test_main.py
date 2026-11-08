@@ -13,7 +13,8 @@ from typer.testing import CliRunner
 
 from termstatus.layout import Segment, SegmentGenerationResult
 from termstatus.main import cli, run_external_generator
-from termstatus.segments.workspace import shorten_path
+from termstatus.segments.constants import BLUE, RESET, get_icon
+from termstatus.segments.workspace import format_obsidian_vault, shorten_path
 
 
 @pytest.fixture(autouse=True)
@@ -101,6 +102,30 @@ class TestShortenPath:
         home = Path("/home/user")
         with patch.object(Path, "home", return_value=home):
             assert shorten_path(home) == "~"
+
+
+class TestFormatObsidianVault:
+    def test_returns_vault_segment_when_inside_obsidian_vault(self, tmp_path: Path) -> None:
+        vault = tmp_path / "MyNotes"
+        sub_dir = vault / "projects" / "work"
+        (vault / ".obsidian").mkdir(parents=True)
+        sub_dir.mkdir(parents=True)
+
+        results = format_obsidian_vault(sub_dir)
+
+        assert len(results) == 1
+        segment_res = results[0]
+        assert segment_res.line == 1
+        assert segment_res.index == 40
+        assert segment_res.column == 4
+        assert segment_res.generator == "internal.workspace"
+        assert segment_res.segment.text == f"{BLUE}{get_icon('obsidian')} MyNotes{RESET}"
+
+    def test_returns_empty_when_not_in_vault(self, tmp_path: Path) -> None:
+        non_vault = tmp_path / "regular_folder"
+        non_vault.mkdir()
+
+        assert format_obsidian_vault(non_vault) == []
 
 
 runner = CliRunner()
