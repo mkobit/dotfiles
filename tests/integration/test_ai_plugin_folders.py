@@ -125,8 +125,8 @@ def _config(config: Path, beta: str = "", extra: str = "") -> None:
     )
 
 
-def _chezmoi(source: Path, destination: Path, config: Path, *args: str) -> str:
-    result = subprocess.run(
+def _run(source: Path, destination: Path, config: Path, *args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
         [
             "chezmoi",
             "--source",
@@ -146,6 +146,10 @@ def _chezmoi(source: Path, destination: Path, config: Path, *args: str) -> str:
         check=False,
         text=True,
     )
+
+
+def _chezmoi(source: Path, destination: Path, config: Path, *args: str) -> str:
+    result = _run(source, destination, config, *args)
     assert result.returncode == 0, result.stderr
     return result.stdout
 
@@ -256,13 +260,46 @@ def test_symlinked_plugin_folder_fails_loudly(tmp_path):
     source, destination, config = _fixture(tmp_path)
     _config(config)
     (source / PLUGINS / "exact_gamma").symlink_to("exact_alpha")
-    result = subprocess.run(
-        ["chezmoi", "--source", str(source), "--destination", str(destination), "--config", str(config)]
-        + ["--cache", str(tmp_path / "cache"), "--persistent-state", str(tmp_path / "state.boltdb"), "--no-tty"]
-        + ["execute-template", '{{ includeTemplate "ai/authored-plugins" . }}'],
-        capture_output=True,
-        check=False,
-        text=True,
-    )
+    result = _run(source, destination, config, "execute-template", '{{ includeTemplate "ai/authored-plugins" . }}')
     assert result.returncode != 0
     assert "must not be a symlink" in result.stderr
+
+
+def test_cursor_script_owns_local_folder(tmp_path):
+    source, destination, config = _fixture(tmp_path)
+    _config(
+        config,
+        extra='[data.ai.plugins.ext]\ninstallation_method = "chezmoi_external"\nsha256 = "abc"\n'
+        '[data.ai.plugin_bridge.marketplaces.ext-market]\nsource_type = "generated"\nexternal_source = "ext"\n'
+        'source_locator = ".local/share/agent-plugins/marketplaces/ext-market"\nhosts = ["cursor"]\n'
+        '[data.ai.plugin_bridge.capabilities.ext]\nmarketplace = "ext-market"\nexternal_source = "ext"\n'
+        'hosts = ["cursor"]\npackage_path = "./plugins/ext"\n',
+    )
+    external = destination / ".local/share/agent-plugins/marketplaces/ext-market/plugins/ext"
+    (external / ".cursor-plugin").mkdir(parents=True)
+    (external / ".cursor-plugin/plugin.json").write_text('{"name":"ext"}\n')
+    cursor_local = destination / ".cursor/plugins/local"
+    (cursor_local / "old-plugin").mkdir(parents=True)
+    (cursor_local / "old-plugin/plugin.json").write_text("{}\n")
+
+    _chezmoi(source, destination, config, "apply")
+    assert sorted(path.name for path in cursor_local.iterdir()) == ["alpha", "ext"]
+    assert (cursor_local / "alpha/skills/one/SKILL.md").is_file()
+    assert (cursor_local / "ext/.cursor-plugin/plugin.json").is_file()
+
+    # A symlinked local folder is skipped, never followed.
+    elsewhere = tmp_path / "elsewhere"
+    (elsewhere / "keep").mkdir(parents=True)
+    shutil.rmtree(cursor_local)
+    cursor_local.symlink_to(elsewhere)
+    script = _chezmoi(
+        source,
+        destination,
+        config,
+        "execute-template",
+        (source / ".chezmoiscripts/run_onchange_after_agent-plugin-cursor-local.sh.tmpl").read_text(),
+    )
+    result = subprocess.run(["sh", "-c", script], capture_output=True, check=False, text=True)
+    assert result.returncode == 0
+    assert "symlink" in result.stderr
+    assert [path.name for path in elsewhere.iterdir()] == ["keep"]
