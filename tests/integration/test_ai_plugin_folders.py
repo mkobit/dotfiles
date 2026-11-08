@@ -250,3 +250,19 @@ def test_absent_skill_leaves_codex_capabilities_and_bytecode_does_not_deploy(tmp
     assert (package / "skills/two/SKILL.md").is_file()
     assert not (package / "skills/two/__pycache__").exists()
     assert not (package / "skills/two/helper.pyc").exists()
+
+
+def test_symlinked_plugin_folder_fails_loudly(tmp_path):
+    source, destination, config = _fixture(tmp_path)
+    _config(config)
+    (source / PLUGINS / "exact_gamma").symlink_to("exact_alpha")
+    result = subprocess.run(
+        ["chezmoi", "--source", str(source), "--destination", str(destination), "--config", str(config)]
+        + ["--cache", str(tmp_path / "cache"), "--persistent-state", str(tmp_path / "state.boltdb"), "--no-tty"]
+        + ["execute-template", '{{ includeTemplate "ai/authored-plugins" . }}'],
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    assert result.returncode != 0
+    assert "must not be a symlink" in result.stderr

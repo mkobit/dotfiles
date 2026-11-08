@@ -23,6 +23,9 @@
 {{- $targetRoot := ".local/share/agent-plugins/marketplace/plugins" -}}
 {{- $plugins := dict -}}
 {{- range $source := glob (joinPath $sourceRoot "exact_*") | sortAlpha -}}
+{{-   if eq (lstat $source).type "symlink" -}}
+{{-     fail (printf "authored plugin folder must not be a symlink, chezmoi deploys it empty: %s" $source) -}}
+{{-   end -}}
 {{-   if (stat $source).isDir -}}
 {{-     $name := base $source | trimPrefix "exact_" -}}
 {{-     if not (regexMatch "^[a-z0-9][a-z0-9-]*$" $name) -}}
