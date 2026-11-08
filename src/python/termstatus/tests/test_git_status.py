@@ -10,6 +10,7 @@ from termstatus.git_status import (
     _GIT_STATUS_MAX_BYTES,
     _GIT_TIMEOUT,
     VcsState,
+    _probe_git_status,
     _read_git_stdout,
     parse_git_status,
     probe_git,
@@ -45,10 +46,23 @@ async def test_parse_git_status_stops_when_deadline_expires_while_scanning() -> 
         assert parse_git_status(b"# branch.oid abc123\n# branch.head enriched\n", deadline) is None
 
 
-def test_parse_git_status_rejects_oversized_stdout() -> None:
-    stdout = b"# branch.head enriched\n" * 3_000
+@pytest.mark.asyncio
+async def test_git_probe_parses_truncated_status_output_after_kill() -> None:
+    class KilledProcess:
+        def __init__(self, stdout: bytes) -> None:
+            self.returncode: int | None = None
+            self.stdout = AsyncBytesReader(stdout)
 
-    assert parse_git_status(stdout) is None
+        def kill(self) -> None:
+            self.returncode = -9
+
+    headers = b"# branch.oid abc\n# branch.head enriched\n"
+    stdout = headers + b"? untracked/file.txt\n" * 5_000
+    assert len(stdout) > _GIT_STATUS_MAX_BYTES
+
+    state = await _probe_git_status(cast(asyncio.subprocess.Process, KilledProcess(stdout)), 1e18)
+
+    assert state == VcsState("enriched", False, True, commit="abc", untracked=True)
 
 
 @pytest.mark.asyncio
@@ -253,7 +267,9 @@ async def test_git_stdout_rejects_content_beyond_the_retained_buffer_limit() -> 
             retained_sizes.append(len(self))
 
     with patch("termstatus.git_status.bytearray", TrackingBytearray, create=True):
-        assert await _read_git_stdout(cast(asyncio.subprocess.Process, process)) is None
+        result = await _read_git_stdout(cast(asyncio.subprocess.Process, process))
+
+    assert result == (b"", True)
 
     assert max(retained_sizes) == _GIT_STATUS_MAX_BYTES
     assert max(process.stdout.read_sizes) <= _GIT_STATUS_MAX_BYTES
@@ -324,7 +340,7 @@ def test_parse_splits_staged_and_dirty_entries() -> None:
 
     assert staged is not None and (staged.staged, staged.dirty) == (True, False)
     assert dirty is not None and (dirty.staged, dirty.dirty) == (False, True)
-    assert unmerged is not None and (unmerged.staged, unmerged.dirty) == (False, True)
+    assert unmerged is not None and (unmerged.staged, unmerged.dirty) == (True, True)
 
 
 def test_parse_reads_stash_count() -> None:

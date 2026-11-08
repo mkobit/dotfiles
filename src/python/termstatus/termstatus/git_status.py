@@ -37,8 +37,6 @@ def _deadline_expired(deadline: float | None) -> bool:
 
 
 def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState | None:
-    if len(stdout) > _GIT_STATUS_MAX_BYTES:
-        return None
     branch: str | None = None
     commit: str | None = None
     upstream: str | None = None
@@ -74,7 +72,7 @@ def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState |
             staged = staged or line[2] != "."
             dirty = dirty or line[3] != "."
         elif line.startswith("u "):
-            dirty = True
+            staged = dirty = True
     return (
         VcsState(
             branch,
@@ -94,13 +92,6 @@ def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState |
     )
 
 
-def _build_vcs(vcs: VcsState, origin_stdout: bytes | None, deadline: float) -> VcsState | None:
-    if _deadline_expired(deadline):
-        return None
-    origin_url = normalized_text(origin_stdout.decode(errors="replace")) if origin_stdout is not None else None
-    return replace(vcs, origin_url=origin_url)
-
-
 def _completed_processes(
     launches: Sequence[asyncio.Task[asyncio.subprocess.Process]],
 ) -> list[asyncio.subprocess.Process]:
@@ -113,37 +104,43 @@ def _completed_processes(
     return processes
 
 
-async def _read_git_stdout(process: asyncio.subprocess.Process) -> bytes | None:
+async def _read_git_stdout(process: asyncio.subprocess.Process) -> tuple[bytes, bool] | None:
     if process.stdout is None:
         return None
     stdout = bytearray()
     while len(stdout) < _GIT_STATUS_MAX_BYTES:
         chunk = await process.stdout.read(min(_GIT_STDOUT_READ_BYTES, _GIT_STATUS_MAX_BYTES - len(stdout)))
         if not chunk:
-            return bytes(stdout)
+            return bytes(stdout), False
         stdout.extend(chunk)
     if not await process.stdout.read(1):
-        return bytes(stdout)
+        return bytes(stdout), False
     if process.returncode is None:
         with suppress(ProcessLookupError):
             process.kill()
     while await process.stdout.read(_GIT_STDOUT_READ_BYTES):
         pass
-    return None
+    return bytes(stdout[: stdout.rfind(b"\n") + 1]), True
 
 
 async def _probe_git_status(process: asyncio.subprocess.Process, deadline: float) -> VcsState | None:
-    stdout = await _read_git_stdout(process)
-    if stdout is not None and process.returncode is None:
+    result = await _read_git_stdout(process)
+    if result is None:
+        return None
+    stdout, truncated = result
+    if process.returncode is None:
         await process.wait()
-    return parse_git_status(stdout, deadline) if stdout is not None and process.returncode == 0 else None
+    return parse_git_status(stdout, deadline) if truncated or process.returncode == 0 else None
 
 
 async def _probe_git_origin(process: asyncio.subprocess.Process) -> bytes | None:
-    stdout = await _read_git_stdout(process)
-    if stdout is not None and process.returncode is None:
+    result = await _read_git_stdout(process)
+    if result is None:
+        return None
+    if process.returncode is None:
         await process.wait()
-    return stdout if process.returncode == 0 else None
+    stdout, truncated = result
+    return stdout if process.returncode == 0 and not truncated else None
 
 
 async def _cancel_git_work(
@@ -225,8 +222,13 @@ async def probe_git(cwd: str, timeout: TimeDelta = _GIT_TIMEOUT) -> VcsState | N
                             if not isinstance(results[1], BaseException) and results[1] is not None
                             else None
                         )
-                        if vcs and (enriched_vcs := _build_vcs(vcs, origin_stdout, deadline)):
-                            return enriched_vcs
+                        if vcs and not _deadline_expired(deadline):
+                            origin_url = (
+                                normalized_text(origin_stdout.decode(errors="replace"))
+                                if origin_stdout is not None
+                                else None
+                            )
+                            return replace(vcs, origin_url=origin_url)
     except TimeoutError:
         pass
     finally:
