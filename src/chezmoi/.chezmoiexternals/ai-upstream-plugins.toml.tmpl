@@ -14,10 +14,6 @@
 {{-     $url := $host.url_format | replace "{repo}" $plugin.repo | replace "{ref}" $plugin.ref -}}
 {{-     $entry := dict "type" "archive" "url" $url "checksum" (dict "sha256" $plugin.sha256) "exact" true "stripComponents" 1 -}}
 {{-     $_ := set $entries $plugin.path $entry -}}
-{{-     $capability := dig "ai" "plugin_bridge" "capabilities" $name (dict) $ -}}
-{{-     if has "cursor" (dig "hosts" (list) $capability) -}}
-{{-       $_ := set $entries (printf ".cursor/plugins/local/%s" $name) $entry -}}
-{{-     end -}}
 {{-   else if ne $method "none" -}}
 {{-     fail (printf "ai.plugins.%s: unsupported installation_method %q" $name $method) -}}
 {{-   end -}}

@@ -79,6 +79,7 @@ def _upstream_fixture(
         Path("dot_claude/.chezmoiremove.tmpl"),
         Path("dot_codex/.chezmoiremove.tmpl"),
         Path("dot_cursor/.chezmoiremove.tmpl"),
+        Path(".chezmoiscripts/run_onchange_after_agent-plugin-cursor-local.sh.tmpl"),
         Path("dot_gemini/.chezmoiremove.tmpl"),
         Path(".chezmoitemplates/python/filter-interpreter"),
     )
@@ -222,7 +223,6 @@ def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, 
     foreign_sibling = destination / ".local/share/agent-plugins/marketplace/plugins/custom-plugin"
     foreign_sibling.mkdir(parents=True)
     (foreign_sibling / "plugin.json").write_text('{"name":"custom-plugin"}\n')
-    # Cursor local copies are replaced by run_onchange_after_agent-plugin-cursor-local, which this fixture omits.
     old_roots = (
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills",
         ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/claude/skills",
@@ -278,8 +278,8 @@ def test_upstream_plugin_disabled_after_install_removes_package(tmp_path, method
     assert disabled.returncode == 0, disabled.stderr
     assert not package.exists()
     assert not cursor_package.exists()
-    assert sentinel.read_text() == '{"name":"custom"}\n'
+    assert not sentinel.exists()
     repeated = _apply(source, destination, config)
     assert repeated.returncode == 0, repeated.stderr
     assert not cursor_package.exists()
-    assert sentinel.read_text() == '{"name":"custom"}\n'
+    assert not sentinel.exists()

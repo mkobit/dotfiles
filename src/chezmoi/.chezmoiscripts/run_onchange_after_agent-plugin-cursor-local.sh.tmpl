@@ -1,24 +1,52 @@
 #!/bin/sh
-# Cursor has no plugin install command. It loads a plugin from ~/.cursor/plugins/local/<name>/,
-# so this script copies each authored plugin there from the deployed marketplace folder.
-# A plugin that is disabled or not selected for Cursor is removed from that folder.
-# The version comments make run_onchange run again when a plugin changes.
+# Cursor has no plugin install command. It loads a plugin from ~/.cursor/plugins/local/<name>/.
+# This script owns that folder like an exact_ directory: after apply it holds exactly the
+# plugins selected for Cursor in the plugin bridge (authored and external), copied from their
+# deployed marketplace folders. Any other entry is removed. A symlinked folder is never followed.
+# A marketplace the host provides has no local folder, so it is skipped.
+# The version comments make run_onchange run again when a copied plugin or the selection changes.
 # A failed copy prints a warning and never fails apply.
 set -u
 
-destination={{ .chezmoi.destDir | shellQuote }}
-marketplace="$destination/.local/share/agent-plugins/marketplace/plugins"
-cursor_local="$destination/.cursor/plugins/local"
+cursor_local={{ joinPath .chezmoi.destDir ".cursor/plugins/local" | shellQuote }}
+{{- $bridge := includeTemplate "ai/plugin-bridge" . | fromJson }}
+{{- $authored := includeTemplate "ai/authored-plugins" . | fromJson }}
+{{- $selected := dict }}
+{{- range $marketplace, $declaration := $bridge.marketplaces }}
+{{-   if eq (dig "source_type" "" $declaration) "generated" }}
+{{-     range $entry := includeTemplate "ai/marketplace-plugins" (dict "root" $ "name" $marketplace "host" "cursor") | fromJson }}
+{{-       $version := dig "ai" "plugins" (dig "external_source" "" (index $bridge.capabilities $entry.name)) "sha256" "" $ }}
+{{-       if hasKey $authored $entry.name }}{{ $version = includeTemplate "ai/plugin-version" (dict "root" $ "name" $entry.name) }}{{ end }}
+{{-       $_ := set $selected $entry.name (dict "source" (joinPath $declaration.source_locator $entry.path) "version" $version) }}
+{{-     end }}
+{{-   end }}
+{{- end }}
 
-{{ range $name, $plugin := includeTemplate "ai/authored-plugins" . | fromJson -}}
-{{-   if and $plugin.enabled (has "cursor" $plugin.hosts) -}}
-# {{ $name }} {{ includeTemplate "ai/plugin-version" (dict "root" $ "name" $name) }}
-if [ -d "$marketplace/{{ $name }}" ]; then
-    mkdir -p "$cursor_local" && rm -rf "${cursor_local:?}/{{ $name }}" && cp -R "$marketplace/{{ $name }}" "$cursor_local/{{ $name }}" ||
-        printf 'agent-plugin-cursor-local: copy failed: %s\n' {{ $name | quote }} >&2
+sync_plugin() {
+    [ -d "$2" ] || return 0
+    rm -rf "${cursor_local:?}/$1" && cp -R "$2" "$cursor_local/$1" ||
+        printf 'agent-plugin-cursor-local: copy failed: %s\n' "$1" >&2
+}
+
+if [ -L "$cursor_local" ]; then
+    printf 'agent-plugin-cursor-local: %s is a symlink, skipping\n' "$cursor_local" >&2
+    exit 0
 fi
-{{    else -}}
-rm -rf "${cursor_local:?}/{{ $name }}"
-{{    end -}}
-{{- end -}}
+mkdir -p "$cursor_local" || exit 0
+
+for entry in "$cursor_local"/* "$cursor_local"/.[!.]*; do
+    [ -e "$entry" ] || [ -L "$entry" ] || continue
+    case "${entry##*/}" in
+    {{- range $name := keys $selected | sortAlpha }}
+    {{ $name }}) ;;
+    {{- end }}
+    *) rm -rf "$entry" ;;
+    esac
+done
+
+{{ range $name := keys $selected | sortAlpha -}}
+{{- $plugin := index $selected $name -}}
+# {{ $name }} {{ $plugin.version }}
+sync_plugin {{ $name | quote }} {{ $plugin.source | shellQuote }}
+{{ end -}}
 exit 0

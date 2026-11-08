@@ -94,7 +94,9 @@ An overlay adds plugins and changes choices; it never edits base files outside i
 
 Claude Code and Codex install through their plugin CLIs; the bridge records ownership only for installs it performed.
 Cursor has no plugin install command, so no bridge adapter exists for it.
-[`run_onchange_after_agent-plugin-cursor-local`](../chezmoi/.chezmoiscripts/run_onchange_after_agent-plugin-cursor-local.sh.tmpl) copies each enabled authored plugin selected for Cursor from the marketplace folder to `.cursor/plugins/local/<name>/` (with `.cursor-plugin/plugin.json`), and removes the copy of a plugin that is disabled or not selected.
+[`run_onchange_after_agent-plugin-cursor-local`](../chezmoi/.chezmoiscripts/run_onchange_after_agent-plugin-cursor-local.sh.tmpl) owns `.cursor/plugins/local/` like an `exact_` directory.
+After apply it holds exactly the plugins the bridge selects for Cursor, authored and external, copied from their deployed marketplace folders; it removes every other entry and never follows a symlinked `local` folder.
+A marketplace the host provides, with no local folder, is skipped.
 Antigravity converges only through the `agy` CLI, never through `.gemini/config/plugins.json`.
 When `local.bin.agy.installation_method` is not `"none"`, the bridge runs `agy plugin list --json` and compares it with the plugin directories that have `plugin.json` or `.antigravity-plugin/plugin.json` at their root.
 Those are the authored `dotfiles` plugins, and the Superpowers directory when chezmoi installs it; upstream Superpowers ships its own `.antigravity-plugin/plugin.json`, so chezmoi generates no manifest for it.
@@ -181,7 +183,7 @@ Each generated marketplace declares its destination-relative `source_locator`, o
 Each marketplace has one source template per host, which calls that host's template under `.chezmoitemplates/ai/<host>/`.
 Overlays can add marketplace templates and catalog declarations through the same structure.
 Provenance reports each capability's marketplace, source, and trust class from its own declaration.
-Cursor receives an identical archive at `.cursor/plugins/local/superpowers/` and uses the upstream manifest and hooks there.
+Cursor receives a copy at `.cursor/plugins/local/superpowers/` from the Cursor script and uses the upstream manifest and hooks there.
 The [upstream OpenCode adapter](https://github.com/obra/superpowers/blob/bb92a77741419a4ab5f06e711a283343f1ada0c3/.opencode/INSTALL.md) uses the shared root as an absolute local package directory in the pinned V1 `plugin` array.
 OpenCode registration also requires `local.bin.opencode.installation_method != "none"`.
 OpenCode retires only the old managed Superpowers package reference and preserves unrelated plugin entries.
