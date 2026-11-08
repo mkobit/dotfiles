@@ -18,6 +18,7 @@ from termstatus.agy.term_colors import (
     meter_color,
     state_icon,
 )
+from termstatus.git_status import VcsState
 from termstatus.segments.constants import (
     BLUE,
     BOLD,
@@ -32,7 +33,6 @@ from termstatus.segments.constants import (
     YELLOW,
     use_icons,
 )
-from termstatus.git_status import VcsState
 from termstatus.terminal_text import normalized_text
 
 _ANSI_ESCAPE: Final[Pattern[str]] = re.compile(r"(?:\x1b\[[0-9;]*m|\x1b]8;;.*?(?:\x1b\\|\x07))")
