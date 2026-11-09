@@ -1,0 +1,32 @@
+schemaVersion: "2"
+kind: mixin
+name: dotfiles-toolchain
+version: "0.1.0"
+description: Run dotfiles checks in the Codex sandbox
+
+permissions:
+  network:
+    allow:
+      - github.com
+      - api.github.com
+      - "*.githubusercontent.com"
+      - pypi.org
+      - files.pythonhosted.org
+      - mise.jdx.dev
+      - registry.npmjs.org
+
+environment:
+  variables:
+    PATH: /home/agent/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    MISE_YES: "1"
+    MISE_MINIMUM_RELEASE_AGE: "7d"
+    UV_PROJECT_ENVIRONMENT: /home/agent/.local/share/dotfiles/venv
+    UV_PYTHON: /home/agent/.local/share/mise/installs/python/3.14.7/bin/python3
+    UV_PYTHON_PREFERENCE: system
+    UV_EXCLUDE_NEWER: P7D
+
+setup:
+  install:
+    - command: sh "$WORKSPACE_DIR/.sbx/kit/install.sh"
+      user: "1000"
+      description: Install the pinned dotfiles toolchain

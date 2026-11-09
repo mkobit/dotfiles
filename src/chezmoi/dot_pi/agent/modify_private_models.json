@@ -1,0 +1,28 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- if dig "ai" "ollama" "enabled" false . -}}
+{{-   $host := regexReplaceAll "/+$" (dig "ai" "ollama" "host_url" "" .) "" -}}
+{{-   $sandbox := regexReplaceAll "/+$" (dig "ai" "ollama" "sandbox_url" "" .) "" -}}
+{{-   $model := dig "ai" "ollama" "default_coder_model" "" . -}}
+{{-   if not (and $host $sandbox $model) -}}
+{{-     fail "Local model prerequisite: set both service roots and the default coder model." -}}
+{{-   end -}}
+{{-   $config := dict -}}
+{{-   if .chezmoi.stdin -}}
+{{-     $config = fromJson .chezmoi.stdin -}}
+{{-   end -}}
+{{-   $models := dig "providers" "ollama" "models" (list) $config -}}
+{{-   $found := false -}}
+{{-   range $entry := $models -}}
+{{-     if eq (dig "id" "" $entry) $model -}}
+{{-       $found = true -}}
+{{-     end -}}
+{{-   end -}}
+{{-   if not $found -}}
+{{-     $models = append $models (dict "id" $model) -}}
+{{-   end -}}
+{{-   $route := dict "providers" (dict "ollama" (dict "baseUrl" (printf "%s/v1" $host)
+        "api" "openai-completions" "apiKey" "ollama" "models" $models)) -}}
+{{-   mergeOverwrite $config $route | toPrettyJson | trimSuffix "\n" -}}
+{{- else -}}
+{{-   .chezmoi.stdin -}}
+{{- end -}}

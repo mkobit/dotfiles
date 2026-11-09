@@ -1,0 +1,22 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- /* Host profile generation does not establish presence in an SBX guest.
+   Select this profile only after the guest boundary and profile are verified. */ -}}
+{{- $config := dict -}}
+{{- if .chezmoi.stdin -}}
+{{-   $config = fromToml .chezmoi.stdin -}}
+{{- end -}}
+{{- $base := dict -}}
+{{- $basePath := joinPath .chezmoi.destDir ".codex/config.toml" -}}
+{{- if stat $basePath -}}
+{{-   $base = include $basePath | fromToml -}}
+{{- end -}}
+{{- $legacyPermissions := and (not (hasKey $base "default_permissions")) (or (hasKey $base "sandbox_mode") (hasKey $base "sandbox_workspace_write")) -}}
+{{- $config = set $config "approval_policy" "never" -}}
+{{- if $legacyPermissions -}}
+{{-   $config = omit $config "default_permissions" "sandbox_workspace_write" -}}
+{{-   $config = set $config "sandbox_mode" "danger-full-access" -}}
+{{- else -}}
+{{-   $config = omit $config "sandbox_mode" "sandbox_workspace_write" -}}
+{{-   $config = set $config "default_permissions" ":danger-full-access" -}}
+{{- end -}}
+{{- $config | toToml -}}

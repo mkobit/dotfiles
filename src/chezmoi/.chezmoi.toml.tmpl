@@ -7,6 +7,33 @@ MISE_STATE_DIR  = "{{ .chezmoi.destDir }}/.local/state/mise"
 [data.ai.plugins.superpowers]
 installation_method = "chezmoi_external"
 
+# Personal workflow selections; overlays own these decisions in their init template.
+[data.ai.workflow]
+enabled = {{ eq .chezmoi.os "linux" }}
+
+[data.ai.sandbox]
+provider = {{ if eq .chezmoi.os "linux" }}"sbx"{{ else }}"none"{{ end }}
+default_clone_mode = false
+network_policy = "balanced"
+proxy_gh_secret = true
+sync_skills = true
+
+[data.sbx.settings]
+skills_default_mode = "readonly"
+
+[data.ai.signing]
+mode = "ssh-forwarded"
+# Empty SSH key requires a successful guest signing proof with existing settings.
+# Set a public key or subkey ID explicitly when existing signing is unavailable.
+ssh_public_key = ""
+gpg_subkey_id = ""
+
+[data.ai.ollama]
+enabled = {{ eq .chezmoi.os "linux" }}
+host_url = "http://localhost:11434"
+sandbox_url = "http://host.docker.internal:11434"
+default_coder_model = "qwen3-coder:30b"
+
 # Hosts that each authored plugin targets unless ai.plugin_bridge.capabilities.<name>.hosts is set.
 # Per-plugin environments and skills.<skill> = "absent" exceptions also go under that key.
 [data.ai.plugin_bridge]

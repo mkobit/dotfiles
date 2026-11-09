@@ -128,7 +128,6 @@ def _upstream_fixture(
         *([] if method is None else [f"installation_method = {json.dumps(method)}"]),
         "[data.ai.skills.hosts.github]",
         f"url_format = {json.dumps(archive.as_uri())}",
-        "[data.ai.skills.authored]",
         "[data.ai.agents.external]",
         "[data.local.bin.agy]",
         'installation_method = "github_releases"',

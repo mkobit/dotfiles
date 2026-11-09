@@ -12,16 +12,21 @@
 {{- $existingPermissions := dig "permissions" (dict) $config -}}
 {{- $config = set $config "permissions" (omit $existingPermissions "tools" "files") -}}
 {{- $allow := list -}}
-{{- $deny := list -}}
+{{- $deny := concat (dig "permissions" "deny" (list) $config) (dig "permissions" "deny" (list) .claude_code.settings) -}}
+{{- $ensureAllow := dig "permissions" "allow"  (list) .claude_code.settings -}}
+{{- $restrictedAllow := list -}}
 {{- range $cmd, $mode := dig "ai" "command_policy" "commands" (dict) . -}}
 {{-   if eq $mode "allow" -}}
 {{-     $allow = append $allow (printf "Bash(%s:*)" $cmd) -}}
 {{-   else if eq $mode "deny" -}}
 {{-     $deny = append $deny (printf "Bash(%s:*)" $cmd) -}}
 {{-   end -}}
-{{- /* "ask" (or any other value) renders nowhere — absence from both
-   allow and deny falls back to Claude Code's normal per-use prompt,
-   which is what "ask" means. */ -}}
+{{-   if or (eq $mode "deny") (and (eq $mode "ask") (not (has (printf "Bash(%s:*)" $cmd) $ensureAllow))) -}}
+{{-     $restrictedAllow = append $restrictedAllow (printf "Bash(%s:*)" $cmd) -}}
+{{-   end -}}
+{{- /* Ask preserves an exact source ensure; deny excludes it.
+   Existing native denials remain until explicitly removed.
+   Broader live grants remain. Omission alone does not revoke a live grant. */ -}}
 {{- end -}}
 {{- /* permissions.allow: additive/subtractive live-merge.
    Final = (computed Bash ∪ declared ensure ∪ live file) \ declared remove.
@@ -42,8 +47,7 @@
 {{-     $liveAllow = append $liveAllow $entry -}}
 {{-   end -}}
 {{- end -}}
-{{- $ensureAllow := dig "permissions" "allow"  (list) .claude_code.settings -}}
-{{- $removeAllow := dig "permissions" "remove" (list) .claude_code.settings -}}
+{{- $removeAllow := concat (dig "permissions" "remove" (list) .claude_code.settings) $restrictedAllow -}}
 {{- $merged      := concat $allow $ensureAllow $liveAllow | uniq | sortAlpha -}}
 {{- $finalAllow  := list -}}
 {{- range $entry := $merged -}}

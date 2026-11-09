@@ -33,10 +33,12 @@ For these Codex examples, verify the effective guest `model_reasoning_effort` co
 Show the operation, effective environment name, model, and thinking value beside each launch or resume command.
 If the effective setting cannot be verified, stop before launch.
 Use the [shared limits](host-supervisor.md#shared-limits) record for model selection and batch capacity.
-When a task ID is supplied, use the verified [read-only task context](subagent-task.md#read-only-task-context) route and complete prompt fields.
+When a task ID is supplied, use the [host-owned frozen snapshot](tracker.md) and complete prompt fields.
 Set `SBX_TASK_LOG` to a host log path whose parent exists.
 The guest report path is separate; a host log path is not a guest mount unless verified.
-These examples cover a host-verified worktree whose guest `.git` metadata is outside the mount.
+These examples cover explicit edit-only host delivery from a host-verified worktree whose guest `.git` metadata is outside the mount.
+They do not authorize guest Git or shipping.
+For autonomous work, first prove the [autonomous prerequisites](nested-execution.md#verified-autonomous-delivery), including usable Git metadata.
 Installed `codex exec --help` and `codex exec resume --help` expose `--skip-git-repo-check` for this case.
 Use that flag only after the host verifies the worktree and base; do not mount host Git metadata.
 Omit the flag when the guest has valid Git metadata and the check is appropriate.

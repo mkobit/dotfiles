@@ -47,5 +47,14 @@
 !.local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers/**
 !.cursor/plugins/local/superpowers/**
 
+{{- if not (dig "ai" "workflow" "enabled" false .) }}
+.codex/unattended.config.toml
+{{- end }}
+
+{{- if not (dig "ai" "ollama" "enabled" false .) }}
+.pi/agent/models.json
+.pi/agent/settings.json
+{{- end }}
+
 # Authored plugin content that the init decisions deselect.
 {{ includeTemplate "ai/plugin-ignore" . }}

@@ -7,17 +7,21 @@
 {{- $agyMethod := dig "local" "bin" "agy" "installation_method" "none" . -}}
 {{- if ne $agyMethod "none" -}}
 {{-   $agAllow := list -}}
-{{-   $agDeny := list -}}
+{{-   $agDeny := concat (dig "permissions" "deny" (list) $config) (dig "gemini" "permissions" "deny" (list) .) -}}
+{{-   $ensureAllow := dig "gemini" "permissions" "allow"  (list) . -}}
+{{-   $restrictedAllow := list -}}
 {{-   range $cmd, $mode := dig "ai" "command_policy" "commands" (dict) . -}}
 {{-     if eq $mode "allow" -}}
 {{-       $agAllow = append $agAllow (printf "command(%s)" (regexQuoteMeta $cmd)) -}}
 {{-     else if eq $mode "deny" -}}
 {{-       $agDeny = append $agDeny (printf "command(%s)" (regexQuoteMeta $cmd)) -}}
 {{-     end -}}
-{{- /* "ask" renders nowhere — same "absence = normal prompt" logic as
-   the Claude side. deny(...) key name is inferred from Antigravity's
-   documented "Deny > Ask > Allow" precedence, not yet live-tested —
-   harmless today since nothing sets "deny" here. */ -}}
+{{-     if or (eq $mode "deny") (and (eq $mode "ask") (not (has (printf "command(%s)" (regexQuoteMeta $cmd)) $ensureAllow))) -}}
+{{-       $restrictedAllow = append $restrictedAllow (printf "command(%s)" (regexQuoteMeta $cmd)) -}}
+{{-     end -}}
+{{- /* Ask preserves an exact source ensure; deny excludes it.
+   Existing native denials remain until explicitly removed.
+   Broader live grants remain. Omission alone does not revoke a live grant. */ -}}
 {{-   end -}}
 {{- /* Retire only exact legacy live grants; computed and ensured grants stay eligible. */ -}}
 {{-   $retiredAllow := list -}}
@@ -32,8 +36,7 @@
 {{-       $liveAllow = append $liveAllow $entry -}}
 {{-     end -}}
 {{-   end -}}
-{{-   $ensureAllow := dig "gemini" "permissions" "allow"  (list) . -}}
-{{-   $removeAllow := dig "gemini" "permissions" "remove" (list) . -}}
+{{-   $removeAllow := concat (dig "gemini" "permissions" "remove" (list) .) $restrictedAllow -}}
 {{-   $merged      := concat $agAllow $ensureAllow $liveAllow | uniq | sortAlpha -}}
 {{-   $finalAllow  := list -}}
 {{-   range $entry := $merged -}}

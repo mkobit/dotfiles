@@ -9,7 +9,8 @@ Ask only for missing task authority, actual platform permission, unavailable cre
 
 ## Readable commands
 
-Separate host setup and publication access from guest edit and check authority.
+Keep host setup authority separate from the guest's assigned delivery authority.
+Use the [verified delivery-mode contract](../../sbx-orchestrator/references/nested-execution.md#workspace-ownership) before guest Git or PR work.
 Guest bypass flags affect only the guest process; they grant no host access.
 Show short direct commands with the selected environment, model, and thinking setting visible for coding launches.
 Keep literal task data separate from command evaluation; see the [launcher](../../sbx-orchestrator/references/worker-launch.md).

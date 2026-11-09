@@ -286,6 +286,11 @@ $RECYCLE.BIN/
 # Windows shortcuts
 *.lnk
 
+# Repository sandbox configuration
+!.sbx/
+!.sbx/**
+.sbx/task-context/
+.sbx/logs/
 
 # Superpowers scratch plans and specs
 docs/superpowers/

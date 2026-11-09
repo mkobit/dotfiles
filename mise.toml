@@ -4,3 +4,35 @@ uv = "0.12.10"
 [settings]
 locked = true
 http_retries = 5
+
+[tasks.check]
+description = "Check Python lint, format, and types"
+env = { UV_FROZEN = "1" }
+run = ["uv run ruff check .", "uv run ruff format --check .", "uv run ty check"]
+
+[tasks."test:workflow"]
+description = "Run isolated workflow tests"
+env = { UV_FROZEN = "1" }
+run = """
+uv run pytest \
+  tests/integration/test_sbx_workflow.py \
+  tests/integration/test_mise.py \
+  tests/integration/test_sbx_workflow_setup.py \
+  tests/integration/test_sbx_skill_sync.py \
+  tests/integration/test_ai_workflow_permissions.py \
+  tests/integration/test_ai_workflow_skills.py \
+  tests/integration/test_docker_sandboxes_skill.py \
+  -m "not integration"
+"""
+
+[tasks.test]
+description = "Run Python and isolated workflow tests"
+depends = ["test:workflow"]
+env = { UV_FROZEN = "1" }
+run = "uv run pytest src/python"
+
+[tasks.verify]
+description = "Check, test, and build all packages"
+depends = ["check", "test"]
+env = { UV_FROZEN = "1" }
+run = "uv build --all-packages"

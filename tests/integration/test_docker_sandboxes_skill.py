@@ -80,7 +80,7 @@ def test_skill_does_not_grant_lifecycle_or_upload(command: str, skill_dir: Path)
 
 @pytest.mark.parametrize("skill_dir", [SKILL_DIR, ORCHESTRATOR_DIR], ids=["sandboxes", "orchestrator"])
 def test_skill_local_links_resolve_in_the_deployed_pair(skill_dir: Path) -> None:
-    """Resolve reference links within the pair that is copied to each skill root."""
+    """Resolve source links within the existing SBX pair copied to each skill root."""
     for document in skill_dir.rglob("*.md"):
         for target in re.findall(r"\[[^\]]+\]\(([^)]+)\)", document.read_text(encoding="utf-8")):
             if "://" in target or target.startswith("#"):

@@ -8,8 +8,9 @@ Role: You are a separate guest coding process inside the assigned SBX sandbox.
 Task: <bounded implementation goal and supplied repository task ID, if any>
 Workspace: <verified absolute guest workdir, assigned host worktree identity, and base revision>
 Baseline and checkpoint: <initial changes, prior task changes, known baseline failures with commands and exits, continuation work, and host record pointer>
-Optional issue context: <supplied issue ID, verified read-only route, snapshot identity and freshness, or none>
-Tracker access: Follow the read-only task context contract below; return evidence for host state changes.
+Optional issue context: <complete frozen issue snapshot, tracker identity, host claim evidence, same unique launch actor, and material-requirements hash, or none>
+Tracker access: The host owns claims and authoritative close; read the frozen snapshot, never claim again, and return follow-ups or blockers for the designated owner.
+Delivery mode: <verified autonomous authority and preflight evidence, or explicit edit-only host delivery>
 Dependencies: Maintain independent locked dependencies in each worktree; do not share or symlink dependency directories.
 Tools: <verified guest executable, required tool versions, and evidence reference>
 Owned files: <explicit paths or modules, including necessary package and lockfile integration>
@@ -28,11 +29,15 @@ Checks policy: Run required checks once they can pass; repeat only after relevan
 Baseline failures: Preserve exact commands, exits, and failure evidence; continue independent assigned work and return unresolved failures as incomplete without claiming a pass or asking routine scope approval.
 Resumed checks: Treat checks as stale after relevant source changes and rerun required checks after resumed edits.
 Prerequisites: Use existing tools and caches; report missing prerequisites without installing replacements outside the tracked kit.
-Host ownership: The root coordinator owns review, branch management, credentials, commits, signing, publication, and live deployment.
-Restrictions: Do not commit, push, change branches, publish, change host policy or credentials, remove sandboxes, or apply to live user directories.
+Host ownership: The root owns architecture, scope, task division, environment selection, credentials setup, recovery, independent review, and final judgment.
+Autonomous delivery: Only with the recorded verified contract, use the assigned branch, sign, push, and prepare the PR through the repository shipping interface.
+Review gate: Report review-ready for the final tested head, retain the complete assignment/session, and wait for root acceptance of independent review for that head and repository/PR scope before merge.
+Review changes: A new head invalidates acceptance; shipping must refuse merge without matching review evidence.
+Edit-only delivery: Do not branch, commit, sign, push, or ship; return edits and check evidence to the host.
+Restrictions: Do not change host policy or credentials, remove sandboxes, or apply to live user directories.
 Scope: Do not expand ownership or spawn more workers unless explicitly authorized.
 Change return: <direct mount with immediate edits, or explicit private-clone return steps>
-Stop: Return after the edit, check, and repair cycle is complete or a blocker needs host or user action.
+Stop: For edit-only work, return after the edit, check, and repair cycle; for autonomous work, retain the assignment/session through review-ready and delivery, or report a blocker.
 Interruption: Report quota, token, context, authentication, tool, and runtime failures as incomplete with the exact error and last known process state.
 Preservation: Keep changes, checkpoints, and logs; do not rapid-retry quota errors, change model or account, change credentials, or remove or rebuild the environment.
 Final handoff: State completion and remaining work explicitly, including none when appropriate.
@@ -49,20 +54,17 @@ Use [change return and handoff](nested-execution.md) to complete the report.
 
 ## Read-only task context
 
-A Bead ID does not replace scope, acceptance criteria, exact checks, or baseline evidence in the prompt.
-Before launch, select and verify the read-only context route for the supplied ID.
-If that route uses `bd`, verify installed `bd --help`, command help, and guest context routing with a read-only query.
-For a text snapshot, verify guest access, readability, issue identity, and freshness; `bd` is not required.
-Do not assume a host tracker is inside the guest mount.
-For the recorded Beads 1.3.1 snapshot route, `-C` overrides `BEADS_DIR`; do not add `-C` to that route.
-Use only the verified command and routing in the task contract.
+Use the [host-coordinator tracker route](tracker.md).
+The complete frozen snapshot must include issue identity, description, design, acceptance criteria, dependencies, agreed scope, owned paths, and current assignee/status.
+Confirm guest readability and the same actor and material-requirements hash as the launch record.
+A task ID alone does not supply scope, exact checks, or baseline evidence.
+The existing host claim satisfies the claim step; do not claim again, require guest Beads, or copy/import a database.
+Do not treat guest changes to the snapshot as task authority.
+Return unrelated work, material questions, and blockers to the designated tracker owner.
+Refresh stale or inconsistent context through the host before dependent work.
 
-When live read-only context is unavailable, use a repository-owned export or text snapshot, or an explicitly authorized disposable reader.
-Do not copy or mount the authoritative tracker database or host credentials.
-Record snapshot identity, digest or revision, export time, and freshness at launch.
-Refresh stale context through the host before relying on it.
-Keep claims, tracker state changes, and sync on the host.
-If no verified route is available, report the missing prerequisite before launch.
+For autonomous Git and PR delivery, read the local [SBX delivery procedure](delivery.md).
+For inaccessible linked-worktree Git metadata, preserve the explicit edit-only mode and host-verified baseline.
 
 ## Check selection
 
