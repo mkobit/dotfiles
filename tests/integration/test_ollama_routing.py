@@ -75,6 +75,8 @@ class RoutingHarness:
             if hook
             else (
                 ".chezmoiignore.tmpl",
+                ".chezmoitemplates/ai/plugin-ignore",
+                ".chezmoitemplates/ai/authored-plugins",
                 "dot_config/opencode/modify_opencode.json",
                 "dot_pi/agent/modify_private_models.json",
                 "dot_pi/agent/modify_private_settings.json",

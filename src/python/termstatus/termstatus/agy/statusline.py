@@ -9,9 +9,17 @@ from typing import Final
 
 from whenever import TimeDelta
 
-from termstatus.agy.protocol import AgyPayload, Quota, VcsState, normalized_text
+from termstatus.agy.protocol import AgyPayload, Quota
 from termstatus.agy.term_colors import (
     _STATE_COLORS,
+    SEPARATOR,
+    fullness_icon,
+    get_icon,
+    meter_color,
+    state_icon,
+)
+from termstatus.git_status import VcsState
+from termstatus.segments.constants import (
     BLUE,
     BOLD,
     CYAN,
@@ -21,15 +29,11 @@ from termstatus.agy.term_colors import (
     MAGENTA,
     RED,
     RESET,
-    SEPARATOR,
     SKY_BLUE,
     YELLOW,
-    fullness_icon,
-    get_icon,
-    meter_color,
-    state_icon,
     use_icons,
 )
+from termstatus.terminal_text import normalized_text
 
 _ANSI_ESCAPE: Final[Pattern[str]] = re.compile(r"(?:\x1b\[[0-9;]*m|\x1b]8;;.*?(?:\x1b\\|\x07))")
 
@@ -140,7 +144,7 @@ def git_branch(vcs: VcsState) -> str | None:
     status_items: list[str] = []
     if vcs.rebase:
         status_items.append(f"{YELLOW}REBASE{RESET}")
-    if vcs.dirty:
+    if vcs.dirty or vcs.staged:
         status_items.append(f"{YELLOW}!{RESET}")
     if vcs.untracked:
         status_items.append(f"{CYAN}?{RESET}")

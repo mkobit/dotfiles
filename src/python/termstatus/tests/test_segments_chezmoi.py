@@ -9,7 +9,7 @@ from termstatus.segments.chezmoi import (
     detect_chezmoi_root,
     generate_chezmoi_segment,
 )
-from termstatus.segments.git import AheadBehindInfo, BranchRemoteInfo, GitInfo, GitStatusInfo
+from termstatus.segments.git import GitInfo
 
 
 class TestDetectChezmoiRoot:
@@ -151,25 +151,9 @@ class TestFormatRepo:
 
 @pytest.mark.asyncio
 class TestGenerateChezmoiSegment:
-    @patch("termstatus.segments.chezmoi._check_is_repo", new_callable=AsyncMock)
-    @patch("termstatus.segments.chezmoi._get_branch_and_remote", new_callable=AsyncMock)
-    @patch("termstatus.segments.chezmoi._get_status", new_callable=AsyncMock)
-    @patch("termstatus.segments.chezmoi._get_ahead_behind", new_callable=AsyncMock)
-    @patch("termstatus.segments.chezmoi._get_stash_count", new_callable=AsyncMock)
-    async def test_both_repos_present(
-        self,
-        mock_stash: AsyncMock,
-        mock_ab: AsyncMock,
-        mock_status: AsyncMock,
-        mock_branch: AsyncMock,
-        mock_is_repo: AsyncMock,
-        tmp_path: Path,
-    ):
-        mock_is_repo.return_value = True
-        mock_branch.return_value = BranchRemoteInfo(branch="main", remote="https://github.com/user/repo")
-        mock_status.return_value = GitStatusInfo(dirty=False, staged=False, untracked=False)
-        mock_ab.return_value = AheadBehindInfo(ahead=0, behind=0)
-        mock_stash.return_value = 0
+    @patch("termstatus.segments.chezmoi.fetch_git_info", new_callable=AsyncMock)
+    async def test_both_repos_present(self, mock_fetch: AsyncMock, tmp_path: Path):
+        mock_fetch.return_value = GitInfo(branch="main", remote="https://github.com/user/repo")
 
         (tmp_path / ".chezmoiroot").write_text("src/chezmoi")
         (tmp_path / "src" / "base" / ".git").mkdir(parents=True)
@@ -183,9 +167,9 @@ class TestGenerateChezmoiSegment:
         assert 2 in lines
         assert 3 in lines
 
-    @patch("termstatus.segments.chezmoi._check_is_repo", new_callable=AsyncMock)
-    async def test_no_repos_returns_empty(self, mock_is_repo: AsyncMock, tmp_path: Path):
-        mock_is_repo.return_value = False
+    @patch("termstatus.segments.chezmoi.fetch_git_info", new_callable=AsyncMock)
+    async def test_no_repos_returns_empty(self, mock_fetch: AsyncMock, tmp_path: Path):
+        mock_fetch.return_value = None
         (tmp_path / ".chezmoiroot").write_text("src/chezmoi")
         (tmp_path / "src" / "base" / ".git").mkdir(parents=True)
 

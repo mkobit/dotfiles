@@ -1,0 +1,240 @@
+import asyncio
+import re
+from collections.abc import Sequence
+from contextlib import suppress
+from dataclasses import dataclass, replace
+from typing import Final, cast
+
+from whenever import TimeDelta
+
+from termstatus.terminal_text import normalized_text
+
+_GIT_TIMEOUT: Final[TimeDelta] = TimeDelta(milliseconds=125)
+_GIT_CLEANUP_RESERVE: Final[TimeDelta] = TimeDelta(milliseconds=25)
+_GIT_CLEANUP_SCHEDULING_MARGIN: Final[TimeDelta] = TimeDelta(milliseconds=5)
+_GIT_STATUS_MAX_BYTES: Final[int] = 64 * 1024
+_GIT_STDOUT_READ_BYTES: Final[int] = 4_096
+
+
+@dataclass(frozen=True, slots=True)
+class VcsState:
+    branch: str | None
+    dirty: bool
+    is_repo: bool
+    upstream: str | None = None
+    ahead: int = 0
+    behind: int = 0
+    origin_url: str | None = None
+    untracked: bool = False
+    rebase: bool = False
+    commit: str | None = None
+    staged: bool = False
+    stash_count: int = 0
+
+
+def _deadline_expired(deadline: float | None) -> bool:
+    return deadline is not None and asyncio.get_running_loop().time() >= deadline
+
+
+def parse_git_status(stdout: bytes, deadline: float | None = None) -> VcsState | None:
+    branch: str | None = None
+    commit: str | None = None
+    upstream: str | None = None
+    ahead = behind = 0
+    stash_count = 0
+    dirty = staged = saw_header = untracked = rebase = False
+    for line in stdout.decode(errors="replace").splitlines():
+        if _deadline_expired(deadline):
+            return None
+        if line.startswith("# branch.oid "):
+            oid = line.removeprefix("# branch.oid ").strip()
+            if oid and not oid.startswith("(") and set(oid) != {"0"}:
+                commit = normalized_text(oid)
+        elif line.startswith("# branch.head "):
+            saw_header = True
+            value = line.removeprefix("# branch.head ").strip()
+            if value.startswith("("):
+                branch = None
+                if "rebase" in value:
+                    rebase = True
+            else:
+                branch = normalized_text(value)
+        elif line.startswith("# branch.upstream "):
+            upstream = normalized_text(line.removeprefix("# branch.upstream "))
+        elif match := re.fullmatch(r"# branch\.ab \+(\d+) -(\d+)", line):
+            ahead, behind = (int(value) for value in match.groups())
+        elif line.startswith("# stash "):
+            count = line.removeprefix("# stash ")
+            stash_count = int(count) if count.isdigit() else 0
+        elif line.startswith("? "):
+            untracked = True
+        elif line.startswith(("1 ", "2 ")):
+            staged = staged or line[2] != "."
+            dirty = dirty or line[3] != "."
+        elif line.startswith("u "):
+            staged = dirty = True
+    return (
+        VcsState(
+            branch,
+            dirty,
+            True,
+            upstream,
+            ahead,
+            behind,
+            untracked=untracked,
+            rebase=rebase,
+            commit=commit,
+            staged=staged,
+            stash_count=stash_count,
+        )
+        if saw_header and not _deadline_expired(deadline)
+        else None
+    )
+
+
+def _completed_processes(
+    launches: Sequence[asyncio.Task[asyncio.subprocess.Process]],
+) -> list[asyncio.subprocess.Process]:
+    processes: list[asyncio.subprocess.Process] = []
+    for launch in launches:
+        if not launch.done() or launch.cancelled():
+            continue
+        with suppress(Exception):
+            processes.append(launch.result())
+    return processes
+
+
+async def _read_git_stdout(process: asyncio.subprocess.Process) -> tuple[bytes, bool] | None:
+    if process.stdout is None:
+        return None
+    stdout = bytearray()
+    while len(stdout) < _GIT_STATUS_MAX_BYTES:
+        chunk = await process.stdout.read(min(_GIT_STDOUT_READ_BYTES, _GIT_STATUS_MAX_BYTES - len(stdout)))
+        if not chunk:
+            return bytes(stdout), False
+        stdout.extend(chunk)
+    if not await process.stdout.read(1):
+        return bytes(stdout), False
+    if process.returncode is None:
+        with suppress(ProcessLookupError):
+            process.kill()
+    while await process.stdout.read(_GIT_STDOUT_READ_BYTES):
+        pass
+    return bytes(stdout[: stdout.rfind(b"\n") + 1]), True
+
+
+async def _probe_git_status(process: asyncio.subprocess.Process, deadline: float) -> VcsState | None:
+    result = await _read_git_stdout(process)
+    if result is None:
+        return None
+    stdout, truncated = result
+    if process.returncode is None:
+        await process.wait()
+    return parse_git_status(stdout, deadline) if truncated or process.returncode == 0 else None
+
+
+async def _probe_git_origin(process: asyncio.subprocess.Process) -> bytes | None:
+    result = await _read_git_stdout(process)
+    if result is None:
+        return None
+    if process.returncode is None:
+        await process.wait()
+    stdout, truncated = result
+    return stdout if process.returncode == 0 and not truncated else None
+
+
+async def _cancel_git_work(
+    launches: Sequence[asyncio.Task[asyncio.subprocess.Process]],
+    communications: Sequence[asyncio.Task[object]],
+    processes: Sequence[asyncio.subprocess.Process],
+    deadline: float,
+) -> None:
+    pending = [task for task in (*launches, *communications) if not task.done()]
+    for task in pending:
+        task.cancel()
+    if pending:
+        with suppress(TimeoutError):
+            async with asyncio.timeout_at(deadline - _GIT_CLEANUP_SCHEDULING_MARGIN.total("seconds")):
+                await asyncio.gather(*pending, return_exceptions=True)
+    for process in processes:
+        if process.returncode is None:
+            with suppress(ProcessLookupError):
+                process.kill()
+    waiters = [asyncio.create_task(process.wait()) for process in processes if process.returncode is None]
+    if waiters:
+        await asyncio.sleep(0)
+        with suppress(TimeoutError):
+            async with asyncio.timeout_at(deadline - _GIT_CLEANUP_SCHEDULING_MARGIN.total("seconds")):
+                await asyncio.gather(*waiters, return_exceptions=True)
+        for waiter in waiters:
+            waiter.cancel()
+        await asyncio.gather(*waiters, return_exceptions=True)
+
+
+async def probe_git(cwd: str, timeout: TimeDelta = _GIT_TIMEOUT) -> VcsState | None:
+    deadline = asyncio.get_running_loop().time() + timeout.total("seconds")
+    processes: list[asyncio.subprocess.Process] = []
+    communications: list[asyncio.Task[object]] = []
+    vcs: VcsState | None = None
+    launches = [
+        asyncio.create_task(
+            asyncio.create_subprocess_exec(
+                "git",
+                "-C",
+                cwd,
+                "status",
+                "--porcelain=v2",
+                "--branch",
+                "--show-stash",
+                "-unormal",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+        ),
+        asyncio.create_task(
+            asyncio.create_subprocess_exec(
+                "git",
+                "-C",
+                cwd,
+                "remote",
+                "get-url",
+                "origin",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.DEVNULL,
+            )
+        ),
+    ]
+    try:
+        async with asyncio.timeout_at(deadline):
+            async with asyncio.timeout_at(deadline - _GIT_CLEANUP_RESERVE.total("seconds")):
+                results = await asyncio.gather(*launches, return_exceptions=True)
+                processes = [result for result in results if not isinstance(result, BaseException)]
+                if len(processes) == len(launches):
+                    communications = [
+                        asyncio.create_task(_probe_git_status(processes[0], deadline)),
+                        asyncio.create_task(_probe_git_origin(processes[1])),
+                    ]
+                    results = await asyncio.gather(*communications, return_exceptions=True)
+                    if not isinstance(results[0], BaseException):
+                        vcs = cast(VcsState | None, results[0])
+                        origin_stdout = (
+                            cast(bytes, results[1])
+                            if not isinstance(results[1], BaseException) and results[1] is not None
+                            else None
+                        )
+                        if vcs and not _deadline_expired(deadline):
+                            origin_url = (
+                                normalized_text(origin_stdout.decode(errors="replace"))
+                                if origin_stdout is not None
+                                else None
+                            )
+                            return replace(vcs, origin_url=origin_url)
+    except TimeoutError:
+        pass
+    finally:
+        processes = _completed_processes(launches)
+        if communications and communications[0].done() and not communications[0].cancelled():
+            with suppress(Exception):
+                vcs = cast(VcsState | None, communications[0].result()) or vcs
+        await _cancel_git_work(launches, communications, processes, deadline)
+    return vcs

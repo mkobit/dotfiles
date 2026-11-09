@@ -1,0 +1,15 @@
+{{- /*
+  Codex marketplace, .agents/plugins/marketplace.json, of one generated marketplace.
+  Arguments: root (root context) and name (marketplace name).
+  Reference: https://developers.openai.com/codex/plugins
+*/ -}}
+{{- $marketplace := dig "ai" "plugin_bridge" "marketplaces" .name (dict) .root -}}
+{{- $plugins := list -}}
+{{- range $entry := includeTemplate "ai/marketplace-plugins" (dict "root" .root "name" .name "host" "codex") | fromJson -}}
+{{-   $plugins = append $plugins (dict
+        "name" $entry.name
+        "source" (dict "source" "local" "path" $entry.path)
+        "policy" (dict "installation" "AVAILABLE" "authentication" "ON_INSTALL")
+        "category" "Productivity") -}}
+{{- end -}}
+{{- dict "name" .name "interface" (dict "displayName" (dig "display_name" .name $marketplace)) "plugins" $plugins | toPrettyJson -}}

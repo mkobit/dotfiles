@@ -16,7 +16,7 @@ Merge only after required checks pass.
 - `src/chezmoi/` - Chezmoi templates and deployment configuration (the source of truth; `.chezmoiroot`).
 - `src/chezmoi/.chezmoidata/` - Modular configuration data (TOML).
 - `src/chezmoi/.chezmoidata/ai/skills/` - AI skill deployment catalog (pinned upstream skills installed via chezmoi externals).
-- `src/ai/skills/` - Authored AI skills (canonical sources, deployed as copies).
+- `src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/` - Authored AI plugins, one native chezmoi folder per plugin; base skills live in `exact_mkobit-dotfiles/exact_skills/`.
 - `src/python/` - Local Python tools (uv workspace).
 
 ## Subagent delegation
@@ -54,7 +54,7 @@ This repo's `.claude/settings.json` denies `Edit(...)` on known deployed paths f
 
 - Global Claude Code prompt: `src/chezmoi/dot_claude/CLAUDE.md.tmpl` → `~/.claude/CLAUDE.md`.
 - Claude Code settings: `src/chezmoi/dot_claude/modify_settings.json` → `~/.claude/settings.json`.
-- Skills catalog: `src/chezmoi/.chezmoidata/ai/skills/`; authored skill sources under `src/ai/skills/`.
+- Skills catalog: `src/chezmoi/.chezmoidata/ai/skills/`.
 - Agents catalog: `src/chezmoi/.chezmoidata/ai/agents.toml` (pinned upstream selections; no authored agent sources exist yet).
 
 After editing source, preview with `chezmoi diff`, then sync with `chezmoi apply` (optionally scoped to a target path, e.g. `chezmoi apply ~/.claude/CLAUDE.md`).

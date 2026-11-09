@@ -3,19 +3,22 @@
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 
 import pytest
-from test_sbx_workflow_setup import SETUP, SYNC, HookHarness, decisions
+from test_sbx_workflow_setup import SETUP, SOURCE, SYNC, HookHarness, decisions
 
 PORTABLE = ".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills"
 RECEIPT = ".local/state/dotfiles/sbx-skills-ownership.json"
 IMPORT = ["skills", "import", "--force"]
+PLUGIN_SOURCE = "dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles"
 
 
 def sync_data(**sandbox):
     data = decisions(sync_skills=True, **sandbox)
-    data["ai"]["skills"] = {"authored": {"alpha": "present", "tool-only": "claude", "old": "absent"}}
+    data["ai"]["plugin_bridge"] = {"capabilities": {"mkobit-dotfiles": {"skills": {"old": "absent"}}}}
+    data["ai"]["skills"] = {"external": {"acquired": {"skills": {"tool-only": "claude"}}}}
     return data
 
 
@@ -28,6 +31,13 @@ def write(root, relative, text):
 
 def harness(tmp_path):
     h = HookHarness(tmp_path, SYNC)
+    template = ".chezmoitemplates/ai/authored-plugins"
+    (h.source / template).parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(SOURCE / template, h.source / template)
+    for relative in ("exact_skills/exact_alpha", "exact_skills/exact_old", "exact_claude/exact_skills/exact_tool-only"):
+        (h.source / PLUGIN_SOURCE / relative).mkdir(parents=True, exist_ok=True)
+    # Discovery uses source folders; the portable payload below is already rendered.
+    write(h.source, ".chezmoiignore", ".local/share/agent-plugins\n.local/share/agent-plugins/**\n")
     write(h.destination / PORTABLE, "alpha/SKILL.md", "already rendered destination and decisions\n")
     write(h.destination / PORTABLE, "alpha/references/note.txt", "reference\n")
     write(h.destination / PORTABLE, "tool-only/SKILL.md", "tool specific\n")
@@ -176,7 +186,7 @@ def test_removed_or_disabled_skill_cleans_only_owned_files_and_keeps_store(tmp_p
     h.run(sync_data())
     data = sync_data()
     if disabled == "selection":
-        data["ai"]["skills"]["authored"]["alpha"] = "absent"
+        data["ai"]["plugin_bridge"]["capabilities"]["mkobit-dotfiles"]["skills"]["alpha"] = "absent"
     elif disabled == "provider":
         data["ai"]["sandbox"]["provider"] = "none"
     elif disabled == "sync":
@@ -259,14 +269,13 @@ def test_symlink_components_are_rejected_without_touching_referents(tmp_path, wh
     assert h.calls() == ([IMPORT] if where == "destination-file" else [])
 
 
-@pytest.mark.parametrize("name", ["../escape", "..", "/absolute", "a/b", "bad\\name"])
-def test_unsafe_skill_names_are_rejected(tmp_path, name):
+@pytest.mark.parametrize("name", ["bad_name", "Bad-name", "bad.name"])
+def test_unsafe_source_skill_names_are_rejected(tmp_path, name):
     h = harness(tmp_path)
-    data = sync_data()
-    data["ai"]["skills"]["authored"] = {name: "present"}
-    result = subprocess.run(["/bin/bash"], input=h.render(data), capture_output=True, text=True, check=False)
-    assert result.returncode != 0
-    assert "unsafe" in result.stderr.lower()
+    folder = h.source / PLUGIN_SOURCE / "exact_skills/exact_alpha"
+    folder.rename(folder.with_name("exact_" + name))
+    with pytest.raises(AssertionError, match="authored skill folder name must match"):
+        h.render(sync_data())
     assert not h.calls()
 
 
@@ -347,7 +356,8 @@ def test_prior_success_does_not_prove_current_store_identity(tmp_path):
 
 @pytest.mark.parametrize("hook", [SETUP, SYNC])
 def test_enabled_hooks_render_as_valid_bash(tmp_path, hook):
-    h = HookHarness(tmp_path, hook)
+    h = harness(tmp_path)
+    h.hook = hook
     rendered = h.render(sync_data())
     assert rendered.startswith("#!/usr/bin/env bash\n")
     result = subprocess.run(["bash", "-n"], input=rendered, capture_output=True, text=True, check=False)
@@ -390,10 +400,12 @@ def test_modified_obsolete_copy_is_preserved_without_import(tmp_path):
     assert h.calls() == [IMPORT]
 
 
-def test_removed_catalog_entry_and_missing_authored_map_clean_owned_copy(tmp_path):
+@pytest.mark.parametrize("removed", ["exact_skills/exact_alpha", ""], ids=["skill", "plugin"])
+def test_removed_source_skill_or_plugin_cleans_owned_copy(tmp_path, removed):
     h = harness(tmp_path)
     h.run(sync_data())
-    h.run(decisions(sync_skills=True))
+    shutil.rmtree(h.source / PLUGIN_SOURCE / removed)
+    h.run(sync_data())
     assert not (h.destination / ".agents/skills/alpha").exists()
     assert h.calls() == [IMPORT]
 
@@ -674,4 +686,42 @@ def test_destination_symlink_below_parent_alias_is_rejected(parent_alias, enable
     assert not (referent / RECEIPT).exists()
     assert not (referent / ".agents").exists()
     assert (referent / PORTABLE / "alpha/SKILL.md").read_text() == "already rendered destination and decisions\n"
+    assert not h.calls()
+
+
+@pytest.mark.parametrize(
+    "decision",
+    [{"enabled": False}, {"hosts": []}, {"environments": ["other"]}, {"skills": {"alpha": "absent"}}],
+    ids=["disabled-plugin", "no-hosts", "other-environment", "absent-skill"],
+)
+def test_plugin_deselection_cleans_owned_copy(tmp_path, decision):
+    h = harness(tmp_path)
+    h.run(sync_data(), apply=True)
+    data = sync_data()
+    data["ai"]["plugin_bridge"]["capabilities"]["mkobit-dotfiles"].update(decision)
+    h.run(data, apply=True)
+    assert not (h.destination / ".agents/skills/alpha").exists()
+    assert h.calls() == [IMPORT]
+
+
+@pytest.mark.parametrize("hosts", [["claude"], ["codex"], ["cursor"], ["claude", "codex", "cursor"]])
+def test_shared_source_skills_sync_across_selected_hosts_without_acquired_skills(tmp_path, hosts):
+    h = harness(tmp_path)
+    data = sync_data()
+    data["ai"]["plugin_bridge"]["capabilities"]["mkobit-dotfiles"]["hosts"] = hosts
+    write(h.destination / PORTABLE, "acquired/SKILL.md", "external shared skill\n")
+    h.run(data, apply=True)
+    assert set(receipt(h)["skills"]) == {"alpha"}
+    assert not (h.destination / ".agents/skills/tool-only").exists()
+    assert not (h.destination / ".agents/skills/acquired").exists()
+    assert h.calls() == [IMPORT]
+
+
+def test_host_specific_authored_package_is_not_a_shared_source(tmp_path):
+    h = harness(tmp_path)
+    data = sync_data()
+    data["ai"]["plugin_bridge"]["capabilities"]["mkobit-dotfiles"]["hosts"] = ["claude"]
+    data["ai"]["plugins"] = {"mkobit-dotfiles": {"host_dirs": {"claude": "claude"}}}
+    h.run(data, apply=True)
+    assert not (h.destination / ".agents").exists()
     assert not h.calls()

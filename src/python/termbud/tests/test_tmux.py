@@ -15,75 +15,40 @@ def mock_subprocess_run():
         yield mock
 
 
-def test_tmux_open_url_success_linux(mock_subprocess_run):
+@pytest.mark.parametrize(
+    ("platform", "uname_release", "url", "expected_opener"),
+    [
+        ("linux", "5.15.0-generic", "https://example.com", "xdg-open"),
+        ("darwin", None, "https://apple.com", "open"),
+        ("linux", "5.15.90.1-microsoft-standard-WSL2", "https://microsoft.com", "wslview"),
+    ],
+)
+def test_tmux_open_url_success(mock_subprocess_run, platform, uname_release, url, expected_opener):
     def side_effect_run(cmd, *args, **kwargs):
         if cmd[0] == "tmux":
-            if cmd[1] == "capture-pane":
-                mock = MagicMock()
-                mock.stdout = "Some text with https://example.com inside"
-                return mock
-            return MagicMock()
+            mock = MagicMock()
+            mock.stdout = f"Some text with {url} inside"
+            return mock
         if cmd[0] == "fzf":
             mock = MagicMock()
-            mock.stdout = "enter\nhttps://example.com\n"
+            mock.stdout = f"enter\n{url}\n"
             return mock
         return MagicMock()
 
     mock_subprocess_run.side_effect = side_effect_run
-    with patch("sys.platform", "linux"), patch("os.uname") as mock_uname:
-        mock_uname.return_value = MagicMock(release="5.15.0-generic")
-        result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
+    with patch("sys.platform", platform):
+        if uname_release is not None:
+            with patch("os.uname") as mock_uname:
+                mock_uname.return_value = MagicMock(release=uname_release)
+                result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
+        else:
+            result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
 
     assert result.exit_code == 0
-    # capture-pane, fzf, xdg-open
+    # capture-pane, fzf, opener
     assert mock_subprocess_run.call_count == 3
     last_call = mock_subprocess_run.call_args_list[-1]
-    assert last_call[0][0] == ["xdg-open", "https://example.com"]
-
-
-def test_tmux_open_url_success_darwin(mock_subprocess_run):
-    def side_effect_run(cmd, *args, **kwargs):
-        if cmd[0] == "tmux":
-            mock = MagicMock()
-            mock.stdout = "https://apple.com"
-            return mock
-        if cmd[0] == "fzf":
-            mock = MagicMock()
-            mock.stdout = "enter\nhttps://apple.com\n"
-            return mock
-        return MagicMock()
-
-    mock_subprocess_run.side_effect = side_effect_run
-    with patch("sys.platform", "darwin"):
-        result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
-
-    assert result.exit_code == 0
-    assert mock_subprocess_run.call_count == 3
-    last_call = mock_subprocess_run.call_args_list[-1]
-    assert last_call[0][0] == ["open", "https://apple.com"]
-
-
-def test_tmux_open_url_success_wsl(mock_subprocess_run):
-    def side_effect_run(cmd, *args, **kwargs):
-        if cmd[0] == "tmux":
-            mock = MagicMock()
-            mock.stdout = "https://microsoft.com"
-            return mock
-        if cmd[0] == "fzf":
-            mock = MagicMock()
-            mock.stdout = "enter\nhttps://microsoft.com\n"
-            return mock
-        return MagicMock()
-
-    mock_subprocess_run.side_effect = side_effect_run
-    with patch("sys.platform", "linux"), patch("os.uname") as mock_uname:
-        mock_uname.return_value = MagicMock(release="5.15.90.1-microsoft-standard-WSL2")
-        result = runner.invoke(app, ["tmux", "open-url", "--pane-id", "%1"])
-
-    assert result.exit_code == 0
-    assert mock_subprocess_run.call_count == 3
-    last_call = mock_subprocess_run.call_args_list[-1]
-    assert last_call[0][0] == ["wslview", "https://microsoft.com"]
+    assert last_call[0][0] == [expected_opener, url]
 
 
 def test_tmux_open_url_capture_fail(mock_subprocess_run):

@@ -292,3 +292,5 @@ $RECYCLE.BIN/
 .sbx/task-context/
 .sbx/logs/
 
+# Superpowers scratch plans and specs
+docs/superpowers/

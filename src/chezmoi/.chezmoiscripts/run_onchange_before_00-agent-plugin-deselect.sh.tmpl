@@ -1,0 +1,62 @@
+#!/bin/sh
+# Move authored plugin content that ai/plugin-ignore deselects out of the plugin folders.
+# chezmoi keeps ignored entries inside exact_ folders, so this script removes deployed copies.
+# It moves them to a stash instead of deleting them. When the content is selected again,
+# the script moves it back before chezmoi applies, so chezmoi updates it without a prompt.
+# The rendered path list makes run_onchange run again when the deselection changes.
+set -eu
+set -f
+
+destination={{ .chezmoi.destDir | shellQuote }}
+stash="$destination/.local/state/dotfiles/agent-plugin-deselected"
+deselected='
+{{- range $name, $plugin := includeTemplate "ai/authored-plugins" . | fromJson }}
+{{-   range $path := $plugin.deselected }}
+{{ $path }}
+{{-   end }}
+{{- end }}
+'
+
+# Refuse a symlink at any component, so a move never leaves its root.
+# POSIX sh has no local variables, so helper variables use a component_ prefix.
+real_path() {
+    component_path=$1
+    for component_part in $(printf '%s' "$2" | tr '/' ' '); do
+        component_path=$component_path/$component_part
+        if [ -L "$component_path" ]; then
+            printf 'agent-plugin-deselect: refusing symlink: %s\n' "$component_path" >&2
+            return 1
+        fi
+    done
+}
+
+move() {
+    if real_path "$1" "$3" && real_path "$2" "$3" && [ -e "$1/$3" ] && [ ! -e "$2/$3" ]; then
+        mkdir -p "$(dirname "$2/$3")"
+        mv "$1/$3" "$2/$3"
+    fi
+}
+
+mkdir -p "$stash"
+: >"$stash/index.next"
+if [ -f "$stash/index" ]; then
+    while IFS= read -r path; do
+        case "$deselected" in
+            *"
+$path
+"*) printf '%s\n' "$path" >>"$stash/index.next" ;;
+            *) move "$stash" "$destination" "$path" ;;
+        esac
+    done <"$stash/index"
+fi
+for path in $deselected; do
+    if real_path "$destination" "$path" && [ -e "$destination/$path" ]; then
+        rm -rf "${stash:?}/$path"
+    fi
+    move "$destination" "$stash" "$path"
+    if [ -e "$stash/$path" ]; then
+        printf '%s\n' "$path" >>"$stash/index.next"
+    fi
+done
+sort -u "$stash/index.next" >"$stash/index"
+rm -f "$stash/index.next"

@@ -2,47 +2,117 @@
 
 ## Architecture overview
 
-Chezmoi builds and registers skill and plugin packages from canonical sources.
-The four stages below describe responsibilities; rendering and host filtering can run within the same external.
+Three layers deliver agent plugins and skills; they do not mix.
 
-| Stage | Input and result | Source |
+| Layer | What it does | Source |
 |---|---|---|
-| Source and data | Authored files, pinned archives, and catalog selections combine with init data; effective data changes rendered content. | [Skills](skills/), [catalog](../chezmoi/.chezmoidata/ai/), [init template](../chezmoi/.chezmoi.toml.tmpl) |
-| Generated packages | Packages contain copied plain files, rendered authored `.tmpl` files, and versions based on content and selections. | [File entries](../chezmoi/.chezmoitemplates/ai/authored-file-entry), [package inputs](../chezmoi/.chezmoitemplates/ai/authored-plugins) |
-| Host transformation and bundling | Externals select files, convert upstream agents, and build portable and host package views. | [Skill externals](../chezmoi/.chezmoiexternals/ai-skills.toml.tmpl), [agent externals](../chezmoi/.chezmoiexternals/ai-agents.toml.tmpl), [filter](../python/skill_filter/skill_filter/main.py), [wrappers](../chezmoi/.chezmoiexternals/ai-authored-wrappers.toml.tmpl) |
-| Registration and uninstall | The post-apply bridge registers Claude Code and Codex packages and removes stale registrations that it owns. | [Hook](../chezmoi/.chezmoiscripts/run_after_agent-plugin-bridge.sh.tmpl), [bridge](../python/skill_filter/skill_filter/plugin_bridge.py) |
+| Generate | `chezmoi apply` writes the authored plugin packages from native source folders. Files only; templates fill in manifests, versions, and capabilities. | [Plugin folders](../chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/), [host templates](../chezmoi/.chezmoitemplates/ai/) |
+| External | Third-party skills, plugins, and agents come only through pinned chezmoi externals. | [Catalog](../chezmoi/.chezmoidata/ai/), [skill externals](../chezmoi/.chezmoiexternals/ai-skills.toml.tmpl), [plugin externals](../chezmoi/.chezmoiexternals/ai-upstream-plugins.toml.tmpl), [agent externals](../chezmoi/.chezmoiexternals/ai-agents.toml.tmpl) |
+| Install and link | After the files are written, the `run_after` bridge installs and removes plugins through each host CLI. It never writes package files. | [Hook](../chezmoi/.chezmoiscripts/run_after_agent-plugin-bridge.sh.tmpl), [bridge](../python/skill_filter/skill_filter/plugin_bridge.py) |
 
-Authored skills and wrappers share the chezmoi Go template engine and effective data; there is no separate renderer or framework.
-Chezmoi generates marketplace manifests from the catalog through the shared [`ai/plugin-marketplace`](../chezmoi/.chezmoitemplates/ai/plugin-marketplace) template.
 Output paths below are relative to `chezmoi.destDir`.
-Portable skills use `.local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills/`; host views use sibling `claude/`, `codex/`, and `cursor/` directories.
-Cursor also receives local packages under `.cursor/plugins/local/`.
-Antigravity reads flat skills from `.gemini/antigravity-cli/skills/` and package paths from `.gemini/config/plugins.json`; both require `local.bin.agy.installation_method != "none"`.
-OpenCode V1 receives local package paths in `.config/opencode/opencode.json` when both its tool gate and the package gate are enabled.
+The generated `dotfiles` marketplace is `.local/share/agent-plugins/marketplace/`.
+It holds `.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json` (Codex), `.cursor-plugin/marketplace.json`, and `plugins/<name>/`.
+Dotfiles own `plugins/`, so a plugin folder that leaves the source leaves the destination.
 
-## Workflows for AI agents
+## Authored plugins
 
-### Authored skills
+### Layout
 
-Create `src/ai/skills/<name>/SKILL.md` for plain authored skill content, or `SKILL.md.tmpl` to use chezmoi Go templates.
-Declare `<name> = "present"` in the [authored catalog](../chezmoi/.chezmoidata/ai/skills/authored.toml).
-The [base externals](../chezmoi/.chezmoiexternals/ai-authored-skills.toml.tmpl) and [overlay capability externals](../chezmoi/.chezmoiexternals/ai-authored-capabilities.toml.tmpl) deploy nested authored skill files.
-Only authored skill files with a final `.tmpl` suffix use template rendering; that suffix is removed from the output name.
-Plain files keep their bytes, and both forms keep executable modes.
-Source files that map to the same output path cause apply to fail.
+Each authored plugin is one folder, `src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_<name>/`.
+Hosts share the folder where their layouts allow, because each host reads only its own `.<host>-plugin/` manifest:
 
-The [file entry template](../chezmoi/.chezmoitemplates/ai/authored-file-entry) renders templates with the effective merged data from `.chezmoidata/` and `[data.*]` configuration.
-Configuration values take precedence over catalog defaults at the same key path.
-The [render context](../chezmoi/.chezmoitemplates/ai/authored-render-context) sets `chezmoi.sourceFile` to the canonical source path and `chezmoi.targetFile` to the rendered skill-relative or wrapper package-relative name.
-Use `chezmoi.destDir` for destination paths and `dig` with safe defaults for optional data.
-Use deterministic data; clocks, random values, and live lookups can change package versions on each apply.
-The [base version template](../chezmoi/.chezmoitemplates/ai/authored-base-version) and [capability manifest](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest) calculate versions from rendered content, plain file hashes, executable modes, and selection data.
+```text
+exact_mkobit-dotfiles/
+├── exact_dot_claude-plugin/plugin.json.tmpl   → .claude-plugin/plugin.json
+├── exact_dot_codex-plugin/plugin.json.tmpl    → .codex-plugin/plugin.json
+├── exact_dot_cursor-plugin/plugin.json.tmpl   → .cursor-plugin/plugin.json
+├── plugin.json.tmpl                           → plugin.json (Antigravity)
+├── exact_claude/exact_skills/.keep            → claude/skills/ (Claude-only upstream skills)
+└── exact_skills/
+    ├── exact_beads/SKILL.md
+    └── exact_technical-writing/SKILL.md.tmpl
+```
 
-The [technical-writing template](skills/technical-writing/SKILL.md.tmpl) accepts optional `ai.skills.content.technical-writing.description` and `ai.skills.content.technical-writing.instructions` strings.
-A non-empty description replaces the YAML description with a quoted scalar.
-Non-empty instructions follow the unchanged Markdown body after a blank line.
-Missing or empty values keep the original description and body bytes.
-Catalog defaults use `[ai.skills.content.technical-writing]`; an overlay can override either value in its init template:
+Use `exact_` on every folder so that deleted and renamed files go on the next apply.
+Use chezmoi source names for files: `dot_` for dotfiles, `executable_` for scripts, and `.tmpl` for templates, which render with the normal data.
+Each manifest is one line that calls the template of its host:
+
+```text
+{{ includeTemplate "ai/claude/plugin-manifest" (dict "name" "mkobit-dotfiles" "root" .) -}}
+```
+
+Pass `"extra" (dict "mcpServers" "./.mcp.json")` to add host manifest keys, such as MCP servers or Cursor `rules`.
+When a host needs a different shape, put its package in a host subfolder, for example `exact_<name>/exact_claude/`, and name it in `host_dirs` (see below).
+The marketplace then points that host at `./plugins/<name>/<dir>`.
+The [Codex template](../chezmoi/.chezmoitemplates/ai/codex/plugin-manifest) lists the skill names as `interface.capabilities`.
+Versions digest the folder contents, rendered templates, and selection data, so they change with content and data only.
+
+### Data
+
+Identity is one table per plugin in `src/chezmoi/.chezmoidata/ai/plugins/<name>.toml`:
+
+```toml
+[ai.plugins.example]
+description = "Example plugin."
+author = "someone"         # optional; defaults to .chezmoi.username
+[ai.plugins.example.host_dirs]
+claude = "claude"          # optional; the package of this host is plugins/example/claude
+```
+
+Skills are discovered from the folder, never listed.
+An authored identity table has no archive keys, so the upstream plugin external ignores it.
+Machine decisions live in the init template, with safe defaults when absent:
+
+```toml
+[data.ai.plugin_bridge]
+default_hosts = ["claude", "codex", "cursor"]
+
+[data.ai.plugin_bridge.capabilities.example]
+enabled = false                 # default true; false removes the plugin
+hosts = ["claude", "codex"]     # default ai.plugin_bridge.default_hosts
+environments = ["mydev"]        # default every ai.plugin_bridge.environment
+
+[data.ai.plugin_bridge.capabilities.example.skills]
+some-skill = "absent"
+```
+
+A deselected host manifest renders empty, so chezmoi removes it.
+[`ai/plugin-ignore`](../chezmoi/.chezmoitemplates/ai/plugin-ignore) ignores disabled plugins, unselected host subfolders, and absent skills.
+chezmoi keeps ignored entries inside `exact_` folders, so a [small script](../chezmoi/.chezmoiscripts/run_onchange_before_00-agent-plugin-deselect.sh.tmpl) moves deployed copies to `.local/state/dotfiles/agent-plugin-deselected/` and back when they are selected again.
+A disabled plugin leaves the marketplaces, and the bridge uninstalls it when it owns the install.
+
+### Overlay contract
+
+An overlay adds plugins and changes choices; it never edits base files outside its `OVERLAY_WINS` list.
+
+- Add a plugin: add `exact_plugins/exact_<name>/` to the overlay `src/chezmoi`, and `.chezmoidata/ai/plugins/<name>.toml`. `bin/assemble` merges the folders.
+- Change a choice: set `[data.ai.plugin_bridge]` or `[data.ai.plugin_bridge.capabilities.<name>]` keys in the overlay `.chezmoi.toml.tmpl`, for example `enabled = false` for a base plugin or `local.bin.agy.installation_method = "none"`.
+- An overlay `.chezmoiignore.tmpl` must keep `{{ includeTemplate "ai/plugin-ignore" . }}`; an overlay `dot_claude/.chezmoiremove.tmpl` should range over `ai/retired-skills`.
+
+### Hosts
+
+Claude Code and Codex install through their plugin CLIs; the bridge records ownership only for installs it performed.
+Cursor has no plugin install command, so no bridge adapter exists for it.
+[`run_onchange_after_agent-plugin-cursor-local`](../chezmoi/.chezmoiscripts/run_onchange_after_agent-plugin-cursor-local.sh.tmpl) copies each enabled authored plugin selected for Cursor from the marketplace folder to `.cursor/plugins/local/<name>/` (with `.cursor-plugin/plugin.json`), and removes the copy of a plugin that is disabled or not selected.
+Antigravity converges only through the `agy` CLI, never through `.gemini/config/plugins.json`.
+When `local.bin.agy.installation_method` is not `"none"`, the bridge runs `agy plugin list --json` and compares it with the plugin directories that have `plugin.json` or `.antigravity-plugin/plugin.json` at their root.
+Those are the authored `dotfiles` plugins, and the Superpowers directory when chezmoi installs it; upstream Superpowers ships its own `.antigravity-plugin/plugin.json`, so chezmoi generates no manifest for it.
+The bridge runs `agy plugin install <plugin dir>` for a missing plugin.
+It runs `agy plugin uninstall <name>` then install when the listed version differs from the generated manifest version.
+It records ownership (`plugin`, `antigravity`) in the same ownership file for each install, and uninstalls an owned plugin that is no longer desired.
+It never uninstalls a plugin that it did not install.
+The list parser accepts a top-level array or an object with a `plugins`, `installed`, `items`, `entries`, or `data` array, with entries that have `name` and optional `version`.
+If `agy` is missing, a probe or command fails, or the list is unparseable, the bridge logs and skips agy for that run; apply never fails because of agy.
+A plugin installed by an earlier bridge run has no ownership record, so the bridge reinstalls it on a version change but never uninstalls it.
+`dot_gemini/config/modify_plugins.json` only removes the old `plugins.json` entries and can be deleted later.
+The bridge refreshes owned external marketplaces only with its `--refresh` flag or chezmoi's `-R` (`--refresh-externals`) flag from `CHEZMOI_ARGS`.
+
+### Skill templates
+
+The [technical-writing template](../chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles/exact_skills/exact_technical-writing/SKILL.md.tmpl) accepts optional `ai.skills.content.technical-writing.description` and `ai.skills.content.technical-writing.instructions` strings.
+A non-empty description replaces the YAML description; non-empty instructions follow the body after a blank line.
+An overlay can set either value in its init template:
 
 ```toml
 [data.ai.skills.content.technical-writing]
@@ -50,13 +120,7 @@ description = "Use when writing standalone documentation."
 instructions = "Follow the project style guide."
 ```
 
-Rendered output uses the existing portable, host, Cursor local, and gated Antigravity paths described above.
-The [base cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-skills-cleanup.sh.tmpl) and [capability cleanup hook](../chezmoi/.chezmoiscripts/run_onchange_after_00-agent-plugin-authored-capabilities-cleanup.sh.tmpl) remove owned output with rendered names.
-The [plugin bridge](../python/skill_filter/skill_filter/plugin_bridge.py) registers the generated packages after apply.
-Rendering leaves canonical sources unchanged; edit those sources, not deployed copies.
-Third-party packages, host conversion, and native package registration keep their existing behavior.
-
-### Upstream third-party skills
+## Upstream third-party skills
 
 Pin `repo`, `ref`, and `sha256` under `[ai.skills.external.<source>]` in `src/chezmoi/.chezmoidata/ai/skills/<source>.toml`.
 Select individual skills under `[ai.skills.external.<source>.skills]` with state `"present"` or a specific host name (`"claude"`, `"codex"`, `"cursor"`, `"antigravity"`).
@@ -89,52 +153,10 @@ Set explicit `url` on a source table under `[ai.skills.external.<source>]` for o
 url_format = "https://ghe.internal/api/v3/repos/{repo}/tarball/{ref}"
 ```
 
-### Authored plugin packages
-
-Declare each package under `[ai.plugin_bridge.capabilities.<name>]` in the capability catalog.
-Set `source_dir` to its source directory under `src/overlay-plugins/`.
-Skills use `<source_dir>/skills/` unless `skills_source_dir` names a separate skill root.
-Set `wrapper_source_dir` to the canonical host package files and declare the supported `hosts`.
-These paths start with `src/` and refer to the assembled tree.
-Select skills under the capability's `skills` table with `"present"`, `"absent"`, or a declared host name.
-
-```toml
-[ai.plugin_bridge.capabilities.example]
-description = "Example capability bundle."
-source_dir = "src/overlay-plugins/example"
-skills_source_dir = "src/overlay-skills"
-wrapper_source_dir = "src/overlay-plugins/example/wrappers"
-marketplace = "dotfiles"
-hosts = ["claude", "codex", "cursor"]
-
-[ai.plugin_bridge.capabilities.example.skills]
-example = "present"
-```
-
-Put host files below `wrappers/claude/`, `wrappers/codex/`, and `wrappers/cursor/` for each declared host.
-Use literal target names, such as `claude/.claude-plugin/plugin.json.tmpl` and `codex/.codex-plugin/plugin.json.tmpl`.
-Only the final `.tmpl` suffix has special meaning; names such as `dot_claude-plugin` stay literal.
-The [wrapper external](../chezmoi/.chezmoiexternals/ai-authored-wrappers.toml.tmpl) copies plain files, renders templates, and preserves executable modes through the existing [file entry template](../chezmoi/.chezmoitemplates/ai/authored-file-entry).
-It uses the same chezmoi Go template engine and effective data as authored skills.
-It places wrappers beside selected skills at `.local/share/agent-plugins/marketplace/plugins/<name>/<host>/` and copies Cursor packages to `.cursor/plugins/local/<name>/`.
-Source-only files such as `AGENTS.md` and `README.md` at `source_dir` stay out of the package.
-Only selected skill files and declared wrapper files enter these outputs.
-
-The [wrapper inventory](../chezmoi/.chezmoitemplates/ai/authored-wrapper-files) rejects path escapes, symlinked sources, duplicate target paths, and wrappers that overlap `skills/`.
-Host and environment gates prevent inactive wrapper templates from rendering.
-Versions include rendered support files, executable modes, source-relative paths, and selection data.
-The native `.<host>-plugin/plugin.json` manifest uses its raw source hash as a version input to prevent recursive version calculation.
-The manifest itself still renders before delivery.
-Pass `host` to the [manifest helper](../chezmoi/.chezmoitemplates/ai/authored-plugin-manifest) so packages with no skills for that host omit `./skills`.
-If you omit `host`, the helper retains legacy behavior and includes `./skills` when any host has selected skills.
-Cleanup records exact wrapper target paths and removes only previously recorded files, preserving unknown siblings.
-Capabilities without `wrapper_source_dir` retain their existing native package files.
-
-### Deselecting or removing skills
-
-Set state to `"absent"` in the relevant catalog TOML file to deselect an authored or upstream skill.
-Never delete catalog keys for removed skills, which leaves deployed files unmanaged.
-`.chezmoiremove.tmpl` templates in each plugin host view and `dot_gemini/` tombstone and prune absent skills on `chezmoi apply`.
+A `"present"` upstream skill deploys to `plugins/mkobit-dotfiles/skills/<name>`, and also to `.gemini/antigravity-cli/skills/<name>` when Antigravity is enabled.
+A host state such as `"claude"` deploys to `plugins/mkobit-dotfiles/claude/skills/<name>`, which only the Claude manifest lists.
+Set a deselected skill to `"absent"` so the host `.chezmoiremove.tmpl` files prune copies, then delete the key after about two months; machines that apply later clean leftovers by hand.
+Retired authored skill names live in [`ai/retired-skills`](../chezmoi/.chezmoitemplates/ai/retired-skills).
 
 ## Upstream plugin packages
 
@@ -156,7 +178,7 @@ Its shared root is `.local/share/agent-plugins/marketplaces/superpowers-marketpl
 Claude Code and Codex register it as `superpowers@superpowers-marketplace`, separate from `mkobit-dotfiles@dotfiles`.
 Each generated marketplace declares its destination-relative `source_locator`, owner, source, trust class, and native hosts in the keyed marketplace catalog.
 [`plugin_declarations.py`](../python/skill_filter/skill_filter/plugin_declarations.py) validates and plans declarations without file writes.
-Each marketplace has one source template per native host, which calls the shared renderer.
+Each marketplace has one source template per host, which calls that host's template under `.chezmoitemplates/ai/<host>/`.
 Overlays can add marketplace templates and catalog declarations through the same structure.
 Provenance reports each capability's marketplace, source, and trust class from its own declaration.
 Cursor receives an identical archive at `.cursor/plugins/local/superpowers/` and uses the upstream manifest and hooks there.
@@ -178,28 +200,15 @@ Onboarding an agent requires a prompt-injection review of content at the pinned 
 
 ## Verification and testing
 
-Preview pending changes:
-
-```sh
-chezmoi diff
-```
-
-Apply skill and plugin updates:
-
-```sh
-chezmoi apply
-```
-
+Preview pending changes with `chezmoi diff`, then apply with `chezmoi apply`.
 Validate an overlay with its real assembly and `chezmoi init` in a temporary destination, with separate config, cache, and state paths.
-Then run a scoped `chezmoi apply` that excludes installation and native registration scripts.
-Inspect manifest resource paths and complete Cursor local copies in the output.
-An offline check that excludes remote externals verifies authored packages only; it does not verify remote acquisition or remote installation.
+Then run a scoped `chezmoi apply --exclude scripts`, so that the bridge does not register temporary paths with the real host CLIs.
 
-Run the focused package tests and linters:
+Run the focused tests and linters:
 
 ```sh
 uv run ruff check
 uv run ruff format --check
 uv run ty check
-uv run pytest -p no:cacheprovider -m 'not integration' tests/integration/test_ai_skills.py tests/integration/test_ai_authored_capabilities.py tests/integration/test_ai_plugin_manifest_lifecycle.py tests/integration/test_ai_environment_fixtures.py tests/integration/test_overlay_authored_manifest_snapshot.py tests/integration/test_sbx_plugin_approval.py src/python/skill_filter/tests/
+uv run pytest -p no:cacheprovider -m 'not integration' tests/integration/test_ai_plugin_folders.py tests/integration/test_ai_skills.py tests/integration/test_ai_environment_fixtures.py src/python/skill_filter/tests/
 ```

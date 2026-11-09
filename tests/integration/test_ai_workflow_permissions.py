@@ -39,7 +39,12 @@ SELECTED = {
 def tree(tmp_path: Path) -> tuple[Path, Path]:
     source, target = tmp_path / "source", tmp_path / "target"
     shutil.copytree(ROOT / ".chezmoidata", source / ".chezmoidata")
-    for name in [*TEMPLATES.values(), ".chezmoiignore.tmpl"]:
+    for name in [
+        *TEMPLATES.values(),
+        ".chezmoiignore.tmpl",
+        ".chezmoitemplates/ai/plugin-ignore",
+        ".chezmoitemplates/ai/authored-plugins",
+    ]:
         if (ROOT / name).exists():
             destination = source / name
             destination.parent.mkdir(parents=True, exist_ok=True)

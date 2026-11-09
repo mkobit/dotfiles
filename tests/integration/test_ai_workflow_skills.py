@@ -1,18 +1,25 @@
+import json
 import re
 import shutil
-import tomllib
 from pathlib import Path
 
 import pytest
-from test_ai_skills import (
-    AUTHORED_SKILL_ROOTS,
-    _apply_authored_cleanup,
-    _initialize_authored_cleanup_source,
+from test_ai_plugin_folders import (
+    DEFAULT_HOSTS,
+    MARKETPLACE,
+    PLUGINS,
+    SOURCE_ROOT,
+    _chezmoi,
+    _config,
+    _fixture,
+    _sources,
 )
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-SKILLS_ROOT = REPO_ROOT / "src/ai/skills"
+PLUGIN = PLUGINS / "exact_mkobit-dotfiles"
+SKILLS_ROOT = SOURCE_ROOT / PLUGIN / "exact_skills"
 WORKFLOW_SKILLS = ("sbx-sandboxes", "sbx-orchestrator", "worker-handoff")
+DEPLOYED_PLUGIN = MARKETPLACE / "plugins/mkobit-dotfiles"
+CURSOR_PLUGIN = Path(".cursor/plugins/local/mkobit-dotfiles")
 
 
 def _tree_bytes(root: Path) -> dict[Path, bytes]:
@@ -35,27 +42,69 @@ def _assert_local_links(root: Path) -> None:
 
 
 def _workflow_fixture(tmp_path, skill_names=WORKFLOW_SKILLS):
-    source, destination = tmp_path / "source", tmp_path / "destination"
-    destination.mkdir()
-    _initialize_authored_cleanup_source(source, include_external=True)
-    gemini = source / "src/chezmoi/dot_gemini"
-    gemini.mkdir()
-    shutil.copy2(REPO_ROOT / "src/chezmoi/dot_gemini/.chezmoiremove.tmpl", gemini / ".chezmoiremove.tmpl")
+    source, destination, config = _fixture(tmp_path)
+    for name in ("alpha", "beta"):
+        shutil.rmtree(source / PLUGINS / f"exact_{name}")
+    for host in DEFAULT_HOSTS:
+        relative = PLUGIN / f"exact_dot_{host}-plugin/plugin.json.tmpl"
+        (source / relative).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(SOURCE_ROOT / relative, source / relative)
+    relative = ".chezmoidata/ai/plugins/mkobit-dotfiles.toml"
+    shutil.copy2(SOURCE_ROOT / relative, source / relative)
     for name in skill_names:
-        shutil.copytree(SKILLS_ROOT / name, source / "src/ai/skills" / name)
-    config = tmp_path / "chezmoi.toml"
+        shutil.copytree(SKILLS_ROOT / f"exact_{name}", source / PLUGIN / "exact_skills" / f"exact_{name}")
 
-    def apply(states):
-        config.write_text(
-            "[data.ai.skills.authored]\n"
-            + "".join(f'{name} = "{state}"\n' for name, state in states.items())
-            + "[data.ai.skills.external]\n[data.ai.agents.external]\n"
-            + '[data.local.bin.agy]\ninstallation_method = "preinstalled"\n'
+    def apply(states=None, *, hosts=DEFAULT_HOSTS, enabled=True):
+        _config(
+            config,
+            extra="[data.ai.plugin_bridge.capabilities.mkobit-dotfiles]\n"
+            f"hosts = {json.dumps(hosts)}\nenabled = {str(enabled).lower()}\n"
+            "[data.ai.plugin_bridge.capabilities.mkobit-dotfiles.skills]\n"
+            + "".join(f'{name} = "{state}"\n' for name, state in (states or {}).items()),
         )
-        result = _apply_authored_cleanup(source, destination, config)
-        assert result.returncode == 0, result.stderr
+        _chezmoi(source, destination, config, "diff")
+        _chezmoi(source, destination, config, "apply")
 
-    return source, destination, apply
+    return source, destination, config, apply
+
+
+def _assert_selection(source, destination, config, skill_names, states, hosts):
+    """Use chezmoi's rendered bytes and native manifests to check both package copies."""
+    shared = destination / DEPLOYED_PLUGIN
+    for host, manifest in (
+        ("claude", ".claude-plugin/marketplace.json"),
+        ("codex", ".agents/plugins/marketplace.json"),
+        ("cursor", ".cursor-plugin/marketplace.json"),
+    ):
+        assert ("mkobit-dotfiles" in _sources(destination, manifest)) == (host in hosts)
+        assert (shared / f".{host}-plugin/plugin.json").is_file() == (host in hosts)
+    rendered = {}
+    for relative in (DEPLOYED_PLUGIN, CURSOR_PLUGIN):
+        root = destination / relative / "skills"
+        if relative == CURSOR_PLUGIN and "cursor" not in hosts:
+            assert not root.parent.exists()
+            continue
+        for name in skill_names:
+            deployed = root / name
+            if states.get(name, "present") == "absent":
+                assert not deployed.exists()
+                continue
+            if name not in rendered:
+                managed = _chezmoi(
+                    source, destination, config, "managed", "--path-style=absolute", str(shared / "skills" / name)
+                )
+                files = [Path(path) for path in managed.splitlines() if Path(path).is_file()]
+                assert files
+                rendered[name] = {
+                    path.relative_to(shared / "skills" / name): _chezmoi(
+                        source, destination, config, "cat", str(path)
+                    ).encode()
+                    for path in files
+                }
+            assert _tree_bytes(deployed) == rendered[name]
+            assert not deployed.is_symlink()
+            assert not any(path.is_symlink() for path in deployed.rglob("*"))
+        _assert_local_links(root)
 
 
 @pytest.mark.parametrize(
@@ -69,169 +118,71 @@ def _workflow_fixture(tmp_path, skill_names=WORKFLOW_SKILLS):
     ],
     ids=["workflow", "architect", "combined", "bootstrap", "bootstrap-combined"],
 )
-@pytest.mark.parametrize(
-    ("selection", "expected_hosts"),
-    [
-        ("present", frozenset(AUTHORED_SKILL_ROOTS)),
-        ("claude", frozenset({"claude"})),
-        ("codex", frozenset({"codex"})),
-        ("cursor", frozenset({"cursor", "cursor-local"})),
-        ("antigravity", frozenset({"antigravity"})),
-    ],
-)
-def test_workflow_skills_deploy_select_repeat_and_remove(tmp_path, selection, expected_hosts, skill_names):
-    """Apply the real named trees, follow deployed links, and converge host selection and cleanup."""
-    catalog = tomllib.loads((REPO_ROOT / "src/chezmoi/.chezmoidata/ai/skills/authored.toml").read_text())
-    assert catalog["ai"]["skills"]["authored"]["worker-handoff"] == "present"
-    assert (SKILLS_ROOT / "worker-handoff/SKILL.md").is_file()
-    assert (SKILLS_ROOT / "worker-handoff/references/delivery.md").is_file()
-    for name in skill_names:
-        assert catalog["ai"]["skills"]["authored"][name] == "present"
-        assert (SKILLS_ROOT / name / "SKILL.md").is_file()
-        if name in {"architect-scoping", "repo-bootstrap"}:
-            _assert_local_links(SKILLS_ROOT / name)
-    _, destination, apply_states = _workflow_fixture(tmp_path, skill_names)
-
-    def apply(state):
-        apply_states(dict.fromkeys(skill_names, state))
-
-    # Install everywhere before narrowing so selection must also remove old copies.
-    apply("present")
-    apply(selection)
-    installed = {}
-    for host, relative in AUTHORED_SKILL_ROOTS.items():
-        root = destination / relative
-        for name in skill_names:
-            deployed = root / name
-            if host in expected_hosts:
-                assert _tree_bytes(deployed) == _tree_bytes(SKILLS_ROOT / name)
-                assert not deployed.is_symlink()
-                assert not any(path.is_symlink() for path in deployed.rglob("*"))
-            else:
-                assert not deployed.exists()
-        if host in expected_hosts:
-            _assert_local_links(root)
-            installed[host] = _tree_bytes(root)
-    manifest = destination / ".cursor/plugins/local/mkobit-dotfiles/.cursor-plugin/plugin.json"
-    manifest_bytes = manifest.read_bytes()
-    apply(selection)
-    for host in expected_hosts:
-        assert _tree_bytes(destination / AUTHORED_SKILL_ROOTS[host]) == installed[host]
-    assert manifest.read_bytes() == manifest_bytes
-
-    sibling = destination / AUTHORED_SKILL_ROOTS["codex"] / "unmanaged/SKILL.md"
-    sibling.parent.mkdir(parents=True)
-    sibling.write_text("Keep this local skill.\n")
+@pytest.mark.parametrize("hosts", [DEFAULT_HOSTS, ("claude",), ("codex",), ("cursor",)])
+def test_workflow_skills_deploy_select_repeat_and_remove(tmp_path, hosts, skill_names):
+    """Apply real skill trees, narrow plugin hosts, then disable and restore the plugin."""
+    source, destination, config, apply = _workflow_fixture(tmp_path, skill_names)
+    apply()
+    apply(hosts=hosts)
+    _assert_selection(source, destination, config, skill_names, {}, hosts)
+    installed = _tree_bytes(destination / DEPLOYED_PLUGIN)
+    apply(hosts=hosts)
+    assert _tree_bytes(destination / DEPLOYED_PLUGIN) == installed
+    unrelated = destination / ".local/share/unmanaged/SKILL.md"
+    unrelated.parent.mkdir(parents=True)
+    unrelated.write_text("Keep this local skill.\n")
     for _ in range(2):
-        apply("absent")
-        for relative in AUTHORED_SKILL_ROOTS.values():
-            for name in skill_names:
-                assert not (destination / relative / name).exists()
-        assert sibling.read_text() == "Keep this local skill.\n"
+        apply(hosts=hosts, enabled=False)
+        assert not (destination / DEPLOYED_PLUGIN).exists()
+        assert not (destination / CURSOR_PLUGIN).exists()
+        assert unrelated.read_text() == "Keep this local skill.\n"
+    apply(hosts=hosts)
+    _assert_selection(source, destination, config, skill_names, {}, hosts)
 
 
 @pytest.mark.parametrize(
-    ("worker_selection", "sbx_selected"),
-    [
-        ("absent", True),
-        ("claude", True),
-        ("codex", True),
-        ("cursor", True),
-        ("antigravity", True),
-        ("present", False),
-    ],
-    ids=["worker-absent", "worker-claude", "worker-codex", "worker-cursor", "worker-antigravity", "worker-only"],
+    "absent",
+    [("worker-handoff",), ("sbx-sandboxes", "sbx-orchestrator")],
+    ids=["worker-absent", "worker-only"],
 )
-def test_workflow_skills_mixed_selection_preserves_links_and_partial_removal(tmp_path, worker_selection, sbx_selected):
-    """Keep independent selections complete through partial cleanup and repeat apply."""
-    source, destination, apply = _workflow_fixture(tmp_path)
-    apply(dict.fromkeys(WORKFLOW_SKILLS, "present"))
-    for relative in AUTHORED_SKILL_ROOTS.values():
-        _assert_local_links(destination / relative)
-        sibling = destination / relative / "unmanaged/SKILL.md"
-        sibling.parent.mkdir()
-        sibling.write_bytes(b"Keep this local skill.\n")
+def test_workflow_skills_mixed_selection_preserves_links_and_partial_removal(tmp_path, absent):
+    """Keep independently selected skills complete through partial cleanup and repeat apply."""
+    source, destination, config, apply = _workflow_fixture(tmp_path)
+    apply()
     unmanaged = destination / "unmanaged-state.json"
     unmanaged.write_bytes(b'{"keep": true}\n')
-    states = {
-        "sbx-sandboxes": "present" if sbx_selected else "absent",
-        "sbx-orchestrator": "present" if sbx_selected else "absent",
-        "worker-handoff": worker_selection,
-    }
+    states = dict.fromkeys(absent, "absent")
     apply(states)
-    if not sbx_selected:
-        # Remove installed copies with tombstones before testing an omitted SBX catalog.
-        for relative in AUTHORED_SKILL_ROOTS.values():
-            for name in WORKFLOW_SKILLS[:2]:
-                assert not (destination / relative / name).exists()
-        states = {"worker-handoff": worker_selection}
-        for name in WORKFLOW_SKILLS[:2]:
-            shutil.rmtree(source / "src/ai/skills" / name)
-        apply(states)
-    installed = {}
-    for host, relative in AUTHORED_SKILL_ROOTS.items():
-        root = destination / relative
-        worker_selected = worker_selection == "present" or worker_selection == host.removesuffix("-local")
-        for name in WORKFLOW_SKILLS:
-            deployed = root / name
-            if worker_selected if name == "worker-handoff" else sbx_selected:
-                assert _tree_bytes(deployed) == _tree_bytes(SKILLS_ROOT / name)
-                assert not any(path.is_symlink() for path in deployed.rglob("*"))
-            else:
-                assert not deployed.exists()
-        _assert_local_links(root)
-        assert (root / "unmanaged/SKILL.md").read_bytes() == b"Keep this local skill.\n"
-        installed[host] = _tree_bytes(root)
-    manifest = destination / ".cursor/plugins/local/mkobit-dotfiles/.cursor-plugin/plugin.json"
-    manifest_bytes = manifest.read_bytes()
+    _assert_selection(source, destination, config, WORKFLOW_SKILLS, states, DEFAULT_HOSTS)
+    installed = _tree_bytes(destination / DEPLOYED_PLUGIN)
     apply(states)
-    for host, relative in AUTHORED_SKILL_ROOTS.items():
-        assert _tree_bytes(destination / relative) == installed[host]
-        _assert_local_links(destination / relative)
-    assert manifest.read_bytes() == manifest_bytes
+    assert _tree_bytes(destination / DEPLOYED_PLUGIN) == installed
     assert unmanaged.read_bytes() == b'{"keep": true}\n'
+    # Restore selection, then let native exact_ cleanup remove deleted source skills.
+    apply()
+    _assert_selection(source, destination, config, WORKFLOW_SKILLS, {}, DEFAULT_HOSTS)
+    for name in absent:
+        shutil.rmtree(source / PLUGIN / "exact_skills" / f"exact_{name}")
+    apply()
+    _assert_selection(source, destination, config, WORKFLOW_SKILLS, states, DEFAULT_HOSTS)
 
 
 @pytest.mark.parametrize("independent_skill", ["architect-scoping", "repo-bootstrap"], ids=["architect", "bootstrap"])
-@pytest.mark.parametrize(
-    ("independent_selection", "worker_selection"),
-    [("present", "absent"), ("absent", "present"), ("claude", "codex"), ("codex", "claude")],
-)
-def test_independent_selection_preserves_skills_and_state(
-    tmp_path, independent_skill, independent_selection, worker_selection
-):
-    """Converge independent skill and worker selections without changing unrelated copies."""
+@pytest.mark.parametrize("absent", ["independent", "worker"])
+def test_independent_selection_preserves_skills_and_state(tmp_path, independent_skill, absent):
+    """Per-skill present/absent decisions preserve unrelated skills and state."""
     skill_names = (*WORKFLOW_SKILLS, independent_skill)
-    _, destination, apply = _workflow_fixture(tmp_path, skill_names)
-    apply(dict.fromkeys(skill_names, "present"))
-    for relative in AUTHORED_SKILL_ROOTS.values():
-        sibling = destination / relative / "unmanaged/SKILL.md"
-        sibling.parent.mkdir()
-        sibling.write_bytes(b"Keep this local skill.\n")
+    source, destination, config, apply = _workflow_fixture(tmp_path, skill_names)
+    apply()
+    baseline = _tree_bytes(destination / DEPLOYED_PLUGIN / "skills")
     unmanaged = destination / "unmanaged-state.json"
     unmanaged.write_bytes(b'{"keep": true}\n')
-    states = dict.fromkeys(WORKFLOW_SKILLS[:2], "present")
-    states.update({"worker-handoff": worker_selection, independent_skill: independent_selection})
-    apply(states)
-    installed = {}
-    for host, relative in AUTHORED_SKILL_ROOTS.items():
-        root = destination / relative
-        for name, selection in states.items():
-            deployed = root / name
-            if selection == "present" or selection == host.removesuffix("-local"):
-                assert _tree_bytes(deployed) == _tree_bytes(SKILLS_ROOT / name)
-                assert not deployed.is_symlink()
-                assert not any(path.is_symlink() for path in deployed.rglob("*"))
-            else:
-                assert not deployed.exists()
-        _assert_local_links(root)
-        assert (root / "unmanaged/SKILL.md").read_bytes() == b"Keep this local skill.\n"
-        installed[host] = _tree_bytes(root)
-    manifest = destination / ".cursor/plugins/local/mkobit-dotfiles/.cursor-plugin/plugin.json"
-    manifest_bytes = manifest.read_bytes()
-    apply(states)
-    for host, relative in AUTHORED_SKILL_ROOTS.items():
-        assert _tree_bytes(destination / relative) == installed[host]
-        _assert_local_links(destination / relative)
-    assert manifest.read_bytes() == manifest_bytes
-    assert unmanaged.read_bytes() == b'{"keep": true}\n'
+    absent_name = independent_skill if absent == "independent" else "worker-handoff"
+    states = {name: "absent" if name == absent_name else "present" for name in skill_names}
+    for _ in range(2):
+        apply(states)
+        _assert_selection(source, destination, config, skill_names, states, DEFAULT_HOSTS)
+        for name in set(skill_names) - {absent_name}:
+            expected = {path.relative_to(name): content for path, content in baseline.items() if path.parts[0] == name}
+            assert _tree_bytes(destination / DEPLOYED_PLUGIN / "skills" / name) == expected
+        assert unmanaged.read_bytes() == b'{"keep": true}\n'

@@ -1,9 +1,15 @@
 {{- $enabled := and (eq (dig "ai" "sandbox" "provider" "none" .) "sbx") (ne (dig "local" "bin" "sbx" "installation_method" "none" .) "none") (dig "ai" "sandbox" "sync_skills" false .) -}}
 {{- $selected := list -}}
 {{- if $enabled -}}
-{{-   range $name, $state := dig "ai" "skills" "authored" dict . -}}
-{{-     if eq $state "present" -}}{{- $selected = append $selected $name -}}{{- end -}}
+{{-   $plugin := dig "mkobit-dotfiles" (dict) (includeTemplate "ai/authored-plugins" . | fromJson) -}}
+{{-   if dig "enabled" false $plugin -}}
+{{-     range $host := $plugin.hosts -}}
+{{-       if eq (index $plugin.packages $host) "plugins/mkobit-dotfiles" -}}
+{{-         $selected = concat $selected (index $plugin.skills $host) -}}
+{{-       end -}}
+{{-     end -}}
 {{-   end -}}
+{{-   $selected = $selected | uniq | sortAlpha -}}
 {{- end -}}
 {{- $python := includeTemplate "python/filter-interpreter" . -}}
 #!/usr/bin/env bash

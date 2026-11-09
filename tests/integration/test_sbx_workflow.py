@@ -101,7 +101,8 @@ def test_catalog_declares_extensible_capability_maps(tmp_path, workflow_source):
     assert all(mode["description"] for mode in ai["signing"]["modes"].values())
     assert ai["workflow"]["description"]
     assert ai["ollama"]["description"]
-    assert isinstance(ai["skills"]["authored"], dict)
+    assert isinstance(ai["plugin_bridge"]["capabilities"], dict)
+    assert "authored" not in ai["skills"]
     assert isinstance(ai["command_policy"]["commands"], dict)
     assert "permissions" not in ai
     assert "skills_mode" not in ai["sandbox"]
@@ -178,8 +179,8 @@ description = "Overlay SBX capability."
 description = "Overlay sandbox capability."
 [ai.signing.modes.example]
 description = "Overlay signing capability."
-[ai.skills.authored]
-example = "present"
+[ai.plugins.example]
+description = "Overlay authored plugin."
 [ai.command_policy.commands]
 "example inspect" = "allow"
 """,
@@ -190,7 +191,7 @@ example = "present"
     assert ai["sandbox"]["providers"]["sbx"]["description"] == "Overlay SBX capability."
     assert ai["sandbox"]["providers"]["example"]["description"] == "Overlay sandbox capability."
     assert set(ai["signing"]["modes"]) == {*baseline["ai"]["signing"]["modes"], "example"}
-    assert ai["skills"]["authored"] == {**baseline["ai"]["skills"]["authored"], "example": "present"}
+    assert ai["plugins"] == {**baseline["ai"]["plugins"], "example": {"description": "Overlay authored plugin."}}
     assert ai["command_policy"]["commands"] == {
         **baseline["ai"]["command_policy"]["commands"],
         "example inspect": "allow",

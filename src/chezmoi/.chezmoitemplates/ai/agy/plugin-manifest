@@ -1,0 +1,26 @@
+{{- /*
+  Antigravity manifest, plugin.json at the plugin root, of one authored plugin.
+  Antigravity reads skills only for now. The plugin bridge installs the plugin folder with
+  `agy plugin install <dir>`; there is no plugins.json route.
+  Arguments: root (root context), name (plugin name), and optional extra (keys merged
+  over the result).
+  Output: the manifest, or nothing when the plugin is disabled, so chezmoi removes the file.
+  Reference: https://antigravity.google/docs/plugins/
+*/ -}}
+{{- $plugin := dig .name nil (includeTemplate "ai/authored-plugins" .root | fromJson) -}}
+{{- if not $plugin -}}
+{{-   fail (printf "ai/agy/plugin-manifest: no authored plugin folder for %q" .name) -}}
+{{- end -}}
+{{- if $plugin.enabled -}}
+{{-   $identity := dig "ai" "plugins" .name (dict) .root -}}
+{{-   $selected := includeTemplate "ai/plugin-skills" (dict "root" .root "name" .name "host" "antigravity") | fromJson -}}
+{{-   $skills := $selected.skills -}}
+{{-   range $hostSkills := $plugin.skills -}}
+{{-     $skills = concat $skills $hostSkills -}}
+{{-   end -}}
+{{-   $manifest := dict "name" .name "version" (includeTemplate "ai/plugin-version" .) "description" (dig "description" "" $identity) "author" (dict "name" (dig "author" .root.chezmoi.username $identity)) -}}
+{{-   if $skills -}}
+{{-     $_ := set $manifest "skills" (list "./skills") -}}
+{{-   end -}}
+{{-   mergeOverwrite $manifest (deepCopy (dig "extra" (dict) .)) | toPrettyJson -}}
+{{- end -}}

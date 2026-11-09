@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Any
 
 
 class BridgeError(RuntimeError):
@@ -11,7 +12,9 @@ class BridgeError(RuntimeError):
 
 
 _NATIVE_HOSTS = frozenset({"claude", "codex"})
-_ALL_HOSTS = frozenset({"claude", "codex", "cursor"})
+_ALL_HOSTS = frozenset({"claude", "codex", "cursor", "antigravity"})
+# Hosts whose plugin CLI the bridge only probes and uses to install generated plugin directories.
+_CLI_HOSTS = frozenset({"antigravity"})
 _NAME_CHARS = frozenset(
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-"
 )
@@ -133,28 +136,6 @@ def _validate_plugins(
         _validate_order(raw_definition, 200, f"{kind}.{name}")
 
 
-def _retired_plugin_rows(
-    declarations: Mapping[str, object],
-) -> list[tuple[str, str, str]]:
-    rows = []
-    for raw_name, definition in declarations.items():
-        name = _validate_name(raw_name, "retired plugin")
-        if not isinstance(definition, Mapping):
-            raise BridgeError(f"retired_plugins.{name} must be a table")
-        if set(definition) != {"marketplace", "hosts"}:
-            raise BridgeError(
-                f"retired_plugins.{name} requires only marketplace and hosts"
-            )
-        marketplace = _validate_name(definition["marketplace"], "marketplace")
-        hosts = _validate_hosts(definition["hosts"], f"retired_plugins.{name}")
-        if not hosts:
-            raise BridgeError(f"retired_plugins.{name} requires hosts")
-        rows.extend(
-            (name, host, marketplace) for host in hosts if host in _NATIVE_HOSTS
-        )
-    return sorted(rows)
-
-
 def _validate_bridge_declaration(declaration: object) -> None:
     if not isinstance(declaration, Mapping):
         raise BridgeError("plugin bridge declaration must be a table")
@@ -163,27 +144,16 @@ def _validate_bridge_declaration(declaration: object) -> None:
         raise BridgeError("ai.plugin_bridge must be a table")
     environment = raw_bridge.get("environment", "default")
     _validate_name(environment, "environment")
-    marketplaces, plugins, capabilities, retired_plugins = (
-        raw_bridge.get(key, {})
-        for key in ("marketplaces", "plugins", "capabilities", "retired_plugins")
+    marketplaces, plugins, capabilities = (
+        raw_bridge.get(key, {}) for key in ("marketplaces", "plugins", "capabilities")
     )
     if not all(
-        isinstance(value, Mapping)
-        for value in (marketplaces, plugins, capabilities, retired_plugins)
+        isinstance(value, Mapping) for value in (marketplaces, plugins, capabilities)
     ):
         raise BridgeError("ai.plugin_bridge declarations must be tables")
     _validate_marketplaces(marketplaces)
     _validate_plugins("plugins", plugins, marketplaces)
     _validate_plugins("capabilities", capabilities, marketplaces)
-    retired = set(_retired_plugin_rows(retired_plugins))
-    for kind, declarations in (("plugins", plugins), ("capabilities", capabilities)):
-        for _, name, host, marketplace in _plugin_rows(
-            kind, declarations, marketplaces, environment
-        ):
-            if (name, host, marketplace) in retired:
-                raise BridgeError(
-                    f"plugin is both desired and retired: {name}@{marketplace} ({host})"
-                )
 
 
 def _native_hosts(raw: object) -> tuple[str, ...]:
@@ -192,12 +162,11 @@ def _native_hosts(raw: object) -> tuple[str, ...]:
 
 
 def _marketplace_rows(
-    destination: Path, marketplaces: Mapping[str, object]
+    destination: Path, marketplaces: Mapping[str, Mapping[str, Any]]
 ) -> list[tuple[int, str, str, str, str]]:
+    """Return validated native rows as (order, name, host, source type, locator)."""
     rows = []
     for name, definition in marketplaces.items():
-        if not isinstance(definition, Mapping):
-            raise BridgeError(f"marketplace {name} must be a table")
         source_type = str(definition.get("source_type", ""))
         locator = str(definition.get("source_locator", ""))
         if source_type == "generated" and not locator:
@@ -210,28 +179,20 @@ def _marketplace_rows(
 
 
 def _plugin_rows(
-    kind: str,
-    declarations: Mapping[str, object],
-    marketplaces: Mapping[str, object],
+    declarations: Mapping[str, Mapping[str, Any]],
+    marketplaces: Mapping[str, Mapping[str, Any]],
     environment: object,
 ) -> list[tuple[int, str, str, str]]:
+    """Return validated native rows as (order, name, host, marketplace) for an environment."""
     rows = []
     for name, definition in declarations.items():
-        if not isinstance(definition, Mapping):
-            raise BridgeError(f"{kind}.{name} must be a table")
         environments = definition.get("environments")
         if environments is not None and environment not in environments:
             continue
-        marketplace = definition.get("marketplace", "")
-        if not isinstance(marketplace, str):
-            raise BridgeError(f"{kind}.{name} marketplace must be a string")
-        marketplace_definition = marketplaces.get(marketplace, {})
-        if not isinstance(marketplace_definition, Mapping):
-            marketplace_definition = {}
+        marketplace = definition["marketplace"]
+        hosts = definition.get("hosts", marketplaces[marketplace].get("hosts", []))
         rows.extend(
             (int(definition.get("order", 200)), name, host, marketplace)
-            for host in _native_hosts(
-                definition.get("hosts", marketplace_definition.get("hosts", []))
-            )
+            for host in _native_hosts(hosts)
         )
     return sorted(rows, key=lambda row: (row[0], row[1], row[2]))

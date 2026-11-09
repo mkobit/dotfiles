@@ -4,7 +4,6 @@ import io
 import json
 import os
 import time
-import unittest
 from pathlib import Path
 from typing import override
 from unittest.mock import AsyncMock, Mock, patch
@@ -13,7 +12,7 @@ import pytest
 from typer.testing import CliRunner
 
 from termstatus.layout import Segment, SegmentGenerationResult
-from termstatus.main import cli, run_external_generator
+from termstatus.main import cli
 from termstatus.segments.workspace import shorten_path
 
 
@@ -24,7 +23,7 @@ def wide_terminal(monkeypatch):
     monkeypatch.setenv("COLUMNS", "200")
 
 
-class TestMainSmoke(unittest.TestCase):
+class TestMainSmoke:
     """Smoke tests verifying the CLI entry point runs end-to-end."""
 
     @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/termstatus_test_cache"})
@@ -63,12 +62,12 @@ class TestMainSmoke(unittest.TestCase):
             # we should pass the payload directly to `invoke`.
             result = runner.invoke(cli, ["claude", "render"], input=payload)
 
-        self.assertEqual(result.exit_code, 0)
+        assert result.exit_code == 0
         all_output = result.stdout
-        self.assertIn("Claude 3", all_output)
-        self.assertIn("MySession", all_output)
-        self.assertIn("0.42", all_output)
-        self.assertIn("/100k", all_output)
+        assert "Claude 3" in all_output
+        assert "MySession" in all_output
+        assert "0.42" in all_output
+        assert "/100k" in all_output
 
     @patch.dict("os.environ", {"XDG_CACHE_HOME": "/tmp/termstatus_test_cache"})
     def test_runs_with_empty_payload(self) -> None:
@@ -77,11 +76,11 @@ class TestMainSmoke(unittest.TestCase):
             runner = CliRunner()
             result = runner.invoke(cli, ["claude", "render"], input="{}")
 
-        self.assertEqual(result.exit_code, 0)
-        self.assertGreater(len(result.stdout), 0)
+        assert result.exit_code == 0
+        assert len(result.stdout) > 0
 
 
-class TestShortenPath(unittest.TestCase):
+class TestShortenPath:
     def test_home_relative_short(self) -> None:
         home = Path("/home/user")
         with patch.object(Path, "home", return_value=home):
@@ -105,73 +104,6 @@ class TestShortenPath(unittest.TestCase):
 
 
 runner = CliRunner()
-
-
-def test_main_with_external_generator_timeout():
-    """Goals: Verify that a timeout in the external generator gracefully terminates and returns empty."""
-    with patch("termstatus.main.asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.kill = Mock()
-        mock_proc.communicate.side_effect = TimeoutError()
-        mock_exec.return_value = mock_proc
-
-        result = runner.invoke(cli, ["claude", "render", "--generator", "sleep 10"])
-        assert result.exit_code == 0
-
-
-def test_main_show_errors_external():
-    """Goals: Ensure that an explicit error flag correctly displays external generator failures."""
-    with patch("termstatus.main.asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.returncode = 1
-        mock_proc.communicate.return_value = (b"", b"error")
-        mock_exec.return_value = mock_proc
-
-        result = runner.invoke(cli, ["claude", "render", "--generator", "failing_cmd", "--show-errors"])
-        assert result.exit_code == 0
-        assert "Error: external:failing_cmd" in result.stdout
-
-
-def test_main_with_stdin_and_external_success():
-    """Goals: Validate that valid JSON via stdin is successfully processed and integrated."""
-    with patch("termstatus.main.asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.returncode = 0
-        segment_json = json.dumps([{"line": 1, "index": 0, "segment": {"text": "external_text"}}])
-        mock_proc.communicate.return_value = (segment_json.encode(), b"")
-        mock_exec.return_value = mock_proc
-
-        result = runner.invoke(cli, ["claude", "render", "--generator", "good_cmd"], input='{"cwd": "/tmp"}')
-        assert result.exit_code == 0
-        assert "external_text" in result.stdout
-
-
-@pytest.mark.asyncio
-async def test_run_external_generator_validation_error():
-    """Goals: Ensure malformed segment formats from external generators are safely ignored."""
-    with patch("termstatus.main.asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.returncode = 0
-        # Invalid JSON for segment
-        mock_proc.communicate.return_value = (b'{"invalid": "data"}', b"")
-        mock_exec.return_value = mock_proc
-
-        res = await run_external_generator("cmd", "{}")
-        assert res == []
-
-
-@pytest.mark.asyncio
-async def test_run_external_generator_json_parse_error():
-    """Goals: Validate that fundamentally invalid JSON from an external generator is safely caught."""
-    with patch("termstatus.main.asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.returncode = 0
-        # Malformed JSON
-        mock_proc.communicate.return_value = (b"not json", b"")
-        mock_exec.return_value = mock_proc
-
-        res = await run_external_generator("cmd", "{}")
-        assert res == []
 
 
 def test_main_with_xdg_cache_home(tmp_path):
@@ -206,7 +138,7 @@ def test_git_cancellation_and_p99_latency_under_slow_git():
     durations = []
     iterations = 20
 
-    async def slow_communicate(*args, **kwargs):
+    async def slow_read(*args, **kwargs):
         with contextlib.suppress(asyncio.CancelledError):
             await asyncio.sleep(5.0)
         return b"", b""
@@ -214,7 +146,8 @@ def test_git_cancellation_and_p99_latency_under_slow_git():
     with patch("asyncio.create_subprocess_exec") as mock_exec:
         mock_proc = AsyncMock()
         mock_proc.kill = Mock()
-        mock_proc.communicate.side_effect = slow_communicate
+        mock_proc.returncode = None
+        mock_proc.stdout.read.side_effect = slow_read
         mock_exec.return_value = mock_proc
 
         for _ in range(iterations):
@@ -245,7 +178,3 @@ def test_claude_render_with_unknown_payload_fields(tmp_path):
         assert result.exit_code == 0
         assert "Sonnet 3.7 Custom" in result.stdout
         assert "$3.50" in result.stdout
-
-
-if __name__ == "__main__":
-    unittest.main()

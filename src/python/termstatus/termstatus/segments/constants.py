@@ -1,4 +1,3 @@
-import functools
 import os
 from typing import Literal, NamedTuple
 
@@ -26,12 +25,16 @@ WHITE = "\033[37m"
 BRIGHT_RED = "\033[91m"
 BRIGHT_GREEN = "\033[92m"
 ORANGE = "\033[38;5;208m"
+AMBER = "\033[38;5;214m"
+SKY_BLUE = "\033[38;5;75m"
+DARK_GREY = "\033[90m"
 
 
-@functools.cache
 def use_icons() -> bool:
     """Returns True if the terminal supports icons, checking environment."""
-    return os.environ.get("CLAUDE_STATUSLINE_NO_ICONS", "0") != "1"
+    return (
+        os.environ.get("CLAUDE_STATUSLINE_NO_ICONS", "0") != "1" and os.environ.get("TERMSTATUS_NO_ICONS", "0") != "1"
+    )
 
 
 IconKey = Literal[

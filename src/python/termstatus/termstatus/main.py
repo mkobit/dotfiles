@@ -2,14 +2,12 @@ import asyncio
 import json
 import logging
 import os
-import shlex
 import subprocess
 import sys
 import tempfile
-from collections.abc import Sequence
 from dataclasses import replace
 from pathlib import Path
-from typing import Annotated, Any
+from typing import Annotated
 
 import typer
 from rich.console import Console
@@ -45,80 +43,16 @@ def main() -> None:
     cli()
 
 
-def _parse_segment_result(data: Any) -> list[SegmentGenerationResult]:
-    items = data if isinstance(data, list) else [data]
-    results = []
-    for item in items:
-        if isinstance(item, dict) and "segment" in item and isinstance(item["segment"], dict):
-            seg = Segment(text=item["segment"].get("text", ""))
-            results.append(
-                SegmentGenerationResult(
-                    segment=seg,
-                    line=item.get("line", 0),
-                    index=item.get("index", 0),
-                    column=item.get("column"),
-                    generator=item.get("generator", "internal"),
-                    cache_duration=item.get("cache_duration"),
-                )
-            )
-    return results
-
-
-async def run_external_generator(
-    cmd: str, payload_json: str, timeout: float = 2.0
-) -> Sequence[SegmentGenerationResult]:
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            *shlex.split(cmd),
-            stdin=asyncio.subprocess.PIPE,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-
-        try:
-            stdout, _stderr = await asyncio.wait_for(proc.communicate(input=payload_json.encode()), timeout=timeout)
-        except TimeoutError:
-            proc.kill()
-            await proc.communicate()
-            logger.warning(f"Timeout error in external generator {cmd}")
-            return []
-
-        if proc.returncode == 0 and stdout.strip():
-            try:
-                parsed = json.loads(stdout)
-                results = _parse_segment_result(parsed)
-
-                for item in results:
-                    item.generator = cmd
-                return results
-            except Exception as e:
-                logger.warning(f"JSON parsing error in external generator {cmd}: {e}")
-                return []
-        elif proc.returncode != 0:
-            logger.warning(f"External generator {cmd} exited with code {proc.returncode}")
-            raise Exception(f"Exit code {proc.returncode}") from None
-    except Exception as e:
-        logger.warning(f"Error running external generator {cmd}: {e}")
-        raise
-    return []
-
-
 claude_app = typer.Typer()
 cli.add_typer(claude_app, name="claude")
 
 
 @claude_app.command("render")
 def claude_render(  # noqa: C901
-    generator: Annotated[
-        list[str] | None, typer.Option(help="External command or script to generate segments (takes JSON on stdin).")
-    ] = None,
     show_errors: Annotated[
         bool, typer.Option("--show-errors", help="Display error segments for failed generators.")
     ] = False,
 ) -> None:
-    generator_tuple = tuple(generator) if generator is not None else ()
-
-    raw_json_str = "{}"
     try:
         if not sys.stdin.isatty():
             raw_json_str = sys.stdin.read()
@@ -165,7 +99,7 @@ def claude_render(  # noqa: C901
 
     terminal_width: int | None = None
 
-    async def fetch_all() -> None:  # noqa: C901
+    async def fetch_all() -> None:
         nonlocal all_segments, terminal_width
         chezmoi_root = detect_chezmoi_root(cwd)
         git_key = f"internal.chezmoi:{cwd.resolve()}" if chezmoi_root else f"internal.git:{cwd.resolve()}"
@@ -185,22 +119,6 @@ def claude_render(  # noqa: C901
                     return ("git", git_key, e)
 
             tasks.append(wrap_git())
-
-        for cmd in generator_tuple:
-            cmd_key = f"external:{cmd}"
-            cached_cmd = await cache.get(cmd_key)
-            if cached_cmd is not None:
-                all_segments = all_segments + cached_cmd
-            else:
-
-                async def wrap_cmd(c=cmd, ck=cmd_key):
-                    try:
-                        res = await run_external_generator(c, raw_json_str)
-                        return ("external", ck, res)
-                    except Exception as e:
-                        return ("external", ck, e)
-
-                tasks.append(wrap_cmd())
 
         # Probe terminal width concurrently with segment generation
         width_task = asyncio.create_task(probe_terminal_width())

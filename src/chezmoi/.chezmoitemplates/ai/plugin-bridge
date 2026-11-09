@@ -1,9 +1,24 @@
 {{- /* Keep native registration consistent with upstream package acquisition. */ -}}
 {{- $bridge := deepCopy (dig "ai" "plugin_bridge" (dict) .) -}}
+{{- $declared := dig "capabilities" (dict) $bridge -}}
 {{- $capabilities := dict -}}
-{{- range $name, $capability := dig "capabilities" (dict) $bridge -}}
+{{- /*
+  Enabled authored plugin folders register in the dotfiles marketplace; data of the same
+  name adds keys. A disabled plugin is left out, so the bridge uninstalls it if it owns it.
+*/ -}}
+{{- $authored := includeTemplate "ai/authored-plugins" . | fromJson -}}
+{{- range $name, $plugin := $authored -}}
+{{-   if $plugin.enabled -}}
+{{-     $capability := dict "description" (dig "ai" "plugins" $name "description" "" $) "marketplace" "dotfiles" -}}
+{{-     $capability = mergeOverwrite $capability (deepCopy (dig $name (dict) $declared)) -}}
+{{-     $_ := set $capability "hosts" $plugin.hosts -}}
+{{-     $_ := set $capability "host_paths" $plugin.packages -}}
+{{-     $_ := set $capabilities $name $capability -}}
+{{-   end -}}
+{{- end -}}
+{{- range $name, $capability := $declared -}}
 {{-   $source := dig "external_source" "" $capability -}}
-{{-   if or (not $source) (eq (dig "ai" "plugins" $source "installation_method" "none" $) "chezmoi_external") -}}
+{{-   if and (not (hasKey $authored $name)) (or (not $source) (eq (dig "ai" "plugins" $source "installation_method" "none" $) "chezmoi_external")) -}}
 {{-     $_ := set $capabilities $name $capability -}}
 {{-   end -}}
 {{- end -}}
@@ -22,4 +37,10 @@
 {{-   end -}}
 {{- end -}}
 {{- $_ := set $bridge "marketplaces" $marketplaces -}}
+{{- /* Hosts whose plugin CLI installs generated plugin directories; agy is opt-in. */ -}}
+{{- $cliHosts := list -}}
+{{- if ne (dig "local" "bin" "agy" "installation_method" "none" .) "none" -}}
+{{-   $cliHosts = append $cliHosts "antigravity" -}}
+{{- end -}}
+{{- $_ := set $bridge "cli_hosts" $cliHosts -}}
 {{- toJson $bridge -}}

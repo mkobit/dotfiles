@@ -10,7 +10,7 @@ description = "Global AI workflow tasks."
 # default_clone_mode: false (use a direct workspace mount)
 # network_policy: "" (select "balanced" to initialize an absent policy)
 # proxy_gh_secret: false (configure the github host resolver)
-# sync_skills: false (import selected ai.skills.authored entries)
+# sync_skills: false (import selected shared mkobit-dotfiles authored skills)
 # Use sbx.settings.skills_default_mode for skills mode, with "" as the default.
 # Its opt-in values are "readonly", "readwrite", and "off".
 # Keep sbx.settings.kit_allowed_sources independent of workflow selection.

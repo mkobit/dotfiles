@@ -34,6 +34,11 @@ host_url = "http://localhost:11434"
 sandbox_url = "http://host.docker.internal:11434"
 default_coder_model = "qwen3-coder:30b"
 
+# Hosts that each authored plugin targets unless ai.plugin_bridge.capabilities.<name>.hosts is set.
+# Per-plugin environments and skills.<skill> = "absent" exceptions also go under that key.
+[data.ai.plugin_bridge]
+default_hosts = ["claude", "codex", "cursor"]
+
 # BOM — static binaries strongly preferred over package managers.
 # github_releases = static binary download via chezmoi externals
 # homebrew        = fallback where no static binary exists for the platform
