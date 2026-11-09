@@ -21,6 +21,7 @@ def test_opencode_apply_respects_host_and_plugin_control_plane(tmp_path, ignore_
     source = tmp_path / "source"
     for relative in (
         ".chezmoiignore.tmpl",
+        ".chezmoidata/ai/plugins/superpowers.toml",
         "dot_config/opencode/modify_opencode.json",
         ".chezmoitemplates/ai/plugin-ignore",
         ".chezmoitemplates/ai/authored-plugins",
