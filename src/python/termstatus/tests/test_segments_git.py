@@ -36,31 +36,21 @@ class TestFormatGitFull:
         assert res is not None
         assert "main" in " ".join([r.segment.text for r in res])
 
-    def test_clean_icon_in_brackets(self) -> None:
-        res = format_git_full(_git_info())
+    @pytest.mark.parametrize(
+        ("overrides", "expected_tokens"),
+        [
+            ({}, [get_icon("clean"), "[", "]"]),
+            ({"dirty": True}, [RED, get_icon("dirty"), "["]),
+            ({"staged": True}, [YELLOW, get_icon("staged")]),
+            ({"untracked": True}, [CYAN, get_icon("untracked")]),
+        ],
+    )
+    def test_status_indicator_in_brackets(self, overrides: dict[str, Any], expected_tokens: list[str]) -> None:
+        res = format_git_full(_git_info(**overrides))
         assert res is not None
-        assert get_icon("clean") in " ".join([r.segment.text for r in res])
-        assert "[" in " ".join([r.segment.text for r in res])
-        assert "]" in " ".join([r.segment.text for r in res])
-
-    def test_dirty_icon_in_brackets(self) -> None:
-        res = format_git_full(_git_info(dirty=True))
-        assert res is not None
-        assert RED in " ".join([r.segment.text for r in res])
-        assert get_icon("dirty") in " ".join([r.segment.text for r in res])
-        assert "[" in " ".join([r.segment.text for r in res])
-
-    def test_staged_icon_in_brackets(self) -> None:
-        res = format_git_full(_git_info(staged=True))
-        assert res is not None
-        assert YELLOW in " ".join([r.segment.text for r in res])
-        assert get_icon("staged") in " ".join([r.segment.text for r in res])
-
-    def test_untracked_icon_in_brackets(self) -> None:
-        res = format_git_full(_git_info(untracked=True))
-        assert res is not None
-        assert CYAN in " ".join([r.segment.text for r in res])
-        assert get_icon("untracked") in " ".join([r.segment.text for r in res])
+        text = " ".join([r.segment.text for r in res])
+        for token in expected_tokens:
+            assert token in text
 
     def test_ahead_behind_shown(self) -> None:
         res = format_git_full(_git_info(ahead=3, behind=1))
@@ -68,16 +58,21 @@ class TestFormatGitFull:
         assert "↑3" in " ".join([r.segment.text for r in res])
         assert "↓1" in " ".join([r.segment.text for r in res])
 
-    def test_stash_shown(self) -> None:
-        res = format_git_full(_git_info(stash_count=2))
+    @pytest.mark.parametrize(
+        ("stash_count", "expected_present", "expected_absent"),
+        [
+            (2, ["2", get_icon("stash")], []),
+            (0, [], [get_icon("stash")]),
+        ],
+    )
+    def test_stash_display(self, stash_count: int, expected_present: list[str], expected_absent: list[str]) -> None:
+        res = format_git_full(_git_info(stash_count=stash_count))
         assert res is not None
-        assert "2" in " ".join([r.segment.text for r in res])
-        assert get_icon("stash") in " ".join([r.segment.text for r in res])
-
-    def test_stash_hidden_when_zero(self) -> None:
-        res = format_git_full(_git_info(stash_count=0))
-        assert res is not None
-        assert get_icon("stash") not in " ".join([r.segment.text for r in res])
+        text = " ".join([r.segment.text for r in res])
+        for token in expected_present:
+            assert token in text
+        for token in expected_absent:
+            assert token not in text
 
     def test_remote_link_points_to_branch(self) -> None:
         res = format_git_full(_git_info(branch="feat/my-feature"))
