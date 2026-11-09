@@ -9,10 +9,6 @@ The bridge records ``owned`` only for what it installed (or registered), or for 
 a previous ``owned`` record already covers.
 It never adopts a manual or earlier install, including from a ``host-provided`` marketplace.
 It never registers, updates, or records a ``host-provided`` marketplace itself.
-A four-field host-provided plugin record migrates as owned only while it is declared.
-Four-field lines (the earlier format) and the legacy JSON state are classified by
-``_classify_legacy`` and rewritten before any host mutation.
-
 Each run reads every host's plugins and marketplaces once.
 A mutating host command discards that host's snapshot, and the next query reads it again.
 """
@@ -28,7 +24,6 @@ import os
 import shutil
 import subprocess
 import sys
-import time
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
@@ -78,44 +73,6 @@ class _Record(NamedTuple):
 _PROVENANCES = frozenset({"owned", "ambiguous"})
 
 
-def migrate_ownership(path: Path) -> str:
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    lines = []
-    for resource in payload.get("resources", []):
-        kind, host, resource_id = resource["kind"], resource["host"], resource["id"]
-        if host not in _NATIVE_HOSTS:
-            continue
-        if kind == "plugin":
-            plugin, separator, marketplace = resource_id.rpartition("@")
-            if not separator:
-                raise ValueError(f"invalid legacy plugin identity: {resource_id}")
-        elif kind == "marketplace":
-            marketplace, plugin = resource_id, ""
-        else:
-            raise ValueError(f"invalid legacy resource kind: {kind}")
-        lines.append(f"{kind}\t{host}\t{marketplace}\t{plugin}")
-    return "\n".join(lines) + ("\n" if lines else "")
-
-
-def _classify_legacy(
-    record: _Record,
-    marketplaces: Mapping[str, Mapping[str, Any]],
-    declared: frozenset[tuple[str, str]],
-) -> str | None:
-    """Return the provenance for a four-field record, or None to drop it.
-
-    The earlier bridge installed every declared plugin, so a host-provided plugin
-    that is still declared migrates as owned; other host-provided records drop.
-    """
-    source_type = marketplaces.get(record.marketplace, {}).get("source_type")
-    if source_type == "generated":
-        return "owned"
-    if source_type == "host-provided":
-        declared_plugin = (record.marketplace, record.plugin) in declared
-        return "owned" if record.plugin and declared_plugin else None
-    return "ambiguous"
-
-
 class _Ownership:
     """Provenance by record, written after every change so a later failure keeps it."""
 
@@ -148,46 +105,28 @@ class _Ownership:
 
 
 def _read_ownership(path: Path) -> list[str]:
-    """Return the validated lines: four fields (earlier format) or five with a provenance."""
+    """Return validated five-field ownership lines."""
     lines = list(filter(None, path.read_text(encoding="utf-8").splitlines()))
     for line in lines:
         fields = line.split("\t")
-        if len(fields) not in {4, 5} or (
-            len(fields) == 5 and fields[4] not in _PROVENANCES
-        ):
+        if len(fields) != 5 or fields[4] not in _PROVENANCES:
             raise BridgeError(f"invalid ownership record: {line!r}")
     return lines
 
 
-def _load_ownership(
-    state: Path,
-    marketplaces: Mapping[str, Mapping[str, Any]],
-    declared: frozenset[tuple[str, str]],
-) -> _Ownership:
-    """Load the ownership file, migrating the legacy JSON or four-field lines first."""
-    path, legacy = (
-        state / "agent-plugin-ownership",
-        state / "agent-plugin-ownership.json",
-    )
-    if path.exists():
-        lines = _read_ownership(path)
-    else:
-        lines = migrate_ownership(legacy).splitlines() if legacy.exists() else []
+def _load_ownership(state: Path) -> _Ownership:
+    """Load five-field ownership records."""
+    path = state / "agent-plugin-ownership"
+    lines = _read_ownership(path) if path.exists() else []
     records: dict[_Record, str] = {}
     for line in lines:
-        *identity, provenance = (
-            line.split("\t") if line.count("\t") == 4 else (*line.split("\t"), None)
-        )
+        *identity, provenance = line.split("\t")
         record = _Record(*identity)
         if record.host not in _NATIVE_HOSTS | _CLI_HOSTS:
             continue
-        provenance = provenance or _classify_legacy(record, marketplaces, declared)
-        if provenance is not None and records.get(record) != "owned":
+        if records.get(record) != "owned":
             records[record] = provenance
-    ownership = _Ownership(path, records)
-    ownership.save()  # persist classified records before any host mutation
-    legacy.unlink(missing_ok=True)
-    return ownership
+    return _Ownership(path, records)
 
 
 def _run(host: str, *args: str) -> str:
@@ -871,12 +810,7 @@ def reconcile(
         cast("Mapping[str, Mapping[str, Any]]", bridge.get(key, {}))
         for key in ("marketplaces", "plugins", "capabilities")
     )
-    declared = frozenset(
-        (str(definition.get("marketplace", "")), name)
-        for table in (plugins, capabilities)
-        for name, definition in table.items()
-    )
-    own = _load_ownership(_validate_state_root(destination), marketplaces, declared)
+    own = _load_ownership(_validate_state_root(destination))
     source_types = {
         name: str(definition.get("source_type", ""))
         for name, definition in marketplaces.items()
@@ -935,9 +869,6 @@ def reconcile(
         _converge_agy(marketplaces, destination, own)
 
 
-_REFRESH_INTERVAL_SECONDS = 24 * 60 * 60
-
-
 def _refresh_requested(arguments: str) -> bool:
     """Return True when chezmoi ran with ``-R`` or ``--refresh-externals[=always]``.
 
@@ -955,27 +886,6 @@ def _refresh_requested(arguments: str) -> bool:
     return False
 
 
-def _refresh_stamp(destination: Path) -> Path:
-    return _validate_state_root(destination) / "agent-plugin-refresh"
-
-
-def _refresh_due(destination: Path, now: float | None = None) -> bool:
-    """Return True when no refresh is recorded in the last 24 hours."""
-    try:
-        refreshed = _refresh_stamp(destination).stat().st_mtime
-    except FileNotFoundError:
-        return True
-    return (time.time() if now is None else now) - refreshed >= (
-        _REFRESH_INTERVAL_SECONDS
-    )
-
-
-def _mark_refreshed(destination: Path) -> None:
-    stamp = _refresh_stamp(destination)
-    stamp.parent.mkdir(parents=True, exist_ok=True)
-    stamp.touch()
-
-
 def main(argv: list[str] | None = None) -> int:
     logging.basicConfig(level=logging.INFO, format="plugin-bridge: %(message)s")
     parser = argparse.ArgumentParser()
@@ -986,18 +896,12 @@ def main(argv: list[str] | None = None) -> int:
         "--refresh",
         action="store_true",
         help="update owned public and internal marketplaces and their owned plugins;"
-        " also implied by chezmoi -R or a last refresh older than 24 hours",
+        " also implied by chezmoi -R",
     )
     args = parser.parse_args(argv)
     try:
-        refresh = (
-            args.refresh
-            or _refresh_requested(os.environ.get("CHEZMOI_ARGS", ""))
-            or _refresh_due(args.destination)
-        )
+        refresh = args.refresh or _refresh_requested(os.environ.get("CHEZMOI_ARGS", ""))
         reconcile(args.destination, json.load(sys.stdin), refresh=refresh)
-        if refresh:
-            _mark_refreshed(args.destination)
     except (BridgeError, KeyError, TypeError, ValueError, OSError) as error:
         logger.error("%s", error)
         return 2
