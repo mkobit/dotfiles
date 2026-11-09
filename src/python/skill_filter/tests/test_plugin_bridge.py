@@ -930,114 +930,16 @@ def test_successful_registration_is_checkpointed_before_a_later_failure(tmp_path
     assert "plugin\tclaude\tmarket\tfirst\towned" in _records(tmp_path)
 
 
-def test_v1_records_are_classified_before_any_host_mutation(tmp_path, fake):
-    fake.marketplaces["claude"]["wrapper"] = "https://example.test/w.git"
-    fake.add_plugin("claude", "declared@wrapper")
-    fake.add_plugin("claude", "undeclared@wrapper")
-    _write_records(
-        tmp_path,
-        "marketplace\tclaude\tmarket\t",
-        "plugin\tclaude\tpub\tp",
-        "plugin\tclaude\twrapper\tdeclared",
-        "plugin\tclaude\twrapper\tundeclared",
-        "plugin\tcursor\tmarket\tlocal",
-    )
-    declaration = _declaration(
-        {
-            "market": _generated("claude"),
-            "pub": {
-                "source_type": "public",
-                "source_locator": "o/r",
-                "hosts": ["claude"],
-            },
-            "wrapper": {"source_type": "host-provided", "hosts": ["claude"]},
-        },
-        plugins={"declared": {"marketplace": "wrapper"}},
-    )
-    fake.fail.add(("plugin", "marketplace", "add", str(_root(tmp_path))))
-    fake.sources[str(_root(tmp_path))] = "market"
-
-    with pytest.raises(BridgeError):
-        plugin_bridge.reconcile(tmp_path, declaration)
-
-    assert _records(tmp_path) == [
-        "marketplace\tclaude\tmarket\t\towned",
-        "plugin\tclaude\tpub\tp\tambiguous",
-        "plugin\tclaude\twrapper\tdeclared\towned",
-    ]
-
-
-def test_migrate_ownership_keeps_native_and_drops_cursor(tmp_path):
-    legacy = tmp_path / "ownership.json"
-    legacy.write_text(
-        json.dumps(
-            {
-                "resources": [
-                    {"kind": "plugin", "host": "claude", "id": "demo@market"},
-                    {"kind": "marketplace", "host": "codex", "id": "market"},
-                    {"kind": "plugin", "host": "cursor", "id": "local"},
-                ]
-            }
-        )
-    )
-    assert (
-        plugin_bridge.migrate_ownership(legacy)
-        == "plugin\tclaude\tmarket\tdemo\nmarketplace\tcodex\tmarket\t\n"
-    )
-
-
-def _legacy_state(tmp_path: Path) -> Path:
-    state = tmp_path / ".local/state/dotfiles"
-    state.mkdir(parents=True)
-    legacy = state / "agent-plugin-ownership.json"
-    legacy.write_text(
-        json.dumps({"resources": [{"kind": "plugin", "host": "cursor", "id": "local"}]})
-    )
-    return legacy
-
-
-def test_legacy_ownership_is_removed_after_durable_migration(tmp_path):
-    legacy = _legacy_state(tmp_path)
-    plugin_bridge.reconcile(tmp_path, _declaration({}))
-    assert not legacy.exists()
-    assert _records(tmp_path) == []
-
-
-def test_failed_legacy_migration_keeps_legacy_ownership(tmp_path, monkeypatch):
-    legacy = _legacy_state(tmp_path)
-
-    def fail(self):
-        raise OSError("durable write failed")
-
-    monkeypatch.setattr(plugin_bridge._Ownership, "save", fail)
-    with pytest.raises(OSError, match="durable write failed"):
-        plugin_bridge.reconcile(tmp_path, _declaration({}))
-
-    assert legacy.exists()
-
-
-def test_legacy_cleanup_recovers_after_unlink_failure(tmp_path, monkeypatch):
-    legacy = _legacy_state(tmp_path)
-    unlink = type(legacy).unlink
-    failures = [OSError("unlink failed")]
-
-    def flaky(path, *args, **kwargs):
-        if path == legacy and failures:
-            raise failures.pop()
-        return unlink(path, *args, **kwargs)
-
-    monkeypatch.setattr(type(legacy), "unlink", flaky)
-    with pytest.raises(OSError, match="unlink failed"):
-        plugin_bridge.reconcile(tmp_path, _declaration({}))
-    assert legacy.exists()
-
-    plugin_bridge.reconcile(tmp_path, _declaration({}))
-
-    assert not legacy.exists()
-
-
-def test_malformed_ownership_is_an_error(tmp_path):
-    _write_records(tmp_path, "plugin\tclaude\tonly-three")
+@pytest.mark.parametrize(
+    "record",
+    [
+        "plugin\tclaude\tonly-three",
+        "plugin\tclaude\tmarket\tdemo",
+        "plugin\tclaude\tmarket\tdemo\tunknown",
+    ],
+)
+def test_malformed_ownership_is_an_error(tmp_path, record):
+    _write_records(tmp_path, record)
     with pytest.raises(BridgeError, match="invalid ownership record"):
         plugin_bridge.reconcile(tmp_path, _declaration({}))
 
@@ -1069,7 +971,7 @@ def test_reconcile_standalone_without_site_packages(
     assert ("invalid environment name" in result.stderr) == bool(expected_code)
 
 
-def test_main_refreshes_on_flag_chezmoi_refresh_or_expired_stamp(tmp_path, monkeypatch):
+def test_main_refreshes_only_on_explicit_flags(tmp_path, monkeypatch):
     calls = []
     monkeypatch.setattr(
         plugin_bridge,
@@ -1087,16 +989,18 @@ def test_main_refreshes_on_flag_chezmoi_refresh_or_expired_stamp(tmp_path, monke
         )
         return calls[-1]
 
-    assert run() is True  # no stamp yet
-    assert stamp.exists()
-    assert run() is False  # inside the 24-hour window: no network refresh
+    assert run() is False
+    assert not stamp.exists()
     assert run(extra=["--refresh"]) is True
     assert run("chezmoi apply -R") is True
     assert run("chezmoi --config c apply --refresh-externals --no-tty") is True
     assert run("chezmoi apply --refresh-externals=never") is False
-    old = stamp.stat().st_mtime - plugin_bridge._REFRESH_INTERVAL_SECONDS - 1
-    plugin_bridge.os.utime(stamp, (old, old))
-    assert run() is True
+    assert not stamp.exists()
+    stamp.parent.mkdir(parents=True)
+    stamp.touch()
+    plugin_bridge.os.utime(stamp, (0, 0))
+    assert run() is False
+    assert stamp.stat().st_mtime == 0
 
 
 @pytest.mark.parametrize(
