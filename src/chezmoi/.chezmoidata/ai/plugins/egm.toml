@@ -1,0 +1,27 @@
+[ai.plugins.egm]
+version = "0.1.1"
+repo = "google/elephant-goldfish-model"
+# Skills, reviewer personas, standards, and host adapters reviewed at v0.1.1.
+# https://github.com/google/elephant-goldfish-model/releases/tag/v0.1.1
+ref = "dea7761de06ce5b51c177ebb9bba0469f24af5a4"
+sha256 = "6dc5a9386e31cc427896ad694ecab7f98d977195e7faf23138e7fadb8d4cd3c8"
+host = "github"
+path = ".local/share/agent-plugins/marketplaces/egm/plugins/egm"
+
+[ai.plugin_bridge.marketplaces.egm]
+source_type = "generated"
+external_source = "egm"
+source_locator = ".local/share/agent-plugins/marketplaces/egm"
+owner = "Google"
+source = "local"
+display_name = "Elephant-Goldfish Model"
+trust_class = "upstream"
+hosts = ["claude", "codex", "antigravity"]
+order = 120
+
+[ai.plugin_bridge.capabilities.egm]
+description = "Unmodified upstream Elephant-Goldfish Model plugin."
+marketplace = "egm"
+hosts = ["claude", "codex", "antigravity"]
+external_source = "egm"
+package_path = "./plugins/egm"

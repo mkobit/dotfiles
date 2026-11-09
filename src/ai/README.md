@@ -190,6 +190,13 @@ Gemini CLI stays disabled where its tool gate is absent or set to `"none"`.
 The package retains upstream rules, agents, hooks, and runtime helpers.
 Legacy per-skill Superpowers selections stay `"absent"` so apply removes duplicate copies.
 
+[Elephant-Goldfish Model v0.1.1](https://github.com/google/elephant-goldfish-model/releases/tag/v0.1.1) deploys the complete source archive at its release commit.
+The package keeps its skills, reviewer personas, document standards, and host adapters together under `.local/share/agent-plugins/marketplaces/egm/plugins/egm/`.
+Claude Code and Codex register `egm@egm`; Antigravity uses the same directory when its tool gate is enabled.
+The base init template enables `[data.ai.plugins.egm] installation_method = "chezmoi_external"`.
+An overlay can set that method to `"none"` until its workflow and durable context integration have been tested.
+Cursor and OpenCode adapters remain unselected because [upstream marks them experimental](https://github.com/google/elephant-goldfish-model/blob/v0.1.1/docs/harnesses.md).
+
 ## Upstream agents
 
 Agents follow the pin-and-select model via `src/chezmoi/.chezmoidata/ai/agents.toml` and `src/chezmoi/.chezmoiexternals/ai-agents.toml.tmpl`.

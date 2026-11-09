@@ -7,6 +7,9 @@ MISE_STATE_DIR  = "{{ .chezmoi.destDir }}/.local/state/mise"
 [data.ai.plugins.superpowers]
 installation_method = "chezmoi_external"
 
+[data.ai.plugins.egm]
+installation_method = "chezmoi_external"
+
 # Hosts that each authored plugin targets unless ai.plugin_bridge.capabilities.<name>.hosts is set.
 # Per-plugin environments and skills.<skill> = "absent" exceptions also go under that key.
 [data.ai.plugin_bridge]
