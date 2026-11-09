@@ -13,6 +13,7 @@ MARKER_GATED_INSTALLATION_METHODS = {
     "packages.ffmpeg": frozenset({"apt", "homebrew", "none"}),
     "packages.socat": frozenset({"apt", "none"}),
     "packages.strace": frozenset({"apt", "none"}),
+    "packages.wl_clipboard": frozenset({"apt", "none"}),
 }
 
 

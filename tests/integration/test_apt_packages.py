@@ -35,6 +35,11 @@ import pytest
             "ffprobe",
             marks=pytest.mark.chezmoi_installation("packages.ffmpeg", methods={"apt"}),
         ),
+        pytest.param(
+            "wl_clipboard",
+            "wl-paste",
+            marks=pytest.mark.chezmoi_installation("packages.wl_clipboard", methods={"apt"}),
+        ),
     ],
 )
 def test_apt_package_available(host, package, binary):
