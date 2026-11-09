@@ -106,7 +106,7 @@ The list parser accepts a top-level array or an object with a `plugins`, `instal
 If `agy` is missing, a probe or command fails, or the list is unparseable, the bridge logs and skips agy for that run; apply never fails because of agy.
 A plugin installed by an earlier bridge run has no ownership record, so the bridge reinstalls it on a version change but never uninstalls it.
 `dot_gemini/config/modify_plugins.json` only removes the old `plugins.json` entries and can be deleted later.
-The bridge refreshes owned external marketplaces on `chezmoi apply -R` (`--refresh-externals`), read from `CHEZMOI_ARGS`, or when the last refresh is older than 24 hours.
+The bridge refreshes owned external marketplaces only with its `--refresh` flag or chezmoi's `-R` (`--refresh-externals`) flag from `CHEZMOI_ARGS`.
 
 ### Skill templates
 
