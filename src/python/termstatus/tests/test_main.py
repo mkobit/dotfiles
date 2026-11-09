@@ -13,7 +13,7 @@ from typer.testing import CliRunner
 
 from termstatus.layout import Segment, SegmentGenerationResult
 from termstatus.main import cli
-from termstatus.segments.workspace import shorten_path
+from termstatus.segments.workspace import format_obsidian_vault, shorten_path
 
 
 @pytest.fixture(autouse=True)
@@ -101,6 +101,25 @@ class TestShortenPath:
         home = Path("/home/user")
         with patch.object(Path, "home", return_value=home):
             assert shorten_path(home) == "~"
+
+
+class TestFormatObsidianVault:
+    def test_vault_detected_in_ancestor(self, tmp_path: Path) -> None:
+        vault = tmp_path / "MyNotes"
+        vault_config = vault / ".obsidian"
+        vault_config.mkdir(parents=True)
+        sub_dir = vault / "nested" / "folder"
+        sub_dir.mkdir(parents=True)
+
+        results = format_obsidian_vault(sub_dir)
+        assert len(results) == 1
+        assert results[0].line == 1
+        assert results[0].index == 40
+        assert results[0].column == 4
+        assert "MyNotes" in results[0].segment.text
+
+    def test_no_vault_returns_empty(self, tmp_path: Path) -> None:
+        assert format_obsidian_vault(tmp_path) == []
 
 
 runner = CliRunner()
