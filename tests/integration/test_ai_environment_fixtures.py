@@ -21,12 +21,41 @@ MARKETPLACE_TEMPLATES = (
     Path("dot_local/share/agent-plugins/marketplace/dot_claude-plugin/marketplace.json.tmpl"),
     Path("dot_local/share/agent-plugins/marketplace/dot_agents/plugins/marketplace.json.tmpl"),
     Path("dot_local/share/agent-plugins/marketplace/dot_cursor-plugin/marketplace.json.tmpl"),
-    Path("dot_local/share/agent-plugins/marketplaces/superpowers-marketplace/dot_claude-plugin/marketplace.json.tmpl"),
-    Path("dot_local/share/agent-plugins/marketplaces/superpowers-marketplace/dot_agents/plugins/marketplace.json.tmpl"),
-    Path("dot_local/share/agent-plugins/marketplaces/egm/dot_claude-plugin/marketplace.json.tmpl"),
-    Path("dot_local/share/agent-plugins/marketplaces/egm/dot_agents/plugins/marketplace.json.tmpl"),
 )
 BRIDGE_TEMPLATE = Path(".chezmoitemplates/ai/plugin-bridge")
+SUPERPOWERS_ARCHIVE_CONTENTS = {
+    ".claude-plugin/plugin.json": b'{"name":"superpowers","version":"7.0.0"}\n',
+    ".codex-plugin/plugin.json": b'{"name":"superpowers","version":"7.0.0"}\n',
+    ".cursor-plugin/plugin.json": b'{"name":"superpowers","hooks":"./hooks/hooks-cursor.json"}\n',
+    "hooks/hooks-cursor.json": b'{"version":1,"hooks":{"sessionStart":[]}}\n',
+    "skills/using-superpowers/SKILL.md": b"# Upstream skill\n",
+    "hooks/session-start": b"#!/bin/sh\nexit 0\n",
+    "nested/AGENTS.md": b"# Upstream agents\n",
+    "CLAUDE.md": b"# Upstream Claude context\n",
+    "GEMINI.md": b"# Upstream Gemini context\n",
+    ".gitignore": b"cache/\n",
+    "BUILD": b"# Upstream build file\n",
+    "rules/example.mdc": b"# Upstream rule\n",
+    "tests/expected_fixture": b"Upstream test data\n",
+    "test_data.toml": b'example = "upstream"\n',
+}
+EGM_ARCHIVE_CONTENTS = {
+    ".claude-plugin/plugin.json": b'{"name":"egm","version":"0.1.1"}\n',
+    ".codex-plugin/plugin.json": b'{"name":"egm","version":"0.1.1","skills":"./skills/"}\n',
+    "plugin.json": b'{"name":"egm","version":"0.1.1"}\n',
+    "skills/egm-review/SKILL.md": b"# Read ../../agents/design_critic.md\n",
+    "agents/design_critic.md": b"# Read-only reviewer\n",
+    "resources/document_standards/design-standard.md": b"# Design standard\n",
+    "docs/codex.md": b"# Codex instructions\n",
+    "nested/AGENTS.md": b"# Upstream agents\n",
+    "CLAUDE.md": b"# Upstream Claude context\n",
+    "GEMINI.md": b"# Upstream Gemini context\n",
+    ".gitignore": b"cache/\n",
+    "BUILD": b"# Upstream build file\n",
+    "rules/example.mdc": b"# Upstream rule\n",
+    "tests/expected_fixture": b"Upstream test data\n",
+    "test_data.toml": b'example = "upstream"\n',
+}
 
 
 def _apply(source: Path, destination: Path, config: Path) -> subprocess.CompletedProcess[str]:
@@ -56,7 +85,8 @@ def _apply(source: Path, destination: Path, config: Path) -> subprocess.Complete
 def _snapshot(destination: Path) -> dict[str, bytes]:
     roots = [
         destination / ".local/share/agent-plugins/marketplace",
-        destination / ".cursor/plugins/local/superpowers",
+        destination / ".local/share/agent-plugins/marketplaces",
+        destination / ".cursor/plugins/local",
     ]
     return {
         path.relative_to(destination).as_posix(): path.read_bytes()
@@ -68,7 +98,11 @@ def _snapshot(destination: Path) -> dict[str, bytes]:
 
 
 def _upstream_fixture(
-    tmp_path: Path, method: str | None, ignore_source: Path = SOURCE_ROOT, plugin: str = "superpowers"
+    tmp_path: Path,
+    method: str | None,
+    contents: dict[str, bytes],
+    ignore_source: Path = SOURCE_ROOT,
+    plugin: str = "superpowers",
 ) -> tuple[Path, Path, Path, dict[str, bytes]]:
     source = tmp_path / "source"
     destination = tmp_path / "destination"
@@ -95,6 +129,7 @@ def _upstream_fixture(
     for relative in (
         Path(".chezmoitemplates/ai"),
         Path(".chezmoidata/ai/plugins"),
+        Path("dot_local/share/agent-plugins/marketplaces"),
         Path("dot_local/share/agent-plugins/marketplace/exact_plugins"),
     ):
         shutil.copytree(SOURCE_ROOT / relative, source / relative, dirs_exist_ok=True)
@@ -103,34 +138,6 @@ def _upstream_fixture(
     resolver.parent.mkdir(parents=True)
     shutil.copy2(REPOSITORY_ROOT / "src/python/skill_filter/resolve-interpreter.sh", resolver)
 
-    contents = {
-        ".claude-plugin/plugin.json": b'{"name":"superpowers","version":"7.0.0"}\n',
-        ".codex-plugin/plugin.json": b'{"name":"superpowers","version":"7.0.0"}\n',
-        ".cursor-plugin/plugin.json": b'{"name":"superpowers","hooks":"./hooks/hooks-cursor.json"}\n',
-        "hooks/hooks-cursor.json": b'{"version":1,"hooks":{"sessionStart":[]}}\n',
-        "skills/using-superpowers/SKILL.md": b"# Upstream skill\n",
-        "hooks/session-start": b"#!/bin/sh\nexit 0\n",
-        "nested/AGENTS.md": b"# Upstream agents\n",
-        "CLAUDE.md": b"# Upstream Claude context\n",
-        "GEMINI.md": b"# Upstream Gemini context\n",
-        ".gitignore": b"cache/\n",
-        "BUILD": b"# Upstream build file\n",
-        "rules/example.mdc": b"# Upstream rule\n",
-        "tests/expected_fixture": b"Upstream test data\n",
-        "test_data.toml": b'example = "upstream"\n',
-    }
-    if plugin == "egm":
-        contents.update(
-            {
-                ".claude-plugin/plugin.json": b'{"name":"egm","version":"0.1.1"}\n',
-                ".codex-plugin/plugin.json": b'{"name":"egm","version":"0.1.1","skills":"./skills/"}\n',
-                "plugin.json": b'{"name":"egm","version":"0.1.1"}\n',
-                "skills/egm-review/SKILL.md": b"# Read ../../agents/design_critic.md\n",
-                "agents/design_critic.md": b"# Read-only reviewer\n",
-                "resources/document_standards/design-standard.md": b"# Design standard\n",
-                "docs/codex.md": b"# Codex instructions\n",
-            }
-        )
     archive = tmp_path / "upstream.tar.gz"
     with tarfile.open(archive, "w:gz") as bundle:
         for name, content in contents.items():
@@ -159,7 +166,7 @@ def _upstream_fixture(
 
 @pytest.mark.parametrize("method", [None, "none", "chezmoi_external"])
 def test_egm_gate_controls_complete_package_and_host_registrations(tmp_path, method):
-    source, destination, config, contents = _upstream_fixture(tmp_path, method, plugin="egm")
+    source, destination, config, contents = _upstream_fixture(tmp_path, method, EGM_ARCHIVE_CONTENTS, plugin="egm")
     result = _apply(source, destination, config)
     assert result.returncode == 0, result.stderr
     enabled = method == "chezmoi_external"
@@ -212,7 +219,7 @@ def test_egm_gate_controls_complete_package_and_host_registrations(tmp_path, met
 
 @pytest.mark.parametrize("method", [None, "none"])
 def test_egm_disabled_after_install_removes_package(tmp_path, method):
-    source, destination, config, _ = _upstream_fixture(tmp_path, "chezmoi_external", plugin="egm")
+    source, destination, config, _ = _upstream_fixture(tmp_path, "chezmoi_external", EGM_ARCHIVE_CONTENTS, plugin="egm")
     installed = _apply(source, destination, config)
     assert installed.returncode == 0, installed.stderr
     package = destination / ".local/share/agent-plugins/marketplaces/egm/plugins/egm"
@@ -233,7 +240,7 @@ def test_egm_disabled_after_install_removes_package(tmp_path, method):
 
 
 def test_base_init_enables_egm(tmp_path):
-    source, destination, config, _ = _upstream_fixture(tmp_path, None, plugin="egm")
+    source, destination, config, _ = _upstream_fixture(tmp_path, None, EGM_ARCHIVE_CONTENTS, plugin="egm")
     fixture_config = config.read_text()
     shutil.copy2(SOURCE_ROOT / ".chezmoi.toml.tmpl", source / ".chezmoi.toml.tmpl")
     rendered = subprocess.run(
@@ -268,7 +275,7 @@ def test_base_init_enables_egm(tmp_path):
 
 @pytest.mark.parametrize("method", [None, "none", "chezmoi_external"])
 def test_upstream_plugin_gate_controls_marketplaces_and_registration(tmp_path, method):
-    source, destination, config, _ = _upstream_fixture(tmp_path, method)
+    source, destination, config, _ = _upstream_fixture(tmp_path, method, SUPERPOWERS_ARCHIVE_CONTENTS)
     result = _apply(source, destination, config)
     assert result.returncode == 0, result.stderr
     enabled = method == "chezmoi_external"
@@ -326,16 +333,25 @@ def test_upstream_plugin_gate_controls_marketplaces_and_registration(tmp_path, m
 
 
 @pytest.mark.parametrize("ignore_layer", ["base", "overlay"])
-def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, ignore_layer):
+@pytest.mark.parametrize(
+    ("plugin", "archive_contents", "cursor"),
+    [("superpowers", SUPERPOWERS_ARCHIVE_CONTENTS, True), ("egm", EGM_ARCHIVE_CONTENTS, False)],
+)
+def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(
+    tmp_path, ignore_layer, plugin, archive_contents, cursor
+):
     overlay_source = REPOSITORY_ROOT.parent.parent / "src/chezmoi"
     if ignore_layer == "overlay" and not (overlay_source / ".chezmoiignore.tmpl").is_file():
         pytest.skip("the overlay ignore policy is not available in this checkout")
     source, destination, config, contents = _upstream_fixture(
         tmp_path,
         "chezmoi_external",
+        archive_contents,
         SOURCE_ROOT if ignore_layer == "base" else overlay_source,
+        plugin=plugin,
     )
-    package = destination / ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers"
+    catalog = tomllib.loads((SOURCE_ROOT / f".chezmoidata/ai/plugins/{plugin}.toml").read_text())
+    package = destination / catalog["ai"]["plugins"][plugin]["path"]
     for stale in (package / "stale.txt", package / "nested/stale.txt"):
         stale.parent.mkdir(parents=True, exist_ok=True)
         stale.write_text("stale\n")
@@ -367,11 +383,17 @@ def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, 
 
     first_apply = _apply(source, destination, config)
     assert first_apply.returncode == 0, first_apply.stderr
-    for installed in (package, destination / ".cursor/plugins/local/superpowers"):
+    installed_packages = [package]
+    if cursor:
+        installed_packages.append(destination / f".cursor/plugins/local/{plugin}")
+    else:
+        assert not (destination / f".cursor/plugins/local/{plugin}").exists()
+    for installed in installed_packages:
         assert {
             path.relative_to(installed).as_posix(): path.read_bytes() for path in installed.rglob("*") if path.is_file()
         } == contents
-        assert (installed / "hooks/session-start").stat().st_mode & 0o111
+        if "hooks/session-start" in contents:
+            assert (installed / "hooks/session-start").stat().st_mode & 0o111
     assert sentinel.read_text() == "keep\n"
     for root in old_roots:
         assert not (destination / root / "brainstorming").exists()
@@ -385,7 +407,7 @@ def test_upstream_archive_preserves_files_and_prunes_old_skill_copies(tmp_path, 
 
 @pytest.mark.parametrize("method", [None, "none"])
 def test_upstream_plugin_disabled_after_install_removes_package(tmp_path, method):
-    source, destination, config, _ = _upstream_fixture(tmp_path, "chezmoi_external")
+    source, destination, config, _ = _upstream_fixture(tmp_path, "chezmoi_external", SUPERPOWERS_ARCHIVE_CONTENTS)
     installed = _apply(source, destination, config)
     assert installed.returncode == 0, installed.stderr
     package = destination / ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers"
