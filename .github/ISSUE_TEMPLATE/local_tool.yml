@@ -1,5 +1,5 @@
 name: '🛠️ Local Tool'
-description: 'Propose a new local tool or automation (e.g. Jules CLI).'
+description: 'Propose a new local tool or automation.'
 labels: ['enhancement', 'local-tool']
 body:
   - type: input
