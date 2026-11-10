@@ -175,3 +175,22 @@ class TestGenerateChezmoiSegment:
 
         results = await generate_chezmoi_segment(tmp_path, tmp_path)
         assert results == []
+
+    @patch("termstatus.segments.chezmoi.fetch_git_info", new_callable=AsyncMock)
+    async def test_single_repo_without_base(self, mock_fetch: AsyncMock, tmp_path: Path):
+        mock_fetch.return_value = GitInfo(branch="main", remote="https://github.com/user/repo")
+        (tmp_path / ".chezmoiroot").write_text("src/chezmoi")
+
+        results = await generate_chezmoi_segment(tmp_path, tmp_path)
+
+        assert len(results) >= 1
+        assert all(r.line == 2 for r in results)
+        assert {r.generator for r in results} == {"internal.chezmoi"}
+
+    @patch("termstatus.segments.chezmoi.fetch_git_info", new_callable=AsyncMock)
+    async def test_single_repo_fetch_fails_returns_empty(self, mock_fetch: AsyncMock, tmp_path: Path):
+        mock_fetch.return_value = None
+        (tmp_path / ".chezmoiroot").write_text("src/chezmoi")
+
+        results = await generate_chezmoi_segment(tmp_path, tmp_path)
+        assert results == []
