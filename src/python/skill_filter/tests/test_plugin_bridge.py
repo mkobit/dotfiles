@@ -930,11 +930,47 @@ def test_successful_registration_is_checkpointed_before_a_later_failure(tmp_path
     assert "plugin\tclaude\tmarket\tfirst\towned" in _records(tmp_path)
 
 
+def test_four_field_records_are_classified_before_any_host_mutation(tmp_path, fake):
+    fake.marketplaces["claude"]["wrapper"] = "https://example.test/w.git"
+    fake.add_plugin("claude", "declared@wrapper")
+    fake.add_plugin("claude", "undeclared@wrapper")
+    _write_records(
+        tmp_path,
+        "marketplace\tclaude\tmarket\t",
+        "plugin\tclaude\tpub\tp",
+        "plugin\tclaude\twrapper\tdeclared",
+        "plugin\tclaude\twrapper\tundeclared",
+        "plugin\tcursor\tmarket\tlocal",
+    )
+    declaration = _declaration(
+        {
+            "market": _generated("claude"),
+            "pub": {
+                "source_type": "public",
+                "source_locator": "o/r",
+                "hosts": ["claude"],
+            },
+            "wrapper": {"source_type": "host-provided", "hosts": ["claude"]},
+        },
+        plugins={"declared": {"marketplace": "wrapper"}},
+    )
+    fake.fail.add(("plugin", "marketplace", "add", str(_root(tmp_path))))
+    fake.sources[str(_root(tmp_path))] = "market"
+
+    with pytest.raises(BridgeError):
+        plugin_bridge.reconcile(tmp_path, declaration)
+
+    assert _records(tmp_path) == [
+        "marketplace\tclaude\tmarket\t\towned",
+        "plugin\tclaude\tpub\tp\tambiguous",
+        "plugin\tclaude\twrapper\tdeclared\towned",
+    ]
+
+
 @pytest.mark.parametrize(
     "record",
     [
         "plugin\tclaude\tonly-three",
-        "plugin\tclaude\tmarket\tdemo",
         "plugin\tclaude\tmarket\tdemo\tunknown",
     ],
 )

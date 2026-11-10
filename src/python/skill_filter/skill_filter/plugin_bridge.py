@@ -9,6 +9,9 @@ The bridge records ``owned`` only for what it installed (or registered), or for 
 a previous ``owned`` record already covers.
 It never adopts a manual or earlier install, including from a ``host-provided`` marketplace.
 It never registers, updates, or records a ``host-provided`` marketplace itself.
+A four-field host-provided plugin record migrates as owned only while it is declared.
+Four-field lines (the earlier format) are classified by ``_classify_legacy`` and
+rewritten before any host mutation.
 Each run reads every host's plugins and marketplaces once.
 A mutating host command discards that host's snapshot, and the next query reads it again.
 """
@@ -104,29 +107,62 @@ class _Ownership:
         temporary.replace(self.path)
 
 
+def _classify_legacy(
+    record: _Record,
+    marketplaces: Mapping[str, Mapping[str, Any]],
+    declared: frozenset[tuple[str, str]],
+) -> str | None:
+    """Return the provenance for a four-field record, or None to drop it.
+
+    The earlier bridge installed every declared plugin, so a host-provided plugin
+    that is still declared migrates as owned; other host-provided records drop.
+    """
+    source_type = marketplaces.get(record.marketplace, {}).get("source_type")
+    if source_type == "generated":
+        return "owned"
+    if source_type == "host-provided":
+        declared_plugin = (record.marketplace, record.plugin) in declared
+        return "owned" if record.plugin and declared_plugin else None
+    return "ambiguous"
+
+
 def _read_ownership(path: Path) -> list[str]:
-    """Return validated five-field ownership lines."""
+    """Return validated lines: four fields (earlier format) or five with a provenance."""
     lines = list(filter(None, path.read_text(encoding="utf-8").splitlines()))
     for line in lines:
         fields = line.split("\t")
-        if len(fields) != 5 or fields[4] not in _PROVENANCES:
+        if len(fields) not in {4, 5} or (
+            len(fields) == 5 and fields[4] not in _PROVENANCES
+        ):
             raise BridgeError(f"invalid ownership record: {line!r}")
     return lines
 
 
-def _load_ownership(state: Path) -> _Ownership:
-    """Load five-field ownership records."""
+def _load_ownership(
+    state: Path,
+    marketplaces: Mapping[str, Mapping[str, Any]],
+    declared: frozenset[tuple[str, str]],
+) -> _Ownership:
+    """Load five-field ownership records, migrating four-field lines first."""
     path = state / "agent-plugin-ownership"
     lines = _read_ownership(path) if path.exists() else []
     records: dict[_Record, str] = {}
     for line in lines:
-        *identity, provenance = line.split("\t")
+        fields = line.split("\t")
+        if len(fields) == 5:
+            *identity, provenance = fields
+        else:
+            *identity, provenance = *fields, None
         record = _Record(*identity)
         if record.host not in _NATIVE_HOSTS | _CLI_HOSTS:
             continue
-        if records.get(record) != "owned":
+        provenance = provenance or _classify_legacy(record, marketplaces, declared)
+        if provenance is not None and records.get(record) != "owned":
             records[record] = provenance
-    return _Ownership(path, records)
+    ownership = _Ownership(path, records)
+    if path.exists():
+        ownership.save()  # persist classified records before any host mutation
+    return ownership
 
 
 def _run(host: str, *args: str) -> str:
@@ -810,7 +846,12 @@ def reconcile(
         cast("Mapping[str, Mapping[str, Any]]", bridge.get(key, {}))
         for key in ("marketplaces", "plugins", "capabilities")
     )
-    own = _load_ownership(_validate_state_root(destination))
+    declared = frozenset(
+        (str(definition.get("marketplace", "")), name)
+        for table in (plugins, capabilities)
+        for name, definition in table.items()
+    )
+    own = _load_ownership(_validate_state_root(destination), marketplaces, declared)
     source_types = {
         name: str(definition.get("source_type", ""))
         for name, definition in marketplaces.items()
