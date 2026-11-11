@@ -60,7 +60,6 @@ def test_mise_and_editable_tool_use_configured_checkout_root(tmp_path):
     (source_root / "mise.toml").write_text("[tools]\n", encoding="utf-8")
     source_dirs = (
         "termstatus",
-        "jules_cli",
         "transcribe",
         "termbud",
         "sandboxr",

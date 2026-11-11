@@ -18,3 +18,9 @@
 .claude/plugins/cache/dotfiles/mkobit-dotfiles/*/skills/chrome-extensions
 .codex/plugins/cache/dotfiles/mkobit-dotfiles/*/skills/modern-web-guidance
 .codex/plugins/cache/dotfiles/mkobit-dotfiles/*/skills/chrome-extensions
+
+# Retired Jules CLI tool and configuration.
+.local/bin/dotfiles/jules
+.local/bin/tools/jules
+.local/share/uv/tools/jules-cli
+.config/jules

@@ -7,10 +7,6 @@
 source_dir = "src/python/termstatus"
 package_name = "termstatus"
 
-[local_bin_tools.jules]
-source_dir = "src/python/jules_cli"
-package_name = "jules-cli"
-
 [local_bin_tools.transcribe]
 source_dir = "src/python/transcribe"
 package_name = "transcribe"
