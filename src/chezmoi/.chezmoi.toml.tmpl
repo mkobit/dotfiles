@@ -177,7 +177,8 @@ enabled = true
 
 # Packages & Frameworks Installation Methods
 [data.packages.ghostty]
-installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"snap"{{ end }}
+# GitHub runners are headless; deploy config without installing the terminal.
+installation_method = {{ if eq (env "GITHUB_ACTIONS") "true" }}"none"{{ else if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"snap"{{ end }}
 
 [data.packages.eza]
 installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"chezmoi_external"{{ end }}

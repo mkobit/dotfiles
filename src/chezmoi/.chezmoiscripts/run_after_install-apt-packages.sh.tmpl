@@ -107,6 +107,34 @@ ppa_is_configured() {
 }
 {{- end }}
 
+missing_packages=()
+{{- range $aptPkgs }}
+{{-   $tool := index $.packages . }}
+{{-   $pkg := dig "package" "apt" (dict) $tool }}
+{{-   $name := dig "name" . $pkg }}
+{{-   if not (dig "ppa" "" $pkg) }}
+if dpkg -l {{ $name }} 2>/dev/null | grep -q "^ii"; then
+    log_success "{{ $name }} already installed via apt"
+elif [ "$has_sudo_access" -eq 1 ]; then
+    missing_packages+=({{ $name | quote }})
+else
+    log_warn "No TTY and no cached sudo credentials — skipping {{ $name }} install, will retry next apply"
+    skipped_any=1
+fi
+{{-   end }}
+{{- end }}
+
+if [ "${#missing_packages[@]}" -gt 0 ]; then
+    log_info "🔒 Installing apt packages: ${missing_packages[*]}..."
+    if ! sudo apt-get install -y "${missing_packages[@]}"; then
+        log_warn "Failed to install apt packages, updating apt cache and retrying..."
+        sudo apt-get update
+        sudo apt-get install -y "${missing_packages[@]}" \
+            || { log_error "Failed to install apt packages after update"; exit 1; }
+    fi
+    log_success "Apt packages installed"
+fi
+
 {{- range $aptPkgs }}
 {{-   $tool := index $.packages . }}
 {{-   $pkg := dig "package" "apt" (dict) $tool }}
@@ -138,22 +166,6 @@ elif [ "$has_sudo_access" -eq 1 ]; then
     log_info "🔒 Installing {{ $name }} via apt (from {{ $ppa }})..."
     sudo apt-get install -y {{ $name }} \
         || { log_error "Failed to install {{ $name }} via apt"; exit 1; }
-    log_success "{{ $name }} installed"
-else
-    log_warn "No TTY and no cached sudo credentials — skipping {{ $name }} install, will retry next apply"
-    skipped_any=1
-fi
-{{- else }}
-if dpkg -l {{ $name }} 2>/dev/null | grep -q "^ii"; then
-    log_success "{{ $name }} already installed via apt"
-elif [ "$has_sudo_access" -eq 1 ]; then
-    log_info "🔒 Installing {{ $name }} via apt..."
-    if ! sudo apt-get install -y {{ $name }}; then
-        log_warn "Failed to install {{ $name }} via apt, updating apt cache and retrying..."
-        sudo apt-get update
-        sudo apt-get install -y {{ $name }} \
-            || { log_error "Failed to install {{ $name }} via apt after update"; exit 1; }
-    fi
     log_success "{{ $name }} installed"
 else
     log_warn "No TTY and no cached sudo credentials — skipping {{ $name }} install, will retry next apply"
