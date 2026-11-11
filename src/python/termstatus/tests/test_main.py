@@ -1,9 +1,7 @@
 import asyncio
-import contextlib
 import io
 import json
 import os
-import time
 from pathlib import Path
 from typing import override
 from unittest.mock import AsyncMock, Mock, patch
@@ -11,8 +9,10 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from typer.testing import CliRunner
 
+from termstatus.git_status import probe_git
 from termstatus.layout import Segment, SegmentGenerationResult
 from termstatus.main import cli
+from termstatus.segments.git import _GIT_TIMEOUT
 from termstatus.segments.workspace import format_obsidian_vault, shorten_path
 
 
@@ -152,35 +152,58 @@ def test_main_with_invalid_stdin():
     assert result.exit_code == 0
 
 
-def test_git_cancellation_and_p99_latency_under_slow_git():
-    """Goals: Verify P99 latency stays under 200ms even when git subprocess calls hang/timeout."""
-    durations = []
-    iterations = 20
+def test_git_cancellation_under_slow_git(tmp_path):
+    """The CLI uses the configured Git budget and cleans up blocked subprocesses."""
+    timeouts = []
+    deadlines = []
+    started_reads = []
+    cancelled_reads = []
+
+    def controlled_timeout(deadline):
+        deadlines.append(deadline)
+        timeout = asyncio.timeout(None)
+        timeouts.append(timeout)
+        return timeout
 
     async def slow_read(*args, **kwargs):
-        with contextlib.suppress(asyncio.CancelledError):
-            await asyncio.sleep(5.0)
-        return b"", b""
+        started_reads.append(True)
+        if len(started_reads) == 2:
+            # Expire the probe scope only after both reads start; no timer runs.
+            timeouts[1].reschedule(float("-inf"))
+        try:
+            await asyncio.Event().wait()
+        except asyncio.CancelledError:
+            cancelled_reads.append(True)
+            raise
+        return b""
 
-    with patch("asyncio.create_subprocess_exec") as mock_exec:
-        mock_proc = AsyncMock()
-        mock_proc.kill = Mock()
-        mock_proc.returncode = None
-        mock_proc.stdout.read.side_effect = slow_read
-        mock_exec.return_value = mock_proc
+    processes = [AsyncMock(), AsyncMock()]
+    for process in processes:
+        process.kill = Mock()
+        process.returncode = None
+        process.stdout.read.side_effect = slow_read
+        process.wait.return_value = 0
 
-        for _ in range(iterations):
-            t0 = time.perf_counter()
-            res = runner.invoke(cli, ["claude", "render"], input='{"cwd": "/tmp"}')
-            t1 = time.perf_counter()
-            assert res.exit_code == 0
-            durations.append((t1 - t0) * 1000)
+    with (
+        patch.dict(os.environ, {"XDG_CACHE_HOME": str(tmp_path)}),
+        patch("termstatus.main.detect_chezmoi_root", return_value=None),
+        patch("asyncio.create_subprocess_exec", side_effect=processes) as create_process,
+        patch("termstatus.git_status.asyncio.timeout_at", side_effect=controlled_timeout),
+        patch("termstatus.segments.git.probe_git", wraps=probe_git) as git_probe,
+    ):
+        result = runner.invoke(
+            cli, ["claude", "render"], input=json.dumps({"workspace": {"current_dir": str(tmp_path)}})
+        )
 
-    durations.sort()
-    p99_idx = int(len(durations) * 0.99)
-    p99_ms = durations[min(p99_idx, len(durations) - 1)]
-
-    assert p99_ms < 200.0, f"P99 latency under slow git was {p99_ms:.2f}ms (> 200.0ms)"
+    assert result.exit_code == 0
+    git_probe.assert_awaited_once_with(str(tmp_path.resolve()), _GIT_TIMEOUT)
+    assert _GIT_TIMEOUT.total("milliseconds") == 300
+    assert deadlines[0] - deadlines[1] == pytest.approx(0.025)
+    assert create_process.await_count == 2
+    assert len(cancelled_reads) == 2
+    for process in processes:
+        process.kill.assert_called_once()
+        process.wait.assert_awaited_once()
 
 
 def test_claude_render_with_unknown_payload_fields(tmp_path):

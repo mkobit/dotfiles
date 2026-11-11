@@ -1,3 +1,9 @@
+import os
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+
 import pytest
 from chezmoi_test_data import (
     AGY_INSTALLATION_METHODS,
@@ -5,6 +11,42 @@ from chezmoi_test_data import (
     installation_method,
     required_installation_method,
 )
+
+
+@pytest.mark.parametrize("github_actions", ["true", "false", ""])
+def test_ghostty_installation_matches_runner_environment(tmp_path, github_actions):
+    expected = "none" if github_actions == "true" else "homebrew" if sys.platform == "darwin" else "snap"
+    template = Path.cwd() / "src/chezmoi/.chezmoi.toml.tmpl"
+    source = tmp_path / "source"
+    source.mkdir()
+    (source / ".chezmoi.toml.tmpl").write_text(template.read_text())
+    config = tmp_path / "chezmoi.toml"
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--config",
+            str(config),
+            "--config-format",
+            "toml",
+            "--source",
+            str(source),
+            "--destination",
+            str(tmp_path / "dest"),
+            "--cache",
+            str(tmp_path / "cache"),
+            "--persistent-state",
+            str(tmp_path / "state.db"),
+            "init",
+            "--no-tty",
+        ],
+        env={**os.environ, "CI": "true", "GITHUB_ACTIONS": github_actions},
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    data = tomllib.loads(config.read_text())["data"]
+    assert required_installation_method(data, "packages.ghostty") == expected
 
 
 def test_installation_method_reads_top_level_feature():
