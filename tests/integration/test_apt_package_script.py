@@ -43,10 +43,19 @@ case "$name" in
         fi
         exit "$TEST_APT_EXIT"
         ;;
+    add-apt-repository)
+        attempt=0
+        if [[ -f "$TEST_ADD_ATTEMPTS" ]]; then
+            attempt=$(cat "$TEST_ADD_ATTEMPTS")
+        fi
+        attempt=$((attempt + 1))
+        printf '%s\\n' "$attempt" > "$TEST_ADD_ATTEMPTS"
+        [[ "$attempt" -ge "$TEST_ADD_SUCCEED_AT" ]]
+        ;;
     systemctl) exit 0 ;;
 esac
 """
-    for command in ("sudo", "dpkg", "apt-get", "add-apt-repository", "systemctl"):
+    for command in ("sudo", "dpkg", "apt-get", "add-apt-repository", "systemctl", "sleep"):
         path = commands / command
         path.write_text(fake_command)
         path.chmod(0o755)
@@ -62,6 +71,7 @@ esac
         packages=None,
         installed_packages=(),
         fail_first_install=False,
+        add_succeed_at=1,
     ):
         data = {
             "chezmoi": {"os": "linux"},
@@ -113,6 +123,8 @@ esac
             "TEST_INSTALL_FAILED": str(tmp_path / "install-failed"),
             "TEST_SUDO": str(int(sudo)),
             "TEST_ADD_COMMAND": str(int(add_command)),
+            "TEST_ADD_ATTEMPTS": str(tmp_path / "add-attempts"),
+            "TEST_ADD_SUCCEED_AT": str(add_succeed_at),
             "TEST_APT_EXIT": str(apt_exit),
         }
         result = subprocess.run(["bash", str(script)], env=env, capture_output=True, text=True, check=False)
@@ -187,6 +199,28 @@ def test_missing_ppa_installs_repository_helper_when_needed(apt_script):
     assert calls.index("apt-get install -y software-properties-common") < calls.index(
         "add-apt-repository -y --no-update ppa:git-core/ppa"
     )
+
+
+@pytest.mark.parametrize("add_succeed_at", [1, 2, 5])
+def test_missing_ppa_retries_only_repository_setup(apt_script, add_succeed_at):
+    result, calls, cache = apt_script(add_succeed_at=add_succeed_at)
+    assert result.returncode == 0, result.stderr
+    assert calls.count("add-apt-repository -y --no-update ppa:git-core/ppa") == add_succeed_at
+    assert [call for call in calls if call.startswith("sleep ")] == ["sleep 5", "sleep 10", "sleep 20", "sleep 40"][
+        : add_succeed_at - 1
+    ]
+    assert calls.count("apt-get update") == 1
+    assert cache.is_file()
+
+
+def test_missing_ppa_stops_after_five_failures(apt_script):
+    result, calls, cache = apt_script(add_succeed_at=6)
+    assert result.returncode == 1
+    assert calls.count("add-apt-repository -y --no-update ppa:git-core/ppa") == 5
+    assert [call for call in calls if call.startswith("sleep ")] == ["sleep 5", "sleep 10", "sleep 20", "sleep 40"]
+    assert "apt-get update" not in calls
+    assert "apt-get install -y git" not in calls
+    assert not cache.exists()
 
 
 def test_missing_ppa_without_sudo_does_not_cache_success(apt_script):
