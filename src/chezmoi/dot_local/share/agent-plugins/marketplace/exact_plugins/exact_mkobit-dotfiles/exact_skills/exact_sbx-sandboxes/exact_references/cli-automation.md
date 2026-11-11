@@ -1,7 +1,7 @@
 # CLI selection and automation
 
-These notes cover Docker Sandboxes CLI v0.51.0 automation.
-See the [v0.51.0 release notes](https://github.com/docker/sbx-releases/releases/tag/v0.51.0).
+These notes cover Docker Sandboxes CLI v0.53.0 automation.
+See the [v0.53.0 release notes](https://github.com/docker/sbx-releases/releases/tag/v0.53.0).
 
 ## Select a command
 
