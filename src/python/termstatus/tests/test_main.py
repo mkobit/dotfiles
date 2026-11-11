@@ -154,9 +154,22 @@ def test_main_with_invalid_stdin():
 
 def test_git_cancellation_under_slow_git(tmp_path):
     """The CLI uses the configured Git budget and cleans up blocked subprocesses."""
+    timeouts = []
+    deadlines = []
+    started_reads = []
     cancelled_reads = []
 
+    def controlled_timeout(deadline):
+        deadlines.append(deadline)
+        timeout = asyncio.timeout(None)
+        timeouts.append(timeout)
+        return timeout
+
     async def slow_read(*args, **kwargs):
+        started_reads.append(True)
+        if len(started_reads) == 2:
+            # Expire the probe scope only after both reads start; no timer runs.
+            timeouts[1].reschedule(float("-inf"))
         try:
             await asyncio.Event().wait()
         except asyncio.CancelledError:
@@ -175,6 +188,7 @@ def test_git_cancellation_under_slow_git(tmp_path):
         patch.dict(os.environ, {"XDG_CACHE_HOME": str(tmp_path)}),
         patch("termstatus.main.detect_chezmoi_root", return_value=None),
         patch("asyncio.create_subprocess_exec", side_effect=processes) as create_process,
+        patch("termstatus.git_status.asyncio.timeout_at", side_effect=controlled_timeout),
         patch("termstatus.segments.git.probe_git", wraps=probe_git) as git_probe,
     ):
         result = runner.invoke(
@@ -184,6 +198,7 @@ def test_git_cancellation_under_slow_git(tmp_path):
     assert result.exit_code == 0
     git_probe.assert_awaited_once_with(str(tmp_path.resolve()), _GIT_TIMEOUT)
     assert _GIT_TIMEOUT.total("milliseconds") == 300
+    assert deadlines[0] - deadlines[1] == pytest.approx(0.025)
     assert create_process.await_count == 2
     assert len(cancelled_reads) == 2
     for process in processes:
