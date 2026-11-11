@@ -49,17 +49,7 @@ class TestDetectChezmoiRoot:
 
 class TestFormatRepo:
     def test_clean_repo(self):
-        info = GitInfo(
-            branch="main",
-            remote="https://github.com/user/repo",
-            dirty=False,
-            staged=False,
-            untracked=False,
-            ahead=0,
-            behind=0,
-            is_repo=True,
-            stash_count=0,
-        )
+        info = GitInfo(branch="main", remote="https://github.com/user/repo")
         results = _format_repo("ovl", info, line=2)
         assert len(results) == 4
         assert results[0].line == 2
@@ -72,17 +62,7 @@ class TestFormatRepo:
         assert results[3].column == 4
 
     def test_dirty_repo_with_ahead_behind(self):
-        info = GitInfo(
-            branch="feature",
-            remote=None,
-            dirty=True,
-            staged=True,
-            untracked=False,
-            ahead=2,
-            behind=1,
-            is_repo=True,
-            stash_count=0,
-        )
+        info = GitInfo(branch="feature", dirty=True, staged=True, ahead=2, behind=1)
         results = _format_repo("base", info, line=3)
         assert len(results) == 4
         assert results[0].line == 3
@@ -96,17 +76,7 @@ class TestFormatRepo:
         assert "↓1" in results[3].segment.text
 
     def test_clean_no_remote_no_right_segment(self):
-        info = GitInfo(
-            branch="main",
-            remote=None,
-            dirty=False,
-            staged=False,
-            untracked=False,
-            ahead=0,
-            behind=0,
-            is_repo=True,
-            stash_count=0,
-        )
+        info = GitInfo(branch="main")
         results = _format_repo("ovl", info, line=2)
         assert len(results) == 3
         assert results[0].column == 0
@@ -114,17 +84,7 @@ class TestFormatRepo:
         assert results[2].column == 2
 
     def test_lead_is_branch_icon_not_label(self):
-        info = GitInfo(
-            branch="main",
-            remote=None,
-            dirty=False,
-            staged=False,
-            untracked=False,
-            ahead=0,
-            behind=0,
-            is_repo=True,
-            stash_count=0,
-        )
+        info = GitInfo(branch="main")
         with_label = _format_repo("overlay", info, line=2)
         without_label = _format_repo("", info, line=2)
         assert with_label[0].segment.text == without_label[0].segment.text
@@ -132,17 +92,7 @@ class TestFormatRepo:
         assert "overlay" in with_label[1].segment.text
 
     def test_long_branch_name_truncated(self):
-        info = GitInfo(
-            branch="feature/a-very-long-branch-name-that-should-be-truncated",
-            remote=None,
-            dirty=False,
-            staged=False,
-            untracked=False,
-            ahead=0,
-            behind=0,
-            is_repo=True,
-            stash_count=0,
-        )
+        info = GitInfo(branch="feature/a-very-long-branch-name-that-should-be-truncated")
         results = _format_repo("ovl", info, line=2)
         body_text = results[1].segment.text
         assert "…" in body_text
