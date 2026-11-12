@@ -12,14 +12,17 @@
 {{- $existingPermissions := dig "permissions" (dict) $config -}}
 {{- $config = set $config "permissions" (omit $existingPermissions "tools" "files") -}}
 {{- $allow := list -}}
-{{- $deny := list -}}
+{{- $deny := concat (dig "permissions" "deny" (list) $config) (dig "permissions" "deny" (list) .claude_code.settings) -}}
+{{- $ask := concat (dig "permissions" "ask" (list) $config) (dig "permissions" "ask" (list) .claude_code.settings) -}}
 {{- range $cmd, $mode := dig "ai" "command_policy" "commands" (dict) . -}}
 {{-   if eq $mode "allow" -}}
 {{-     $allow = append $allow (printf "Bash(%s:*)" $cmd) -}}
+{{-   else if eq $mode "prompt" -}}
+{{-     $ask = append $ask (printf "Bash(%s:*)" $cmd) -}}
 {{-   else if eq $mode "deny" -}}
 {{-     $deny = append $deny (printf "Bash(%s:*)" $cmd) -}}
 {{-   end -}}
-{{- /* "ask" (or any other value) renders nowhere — absence from both
+{{- /* "ask" renders nowhere — absence from both
    allow and deny falls back to Claude Code's normal per-use prompt,
    which is what "ask" means. */ -}}
 {{- end -}}
@@ -52,6 +55,9 @@
 {{-   end -}}
 {{- end -}}
 {{- $permissions := dict "allow" $finalAllow -}}
+{{- if gt (len $ask) 0 -}}
+{{-   $permissions = set $permissions "ask" ($ask | uniq | sortAlpha) -}}
+{{- end -}}
 {{- if gt (len $deny) 0 -}}
 {{-   $permissions = set $permissions "deny" ($deny | uniq | sortAlpha) -}}
 {{- end -}}

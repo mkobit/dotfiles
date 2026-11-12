@@ -4,3 +4,19 @@ uv = "0.12.10"
 [settings]
 locked = true
 http_retries = 5
+
+[tasks."test:workflow"]
+description = "Check SBX policy renderers and migration"
+run = "uv run --frozen pytest tests/integration/test_sbx_command_policy.py tests/integration/test_sbx_command_retirement.py tests/integration/test_ai_workflow_permissions.py"
+
+[tasks.verify]
+description = "Run project checks"
+run = [
+    "uv sync --all-packages --frozen",
+    "uv run --frozen ruff check .",
+    "uv run --frozen ruff format --check .",
+    "uv run --frozen ty check",
+    "uv run --frozen pytest src/python --cov --cov-report=term-missing",
+    "mise run test:workflow",
+    "uv build --all-packages",
+]
