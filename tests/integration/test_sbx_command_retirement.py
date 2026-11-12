@@ -44,6 +44,43 @@ KEEP = {
 }
 
 
+ALLOW_HEADS = {
+    "sbx --version",
+    "sbx version",
+    "sbx --help",
+    "sbx help",
+    "sbx ls",
+    "sbx list",
+    "sbx inspect",
+    "sbx daemon status",
+    "sbx env plan",
+    "sbx kit inspect",
+    "sbx kit validate",
+    "sbx kit verify",
+    "sbx kit provenance",
+    "sbx policy check",
+    "sbx policy inspect",
+    "sbx policy log",
+    "sbx policy ls",
+    "sbx mcp inspect",
+    "sbx mcp ls",
+    "sbx skills ls",
+    "sbx template inspect",
+    "sbx template ls",
+    "sbx settings get",
+    "sbx settings ls",
+    "sbx create",
+    "sbx env create",
+    "sbx rm",
+    "sbx env rm",
+}
+PROMPT_HEADS = {"sbx run", "sbx env run", "sbx exec", "sbx env exec"}
+
+
+def rule(tool: str, head: str) -> str:
+    return f"Bash({head}:*)" if tool == "claude" else f"command({head})"
+
+
 def _render(tool: str, live: dict | None = None, override: dict | None = None, source: Path = ROOT) -> dict:
     data = {"local": {"bin": {"agy": {"installation_method": "preinstalled"}}}}
     if override:
@@ -74,11 +111,10 @@ def _render(tool: str, live: dict | None = None, override: dict | None = None, s
 
 
 @pytest.mark.parametrize("tool", TEMPLATES)
-def test_fresh_settings_grant_only_sbx_version_inspection(tool: str) -> None:
+def test_fresh_settings_grant_selected_sbx_heads(tool: str) -> None:
     allow = _render(tool)["permissions"]["allow"]
     actual = {entry for entry in allow if entry.startswith(("Bash(sbx ", "command(sbx "))}
-    expected = "Bash(sbx --version:*)" if tool == "claude" else "command(sbx --version)"
-    assert actual == {expected}
+    assert actual == {rule(tool, head) for head in ALLOW_HEADS}
 
 
 @pytest.mark.parametrize("tool", TEMPLATES)
@@ -86,7 +122,8 @@ def test_retirement_removes_exact_live_grants_only(tool: str) -> None:
     live = {"permissions": {"allow": [*OLD[tool], *KEEP[tool]], "unknown": 7}, "custom": True}
     rendered = _render(tool, live)
     allow = rendered["permissions"]["allow"]
-    assert all(entry not in allow for entry in OLD[tool])
+    approved = {rule(tool, head) for head in ALLOW_HEADS}
+    assert all(entry not in allow for entry in OLD[tool] if entry not in approved)
     assert all(entry in allow for entry in KEEP[tool])
     assert rendered["permissions"]["unknown"] == 7
     assert rendered["custom"] is True

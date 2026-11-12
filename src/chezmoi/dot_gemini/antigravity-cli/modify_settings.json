@@ -7,17 +7,17 @@
 {{- $agyMethod := dig "local" "bin" "agy" "installation_method" "none" . -}}
 {{- if ne $agyMethod "none" -}}
 {{-   $agAllow := list -}}
-{{-   $agDeny := list -}}
+{{-   $agDeny := concat (dig "permissions" "deny" (list) $config) (dig "gemini" "permissions" "deny" (list) .) -}}
+{{-   $agAsk := concat (dig "permissions" "ask" (list) $config) (dig "gemini" "permissions" "ask" (list) .) -}}
 {{-   range $cmd, $mode := dig "ai" "command_policy" "commands" (dict) . -}}
 {{-     if eq $mode "allow" -}}
-{{-       $agAllow = append $agAllow (printf "command(%s)" (regexQuoteMeta $cmd)) -}}
+{{-       $agAllow = append $agAllow (printf "command(%s)" $cmd) -}}
+{{-     else if eq $mode "prompt" -}}
+{{-       $agAsk = append $agAsk (printf "command(%s)" $cmd) -}}
 {{-     else if eq $mode "deny" -}}
-{{-       $agDeny = append $agDeny (printf "command(%s)" (regexQuoteMeta $cmd)) -}}
+{{-       $agDeny = append $agDeny (printf "command(%s)" $cmd) -}}
 {{-     end -}}
-{{- /* "ask" renders nowhere — same "absence = normal prompt" logic as
-   the Claude side. deny(...) key name is inferred from Antigravity's
-   documented "Deny > Ask > Allow" precedence, not yet live-tested —
-   harmless today since nothing sets "deny" here. */ -}}
+{{- /* "ask" remains absent; "prompt" adds a native ask rule. */ -}}
 {{-   end -}}
 {{- /* Retire only exact legacy live grants; computed and ensured grants stay eligible. */ -}}
 {{-   $retiredAllow := list -}}
@@ -42,6 +42,9 @@
 {{-     end -}}
 {{-   end -}}
 {{-   $agPermissions := dict "allow" $finalAllow -}}
+{{-   if gt (len $agAsk) 0 -}}
+{{-     $agPermissions = set $agPermissions "ask" ($agAsk | uniq | sortAlpha) -}}
+{{-   end -}}
 {{-   if gt (len $agDeny) 0 -}}
 {{-     $agPermissions = set $agPermissions "deny" ($agDeny | uniq | sortAlpha) -}}
 {{-   end -}}
