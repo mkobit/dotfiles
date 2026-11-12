@@ -14,7 +14,8 @@ The host sets the allowed project and scope and starts the next run.
 Use the smallest changes needed to prove this path.
 Use native SBX features where they meet the need.
 Consider SBX and kit upgrades if they remove a setup blocker.
-Use the brief's current-state notes and file inventory to assess existing branch changes.
+Use the brief's historical notes and file inventory to assess existing branch changes.
+Use this specification for current implementation instructions.
 Older plans supply historical context; their task lists do not set the implementation order.
 
 Prefer Beads when the project has it.
@@ -64,6 +65,7 @@ The pilot must produce evidence for the result and preserve enough state to resu
 - Support for forges other than GitHub in this pilot.
 - Migration or audit of other repositories.
 - Execution of every change in the historical branch plans.
+- OpenCode changes, including configuration, policy rendering, and tests.
 - Pi command-policy support or a Pi approval extension.
 - Production changes before design approval.
 
@@ -109,25 +111,26 @@ Both host and guest can contribute and push Beads state; each project defines ho
 
 ### Research baseline
 
-The design worktree remains on `feat/sbx-rearch` at `18cec9ef`.
-The refreshed `origin/main` is `16d49d4f`.
-The brief's inventory still describes the branch changes; it does not establish that all of them are needed for the pilot.
+The initial research used `feat/sbx-rearch` at `18cec9ef` and `origin/main` at `16d49d4f`.
+These commits and the observations in this baseline are historical references, not current branch status.
+Check the accepted implementation base before using the inventory.
+The inventory does not establish that all branch changes are needed for the pilot.
 
 The release update itself needs one file: [`src/chezmoi/.chezmoidata/bin/agy.toml`](../../src/chezmoi/.chezmoidata/bin/agy.toml).
-It currently selects `1.5.3` and four platform archives.
+At the research baseline, it selected `1.5.3` and four platform archives.
 The existing [GitHub release template](../../src/chezmoi/.chezmoitemplates/bin/github-releases-entry.tmpl) supplies download, extraction, and checksum handling.
 The pilot must check the four archive hashes and the installed version.
-The existing [agy smoke test](../../tests/integration/test_antigravity.py) checks the exit code only.
+At the baseline, the [agy smoke test](../../tests/integration/test_antigravity.py) checked the exit code only.
 
-The branch [delivery instructions](../../src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles/exact_skills/exact_worker-handoff/exact_references/delivery.md) depend on a `pr:ship` task that the root [mise configuration](../../mise.toml) does not define.
-They also require host acceptance before merge.
+At the baseline, the branch [delivery instructions](../../src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles/exact_skills/exact_worker-handoff/exact_references/delivery.md) depended on a `pr:ship` task that the root [mise configuration](../../mise.toml) did not define.
+They also required host acceptance before merge.
 The pilot must replace that pause with guest verification under the assigned authority.
 Native Git and GitHub CLI commands can perform signing, push, PR, CI, and merge operations without a new shipping service.
 
-The [project CI list](../../.agent-workflow.json) names `lint`, but the [workflow](../../.github/workflows/ci.yml) names that check `Lint and type check`.
+At the baseline, the [project CI list](../../.agent-workflow.json) named `lint`, but the [workflow](../../.github/workflows/ci.yml) named that check `Lint and type check`.
 The selected workflow-result policy below replaces that list for this pilot.
 No `.beads` directory was found in this worktree.
-An external tracker or host tracker remains unverified.
+The research did not verify an external tracker or host tracker.
 
 ### Private guest clone
 
@@ -162,8 +165,10 @@ See [kit version and pin guidance](https://docs.docker.com/ai/sandboxes/customiz
 
 ### Guest readiness
 
-Use installed SBX `0.51.0` as the starting version.
-No host upgrade is currently needed for the identified features.
+Use Linux SBX `0.51.0` as the starting version.
+Unit 3 adds the official macOS Homebrew installation path and records its separately tested version.
+The identified Linux features do not require a host upgrade.
+Verify compatibility with the macOS cask during unit 3.
 Use one pinned native v3 Codex workload and convert the repository toolchain mixin to v3.
 Keep the workload's native launch behavior.
 Select and record the workload digest, project kit revision, agent version, and model during bootstrap.
@@ -364,22 +369,21 @@ Keep `sbx run` and `sbx env run` under execution approval even though they also 
 Do not approve `sbx diagnose` as a whole inspection prefix because it accepts `--upload`.
 Do not approve `sbx ports` as a whole inspection prefix because it can change port bindings.
 
-Use the same central decisions for these five managed local tools:
+Use the same central decisions for these four managed local tools:
 
 | Tool | Native integration | Required check |
 | --- | --- | --- |
 | Claude Code | Extend the existing [settings renderer](../../src/chezmoi/dot_claude/modify_settings.json). | Check prefix syntax against the installed version and preserve native denials. |
 | Antigravity CLI | Extend the existing [settings renderer](../../src/chezmoi/dot_gemini/antigravity-cli/modify_settings.json). | Use literal command-token rules; check ask and deny precedence. |
 | Codex | Add a separate managed `.rules` file from the catalog. | Validate rules with native `codex execpolicy check`; preserve user rule files. |
-| OpenCode | Extend the managed V1 `permission.bash` configuration. | Preserve existing key order because the last matching rule wins. |
 | Cursor CLI | Add a managed modifier for `.cursor/cli-config.json`. | Prove argument matching on the installed build before enabling grants. |
 
-Sources: [Claude permissions](https://code.claude.com/docs/en/permissions), [Antigravity permissions](https://antigravity.google/docs/permissions/#supported-cli-actions-and-matching-rules), [Codex rules](https://learn.chatgpt.com/docs/agent-configuration/rules), [OpenCode V1 permissions](https://raw.githubusercontent.com/anomalyco/opencode/v1.18.10/packages/web/src/content/docs/permissions.mdx), and [Cursor permissions](https://cursor.com/docs/cli/reference/permissions).
+Sources: [Claude permissions](https://code.claude.com/docs/en/permissions), [Antigravity permissions](https://antigravity.google/docs/permissions/#supported-cli-actions-and-matching-rules), [Codex rules](https://learn.chatgpt.com/docs/agent-configuration/rules), and [Cursor permissions](https://cursor.com/docs/cli/reference/permissions).
 
 Installed research checks found SBX `0.51.0`, Codex `0.167.0`, OpenCode `1.18.10`, and Cursor `2025.10.01-369e3d0`.
 The Pi catalog pins `0.83.0`, but the installed binary reports `0.0.0`; its installed release remains unverified.
-Do not apply current OpenCode V2 settings to this V1 installation.
-Do not use sorted JSON serialization for OpenCode rules if it changes rule precedence.
+Defer OpenCode completely.
+Leave its existing configuration, tests, source filenames, and interpreter handling unchanged.
 
 An approval expansion does not remove existing native denials or unrelated live grants.
 Requiring execution approval also needs explicit ask behavior where a tool would otherwise permit execution.
@@ -393,7 +397,8 @@ The existing [retirement tests](../../tests/integration/test_sbx_command_retirem
 Pi normally runs tools without per-call approval.
 The author excluded Pi from this policy's scope.
 Do not change Pi configuration or add an approval extension for this pilot.
-The five-tool policy must not claim that Pi enforces execution approval.
+The four-tool policy must not claim that Pi enforces execution approval.
+A preference for Pi does not add Pi approval support or change the pinned Codex pilot workload.
 See its [security model](https://raw.githubusercontent.com/earendil-works/pi/v0.83.0/packages/coding-agent/docs/security.md).
 
 ### CI authority
@@ -479,32 +484,31 @@ The command-policy work can proceed separately from guest setup; only the select
 Do not make every historical branch change a prerequisite or merge the broad draft PR merely to test the pilot.
 The detailed implementation section will name every changed file and each unit's exit criteria.
 
-The architecture is settled for a private clone, guest queue selection and tracker writes, one active guest in version 1, a fixed coordinator with subagent model choice, workflow-result CI, and five-tool central SBX approvals.
+The architecture is settled for a private clone, guest queue selection and tracker writes, one active guest in version 1, a fixed coordinator with subagent model choice, workflow-result CI, and four-tool central SBX approvals.
 Setup still must prove kit compatibility, tracker access, subagent discovery, scoped credentials, and non-interactive subkey signing.
 Those are bounded setup proofs, not claims of completed implementation.
 
 ## Alternatives considered
 
 The [brief's alternatives](../../concepts_brief.md#alternatives-weighed) covered dispatch, workspace modes, and reuse of the existing branch.
-The author resolved further choices during drafting.
-These decisions apply to this pilot; they do not remove later support for other project workflows.
+These technical decisions apply to this pilot; they do not remove later support for other project workflows.
 
 | Alternative | Benefit | Cost or failure condition | Decision |
 | --- | --- | --- | --- |
-| Direct issue assignment for the first proof | Avoids queue discovery and selection. | Does not prove guest issue selection, claim, and complexity assessment. | Rejected by author for this pilot: the guest must select an eligible queued unit. Direct assignment can remain a later supported entry point. |
-| Dedicated full host checkout | Gives the host immediate access to guest edits and keeps usable Git metadata inside the mount. | Requires a separate host checkout and exclusive write ownership; guest changes affect host files directly. | Rejected by author: private guest clones better support separate sandboxes and later parallel runs. |
+| Direct issue assignment for the first proof | Avoids queue discovery and selection. | Does not prove guest issue selection, claim, and complexity assessment. | Not selected: the guest must select an eligible queued unit. Direct assignment can remain a later supported entry point. |
+| Dedicated full host checkout | Gives the host immediate access to guest edits and keeps usable Git metadata inside the mount. | Requires a separate host checkout and exclusive write ownership; guest changes affect host files directly. | Not selected: private guest clones better support separate sandboxes and later parallel runs. |
 | Linked host worktree with Git metadata outside the mount | Reuses the current host worktree. | Guest Git cannot resolve metadata outside its mount, so signing and publication cannot be proved on that path. | Not usable for this proof: the selected guest must own usable Git metadata. |
 | Atomic first-ready selection with `bd ready --claim` | Selects and claims in one native transaction. | The inspected queues include human work and unapproved epics; ready status alone does not establish eligibility. | Not selected for these unfiltered queues: read candidates and project rules, then claim the chosen eligible issue. A later proven eligibility filter can permit atomic first-ready selection. |
-| Host-owned tracker writes | Avoids guest tracker access and service setup. | Guest progress and closure depend on later host writes. | Rejected by author: the guest must read, claim, refresh, update, and close its selected unit. |
-| Coordinator model changes after issue selection | Can change the coordinator model for each issue. | Needs a restart or resume handoff, termination evidence, and additional recovery checks. | Rejected by author: keep one coordinator model per run and select models and effort for subagents. |
+| Host-owned tracker writes | Avoids guest tracker access and service setup. | Guest progress and closure depend on later host writes. | Not selected: the guest must read, claim, refresh, update, and close its selected unit. |
+| Coordinator model changes after issue selection | Can change the coordinator model for each issue. | Needs a restart or resume handoff, termination evidence, and additional recovery checks. | Not selected: keep one coordinator model per run and select models and effort for subagents. |
 | Nested SBX for each subagent | Gives each worker a separate sandbox. | Adds setup, state, credential, and integration work before the one-guest path is proved. | Not selected: native subagents can divide bounded work inside the existing guest. Separate guest isolation is a later extension. |
-| Add required CI checks to GitHub rules | Lets GitHub enforce the check set. | Changes repository controls and requires a separate settings operation. | Rejected by author for this pilot: retain manual repository control and have the guest wait for applicable workflow results. |
+| Add required CI checks to GitHub rules | Lets GitHub enforce the check set. | Changes repository controls and requires a separate settings operation. | Not selected: retain manual repository control and have the guest wait for applicable workflow results. |
 | Use `.agent-workflow.json` as a second required-check policy | Keeps an explicit list in Git. | Duplicates workflow job names and already contains a stale name. | Not selected: derive and record the expected workflow results for the unit; continue to obey any applicable GitHub rules. |
-| Use Git or agent hooks instead of CI | Gives earlier local feedback. | Local hooks do not prove the remote workflow result and can differ across guests. | Rejected by author as the main verification path: put the best checks in CI. Hooks remain optional early feedback. |
-| Automatically approve guest execution | Removes prompts for host `sbx exec`, `sbx env exec`, and agent launch. | Grants arbitrary execution with each selected sandbox's existing access. | Rejected by author: automatically approve selected inspection, creation, and removal commands; keep launch and execution under approval. |
-| Add a Pi approval extension | Could apply the central execution-approval boundary to Pi. | Adds interception code and approval behavior that Pi does not provide natively. | Rejected by author: Pi is outside the current scope. |
+| Use Git or agent hooks instead of CI | Gives earlier local feedback. | Local hooks do not prove the remote workflow result and can differ across guests. | Not selected: put the best checks in CI. Hooks remain optional early feedback. |
+| Automatically approve guest execution | Removes prompts for host `sbx exec`, `sbx env exec`, and agent launch. | Grants arbitrary execution with each selected sandbox's existing access. | Not selected: automatically approve selected inspection, creation, and removal commands; keep launch and execution under approval. |
+| Add a Pi approval extension | Could apply the central execution-approval boundary to Pi. | Adds interception code and approval behavior that Pi does not provide natively. | Not selected: Pi is outside the current scope. |
 | Use native SSH signing | Reuses the native SBX signing example. | That example has no GPG subkey import path and sets SSH signing. | Not usable for the agreed signing requirement: prove dedicated GPG subkey signing without the primary private key. |
-| Complete the older broad plans and helper before a release update | Reuses their proposed sequence and interfaces. | Adds a shipping helper, host review pauses, and unrelated model or tracker work before a demonstrated need. | Rejected by author through the brief and technical-plan approval: use native features and small units; retain older plans as historical input. |
+| Complete the older broad plans and helper before a release update | Reuses their proposed sequence and interfaces. | Adds a shipping helper, host review pauses, and unrelated model or tracker work before a demonstrated need. | Not selected: use native features and small units; keep unique historical evidence and remove only the obsolete plans named in unit 12. |
 
 ## Implementation decisions
 
@@ -516,7 +520,8 @@ The [documented contract](../../src/chezmoi/AGENTS.md) permits tool-specific all
 The approved SBX boundary needs execution to require approval, including when the tool can otherwise allow it.
 No current base catalog entry uses `ask`, but overlay behavior and existing tests depend on its present meaning.
 
-The author chose minimal scope and noted that SBX is currently used only on the home machine.
+The earlier design selected minimal scope and recorded SBX use on the home machine.
+Unit 3 now adds supported macOS installation and CI checks.
 Preserve the existing `ask` contract.
 Add a central `prompt` action and use it for the four SBX launch and execution heads.
 Map it to native ask rules where supported, or a proved confirmation default where explicit ask is unavailable.
@@ -546,7 +551,9 @@ No unresolved differences remain.
 
 ### Added interface and dependency scope
 
-The central SBX command policy now covers five host tools and adds an explicit `prompt` action without changing the old `ask` contract.
+The central SBX command policy covers Claude Code, Antigravity, Codex, and Cursor and adds an explicit `prompt` action without changing the old `ask` contract.
+OpenCode remains deferred with its existing configuration and tests unchanged.
+Unit 3 adds macOS installation and CI checks; unit 12 removes only named obsolete plans and preserves unique evidence.
 The author requested central approvals, selected inspection and creation/removal approval, excluded Pi, and chose minimal change.
 The guest can choose subagent models while its coordinator stays fixed for a run.
 The author selected this division of model control.
@@ -574,10 +581,10 @@ Only the selected host tool's policy is needed to launch that proof; finish the 
 | [`src/chezmoi/.chezmoidata/ai/command_policy/sbx.toml`](../../src/chezmoi/.chezmoidata/ai/command_policy/sbx.toml) | Modify: define the approved inspection and create/remove heads once; set `prompt` for `sbx run`, `sbx env run`, `sbx exec`, and `sbx env exec`. Retain exact migration data for old live grants. |
 | [`src/chezmoi/dot_claude/modify_settings.json`](../../src/chezmoi/dot_claude/modify_settings.json) | Modify: render the new action as native ask rules, preserve existing denials and unrelated settings, and retain the existing `ask` contract. |
 | [`src/chezmoi/dot_gemini/antigravity-cli/modify_settings.json`](../../src/chezmoi/dot_gemini/antigravity-cli/modify_settings.json) | Modify: render literal command-token rules and native asks for `prompt`, with existing installation gating and denial preservation. |
-| [`src/chezmoi/AGENTS.md`](../../src/chezmoi/AGENTS.md) | Modify narrowly: document `prompt`, unchanged `ask`, the five supported tools, native precedence limits, and Pi exclusion. |
+| [`src/chezmoi/AGENTS.md`](../../src/chezmoi/AGENTS.md) | Modify narrowly: document `prompt`, unchanged `ask`, the four supported tools, native precedence limits, and Pi exclusion. |
 | [`tests/integration/test_sbx_command_retirement.py`](../../tests/integration/test_sbx_command_retirement.py) | Modify: replace version-only approval with the approved set; retain exact cleanup, overlay, removal, and repeated-apply coverage. |
 | [`tests/integration/test_ai_workflow_permissions.py`](../../tests/integration/test_ai_workflow_permissions.py) | Modify: test explicit SBX prompts, preserved asks and denials, unchanged old `ask` behavior, and absence of a broad SBX allow. |
-| [`tests/integration/test_sbx_command_policy.py`](../../tests/integration/test_sbx_command_policy.py) | Create: start the cross-tool policy suite with real disposable Chezmoi apply cases for the existing two renderers. Extend this same suite in units 2–4. |
+| [`tests/integration/test_sbx_command_policy.py`](../../tests/integration/test_sbx_command_policy.py) | Create: start the cross-tool policy suite with real disposable Chezmoi apply cases for the existing two renderers. Extend this same suite in units 2 and 4. |
 | [`mise.toml`](../../mise.toml) | Modify: add the new policy suite and the existing retirement suite to `test:workflow`; add the environment suite from unit 5 when it exists. |
 
 **Exit criteria:** Selected inspection and create/remove commands are allowed; launch and execution prompt; existing denials win; other catalog decisions retain their behavior.
@@ -595,22 +602,31 @@ Tests exercise a tool-specific broad allow so a rendered ask is tested against t
 Do not replace `default.rules` or change the host's approval or filesystem-sandbox mode.
 Only SBX entries from the shared catalog are added to this tool in this unit.
 
-### 3. OpenCode V1 SBX rules
+### 3. macOS host installation and CI checks
 
 | File | Action and reason |
 | --- | --- |
-| [`src/chezmoi/dot_config/opencode/modify_opencode.json`](../../src/chezmoi/dot_config/opencode/modify_opencode.json) | Rename to `modify_opencode.json.tmpl` and modify: replace the pure modifier with an executable modifier that preserves existing JSON rule order. Keep plugin and Ollama behavior and add central SBX decisions under V1 `permission.bash`. |
-| [`src/chezmoi/dot_config/opencode/modify_opencode.json.tmpl`](../../src/chezmoi/dot_config/opencode/modify_opencode.json.tmpl) | New source path from that rename; set executable mode `100755`. Use the existing Python interpreter resolver rather than add a new runtime dependency. The old source path is deleted, while the deployed target remains `opencode.json`. |
-| [`tests/integration/test_opencode_plugins.py`](../../tests/integration/test_opencode_plugins.py) | Modify: update the source path and disposable-source dependencies; retain plugin merge and migration checks. |
-| [`tests/integration/test_ollama_routing.py`](../../tests/integration/test_ollama_routing.py) | Modify: update the OpenCode fixture source and interpreter dependencies; prove that model settings do not change permission-rule order. |
-| [`tests/integration/test_sbx_command_policy.py`](../../tests/integration/test_sbx_command_policy.py) | Extend: use overlapping live rules whose order differs from alphabetical order; check prompt and denial results and repeated apply. |
+| [`src/chezmoi/.chezmoi.toml.tmpl`](../../src/chezmoi/.chezmoi.toml.tmpl) | Modify: select `github_releases` for supported Linux hosts, `homebrew` for Darwin arm64 on macOS 14 or later, and `none` for unsupported hosts. Keep this init control-plane choice independent of `ai.sandbox.provider`. |
+| [`src/chezmoi/.chezmoidata/bin/sbx.toml`](../../src/chezmoi/.chezmoidata/bin/sbx.toml) | Modify: add `[bin.sbx.homebrew]` with `name = 'docker/tap/sbx'` and `cask = true`. Keep the Linux release pin at `0.51.0`. |
+| [`tests/integration/test_sbx.py`](../../tests/integration/test_sbx.py) | Extend: check the init selection, cask metadata, Linux pin and symlink gating, installed CLI, and version. |
+| [`.github/workflows/ci.yml`](../../.github/workflows/ci.yml) | Modify: install SBX through Chezmoi on supported macOS CI and require an installed CLI and successful version check. Run the native offline local-kit check from unit 5 on enabled Linux and macOS jobs. |
 
-Reuse [`src/chezmoi/.chezmoitemplates/python/filter-interpreter`](../../src/chezmoi/.chezmoitemplates/python/filter-interpreter) and [`src/python/skill_filter/resolve-interpreter.sh`](../../src/python/skill_filter/resolve-interpreter.sh) without modifying them.
-Copy those dependencies into disposable test sources.
+Reuse the existing Brewfile template, `dot_Brewfile.tmpl`, Homebrew install script, external dispatch, and symlink gating without changes.
+Follow the [Docker installation instructions](https://docs.docker.com/ai/sandboxes/install/) and [official cask metadata](https://raw.githubusercontent.com/docker/homebrew-tap/main/Casks/sbx.rb).
+The cask requires arm64 and macOS Sonoma or later.
+Use the current stable official cask, which was `0.53.0` at review, and record the actual tested version.
+The Linux `0.51.0` pin does not pin the cask.
+Keep minimum release-age rules and the immutable guest workload reference.
 
-**Exit criteria:** Existing plugin and model tests pass; the relative order and meaning of unrelated live rules survive.
-Verify with real Chezmoi modify dispatch that the new executable runs and its source text is not written into the target.
-Use the installed V1 policy format; do not migrate OpenCode to V2.
+The `macos-15` runner uses Apple silicon.
+[GitHub-hosted runners](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) do not support nested virtualization.
+Hosted CI proves installation, CLI operation, and offline kit validation.
+Use a capable pilot host for guest startup, signing, tracker, and delivery proof.
+
+**Exit criteria:** Chezmoi selects the correct installation method for each supported platform.
+Enabled CI jobs fail if SBX is absent or its version check fails.
+Unit 5 adds the required native offline validation; a missing CLI is not a reason to skip it on enabled CI.
+These are required checks, not claims that CI has already run.
 
 ### 4. Cursor CLI SBX rules
 
@@ -633,17 +649,24 @@ Do not substitute a broad `Shell(sbx)` allow.
 | [`.sbx/kit/Dockerfile`](../../.sbx/kit/Dockerfile) | Create: package the bootstrap assets in the project mixin so installation does not depend on the old direct-mounted source path. |
 | [`.sbx/kit/install.sh`](../../.sbx/kit/install.sh) | Modify: adapt the existing pinned tool installation to the v3 kit lifecycle; provide the project tools, Beads `1.3.2`, GitHub CLI, GnuPG, and archive tools needed by the pilot. Retain minimum release ages and frozen project dependencies. Reuse declared package-manager sources; add no custom binary-download script. |
 | [`.sbx/README.md`](../../.sbx/README.md) | Create: document the dotfiles setup, required run inputs, private-clone commands, tested workload pin, native Beads replica setup and sync, scoped credentials, and manual subkey setup. Keep secrets out of this file. |
-| [`tests/integration/test_sbx_project_environment.py`](../../tests/integration/test_sbx_project_environment.py) | Create: exercise native offline environment and kit validation and packaged bootstrap references. The real fresh-guest checks remain part of unit 10. |
+| [`tests/integration/test_sbx_project_environment.py`](../../tests/integration/test_sbx_project_environment.py) | Create: separate portable checks of packaged bootstrap references from integration-marked native `sbx kit validate --offline` checks against a packaged local source. Fail enabled Linux and macOS CI if the CLI is absent or validation fails. Local portable checks without SBX do not count as native proof. |
 | [`mise.toml`](../../mise.toml) | Extend the unit 1 change to include the environment suite in `test:workflow`. |
 
-**Exit criteria:** Native validation accepts the environment and compatible v3 kit set.
+**Exit criteria:** Native `sbx kit validate --offline` accepts the packaged local v3 kit source on enabled Linux and macOS CI.
+The [offline validator](https://docs.docker.com/reference/cli/sbx/kit/validate/) needs no daemon or login.
+Do not require hosted-CI `sbx env plan` until its offline and no-daemon behavior is proved.
+Check environment planning on the capable pilot host during this unit.
 A fresh guest has its own usable Git metadata, expected repository/base, tools, and frozen dependencies.
 Run the repository verification task and isolated Chezmoi apply there.
 Record tested versions and the resolved workload digest.
-Use SBX `0.51.0` unless a demonstrated blocker requires a separately reviewed upgrade.
+Use Linux SBX `0.51.0` unless a demonstrated blocker requires a separately reviewed upgrade.
+Use the macOS cask selected in unit 3 and record both tested host versions.
+This unit proves basic guest Git metadata, tools, repository verification, and isolated apply on a capable host.
+Unit 10 adds final signing, restart, tracker, model, and subagent proof.
 
 The existing `.gitignore` already excludes `.sbx/task-context/` and `.sbx/logs/`; it needs no change.
-The generic direct-mounted environment templates and global SBX tool version are outside this unit.
+The generic direct-mounted environment templates are outside this unit.
+Unit 3 owns host installation choices and the macOS CI change.
 
 ### 6. Bootstrap and skill authority
 
@@ -721,7 +744,8 @@ Verify the intended subkey with a scratch signed commit, signature verification,
 Check native host-to-guest Beads state visibility and guest-to-host visibility through the project's documented sync process using a designated setup or pilot issue.
 Do not modify unrelated issues in Canopy or Storagemaxxing as fixtures.
 
-**Exit criteria:** A fresh guest passes repository checks and isolated apply; the selected release tool version test is meaningful; signing, native replica sync, and subagent work function in the chosen environment.
+**Exit criteria:** Build on the basic guest proof from unit 5 and repeat its checks when needed for the final environment.
+The selected release tool version test is meaningful; signing after restart, native replica sync, selected models, and subagent work function in that environment.
 Unmet prerequisites remain explicit blockers to the live proof.
 Mock or document tests do not count as guest evidence.
 
@@ -742,6 +766,40 @@ The host syncs its tracker and verifies that the guest's state is visible.
 The guest commit signatures, merge identity, tracker closure, host visibility, and guest exit are recorded.
 An already-current release, empty eligible queue, setup blocker, or failed run is reported honestly and does not satisfy the merged-release proof.
 
+### 12. Remove obsolete plans and preserve evidence
+
+This unit plans the exact cleanup below; do not delete files during design work.
+Use this specification for current instructions.
+Git history preserves removed plans.
+Keep unique evidence and current EGM review artifacts.
+
+| File | Action and reason |
+| --- | --- |
+| `notes/sbx-rearch.md` | Delete: remove obsolete host claim or close instructions, old helper prerequisites, and superseded next steps. |
+| `notes/sbx-rearch-plan.md` | Delete: remove obsolete host claim or close instructions, old helper prerequisites, and superseded next steps. |
+| `notes/sbx-rearch-work-machine.md` | Delete: remove obsolete host claim or close instructions, old helper prerequisites, and superseded next steps. |
+| `notes/sbx-rearch-tasks/configuration.md` | Delete: remove obsolete host claim or close instructions, old helper prerequisites, and superseded next steps. |
+| `notes/sbx-rearch-tasks/setup.md` | Delete: remove obsolete host claim or close instructions, old helper prerequisites, and superseded next steps. |
+| `notes/sbx-rearch-tasks/skills.md` | Delete: remove obsolete host claim or close instructions, old helper prerequisites, and superseded next steps. |
+| `notes/sbx-rearch-tasks/tasks.md` | Delete: remove obsolete host claim or close instructions, old helper prerequisites, and superseded next steps. |
+| `notes/sbx-rearch-tasks/task7-refinement.md` | Delete: remove obsolete host claim or close instructions, old helper prerequisites, and superseded next steps. |
+| `notes/sbx-rearch-tasks/tracker-route.md` | Delete: remove obsolete host claim or close instructions, old helper prerequisites, and superseded next steps. |
+| [`concepts_brief.md`](../../concepts_brief.md) | Modify: remove links to deleted notes and point current instructions to this specification. Preserve its historical inventory with a commit-pinned source link. |
+| [`notes/sbx-rearch-progress.md`](../../notes/sbx-rearch-progress.md) | Modify: replace active resume tasks with a short, dated index of historical evidence. |
+| [`notes/sbx-rearch-follow-ups.md`](../../notes/sbx-rearch-follow-ups.md) | Modify: move current signing and bootstrap prerequisites into `notes/sbx-agy-pilot-verification.md`. Retain unrelated AGY matching work as deferred. |
+| [`notes/sbx-agy-pilot-verification.md`](../../notes/sbx-agy-pilot-verification.md) | Extend the unit 10 record with current signing and bootstrap prerequisites from the follow-up note. |
+
+The review found no production or runtime instruction that depends on these notes.
+Repeat that reference check before removal.
+Check links in the retained notes, brief, and this specification before deletion.
+Use plain paths for removal targets and commit-pinned links for historical source access.
+Retain unique audit reports and research documents that combine evidence with contracts until their unique evidence is extracted.
+Do not use a broad deletion pattern or remove all notes.
+
+**Exit criteria:** Retained links resolve.
+The removed or replaced notes supply no obsolete active resume instructions.
+Unique evidence remains available, and current prerequisites appear in the verification record.
+
 ### Verification and limits
 
 For policy and modifier units, run the focused suites in disposable Chezmoi destinations and verify repeated apply.
@@ -753,7 +811,9 @@ Do not claim enforcement in force or bypass modes, or when an unmanaged broad al
 Run `mise run test:workflow` for the accepted file set and `mise run verify` before each code-bearing unit is submitted.
 Run the actual guest and workflow checks for the live release unit.
 Use the frozen lockfile; report any approved local tool-version substitution under the repository's existing check policy.
-The existing CI integration command already collects the integration tests, so `.github/workflows/ci.yml` needs no change.
+The existing CI integration command collects the integration tests.
+Unit 3 changes `.github/workflows/ci.yml` for macOS installation and the enabled native offline checks from unit 5.
+Unit 9 needs no CI workflow change for its own delivery scope.
 
 Use one saved-run interruption to verify that resume reuses the same selected issue, branch, and PR.
 Use an interrupted or pending closure to verify that resume does not repeat implementation after merge.
