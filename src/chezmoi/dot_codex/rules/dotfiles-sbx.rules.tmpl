@@ -1,0 +1,6 @@
+# Managed by chezmoi. Edit the central SBX command policy in the source repository.
+{{ range $head, $action := dig "ai" "command_policy" "commands" dict . -}}
+{{- if and (or (eq $head "sbx") (hasPrefix "sbx " $head)) (has $action (list "allow" "prompt" "deny")) -}}
+prefix_rule(pattern = {{ splitList " " $head | toJson }}, decision = {{ if eq $action "deny" }}"forbidden"{{ else }}{{ $action | toJson }}{{ end }})
+{{ end -}}
+{{ end -}}
