@@ -1,6 +1,10 @@
 [bin.sbx]
 version = "0.53.0"
 
+[bin.sbx.homebrew]
+name = "docker/tap/sbx"
+cask = true
+
 [bin.sbx.github_releases]
 repo             = "docker/sbx-releases"
 external_type    = "archive"
