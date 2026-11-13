@@ -1,8 +1,12 @@
 import json
 import os
+import re
+import shutil
 import subprocess
 import tomllib
 from pathlib import Path
+
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CHEZMOI_SOURCE = REPO_ROOT / "src" / "chezmoi"
@@ -397,3 +401,110 @@ def test_sbx_kvm_script_adds_user_to_kvm_when_missing(tmp_path):
     assert result.returncode == 0, result.stderr
     recorded_calls = calls.read_text(encoding="utf-8").splitlines() if calls.exists() else []
     assert any("usermod -aG kvm" in call for call in recorded_calls)
+
+
+@pytest.mark.parametrize("provider", ["sbx", "none"])
+@pytest.mark.parametrize(
+    ("system", "arch", "macos_version", "expected"),
+    [
+        ("linux", "amd64", "", "github_releases"),
+        ("linux", "arm64", "", "github_releases"),
+        ("linux", "386", "", "none"),
+        ("darwin", "arm64", "13.6.9", "none"),
+        ("darwin", "arm64", "14.0", "homebrew"),
+        ("darwin", "arm64", "15.7.1", "homebrew"),
+        ("darwin", "amd64", "15.7.1", "none"),
+        ("windows", "amd64", "", "none"),
+        ("freebsd", "amd64", "", "none"),
+    ],
+)
+def test_sbx_init_selects_supported_installation(tmp_path, system, arch, macos_version, expected, provider):
+    """Select the installation independently of the agent sandbox provider."""
+    sw_vers = tmp_path / "sw_vers"
+    calls = tmp_path / "sw-vers-calls"
+    sw_vers.write_text(
+        f'#!/bin/sh\nprintf "%s\\n" "$*" >> "{calls}"\nprintf "%s\\n" "{macos_version}"\n',
+        encoding="utf-8",
+    )
+    sw_vers.chmod(0o755)
+    chezmoi = shutil.which("chezmoi")
+    assert chezmoi is not None
+    config = tmp_path / "config.toml"
+    platform = {"chezmoi": {"os": system, "arch": arch}, "ai": {"sandbox": {"provider": provider}}}
+    initialized = subprocess.run(
+        [
+            chezmoi,
+            "--config",
+            "/dev/null",
+            "--config-format",
+            "toml",
+            "--source",
+            str(REPO_ROOT),
+            "--destination",
+            str(tmp_path),
+            "execute-template",
+            "--init",
+            "--override-data",
+            json.dumps(platform),
+            "--file",
+            str(CHEZMOI_SOURCE / ".chezmoi.toml.tmpl"),
+        ],
+        env={**os.environ, "CI": "1", "PATH": f"{tmp_path}:{os.defpath}"},
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    config.write_text(initialized.stdout, encoding="utf-8")
+    data = tomllib.loads(initialized.stdout)["data"]
+    assert data["local"]["bin"]["sbx"]["installation_method"] == expected
+    if system == "darwin" and arch == "arm64":
+        assert calls.read_text().splitlines() == ["-productVersion"]
+    else:
+        assert not calls.exists()
+
+    def render(relative):
+        result = subprocess.run(
+            [
+                chezmoi,
+                "--config",
+                str(config),
+                "--source",
+                str(REPO_ROOT),
+                "--destination",
+                str(tmp_path),
+                "execute-template",
+                "--override-data",
+                json.dumps(platform),
+                "--file",
+                str(CHEZMOI_SOURCE / relative),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        return result.stdout
+
+    brewfile = render("dot_Brewfile.tmpl")
+    assert ('cask "docker/tap/sbx"' in brewfile) == (expected == "homebrew")
+    external = tomllib.loads(render("dot_local/.chezmoiexternals/sbx.toml.tmpl"))
+    symlink = render("dot_local/bin/symlink_sbx.tmpl")
+    if expected == "github_releases":
+        assert external["lib/docker-sbx"]["url"].endswith(f"/v0.53.0/DockerSandboxes-linux-{arch}.tar.gz")
+        assert symlink == f"{tmp_path}/.local/lib/docker-sbx/sbx"
+    else:
+        assert external == {}
+        assert symlink == ""
+
+
+@pytest.mark.integration
+@pytest.mark.chezmoi_installation("local.bin.sbx", methods={"github_releases", "homebrew"})
+def test_sbx_installed_cli_version(host, chezmoi_data):
+    """Fail when an enabled SBX installation is absent or cannot report its version."""
+    present = host.run("command -v sbx")
+    assert present.rc == 0, f"SBX is enabled but absent: {present.stderr}"
+    result = host.run("sbx --version")
+    assert result.rc == 0, f"sbx --version failed: {result.stderr}"
+    version = re.search(r"\bsbx version v?(\d+\.\d+\.\d+)\b", result.stdout)
+    assert version is not None, result.stdout
+    if chezmoi_data["local"]["bin"]["sbx"]["installation_method"] == "github_releases":
+        assert version[1] == chezmoi_data["bin"]["sbx"]["version"]

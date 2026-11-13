@@ -114,7 +114,16 @@ installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"none"
 installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
 
 [data.local.bin.sbx]
-installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
+{{- $sbxMethod := "none" -}}
+{{- if and (eq .chezmoi.os "linux") (has .chezmoi.arch (list "amd64" "arm64")) -}}
+{{-   $sbxMethod = "github_releases" -}}
+{{- else if and (eq .chezmoi.os "darwin") (eq .chezmoi.arch "arm64") -}}
+{{-   $macosMajor := output "sw_vers" "-productVersion" | trim | splitList "." | first | atoi -}}
+{{-   if ge $macosMajor 14 -}}
+{{-     $sbxMethod = "homebrew" -}}
+{{-   end -}}
+{{- end }}
+installation_method = {{ $sbxMethod | quote }}
 
 [data.local.bin.agy]
 installation_method = "github_releases"

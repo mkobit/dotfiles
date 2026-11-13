@@ -278,6 +278,14 @@ jobs:
             --source="$GITHUB_WORKSPACE" \
             --destination="$CHEZMOI_DEST" 2>&1 | tee "$report_dir/chezmoi-apply.log"
 
+      - name: Check SBX version
+        run: |
+          if [[ "$RUNNER_OS" == "Linux" ]]; then
+            "$CHEZMOI_DEST/.local/bin/sbx" --version
+          else
+            "$(brew --prefix)/bin/sbx" --version
+          fi
+
       # Use unique keys after failed applies so later runs can save more packages.
       - name: Save APT downloads
         if: ${{ always() && runner.os == 'Linux' && steps.apt-cache.outputs.cache-primary-key != '' && steps.apt-cache.outputs.cache-hit != 'true' }}
