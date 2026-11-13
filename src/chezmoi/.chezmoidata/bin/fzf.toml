@@ -1,5 +1,6 @@
 [bin.fzf]
 version = "0.74.5"
+minimum_release_age = "21d"
 
 # fzf filename uses {os}_{arch} directly — not a target triple
 [bin.fzf.github_releases]

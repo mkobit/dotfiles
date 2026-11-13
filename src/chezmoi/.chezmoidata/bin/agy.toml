@@ -1,5 +1,6 @@
 [bin.agy]
 version = "1.5.5"
+minimum_release_age = "5d"
 
 [bin.agy.github_releases]
 repo            = "google-antigravity/antigravity-cli"

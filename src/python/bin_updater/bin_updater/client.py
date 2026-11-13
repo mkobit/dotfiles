@@ -1,0 +1,58 @@
+import hashlib
+from collections.abc import Mapping, Sequence
+from typing import Any, Protocol
+
+import httpx2
+
+USER_AGENT = "dotfiles-bin-updater/1.0"
+
+
+class ReleaseClient(Protocol):
+    def list_releases(self, repo: str) -> Sequence[Mapping[str, Any]]: ...
+
+    def fetch_text(self, url: str) -> str: ...
+
+    def compute_asset_hash(self, url: str) -> str: ...
+
+
+class HttpxReleaseClient:
+    def __init__(self, token: str | None = None, client: httpx2.Client | None = None) -> None:
+        headers = {
+            "User-Agent": USER_AGENT,
+            "Accept": "application/vnd.github.v3+json",
+        }
+        if token is not None:
+            headers["Authorization"] = f"Bearer {token}"
+        if client is not None:
+            self._client = client
+            self._client.headers.update(headers)
+        else:
+            self._client = httpx2.Client(timeout=30.0, headers=headers)
+
+    def list_releases(self, repo: str) -> Sequence[Mapping[str, Any]]:
+        url = f"https://api.github.com/repos/{repo}/releases?per_page=20"
+        resp = self._client.get(url, follow_redirects=True)
+        if resp.status_code == 403:
+            raise RuntimeError(f"GitHub rate limit exceeded or access forbidden for {repo}: {resp.text}")
+        resp.raise_for_status()
+        data = resp.json()
+        if not isinstance(data, list):
+            raise ValueError(f"Expected list of releases for {repo}, got {type(data).__name__}")
+        return data
+
+    def fetch_text(self, url: str) -> str:
+        resp = self._client.get(url, follow_redirects=True)
+        if resp.status_code == 403:
+            raise RuntimeError(f"GitHub rate limit exceeded or access forbidden for {url}: {resp.text}")
+        resp.raise_for_status()
+        return resp.text
+
+    def compute_asset_hash(self, url: str) -> str:
+        hasher = hashlib.sha256()
+        with self._client.stream("GET", url, follow_redirects=True, timeout=60.0) as resp:
+            if resp.status_code == 403:
+                raise RuntimeError(f"GitHub rate limit exceeded or access forbidden for {url}: {resp.text}")
+            resp.raise_for_status()
+            for chunk in resp.iter_bytes(chunk_size=65536):
+                hasher.update(chunk)
+        return hasher.hexdigest()

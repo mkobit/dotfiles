@@ -1,0 +1,18 @@
+[project]
+name = "bin-updater"
+version = "0.1.0"
+description = "Automate chezmoi binary tools upgrades with cooldown and checksum management"
+requires-python = ">=3.12"
+dependencies = [
+    "typer>=0.27.0",
+    "pydantic>=2.13.4",
+    "httpx2>=2.16.0",
+    "tomlkit>=0.13.0",
+]
+
+[project.scripts]
+bin-updater = "bin_updater.main:app"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

@@ -1,5 +1,6 @@
 [bin.codex]
 version = "0.167.1"
+minimum_release_age = "5d"
 
 [bin.codex.github_releases]
 repo            = "openai/codex"

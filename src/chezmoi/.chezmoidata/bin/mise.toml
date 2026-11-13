@@ -1,6 +1,7 @@
 # mise version already includes "v" prefix — tag_format = "{version}" (no added v)
 [bin.mise]
 version = "v2026.11.0"
+minimum_release_age = "21d"
 
 [bin.mise.github_releases]
 repo            = "jdx/mise"

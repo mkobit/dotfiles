@@ -1,6 +1,7 @@
 [bin.zellij]
 # version already includes "v" prefix — tag_format uses {version} directly
 version = "v0.46.0"
+minimum_release_age = "14d"
 
 [bin.zellij.github_releases]
 repo            = "zellij-org/zellij"

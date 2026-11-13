@@ -1,9 +1,9 @@
-name: Upgrade Binary Tools
+name: Upgrade binary tools
 
 on:
   schedule:
-    # Run weekly at 03:00 UTC on Mondays
-    - cron: '0 3 * * 1'
+    # Run daily at 03:00 UTC
+    - cron: '0 3 * * *'
   workflow_dispatch:
     inputs:
       tool:
@@ -14,12 +14,15 @@ on:
 jobs:
   upgrade:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
       pull-requests: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v5
@@ -29,40 +32,59 @@ jobs:
       - name: Set up Python
         run: uv python install
 
-      - name: Run upgrade script
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Configure Git author
         run: |
-          target_tools=("agy" "codex")
-          if [ "${{ github.event.inputs.tool }}" != "" ] && [ "${{ github.event.inputs.tool }}" != "all" ]; then
-            target_tools=("${{ github.event.inputs.tool }}")
-          fi
-
-          for tool in "${target_tools[@]}"; do
-            echo "Checking $tool..."
-            uv run scripts/upgrade_bin_tool.py "$tool"
-          done
-
-      - name: Detect changes and open PR
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          if git diff --quiet src/chezmoi/.chezmoidata/bin/; then
-            echo "No updates detected."
-            exit 0
-          fi
-
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          branch="chore/upgrade-bin-tools-$(date +%Y%m%d%H%M%S)"
-          git checkout -b "$branch"
-          git add src/chezmoi/.chezmoidata/bin/
-          git commit -m "chore(deps): update binary tools"
-          git push origin "$branch"
+      - name: Run upgrades and open pull requests
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
 
-          gh pr create \
-            --base main \
-            --head "$branch" \
-            --title "chore(deps): update binary tools" \
-            --body "Automated binary tools upgrade run by GitHub Actions."
+          target_tool="${{ github.event.inputs.tool }}"
+          catalog_dir="src/chezmoi/.chezmoidata/bin"
+
+          if [ -n "$target_tool" ] && [ "$target_tool" != "all" ]; then
+            tool_files=("$catalog_dir/$target_tool.toml")
+          else
+            tool_files=("$catalog_dir"/*.toml)
+          fi
+
+          for tool_path in "${tool_files[@]}"; do
+            [ -f "$tool_path" ] || continue
+            tool_name="$(basename "$tool_path" .toml)"
+            echo "Checking $tool_name..."
+
+            # Run updater for single tool with error isolation
+            if ! uv run bin-updater --tool "$tool_name"; then
+              echo "Failed to check or upgrade $tool_name; skipping."
+              git checkout -- "$tool_path"
+              continue
+            fi
+
+            if git diff --quiet "$tool_path"; then
+              echo "No changes for $tool_name."
+              continue
+            fi
+
+            branch="automation/upgrade-$tool_name"
+            git checkout -B "$branch"
+            git add "$tool_path"
+            git commit -m "chore(deps): update $tool_name"
+            git push origin "$branch" --force
+
+            if ! gh pr view "$branch" >/dev/null 2>&1; then
+              gh pr create \
+                --base main \
+                --head "$branch" \
+                --title "chore(deps): update $tool_name" \
+                --body "Automated binary tool upgrade for $tool_name."
+            fi
+
+            gh pr merge "$branch" --auto --squash || true
+
+            git checkout main
+          done
