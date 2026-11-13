@@ -64,14 +64,15 @@ def test_update_tool_with_manifest(tmp_path: Path) -> None:
             {"name": "app-v2.0.0-linux-amd64.tar.gz", "browser_download_url": "https://example.com/bin"},
         ],
     }
+    new_sha = "a" * 64
     client = FakeClient(
         releases=[release],
-        manifests={"https://example.com/manifest": "newhash  app-v2.0.0-linux-amd64.tar.gz\n"},
+        manifests={"https://example.com/manifest": f"{new_sha}  app-v2.0.0-linux-amd64.tar.gz\n"},
     )
     res = update_tool(cat, client, dry_run=False)
     assert res.changed is True
     assert res.new_version == "2.0.0"
-    assert 'linux_amd64 = "newhash"' in f.read_text(encoding="utf-8")
+    assert f'linux_amd64 = "{new_sha}"' in f.read_text(encoding="utf-8")
 
 
 def test_run_updates_error_isolation(tmp_path: Path) -> None:
@@ -98,3 +99,37 @@ def test_update_tool_does_not_downgrade(tmp_path: Path) -> None:
     res = update_tool(cat, client)
     assert res.changed is False
     assert res.new_version == "1.0.0"
+
+
+def test_update_tool_invalid_version_does_not_overwrite(tmp_path: Path) -> None:
+    f = tmp_path / "app.toml"
+    f.write_text(TOML_TEMPLATE, encoding="utf-8")
+    cat = load_catalog(f)
+    client = FakeClient(releases=[{"tag_name": "nightly-build", "published_at": "2020-01-01T00:00:00Z"}])
+    res = update_tool(cat, client)
+    assert res.changed is False
+    assert res.new_version == "1.0.0"
+    assert f.read_text(encoding="utf-8") == TOML_TEMPLATE
+
+
+def test_update_tool_dry_run_preserves_disk(tmp_path: Path) -> None:
+    f = tmp_path / "app.toml"
+    f.write_text(TOML_TEMPLATE, encoding="utf-8")
+    cat = load_catalog(f)
+    new_sha = "b" * 64
+    release = {
+        "tag_name": "v2.0.0",
+        "published_at": "2020-01-01T00:00:00Z",
+        "assets": [
+            {"name": "app_SHA256SUMS", "browser_download_url": "https://example.com/manifest"},
+            {"name": "app-v2.0.0-linux-amd64.tar.gz", "browser_download_url": "https://example.com/bin"},
+        ],
+    }
+    client = FakeClient(
+        releases=[release],
+        manifests={"https://example.com/manifest": f"{new_sha}  app-v2.0.0-linux-amd64.tar.gz\n"},
+    )
+    res = update_tool(cat, client, dry_run=True)
+    assert res.changed is True
+    assert res.new_version == "2.0.0"
+    assert f.read_text(encoding="utf-8") == TOML_TEMPLATE

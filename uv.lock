@@ -80,6 +80,7 @@ version = "0.1.0"
 source = { editable = "src/python/bin_updater" }
 dependencies = [
     { name = "httpx2" },
+    { name = "packaging" },
     { name = "pydantic" },
     { name = "tomlkit" },
     { name = "typer" },
@@ -88,6 +89,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "httpx2", specifier = ">=2.16.0" },
+    { name = "packaging", specifier = ">=24.0" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "tomlkit", specifier = ">=0.13.0" },
     { name = "typer", specifier = ">=0.27.0" },

@@ -4,7 +4,7 @@ from typing import Annotated
 
 import typer
 
-from bin_updater.catalog import discover_catalogs, load_catalog
+from bin_updater.catalog import NonGitHubReleaseError, discover_catalogs, load_catalog
 from bin_updater.client import HttpxReleaseClient
 from bin_updater.service import ToolUpdateResult, run_updates
 
@@ -36,18 +36,22 @@ def main(
         raise typer.Exit(code=1)
 
     auth_token = token or environ.get("GITHUB_TOKEN")
-    client = HttpxReleaseClient(token=auth_token)
 
     if tool is not None:
         path = Path(tool) if Path(tool).suffix == ".toml" else catalog_dir / f"{tool}.toml"
         if not path.is_file():
             typer.echo(f"Error: Catalog file not found: {path}", err=True)
             raise typer.Exit(code=1)
-        catalogs = [load_catalog(path)]
+        try:
+            catalogs = [load_catalog(path)]
+        except NonGitHubReleaseError as exc:
+            typer.echo(f"Skipping {path.stem}: {exc}")
+            raise typer.Exit(code=0) from None
     else:
         catalogs = discover_catalogs(catalog_dir)
 
-    results = run_updates(catalogs, client, dry_run=dry_run)
+    with HttpxReleaseClient(token=auth_token) as client:
+        results = run_updates(catalogs, client, dry_run=dry_run)
     for result in results:
         _print_result(result)
 

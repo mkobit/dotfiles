@@ -20,17 +20,15 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
+          token: ${{ secrets.BIN_UPDATER_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - name: Set up uv
-        uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
+      - uses: ./.github/actions/setup-mise
 
-      - name: Set up Python
-        run: uv python install
+      - name: Install dependencies
+        run: uv sync --all-packages --frozen
 
       - name: Configure Git author
         run: |
@@ -39,13 +37,14 @@ jobs:
 
       - name: Run upgrades and open pull requests
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.BIN_UPDATER_TOKEN || secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.BIN_UPDATER_TOKEN || secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
 
           target_tool="${{ github.event.inputs.tool }}"
           catalog_dir="src/chezmoi/.chezmoidata/bin"
+          base_branch="${{ github.ref_name }}"
 
           if [ -n "$target_tool" ] && [ "$target_tool" != "all" ]; then
             tool_files=("$catalog_dir/$target_tool.toml")
@@ -59,7 +58,7 @@ jobs:
             echo "Checking $tool_name..."
 
             # Run updater for single tool with error isolation
-            if ! uv run bin-updater --tool "$tool_name"; then
+            if ! uv run --package bin-updater bin-updater --tool "$tool_name"; then
               echo "Failed to check or upgrade $tool_name; skipping."
               git checkout -- "$tool_path"
               continue
@@ -71,20 +70,34 @@ jobs:
             fi
 
             branch="automation/upgrade-$tool_name"
-            git checkout -B "$branch"
-            git add "$tool_path"
-            git commit -m "chore(deps): update $tool_name"
-            git push origin "$branch" --force
-
-            if ! gh pr view "$branch" >/dev/null 2>&1; then
-              gh pr create \
-                --base main \
-                --head "$branch" \
-                --title "chore(deps): update $tool_name" \
-                --body "Automated binary tool upgrade for $tool_name."
+            if git fetch origin "$branch" 2>/dev/null; then
+              if git diff --quiet "origin/$branch" -- "$tool_path"; then
+                echo "Remote branch $branch already has identical changes for $tool_name; skipping."
+                git checkout -- "$tool_path"
+                continue
+              fi
             fi
 
-            gh pr merge "$branch" --auto --squash || true
+            if ! (
+              set -e
+              git checkout -B "$branch"
+              git add "$tool_path"
+              git commit -m "chore(deps): update $tool_name"
+              git push origin "$branch" --force
 
-            git checkout main
+              if ! gh pr view "$branch" >/dev/null 2>&1; then
+                gh pr create \
+                  --base "$base_branch" \
+                  --head "$branch" \
+                  --title "chore(deps): update $tool_name" \
+                  --body "Automated binary tool upgrade for $tool_name."
+              fi
+
+              gh pr merge "$branch" --auto --squash || true
+            ); then
+              echo "Failed to publish PR for $tool_name; continuing."
+            fi
+
+            git checkout "$base_branch"
+            git checkout -- "$tool_path" || true
           done

@@ -4,16 +4,7 @@ from collections.abc import Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
-from pydantic import BaseModel, Field
-
 from bin_updater.cooldown import is_release_mature
-
-
-class ReleaseInfo(BaseModel):
-    tag_name: str
-    published_at: str
-    prerelease: bool = False
-    assets: Sequence[Mapping[str, Any]] = Field(default_factory=tuple)
 
 
 def extract_version_from_tag(tag: str, tag_format: str) -> str:
@@ -56,6 +47,8 @@ def select_mature_release(
     """Select the first release that meets stability and cooldown criteria."""
 
     def _is_mature(release: Mapping[str, Any]) -> bool:
+        if release.get("draft", False):
+            return False
         if not include_prereleases and release.get("prerelease", False):
             return False
         published_at = release.get("published_at")

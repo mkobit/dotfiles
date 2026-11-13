@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from bin_updater.catalog import discover_catalogs, load_catalog, update_catalog_content
+from bin_updater.catalog import NonGitHubReleaseError, discover_catalogs, load_catalog, update_catalog_content
 
 SAMPLE_TOML = """[bin.tool]
 version = "1.0.0"
@@ -36,16 +36,36 @@ def test_load_catalog(tmp_path: Path) -> None:
 def test_load_catalog_missing_gr(tmp_path: Path) -> None:
     catalog_file = tmp_path / "other.toml"
     catalog_file.write_text('[bin.other]\nversion = "1.0.0"\n', encoding="utf-8")
-    with pytest.raises(ValueError, match=r"No \[bin.other.github_releases\]"):
+    with pytest.raises(NonGitHubReleaseError, match=r"No \[bin.other.github_releases\]"):
         load_catalog(catalog_file)
+
+
+def test_load_catalog_zero_cooldown(tmp_path: Path) -> None:
+    catalog_file = tmp_path / "zero.toml"
+    catalog_file.write_text(
+        '[bin.zero]\nversion = "1.0.0"\nminimum_release_age = 0\n\n'
+        '[bin.zero.github_releases]\nrepo = "owner/zero"\nminimum_release_age = "7d"\n'
+        'filename_format = "zero-{version}"\n[bin.zero.github_releases.platforms]\nlinux_amd64 = "x"\n',
+        encoding="utf-8",
+    )
+    cat = load_catalog(catalog_file)
+    assert cat.minimum_release_age == 0
 
 
 def test_discover_catalogs(tmp_path: Path) -> None:
     (tmp_path / "tool1.toml").write_text(SAMPLE_TOML, encoding="utf-8")
-    (tmp_path / "invalid.toml").write_text("[other]\nfoo = 'bar'\n", encoding="utf-8")
+    (tmp_path / "nongh.toml").write_text('[bin.chafa]\nversion = "1.0.0"\n', encoding="utf-8")
     catalogs = discover_catalogs(tmp_path)
     assert len(catalogs) == 1
     assert catalogs[0].name == "tool"
+
+
+def test_discover_catalogs_surfaces_schema_error(tmp_path: Path) -> None:
+    (tmp_path / "broken.toml").write_text(
+        '[bin.broken]\nversion = "1.0.0"\n[bin.broken.github_releases]\n', encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="No repo specified"):
+        discover_catalogs(tmp_path)
 
 
 def test_update_catalog_content() -> None:

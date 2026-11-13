@@ -1,6 +1,6 @@
 import hashlib
 from collections.abc import Mapping, Sequence
-from typing import Any, Protocol
+from typing import Any, Protocol, Self
 
 import httpx2
 
@@ -23,15 +23,27 @@ class HttpxReleaseClient:
         }
         if token is not None:
             headers["Authorization"] = f"Bearer {token}"
+        self._headers = headers
         if client is not None:
             self._client = client
-            self._client.headers.update(headers)
+            self._owns_client = False
         else:
             self._client = httpx2.Client(timeout=30.0, headers=headers)
+            self._owns_client = True
+
+    def __enter__(self) -> Self:
+        return self
+
+    def __exit__(self, *args: object) -> None:
+        self.close()
+
+    def close(self) -> None:
+        if self._owns_client:
+            self._client.close()
 
     def list_releases(self, repo: str) -> Sequence[Mapping[str, Any]]:
         url = f"https://api.github.com/repos/{repo}/releases?per_page=20"
-        resp = self._client.get(url, follow_redirects=True)
+        resp = self._client.get(url, headers=self._headers, follow_redirects=True)
         if resp.status_code == 403:
             raise RuntimeError(f"GitHub rate limit exceeded or access forbidden for {repo}: {resp.text}")
         resp.raise_for_status()
@@ -41,7 +53,7 @@ class HttpxReleaseClient:
         return data
 
     def fetch_text(self, url: str) -> str:
-        resp = self._client.get(url, follow_redirects=True)
+        resp = self._client.get(url, headers=self._headers, follow_redirects=True)
         if resp.status_code == 403:
             raise RuntimeError(f"GitHub rate limit exceeded or access forbidden for {url}: {resp.text}")
         resp.raise_for_status()
@@ -49,7 +61,7 @@ class HttpxReleaseClient:
 
     def compute_asset_hash(self, url: str) -> str:
         hasher = hashlib.sha256()
-        with self._client.stream("GET", url, follow_redirects=True, timeout=60.0) as resp:
+        with self._client.stream("GET", url, headers=self._headers, follow_redirects=True, timeout=60.0) as resp:
             if resp.status_code == 403:
                 raise RuntimeError(f"GitHub rate limit exceeded or access forbidden for {url}: {resp.text}")
             resp.raise_for_status()

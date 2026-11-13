@@ -29,6 +29,7 @@ def test_resolve_release_filename() -> None:
 def test_select_mature_release() -> None:
     now = datetime(2026, 11, 10, 12, 0, 0, tzinfo=UTC)
     releases = [
+        {"tag_name": "v2.1.0", "published_at": "2026-10-01T00:00:00Z", "prerelease": False, "draft": True},
         {"tag_name": "v2.0.0", "published_at": "2026-11-09T00:00:00Z", "prerelease": False},
         {"tag_name": "v1.9.0-rc1", "published_at": "2026-10-01T00:00:00Z", "prerelease": True},
         {"tag_name": "v1.8.0", "published_at": "2026-10-01T00:00:00Z", "prerelease": False},

@@ -6,6 +6,10 @@ import tomlkit
 from pydantic import BaseModel, Field
 
 
+class NonGitHubReleaseError(ValueError):
+    """Raised when a tool catalog does not use GitHub releases."""
+
+
 class ToolCatalog(BaseModel):
     name: str
     path: Path
@@ -31,7 +35,7 @@ def load_catalog(path: Path) -> ToolCatalog:
         raise ValueError(f"Invalid [bin.{name}] section in {path}")
     gr = tool_data.get("github_releases")
     if not isinstance(gr, Mapping):
-        raise ValueError(f"No [bin.{name}.github_releases] table in {path}")
+        raise NonGitHubReleaseError(f"No [bin.{name}.github_releases] table in {path}")
     repo = gr.get("repo")
     if not isinstance(repo, str) or not repo:
         raise ValueError(f"No repo specified in {path}")
@@ -40,7 +44,9 @@ def load_catalog(path: Path) -> ToolCatalog:
         raise ValueError(f"Invalid platforms mapping in {path}")
     ext_data = gr.get("ext", {})
     ext = ext_data if isinstance(ext_data, Mapping) else {}
-    min_age = tool_data.get("minimum_release_age") or gr.get("minimum_release_age")
+    min_age = tool_data.get("minimum_release_age")
+    if min_age is None:
+        min_age = gr.get("minimum_release_age")
     return ToolCatalog(
         name=name,
         path=path,
@@ -60,7 +66,7 @@ def discover_catalogs(directory: Path) -> Sequence[ToolCatalog]:
     def _try_load(path: Path) -> ToolCatalog | None:
         try:
             return load_catalog(path)
-        except ValueError:
+        except NonGitHubReleaseError:
             return None
 
     return [cat for p in sorted(directory.glob("*.toml")) if (cat := _try_load(p)) is not None]

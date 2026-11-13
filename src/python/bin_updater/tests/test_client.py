@@ -49,3 +49,17 @@ def test_compute_asset_hash() -> None:
     mock_client = httpx2.Client(transport=httpx2.MockTransport(handler))
     client = HttpxReleaseClient(client=mock_client)
     assert client.compute_asset_hash("https://example.com/file.tar.gz") == expected_sha
+
+
+def test_client_does_not_mutate_caller_headers() -> None:
+    mock_client = httpx2.Client(transport=httpx2.MockTransport(lambda _r: httpx2.Response(200, json=[])))
+    original_headers = dict(mock_client.headers)
+    with HttpxReleaseClient(token="secret", client=mock_client) as client:
+        client.list_releases("owner/repo")
+    assert dict(mock_client.headers) == original_headers
+
+
+def test_client_context_manager_closes_owned_client() -> None:
+    with HttpxReleaseClient() as client:
+        assert not client._client.is_closed
+    assert client._client.is_closed

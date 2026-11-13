@@ -67,7 +67,9 @@ def update_tool(
                 tool_name=catalog.name, changed=False, old_version=catalog.version, new_version=catalog.version
             )
     except InvalidVersion:
-        pass
+        return ToolUpdateResult(
+            tool_name=catalog.name, changed=False, old_version=catalog.version, new_version=catalog.version
+        )
     new_checksums = _resolve_platform_checksums(catalog, target_version, release, client)
     if not dry_run:
         content = catalog.path.read_text(encoding="utf-8")

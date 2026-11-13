@@ -42,3 +42,11 @@ def test_main_with_updates(tmp_path: Path, monkeypatch) -> None:
     result = runner.invoke(app, ["--all", "--catalog-dir", str(tmp_path)])
     assert result.exit_code == 0
     assert "Upgraded app: 1.0.0 -> 2.0.0" in result.stdout
+
+
+def test_main_skips_non_github_release_tool(tmp_path: Path) -> None:
+    catalog_file = tmp_path / "chafa.toml"
+    catalog_file.write_text('[bin.chafa]\nversion = "1.14.0"\n', encoding="utf-8")
+    result = runner.invoke(app, ["--tool", "chafa", "--catalog-dir", str(tmp_path)])
+    assert result.exit_code == 0
+    assert "Skipping chafa" in result.stdout
