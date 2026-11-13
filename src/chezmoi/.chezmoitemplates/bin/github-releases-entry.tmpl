@@ -45,6 +45,9 @@ path = {{ $path | quote }}
 {{- if hasKey $gr "strip_components" }}
 stripComponents = {{ $gr.strip_components }}
 {{- end }}
+{{- if hasKey $gr "exact" }}
+exact = {{ $gr.exact }}
+{{- end }}
 {{- if $checksum }}
 ["{{ $binName }}".checksum]
 {{- printf "\n%s = %s" $gr.checksum_type ($checksum | quote) }}

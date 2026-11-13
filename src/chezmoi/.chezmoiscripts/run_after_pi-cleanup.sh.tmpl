@@ -1,0 +1,10 @@
+{{- $tool := dig "local" "bin" "pi" (dict) . -}}
+{{- $method := dig "installation_method" "none" $tool -}}
+{{- if not (has $method (list "none" "existing" "github_releases")) -}}
+{{- fail (printf "pi: unsupported installation_method %q" $method) -}}
+{{- end -}}
+{{- if and (hasKey $tool "installation_method") (eq $method "none") -}}
+#!/bin/sh
+set -eu
+rm -f -- {{ joinPath .chezmoi.destDir ".pi/agent/settings.json" | quote }}
+{{ end -}}

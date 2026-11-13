@@ -1,3 +1,7 @@
 {{- if ne (dig "claude_code" "installation_method" "none" .) "direct_release" }}
 claude
 {{- end }}
+
+{{- if ne (dig "local" "bin" "pi" "installation_method" "none" .) "github_releases" }}
+pi
+{{- end }}

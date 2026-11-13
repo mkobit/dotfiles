@@ -1,0 +1,16 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $settings := dict -}}
+{{- if or .chezmoi.stdin (stat (joinPath .chezmoi.destDir ".pi/agent/settings.json")) -}}
+{{- $settings = fromJson .chezmoi.stdin -}}
+{{- if not (kindIs "map" $settings) -}}
+{{- fail "pi: settings.json must contain a JSON object" -}}
+{{- end -}}
+{{- end -}}
+{{- $configured := dig "pi" "settings" (dict) . -}}
+{{- if not (kindIs "map" $configured) -}}
+{{- fail "pi: pi.settings must be an object" -}}
+{{- end -}}
+{{- range $key, $value := $configured -}}
+{{- $_ := set $settings $key $value -}}
+{{- end -}}
+{{- $settings | toPrettyJson -}}
