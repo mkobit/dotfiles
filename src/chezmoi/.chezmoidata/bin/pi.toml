@@ -1,14 +1,15 @@
 [bin.pi]
-version = "0.83.0"
+version = "1.5.2"
 
 [bin.pi.github_releases]
 repo            = "earendil-works/pi"
-external_type   = "archive-file"
-executable      = true
+external_type   = "archive"
+exact           = true
+strip_components = 1
 checksum_type   = "sha256"
 tag_format      = "v{version}"
 filename_format = "pi-{target}.tar.gz"
-path_format     = "pi/pi"
+path_format     = "pi"
 url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
 
 [bin.pi.github_releases.platforms]
@@ -18,7 +19,7 @@ linux_amd64  = "linux-x64"
 linux_arm64  = "linux-arm64"
 
 [bin.pi.github_releases.checksums]
-darwin_arm64 = "147fc3c451ec543a15102af251ce316079c8fcadfe8ae4d3ffee202346e9bed9"
-darwin_amd64 = "9ab12e406e545be131d1279a9a2c0d5c0d4a3c6e9d86a52700a7a135a445041b"
-linux_amd64  = "b0625eb623197b0afe20c870d21ef2f34481f1504e5777df3f698a66c7636f5f"
-linux_arm64  = "b84f9016610c738dd9440df62f649880dbe9951db97a7ae936cbf292850e9802"
+darwin_arm64 = "56b5e194d485ced555667b8ba3276157a8272e9ecde9e001e428af80985bdd9b"
+darwin_amd64 = "f997a088613514ac97d913aeea7642094d84fe6d46854ff7e64e2c12e536dc50"
+linux_amd64  = "811c6f2c9e7aaee252b5404252e556fb713aa209c1f7f924226aa77d4ef70cb5"
+linux_arm64  = "42805cd5615952fcbbfc9c56b04f8feb84395134952e169a6cdc8d7676975666"

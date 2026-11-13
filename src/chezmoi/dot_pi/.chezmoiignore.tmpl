@@ -1,0 +1,8 @@
+{{- $tool := dig "local" "bin" "pi" (dict) . -}}
+{{- $method := dig "installation_method" "none" $tool -}}
+{{- if not (has $method (list "none" "existing" "github_releases")) -}}
+{{- fail (printf "pi: unsupported installation_method %q" $method) -}}
+{{- end -}}
+{{- if not (has $method (list "existing" "github_releases")) }}
+agent/settings.json
+{{- end }}

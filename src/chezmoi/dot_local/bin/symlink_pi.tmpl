@@ -1,0 +1,3 @@
+{{- if eq (dig "local" "bin" "pi" "installation_method" "none" .) "github_releases" -}}
+{{ joinPath .chezmoi.destDir ".local/share/pi/pi" }}
+{{- end -}}

@@ -1,0 +1,11 @@
+{{- $tool := dig "local" "bin" "pi" (dict) . -}}
+{{- $method := dig "installation_method" "none" $tool -}}
+{{- if not (has $method (list "none" "existing" "github_releases")) -}}
+{{- fail (printf "pi: unsupported installation_method %q" $method) -}}
+{{- end -}}
+{{- if eq $method "github_releases" -}}
+{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
+{{- $base := dig "github_releases" "base_url" "https://github.com" . -}}
+{{- $base = dig "github_releases" "base_url" $base .bin.pi -}}
+{{- includeTemplate "bin/github-releases-entry.tmpl" (dict "name" "pi" "tool" .bin.pi "platform" $platform "base" $base) -}}
+{{- end -}}

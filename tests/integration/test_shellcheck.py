@@ -54,6 +54,10 @@ def _first_non_blank_line(text):
 
 
 def test_shellcheck(shellcheck_candidate, host, chezmoi_command):
+    source = Path(shellcheck_candidate["sourceAbsolute"])
+    if "chezmoi:modify-template" in source.read_text().partition("\n")[0]:
+        pytest.skip("chezmoi modify-template does not contain a shell script")
+
     render = host.run(chezmoi_command("execute-template", "-f", "--with-stdin", shellcheck_candidate["sourceAbsolute"]))
     assert render.rc == 0, f"template render failed:\n{render.stderr}"
 
