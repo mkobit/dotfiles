@@ -4,10 +4,11 @@ Unit 5 of the [approved pilot design](https://github.com/mkobit/dotfiles/blob/c4
 The [review record](https://github.com/mkobit/dotfiles/blob/c4d122a7/docs/designs/sbx-agy-pilot-review.md) defines the proof limits.
 Do not run the live pilot from this setup check.
 
-**Status: guest proof pending.**
-Hosted CI checks the package and the installed SBX CLI.
-Native source build and guest checks require a capable host.
-Guest installation and checks remain unproved.
+**Status: native build and basic fresh-guest proof passed.**
+The tested source commit is `4fe3d1ae466e629bbdfebd2f23cd649ec7721b30`.
+Chezmoi apply proof excludes scripts and externals.
+Full apply and the later pilot prerequisites remain unproved.
+Hosted CI checks the package and the installed SBX CLI; it does not supply guest proof.
 
 ## Workload and tools
 
@@ -150,7 +151,7 @@ The Linux catalog pin and frozen lockfile have no changes.
 
 Host checks used mise `2026.11.0`, uv `0.12.10`, Python `3.14.7`, Chezmoi `2.72.0`, pytest `9.1.1`, Ruff `0.17.3`, and ty `0.0.92`.
 These are host test versions.
-The installer selects mise `2026.10.18`, uv `0.12.10`, Python `3.14.7`, Chezmoi `2.74.0`, and Beads `1.3.2`; their guest installation remains unproved.
+The installer selects mise `2026.10.18`, uv `0.12.10`, Python `3.14.7`, Chezmoi `2.74.0`, and Beads `1.3.2`; their guest versions are confirmed in the follow-up below.
 System packages use the workload's APT sources; record their resolved versions when guest proof can run.
 The macOS `0.53.0` installation and CLI proof belongs to [unit 3, PR #1066](https://github.com/mkobit/dotfiles/pull/1066).
 
@@ -193,3 +194,77 @@ A behavioral regression test checks both supported shells against this cutoff.
 The failed creation left no registered proof guest.
 Native build and artifact inspection have passed for the initial source.
 Guest Git metadata, tools, frozen dependencies, repository verification, and isolated apply remain pending until a fresh creation with the corrected source passes.
+
+## Corrected-source guest proof
+
+The corrected source commit `4fe3d1ae466e629bbdfebd2f23cd649ec7721b30` passed native build, artifact inspection, fresh creation, and command-only guest checks on Linux amd64 with CLI and daemon `0.53.0`.
+The private guest is `dotfiles-unit5-proof-fixed`.
+The source is the temporary standalone clone at `/tmp/sbx-unit5/proof-source`.
+The implementation worktree remains `/home/mkobit/.codex/worktrees/430c/chezmoi` on `feat/sbx-private-guest`.
+The approved design branch remains at `c4d122a7`.
+
+The corrected mixin built in two seconds as `sbx-kit-src:spec-d46798f371f0`.
+Native source inspection reported schema `3`, kind `mixin`, that image, and both install hooks.
+The workload digest is unchanged from the value above.
+System installation passed in `42.3s`; project installation and frozen dependency setup passed in `115.2s`.
+Native creation reported that no binding authorized OpenAI credential injection.
+No credential binding was added and no coding task started.
+
+Commands used from the temporary clone:
+
+```sh
+git fetch origin feat/sbx-private-guest
+git merge --ff-only origin/feat/sbx-private-guest
+sbx env create .sbx/sbxenv.yaml --name dotfiles-unit5-proof-fixed --force
+sbx kit inspect ./.sbx/kit --format json
+sbx env exec -i --name dotfiles-unit5-proof-fixed .sbx/sbxenv.yaml -- sh < /tmp/sbx-unit5/guest-proof.sh
+sbx env exec -i --name dotfiles-unit5-proof-fixed .sbx/sbxenv.yaml -- sh < /tmp/sbx-unit5/guest-apply.sh
+```
+
+The proof scripts and complete logs remain in `/tmp/sbx-unit5/`.
+These local records are temporary and are not repository dependencies.
+The Git proof asserted the tested head, branch `feat/sbx-private-guest`, base ancestry from `f1b0c389745e3fdac64d2421d5c122d765b5081d`, and an empty `git status --porcelain` before and after verification.
+Both the absolute Git directory and common Git directory were `/tmp/sbx-unit5/proof-source/.git` inside the guest.
+There was no `commondir` file.
+Native SBX uses `/run/sandbox/source` as origin and `/run/sandbox/source/.git/objects` as a read-only object alternate.
+Git metadata and new objects belong to the private guest; existing objects use that native source mount.
+The host recovery remote is in the temporary source clone.
+Preserve that clone with the guest.
+
+| Guest tool | Version |
+| --- | --- |
+| mise | `2026.10.18` |
+| uv | `0.12.10` |
+| Python | `3.14.7` |
+| Chezmoi | `2.74.0` |
+| Beads | `1.3.2` (`9b65b9e19`) |
+| Codex | `0.155.1` |
+| Git | `2.53.0` |
+| GitHub CLI | `2.46.0` |
+| GnuPG | `2.4.8` |
+| tar | `1.35` |
+| zip / unzip | `3.0` / `6.0` |
+| xz / gzip | `5.8.3` / `1.14` |
+| Node.js / npm packages | `22.22.1+dfsg+~cs22.19.15-1ubuntu1` / `9.2.0~ds3-1` |
+
+`dpkg-query -W` recorded package revisions for all APT prerequisites in `guest-proof.log`.
+`mise exec -- uv sync --all-packages --frozen` and `git diff --exit-code -- uv.lock` passed.
+`mise run verify` passed: 447 unit tests, 57 workflow tests, Ruff, formatting, ty, and all package builds.
+The clone remained clean.
+Mise warned that global Chezmoi, Python, and Beads pins are absent from the repository mise lockfile.
+Those warnings did not fail the checks; no lockfile or release-age setting was changed.
+
+The isolated Chezmoi script used `CI=1`, `mktemp -d /tmp/dotfiles-unit5-apply.XXXXXX`, and separate `--destination`, `--config`, `--cache`, and `--persistent-state` paths.
+It ran `chezmoi init --no-tty`, then `diff`, `apply`, and a second `diff`, with `--exclude=scripts,externals` on all diff/apply commands.
+All commands passed and the second diff was empty.
+The destination was `/tmp/dotfiles-unit5-apply.8R0Mhv/dest` inside the guest.
+Chezmoi warned that managed Codex settings can canonicalize formatting.
+No guest home configuration was used as the apply destination.
+This is limited apply proof; installation scripts, external downloads, and full apply remain unproved.
+
+Host verification also passed 447 unit tests and 57 workflow tests.
+The regression test failed against the previous pin in both shells, then passed with the corrected pin.
+Independent review found no blocking issue before the corrected-source commit.
+All eight [PR checks on the tested source](https://github.com/mkobit/dotfiles/actions/runs/43624967254) passed, including Linux amd64, Linux arm64, and macOS integration.
+The draft PR remains open.
+Signing, tracker sync, credential setup, models, subagents, restart proof, and live delivery remain later work.
