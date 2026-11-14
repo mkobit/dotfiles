@@ -1,5 +1,5 @@
 [bin.nvim]
-version = "0.12.4"
+version = "0.12.6"
 
 [bin.nvim.github_releases]
 repo             = "neovim/neovim"
@@ -18,10 +18,10 @@ linux_amd64  = "linux-x86_64"
 linux_arm64  = "linux-arm64"
 
 [bin.nvim.github_releases.checksums]
-darwin_arm64 = "51ab83afa66d663627c2ab1be43209b0f4e81360d4598b53efaa4d8195f24c89"
-darwin_amd64 = "03fe16f8dd9f1e9eaf52d5e294913a39917b9e2faea30d7fb0fb385fbd36fe59"
-linux_amd64  = "012bf3fcac5ade43914df3f174668bf64d05e049a4f032a388c027b1ebd78628"
-linux_arm64  = "ceb7e88c6b681f0515d135dcdfad54f5eb4373b25ce6172197cd9a69c758063f"
+darwin_arm64 = "1dbd148222b051ba6c307c4d17a318ed083df018a4f6a5a0ce46955ffc9ab87b"
+darwin_amd64 = "481424f1dbc85f637d57e47d27d042aa9c883e5a4fe9ee64fc4ee9573b221998"
+linux_amd64  = "474430d53e6264f6d6dd18db42d6dc9df3a1b56ca9e88a325bbf860e1a811d87"
+linux_arm64  = "8f1f64a0bdb97247034038c3823c6cbad5bdf9ecd5751b85494b71c3ee04c815"
 
 [bin.nvim.homebrew]
 name = "neovim"
