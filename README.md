@@ -3,6 +3,7 @@
 [![CI](https://github.com/mkobit/dotfiles/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mkobit/dotfiles/actions/workflows/ci.yml)
 
 Personal dotfiles managed with `chezmoi` and `mise`.
+See [workflow dependencies](.github/workflows/README.md) for Actions locks and update policy.
 
 ## Setup output
 

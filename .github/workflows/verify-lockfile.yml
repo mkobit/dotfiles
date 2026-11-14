@@ -1,0 +1,31 @@
+name: Verify Actions lockfile
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Record workflow revision
+        env:
+          WORKFLOW_SHA: ${{ github.workflow_sha }}
+        run: |
+          printf 'Workflow revision: %s\n' "$WORKFLOW_SHA"
+          printf 'Workflow revision: `%s`\n' "$WORKFLOW_SHA" >> "$GITHUB_STEP_SUMMARY"
+      - name: Install lock verifier
+        run: gh extension install github/gh-actions-lock --pin v0.4.0
+      - name: Verify lockfile
+        run: gh actions-lock --verify
