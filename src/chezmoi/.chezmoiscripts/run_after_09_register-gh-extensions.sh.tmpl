@@ -1,0 +1,42 @@
+{{- $enabled := list -}}
+{{- range $name, $extension := dig "gh" "extensions" (dict) . -}}
+{{-   if eq (dig "installation_method" "none" $extension) "github_releases" -}}
+{{-     $enabled = append $enabled $name -}}
+{{-   end -}}
+{{- end -}}
+{{- if $enabled -}}
+#!/bin/sh
+set -eu
+
+data_dir="{{ .chezmoi.destDir }}/.local/share"
+if [ -n "${XDG_DATA_HOME:-}" ] && [ "$XDG_DATA_HOME" != "$data_dir" ]; then
+    echo "gh extensions: XDG_DATA_HOME must be $data_dir (custom extension storage is unsupported)" >&2
+    exit 1
+fi
+export XDG_DATA_HOME="$data_dir"
+export XDG_STATE_HOME="{{ .chezmoi.destDir }}/.local/state"
+gh="{{ .chezmoi.destDir }}/.local/bin/gh"
+
+for name in{{ range $enabled }} {{ . | quote }}{{ end }}; do
+    directory="$data_dir/gh-managed/$name"
+    registration="$data_dir/gh/extensions/$name"
+    if [ ! -f "$directory/$name" ] || [ ! -x "$directory/$name" ]; then
+        echo "$name: managed executable is missing or not executable: $directory/$name" >&2
+        exit 1
+    fi
+    if [ -L "$registration" ] && [ "$(readlink "$registration")" = "$directory" ]; then
+        continue
+    fi
+    if [ -e "$registration" ] || [ -L "$registration" ]; then
+        # rm unlinks registration symlinks without following their targets.
+        if ! rm -rf -- "$registration"; then
+            echo "$name: registration cleanup failed: $registration" >&2
+            exit 1
+        fi
+    fi
+    if ! (cd "$directory" && "$gh" extension install .); then
+        echo "$name: gh extension install . failed" >&2
+        exit 1
+    fi
+done
+{{- end }}

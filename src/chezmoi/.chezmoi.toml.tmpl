@@ -138,6 +138,17 @@ enable_auto_update = false
 [data.local.bin.gh]
 installation_method = "github_releases"
 
+# Extensions use their own external directory, separate from .local/bin.
+{{- $ghExtensionMethod := "none" -}}
+{{- if and (has .chezmoi.os (list "linux" "darwin")) (has .chezmoi.arch (list "amd64" "arm64")) -}}
+{{-   $ghExtensionMethod = "github_releases" -}}
+{{- end }}
+[data.gh.extensions.gh-stack]
+installation_method = {{ $ghExtensionMethod | quote }}
+
+[data.gh.extensions.gh-actions-lock]
+installation_method = {{ $ghExtensionMethod | quote }}
+
 # Secret scanner binary; also enables its config and the pre-commit hook below.
 [data.local.bin.betterleaks]
 installation_method = "github_releases"

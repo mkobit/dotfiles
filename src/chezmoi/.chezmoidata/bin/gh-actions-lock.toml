@@ -1,0 +1,25 @@
+[bin.gh-actions-lock]
+version = "0.4.0"
+minimum_release_age = "21d"
+
+[bin.gh-actions-lock.github_releases]
+repo            = "github/gh-actions-lock"
+bin_name        = "gh-actions-lock/gh-actions-lock"
+external_type   = "file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "v{version}"
+filename_format = "{target}"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.gh-actions-lock.github_releases.platforms]
+darwin_amd64 = "darwin-amd64"
+darwin_arm64 = "darwin-arm64"
+linux_amd64  = "linux-amd64"
+linux_arm64  = "linux-arm64"
+
+[bin.gh-actions-lock.github_releases.checksums]
+darwin_amd64 = "6b81e2050e0fcd1953649886231b2d19f8861428272d86067a59c22bd4b75c76"
+darwin_arm64 = "5934d40f8cc78ed3e9be15ba43fc82c2432cbf3aa088107f923878df07099bec"
+linux_amd64  = "f9da98f2a6e9e0ae77deadf9a2319a8a86bb002b541cc3203b247cc59fb04842"
+linux_arm64  = "7de0e440274688b8ddcbb6f44ce686aaebbe17a54a3052ebc11d4bae9f641fa2"
