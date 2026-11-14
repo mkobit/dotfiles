@@ -49,17 +49,27 @@ def test_local_kit_packages_its_bootstrap(tmp_path):
     assert "$WORKSPACE_DIR/.sbx" not in (package / "install.sh").read_text()
 
 
-@pytest.mark.integration
-@pytest.mark.chezmoi_installation("local.bin.sbx", methods={"github_releases", "homebrew"})
-def test_native_offline_packaged_kit_validation(tmp_path, host):
-    sbx = shutil.which("sbx")
-    assert sbx is not None, "SBX is enabled but absent"
+@pytest.mark.parametrize(
+    ("phase", "message"),
+    [
+        ("project", "The private guest workspace is required"),
+        ("unknown", "Expected system or project installation phase"),
+        ("", "Expected system or project installation phase"),
+    ],
+)
+def test_packaged_bootstrap_rejects_invalid_input_without_side_effects(tmp_path, phase, message):
     package = _packaged_source(tmp_path)
-    validated = subprocess.run(
-        [sbx, "kit", "validate", "--offline", str(package)],
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    rejected = subprocess.run(
+        ["/bin/sh", str(package / "install.sh"), phase],
+        cwd=workspace,
+        env={"PATH": ""},
         capture_output=True,
         text=True,
         check=False,
-        timeout=60,
+        timeout=10,
     )
-    assert validated.returncode == 0, f"{validated.stdout}\n{validated.stderr}"
+    assert rejected.returncode == 2
+    assert message in rejected.stderr
+    assert not list(workspace.iterdir())

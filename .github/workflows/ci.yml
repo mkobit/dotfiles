@@ -286,16 +286,6 @@ jobs:
             "$(brew --prefix)/bin/sbx" --version
           fi
 
-      - name: Validate the packaged SBX kit offline
-        run: |
-          kit_dir="$RUNNER_TEMP/sbx-project-kit"
-          cp -R .sbx/kit "$kit_dir"
-          if [[ "$RUNNER_OS" == "Linux" ]]; then
-            "$CHEZMOI_DEST/.local/bin/sbx" kit validate --offline "$kit_dir"
-          else
-            "$(brew --prefix)/bin/sbx" kit validate --offline "$kit_dir"
-          fi
-
       # Use unique keys after failed applies so later runs can save more packages.
       - name: Save APT downloads
         if: ${{ always() && runner.os == 'Linux' && steps.apt-cache.outputs.cache-primary-key != '' && steps.apt-cache.outputs.cache-hit != 'true' }}
@@ -329,6 +319,11 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mise exec -- uv sync --all-packages --frozen
+
+      - name: Check the SBX source package
+        env:
+          HOME: ${{ env.CHEZMOI_DEST }}
+        run: mise exec -- uv run --frozen pytest tests/integration/test_sbx_project_environment.py
 
       - name: Run system integration tests
         env:

@@ -4,9 +4,9 @@ Unit 5 of the [approved pilot design](https://github.com/mkobit/dotfiles/blob/c4
 The [review record](https://github.com/mkobit/dotfiles/blob/c4d122a7/docs/designs/sbx-agy-pilot-review.md) defines the proof limits.
 Do not run the live pilot from this setup check.
 
-**Status: blocked.**
-SBX `0.53.0` cannot run the required offline validation of a v3 source kit.
-The required native CI gate remains enabled and will fail with this CLI.
+**Status: guest proof pending.**
+Hosted CI checks the package and the installed SBX CLI.
+Native source build and guest checks require a capable host.
 Guest installation and checks remain unproved.
 
 ## Workload and tools
@@ -39,13 +39,14 @@ Use an explicit environment path to avoid implicit host environment defaults.
 Use the same unique name with every environment command.
 
 ```sh
-sbx kit validate .sbx/kit --offline
 sbx env plan .sbx/sbxenv.yaml --name dotfiles-unit5-proof
 sbx env create .sbx/sbxenv.yaml --name dotfiles-unit5-proof
 ```
 
 `env create` prepares the guest without starting a Codex task.
 Read the plan before creation.
+Native creation builds the local v3 source kit.
+A successful plan alone does not validate that build.
 Stop if it requires credential setup or an unrelated host change.
 Do not use `env run` for basic checks.
 Run commands with native `env exec`:
@@ -94,14 +95,20 @@ Record any excluded targets or scripts; a limited apply does not prove a full ap
 ```sh
 mise run test:workflow
 mise run verify
-mise exec -- uv run --frozen pytest tests/integration/test_sbx_project_environment.py -m 'not integration'
+mise exec -- uv run --frozen pytest tests/integration/test_sbx_project_environment.py
 ```
 
-Portable checks test the packaged references and private environment configuration.
-They do not prove native SBX behavior.
-Enabled Linux and macOS CI jobs must run native `sbx kit validate --offline` on the local kit source.
-A missing CLI fails those jobs.
-Hosted CI does not prove guest startup or environment planning.
+Linux and macOS CI run the package tests after installing frozen dependencies.
+The tests check packaged bootstrap references, shell syntax, private clone configuration, and bootstrap input failures.
+CI also requires the installed SBX CLI to report its version.
+A missing CLI fails that check.
+
+This corrects the design's unsupported offline source-validation command.
+SBX `0.53.0` cannot validate a v3 source kit with `sbx kit validate --offline`.
+The [official migration guide](https://github.com/docker/sandbox-kit-spec/blob/main/skills/migrate-kit-to-v3/SKILL.md#known-gaps) requires a native source build, then inspection of the built artifact.
+Keep that proof on a capable host, followed by the guest checks above.
+Hosted package checks do not prove a native build, guest startup, or readiness for the pilot.
+Do not mark unit 5 complete from green hosted CI alone.
 
 ## Required later inputs
 
@@ -122,18 +129,18 @@ Signing, restart, tracker sync, model, and subagent proof remain later prerequis
 
 ## Validation record
 
-Checks on 2026-11-13 used base `f1b0c389745e3fdac64d2421d5c122d765b5081d` plus this unit's changes.
+Initial checks on commit `0af07aa7` used base `f1b0c389745e3fdac64d2421d5c122d765b5081d` plus this unit's changes.
 The Linux catalog pin and frozen lockfile have no changes.
 
 | Check | Result |
 | --- | --- |
 | Native workload inspection | Resolved the Codex `0.155.1` tag to the digest above; schema `3`, native `codex` entrypoint. |
 | Native environment plan | Passed with SBX `0.53.0` (`2c628380`); private clone, pinned workload, local mixin, and host recovery remote listed. Planning does not build or validate the source kit. |
-| Packaged native offline validation | Failed with SBX `0.53.0`: `v3 source kit and this load path has no kit builder configured`. The enabled integration test reproduces this failure. |
+| Packaged native offline validation | Failed with SBX `0.53.0`: `v3 source kit and this load path has no kit builder configured`. The initial integration test reproduced this failure. |
 | Native `kit pack` | Rejected the v3 source fields `dockerfile` and `capabilities`. It does not provide a source ZIP workaround. |
-| `mise run verify` | Passed: 447 Python tests, 49 portable workflow tests, Ruff, ty, and package builds. One native integration test is excluded from the portable task and runs separately. |
+| `mise run verify` | Passed: 447 Python tests, 49 portable workflow tests, Ruff, ty, and package builds. This was the initial portable check result. |
 | Shell checks | `sh -n` and ShellCheck `0.11.0` passed. |
-| macOS native validation | Pending CI. The required source check has the same known SBX limitation. |
+| Initial hosted native validation | [CI run 43544369158](https://github.com/mkobit/dotfiles/actions/runs/43544369158) failed at the same unsupported source check on Linux amd64, Linux arm64, and macOS. |
 | Fresh guest | Pending. Git metadata, tools, frozen dependencies, repository verification, and isolated apply have no guest proof. |
 
 Host checks used mise `2026.11.0`, uv `0.12.10`, Python `3.14.7`, Chezmoi `2.72.0`, pytest `9.1.1`, Ruff `0.17.3`, and ty `0.0.92`.
@@ -144,9 +151,8 @@ The macOS `0.53.0` installation and CLI proof belongs to [unit 3, PR #1066](http
 
 The [official v3 migration guide](https://github.com/docker/sandbox-kit-spec/blob/main/skills/migrate-kit-to-v3/SKILL.md#known-gaps) confirms that `sbx kit validate` cannot accept a v3 source kit.
 It requires a build, then inspection of the built artifact.
-A built artifact check would change the approved offline source-validation requirement.
-Keep this unit blocked until a supported native source check passes or that requirement is revised.
-Do not replace the gate with YAML parsing or a generated legacy descriptor.
+The CI correction separates supported hosted package checks from required native build and guest proof.
+No generated legacy descriptor or successful hosted test counts as native validation.
 
 The host daemon reported `0.51.0` and healthy virtualization.
 Later host commands reported CLI `0.53.0`; daemon-backed kit validation requested a restart to match versions.
