@@ -74,3 +74,37 @@ def test_packaged_bootstrap_rejects_invalid_input_without_side_effects(tmp_path,
     assert rejected.returncode != 0
     assert message in rejected.stderr
     assert not list(workspace.iterdir())
+
+
+@pytest.mark.parametrize("shell", ["/bin/sh", "/bin/bash"])
+def test_project_bootstrap_selects_a_release_old_enough_for_npm(tmp_path, shell):
+    package = _packaged_source(tmp_path)
+    binaries = tmp_path / "bin"
+    binaries.mkdir()
+    arguments = tmp_path / "npm-arguments"
+    npm = binaries / "npm"
+    npm.write_text('#!/bin/sh\nprintf "%s\\n" "$@" > "$NPM_ARGUMENTS"\nexit 73\n')
+    npm.chmod(0o755)
+    date = binaries / "date"
+    date.write_text(
+        '#!/bin/sh\n[ "$*" = "-u -d 21 days ago +%Y-%m-%dT%H:%M:%SZ" ] || exit 2\nprintf "%s\\n" 2026-10-24T05:50:09Z\n'
+    )
+    date.chmod(0o755)
+    result = subprocess.run(
+        [shell, str(package / "install.sh"), "project"],
+        env={"PATH": str(binaries), "WORKSPACE_DIR": str(tmp_path), "NPM_ARGUMENTS": str(arguments)},
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=10,
+    )
+    assert result.returncode == 73, result.stderr
+    requested = arguments.read_text().splitlines()
+    assert "--before=2026-10-24T05:50:09Z" in requested
+    # npm publication dates, not the release dates in the version names.
+    published = {
+        "mise@2026.10.18": "2026-10-23T11:58:40.295Z",
+        "mise@2026.10.23": "2026-10-29T10:15:06.412Z",
+    }
+    selected = next(argument for argument in requested if argument.startswith("mise@"))
+    assert published[selected] < "2026-10-24T05:50:09Z"

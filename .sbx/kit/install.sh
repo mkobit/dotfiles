@@ -14,7 +14,7 @@ case "${1:-}" in
         : "${WORKSPACE_DIR:?The private guest workspace is required}"
         bootstrap=/home/agent/.local/share/dotfiles/bootstrap
         npm install --prefix "$bootstrap" --no-audit --no-fund \
-            --before="$(date -u -d '21 days ago' +%Y-%m-%dT%H:%M:%SZ)" mise@2026.10.23
+            --before="$(date -u -d '21 days ago' +%Y-%m-%dT%H:%M:%SZ)" mise@2026.10.18
         export PATH="$bootstrap/node_modules/.bin:/home/agent/.local/bin:$PATH"
         export MISE_YES=1
         export MISE_MINIMUM_RELEASE_AGE=7d

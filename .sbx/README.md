@@ -32,11 +32,16 @@ See [kit compatibility](https://docs.docker.com/ai/sandboxes/customize/use-kits/
 
 ## Check and create
 
-Run from a clean, committed feature worktree based on the accepted `origin/main`.
+Keep implementation changes in the assigned feature worktree.
+SBX `0.53.0` rejects private clone creation from a Git worktree.
+Use a separate temporary standalone clone of the committed feature branch for guest proof.
+Check its commit and branch before creation; do not change the main checkout or merge the design branch.
+Run the commands below from that standalone clone.
 The private clone starts from the committed head.
 Commit the intended setup before guest proof; uncommitted host files are not guest evidence.
 Use an explicit environment path to avoid implicit host environment defaults.
 Use the same unique name with every environment command.
+For `env exec`, put flags before the environment path.
 
 ```sh
 sbx env plan .sbx/sbxenv.yaml --name dotfiles-unit5-proof
@@ -52,7 +57,7 @@ Do not use `env run` for basic checks.
 Run commands with native `env exec`:
 
 ```sh
-sbx env exec .sbx/sbxenv.yaml --name dotfiles-unit5-proof -- sh -c '
+sbx env exec --name dotfiles-unit5-proof .sbx/sbxenv.yaml -- sh -c '
   set -eu
   cd "${WORKSPACE_DIR:?}"
   test -d .git
@@ -145,7 +150,7 @@ The Linux catalog pin and frozen lockfile have no changes.
 
 Host checks used mise `2026.11.0`, uv `0.12.10`, Python `3.14.7`, Chezmoi `2.72.0`, pytest `9.1.1`, Ruff `0.17.3`, and ty `0.0.92`.
 These are host test versions.
-The installer selects mise `2026.10.23`, uv `0.12.10`, Python `3.14.7`, Chezmoi `2.74.0`, and Beads `1.3.2`; their guest installation remains unproved.
+The installer selects mise `2026.10.18`, uv `0.12.10`, Python `3.14.7`, Chezmoi `2.74.0`, and Beads `1.3.2`; their guest installation remains unproved.
 System packages use the workload's APT sources; record their resolved versions when guest proof can run.
 The macOS `0.53.0` installation and CLI proof belongs to [unit 3, PR #1066](https://github.com/mkobit/dotfiles/pull/1066).
 
@@ -159,3 +164,32 @@ Later host commands reported CLI `0.53.0`; daemon-backed kit validation requeste
 No host binary or daemon change was made by this unit.
 A restart would stop other running sandboxes, so guest creation was not attempted.
 No signing key, tracker, credential setup, or live pilot operation was used.
+
+## Native proof follow-up
+
+On commit `b126067fe6dccf72d2118be33a4fb90d900c5a82`, the host CLI and daemon both reported `0.53.0`.
+`sbx diagnose --format json` reported 16 passes, no warnings, no failures, and four skips.
+KVM was accessible.
+No daemon restart or unrelated sandbox stop was needed.
+
+`sbx env create .sbx/sbxenv.yaml --name dotfiles-unit5-proof --force` built the local v3 mixin in eight seconds as `sbx-kit-src:spec-b57bff4737c9`.
+It then rejected the Git worktree as a private clone source.
+A temporary standalone clone of the same branch and commit passed that check.
+The pinned workload was pulled and assembled with the mixin into 21 layers.
+The system package install passed.
+The native workload used its stored OAuth setup automatically; no coding task started and no manual credential setup was performed.
+
+`sbx kit inspect ./.sbx/kit --format json` read the cached built artifact through the native source resolver.
+It reported schema `3`, kind `mixin`, the built image above, network rules, and both install hooks.
+Direct inspection through the local registry was denied by the host source allowlist.
+No policy was changed.
+
+Project installation failed because `mise@2026.10.23` was too new for the required 21-day npm cutoff.
+The [npm registry metadata](https://registry.npmjs.org/mise) reports publication on `2026-10-29T10:15:06.412Z`.
+The corrected pin, `2026.10.18`, was published on `2026-10-23T11:58:40.295Z` and meets the failed run's `2026-10-24T05:50:09Z` cutoff.
+The release-age limits remain enabled.
+A behavioral regression test checks both supported shells against this cutoff.
+
+The failed creation left no registered proof guest.
+Native build and artifact inspection have passed for the initial source.
+Guest Git metadata, tools, frozen dependencies, repository verification, and isolated apply remain pending until a fresh creation with the corrected source passes.
