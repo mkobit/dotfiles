@@ -289,3 +289,8 @@ $RECYCLE.BIN/
 
 # Superpowers scratch plans and specs
 docs/superpowers/
+
+# Tracked SBX setup; keep guest task records private.
+!.sbx/
+.sbx/task-context/
+.sbx/logs/
