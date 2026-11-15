@@ -1,0 +1,44 @@
+# syntax=docker/sandbox-kit:3
+schemaVersion: "3"
+kind: mixin
+displayName: Dotfiles toolchain
+version: "0.1.0"
+description: Install the dotfiles project tools and frozen dependencies
+dockerfile: Dockerfile
+
+capabilities:
+  - type: com.docker.sandbox/network-policy@1
+    config:
+      install:
+        allow:
+          - archive.ubuntu.com
+          - security.ubuntu.com
+          - ports.ubuntu.com
+          - deb.debian.org
+          - security.debian.org
+          - registry.npmjs.org
+          - github.com
+          - api.github.com
+          - "*.githubusercontent.com"
+          - pypi.org
+          - files.pythonhosted.org
+          - mise.jdx.dev
+      runtime:
+        allow:
+          - github.com
+          - api.github.com
+          - "*.githubusercontent.com"
+          - pypi.org
+          - files.pythonhosted.org
+          - registry.npmjs.org
+          - mise.jdx.dev
+  - type: com.docker.sandbox/lifecycle@1
+    config:
+      install:
+        - command: [sh, /opt/dotfiles/install.sh, system]
+          user: "0"
+          description: Install system package prerequisites
+        - command: [sh, /opt/dotfiles/install.sh, project]
+          user: "1000"
+          env: [WORKSPACE_DIR]
+          description: Install the pinned project tools and frozen dependencies

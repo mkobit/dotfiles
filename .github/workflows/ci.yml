@@ -320,6 +320,11 @@ jobs:
         run: |
           mise exec -- uv sync --all-packages --frozen
 
+      - name: Check the SBX source package
+        env:
+          HOME: ${{ env.CHEZMOI_DEST }}
+        run: mise exec -- uv run --frozen pytest tests/integration/test_sbx_project_environment.py
+
       - name: Run system integration tests
         env:
           HOME: ${{ env.CHEZMOI_DEST }}

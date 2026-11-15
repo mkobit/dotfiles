@@ -6,8 +6,8 @@ locked = true
 http_retries = 5
 
 [tasks."test:workflow"]
-description = "Check SBX policy renderers and migration"
-run = "uv run --frozen pytest tests/integration/test_sbx_command_policy.py tests/integration/test_sbx_command_retirement.py tests/integration/test_ai_workflow_permissions.py"
+description = "Check SBX policy and project environment"
+run = "uv run --frozen pytest -m 'not integration' tests/integration/test_sbx_command_policy.py tests/integration/test_sbx_command_retirement.py tests/integration/test_ai_workflow_permissions.py tests/integration/test_sbx_project_environment.py"
 
 [tasks.verify]
 description = "Run project checks"

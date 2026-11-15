@@ -1,0 +1,9 @@
+schemaVersion: "1"
+name: dotfiles-private-guest
+agent: sbx-kit-codex
+workspace:
+  path: ..
+  clone: true
+kits:
+  - docker.io/docker/sbx-kit-codex@sha256:f808ef79b5aae10dcfd896dc898e16cbfd806bcd16c9699d208ccb99001eaf76
+  - ./kit
