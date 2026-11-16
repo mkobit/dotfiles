@@ -132,7 +132,8 @@ def deployed_setup_skills(tmp_path: Path):
         return result.stdout
 
     chezmoi("init")
-    targets = [str(destination / DEPLOYED_SKILLS / name) for name in ("sbx-sandboxes", "sbx-orchestrator")]
+    names = ("sbx-sandboxes", "sbx-orchestrator", "worker-handoff", "architect-scoping")
+    targets = [str(destination / DEPLOYED_SKILLS / name) for name in names]
     managed = json.loads(chezmoi("managed", "--include=files", "--format=json", "--path-style=all"))
     assert str(DEPLOYED_SKILLS / "repo-bootstrap/SKILL.md") in managed
     targets.append(str(destination / DEPLOYED_SKILLS / "repo-bootstrap"))
@@ -150,10 +151,14 @@ def test_deployed_setup_skill_discovery_and_local_links(deployed_setup_skills) -
     destination, chezmoi, managed = deployed_setup_skills
     plugins = json.loads(chezmoi("execute-template", '{{ includeTemplate "ai/authored-plugins" . }}'))
     for host in ("claude", "codex"):
-        assert {"repo-bootstrap", "sbx-sandboxes"} <= set(plugins["mkobit-dotfiles"]["skills"][host])
+        assert {"repo-bootstrap", "sbx-sandboxes", "worker-handoff", "architect-scoping"} <= set(
+            plugins["mkobit-dotfiles"]["skills"][host]
+        )
     manifest = json.loads(chezmoi("cat", str(destination / DEPLOYED_SKILLS.parent / ".codex-plugin/plugin.json")))
-    assert {"repo-bootstrap", "sbx-sandboxes"} <= set(manifest["interface"]["capabilities"])
-    for name in ("repo-bootstrap", "sbx-sandboxes", "sbx-orchestrator"):
+    assert {"repo-bootstrap", "sbx-sandboxes", "worker-handoff", "architect-scoping"} <= set(
+        manifest["interface"]["capabilities"]
+    )
+    for name in ("repo-bootstrap", "sbx-sandboxes", "sbx-orchestrator", "worker-handoff", "architect-scoping"):
         document = destination / DEPLOYED_SKILLS / name / "SKILL.md"
         metadata = yaml.safe_load(document.read_text(encoding="utf-8").split("---", 2)[1])
         assert metadata["name"] == name
