@@ -4,7 +4,7 @@
 
 Personal dotfiles managed with `chezmoi` and `mise`.
 
-Chezmoi installs pinned GitHub CLI extensions with local registration; see [extension configuration and updates](docs/github-cli-extensions.md).
+Chezmoi installs pinned GitHub CLI extensions with local registration; see [extension configuration and updates](src/chezmoi/dot_local/share/gh-managed/README.md).
 
 ## Setup output
 
