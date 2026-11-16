@@ -1,4 +1,3 @@
-import fnmatch
 import json
 import os
 import re
@@ -33,56 +32,8 @@ def _source_path(directory: Path, relative: str) -> Path:
 
 
 @pytest.mark.parametrize(
-    "command",
-    [
-        "sbx --help",
-        "sbx help",
-        "sbx help env",
-        "sbx env --help",
-        "sbx env exec --help",
-        "sbx env create --help",
-        "sbx kit --help",
-        "sbx kit verify --help",
-        "sbx policy profile --help",
-        "sbx ls --format json",
-        "sbx diagnose --format json",
-        "sbx env exec .sbx/sbxenv.yaml -- find / -name agy",
-        "sbx env exec /tmp/project/.sbx/custom.yaml -- bun test",
-        "sbx env exec ../other/environment.yaml -- codex exec task",
-        "sbx env exec .sbx/base.yaml .sbx/override.yaml -- pytest",
-        'sbx env exec "/tmp/project with spaces/environment.yaml" -- bun test',
-        "sbx exec routine-flow-agy which agy",
-        "sbx exec routine-flow-agy agy --help",
-    ],
+    "skill_dir", [SKILL_DIR, BOOTSTRAP_DIR, ORCHESTRATOR_DIR], ids=["sandboxes", "bootstrap", "orchestrator"]
 )
-@pytest.mark.parametrize("skill_dir", [ORCHESTRATOR_DIR], ids=["orchestrator"])
-def test_skill_grants_execution_and_discovery(command: str, skill_dir: Path) -> None:
-    """Cover discovery and guest execution patterns in the package metadata."""
-    metadata = yaml.safe_load((skill_dir / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1])
-    patterns = [entry.removeprefix("Bash(").removesuffix(")") for entry in metadata["allowed-tools"]]
-    assert any(fnmatch.fnmatchcase(command, pattern) for pattern in patterns)
-
-
-@pytest.mark.parametrize(
-    "command",
-    [
-        "sbx rm task",
-        "sbx reset",
-        "sbx kit add task kit",
-        "sbx diagnose --upload",
-        "sbx diagnose --format json --upload",
-        "sbx env create environment.yaml",
-    ],
-)
-@pytest.mark.parametrize("skill_dir", [ORCHESTRATOR_DIR], ids=["orchestrator"])
-def test_skill_does_not_grant_lifecycle_or_upload(command: str, skill_dir: Path) -> None:
-    """Keep lifecycle changes and report uploads outside the grants."""
-    metadata = yaml.safe_load((skill_dir / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1])
-    patterns = [entry.removeprefix("Bash(").removesuffix(")") for entry in metadata["allowed-tools"]]
-    assert not any(fnmatch.fnmatchcase(command, pattern) for pattern in patterns)
-
-
-@pytest.mark.parametrize("skill_dir", [SKILL_DIR, BOOTSTRAP_DIR], ids=["sandboxes", "bootstrap"])
 def test_setup_skills_leave_command_approvals_to_central_policy(skill_dir: Path) -> None:
     """Do not grant commands from setup skill metadata."""
     metadata = yaml.safe_load((skill_dir / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1])
@@ -158,12 +109,15 @@ def test_deployed_setup_skill_discovery_and_local_links(deployed_setup_skills) -
     assert {"repo-bootstrap", "sbx-sandboxes", "worker-handoff", "architect-scoping"} <= set(
         manifest["interface"]["capabilities"]
     )
+    for name in ("worker-handoff", "sbx-orchestrator"):
+        document = destination / DEPLOYED_SKILLS / name / "references/delivery.md"
+        assert str(document.relative_to(destination)) in managed
+        assert document.read_text(encoding="utf-8") == chezmoi("cat", str(document))
     for name in ("repo-bootstrap", "sbx-sandboxes", "sbx-orchestrator", "worker-handoff", "architect-scoping"):
         document = destination / DEPLOYED_SKILLS / name / "SKILL.md"
         metadata = yaml.safe_load(document.read_text(encoding="utf-8").split("---", 2)[1])
         assert metadata["name"] == name
-        if name != "sbx-orchestrator":
-            assert "allowed-tools" not in metadata
+        assert "allowed-tools" not in metadata
         entry = managed[str(document.relative_to(destination))]
         source_root = Path(chezmoi("source-path").strip())
         assert Path(entry["sourceAbsolute"]).relative_to(source_root) == (
@@ -217,7 +171,7 @@ def test_skill_local_links_resolve_in_the_deployed_pair(skill_dir: Path) -> None
             roots = (
                 (SKILL_DIR, ORCHESTRATOR_DIR, BOOTSTRAP_DIR)
                 if skill_dir == SKILL_DIR
-                else (ORCHESTRATOR_DIR, SKILL_DIR)
+                else (ORCHESTRATOR_DIR, SKILL_DIR, SKILLS_SOURCE / "exact_worker-handoff")
             )
             assert any(resolved.is_relative_to(root) for root in roots)
 
@@ -297,7 +251,6 @@ def test_codex_launcher_preserves_guest_arguments_logs_and_exit_code(
             "--disable",
             "hooks",
             "--dangerously-bypass-approvals-and-sandbox",
-            "--skip-git-repo-check",
             *([session_id] if resume else []),
             prompt,
         ],

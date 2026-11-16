@@ -16,6 +16,8 @@ For denied sockets or login-service errors, follow platform escalation and inspe
 Use `sbx diagnose` with the required platform access, never `docker ps`, `docker exec`, or Docker daemon commands.
 
 The central command policy owns approvals; this skill grants no commands.
+Use `sbx help <command path>` for CLI help, for example `sbx help env exec`.
+Execution-prefix approval rules also match `sbx env exec --help`; the `sbx help` form avoids that prompt without changing execution approval.
 For one complete task from a person or an agent, use [repository bootstrap](../repo-bootstrap/SKILL.md).
 Record scope, branch and base, checks, authority, and return location before creation or launch.
 Keep Git delivery, signing, publishing, and tracker changes on the host for normal edit/check tasks.
