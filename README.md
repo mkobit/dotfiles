@@ -4,6 +4,8 @@
 
 Personal dotfiles managed with `chezmoi` and `mise`.
 
+Chezmoi installs pinned GitHub CLI extensions with local registration; see [extension configuration and updates](src/chezmoi/dot_local/share/gh-managed/README.md).
+
 ## Setup output
 
 Messages from the shared shell log helper include UTC timestamps.

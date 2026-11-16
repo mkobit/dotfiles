@@ -1,0 +1,25 @@
+[bin.gh-stack]
+version = "0.2.1"
+minimum_release_age = "21d"
+
+[bin.gh-stack.github_releases]
+repo            = "github/gh-stack"
+bin_name        = "gh-stack/gh-stack"
+external_type   = "file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "v{version}"
+filename_format = "{target}"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.gh-stack.github_releases.platforms]
+darwin_amd64 = "darwin-amd64"
+darwin_arm64 = "darwin-arm64"
+linux_amd64  = "linux-amd64"
+linux_arm64  = "linux-arm64"
+
+[bin.gh-stack.github_releases.checksums]
+darwin_amd64 = "3309195dc0566c5ecfe7b6e777aec30306df87069dedb4a5eb39ba5641b7e2fa"
+darwin_arm64 = "c4d62dc667343d6dd8ff1cb60dcff9d0e097c2460dea326892f36d5d2e835d76"
+linux_amd64  = "ffe9d48b6342faffc3b0cb420202ff1df32e24faf32693debd7423274bbdf859"
+linux_arm64  = "25ec261a391261a1462d38f85c230b0e0b14ae3547926130996541f62f25f78b"

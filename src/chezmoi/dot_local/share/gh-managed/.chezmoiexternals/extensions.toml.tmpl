@@ -1,0 +1,7 @@
+{{- $platform := printf "%s_%s" .chezmoi.os .chezmoi.arch -}}
+{{- $base := dig "github_releases" "base_url" "https://github.com" . -}}
+{{- range $name, $extension := dig "gh" "extensions" (dict) . -}}
+{{-   if eq (dig "installation_method" "none" $extension) "github_releases" -}}
+{{ includeTemplate "bin/github-releases-entry.tmpl" (dict "name" $name "tool" (index $.bin $name) "platform" $platform "base" $base) }}
+{{-   end -}}
+{{- end -}}
