@@ -2,12 +2,14 @@ import fnmatch
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 import pytest
 import yaml
+from test_sbx_command_policy import native_codex_decision
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SKILLS_SOURCE = (
@@ -18,6 +20,8 @@ SKILL_FILE = SKILL_DIR / "SKILL.md"
 REFERENCES_DIR = SKILL_DIR / "exact_references"
 TEMPLATES_DIR = SKILL_DIR / "exact_templates"
 ORCHESTRATOR_DIR = SKILLS_SOURCE / "exact_sbx-orchestrator"
+BOOTSTRAP_DIR = SKILLS_SOURCE / "exact_repo-bootstrap"
+DEPLOYED_SKILLS = Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills")
 
 
 def _source_path(directory: Path, relative: str) -> Path:
@@ -51,7 +55,7 @@ def _source_path(directory: Path, relative: str) -> Path:
         "sbx exec routine-flow-agy agy --help",
     ],
 )
-@pytest.mark.parametrize("skill_dir", [SKILL_DIR, ORCHESTRATOR_DIR], ids=["sandboxes", "orchestrator"])
+@pytest.mark.parametrize("skill_dir", [ORCHESTRATOR_DIR], ids=["orchestrator"])
 def test_skill_grants_execution_and_discovery(command: str, skill_dir: Path) -> None:
     """Cover discovery and guest execution patterns in the package metadata."""
     metadata = yaml.safe_load((skill_dir / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1])
@@ -70,12 +74,130 @@ def test_skill_grants_execution_and_discovery(command: str, skill_dir: Path) -> 
         "sbx env create environment.yaml",
     ],
 )
-@pytest.mark.parametrize("skill_dir", [SKILL_DIR, ORCHESTRATOR_DIR], ids=["sandboxes", "orchestrator"])
+@pytest.mark.parametrize("skill_dir", [ORCHESTRATOR_DIR], ids=["orchestrator"])
 def test_skill_does_not_grant_lifecycle_or_upload(command: str, skill_dir: Path) -> None:
     """Keep lifecycle changes and report uploads outside the grants."""
     metadata = yaml.safe_load((skill_dir / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1])
     patterns = [entry.removeprefix("Bash(").removesuffix(")") for entry in metadata["allowed-tools"]]
     assert not any(fnmatch.fnmatchcase(command, pattern) for pattern in patterns)
+
+
+@pytest.mark.parametrize("skill_dir", [SKILL_DIR, BOOTSTRAP_DIR], ids=["sandboxes", "bootstrap"])
+def test_setup_skills_leave_command_approvals_to_central_policy(skill_dir: Path) -> None:
+    """Do not grant commands from setup skill metadata."""
+    metadata = yaml.safe_load((skill_dir / "SKILL.md").read_text(encoding="utf-8").split("---", 2)[1])
+    assert "allowed-tools" not in metadata
+    assert metadata["name"] == skill_dir.name.removeprefix("exact_")
+    assert isinstance(metadata["description"], str) and metadata["description"].strip()
+
+
+@pytest.fixture
+def deployed_setup_skills(tmp_path: Path):
+    """Apply a source copy without scripts or external expansion."""
+    source = tmp_path / "source"
+    shutil.copytree(
+        REPO_ROOT / "src/chezmoi",
+        source,
+        ignore=shutil.ignore_patterns(".chezmoiexternals", ".chezmoiscripts"),
+    )
+    destination = tmp_path / "destination"
+    (destination / DEPLOYED_SKILLS).mkdir(parents=True)
+    command = [
+        "chezmoi",
+        "--source",
+        str(source),
+        "--destination",
+        str(destination),
+        "--config",
+        str(tmp_path / "config.toml"),
+        "--cache",
+        str(tmp_path / "cache"),
+        "--persistent-state",
+        str(tmp_path / "state.boltdb"),
+        "--no-tty",
+    ]
+
+    def chezmoi(*arguments: str) -> str:
+        exclusions = ["--exclude=scripts,externals"] if arguments[0] in {"managed", "diff", "apply"} else []
+        recursive = ["--recursive"] if arguments[0] == "diff" else []
+        result = subprocess.run(
+            [*command, *arguments, *exclusions, *recursive],
+            env={**os.environ, "CI": "1"},
+            capture_output=True,
+            check=False,
+            text=True,
+            timeout=60,
+        )
+        assert result.returncode == 0, result.stderr
+        return result.stdout
+
+    chezmoi("init")
+    targets = [str(destination / DEPLOYED_SKILLS / name) for name in ("sbx-sandboxes", "sbx-orchestrator")]
+    managed = json.loads(chezmoi("managed", "--include=files", "--format=json", "--path-style=all"))
+    assert str(DEPLOYED_SKILLS / "repo-bootstrap/SKILL.md") in managed
+    targets.append(str(destination / DEPLOYED_SKILLS / "repo-bootstrap"))
+    assert chezmoi("diff", *targets)
+    chezmoi("apply", *targets)
+    assert chezmoi("diff", *targets) == ""
+    contents = {path: path.read_bytes() for path in (destination / DEPLOYED_SKILLS).rglob("*") if path.is_file()}
+    chezmoi("apply", *targets)
+    assert all(path.read_bytes() == content for path, content in contents.items())
+    return destination, chezmoi, managed
+
+
+def test_deployed_setup_skill_discovery_and_local_links(deployed_setup_skills) -> None:
+    """Check discovered capabilities, source classification, rendered files, and local links."""
+    destination, chezmoi, managed = deployed_setup_skills
+    plugins = json.loads(chezmoi("execute-template", '{{ includeTemplate "ai/authored-plugins" . }}'))
+    for host in ("claude", "codex"):
+        assert {"repo-bootstrap", "sbx-sandboxes"} <= set(plugins["mkobit-dotfiles"]["skills"][host])
+    manifest = json.loads(chezmoi("cat", str(destination / DEPLOYED_SKILLS.parent / ".codex-plugin/plugin.json")))
+    assert {"repo-bootstrap", "sbx-sandboxes"} <= set(manifest["interface"]["capabilities"])
+    for name in ("repo-bootstrap", "sbx-sandboxes", "sbx-orchestrator"):
+        document = destination / DEPLOYED_SKILLS / name / "SKILL.md"
+        metadata = yaml.safe_load(document.read_text(encoding="utf-8").split("---", 2)[1])
+        assert metadata["name"] == name
+        if name != "sbx-orchestrator":
+            assert "allowed-tools" not in metadata
+        entry = managed[str(document.relative_to(destination))]
+        source_root = Path(chezmoi("source-path").strip())
+        assert Path(entry["sourceAbsolute"]).relative_to(source_root) == (
+            SKILLS_SOURCE.relative_to(REPO_ROOT / "src/chezmoi") / f"exact_{name}/SKILL.md"
+        )
+        assert document.read_text(encoding="utf-8") == chezmoi("cat", str(document))
+        for path in document.parent.rglob("*.md"):
+            for link in re.findall(r"\[[^\]]+\]\(([^)]+)\)", path.read_text(encoding="utf-8")):
+                if "://" in link:
+                    continue
+                relative, separator, anchor = link.partition("#")
+                target = (path.parent / relative).resolve() if relative else path
+                assert target.is_relative_to(destination / DEPLOYED_SKILLS)
+                assert target.is_file(), f"Broken deployed link in {path}: {link}"
+                if separator:
+                    headings = re.findall(r"^#+\s+(.+)$", target.read_text(encoding="utf-8"), re.MULTILINE)
+                    anchors = {re.sub(r"[^\w -]", "", heading.lower()).replace(" ", "-") for heading in headings}
+                    assert anchor in anchors, f"Broken deployed anchor in {path}: {link}"
+
+
+@pytest.mark.parametrize("tool", ["claude", "codex", "antigravity"])
+def test_deployed_setup_approvals_use_central_policy(deployed_setup_skills, tool: str) -> None:
+    """Read generated policy, not a skill-owned command allowlist."""
+    destination, chezmoi, _managed = deployed_setup_skills
+    targets = {
+        "claude": ".claude/settings.json",
+        "codex": ".codex/rules/dotfiles-sbx.rules",
+        "antigravity": ".gemini/antigravity-cli/settings.json",
+    }
+    rendered = chezmoi("cat", str(destination / targets[tool]))
+    if tool == "codex":
+        policy = destination.parent / "rendered-sbx.rules"
+        policy.write_text(rendered, encoding="utf-8")
+        assert native_codex_decision([policy], "sbx env exec task -- echo ready")["decision"] == "prompt"
+    else:
+        permissions = json.loads(rendered)["permissions"]
+        rule = "Bash(sbx env exec:*)" if tool == "claude" else "command(sbx env exec)"
+        assert rule in permissions["ask"]
+        assert rule not in permissions["allow"]
 
 
 @pytest.mark.parametrize("skill_dir", [SKILL_DIR, ORCHESTRATOR_DIR], ids=["sandboxes", "orchestrator"])
@@ -87,7 +209,12 @@ def test_skill_local_links_resolve_in_the_deployed_pair(skill_dir: Path) -> None
                 continue
             resolved = _source_path(document.parent, target.split("#", 1)[0])
             assert resolved.is_file(), f"Broken link in {document}: {target}"
-            assert resolved.is_relative_to(SKILL_DIR) or resolved.is_relative_to(ORCHESTRATOR_DIR)
+            roots = (
+                (SKILL_DIR, ORCHESTRATOR_DIR, BOOTSTRAP_DIR)
+                if skill_dir == SKILL_DIR
+                else (ORCHESTRATOR_DIR, SKILL_DIR)
+            )
+            assert any(resolved.is_relative_to(root) for root in roots)
 
 
 @pytest.mark.parametrize("worker_exit_code", [0, 23], ids=["success", "failure"])
