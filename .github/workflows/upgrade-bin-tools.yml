@@ -20,12 +20,12 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           token: ${{ secrets.BIN_UPDATER_TOKEN || secrets.GITHUB_TOKEN }}
 
-      - uses: ./.github/actions/setup-mise
+      - uses: $/.github/actions/setup-mise
 
       - name: Install dependencies
         run: uv sync --all-packages --frozen

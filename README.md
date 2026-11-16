@@ -3,6 +3,7 @@
 [![CI](https://github.com/mkobit/dotfiles/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/mkobit/dotfiles/actions/workflows/ci.yml)
 
 Personal dotfiles managed with `chezmoi` and `mise`.
+See [workflow dependencies](.github/workflows/README.md) for Actions locks and update policy.
 
 Chezmoi installs pinned GitHub CLI extensions with local registration; see [extension configuration and updates](src/chezmoi/dot_local/share/gh-managed/README.md).
 
