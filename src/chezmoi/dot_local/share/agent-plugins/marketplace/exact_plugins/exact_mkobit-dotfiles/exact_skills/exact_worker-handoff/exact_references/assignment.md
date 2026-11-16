@@ -1,0 +1,7 @@
+# Assignment
+
+Before work, obtain task and project scope, queue eligibility, acceptance and exit criteria, permitted operations, available models, and return location. For a tracked task, obtain the existing tracker identity and latest-state procedure. Require an explicit native sync remote only when that procedure needs one; the pilot's Beads replica requires it. An issue or prompt may define work without a tracker. If required queue or sync inputs are missing, preserve evidence and report the prerequisite; do not invent settings or initialize a tracker.
+
+Reconcile the project's existing state before repeating a claim or external action. Record the selected issue or prompt, its scope and acceptance criteria, owner and claim outcome, branch and base, session, coordinator and subagent model choices and reasoning effort, acceptance progress, and resume pointers using the project's existing mechanisms. Update at meaningful milestones and on interruption. Do not introduce a universal runtime schema or helper.
+
+Keep one selected unit and one active guest. The guest may perform only explicitly assigned tracker operations. Follow [native tracker guidance](../../sbx-orchestrator/references/tracker.md) for the pilot's Beads replica. Return completed and incomplete criteria, checks, failures, follow-ups, and the recorded state to the assigned location; stop rather than silently expanding scope.
