@@ -24,6 +24,8 @@ Keep these choices outside `data.local.bin` so the generic binary dispatcher doe
 
 Chezmoi externals verify and deploy each executable to `<destination>/.local/share/gh-managed/gh-NAME/gh-NAME`.
 Every apply makes enabled executables match their declared versions, including upgrades and downgrades.
+Registration requires an executable file at `<destination>/.local/bin/gh`.
+If it is unavailable, registration warns and skips without changing existing registrations or update state, then retries on the next apply; external downloads still proceed.
 After checking the executable, the registration script changes into its `gh-NAME` directory and runs the destination's `.local/bin/gh extension install .` without authentication or network access.
 GitHub CLI registers that directory locally, so later chezmoi updates replace the executable used by `gh stack` or `gh actions-lock`.
 Matching registration links stay unchanged, and every apply repairs missing or changed registrations.
@@ -33,7 +35,7 @@ A registration symlink is unlinked without deleting its target; a real registrat
 Local installation clears that extension's stale update state.
 
 Supported extension storage is `<destination>/.local/share/gh`, with registration commands setting `XDG_DATA_HOME` to `<destination>/.local/share` and `XDG_STATE_HOME` to `<destination>/.local/state`.
-Enabled management rejects a nonempty inherited `XDG_DATA_HOME` that differs from the supported data directory.
+When `gh` is available, enabled management rejects a nonempty inherited `XDG_DATA_HOME` that differs from the supported data directory.
 Disabled management bypasses this check.
 
 To change a version, update its catalog version and all supported platform checksums, review `chezmoi diff`, then run `chezmoi apply`.

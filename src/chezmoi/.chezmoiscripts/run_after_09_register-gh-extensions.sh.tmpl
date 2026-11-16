@@ -8,6 +8,12 @@
 #!/bin/sh
 set -eu
 
+gh="{{ .chezmoi.destDir }}/.local/bin/gh"
+if [ ! -f "$gh" ] || [ ! -x "$gh" ]; then
+    echo "gh extensions: warning: $gh is missing or not an executable file; skipping registration, will retry next apply" >&2
+    exit 0
+fi
+
 data_dir="{{ .chezmoi.destDir }}/.local/share"
 if [ -n "${XDG_DATA_HOME:-}" ] && [ "$XDG_DATA_HOME" != "$data_dir" ]; then
     echo "gh extensions: XDG_DATA_HOME must be $data_dir (custom extension storage is unsupported)" >&2
@@ -15,7 +21,6 @@ if [ -n "${XDG_DATA_HOME:-}" ] && [ "$XDG_DATA_HOME" != "$data_dir" ]; then
 fi
 export XDG_DATA_HOME="$data_dir"
 export XDG_STATE_HOME="{{ .chezmoi.destDir }}/.local/state"
-gh="{{ .chezmoi.destDir }}/.local/bin/gh"
 
 for name in{{ range $enabled }} {{ . | quote }}{{ end }}; do
     directory="$data_dir/gh-managed/$name"
