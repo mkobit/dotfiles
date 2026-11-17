@@ -164,7 +164,9 @@ def test_report_contains_all_stable_notes_in_version_order(tmp_path: Path) -> No
     assert "https://example.com/middle" in result.pr_body
     assert "https://github.com/org/app/releases/tag/app-v2.0.0" in result.pr_body
     assert "https://github.com/org/app/compare/app-v1.0.0...app-v2.0.0" in result.pr_body
-    for excluded in ("Pre-release", "Draft", "Preview", "Old notes", "v9.0.0"):
+    for included in ("Pre-release", "Preview"):
+        assert included in result.pr_body
+    for excluded in ("Draft", "Old notes", "v9.0.0"):
         assert excluded not in result.pr_body
 
 
@@ -214,3 +216,25 @@ def test_oversized_notes_fail_before_catalog_write(tmp_path: Path) -> None:
     assert result.error is not None
     assert "65,536" in result.error
     assert path.read_text() == TOML_TEMPLATE
+
+
+def test_prereleases_are_reported_but_not_selected(tmp_path: Path) -> None:
+    path = tmp_path / "app.toml"
+    path.write_text(TOML_TEMPLATE)
+    releases = [
+        {"tag_name": "v3.0.0", "prerelease": True, "published_at": "2020-01-01T00:00:00Z"},
+        {"tag_name": "v4.0.0rc1", "published_at": "2020-01-01T00:00:00Z"},
+        {
+            "tag_name": "v2.0.0",
+            "published_at": "2020-01-01T00:00:00Z",
+            "assets": [{"name": "app-v2.0.0-linux-amd64.tar.gz", "browser_download_url": "https://example.com/bin"}],
+        },
+        {"tag_name": "v1.5.0", "prerelease": True, "body": "Flagged preview"},
+        {"tag_name": "v1.8.0rc1", "body": "Candidate notes"},
+        {"tag_name": "v1.9.0", "draft": True, "body": "Draft notes"},
+    ]
+    result = update_tool(load_catalog(path), FakeClient(releases))
+    assert result.new_version == "2.0.0"
+    assert "Flagged preview" in result.pr_body
+    assert "Candidate notes" in result.pr_body
+    assert "Draft notes" not in result.pr_body

@@ -22,8 +22,8 @@ class ToolUpdateResult(BaseModel):
     pr_body: str = ""
 
 
-def _stable_version(release: Mapping[str, Any], tag_format: str) -> Version | None:
-    if release.get("draft", False) or release.get("prerelease", False):
+def _release_version(release: Mapping[str, Any], tag_format: str) -> Version | None:
+    if release.get("draft", False):
         return None
     tag = str(release.get("tag_name", ""))
     version = extract_version_from_tag(tag, tag_format)
@@ -33,7 +33,14 @@ def _stable_version(release: Mapping[str, Any], tag_format: str) -> Version | No
         parsed = Version(version)
     except InvalidVersion:
         return None
-    return None if parsed.is_prerelease or parsed.is_devrelease else parsed
+    return parsed
+
+
+def _stable_version(release: Mapping[str, Any], tag_format: str) -> Version | None:
+    parsed = _release_version(release, tag_format)
+    if parsed is None or release.get("prerelease", False) or parsed.is_prerelease or parsed.is_devrelease:
+        return None
+    return parsed
 
 
 def _release_notes(catalog: ToolCatalog, releases: Sequence[Mapping[str, Any]], target_version: str) -> str:
@@ -42,7 +49,7 @@ def _release_notes(catalog: ToolCatalog, releases: Sequence[Mapping[str, Any]], 
         (
             (version, release)
             for release in releases
-            if (version := _stable_version(release, catalog.tag_format)) is not None and old < version <= new
+            if (version := _release_version(release, catalog.tag_format)) is not None and old < version <= new
         ),
         key=lambda item: item[0],
     )
