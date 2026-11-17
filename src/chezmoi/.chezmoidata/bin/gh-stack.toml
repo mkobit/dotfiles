@@ -1,5 +1,5 @@
 [bin.gh-stack]
-version = "0.2.1"
+version = "0.3.0"
 minimum_release_age = "21d"
 
 [bin.gh-stack.github_releases]
@@ -19,7 +19,7 @@ linux_amd64  = "linux-amd64"
 linux_arm64  = "linux-arm64"
 
 [bin.gh-stack.github_releases.checksums]
-darwin_amd64 = "3309195dc0566c5ecfe7b6e777aec30306df87069dedb4a5eb39ba5641b7e2fa"
-darwin_arm64 = "c4d62dc667343d6dd8ff1cb60dcff9d0e097c2460dea326892f36d5d2e835d76"
-linux_amd64  = "ffe9d48b6342faffc3b0cb420202ff1df32e24faf32693debd7423274bbdf859"
-linux_arm64  = "25ec261a391261a1462d38f85c230b0e0b14ae3547926130996541f62f25f78b"
+darwin_amd64 = "edea1d5f3ec80fe6596f44d438604b05846fcbcac3fff0707dbe7071794bd6a9"
+darwin_arm64 = "70c0cb11346ad5d4f97a02a5cf5242052254d1775d356dc0759f035457873850"
+linux_amd64  = "957e822cfa7e435cd84a297cd96c419b58e51e3ac58be249762c24bd9e45099b"
+linux_arm64  = "803ec91eeba9b2ac38827e299a79830fe75ca7284f0c28d60e6a2704bb34ed13"
