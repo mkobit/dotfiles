@@ -1,5 +1,6 @@
 from collections.abc import Mapping, Sequence
 from typing import Any
+from urllib.parse import quote
 
 from packaging.version import InvalidVersion, Version
 from pydantic import BaseModel
@@ -17,6 +18,52 @@ class ToolUpdateResult(BaseModel):
     old_version: str
     new_version: str
     error: str | None = None
+    pr_title: str = ""
+    pr_body: str = ""
+
+
+def _stable_version(release: Mapping[str, Any], tag_format: str) -> Version | None:
+    if release.get("draft", False) or release.get("prerelease", False):
+        return None
+    tag = str(release.get("tag_name", ""))
+    version = extract_version_from_tag(tag, tag_format)
+    if "{version}" not in tag_format or tag_format.replace("{version}", version) != tag:
+        return None
+    try:
+        parsed = Version(version)
+    except InvalidVersion:
+        return None
+    return None if parsed.is_prerelease or parsed.is_devrelease else parsed
+
+
+def _release_notes(catalog: ToolCatalog, releases: Sequence[Mapping[str, Any]], target_version: str) -> str:
+    old, new = Version(catalog.version), Version(target_version)
+    selected = sorted(
+        (
+            (version, release)
+            for release in releases
+            if (version := _stable_version(release, catalog.tag_format)) is not None and old < version <= new
+        ),
+        key=lambda item: item[0],
+    )
+    repo_url = f"https://github.com/{catalog.repo}"
+    old_tag = quote(catalog.tag_format.replace("{version}", catalog.version), safe="")
+    new_tag = quote(catalog.tag_format.replace("{version}", target_version), safe="")
+    sections = [
+        f"Update {catalog.name} from {catalog.version} to {target_version}.",
+        f"[Compare changes]({repo_url}/compare/{old_tag}...{new_tag})",
+    ]
+    for _, release in selected:
+        tag = str(release["tag_name"])
+        url = release.get("html_url") or f"{repo_url}/releases/tag/{quote(tag, safe='')}"
+        body = release.get("body")
+        notes = body if isinstance(body, str) and body.strip() else "No release notes were provided."
+        sections.append(f"## [{tag}]({url})\n\n{notes}")
+    body = "\n\n".join(sections) + "\n"
+    # GitHub limits pull request bodies to 65,536 characters.
+    if len(body) > 65536:
+        raise ValueError("Complete release notes exceed the GitHub PR body limit of 65,536 characters")
+    return body
 
 
 def _resolve_platform_checksums(
@@ -51,7 +98,8 @@ def update_tool(
     min_age = min_age_override if min_age_override is not None else catalog.minimum_release_age
     cooldown = parse_cooldown_to_seconds(min_age)
     releases = client.list_releases(catalog.repo)
-    release = select_mature_release(releases, cooldown)
+    stable_releases = [r for r in releases if _stable_version(r, catalog.tag_format) is not None]
+    release = select_mature_release(stable_releases, cooldown)
     if release is None:
         return ToolUpdateResult(
             tool_name=catalog.name, changed=False, old_version=catalog.version, new_version=catalog.version
@@ -70,13 +118,19 @@ def update_tool(
         return ToolUpdateResult(
             tool_name=catalog.name, changed=False, old_version=catalog.version, new_version=catalog.version
         )
+    pr_body = _release_notes(catalog, releases, target_version)
     new_checksums = _resolve_platform_checksums(catalog, target_version, release, client)
     if not dry_run:
         content = catalog.path.read_text(encoding="utf-8")
         updated = update_catalog_content(content, target_version, new_checksums)
         catalog.path.write_text(updated, encoding="utf-8")
     return ToolUpdateResult(
-        tool_name=catalog.name, changed=True, old_version=catalog.version, new_version=target_version
+        tool_name=catalog.name,
+        changed=True,
+        old_version=catalog.version,
+        new_version=target_version,
+        pr_title=f"Update {catalog.name} from {catalog.version} to {target_version}",
+        pr_body=pr_body,
     )
 
 

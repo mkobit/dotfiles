@@ -133,3 +133,84 @@ def test_update_tool_dry_run_preserves_disk(tmp_path: Path) -> None:
     assert res.changed is True
     assert res.new_version == "2.0.0"
     assert f.read_text(encoding="utf-8") == TOML_TEMPLATE
+
+
+def test_report_contains_all_stable_notes_in_version_order(tmp_path: Path) -> None:
+    path = tmp_path / "app.toml"
+    path.write_text(TOML_TEMPLATE.replace('tag_format = "v{version}"', 'tag_format = "app-v{version}"'))
+    cat = load_catalog(path)
+    releases = [
+        {"tag_name": "v9.0.0", "published_at": "2020-01-01T00:00:00Z"},
+        {
+            "tag_name": "app-v2.0.0",
+            "published_at": "2020-01-01T00:00:00Z",
+            "body": "Last notes",
+            "assets": [{"name": "app-v2.0.0-linux-amd64.tar.gz", "browser_download_url": "https://example.com/bin"}],
+        },
+        {"tag_name": "app-v1.8.0", "body": "  "},
+        {"tag_name": "app-v1.5.0", "body": "Middle notes", "html_url": "https://example.com/middle"},
+        {"tag_name": "app-v1.6.0rc1", "body": "Pre-release"},
+        {"tag_name": "app-v1.7.0", "draft": True, "body": "Draft"},
+        {"tag_name": "app-v1.9.0", "prerelease": True, "body": "Preview"},
+        {"tag_name": "app-v1.0.0", "body": "Old notes"},
+    ]
+    result = update_tool(cat, FakeClient(releases))
+    assert result.pr_title == "Update app from 1.0.0 to 2.0.0"
+    assert (
+        result.pr_body.index("Middle notes")
+        < result.pr_body.index("No release notes")
+        < result.pr_body.index("Last notes")
+    )
+    assert "https://example.com/middle" in result.pr_body
+    assert "https://github.com/org/app/releases/tag/app-v2.0.0" in result.pr_body
+    assert "https://github.com/org/app/compare/app-v1.0.0...app-v2.0.0" in result.pr_body
+    for excluded in ("Pre-release", "Draft", "Preview", "Old notes", "v9.0.0"):
+        assert excluded not in result.pr_body
+
+
+def test_missing_second_platform_leaves_catalog_unchanged(tmp_path: Path) -> None:
+    path = tmp_path / "app.toml"
+    original = TOML_TEMPLATE.replace(
+        'linux_amd64 = "linux-amd64"', 'linux_amd64 = "linux-amd64"\ndarwin_arm64 = "darwin-arm64"'
+    )
+    path.write_text(original)
+    releases = [
+        {
+            "tag_name": "v2.0.0",
+            "published_at": "2020-01-01T00:00:00Z",
+            "assets": [{"name": "app-v2.0.0-linux-amd64.tar.gz", "browser_download_url": "https://example.com/bin"}],
+        }
+    ]
+    result = run_updates([load_catalog(path)], FakeClient(releases))[0]
+    assert result.error is not None
+    assert "darwin_arm64" in result.error
+    assert path.read_text() == original
+
+
+def test_api_failure_leaves_catalog_unchanged(tmp_path: Path) -> None:
+    path = tmp_path / "app.toml"
+    path.write_text(TOML_TEMPLATE)
+
+    class FailingClient(FakeClient):
+        @override
+        def list_releases(self, repo: str) -> Sequence[Mapping[str, Any]]:
+            raise RuntimeError("API failure after page three")
+
+    result = run_updates([load_catalog(path)], FailingClient([]))[0]
+    assert result.error == "API failure after page three"
+    assert path.read_text() == TOML_TEMPLATE
+
+
+def test_oversized_notes_fail_before_catalog_write(tmp_path: Path) -> None:
+    path = tmp_path / "app.toml"
+    path.write_text(TOML_TEMPLATE)
+    release = {
+        "tag_name": "v2.0.0",
+        "published_at": "2020-01-01T00:00:00Z",
+        "body": "x" * 65536,
+        "assets": [{"name": "app-v2.0.0-linux-amd64.tar.gz", "browser_download_url": "https://example.com/bin"}],
+    }
+    result = run_updates([load_catalog(path)], FakeClient([release]))[0]
+    assert result.error is not None
+    assert "65,536" in result.error
+    assert path.read_text() == TOML_TEMPLATE
