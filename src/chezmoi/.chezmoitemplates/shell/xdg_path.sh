@@ -1,3 +1,8 @@
+# Keep bkt command output out of the shared temporary directory.
+{{ if eq (dig "local" "bin" "bkt" "installation_method" "none" .) "github_releases" -}}
+export BKT_TMPDIR="${XDG_CACHE_HOME:-{{ .chezmoi.destDir }}/.cache}/bkt"
+{{ end -}}
+
 # Add ~/.local/bin to PATH if it exists and isn't already in PATH
 if [[ -d "{{ .chezmoi.destDir }}/.local/bin" && ":$PATH:" != *":{{ .chezmoi.destDir }}/.local/bin:"* ]]; then
     export PATH="{{ .chezmoi.destDir }}/.local/bin:$PATH"
