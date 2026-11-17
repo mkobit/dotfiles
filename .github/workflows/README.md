@@ -47,6 +47,8 @@ See the [v0.4.0 limitations](https://github.com/github/gh-actions-lock/tree/v0.4
 The [binary upgrade workflow](upgrade-bin-tools.yml) includes the old and new versions in each PR title.
 The description contains release notes for releases between those versions, with upstream release and comparison links.
 A later run updates the PR title and description even when the remote catalog content is unchanged.
+If the full release notes exceed GitHub's PR body limit, the updater selects an earlier mature release whose complete notes fit.
+If no newer mature target fits, it reports an error and leaves the catalog unchanged.
 
 The workflow uses a GitHub App installation token when `BIN_UPDATER_APP_CLIENT_ID` is set.
 It restricts that token to this repository with contents and pull requests write permissions.

@@ -1,4 +1,5 @@
 from collections.abc import Mapping, Sequence
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any, override
 
@@ -238,3 +239,42 @@ def test_prereleases_are_reported_but_not_selected(tmp_path: Path) -> None:
     assert "Flagged preview" in result.pr_body
     assert "Candidate notes" in result.pr_body
     assert "Draft notes" not in result.pr_body
+
+
+def _large_release(version: str, published_at: str = "2020-01-01T00:00:00Z") -> Mapping[str, Any]:
+    return {
+        "tag_name": f"v{version}",
+        "published_at": published_at,
+        "body": version + "x" * 33000,
+        "assets": [{"name": f"app-v{version}-linux-amd64.tar.gz", "browser_download_url": "https://example.com/bin"}],
+    }
+
+
+def test_large_note_ranges_update_in_complete_batches(tmp_path: Path) -> None:
+    path = tmp_path / "app.toml"
+    path.write_text(TOML_TEMPLATE)
+    client = FakeClient([_large_release("3.0.0"), _large_release("2.0.0")])
+    first = update_tool(load_catalog(path), client)
+    assert first.new_version == "2.0.0"
+    assert "2.0.0" + "x" * 33000 in first.pr_body
+    assert "3.0.0" + "x" * 33000 not in first.pr_body
+    second = update_tool(load_catalog(path), client)
+    assert second.new_version == "3.0.0"
+    assert "3.0.0" + "x" * 33000 in second.pr_body
+    assert "2.0.0" + "x" * 33000 not in second.pr_body
+
+
+def test_note_batch_fallback_keeps_release_age(tmp_path: Path) -> None:
+    path = tmp_path / "app.toml"
+    path.write_text(TOML_TEMPLATE)
+    client = FakeClient(
+        [
+            _large_release("3.0.0"),
+            _large_release("2.0.0", (datetime.now(UTC) - timedelta(days=1)).isoformat()),
+            _large_release("1.5.0"),
+        ]
+    )
+    result = update_tool(load_catalog(path), client)
+    assert result.new_version == "1.5.0"
+    assert "1.5.0" + "x" * 33000 in result.pr_body
+    assert "2.0.0" + "x" * 33000 not in result.pr_body
