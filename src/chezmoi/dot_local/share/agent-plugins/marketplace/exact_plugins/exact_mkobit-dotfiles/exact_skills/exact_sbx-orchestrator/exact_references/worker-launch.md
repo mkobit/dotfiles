@@ -13,6 +13,8 @@ Do not install replacement tools outside the tracked kit.
 
 The host supervisor uses host tools to run `sbx env exec` or `sbx exec`.
 This starts a separate coding process in the guest; it does not relocate the host subagent or its tools.
+For host SBX help, use `sbx help env exec` or `sbx help exec` to avoid execution-prefix approval prompts.
+Execution still requires its assigned approval.
 The guest runs repository commands directly and must not launch nested SBX.
 For CLI selection, read [CLI automation](../../sbx-sandboxes/references/cli-automation.md).
 For missing environments or changed configuration, use [repository setup](../../sbx-sandboxes/references/repository-setup.md).
@@ -32,14 +34,11 @@ Set task thinking effort through a supported guest harness setting before launch
 For these Codex examples, verify the effective guest `model_reasoning_effort` configuration and record its source and value.
 Show the operation, effective environment name, model, and thinking value beside each launch or resume command.
 If the effective setting cannot be verified, stop before launch.
-Use the [shared limits](host-supervisor.md#shared-limits) record for model selection and batch capacity.
-When a task ID is supplied, use the verified [read-only task context](subagent-task.md#read-only-task-context) route and complete prompt fields.
+Use the [shared limits](host-supervisor.md#shared-limits) record for model selection.
+For edit/check tasks, use the verified [read-only task context](subagent-task.md#read-only-task-context) route when a task ID is supplied.
 Set `SBX_TASK_LOG` to a host log path whose parent exists.
 The guest report path is separate; a host log path is not a guest mount unless verified.
-These examples cover a host-verified worktree whose guest `.git` metadata is outside the mount.
-Installed `codex exec --help` and `codex exec resume --help` expose `--skip-git-repo-check` for this case.
-Use that flag only after the host verifies the worktree and base; do not mount host Git metadata.
-Omit the flag when the guest has valid Git metadata and the check is appropriate.
+These examples require a private clone with valid guest Git metadata.
 
 ```sh
 environment="${SBX_ENVIRONMENT:?Set SBX_ENVIRONMENT to the selected environment path}"
@@ -50,7 +49,7 @@ model="${CODEX_MODEL:?Set CODEX_MODEL to the selected task model}"
 prompt="${SBX_TASK_PROMPT:?Set SBX_TASK_PROMPT to the implementation task or task ID}"
 task_log="${SBX_TASK_LOG:?Set SBX_TASK_LOG to the host log path}"
 if sbx env exec --name "$sandbox_name" "$environment" -- sh -c \
-  'cd "$2" && exec "$1" exec --model "$3" --disable hooks --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check "$4" </dev/null' \
+  'cd "$2" && exec "$1" exec --model "$3" --disable hooks --dangerously-bypass-approvals-and-sandbox "$4" </dev/null' \
   sbx-codex "$agent_executable" "$guest_workdir" "$model" "$prompt" >"$task_log" 2>&1; then
   status=0
 else
@@ -87,7 +86,7 @@ prompt="${SBX_TASK_PROMPT:?Set SBX_TASK_PROMPT to the reconciled continuation ta
 session_id="${SBX_SESSION_ID:?Set SBX_SESSION_ID to the recorded guest session}"
 task_log="${SBX_TASK_LOG:?Set SBX_TASK_LOG to a new host log path}"
 if sbx env exec --name "$sandbox_name" "$environment" -- sh -c \
-  'cd "$2" && exec "$1" exec resume --model "$3" --disable hooks --dangerously-bypass-approvals-and-sandbox --skip-git-repo-check "$5" "$4" </dev/null' \
+  'cd "$2" && exec "$1" exec resume --model "$3" --disable hooks --dangerously-bypass-approvals-and-sandbox "$5" "$4" </dev/null' \
   sbx-codex "$agent_executable" "$guest_workdir" "$model" "$prompt" "$session_id" >"$task_log" 2>&1; then
   status=0
 else

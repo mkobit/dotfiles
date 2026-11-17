@@ -184,6 +184,8 @@ def test_codex_native_policy_heads_and_precedence(codex_rules) -> None:
     target = codex_rules()
     for head in ALLOW_HEADS:
         assert native_codex_decision([target], f"{head} pilot")["decision"] == "allow"
+    for command_path in ("env exec", "env run", "exec", "run", "kit", "policy profile", "settings", "diagnose"):
+        assert native_codex_decision([target], f"sbx help {command_path}")["decision"] == "allow"
     for head in PROMPT_HEADS:
         assert native_codex_decision([target], f"{head} pilot -- echo ready")["decision"] == "prompt"
     default = target.parent / "default.rules"
