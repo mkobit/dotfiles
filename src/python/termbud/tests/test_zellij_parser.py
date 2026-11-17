@@ -23,7 +23,7 @@ def _calls_for(mock, *tokens) -> list[Any]:
 
 
 def _dump_result(text: str) -> MagicMock:
-    m = MagicMock()
+    m = MagicMock(returncode=0, stderr="")
     m.stdout = text
     return m
 
@@ -52,6 +52,63 @@ def test_dumps_source_pane(mock_subprocess_run):
     mock_subprocess_run.side_effect = _side_effect("https://example.com", "")
     runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
     assert _calls_for(mock_subprocess_run, "dump-screen", "-p", "5")
+
+
+def test_source_pane_defaults_to_viewport(mock_subprocess_run):
+    mock_subprocess_run.side_effect = _side_effect("https://example.com", "")
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
+    assert result.exit_code == 0
+    assert "--full" not in _calls_for(mock_subprocess_run, "dump-screen")[0].args[0]
+
+
+def test_source_pane_full_scrollback(mock_subprocess_run):
+    mock_subprocess_run.side_effect = _side_effect("https://example.com", "")
+    result = runner.invoke(app, [*CMD_PANE, "--full"], env=ZELLIJ_ENV)
+    assert result.exit_code == 0
+    assert _calls_for(mock_subprocess_run, "dump-screen", "--full", "-p", "5")
+
+
+def test_dump_failure_reports_error(mock_subprocess_run):
+    mock_subprocess_run.return_value = MagicMock(returncode=1, stdout="", stderr="Pane not found")
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
+    assert result.exit_code == 1
+    assert "termbud: cannot capture pane 5: Pane not found" in result.stderr
+    assert not _calls_for(mock_subprocess_run, "fzf")
+    assert not _calls_for(mock_subprocess_run, "switch-mode")
+
+
+def test_missing_zellij_reports_error(mock_subprocess_run):
+    mock_subprocess_run.side_effect = FileNotFoundError("zellij is missing")
+    result = runner.invoke(app, CMD_PANE, env=ZELLIJ_ENV)
+    assert result.exit_code == 1
+    assert "termbud: cannot capture pane 5: zellij is missing" in result.stderr
+    assert not _calls_for(mock_subprocess_run, "switch-mode")
+
+
+@pytest.mark.parametrize("error", [FileNotFoundError("File is missing"), PermissionError("Access denied")])
+def test_capture_file_errors_reported(mock_subprocess_run, tmp_path, error):
+    with patch("pathlib.Path.read_text", side_effect=error):
+        result = runner.invoke(
+            app,
+            ["zellij", "history-search", "--from-file", str(tmp_path / "capture.txt")],
+            env=ZELLIJ_ENV,
+        )
+    assert result.exit_code == 1
+    assert "termbud: cannot read capture file" in result.stderr
+    assert str(error) in result.stderr
+    assert not _calls_for(mock_subprocess_run, "fzf")
+    assert not mock_subprocess_run.called
+
+
+def test_full_rejected_for_capture_file(mock_subprocess_run, tmp_path):
+    result = runner.invoke(
+        app,
+        ["zellij", "history-search", "--from-file", str(tmp_path / "capture.txt"), "--full"],
+        env=ZELLIJ_ENV,
+    )
+    assert result.exit_code == 1
+    assert "termbud: --full requires --source-pane-id without --from-file" in result.stderr
+    assert not mock_subprocess_run.called
 
 
 def test_writes_selection_back_to_source(mock_subprocess_run):

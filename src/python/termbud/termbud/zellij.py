@@ -157,7 +157,7 @@ def history_search(
     from_file: Path | None = typer.Option(
         None,
         "--from-file",
-        help="Read scrollback from file (written by DumpScreen keybind action before Run)",
+        help="Read captured pane text from file (written by DumpScreen before Run)",
     ),
     patterns_file: Path | None = typer.Option(
         None,
@@ -167,12 +167,13 @@ def history_search(
     ),
     open_cmd: str | None = typer.Option(None, "--open-cmd", help="Command to open URLs"),
     source_pane_id: str | None = typer.Option(None, "--source-pane-id", hidden=True),
+    full: bool = typer.Option(False, "--full", help="Capture full scrollback with --source-pane-id"),
 ) -> None:
     """Scrollback pattern picker — runs inside a Zellij floating pane.
 
     Invoke via DumpScreen keybind (config.kdl):
 
-        DumpScreen "/tmp/termbud_scrollback.txt" { full true }
+        DumpScreen "/tmp/termbud_scrollback.txt"
         Run "termbud" "zellij" "history-search" "--from-file" "/tmp/termbud_scrollback.txt" {
             floating true
             close_on_exit true
@@ -180,6 +181,10 @@ def history_search(
     """
     if "ZELLIJ" not in os.environ:
         print("termbud: must be run inside a Zellij session", file=sys.stderr)
+        raise typer.Exit(1)
+
+    if full and (from_file is not None or source_pane_id is None):
+        print("termbud: --full requires --source-pane-id without --from-file", file=sys.stderr)
         raise typer.Exit(1)
 
     if from_file is None and source_pane_id is None:
@@ -190,19 +195,27 @@ def history_search(
     open_cmd = open_cmd or default_open
     editor = _editor_cmd()
 
-    atexit.register(lambda: _zellij("switch-mode", "normal"))
-    _zellij("switch-mode", "locked")
-
     if from_file is not None:
-        scrollback = from_file.read_text()
+        try:
+            scrollback = from_file.read_text()
+        except (OSError, UnicodeError) as error:
+            print(f"termbud: cannot read capture file {from_file}: {error}", file=sys.stderr)
+            raise typer.Exit(1) from error
     else:
         assert source_pane_id is not None
-        scrollback = subprocess.run(
-            ["zellij", "action", "dump-screen", "--full", "-p", source_pane_id],
-            capture_output=True,
-            text=True,
-            check=False,
-        ).stdout
+        command = ["zellij", "action", "dump-screen", "-p", source_pane_id]
+        if full:
+            command.append("--full")
+        try:
+            capture = subprocess.run(command, capture_output=True, text=True, check=False)
+        except OSError as error:
+            print(f"termbud: cannot capture pane {source_pane_id}: {error}", file=sys.stderr)
+            raise typer.Exit(1) from error
+        if capture.returncode != 0:
+            detail = capture.stderr.strip() or f"Zellij exited with status {capture.returncode}"
+            print(f"termbud: cannot capture pane {source_pane_id}: {detail}", file=sys.stderr)
+            raise typer.Exit(1)
+        scrollback = capture.stdout
 
     if not scrollback.strip():
         raise typer.Exit(0)
@@ -212,6 +225,9 @@ def history_search(
 
     if not matches:
         raise typer.Exit(0)
+
+    atexit.register(lambda: _zellij("switch-mode", "normal"))
+    _zellij("switch-mode", "locked")
 
     result = subprocess.run(
         _fzf_args(open_cmd, copy_cmd, editor),
