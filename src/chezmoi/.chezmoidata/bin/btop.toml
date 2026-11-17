@@ -1,5 +1,5 @@
 [bin.btop]
-version = "1.4.7"
+version = "1.4.8"
 
 # btop does not publish macOS binaries — linux only
 [bin.btop.github_releases]
@@ -17,8 +17,8 @@ linux_amd64 = "x86_64-unknown-linux-musl"
 linux_arm64 = "aarch64-unknown-linux-musl"
 
 [bin.btop.github_releases.checksums]
-linux_amd64 = "5099054dd6a101bd12eb6ff3702a9a6a3f57aaa27923a0da478ae5b517faf335"
-linux_arm64 = "6270de0ef4c84cf0eea61cb148b3ad9ae91a11e9c3309867ffc6b3751024c252"
+linux_amd64 = "af589cf82cc9ea9c29ce050b9239a13bef2d1492256d476156e1054a42ce89ad"
+linux_arm64 = "95328e26ab08f42033af26628e2d169206a5a420f35669ce17459ef85114c14c"
 
 [bin.btop.homebrew]
 name = "btop"
