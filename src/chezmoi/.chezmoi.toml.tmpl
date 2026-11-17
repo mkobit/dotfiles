@@ -110,7 +110,7 @@ installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"githu
 installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"github_releases"{{ end }}
 
 [data.local.bin.chafa]
-installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"none"{{ end }}
+installation_method = "none"
 
 # Linux only — no macOS release
 [data.local.bin.opencode]
@@ -216,7 +216,7 @@ installation_method = "homebrew"
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 
 [data.packages.chafa]
-installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
+installation_method = "none"
 
 [data.packages.bubblewrap]
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
