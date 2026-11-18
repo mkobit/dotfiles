@@ -41,10 +41,11 @@ class HttpxReleaseClient:
         if self._owns_client:
             self._client.close()
 
-    def list_releases(self, repo: str, max_pages: int = 3) -> Sequence[Mapping[str, Any]]:
+    def list_releases(self, repo: str) -> Sequence[Mapping[str, Any]]:
         per_page = 50
         releases: list[Mapping[str, Any]] = []
-        for page in range(1, max_pages + 1):
+        page = 1
+        while True:
             url = f"https://api.github.com/repos/{repo}/releases?per_page={per_page}&page={page}"
             resp = self._client.get(url, headers=self._headers, follow_redirects=True)
             if resp.status_code == 403:
@@ -56,6 +57,7 @@ class HttpxReleaseClient:
             releases.extend(data)
             if len(data) < per_page:
                 break
+            page += 1
         return releases
 
     def fetch_text(self, url: str) -> str:

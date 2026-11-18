@@ -41,3 +41,46 @@ Keep this exception until a suitable release satisfies the 21-day version policy
 Reusable workflows from other repositories require separate commit pins, and container images require digest pins because the lock tool does not cover them.
 Downloads in shell commands and the separately version-pinned lock-tool bootstrap are outside action lock coverage.
 See the [v0.4.0 limitations](https://github.com/github/gh-actions-lock/tree/v0.4.0#limitations) and the [native lockfile contract](https://docs.github.com/en/actions/concepts/security/workflow-dependency-lockfiles).
+
+## Binary tool upgrade PRs
+
+The [binary upgrade workflow](upgrade-bin-tools.yml) includes the old and new versions in each PR title.
+The description contains release notes for releases between those versions, with upstream release and comparison links.
+A later run updates the PR title and description even when the remote catalog content is unchanged.
+If the full release notes exceed GitHub's PR body limit, the updater selects an earlier mature release whose complete notes fit.
+If no newer mature target fits, it reports an error and leaves the catalog unchanged.
+
+The workflow uses a GitHub App installation token when `BIN_UPDATER_APP_CLIENT_ID` is set.
+It restricts that token to this repository with contents and pull requests write permissions.
+The token is used for Git pushes and PR operations.
+Upstream release lookup uses the read access available through `GITHUB_TOKEN`.
+
+### Set up the GitHub App
+
+1. Open your GitHub account settings, then **Developer settings**, **GitHub Apps**, and **New GitHub App**.
+   Give the App a name and use this repository URL as its homepage.
+   Clear **Active** under webhook settings; this App does not receive events.
+2. Set repository permissions **Contents** and **Pull requests** to **Read and write**.
+   Leave other permissions unchanged.
+   Limit installation to your account when you register the App.
+3. Install the App on `mkobit/dotfiles` only.
+4. Generate a private key from the App settings and save the PEM file in a secure local path.
+5. Under this repository's **Settings**, **Secrets and variables**, **Actions**, add the variable `BIN_UPDATER_APP_CLIENT_ID` with the App's client ID.
+   Add the secret `BIN_UPDATER_APP_PRIVATE_KEY` with the complete PEM file content.
+   Keep the private key outside Git and chat.
+6. After this workflow change is merged, run **Upgrade binary tools** with one tool that has an eligible update.
+   Confirm that the PR title contains both versions, the body contains the intervening release notes, and required PR workflows start without approval.
+
+These settings can also be stored with the GitHub CLI:
+
+```sh
+gh variable set BIN_UPDATER_APP_CLIENT_ID --repo mkobit/dotfiles --body 'REPLACE_WITH_CLIENT_ID'
+gh secret set BIN_UPDATER_APP_PRIVATE_KEY --repo mkobit/dotfiles < /secure/path/binary-updater.pem
+```
+
+If the App client ID is absent, the workflow uses the existing `BIN_UPDATER_TOKEN` secret, then `GITHUB_TOKEN`.
+The `GITHUB_TOKEN` fallback requires approval for PR builds.
+An App configuration error fails the token step; it does not silently fall back.
+App tokens expire after one hour and the token action revokes its token at job completion.
+
+See [GitHub App registration](https://docs.github.com/en/apps/creating-github-apps/registering-a-github-app/registering-a-github-app), [installation token creation](https://github.com/actions/create-github-app-token/tree/v3.3.0), and [workflow trigger rules](https://docs.github.com/en/actions/how-tos/write-workflows/choose-when-workflows-run/trigger-a-workflow).

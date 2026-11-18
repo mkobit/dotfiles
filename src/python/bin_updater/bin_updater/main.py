@@ -1,3 +1,4 @@
+import json
 from os import environ
 from pathlib import Path
 from typing import Annotated
@@ -26,11 +27,14 @@ def main(
     all_tools: Annotated[bool, typer.Option("--all", "-a", help="Update all binary tools")] = False,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Simulate updates without writing changes")] = False,
     token: Annotated[str | None, typer.Option("--token", help="GitHub API token")] = None,
+    report_file: Annotated[Path | None, typer.Option("--report-file", help="Write update results as JSON")] = None,
     catalog_dir: Annotated[Path, typer.Option("--catalog-dir", help="Directory containing tool catalogs")] = Path(
         "src/chezmoi/.chezmoidata/bin"
     ),
 ) -> None:
     """Automate chezmoi binary tools upgrades."""
+    if report_file is not None:
+        report_file.write_text("[]\n", encoding="utf-8")
     if not all_tools and tool is None:
         typer.echo("Error: specify either --tool <name> or --all", err=True)
         raise typer.Exit(code=1)
@@ -47,11 +51,20 @@ def main(
         except NonGitHubReleaseError as exc:
             typer.echo(f"Skipping {path.stem}: {exc}")
             raise typer.Exit(code=0) from None
+        except ValueError as exc:
+            typer.echo(f"Error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
     else:
-        catalogs = discover_catalogs(catalog_dir)
+        try:
+            catalogs = discover_catalogs(catalog_dir)
+        except ValueError as exc:
+            typer.echo(f"Error: {exc}", err=True)
+            raise typer.Exit(code=1) from None
 
     with HttpxReleaseClient(token=auth_token) as client:
         results = run_updates(catalogs, client, dry_run=dry_run)
+    if report_file is not None:
+        report_file.write_text(json.dumps([r.model_dump() for r in results], indent=2) + "\n", encoding="utf-8")
     for result in results:
         _print_result(result)
 
