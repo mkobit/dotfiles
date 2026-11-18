@@ -1,3 +1,5 @@
+import json
+import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 from urllib.parse import quote
@@ -80,6 +82,8 @@ def _release_notes(catalog: ToolCatalog, releases: Sequence[Mapping[str, Any]], 
 def _resolve_platform_checksums(
     catalog: ToolCatalog, target_version: str, release: Mapping[str, Any], client: ReleaseClient
 ) -> Mapping[str, str]:
+    if catalog.source == "claude":
+        return _claude_checksums(catalog, target_version, client)
     assets = release.get("assets", ())
     asset_by_name = {str(a.get("name")): a for a in assets if isinstance(a, Mapping)}
     manifest_asset = find_checksum_manifest_asset(assets)
@@ -97,6 +101,26 @@ def _resolve_platform_checksums(
         return client.compute_asset_hash(str(asset["browser_download_url"]))
 
     return {platform: _hash_for_platform(platform) for platform in catalog.platforms}
+
+
+def _claude_checksums(catalog: ToolCatalog, version: str, client: ReleaseClient) -> Mapping[str, str]:
+    manifest = json.loads(client.fetch_text(catalog.manifest_url_format.format(version=version)))
+    if not isinstance(manifest, Mapping) or manifest.get("version") != version:
+        raise ValueError(f"Claude manifest version does not match {version}")
+    platforms = manifest.get("platforms")
+    if not isinstance(platforms, Mapping) or not catalog.platforms:
+        raise ValueError("Claude manifest requires configured platforms")
+
+    def checksum(target: str) -> str:
+        item = platforms.get(target)
+        if not isinstance(item, Mapping) or item.get("binary") != "claude":
+            raise ValueError(f"Invalid Claude binary for platform {target}")
+        value = item.get("checksum")
+        if not isinstance(value, str) or re.fullmatch(r"[0-9a-fA-F]{64}", value) is None:
+            raise ValueError(f"Invalid Claude checksum for platform {target}")
+        return value.lower()
+
+    return {platform: checksum(target) for platform, target in catalog.platforms.items()}
 
 
 def update_tool(

@@ -1,6 +1,7 @@
 import tomllib
 from collections.abc import Mapping, Sequence
 from pathlib import Path
+from typing import Literal
 
 import tomlkit
 from pydantic import BaseModel, Field
@@ -20,6 +21,8 @@ class ToolCatalog(BaseModel):
     platforms: Mapping[str, str]
     ext: Mapping[str, str] = Field(default_factory=dict)
     filename_format: str
+    source: Literal["github", "claude"] = "github"
+    manifest_url_format: str = ""
 
 
 def load_catalog(path: Path) -> ToolCatalog:
@@ -33,26 +36,36 @@ def load_catalog(path: Path) -> ToolCatalog:
     tool_data = bin_table[name]
     if not isinstance(tool_data, Mapping):
         raise ValueError(f"Invalid [bin.{name}] section in {path}")
-    gr = tool_data.get("github_releases")
+    updater = tool_data.get("updater", {})
+    claude = isinstance(updater, Mapping) and updater.get("source") == "claude"
+    gr = tool_data.get("direct_release") if claude else tool_data.get("github_releases")
     if not isinstance(gr, Mapping):
         raise NonGitHubReleaseError(f"No [bin.{name}.github_releases] table in {path}")
-    repo = gr.get("repo")
+    metadata = updater if claude else gr
+    repo = metadata.get("repo")
     if not isinstance(repo, str) or not repo:
         raise ValueError(f"No repo specified in {path}")
     platforms = gr.get("platforms", {})
     if not isinstance(platforms, Mapping):
         raise ValueError(f"Invalid platforms mapping in {path}")
+    if claude and not platforms:
+        raise ValueError(f"No configured Claude platforms in {path}")
+    manifest_url = metadata.get("manifest_url_format", "")
+    if claude and (not isinstance(manifest_url, str) or "{version}" not in manifest_url):
+        raise ValueError(f"Invalid Claude manifest URL format in {path}")
     ext_data = gr.get("ext", {})
     ext = ext_data if isinstance(ext_data, Mapping) else {}
     min_age = tool_data.get("minimum_release_age")
     if min_age is None:
         min_age = gr.get("minimum_release_age")
     return ToolCatalog(
+        source="claude" if claude else "github",
+        manifest_url_format=manifest_url,
         name=name,
         path=path,
         version=str(tool_data.get("version", "")),
         repo=repo,
-        tag_format=str(gr.get("tag_format", "v{version}")),
+        tag_format=str(metadata.get("tag_format", "v{version}")),
         minimum_release_age=min_age,
         platforms={k: str(v) for k, v in platforms.items()},
         ext={k: str(v) for k, v in ext.items()},
@@ -80,7 +93,12 @@ def update_catalog_content(content: str, new_version: str, new_checksums: Mappin
         raise ValueError("Missing bin table in TOML content")
     name = next(iter(bin_table.keys()))
     doc["bin"][name]["version"] = new_version
-    gr = doc["bin"][name]["github_releases"]
+    tool = doc["bin"][name]
+    updater = tool.get("updater", {})
+    source = (
+        "direct_release" if isinstance(updater, Mapping) and updater.get("source") == "claude" else "github_releases"
+    )
+    gr = tool[source]
     if "checksums" not in gr:
         gr["checksums"] = tomlkit.table()
     for platform, sha in new_checksums.items():

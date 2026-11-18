@@ -28,7 +28,7 @@ class HttpxReleaseClient:
             self._client = client
             self._owns_client = False
         else:
-            self._client = httpx2.Client(timeout=30.0, headers=headers)
+            self._client = httpx2.Client(timeout=30.0, headers={"User-Agent": USER_AGENT})
             self._owns_client = True
 
     def __enter__(self) -> Self:
@@ -60,8 +60,13 @@ class HttpxReleaseClient:
             page += 1
         return releases
 
+    def _download_headers(self, url: str) -> Mapping[str, str]:
+        if httpx2.URL(url).host in {"github.com", "api.github.com"} and httpx2.URL(url).scheme == "https":
+            return self._headers
+        return {"User-Agent": USER_AGENT}
+
     def fetch_text(self, url: str) -> str:
-        resp = self._client.get(url, headers=self._headers, follow_redirects=True)
+        resp = self._client.get(url, headers=self._download_headers(url), follow_redirects=True)
         if resp.status_code == 403:
             raise RuntimeError(f"GitHub rate limit exceeded or access forbidden for {url}: {resp.text}")
         resp.raise_for_status()
@@ -69,7 +74,9 @@ class HttpxReleaseClient:
 
     def compute_asset_hash(self, url: str) -> str:
         hasher = hashlib.sha256()
-        with self._client.stream("GET", url, headers=self._headers, follow_redirects=True, timeout=60.0) as resp:
+        with self._client.stream(
+            "GET", url, headers=self._download_headers(url), follow_redirects=True, timeout=60.0
+        ) as resp:
             if resp.status_code == 403:
                 raise RuntimeError(f"GitHub rate limit exceeded or access forbidden for {url}: {resp.text}")
             resp.raise_for_status()
