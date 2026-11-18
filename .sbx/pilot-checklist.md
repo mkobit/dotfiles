@@ -2,7 +2,7 @@
 
 Prepare the two inputs below before the agent starts the live pilot.
 Keep private keys, passwords, and tokens out of chat, logs, and the repository.
-Use the [approved design](https://github.com/mkobit/dotfiles/blob/c4d122a7/docs/designs/sbx-agy-pilot.md) for the pilot scope.
+Use the [approved design](../docs/designs/sbx-agy-pilot.md) for the pilot scope.
 
 ## 1. Prepare the signing subkey
 
