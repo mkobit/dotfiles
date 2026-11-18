@@ -72,6 +72,9 @@ cacheWarming = "off"
 [data.local.bin.bat]
 installation_method = "github_releases"
 
+[data.local.bin.bkt]
+installation_method = {{ if and (has .chezmoi.os (list "linux" "darwin")) (has .chezmoi.arch (list "amd64" "arm64")) }}"github_releases"{{ else }}"none"{{ end }}
+
 [data.local.bin.delta]
 installation_method = "github_releases"
 
@@ -110,7 +113,7 @@ installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"githu
 installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"github_releases"{{ end }}
 
 [data.local.bin.chafa]
-installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"none"{{ end }}
+installation_method = "none"
 
 # Linux only — no macOS release
 [data.local.bin.opencode]
@@ -216,7 +219,7 @@ installation_method = "homebrew"
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 
 [data.packages.chafa]
-installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
+installation_method = "none"
 
 [data.packages.bubblewrap]
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}

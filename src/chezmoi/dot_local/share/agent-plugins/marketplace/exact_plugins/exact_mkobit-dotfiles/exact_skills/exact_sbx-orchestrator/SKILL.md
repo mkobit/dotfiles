@@ -3,22 +3,6 @@ name: sbx-orchestrator
 description: >-
   Use when coordinating delegated coding tasks in SBX, including worker launch, task prompts, progress, recovery, and handoff.
   Use sbx-sandboxes for lifecycle, configuration, authentication, permissions, and CLI facts.
-allowed-tools:
-  - Bash(sbx --help)
-  - Bash(sbx help)
-  - Bash(sbx help *)
-  - Bash(sbx * --help)
-  - Bash(sbx ls)
-  - Bash(sbx ls *)
-  - Bash(sbx list)
-  - Bash(sbx list *)
-  - Bash(sbx version)
-  - Bash(sbx --version)
-  - Bash(sbx diagnose)
-  - Bash(sbx diagnose --format json)
-  - Bash(sbx diagnose --format yaml)
-  - Bash(sbx env exec * -- *)
-  - Bash(sbx exec *)
 ---
 
 # SBX orchestrator
@@ -28,7 +12,8 @@ Respect explicit command-only requests and narrower user scope.
 Use direct SBX commands for probes and command-only work, not as a substitute for a requested coding worker.
 
 The root coordinator owns task division, unresolved questions, risk, integration, final review, and publication.
-It also owns branch management, credentials, commits, and signing.
+For normal edit/check tasks, it also owns branch management, tracker changes, commits, and signing.
+An explicit private-clone assignment can give the guest delivery and tracker authority for one unit.
 When available, a native host subagent uses host tools to launch a separate guest coding harness.
 When no native subagent tool is available, the root coordinator may perform the host supervisor contract directly.
 Its tools do not move into the guest.
@@ -47,8 +32,8 @@ It does not permit host policy changes or broader task scope.
 5. Update the record at milestones and use [recovery](references/recovery.md) for any interruption.
 6. Return complete or incomplete status to the immediate calling thread for host review of the [handoff](references/nested-execution.md).
 
-Use the [task context contract](references/subagent-task.md#read-only-task-context) when a task ID is supplied.
-Guest completion starts host review; use [task delivery](references/nested-execution.md#task-delivery) for closeout.
+For edit/check tasks, use the [task context contract](references/subagent-task.md#read-only-task-context) and return changes for host review.
+For an assigned pilot, use [delivery](references/delivery.md) and let the guest complete the assigned delivery without a routine host pause.
 
 ## Read when needed
 

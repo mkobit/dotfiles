@@ -1,0 +1,25 @@
+[bin.bkt]
+version = "0.8.2"
+minimum_release_age = "60d"
+
+[bin.bkt.github_releases]
+repo            = "dimo414/bkt"
+external_type   = "archive-file"
+executable      = true
+checksum_type   = "sha256"
+tag_format      = "{version}"
+filename_format = "bkt.v{version}.{target}.zip"
+path_format     = "bkt"
+url_format      = "{base}/{repo}/releases/download/{tag}/{filename}"
+
+[bin.bkt.github_releases.platforms]
+darwin_arm64 = "aarch64-apple-darwin"
+darwin_amd64 = "x86_64-apple-darwin"
+linux_amd64  = "x86_64-unknown-linux-musl"
+linux_arm64  = "aarch64-unknown-linux-gnu"
+
+[bin.bkt.github_releases.checksums]
+darwin_arm64 = "04eb57810d489130b9fd6226e82ad6032eac1a9c868f952ea1422a725f80bfa1"
+darwin_amd64 = "4ce041aa4484c171fcd4824ba1f58d267fc059f7f47eb7410f0cd05dd3f2a2ea"
+linux_amd64  = "8e02116962dc8f87f2ac0843146071afa3d811580c4ee2da568f086042e7e3cc"
+linux_arm64  = "7973a56ee1a90bea67714f72a2f2a16a85bc246c92d2368ad48ffae03c0dc2ff"

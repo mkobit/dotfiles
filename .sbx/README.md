@@ -3,6 +3,7 @@
 Unit 5 of the [approved pilot design](https://github.com/mkobit/dotfiles/blob/c4d122a7/docs/designs/sbx-agy-pilot.md#5-reproducible-private-guest-environment) provides the project toolchain and basic guest checks.
 The [review record](https://github.com/mkobit/dotfiles/blob/c4d122a7/docs/designs/sbx-agy-pilot-review.md) defines the proof limits.
 Do not run the live pilot from this setup check.
+Use the [manual pilot checklist](pilot-checklist.md) to prepare the signing key and tracker inputs.
 
 **Status: native build and basic fresh-guest proof passed.**
 The tested source commit is `4fe3d1ae466e629bbdfebd2f23cd649ec7721b30`.
@@ -271,14 +272,27 @@ Signing, tracker sync, credential setup, models, subagents, restart proof, and l
 
 ## Prepare a dedicated GPG signing subkey from KeePass
 
-Run these steps in a trusted host terminal, outside every sandbox and repository mount.
+Use GPG, the command-line tool for OpenPGP keys and signatures.
+A primary key controls the key identity and its subkeys.
+A signing subkey signs data, such as Git commits, without the primary private key.
+A fingerprint is the full identifier of a key or subkey.
+It is public information.
+An isolated keyring is a separate directory for GPG keys and settings.
+It keeps this work separate from your normal keyring.
+A public certificate contains the public key identity and public subkeys.
+It contains no private keys.
+
+Run these steps in a trusted terminal on the host.
+Keep the setup files outside every sandbox and repository mount.
 Keep the original KeePass backup unchanged.
-Use an isolated keyring throughout; these commands do not import private keys into your normal keyring.
+Use the isolated keyrings in the commands below.
+Do not import private keys into your normal keyring.
 See the [GnuPG key-management manual](https://www.gnupg.org/documentation/manuals/gnupg/OpenPGP-Key-Management.html) and [command reference](https://www.gnupg.org/documentation/manuals/gnupg26/gpg.1.html).
 
 ### 1. Inspect the backup
 
-Create a private setup directory and print the attachment export path:
+Create a private setup directory.
+Print the path where you must save the KeePass attachment:
 
 ```sh
 umask 077
@@ -290,9 +304,11 @@ printf 'Export the KeePass GPG attachment to: %s\n' "$signing_setup/backup.asc"
 ```
 
 Save the GPG attachment from KeePass to that path.
-If the key is stored as protected text, save only that key block with your KeePass client or a trusted local editor outside the agent workspace.
-Do not export the KeePass database itself or paste key contents into a terminal or chat.
-Inspect the attachment without importing it:
+If KeePass stores the key as protected text, save only that key block.
+Use your KeePass client or a trusted local editor outside the agent workspace.
+Do not export the KeePass database itself.
+Do not paste key contents into a terminal or chat.
+Inspect the attachment without adding it to a keyring:
 
 ```sh
 gpg --homedir "$source_ring" --import-options show-only --dry-run \
@@ -300,21 +316,30 @@ gpg --homedir "$source_ring" --import-options show-only --dry-run \
 ```
 
 Check the identity and fingerprint against the key you intend to use.
-Then import into the isolated host keyring and list its secret-key availability:
+Then import the backup into the isolated host keyring.
+List the private keys it contains:
 
 ```sh
 gpg --homedir "$source_ring" --import "$signing_setup/backup.asc"
 gpg --homedir "$source_ring" --list-secret-keys --with-subkey-fingerprint
 ```
 
-An ordinary `sec` entry means the primary secret key is available.
-`sec#` means it is unavailable; a subkey-only backup cannot create another subkey.
-`sec>` refers to a smartcard and requires that card.
-Stop here if the primary secret key is unavailable; retrieve the primary backup rather than substituting your normal signing subkey.
+Read the marker for the primary key:
+
+- `sec`: the primary private key is available.
+- `sec#`: the primary private key is not available.
+  A backup with only subkeys cannot create another subkey.
+- `sec>`: the primary private key is on a smartcard.
+  You need that card to use it.
+
+Stop if the primary private key is not available.
+Get the primary-key backup.
+Do not use your normal signing subkey instead.
 
 ### 2. Create the sandbox subkey
 
-Set the full primary fingerprint from the inspected output, then create a signing-only subkey with a one-year expiry:
+Copy the full primary-key fingerprint from the output into `primary_fpr`.
+Create a subkey that can only sign and expires after one year:
 
 ```sh
 primary_fpr='REPLACE_WITH_FULL_PRIMARY_FINGERPRINT'
@@ -322,9 +347,12 @@ gpg --homedir "$source_ring" --quick-add-key "$primary_fpr" ed25519 sign 1y
 gpg --homedir "$source_ring" --list-secret-keys --with-subkey-fingerprint "$primary_fpr"
 ```
 
-Enter the existing key passphrase through GnuPG's prompt.
+Enter the existing key passphrase only when GPG asks for it.
 Do not put it in command arguments, environment variables, or logs.
-Copy the full fingerprint of the new Ed25519 `[S]` subkey:
+Find the new Ed25519 subkey with the `[S]` marker.
+`[S]` means the subkey can sign.
+Copy its full fingerprint into `sandbox_subkey_fpr`.
+Export that subkey and import the file into a second isolated keyring:
 
 ```sh
 sandbox_subkey_fpr='REPLACE_WITH_NEW_SUBKEY_FINGERPRINT'
@@ -335,25 +363,33 @@ gpg --homedir "$check_ring" --import "$signing_setup/selected-subkey.asc"
 gpg --homedir "$check_ring" --list-secret-keys --with-subkey-fingerprint "$primary_fpr"
 ```
 
-Require `sec#` for the primary key and exactly one usable secret subkey: the selected `[S]` subkey.
-Other public subkeys or `ssb#` entries are allowed; other usable secret subkeys are not.
-The trailing `!` selects the exact subkey and must remain in the export command.
+Check the second keyring before you continue.
+The primary key must have the `sec#` marker.
+There must be exactly one usable private subkey: the selected `[S]` subkey.
+Other public subkeys are permitted.
+An `ssb#` marker means a private subkey is not available, so those entries are also permitted.
+Stop if any other private subkey is usable.
+Keep the final `!` in the export command.
+It selects the exact subkey.
 
 ### 3. Prepare unattended signing
 
-Unattended signing after restart needs a copy the guest can use without a passphrase prompt.
-This route removes the passphrase only in the isolated, subkey-only keyring.
+The guest must sign after a restart without a passphrase prompt.
+Remove the passphrase only from the isolated copy that contains the selected private subkey.
 The original backup and source keyring remain unchanged.
-The exported subkey permits signing until expiry or revocation; it is not restricted to one repository.
-GitHub credential scopes separately limit publication access.
+This copy can sign for any repository until the subkey expires or you revoke it.
+Separate GitHub credential permissions limit where the guest can publish.
 
 ```sh
 gpg --homedir "$check_ring" --change-passphrase "$primary_fpr"
 ```
 
-Enter the old passphrase when requested, then leave the new passphrase empty and confirm that choice.
-Stop if you do not want a passphrase-free sandbox subkey; do not claim restart-safe signing from a cached passphrase.
-Export only this isolated signing subkey, plus the updated public certificate:
+Enter the old passphrase when GPG asks for it.
+Leave the new passphrase empty and confirm that choice.
+Stop if you do not want a sandbox subkey without a passphrase.
+The GPG agent is a separate process that can keep passphrases in memory.
+A saved passphrase in a running GPG agent does not prove signing will work after a restart.
+Export only this isolated signing subkey and the updated public certificate:
 
 ```sh
 gpg --homedir "$check_ring" --armor \
@@ -366,7 +402,8 @@ chmod 600 "$signing_setup/sandbox-signing.asc"
 
 ### 4. Check signing without a cached passphrase
 
-Test the file that will be handed to the agent in a fresh isolated keyring:
+Create a fresh isolated keyring.
+Import the file that you will give to the coding agent:
 
 ```sh
 proof_ring="$signing_setup/proof-ring"
@@ -375,8 +412,8 @@ gpg --homedir "$proof_ring" --import "$signing_setup/sandbox-signing.asc"
 gpg --homedir "$proof_ring" --list-secret-keys --with-subkey-fingerprint "$primary_fpr"
 ```
 
-Again require `sec#` and exactly the selected usable signing subkey.
-Then check signing after its agent restarts:
+Again, check for `sec#` and exactly one usable private subkey: the selected signing subkey.
+Stop that process for this keyring, then test signing and signature verification:
 
 ```sh
 printf 'Sandbox signing bootstrap check\n' > "$signing_setup/proof.txt"
@@ -388,22 +425,30 @@ gpg --homedir "$proof_ring" --batch --status-fd 1 \
   --verify "$signing_setup/proof.sig" "$signing_setup/proof.txt"
 ```
 
-Require a successful exit and a `VALIDSIG` record naming the selected subkey fingerprint.
-If signing asks for input or fails, stop before guest import.
+Check that the commands finish successfully.
+The `VALIDSIG` record must name the selected subkey fingerprint.
+Stop before guest import if signing asks for input or fails.
 
 ### 5. Save and hand back the selected subkey
 
-Save the new subkey export, public certificate, fingerprint, and expiry in a separate KeePass entry.
+Save the new subkey file, public certificate, fingerprint, and expiry in a separate KeePass entry.
 Do not replace the primary-key backup with the subkey-only export.
 Give the agent only the new public fingerprint and the local path to `sandbox-signing.asc`.
 Keep `backup.asc`, the source keyring, and all passphrases out of the guest, clone, kit, task data, and logs.
-The agent can transfer only the selected subkey with native `sbx cp`, configure the exact Git signing identity, and verify a scratch signed commit before and after guest restart.
-Only `public.asc` is suitable for GitHub public-key registration; do not remove an existing account key to resolve an unexamined duplicate-key error.
+Do not send private-key contents, passwords, or tokens in chat.
+The agent can copy only the selected subkey with native `sbx cp`.
+It can then set the exact Git signing identity and test a temporary signed commit before and after guest restart.
+Give GitHub only `public.asc` when you register the signing key.
+Never give GitHub either private-key export.
+If GitHub reports a duplicate key, check the cause before you change any account key.
+Do not remove an existing account key to bypass that error.
 
-Keep the setup directory private until backup and guest verification finish.
-Then close its GPG agents and remove the setup directory with assistance if needed.
+Keep the setup directory private until the backup and guest checks finish.
+Then stop its GPG agents and remove the setup directory.
+Ask for help with that cleanup if needed.
 Never remove your normal GnuPG directory or the original KeePass backup.
 
-The exact-subkey export and restarted-agent signing procedure was checked with disposable keys in the private SBX guest on 2026-11-16.
-No real user key was used in that check.
-KeePass export, interactive passphrase changes, real-key provisioning, GitHub registration, and full guest restart remain manual or live proof steps.
+The exact-subkey export and signing after a GPG agent restart were checked with temporary keys in the private SBX guest on 2026-11-16.
+That check used no real user key.
+KeePass export and passphrase changes still need manual steps.
+Import of the real subkey, GitHub registration, and a full guest restart still need live checks.
