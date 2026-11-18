@@ -1,7 +1,11 @@
 # Private guest environment
 
-Unit 5 of the [approved pilot design](https://github.com/mkobit/dotfiles/blob/c4d122a7/docs/designs/sbx-agy-pilot.md#5-reproducible-private-guest-environment) provides the project toolchain and basic guest checks.
-The [review record](https://github.com/mkobit/dotfiles/blob/c4d122a7/docs/designs/sbx-agy-pilot-review.md) defines the proof limits.
+Unit 5 of the [approved pilot design](../docs/designs/sbx-agy-pilot.md#5-reproducible-private-guest-environment) provides the project toolchain and basic guest checks.
+The [retained design](../docs/designs/sbx-agy-pilot.md#retained-design-and-later-corrections) records later corrections and the design review limits.
+Design acceptance proves no implementation or runtime result.
+The targeted re-audit was not a second full review.
+Host instruction-file exclusion remains unverified.
+The design review performed no installation, apply, CI run, key operation, tracker change, or guest operation.
 Do not run the live pilot from this setup check.
 Use the [manual pilot checklist](pilot-checklist.md) to prepare the signing key and tracker inputs.
 
@@ -37,13 +41,16 @@ See [kit compatibility](https://docs.docker.com/ai/sandboxes/customize/use-kits/
 Keep implementation changes in the assigned feature worktree.
 SBX `0.53.0` rejects private clone creation from a Git worktree.
 Use a separate temporary standalone clone of the committed feature branch for guest proof.
-Check its commit and branch before creation; do not change the main checkout or merge the design branch.
+Check its commit and branch before creation; do not change the main checkout.
 Run the commands below from that standalone clone.
 The private clone starts from the committed head.
 Commit the intended setup before guest proof; uncommitted host files are not guest evidence.
 Use an explicit environment path to avoid implicit host environment defaults.
 Use the same unique name with every environment command.
 For `env exec`, put flags before the environment path.
+Use `sbx help <command path>` to check command syntax.
+For an existing guest, keep its source clone, stashes, task state, and logs.
+Do not recreate it to repeat setup checks.
 
 ```sh
 sbx env plan .sbx/sbxenv.yaml --name dotfiles-unit5-proof
@@ -202,7 +209,7 @@ The corrected source commit `4fe3d1ae466e629bbdfebd2f23cd649ec7721b30` passed na
 The private guest is `dotfiles-unit5-proof-fixed`.
 The source is the temporary standalone clone at `/tmp/sbx-unit5/proof-source`.
 The implementation worktree remains `/home/mkobit/.codex/worktrees/430c/chezmoi` on `feat/sbx-private-guest`.
-The approved design branch remains at `c4d122a7`.
+The approved design source is commit `c4d122a7`.
 
 The corrected mixin built in two seconds as `sbx-kit-src:spec-d46798f371f0`.
 Native source inspection reported schema `3`, kind `mixin`, that image, and both install hooks.
