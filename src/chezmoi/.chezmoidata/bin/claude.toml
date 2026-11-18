@@ -1,5 +1,11 @@
 [bin.claude]
 version = "2.1.283"
+minimum_release_age = "7d"
+
+[bin.claude.updater]
+source = "claude"
+repo = "anthropics/claude-code"
+manifest_url_format = "https://downloads.claude.ai/claude-code-releases/{version}/manifest.json"
 
 # Native releases: https://code.claude.com/docs/en/setup
 [bin.claude.direct_release]

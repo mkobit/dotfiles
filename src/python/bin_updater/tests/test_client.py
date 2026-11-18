@@ -1,4 +1,5 @@
 import hashlib
+from typing import Any
 
 import httpx2
 import pytest
@@ -87,3 +88,45 @@ def test_list_releases_late_api_error() -> None:
     client = HttpxReleaseClient(client=httpx2.Client(transport=httpx2.MockTransport(handler)))
     with pytest.raises(httpx2.HTTPStatusError):
         client.list_releases("org/app")
+
+
+def test_vendor_manifest_does_not_receive_github_token() -> None:
+    seen = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen.append(request.url.host)
+        if request.url.host == "api.github.com":
+            assert request.headers["authorization"] == "Bearer secret"
+            return httpx2.Response(200, json=[])
+        assert "authorization" not in request.headers
+        return httpx2.Response(200, text="manifest")
+
+    with (
+        httpx2.Client(transport=httpx2.MockTransport(handler)) as transport,
+        HttpxReleaseClient(token="secret", client=transport) as client,
+    ):
+        client.list_releases("anthropics/claude-code")
+        assert client.fetch_text("https://downloads.claude.ai/manifest.json") == "manifest"
+    assert seen == ["api.github.com", "downloads.claude.ai"]
+
+
+def test_owned_client_keeps_github_token_off_vendor_requests(monkeypatch: pytest.MonkeyPatch) -> None:
+    original_client = httpx2.Client
+    seen = []
+
+    def handler(request: httpx2.Request) -> httpx2.Response:
+        seen.append(request.url.host)
+        if request.url.host == "api.github.com":
+            assert request.headers["authorization"] == "Bearer secret"
+            return httpx2.Response(200, json=[])
+        assert "authorization" not in request.headers
+        return httpx2.Response(200, text="manifest")
+
+    def client_factory(**kwargs: Any) -> httpx2.Client:
+        return original_client(**kwargs, transport=httpx2.MockTransport(handler))
+
+    monkeypatch.setattr(httpx2, "Client", client_factory)
+    with HttpxReleaseClient(token="secret") as client:
+        client.list_releases("anthropics/claude-code")
+        assert client.fetch_text("https://downloads.claude.ai/manifest.json") == "manifest"
+    assert seen == ["api.github.com", "downloads.claude.ai"]

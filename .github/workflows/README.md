@@ -55,6 +55,16 @@ It restricts that token to this repository with contents and pull requests write
 The token is used for Git pushes and PR operations.
 Upstream release lookup uses the read access available through `GITHUB_TOKEN`.
 
+### Claude native updates
+
+Claude keeps its native vendor download URLs.
+The updater uses [official GitHub releases](https://github.com/anthropics/claude-code/releases) for release dates and notes, with a seven-day minimum age.
+It reads all configured platform checksums from the selected version's vendor manifest before it writes the catalog.
+The manifest must match the selected version, contain each configured platform, name the `claude` binary, and provide valid SHA256 checksums.
+Vendor manifest requests do not receive GitHub credentials.
+This validates checksum metadata over HTTPS; it does not verify the manifest's GPG signature.
+See [Claude binary integrity](https://code.claude.com/docs/en/setup#binary-integrity-and-code-signing).
+
 ### Set up the GitHub App
 
 1. Open your GitHub account settings, then **Developer settings**, **GitHub Apps**, and **New GitHub App**.
