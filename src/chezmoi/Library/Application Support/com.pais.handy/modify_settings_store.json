@@ -1,0 +1,15 @@
+{{/* chezmoi:modify-template */}}
+{{- if and (or (hasKey . "text_replacements") (hasKey . "handy")) .chezmoi.stdin -}}
+{{- $store := .chezmoi.stdin | fromJson -}}
+{{- $settings := get $store "settings" -}}
+{{- $handy := get . "handy" | default dict -}}
+{{- $desiredWords := concat (get $settings "custom_words" | default list) (values (get . "text_replacements" | default dict)) (values (get $handy "custom_words" | default dict)) | uniq | sortAlpha -}}
+{{- if ne (get $settings "custom_words" | toJson) ($desiredWords | toJson) -}}
+{{- $_ := set $settings "custom_words" $desiredWords -}}
+{{- $store | toPrettyJson }}
+{{ else -}}
+{{- .chezmoi.stdin -}}
+{{- end -}}
+{{- else -}}
+{{- .chezmoi.stdin -}}
+{{- end -}}
