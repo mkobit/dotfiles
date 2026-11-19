@@ -1,4 +1,5 @@
-{{- if and (eq .chezmoi.os "darwin") (hasKey . "macos_text_replacements") -}}
+{{- $replacements := dig "macos" "text_replacements" (dict) . -}}
+{{- if and (eq .chezmoi.os "darwin") $replacements -}}
 {{- if lookPath "python3" -}}
 #!/usr/bin/env python3
 """Report configured macOS text replacements that need manual updates."""
@@ -7,7 +8,7 @@ import plistlib
 import subprocess
 import sys
 
-desired = {{ .macos_text_replacements | toJson }}
+desired = {{ $replacements | toJson }}
 
 try:
     result = subprocess.run(["/usr/bin/defaults", "export", "-g", "-"], check=True, capture_output=True)
