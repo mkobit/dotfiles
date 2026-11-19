@@ -1,5 +1,5 @@
 [bin.codex]
-version = "0.167.1"
+version = "0.169.0"
 minimum_release_age = "5d"
 
 [bin.codex.github_releases]
@@ -18,7 +18,7 @@ linux_amd64  = "x86_64-unknown-linux-musl"
 linux_arm64  = "aarch64-unknown-linux-musl"
 
 [bin.codex.github_releases.checksums]
-darwin_arm64 = "5bcbc5866cbca19f9299f7884e9b39b9ccb5469969c170b1f2d2cd6fc4b1ee72"
-darwin_amd64 = "ade991ce7fef5b4f4af884c154b9455d493cd0caf13789fc3ff9f842897b55d3"
-linux_amd64  = "a945df3df83e849dd7b74787e27f8a459c1946b0e3afe3dc8eef8a8d1845fd4f"
-linux_arm64  = "ef3e1443a7795d596f1601a533d7225a1030488d60c965af1f0610ab95889031"
+darwin_arm64 = "8a232260df7a12c5e83e0b4b7659e1c8d9259b41942517bc0068d8ab55c36461"
+darwin_amd64 = "0a3c392235b4712409495ced02bbe0662ce7a038232766d1c1c34af74e905c2f"
+linux_amd64  = "3b8ed091149cc63a59046b9f094bcfa21cdb4dda15ede441ce369bcee4a71ba0"
+linux_arm64  = "c8d0b4ab2a97c595b70b10412d36d0d5464dcef1e1d3246b073d48017cdf5a4f"
