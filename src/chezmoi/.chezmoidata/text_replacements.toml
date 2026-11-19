@@ -1,7 +1,9 @@
 [handy.custom_words]
 chezmoi = "chezmoi"
 egm = "EGM"
+ghostty = "Ghostty"
 zellij = "Zellij"
+zsh = "zsh"
 
 [macos.text_replacements]
 EGM = "elephant-goldfish model"
