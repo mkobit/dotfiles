@@ -1,3 +1,8 @@
+[handy.custom_words]
+chezmoi = "chezmoi"
+egm = "EGM"
+zellij = "Zellij"
+
 [macos.text_replacements]
 EGM = "elephant-goldfish model"
 chesmoir = "chezmoi"
