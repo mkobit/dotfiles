@@ -17,16 +17,33 @@ SOURCE_ROOT = REPOSITORY_ROOT / "src/chezmoi"
 EXTERNAL_TEMPLATE = SOURCE_ROOT / "dot_local/.chezmoiexternals/claude.toml.tmpl"
 LAUNCHER_TEMPLATE = SOURCE_ROOT / "dot_local/bin/symlink_claude.tmpl"
 IGNORE_TEMPLATE = SOURCE_ROOT / "dot_local/bin/.chezmoiignore.tmpl"
+TEST_VERSION = "9.8.7"
+TEST_URL_FORMAT = "https://downloads.claude.ai/claude-code-releases/{version}/{target}/claude"
 PLATFORMS = [
-    ("darwin", "arm64", "darwin-arm64", "d8cb1e5c79684cc12a8bfc813e3a2073406921b6245744b3009be3ab5651d21e"),
-    ("darwin", "amd64", "darwin-x64", "c896d2aee12ff4d95861033d9730d3d22dc19e4f32779134d3399ef3dfb0e77a"),
-    ("linux", "arm64", "linux-arm64", "346d294f0103d6fc0de11ac953579b5c62dfa90698a4cfc486b6f927c615e697"),
-    ("linux", "amd64", "linux-x64", "1859583ce32920595c61ef868bee52e1b1594f7486db209935e01f1e5e804ae2"),
+    ("darwin", "arm64", "darwin-arm64", "1" * 64),
+    ("darwin", "amd64", "darwin-x64", "2" * 64),
+    ("linux", "arm64", "linux-arm64", "3" * 64),
+    ("linux", "amd64", "linux-x64", "4" * 64),
 ]
+
+
+def _test_release():
+    return {
+        "version": TEST_VERSION,
+        "direct_release": {
+            "external_type": "file",
+            "executable": True,
+            "checksum_type": "sha256",
+            "url_format": TEST_URL_FORMAT,
+            "platforms": {f"{os_name}_{arch}": target for os_name, arch, target, _ in PLATFORMS},
+            "checksums": {f"{os_name}_{arch}": checksum for os_name, arch, _, checksum in PLATFORMS},
+        },
+    }
 
 
 def _render(template, *, method="direct_release", os_name="linux", arch="amd64", destination=None):
     data = {
+        "bin": {"claude": _test_release()},
         "chezmoi": {"os": os_name, "arch": arch},
         "claude_code": {"installation_method": method} if method is not None else {},
     }
@@ -59,9 +76,9 @@ def test_claude_external_selects_platform_binary(os_name, arch, vendor_platform,
     assert result.returncode == 0, result.stderr
     external = tomllib.loads(result.stdout)
     assert external == {
-        "lib/claude/2.1.283/claude": {
+        f"lib/claude/{TEST_VERSION}/claude": {
             "type": "file",
-            "url": f"https://downloads.claude.ai/claude-code-releases/2.1.283/{vendor_platform}/claude",
+            "url": f"https://downloads.claude.ai/claude-code-releases/{TEST_VERSION}/{vendor_platform}/claude",
             "executable": True,
             "checksum": {"sha256": checksum},
         }
@@ -89,7 +106,7 @@ def test_claude_launcher_uses_destination(tmp_path):
     result = _render(LAUNCHER_TEMPLATE, destination=destination)
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.strip() == str(destination / ".local/lib/claude/2.1.283/claude")
+    assert result.stdout.strip() == str(destination / f".local/lib/claude/{TEST_VERSION}/claude")
 
 
 def _claude_source(tmp_path):
@@ -172,8 +189,9 @@ def test_claude_unmanaged_apply_preserves_existing_launcher(tmp_path, method, la
 def test_claude_apply_replaces_installer_launcher_and_preserves_old_binary(tmp_path):
     source = _claude_source(tmp_path)
     destination = tmp_path / "destination"
-    catalog = tomllib.loads((SOURCE_ROOT / ".chezmoidata/bin/claude.toml").read_text())
-    payload = b"#!/bin/sh\nprintf '2.1.283 (Claude Code)\\n'\n"
+    catalog = {"bin": {"claude": _test_release()}}
+    payload = f"#!/bin/sh\nprintf '{TEST_VERSION} (Claude Code)\\n'\n"
+    payload = payload.encode()
     downloads = tmp_path / "downloads"
     downloads.mkdir()
     (downloads / "claude").write_bytes(payload)
@@ -211,7 +229,7 @@ def test_claude_apply_replaces_installer_launcher_and_preserves_old_binary(tmp_p
         thread.join()
 
     assert result.returncode == 0, result.stderr
-    binary = destination / ".local/lib/claude/2.1.283/claude"
+    binary = destination / f".local/lib/claude/{TEST_VERSION}/claude"
     assert launcher.is_symlink()
     assert launcher.readlink() == binary
     assert binary.read_bytes() == payload
@@ -219,7 +237,7 @@ def test_claude_apply_replaces_installer_launcher_and_preserves_old_binary(tmp_p
     assert old_binary.read_text() == "previous installation\n"
     version = subprocess.run([str(launcher), "--version"], capture_output=True, text=True, check=False)
     assert version.returncode == 0, version.stderr
-    assert version.stdout.strip() == "2.1.283 (Claude Code)"
+    assert version.stdout.strip() == f"{TEST_VERSION} (Claude Code)"
 
 
 @pytest.mark.integration
