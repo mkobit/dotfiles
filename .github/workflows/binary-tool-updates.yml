@@ -1,0 +1,105 @@
+name: Update binary tools
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      tool:
+        description: 'Tool name or all'
+        default: 'all'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: binary-tool-updates
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    if: github.repository == 'mkobit/dotfiles' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      artifact-id: ${{ steps.upload.outputs.artifact-id }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          persist-credentials: false
+
+      - uses: $/.github/actions/setup-mise
+
+      - name: Install generator dependencies
+        run: uv sync --all-packages --frozen
+
+      - name: Generate catalog updates
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          TARGET_TOOL: ${{ inputs.tool || 'all' }}
+        run: |
+          set -euo pipefail
+          catalog_dir=src/chezmoi/.chezmoidata/bin
+          handoff="$RUNNER_TEMP/binary-updates"
+          mkdir -- "$handoff"
+          if [[ "$TARGET_TOOL" == all ]]; then
+            tool_files=("$catalog_dir"/*.toml)
+          elif [[ "$TARGET_TOOL" =~ ^[a-zA-Z0-9_-]+$ ]] && [[ -f "$catalog_dir/$TARGET_TOOL.toml" ]]; then
+            tool_files=("$catalog_dir/$TARGET_TOOL.toml")
+          else
+            echo 'Unknown binary tool.' >&2
+            exit 1
+          fi
+
+          for tool_file in "${tool_files[@]}"; do
+            tool_name=$(basename -- "$tool_file" .toml)
+            report="$RUNNER_TEMP/report-$tool_name.json"
+            if ! uv run --frozen --package bin-updater bin-updater --tool "$tool_name" --report-file "$report"; then
+              printf '%s\n' "$tool_name" >> "$handoff/failures.txt"
+            elif ! git diff --quiet -- "$tool_file"; then
+              cp -- "$tool_file" "$handoff/$tool_name.toml"
+              mv -- "$report" "$handoff/$tool_name.json"
+            fi
+          done
+
+      - name: Upload catalog updates
+        id: upload
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: binary-updates-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/binary-updates/
+          if-no-files-found: ignore
+          retention-days: 1
+
+  publish:
+    if: github.repository == 'mkobit/dotfiles' && github.ref == 'refs/heads/main' && needs.generate.outputs.artifact-id != ''
+    needs: generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: binary-updater
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.workflow_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Download catalog updates
+        uses: actions/download-artifact@v8.0.2
+        with:
+          artifact-ids: ${{ needs.generate.outputs.artifact-id }}
+          merge-multiple: true
+          path: ${{ runner.temp }}/binary-updates
+
+      - name: Publish catalog update pull requests
+        env:
+          GH_TOKEN: ${{ secrets.BIN_UPDATER_TOKEN }}
+        run: |
+          set -euo pipefail
+          handoff="$RUNNER_TEMP/binary-updates"
+          python3 .github/scripts/publish-bin-updates.py "$handoff"
+          if [[ -e "$handoff/failures.txt" ]]; then
+            echo 'One or more tools failed during generation. See the generation log.' >&2
+            exit 1
+          fi
