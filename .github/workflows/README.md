@@ -65,23 +65,20 @@ Vendor manifest requests do not receive GitHub credentials.
 This validates checksum metadata over HTTPS; it does not verify the manifest's GPG signature.
 See [Claude binary integrity](https://code.claude.com/docs/en/setup#binary-integrity-and-code-signing).
 
-### Move the publication token
+### Operate the updater
 
-1. Disable the legacy `upgrade-bin-tools.yml` workflow **before merging** this replacement.
-   Do not re-enable the old workflow. A rerun can use the original workflow revision and its fallback credentials.
-   Check queued and active runs that could have received the repository secret.
-   Cancel or drain those runs and verify their termination. Revoke the old PAT and use a scoped replacement if you cannot verify termination.
-2. Find open updater PRs and disable any pending automatic merge. Verify that no pending requests remain.
-3. Create the `binary-updater` environment. Allow only the `main` branch under **Selected branches and tags**. Add no tag rule or required reviewers.
-   Verify the branch rule independently of the workflow guard. Use a harmless job with the environment reference and no secret reference.
-4. Add `BIN_UPDATER_TOKEN` as an environment secret. Limit the token to this repository and give it only **Contents** and **Pull requests** write access.
-   Set an expiry and track renewal. Remove the repository copy and confirm that no same-name inherited secret is available.
-5. Merge the replacement after checking that CI jobs that execute proposed binaries lack write permissions and protected secrets.
-   Run **Update binary tools** from `main` with one tool that has an eligible update.
-   Confirm the catalog changes, PR title and notes, automatic checks, and manual merge.
-   Confirm the retired workflow cannot run again.
+Keep the `binary-updater` environment restricted to the `main` branch.
+Keep `BIN_UPDATER_TOKEN` in that environment only, scoped to this repository with **Contents** and **Pull requests** write access.
+Renew the token before it expires.
+The branch policy trusts anyone who can merge workflow changes to `main`.
+See [GitHub environment controls](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments).
 
-Keep publication paused if validation fails. Correct the environment or workflow before resuming.
+To check publication after a token or workflow change, run **Update binary tools** from `main` for one tool with an eligible update.
+Verify that the PR contains only the catalog change, includes both versions and the release notes, and starts CI without manual approval.
+Merge the PR manually after review and passing checks.
+
+Keep the retired `upgrade-bin-tools.yml` workflow disabled.
+A rerun can use the original workflow revision and its fallback credentials.
+See [GitHub workflow reruns](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs).
+
 If you suspect token disclosure, revoke the token, review related branches and PRs, and install a scoped replacement in the environment.
-The branch policy trusts actors who can merge changes to `main`.
-See [environment controls](https://docs.github.com/en/actions/how-tos/deploy/configure-and-manage-deployments/manage-environments) and [workflow reruns](https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs).
