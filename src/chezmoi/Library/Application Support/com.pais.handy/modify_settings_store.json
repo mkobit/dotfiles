@@ -1,17 +1,11 @@
 {{/* chezmoi:modify-template */}}
-{{- if and (or (hasKey . "text_replacements") (hasKey . "text_replacement_pairs") (hasKey . "handy")) .chezmoi.stdin -}}
+{{- if and (or (hasKey . "text_replacements") (hasKey . "handy")) .chezmoi.stdin -}}
 {{- $store := .chezmoi.stdin | fromJson -}}
 {{- $settings := get $store "settings" -}}
 {{- $handy := get . "handy" | default dict -}}
-{{- $desiredWords := concat (get $settings "custom_words" | default list) (values (get . "text_replacements" | default dict)) (values (get . "text_replacement_pairs" | default dict)) (values (get $handy "custom_words" | default dict)) | uniq | sortAlpha -}}
-{{- $scriptPath := joinPath .chezmoi.destDir ".local" "bin" "handy-paste" -}}
-{{- $needsScript := and (get $handy "use_paste_script") (or (ne (get $settings "paste_method" | default "") "external_script") (ne (get $settings "external_script_path" | default "") $scriptPath)) -}}
-{{- if or (ne (get $settings "custom_words" | toJson) ($desiredWords | toJson)) $needsScript -}}
+{{- $desiredWords := concat (get $settings "custom_words" | default list) (values (get . "text_replacements" | default dict)) (values (get $handy "custom_words" | default dict)) | uniq | sortAlpha -}}
+{{- if ne (get $settings "custom_words" | toJson) ($desiredWords | toJson) -}}
 {{- $_ := set $settings "custom_words" $desiredWords -}}
-{{- if $needsScript -}}
-{{- $_ := set $settings "paste_method" "external_script" -}}
-{{- $_ := set $settings "external_script_path" $scriptPath -}}
-{{- end -}}
 {{- $store | toPrettyJson }}
 {{ else -}}
 {{- .chezmoi.stdin -}}
