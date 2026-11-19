@@ -1,0 +1,8 @@
+[text_replacement_pairs]
+chesmoir = "chezmoi"
+EGM = "elephant-goldfish model"
+Zealage = "Zellij"
+zelleedge = "Zellij"
+
+[handy.custom_words]
+zellij = "Zellij"

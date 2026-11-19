@@ -1,0 +1,12 @@
+{{- if and (eq .chezmoi.os "darwin") (hasKey . "text_replacement_pairs") -}}
+#!/usr/bin/env bash
+set -u
+
+if command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import base64, os, runpy, sys; path = os.fsdecode(base64.b64decode(sys.argv[1])); sys.argv = [path, *sys.argv[2:]]; runpy.run_path(path, run_name="__main__")' \
+        {{ joinPath .chezmoi.sourceDir ".chezmoitemplates" "text-replacements" "sync.py" | b64enc | quote }} \
+        {{ .chezmoi.destDir | b64enc | quote }} \
+        {{ joinPath .chezmoi.sourceDir ".chezmoitemplates" "text-replacements" "snipctl.m" | b64enc | quote }} \
+        {{ .text_replacement_pairs | toJson | b64enc | quote }} || true
+fi
+{{- end }}
