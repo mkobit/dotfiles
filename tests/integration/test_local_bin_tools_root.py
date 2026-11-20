@@ -91,4 +91,5 @@ def test_mise_and_editable_tool_default_to_standalone_working_tree():
     assert f'mise trust "{REPOSITORY_ROOT}/mise.toml"' in mise.stdout
     assert f'mise install -C "{REPOSITORY_ROOT}"' in mise.stdout
     assert f'--cd "{REPOSITORY_ROOT}"' in local_tools.stdout
+    assert "uv tool install --force --python-preference system --python 3.14" in local_tools.stdout
     assert f'--editable "{REPOSITORY_ROOT}/src/python/termstatus"' in local_tools.stdout
