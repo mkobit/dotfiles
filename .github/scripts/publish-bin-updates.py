@@ -14,7 +14,23 @@ CATALOGS = Path("src/chezmoi/.chezmoidata/bin")
 TOOL = re.compile(r"[a-z0-9][a-z0-9_-]*")
 VERSION = re.compile(r"v?[0-9]{1,9}(?:\.[0-9]{1,9}){1,5}")
 CHECKSUM = re.compile(r"[0-9a-f]{64}")
-AT_SIGN = re.compile(r"@|&(?:commat;|#(?:0*64|[xX]0*40);?)")
+AT_SIGN = re.compile(r"@|&(?:commat;|#(?:0*64(?![0-9])|[xX]0*40(?![0-9a-fA-F]));?)")
+NOTE_TOKEN = re.compile(
+    r"(?P<url>https?://[a-zA-Z0-9.\-]+(?::[0-9]+)?/[^\s<>\[\]()?#]*)"
+    rf"|{AT_SIGN.pattern}"
+)
+
+
+def mute_mentions(body):
+    def replace(match):
+        if match.group("url"):
+            # A malformed link can expose its path as text. Keep at signs inert there too.
+            return AT_SIGN.sub("%40", match[0])
+        return "@\u200b"
+
+    return NOTE_TOKEN.sub(replace, body)
+
+
 # Each selector matches the supported release series for this catalog pin.
 MISE_TOOLS = {
     "bun": ("1", r"1\.[0-9]{1,9}\.[0-9]{1,9}", "https://bun.com/blog/bun-v{version}"),
@@ -221,8 +237,9 @@ def publish(name, artifact, base, repo):
         or not 0 < len(body) <= 65536
     ):
         raise ValueError("Update report does not match the catalog")
-    # Upstream notes may contain mentions. Make at signs inert before publishing.
-    body = AT_SIGN.sub("\uff20", body)
+    body = mute_mentions(body)
+    if len(body) > 65536:
+        raise ValueError("Update report exceeds the PR body limit after muting mentions")
     branch = f"automation/bin-update-{name}"
     prior = open_pr(repo, branch)
     with tempfile.TemporaryDirectory() as temp:

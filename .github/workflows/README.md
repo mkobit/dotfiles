@@ -46,7 +46,8 @@ See the [v0.4.0 limitations](https://github.com/github/gh-actions-lock/tree/v0.4
 
 The [binary upgrade workflow](binary-tool-updates.yml) includes the old and new versions in each PR title.
 The description contains release notes for releases between those versions, with upstream release and comparison links.
-Before publication, the updater replaces at signs in the description with fullwidth at signs to prevent GitHub mentions.
+Before publication, the updater inserts a zero-width space after at signs in text, including encoded at signs, to prevent GitHub mentions.
+It uses `%40` for at signs in absolute HTTP and HTTPS URL paths without user information, such as scoped package links.
 A later run updates the PR title and description even when the remote catalog content is unchanged.
 If the full release notes exceed GitHub's PR body limit, the updater selects an earlier mature release whose complete notes fit.
 If no newer mature target fits, it reports an error and leaves the catalog unchanged.

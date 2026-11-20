@@ -195,7 +195,12 @@ def test_publisher_does_not_send_mentions(tmp_path: Path, monkeypatch: pytest.Mo
                     "old_version": "0.8.2",
                     "new_version": "0.8.3",
                     "pr_title": title,
-                    "pr_body": "Thanks @alice, &#64;bob, &#x40;carol, and &commat;org/team.\n[Release](https://example.org/)",
+                    "pr_body": (
+                        "Thanks @alice, &#64;bob, &#x40;carol, and &commat;org/team.\n"
+                        "[@maintainer](https://unpkg.com/@scope/tool@1.2.3/README.md)\n"
+                        "Contact help@example.org. Keep &#640; and &#x400;.\n"
+                        "[Unclosed](https://example.org/@alice\n"
+                    ),
                 }
             ]
         ),
@@ -220,4 +225,11 @@ def test_publisher_does_not_send_mentions(tmp_path: Path, monkeypatch: pytest.Mo
     monkeypatch.setitem(publication, "update_branch", lambda *_: ("automation/bin-update-bkt", "head"))
     monkeypatch.setitem(publication, "remote_tip", lambda ref: "base" if ref == "refs/heads/main" else "head")
     publish("bkt", tmp_path, "base", "example/repo")
-    assert sent == ["Thanks \uff20alice, \uff20bob, \uff20carol, and \uff20org/team.\n[Release](https://example.org/)"]
+    assert sent == [
+        (
+            "Thanks @\u200balice, @\u200bbob, @\u200bcarol, and @\u200borg/team.\n"
+            "[@\u200bmaintainer](https://unpkg.com/%40scope/tool%401.2.3/README.md)\n"
+            "Contact help@\u200bexample.org. Keep &#640; and &#x400;.\n"
+            "[Unclosed](https://example.org/%40alice\n"
+        )
+    ]
