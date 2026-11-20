@@ -1,6 +1,7 @@
 import json
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 import pytest
@@ -72,6 +73,41 @@ def test_overlay_files_load_in_order_and_fail_independently(tmp_path):
     assert result["hasTagAction"] is True
     assert len(result["alerts"]) == 1
     assert "bad.lua" in result["alerts"][0]
+
+
+def test_nested_change_reloads_after_watcher_garbage_collection(tmp_path):
+    nested = tmp_path / "overlay"
+    nested.mkdir()
+    config_dir = json.dumps(str(tmp_path))
+    init_path = json.dumps(str((SOURCE / "init.lua").resolve()))
+    try:
+        run_lua(f"""local env = setmetatable({{}}, {{__index = _G}})
+            env._G = env
+            env.count = 0
+            env.hs = setmetatable({{configdir = {config_dir},
+                reload = function() env.count = env.count + 1 end,
+                alert = {{show = function() end}}}}, {{__index = hs}})
+            env.require = function() return {{}} end
+            env.dofile = function() end
+            assert(loadfile({init_path}, "t", env))()
+            _G._codexWatcherTestEnv = env
+            collectgarbage("collect")
+            return hs.json.encode({{true}})""")
+        (nested / "changed.lua").write_text("-- changed")
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            if run_lua("return hs.json.encode({_G._codexWatcherTestEnv.count})")[0] > 0:
+                break
+            time.sleep(0.2)
+        else:
+            pytest.fail("Hammerspoon did not reload after a nested Lua file changed")
+    finally:
+        run_lua("""if _G._codexWatcherTestEnv and _G._codexWatcherTestEnv.DotfilesConfigWatcher then
+                _G._codexWatcherTestEnv.DotfilesConfigWatcher:stop()
+            end
+            _G._codexWatcherTestEnv = nil
+            collectgarbage("collect")
+            return hs.json.encode({true})""")
 
 
 def test_tag_ranges_expand_partial_words_and_count_utf16_units():
