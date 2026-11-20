@@ -153,6 +153,7 @@ dynamic-function-decorator-return = "ignore"
 [tool.pytest.ini_options]
 addopts = "-p no:anyio"
 asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
 
 [tool.coverage.run]
 source = ["src/python"]
