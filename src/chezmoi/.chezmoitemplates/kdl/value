@@ -1,0 +1,12 @@
+{{- $kind := kindOf . -}}
+{{- if eq $kind "string" -}}
+  {{- $value := . | replace "\\" "\\\\" | replace "\"" "\\\"" -}}
+  {{- range $code := until 32 -}}
+    {{- $value = replace (printf "%c" $code) (printf "\\u{%x}" $code) $value -}}
+  {{- end -}}
+  {{- printf "\"%s\"" $value -}}
+{{- else if or (eq $kind "bool") (regexMatch "^(u?int(8|16|32|64)?|float(32|64))$" $kind) -}}
+  {{- printf "%v" . -}}
+{{- else -}}
+  {{- fail (printf "Unsupported KDL value type: %s" $kind) -}}
+{{- end -}}

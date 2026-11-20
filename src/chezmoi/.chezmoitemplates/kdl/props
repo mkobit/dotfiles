@@ -1,0 +1,3 @@
+{{- range $key, $value := . -}}
+  {{- printf " " -}}{{- includeTemplate "kdl/value" $key -}}={{- includeTemplate "kdl/value" $value -}}
+{{- end -}}
