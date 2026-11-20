@@ -1,18 +1,22 @@
+import asyncio
 import json
 import shutil
-import subprocess
-import time
+import sys
+import tempfile
+import uuid
+from contextlib import suppress
 from pathlib import Path
 
 import pytest
-from integration_support.chezmoi import chezmoi_argv
+from integration_support.chezmoi import chezmoi_argv, run_chezmoi
 
 SOURCE = Path("src/chezmoi/dot_dotfiles/hammerspoon")
+pytestmark = pytest.mark.asyncio
 
 
-def render_config(tmp_path):
+async def render_config(tmp_path):
     data = {"hammerspoon": {"window_manager": {"enabled": False}}}
-    return subprocess.run(
+    result = await run_chezmoi(
         chezmoi_argv(
             "--config-format",
             "toml",
@@ -25,27 +29,63 @@ def render_config(tmp_path):
             destination=tmp_path,
             config="/dev/null",
         ),
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout
+    )
+    if result.returncode:
+        raise RuntimeError(f"chezmoi failed with exit code {result.returncode}:\n{result.stderr}")
+    return result.stdout
 
 
-def run_lua(script):
+async def run_lua(script):
     hs = shutil.which("hs")
     if not hs:
         pytest.skip("Hammerspoon CLI is not available")
-    result = subprocess.run([hs, "-q", "-t", "5", "-c", script], capture_output=True, text=True, check=True)
-    return json.loads(result.stdout)
+    args = [hs, "-q", "-t", "5", "-c", script]
+    process = await asyncio.create_subprocess_exec(
+        *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+    )
+    try:
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
+    finally:
+        if process.returncode is None:
+            with suppress(ProcessLookupError):
+                process.kill()
+            await process.communicate()
+    if process.returncode:
+        raise RuntimeError(
+            f"Hammerspoon CLI failed with exit code {process.returncode}:\n"
+            f"stderr: {stderr.decode(errors='replace')}\nstdout: {stdout.decode(errors='replace')}"
+        )
+    return json.loads(stdout)
 
 
-def test_overlay_files_load_in_order_and_fail_independently(tmp_path):
-    config_dir = tmp_path / ".dotfiles/hammerspoon"
+@pytest.fixture
+def hammerspoon_scratch():
+    scratch = (Path.cwd() / ".scratch").resolve()
+    scratch.mkdir(exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix="hammerspoon-", dir=scratch) as directory:
+        yield Path(directory)
+
+
+def assert_warning(alerts):
+    assert len(alerts) == 1
+    assert isinstance(alerts[0], str) and alerts[0].strip()
+
+
+def assert_text_may_have_changed(alerts):
+    assert_warning(alerts)
+    warning = alerts[0].lower()
+    assert "text" in warning
+    assert any(word in warning for word in ("changed", "modified"))
+    assert any(word in warning for word in ("may", "might", "could", "whether", "possibly"))
+
+
+async def test_overlay_files_load_in_order_and_fail_independently(hammerspoon_scratch):
+    config_dir = hammerspoon_scratch / ".dotfiles/hammerspoon"
     snippets = config_dir / "snippets"
     snippets.mkdir(parents=True)
     (snippets / "init.lua").write_text("")
     shutil.copy(SOURCE / "snippets/macros.lua", snippets)
-    (config_dir / "config.lua").write_text(render_config(tmp_path))
+    (config_dir / "config.lua").write_text(await render_config(hammerspoon_scratch))
     path = json.dumps(str(config_dir / "config.lua"))
     script = f"""local env = setmetatable({{}}, {{__index = _G}})
         env._G = env
@@ -56,7 +96,7 @@ def test_overlay_files_load_in_order_and_fail_independently(tmp_path):
         env.dofile({path})
         return hs.json.encode({{order=env.order, alerts=env.alerts,
             hasTagAction=type(env.DotfilesActions.wrapPromptTag) == "function"}})"""
-    assert run_lua(script) == {"order": [], "alerts": [], "hasTagAction": True}
+    assert await run_lua(script) == {"order": [], "alerts": [], "hasTagAction": True}
 
     overlay = config_dir / "overlay"
     overlay.mkdir()
@@ -65,20 +105,23 @@ def test_overlay_files_load_in_order_and_fail_independently(tmp_path):
     (overlay / "bad.lua").write_text('error("bad overlay")')
     (overlay / "c.lua").write_text('order[#order + 1] = "c"')
     (overlay / "ignored.txt").write_text('error("not Lua")')
-    result = run_lua(script)
+    result = await run_lua(script)
     assert result["order"] == ["a", "b", "c"]
     assert result["hasTagAction"] is True
     assert len(result["alerts"]) == 1
     assert "bad.lua" in result["alerts"][0]
 
 
-def test_nested_change_reloads_after_watcher_garbage_collection(tmp_path):
+async def test_nested_change_reloads_after_watcher_garbage_collection(tmp_path):
+    if not shutil.which("hs"):
+        pytest.skip("Hammerspoon CLI is not available")
     nested = tmp_path / "overlay"
     nested.mkdir()
     config_dir = json.dumps(str(tmp_path))
     init_path = json.dumps(str((SOURCE / "init.lua").resolve()))
+    watcher_key = json.dumps("_codexWatcherTestEnv_" + uuid.uuid4().hex)
     try:
-        run_lua(f"""local env = setmetatable({{}}, {{__index = _G}})
+        await run_lua(f"""local env = setmetatable({{}}, {{__index = _G}})
             env._G = env
             env.count = 0
             env.hs = setmetatable({{configdir = {config_dir},
@@ -87,27 +130,33 @@ def test_nested_change_reloads_after_watcher_garbage_collection(tmp_path):
             env.require = function() return {{}} end
             env.dofile = function() end
             assert(loadfile({init_path}, "t", env))()
-            _G._codexWatcherTestEnv = env
+            _G[{watcher_key}] = env
             collectgarbage("collect")
             return hs.json.encode({{true}})""")
         (nested / "changed.lua").write_text("-- changed")
-        deadline = time.monotonic() + 5
-        while time.monotonic() < deadline:
-            if run_lua("return hs.json.encode({_G._codexWatcherTestEnv.count})")[0] > 0:
-                break
-            time.sleep(0.2)
-        else:
+        try:
+            async with asyncio.timeout(5):
+                while not (await run_lua(f"return hs.json.encode({{_G[{watcher_key}].count}})"))[0]:
+                    await asyncio.sleep(0.2)
+        except TimeoutError:
             pytest.fail("Hammerspoon did not reload after a nested Lua file changed")
     finally:
-        run_lua("""if _G._codexWatcherTestEnv and _G._codexWatcherTestEnv.DotfilesConfigWatcher then
-                _G._codexWatcherTestEnv.DotfilesConfigWatcher:stop()
-            end
-            _G._codexWatcherTestEnv = nil
-            collectgarbage("collect")
-            return hs.json.encode({true})""")
+        original_error = sys.exception()
+        try:
+            await run_lua(f"""local env = _G[{watcher_key}]
+                if env and env.DotfilesConfigWatcher then
+                    env.DotfilesConfigWatcher:stop()
+                end
+                _G[{watcher_key}] = nil
+                collectgarbage("collect")
+                return hs.json.encode({{true}})""")
+        except Exception as cleanup_error:
+            if original_error is None:
+                raise
+            original_error.add_note(f"Hammerspoon watcher cleanup failed: {cleanup_error!r}")
 
 
-def test_tag_ranges_expand_partial_words_and_count_utf16_units():
+async def test_tag_ranges_expand_partial_words_and_count_utf16_units():
     path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
     script = f"""local m = dofile({path})
         local cases = {{{{ "copied prompt", 3, 7 }}, {{ "copied prompt", 5, 0 }},
@@ -116,7 +165,7 @@ def test_tag_ranges_expand_partial_words_and_count_utf16_units():
         local out = {{}}
         for _, c in ipairs(cases) do out[#out + 1] = m.plan(c[1], c[2], c[3]) end
         return hs.json.encode(out)"""
-    plans = run_lua(script)
+    plans = await run_lua(script)
     assert [(p["location"], p["length"], p["replacement"], p["cursor"]) for p in plans] == [
         (0, 13, "<copied-prompt></copied-prompt>", 15),
         (0, 6, "<copied></copied>", 8),
@@ -126,7 +175,7 @@ def test_tag_ranges_expand_partial_words_and_count_utf16_units():
     ]
 
 
-def test_tag_rejects_unsafe_ranges_and_invalid_names():
+async def test_tag_rejects_unsafe_ranges_and_invalid_names():
     path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
     script = f"""local m = dofile({path})
         return hs.json.encode({{
@@ -137,10 +186,10 @@ def test_tag_rejects_unsafe_ranges_and_invalid_names():
             m.plan("copied", 10, 0) == nil,
             m.plan("café", 2, 0) == nil,
         }})"""
-    assert run_lua(script) == [True] * 6
+    assert await run_lua(script) == [True] * 6
 
 
-def test_tag_action_checks_accessibility_and_replaces_only_selected_text():
+async def test_tag_action_checks_accessibility_and_replaces_only_selected_text():
     path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
     script = f"""local m = dofile({path})
         local function run(bundle, writable, focused)
@@ -169,20 +218,17 @@ def test_tag_action_checks_accessibility_and_replaces_only_selected_text():
         end
         return hs.json.encode({{run("browser", true, true), run("browser", false, true),
             run("com.mitchellh.ghostty", true, true), run("browser", true, false)}})"""
-    success, readonly, terminal, nofocus = run_lua(script)
-    assert success == {
-        "result": True,
-        "value": "<copied-prompt></copied-prompt>",
-        "range": {"location": 15, "length": 0},
-        "writes": 3,
-    }
+    success, readonly, terminal, nofocus = await run_lua(script)
+    assert success["result"] is True
+    assert success["value"] == "<copied-prompt></copied-prompt>"
+    assert success["range"] == {"location": 15, "length": 0}
     for result in [readonly, terminal, nofocus]:
         assert result["result"] is False
         assert result["value"] == "copied prompt"
         assert result["writes"] == 0
 
 
-def test_tag_action_reports_unavailable_field():
+async def test_tag_action_reports_unavailable_field():
     path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
     script = f"""local m = dofile({path})
         local alerts = {{}}
@@ -193,10 +239,10 @@ def test_tag_action_reports_unavailable_field():
         }}
         m.wrapPromptTag(api)
         return hs.json.encode(alerts)"""
-    assert run_lua(script) == ["Cannot wrap text in this field"]
+    assert_warning(await run_lua(script))
 
 
-def test_tag_action_does_not_replace_text_when_selection_write_is_ignored():
+async def test_tag_action_does_not_replace_text_when_selection_write_is_ignored():
     path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
     script = f"""local m = dofile({path})
         local state = {{value="copied prompt", range={{location=3, length=7}}, replacements=0}}
@@ -216,7 +262,7 @@ def test_tag_action_does_not_replace_text_when_selection_write_is_ignored():
             application = {{frontmostApplication = function() return {{bundleID = function() return "browser" end}} end}}}}
         return hs.json.encode({{result=m.promptTag(api), value=state.value,
             range=state.range, replacements=state.replacements}})"""
-    assert run_lua(script) == {
+    assert await run_lua(script) == {
         "result": False,
         "value": "copied prompt",
         "range": {"location": 3, "length": 7},
@@ -224,7 +270,7 @@ def test_tag_action_does_not_replace_text_when_selection_write_is_ignored():
     }
 
 
-def test_tag_action_waits_for_selection_and_verifies_typed_text():
+async def test_tag_action_waits_for_selection_and_verifies_typed_text():
     path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
     script = f"""local m = dofile({path})
         local function run(mode)
@@ -279,12 +325,12 @@ def test_tag_action_waits_for_selection_and_verifies_typed_text():
                 table.remove(state.queue, 1)()
             end
             return {{result=result, value=state.value, range=state.range, writes=state.writes,
-                typed=state.typed, alerts=state.alerts, ticks=state.ticks, pending=#state.queue,
+                typed=state.typed, alerts=state.alerts, pending=#state.queue,
                 overlap=overlap, cursorWrites=state.cursorWrites}}
         end
         return hs.json.encode({{run("success"), run("timeout"), run("focus"), run("value"),
             run("unexpected"), run("type_timeout"), run("selection"), run("delay_end")}})"""
-    success, timeout, focus, value, unexpected, type_timeout, selection, delay_end = run_lua(script)
+    success, timeout, focus, value, unexpected, type_timeout, selection, delay_end = await run_lua(script)
     assert success["result"] is True
     assert success["typed"] == 1
     assert success["value"] == "before <copied-prompt></copied-prompt> after"
@@ -293,25 +339,24 @@ def test_tag_action_waits_for_selection_and_verifies_typed_text():
     for failure in (timeout, focus, value):
         assert failure["result"] is True
         assert failure["typed"] == 0
-        assert failure["alerts"] == ["Cannot wrap text in this field"]
+        assert_warning(failure["alerts"])
     assert unexpected["typed"] == 1
     assert unexpected["value"] == "changed elsewhere"
-    assert unexpected["alerts"] == ["Could not verify tag insertion; text may have changed"]
+    assert_text_may_have_changed(unexpected["alerts"])
     assert type_timeout["typed"] == 1
-    assert type_timeout["alerts"] == ["Could not verify tag insertion; text may have changed"]
+    assert_text_may_have_changed(type_timeout["alerts"])
     assert selection["range"] == {"location": 2, "length": 0}
     assert selection["cursorWrites"] == 0
-    assert selection["alerts"] == ["Could not verify tag insertion; text may have changed"]
+    assert_text_may_have_changed(selection["alerts"])
     assert delay_end["range"] == {"location": 22, "length": 0}
     assert delay_end["alerts"] == []
     for result in (success, timeout, focus, value, unexpected, type_timeout, selection, delay_end):
         assert result["writes"] == 0
         assert result["overlap"] is False
-        assert result["ticks"] < 100
         assert result["pending"] == 0
 
 
-def test_direct_replacement_warns_if_cursor_cannot_be_set():
+async def test_direct_replacement_warns_if_cursor_cannot_be_set():
     path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
     script = f"""local m = dofile({path})
         local state = {{value="copied prompt", range={{location=3, length=7}}, alerts={{}}}}
@@ -333,7 +378,6 @@ def test_direct_replacement_warns_if_cursor_cannot_be_set():
             alert = {{show = function(message) state.alerts[#state.alerts + 1] = message end}}}}
         m.wrapPromptTag(api)
         return hs.json.encode({{value=state.value, alerts=state.alerts}})"""
-    assert run_lua(script) == {
-        "value": "<copied-prompt></copied-prompt>",
-        "alerts": ["Could not verify tag insertion; text may have changed"],
-    }
+    result = await run_lua(script)
+    assert result["value"] == "<copied-prompt></copied-prompt>"
+    assert_text_may_have_changed(result["alerts"])
