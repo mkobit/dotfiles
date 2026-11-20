@@ -1,5 +1,5 @@
 [bin.claude]
-version = "2.1.286"
+version = "2.1.291"
 minimum_release_age = "7d"
 
 [bin.claude.updater]
@@ -21,7 +21,7 @@ linux_arm64 = "linux-arm64"
 linux_amd64 = "linux-x64"
 
 [bin.claude.direct_release.checksums]
-darwin_arm64 = "75e3016e9d2570767b08e43a7467d4817a4f149232c169ca295f2c95fef21433"
-darwin_amd64 = "53e6a936e89519d695230f9cc97943991286b72766674fba11bee845f0a7c047"
-linux_arm64 = "0292fa22ac2fd43e16be9d0e511ddd8347280d6e0ebaca744ef5b27e05d8d0f8"
-linux_amd64 = "fe503f65c6289d59c23e5b21ae44f03583f997dd33a2cbfc75ab4f96fb8fc73f"
+darwin_arm64 = "9a1d2ed6bb4421e8fc80c892c0413f293be3ee50ae3d7dda1a7622197a056690"
+darwin_amd64 = "223bf4de0e8f38cb254fc38f82fda09f9fcfd4e2aac62b59ef7e7f1960a45ddd"
+linux_arm64 = "c18473a04cc4f077435d5d9081f09ebea46e699eb2825cea64741c4bccb87647"
+linux_amd64 = "078fad28d0297c9a25d306b635b2d8816c6839347520f29eb54ffea5d56142fb"
