@@ -196,6 +196,15 @@ def test_plugin_folders_converge_through_native_apply(tmp_path):
     assert _json(plugins / "alpha/.claude-plugin/plugin.json")["version"] == alpha["version"]
 
     version = alpha["version"]
+    metadata = source / PLUGINS / "exact_alpha/exact_skills/exact_one/exact_agents/openai.yaml"
+    metadata.parent.mkdir()
+    metadata.write_text('interface:\n  display_name: "First skill"\n')
+    _chezmoi(source, destination, config, "apply")
+    assert (plugins / "alpha/skills/one/agents/openai.yaml").read_text() == metadata.read_text()
+    assert _json(plugins / "alpha/.codex-plugin/plugin.json")["interface"]["capabilities"] == ["one", "two"]
+    assert _json(plugins / "alpha/.claude-plugin/plugin.json")["version"] != version
+
+    version = _json(plugins / "alpha/.claude-plugin/plugin.json")["version"]
     (source / PLUGINS / "exact_alpha/exact_skills/exact_one/SKILL.md").write_text("# One, edited\n")
     _chezmoi(source, destination, config, "apply")
     assert (plugins / "alpha/skills/one/SKILL.md").read_text() == "# One, edited\n"
