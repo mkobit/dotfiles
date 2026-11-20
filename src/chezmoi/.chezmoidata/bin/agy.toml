@@ -1,5 +1,5 @@
 [bin.agy]
-version = "1.5.8"
+version = "1.5.9"
 minimum_release_age = "5d"
 
 [bin.agy.github_releases]
@@ -20,7 +20,7 @@ linux_amd64  = "linux_x64"
 linux_arm64  = "linux_arm64"
 
 [bin.agy.github_releases.checksums]
-darwin_arm64 = "fc9a89abcdc045a6a770085e73e377d23d067940fb57773a157f137e0bc3829f"
-darwin_amd64 = "e4cf78cbe61d1990b31b1d66def17add7cb7e783c87aae7c81172673516be3c0"
-linux_amd64  = "905d4accfbd61bc00bee84bfaf24c59b85d334cabd786cf99237b66cfe06ab98"
-linux_arm64  = "0ca407357661aa244fbc3b0e79a1d1d2623b2ca1515d2e2f77a801c3676bd562"
+darwin_arm64 = "51fb8eb7e18c53d4665f0043b761f04f4d0d4b2eb046bac6c2dcbe32473b5b2e"
+darwin_amd64 = "d0fb8e28c233fadbe612fa273d06b6c189932a33f1c16f0d2c1cb6732123d6c3"
+linux_amd64  = "8b1f5e56779f2434a0af36f1b715a8392a084de550f8c68bc79821f95fabf3fa"
+linux_arm64  = "3a18c238c7ee6661e43df7e824a7d4c1bed78aeeda09430921a0f1dbfe825bca"
