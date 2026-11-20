@@ -1,6 +1,6 @@
 """sandboxr: run commands and agents inside an outer sandbox.
 
-HITL mode: run agent CLIs directly (claude, agy, opencode) — the tool's
+HITL mode: run agent CLIs directly (claude, agy) — the tool's
 own permission prompts are the UX boundary. Nothing here applies.
 
 Autonomous mode: sandboxr run -- TOOL ARGS — the OS bwrap sandbox enforces

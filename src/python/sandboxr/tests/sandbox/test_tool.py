@@ -37,11 +37,6 @@ def test_explicit_dangerously_skip_permissions_preserved():
     assert cmd.count("--dangerously-skip-permissions") == 1
 
 
-def test_opencode_sets_config_env():
-    _cmd, env = adapt_command(["opencode"], {})
-    assert "OPENCODE_CONFIG" in env
-
-
 def test_unknown_tool_passes_through():
     cmd, env = adapt_command(["bash", "-c", "echo hi"], {})
     assert cmd == ["bash", "-c", "echo hi"]

@@ -2,26 +2,26 @@ import os
 from unittest.mock import Mock
 
 import pytest
-from conftest import _chezmoi_argv, _is_shellcheck_candidate_file
+from conftest import _deployed_chezmoi_argv, _is_shellcheck_candidate_file
 from test_shellcheck import test_shellcheck as run_shellcheck
 
 
-def test_chezmoi_argv_always_includes_source(monkeypatch):
+def test_deployed_chezmoi_argv_always_includes_source(monkeypatch):
     monkeypatch.delenv("CHEZMOI_CACHE_DIR", raising=False)
     monkeypatch.delenv("CHEZMOI_CONFIG", raising=False)
     monkeypatch.delenv("CHEZMOI_DEST", raising=False)
 
-    argv = _chezmoi_argv("managed")
+    argv = _deployed_chezmoi_argv("managed")
 
     assert argv == ["chezmoi", "--source", os.getcwd(), "managed"]
 
 
-def test_chezmoi_argv_includes_cache_config_destination_when_set(monkeypatch):
+def test_deployed_chezmoi_argv_includes_cache_config_destination_when_set(monkeypatch):
     monkeypatch.setenv("CHEZMOI_CACHE_DIR", "/tmp/cache")
     monkeypatch.setenv("CHEZMOI_CONFIG", "/tmp/config.toml")
     monkeypatch.setenv("CHEZMOI_DEST", "/tmp/dest")
 
-    argv = _chezmoi_argv("data", "--format=json")
+    argv = _deployed_chezmoi_argv("data", "--format=json")
 
     assert argv == [
         "chezmoi",

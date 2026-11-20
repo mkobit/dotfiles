@@ -3,14 +3,19 @@ import os
 import re
 import shlex
 import subprocess
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Sequence
+from functools import cache
 from pathlib import Path
+from typing import TypedDict, cast
 
 import pytest
 from chezmoi_test_data import required_installation_method
+from integration_support.chezmoi import chezmoi_argv
+from testinfra.host import Host
+from testinfra.modules.user import User
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "integration: mark test as a system integration test.")
     config.addinivalue_line(
         "markers",
@@ -19,7 +24,7 @@ def pytest_configure(config):
 
 
 @pytest.fixture(autouse=True)
-def skip_unmatched_chezmoi_installation(request):
+def skip_unmatched_chezmoi_installation(request: pytest.FixtureRequest) -> None:
     marker = request.node.get_closest_marker("chezmoi_installation")
     if marker is None:
         return
@@ -40,22 +45,18 @@ def skip_unmatched_chezmoi_installation(request):
         pytest.skip(f"{feature}.installation_method is {active_method!r}; expected one of: {allowed}")
 
 
-def _chezmoi_argv(*args):
-    command = ["chezmoi", "--source", str(Path.cwd())]
-
-    if cache_dir := os.environ.get("CHEZMOI_CACHE_DIR"):
-        command.extend(["--cache", cache_dir])
-    if config_path := os.environ.get("CHEZMOI_CONFIG"):
-        command.extend(["--config", config_path])
-    if dest := os.environ.get("CHEZMOI_DEST"):
-        command.extend(["--destination", dest])
-
-    command.extend(args)
-    return command
+def _deployed_chezmoi_argv(*args: str) -> Sequence[str]:
+    return chezmoi_argv(
+        *args,
+        source=Path.cwd(),
+        cache=os.environ.get("CHEZMOI_CACHE_DIR") or None,
+        config=os.environ.get("CHEZMOI_CONFIG") or None,
+        destination=os.environ.get("CHEZMOI_DEST") or None,
+    )
 
 
-def _chezmoi_command(*args):
-    return " ".join(shlex.quote(part) for part in _chezmoi_argv(*args))
+def _chezmoi_command(*args: str) -> str:
+    return shlex.join(_deployed_chezmoi_argv(*args))
 
 
 # chezmoi's documented attribute order for regular/create files is
@@ -65,23 +66,28 @@ def _chezmoi_command(*args):
 _EXECUTABLE_FILE_ATTRS_RE = re.compile(r"^(create_)?(encrypted_|private_|readonly_|empty_)*executable_")
 
 
-def _is_shellcheck_candidate_file(source_relative):
+def _is_shellcheck_candidate_file(source_relative: str) -> bool:
     name = Path(source_relative).name
     return name.startswith("modify_") or bool(_EXECUTABLE_FILE_ATTRS_RE.match(name))
 
 
-def _shellcheck_candidates():
-    scripts = json.loads(
+class _ShellcheckCandidate(TypedDict):
+    sourceAbsolute: str
+    sourceRelative: str
+
+
+def _shellcheck_candidates() -> list[_ShellcheckCandidate]:
+    scripts: dict[str, _ShellcheckCandidate] = json.loads(
         subprocess.run(
-            _chezmoi_argv("managed", "--include=scripts", "--format=json", "--path-style=all"),
+            _deployed_chezmoi_argv("managed", "--include=scripts", "--format=json", "--path-style=all"),
             capture_output=True,
             text=True,
             check=True,
         ).stdout
     )
-    files = json.loads(
+    files: dict[str, _ShellcheckCandidate] = json.loads(
         subprocess.run(
-            _chezmoi_argv("managed", "--include=files", "--format=json", "--path-style=all"),
+            _deployed_chezmoi_argv("managed", "--include=files", "--format=json", "--path-style=all"),
             capture_output=True,
             text=True,
             check=True,
@@ -95,13 +101,14 @@ def _shellcheck_candidates():
     return sorted(on_disk, key=lambda entry: entry["sourceRelative"])
 
 
-def _chezmoi_source_path():
+@cache
+def _chezmoi_source_path(repository: Path) -> Path:
     """Ask chezmoi itself where its source root is (respects .chezmoiroot).
     Pytest always runs from the repo root, so that's the --source to resolve
     against; a plain local subprocess call, not host.run, since this is a
     question about the checkout on this machine, not the deployed target."""
     result = subprocess.run(
-        ["chezmoi", "--source", str(Path.cwd()), "source-path"],
+        chezmoi_argv("source-path", source=repository),
         capture_output=True,
         text=True,
         check=True,
@@ -110,7 +117,7 @@ def _chezmoi_source_path():
 
 
 @pytest.fixture(scope="module")
-def chezmoi_data(host):
+def chezmoi_data(host: Host) -> dict[str, object]:
     """Return rendered chezmoi data from the initialized test environment.
     Module-scoped: the underlying `host` fixture (pytest-testinfra) is itself
     module-scoped, so session scope would raise a ScopeMismatch."""
@@ -120,33 +127,34 @@ def chezmoi_data(host):
 
 
 @pytest.fixture(scope="session")
-def chezmoi_source_root():
+def chezmoi_source_root() -> Path:
     """Return the absolute path to the chezmoi source directory, as resolved by chezmoi itself."""
-    return _chezmoi_source_path()
+    return _chezmoi_source_path(Path.cwd())
 
 
 @pytest.fixture(scope="session")
-def repo_root(chezmoi_source_root):
+def repo_root(chezmoi_source_root: Path) -> Path:
     """Return the absolute path to the repository root (src/chezmoi's grandparent)."""
     return chezmoi_source_root.parent.parent
 
 
 @pytest.fixture(scope="module")
-def chezmoi_dest(host):
+def chezmoi_dest(host: Host) -> Path:
     """Return the absolute path to the chezmoi destination (usually $HOME).
     Module-scoped to match `host`'s scope; see chezmoi_data for why."""
     result = host.run(_chezmoi_command("target-path"))
     if result.rc == 0:
         return Path(result.stdout.strip())
-    return Path(host.user().home)
+    # Testinfra's dynamic module loader types host.user() as the base Module.
+    return Path(cast(User, host.user()).home)
 
 
 @pytest.fixture
-def chezmoi_command():
+def chezmoi_command() -> Callable[..., str]:
     return _chezmoi_command
 
 
-def pytest_generate_tests(metafunc):
+def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """Dynamically parameterize tests that require layout_name, chezmoiscript_path, workflow_path, or shellcheck_candidate."""
     needs_source_root = {"layout_name", "chezmoiscript_path", "workflow_path", "shellcheck_candidate"} & set(
         metafunc.fixturenames
@@ -154,7 +162,7 @@ def pytest_generate_tests(metafunc):
     if not needs_source_root:
         return
 
-    source_root = _chezmoi_source_path()
+    source_root = _chezmoi_source_path(Path.cwd())
     repo_root = source_root.parent.parent
 
     if "layout_name" in metafunc.fixturenames:

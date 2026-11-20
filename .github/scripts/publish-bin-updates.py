@@ -8,12 +8,46 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+from functools import cache
 from pathlib import Path
+from urllib.parse import quote
+
+from bin_updater.cooldown import is_release_mature, parse_cooldown_to_seconds
+from bin_updater.policy import configured_age, load_policy
+from bin_updater.pr_summary import update_table
 
 CATALOGS = Path("src/chezmoi/.chezmoidata/bin")
 TOOL = re.compile(r"[a-z0-9][a-z0-9_-]*")
 VERSION = re.compile(r"v?[0-9]{1,9}(?:\.[0-9]{1,9}){1,5}")
 CHECKSUM = re.compile(r"[0-9a-f]{64}")
+PR_BODY_LIMIT = 65536
+ARTIFACT_LIMITS = {".toml": 512_000, ".json": 8 * 1024 * 1024}
+AT_SIGN = re.compile(r"@|&(?:commat;|#(?:0*64(?![0-9])|[xX]0*40(?![0-9a-fA-F]));?)")
+NOTE_TOKEN = re.compile(
+    r"(?P<url>https?://[a-zA-Z0-9.\-]+(?::[0-9]+)?/[^\s<>\[\]()?#]*)"
+    rf"|{AT_SIGN.pattern}"
+)
+
+
+@cache
+def update_policy():
+    return load_policy()
+
+
+def mise_tools():
+    return update_policy()["mise"]
+
+
+def mute_mentions(body):
+    def replace(match):
+        if match.group("url"):
+            # A malformed link can expose its path as text. Keep at signs inert there too.
+            return AT_SIGN.sub("%40", match[0])
+        return "@\u200b"
+
+    return NOTE_TOKEN.sub(replace, body)
+
+
 OID = re.compile(r"[0-9a-f]{40}")
 
 
@@ -30,9 +64,46 @@ def catalog_fields(document, name):
     return tool, source, tool[source]
 
 
+def upstream_notes(original, name, new):
+    if name.startswith("mise-") and (tool := name.removeprefix("mise-")) in mise_tools():
+        return mise_tools()[tool]["release_notes_url"].format(version=new)
+    fields, source, release = catalog_fields(tomllib.loads(original), name)
+    metadata = fields["updater"] if source == "direct_release" else release
+    return f"https://github.com/{quote(metadata['repo'], safe='/')}/releases"
+
+
+def mise_version_key(tool, version):
+    pattern = mise_tools()[tool]["version_pattern"]
+    match = re.fullmatch(pattern, version) if isinstance(version, str) else None
+    if match is None:
+        raise ValueError("Expected a stable version within the supported mise release series")
+    numeric = ".".join(match.groups()) if match.groups() else version
+    return version_key(numeric)
+
+
+def with_mise_version(document, tool, version):
+    fields = document["mise"]["global_tools"][tool]
+    old_version = fields["version"]
+    fields["version"] = version
+    return old_version, {f"mise.global_tools.{tool}": {"version": version}}
+
+
 def approved_catalog(base, candidate, name):
     original = tomllib.loads(base)
     proposed = tomllib.loads(candidate)
+    tool = name.removeprefix("mise-")
+    if name.startswith("mise-") and tool in mise_tools():
+        new = proposed["mise"]["global_tools"][tool]["version"]
+        old, replacements = with_mise_version(original, tool, new)
+        if mise_version_key(tool, new) <= mise_version_key(tool, old):
+            raise ValueError("Expected a forward mise version")
+        if original != proposed:
+            raise ValueError("Catalog edit exceeds the selected mise version field")
+        return rebuild_catalog(base, original, replacements), old, new
+    return approved_binary_catalog(base, original, proposed, name)
+
+
+def approved_binary_catalog(base, original, proposed, name):
     old, source, release = catalog_fields(original, name)
     new, _, new_release = catalog_fields(proposed, name)
     old_version = old["version"]
@@ -54,8 +125,12 @@ def approved_catalog(base, candidate, name):
     if original != proposed:
         raise ValueError("Catalog edit exceeds version and checksum fields")
 
-    # Rebuild from trusted bytes so generated TOML syntax never reaches Git.
     replacements = {f"bin.{name}": {"version": new_version}, f"bin.{name}.{source}.checksums": hashes.copy()}
+    return rebuild_catalog(base, original, replacements), old_version, new_version
+
+
+def rebuild_catalog(base, expected, replacements):
+    # Rebuild from trusted bytes so generated TOML syntax never reaches Git.
     table = ""
     lines = []
     for line in base.splitlines(keepends=True):
@@ -69,9 +144,9 @@ def approved_catalog(base, candidate, name):
         else:
             lines.append(line)
     rebuilt = "".join(lines)
-    if any(replacements.values()) or tomllib.loads(rebuilt) != original:
+    if any(replacements.values()) or tomllib.loads(rebuilt) != expected:
         raise ValueError("Unsupported trusted catalog layout")
-    return rebuilt, old_version, new_version
+    return rebuilt
 
 
 def command(*args, stdin=None, env=None):
@@ -148,9 +223,11 @@ def update_branch(name, catalog, approved, base, directory, expected_pr_head=Non
 
 
 def publish(name, artifact, base, repo):
-    catalog = CATALOGS / f"{name}.toml"
+    tool = name.removeprefix("mise-")
+    catalog_name = "mise" if name.startswith("mise-") and tool in mise_tools() else name
+    catalog = CATALOGS / f"{catalog_name}.toml"
     original = command("git", "show", f"{base}:{catalog}")
-    updated = (artifact / catalog.name).read_text(encoding="utf-8")
+    updated = (artifact / f"{name}.toml").read_text(encoding="utf-8")
     approved, old, new = approved_catalog(original, updated, name)
     report = json.loads((artifact / f"{name}.json").read_text(encoding="utf-8"))
     title = f"Update {name} from {old} to {new}"
@@ -166,9 +243,16 @@ def publish(name, artifact, base, repo):
         or row.get("new_version") != new
         or row.get("pr_title") != title
         or not isinstance(body, str)
-        or not 0 < len(body) <= 65536
+        or not body
     ):
         raise ValueError("Update report does not match the catalog")
+    preview = mute_mentions(body)
+    if len(preview) > PR_BODY_LIMIT:
+        # Put the link before the notes so cut Markdown cannot hide it.
+        url = upstream_notes(original, name, new)
+        intro = f"Release notes preview. [Read the full upstream release notes]({url}).\n\n"
+        preview = intro + preview[: PR_BODY_LIMIT - len(intro)].rstrip()
+    body = preview
     branch = f"automation/bin-update-{name}"
     prior = open_pr(repo, branch)
     with tempfile.TemporaryDirectory() as temp:
@@ -236,10 +320,76 @@ def open_pr(repo, branch):
     return prs[0]
 
 
+def generate_mise_updates(artifact, target):
+    source = command("git", "show", f"HEAD:{CATALOGS / 'mise.toml'}")
+    tools = mise_tools() if target == "all" else (target.removeprefix("mise-"),)
+    for tool in tools:
+        name = f"mise-{tool}"
+        try:
+            policy = mise_tools()[tool]
+            document = tomllib.loads(source)
+            age = configured_age(update_policy(), name, mise=True)
+            cooldown = parse_cooldown_to_seconds(age)
+            age = f"{cooldown // 86400}d"
+            releases = json.loads(
+                command("mise", "ls-remote", "--json", "--minimum-release-age", age, policy["request"])
+            )
+            old = document["mise"]["global_tools"][tool]["version"]
+            old_key = mise_version_key(tool, old)
+            candidates = []
+            for row in releases:
+                version = row["version"]
+                published_at = row.get("created_at")
+                if row.get("prerelease") is True or not isinstance(published_at, str):
+                    continue
+                try:
+                    key = mise_version_key(tool, version)
+                    if key > old_key and is_release_mature(published_at, cooldown):
+                        candidates.append((key, version, published_at))
+                except ValueError:
+                    continue
+            if not candidates:
+                continue
+            _, new, published_at = max(candidates)
+            _, replacements = with_mise_version(document, tool, new)
+            updated = rebuild_catalog(source, document, replacements)
+            title = f"Update {name} from {old} to {new}"
+            notes_url = policy["release_notes_url"].format(version=new)
+            report = [
+                {
+                    "tool_name": name,
+                    "changed": True,
+                    "old_version": old,
+                    "new_version": new,
+                    "pr_title": title,
+                    "pr_body": (
+                        update_table(old, new, published_at, cooldown) + f"\n\n[Upstream releases]({notes_url})\n"
+                    ),
+                }
+            ]
+            (artifact / f"{name}.toml").write_text(updated, encoding="utf-8")
+            (artifact / f"{name}.json").write_text(json.dumps(report), encoding="utf-8")
+        except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as error:
+            print(f"Generation failed for {name}: {error}", file=sys.stderr)
+            with (artifact / "failures.txt").open("a", encoding="utf-8") as log:
+                print(name, file=log)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("artifact", type=Path)
-    artifact = parser.parse_args().artifact
+    parser.add_argument("--generate-mise", metavar="TOOL")
+    args = parser.parse_args()
+    artifact = args.artifact
+    if args.generate_mise is not None:
+        try:
+            tools = mise_tools()
+        except ValueError as error:
+            parser.error(str(error))
+        if args.generate_mise not in {"all", *(f"mise-{tool}" for tool in tools)}:
+            parser.error("Unknown mise update target")
+        generate_mise_updates(artifact, args.generate_mise)
+        return 0
     repo = os.environ["GITHUB_REPOSITORY"]
     base = os.environ["GITHUB_SHA"]
     if not os.environ.get("GH_TOKEN", ""):
@@ -258,11 +408,13 @@ def main():
         if (
             path.is_symlink()
             or not path.is_file()
-            or path.stat().st_size > 512_000
-            or path.suffix not in {".toml", ".json"}
+            or path.suffix not in ARTIFACT_LIMITS
             or not TOOL.fullmatch(path.stem)
         ):
             parser.error("Unexpected update artifact entry")
+        limit = ARTIFACT_LIMITS[path.suffix]
+        if path.stat().st_size > limit:
+            parser.error(f"Update artifact {path.name} exceeds the {limit:,}-byte transfer limit")
         pairs.setdefault(path.stem, set()).add(path.suffix)
     if any(suffixes != {".toml", ".json"} for suffixes in pairs.values()):
         parser.error("Incomplete update artifact")

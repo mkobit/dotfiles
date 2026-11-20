@@ -1,3 +1,4 @@
+import asyncio
 import hashlib
 import json
 import shutil
@@ -7,6 +8,7 @@ from pathlib import Path
 
 import pytest
 from chezmoi_test_data import installation_method
+from integration_support.chezmoi import chezmoi_argv, run_chezmoi
 
 # Antigravity remains a direct skill consumer.
 DIRECT_SKILL_DIRS = [
@@ -61,44 +63,18 @@ def assert_entries_are_valid_skills(skills_dir: Path, allowed_marker_files: froz
             assert_is_skill(child)
 
 
-def _apply(source: Path, destination: Path, config: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(source),
-            "--destination",
-            str(destination),
-            "--config",
-            str(config),
-            "--refresh-externals=always",
-            "apply",
-        ],
-        capture_output=True,
-        check=False,
-        cwd=destination.parent,
-        text=True,
-    )
-
-
-def _render(relative: str) -> str:
+async def _render(relative: str) -> str:
     """Render one real source template with catalog data only."""
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
+    result = await run_chezmoi(
+        chezmoi_argv(
             "--config-format",
             "toml",
-            "--source",
-            str(REPOSITORY_ROOT),
             "execute-template",
             "--file",
             str(SOURCE_ROOT / relative),
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
+            config="/dev/null",
+            source=REPOSITORY_ROOT,
+        ),
     )
     assert result.returncode == 0, result.stderr
     return result.stdout
@@ -174,18 +150,16 @@ def test_marketplace_manifests_deployed_and_valid(chezmoi_dest):
     json.loads((marketplace / "bridge-provenance.json").read_text(encoding="utf-8"))
 
 
-def test_host_skill_roots_tombstone_base_and_retired_skills():
-    """Old direct copies of base bare and retired skills are removed from every host skill root."""
-    for relative, prefix in (
-        ("dot_claude/.chezmoiremove.tmpl", "skills/"),
-        ("dot_codex/.chezmoiremove.tmpl", "skills/"),
-        ("dot_cursor/.chezmoiremove.tmpl", "skills/"),
-    ):
-        lines = set(_render(relative).splitlines())
+async def test_host_skill_roots_tombstone_base_and_retired_skills():
+    """Each host removes old copies of base and retired skills."""
+    templates = {host: f"dot_{host}/.chezmoiremove.tmpl" for host in ("claude", "codex", "cursor")}
+    async with asyncio.TaskGroup() as group:
+        renders = {host: group.create_task(_render(relative)) for host, relative in templates.items()}
+    rendered = {host: set(task.result().splitlines()) for host, task in renders.items()}
+    for host, lines in rendered.items():
         for name in ("beads", "technical-writing", "docker-sandboxes", "example_skill"):
-            assert f"{prefix}{name}" in lines, (relative, name)
-    cursor = set(_render("dot_cursor/.chezmoiremove.tmpl").splitlines())
-    assert "plugins/local/mkobit-dotfiles" not in cursor
+            assert f"skills/{name}" in lines, (templates[host], name)
+    assert "plugins/local/mkobit-dotfiles" not in rendered["cursor"]
 
 
 GLOBAL_MODERN_WEB_PATHS = (
@@ -233,7 +207,6 @@ def test_plugin_bridge_ownership_state(chezmoi_dest):
 # Tool agent directories actively deployed to by .chezmoiexternals/ai-agents.toml.tmpl.
 ACTIVE_AGENT_DIRS = [
     pytest.param(Path(".claude/agents"), id="claude"),
-    pytest.param(Path(".config/opencode/agents"), id="opencode"),
 ]
 
 

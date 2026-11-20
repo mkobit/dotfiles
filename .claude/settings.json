@@ -24,8 +24,7 @@
       "Edit(~/.codex/skills/**)",
       "Edit(~/.codex/agents/**)",
       "Edit(~/.gemini/antigravity-cli/skills/**)",
-      "Edit(~/.gemini/antigravity-cli/agents/**)",
-      "Edit(~/.config/opencode/agents/**)"
+      "Edit(~/.gemini/antigravity-cli/agents/**)"
     ],
     "additionalDirectories": []
   },
