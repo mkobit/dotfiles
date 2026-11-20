@@ -182,9 +182,6 @@ Each marketplace has one source template per host, which calls that host's templ
 Overlays can add marketplace templates and catalog declarations through the same structure.
 Provenance reports each capability's marketplace, source, and trust class from its own declaration.
 Cursor receives an identical archive at `.cursor/plugins/local/superpowers/` and uses the upstream manifest and hooks there.
-The [upstream OpenCode adapter](https://github.com/obra/superpowers/blob/bb92a77741419a4ab5f06e711a283343f1ada0c3/.opencode/INSTALL.md) uses the shared root as an absolute local package directory in the pinned V1 `plugin` array.
-OpenCode registration also requires `local.bin.opencode.installation_method != "none"`.
-OpenCode retires only the old managed Superpowers package reference and preserves unrelated plugin entries.
 Antigravity adds the enabled Superpowers package parent directory and keeps its existing dotfiles registration and tool gate.
 Gemini CLI stays disabled where its tool gate is absent or set to `"none"`.
 The package retains upstream rules, agents, hooks, and runtime helpers.
@@ -195,7 +192,7 @@ Legacy per-skill Superpowers selections stay `"absent"` so apply removes duplica
 Agents follow the pin-and-select model via `src/chezmoi/.chezmoidata/ai/agents.toml` and `src/chezmoi/.chezmoiexternals/ai-agents.toml.tmpl`.
 Claude Code receives raw markdown files under `~/.claude/agents/<source>/`.
 Antigravity and Cursor consume agents rewritten to `SKILL.md` format by `skill_filter`.
-OpenCode receives agents under `~/.config/opencode/agents/<source>/` rewritten with explicit `name` and `mode: subagent`.
+Codex receives native TOML roles under `~/.codex/agents/<source>/`.
 Onboarding an agent requires a prompt-injection review of content at the pinned ref.
 
 ## Verification and testing

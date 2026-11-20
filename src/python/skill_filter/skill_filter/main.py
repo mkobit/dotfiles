@@ -29,8 +29,8 @@ contain them.
 transforms derive ``name`` from the source file basename, carry the
 ``description`` frontmatter line over verbatim, and leave the body unchanged:
 ``agent-skill`` converts a Claude Code agent ``.md`` into SKILL.md form for
-tools that consume agents as skills; ``agent-opencode`` emits opencode agent
-frontmatter (adds ``mode: subagent``).
+tools that consume agents as skills.
+``agent-codex`` converts the agent to a Codex TOML role.
 """
 
 from __future__ import annotations
@@ -283,14 +283,6 @@ def _transform_agent_skill(src: str, content: bytes) -> bytes:
     return "\n".join((*header, *parts.body)).encode("utf-8")
 
 
-def _transform_agent_opencode(src: str, content: bytes) -> bytes:
-    # An explicit name overrides opencode's path-derived agent name, which
-    # would otherwise contain the source subdirectory (e.g. "src/agent-name").
-    parts = _parse_agent(src, content)
-    header = ("---", f"name: {parts.name}", parts.description, "mode: subagent", "---")
-    return "\n".join((*header, *parts.body)).encode("utf-8")
-
-
 # Codex enforces these when loading an agent role and skips the file with a
 # startup warning if either is exceeded. Failing here instead surfaces the
 # problem at apply time rather than as a silently missing agent.
@@ -358,7 +350,6 @@ def _transform_agent_codex(src: str, content: bytes) -> bytes:
 
 TRANSFORMS: dict[str, Transform] = {
     "agent-skill": _transform_agent_skill,
-    "agent-opencode": _transform_agent_opencode,
     "agent-codex": _transform_agent_codex,
 }
 

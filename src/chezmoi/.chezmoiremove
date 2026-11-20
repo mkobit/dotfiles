@@ -24,3 +24,7 @@
 .local/bin/tools/jules
 .local/share/uv/tools/jules-cli
 .config/jules
+
+# Retired OpenCode binary and managed sandbox policy.
+.local/bin/opencode
+.config/ai-policy/opencode/autonomous.json

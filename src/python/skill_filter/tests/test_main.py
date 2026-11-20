@@ -239,20 +239,6 @@ must survive unchanged.
 """
 
 
-AGENT_AS_OPENCODE_MD = b"""---
-name: engineering-sre
-description: Expert site reliability engineer specializing in SLOs and error budgets.
-mode: subagent
----
-
-# Mission
-
-A body line that is exactly
----
-must survive unchanged.
-"""
-
-
 class TestAgentSkillTransform:
     def test_rewrites_frontmatter_and_preserves_body(self):
         source = make_archive({"engineering/engineering-sre.md": AGENT_MD})
@@ -264,17 +250,6 @@ class TestAgentSkillTransform:
             )
         )
         assert result == {"SKILL.md": AGENT_AS_SKILL_MD}
-
-    def test_opencode_transform_adds_subagent_mode(self):
-        source = make_archive({"engineering/engineering-sre.md": AGENT_MD})
-        result = read_archive(
-            run_filter(
-                source,
-                [parse_selection("engineering/engineering-sre.md")],
-                transform_name="agent-opencode",
-            )
-        )
-        assert result == {"engineering-sre.md": AGENT_AS_OPENCODE_MD}
 
     @requires_tomllib
     def test_codex_transform_emits_toml_parseable_by_the_real_parser(self):
@@ -535,7 +510,7 @@ class TestSkillRootManifest:
             "/tmp/example\n",
             "../.codex/skills/example\n",
             ".codex/skills/group/example\n",
-            ".config/opencode/skills/example\n",
+            ".config/unsupported/skills/example\n",
         ],
     )
     def test_rejects_malformed_or_unsupported_entries(self, tmp_path, content):
