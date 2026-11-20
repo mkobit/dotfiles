@@ -1,5 +1,5 @@
 [bin.opencode]
-version = "2.2.7"
+version = "2.3.0"
 
 [bin.opencode.github_releases]
 repo            = "anomalyco/opencode"
@@ -20,5 +20,5 @@ linux_amd64 = "tar.gz"
 linux_arm64 = "tar.gz"
 
 [bin.opencode.github_releases.checksums]
-linux_amd64 = "89a6cee227b54bc011179c528a5e63176032462b1a5e21723b616801cddc2ca7"
-linux_arm64 = "c1682057f0815cb2abdd6e00305f1146ebaf1c167f0335cdb74ddc80008120e7"
+linux_amd64 = "fc0f81522aceeabac47693d88389efa2bc517ce74c2c38fd6967819fcc6e4d3b"
+linux_arm64 = "3207fb5cdec448d479242c0f1a14f4f7bdfcad3a79209b5eb8f9003725e93711"
