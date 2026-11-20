@@ -140,6 +140,7 @@ include = [
     "src/python",
     "src/chezmoi",
     ".claude/hooks",
+    "tests/integration/conftest.py",
 ]
 
 [tool.ty.rules]
