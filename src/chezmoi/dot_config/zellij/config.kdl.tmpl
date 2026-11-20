@@ -106,3 +106,8 @@ show_startup_tips {{ .zellij.config.show_startup_tips }}
 // https://zellij.dev/documentation/options#show_release_notes
 show_release_notes {{ $config.show_release_notes }}
 {{- end }}
+{{- with get $config "theme" }}
+
+// https://zellij.dev/documentation/options#theme
+theme {{ toJson . }}
+{{- end }}
