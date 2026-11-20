@@ -24,11 +24,11 @@ MISE_TOOLS = {
     ),
     "node": ("22", r"22\.[0-9]{1,9}\.[0-9]{1,9}", "https://nodejs.org/en/blog/release/v{version}"),
     "ollama": (
-        "latest",
-        r"[0-9]{1,9}\.[0-9]{1,9}\.[0-9]{1,9}",
+        "0",
+        r"0\.[0-9]{1,9}\.[0-9]{1,9}",
         "https://github.com/ollama/ollama/releases/tag/v{version}",
     ),
-    "python": ("3.14", r"3\.14\.[0-9]{1,9}", "https://docs.python.org/release/{version}/whatsnew/changelog.html"),
+    "python": ("3", r"3\.[0-9]{1,9}\.[0-9]{1,9}", "https://docs.python.org/release/{version}/whatsnew/changelog.html"),
 }
 OID = re.compile(r"[0-9a-f]{40}")
 
@@ -295,7 +295,7 @@ def generate_mise_updates(artifact, target):
         try:
             selector, _, source_url = MISE_TOOLS[tool]
             document = tomllib.loads(source)
-            age = document["mise"]["settings"]["minimum_release_age"]
+            age = document["mise"]["updates"]["minimum_release_age"]
             new = command("mise", "latest", "--minimum-release-age", age, f"{tool}@{selector}").strip()
             old, replacements = with_mise_version(document, tool, new)
             if mise_version_key(tool, new) <= mise_version_key(tool, old):

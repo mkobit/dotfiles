@@ -26,6 +26,9 @@ linux_arm64  = "dbe0b2141ba1d67cbfdd661cc8e6771cfda73d9f9998256d8e5ecdabfed66c07
 
 [mise]
 
+[mise.updates]
+minimum_release_age = "21d"
+
 [mise.settings]
 # Configuration settings: https://mise.jdx.dev/configuration/settings.html
 # Keep activation from adding shims: https://mise.jdx.dev/configuration/settings.html#activate_shims
