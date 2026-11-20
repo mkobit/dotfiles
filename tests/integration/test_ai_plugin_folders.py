@@ -7,6 +7,8 @@ import subprocess
 import tomllib
 from pathlib import Path
 
+from integration_support.chezmoi import chezmoi_argv
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPOSITORY_ROOT / "src/chezmoi"
 PLUGINS = Path("dot_local/share/agent-plugins/marketplace/exact_plugins")
@@ -127,21 +129,15 @@ def _config(config: Path, beta: str = "", extra: str = "") -> None:
 
 def _chezmoi(source: Path, destination: Path, config: Path, *args: str) -> str:
     result = subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(source),
-            "--destination",
-            str(destination),
-            "--config",
-            str(config),
-            "--cache",
-            str(destination.parent / "cache"),
-            "--persistent-state",
-            str(destination.parent / "state.boltdb"),
+        chezmoi_argv(
             "--no-tty",
             *args,
-        ],
+            source=source,
+            destination=destination,
+            config=config,
+            cache=destination.parent / "cache",
+            state=destination.parent / "state.boltdb",
+        ),
         capture_output=True,
         check=False,
         text=True,

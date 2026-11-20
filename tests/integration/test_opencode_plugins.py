@@ -1,18 +1,18 @@
 """Verify OpenCode configuration follows the host and plugin control plane."""
 
+import asyncio
 import json
 import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
+from integration_support.chezmoi import chezmoi_argv, run_chezmoi
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src/chezmoi"
 
 
 @pytest.mark.parametrize("ignore_layer", ["base", "overlay"])
-@pytest.mark.parametrize("tool_method", [None, "none"])
-def test_opencode_apply_respects_host_and_plugin_control_plane(tmp_path, ignore_layer, tool_method):
+async def test_opencode_apply_respects_host_and_plugin_control_plane(tmp_path, ignore_layer):
     ignore_source = SOURCE_ROOT
     if ignore_layer == "overlay":
         ignore_source = SOURCE_ROOT.parents[3] / "src/chezmoi"
@@ -29,60 +29,66 @@ def test_opencode_apply_respects_host_and_plugin_control_plane(tmp_path, ignore_
         target = source / relative
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2((ignore_source if relative == ".chezmoiignore.tmpl" else SOURCE_ROOT) / relative, target)
-    destination = tmp_path / "destination"
-    destination.mkdir()
-    config = tmp_path / "chezmoi.json"
-    target = destination / ".config/opencode/opencode.json"
-    package = str(destination / ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers")
-    legacy = str(destination / ".local/share/agent-plugins/marketplace/plugins/superpowers")
-    foreign = {"plugin": ["custom-plugin"], "model": "custom/model"}
-    initial = json.dumps({**foreign, "plugin": ["custom-plugin", package]}, indent=2) + "\n"
-    legacy_initial = json.dumps({**foreign, "plugin": ["custom-plugin", legacy]}, indent=2) + "\n"
-    data = {"ai": {"plugins": {"superpowers": {}}}, "local": {"bin": {"opencode": {}}}, "mise": {}}
-    for host_method, plugin_method, seed, expected in (
-        (tool_method, "chezmoi_external", None, None),
-        (tool_method, "chezmoi_external", initial, initial),
-        (tool_method, "chezmoi_external", legacy_initial, legacy_initial),
-        ("preinstalled", "chezmoi_external", json.dumps(foreign), {**foreign, "plugin": ["custom-plugin", package]}),
-        ("preinstalled", "chezmoi_external", legacy_initial, {**foreign, "plugin": ["custom-plugin", package]}),
-        (
-            "preinstalled",
-            "chezmoi_external",
-            json.dumps({**foreign, "plugin": ["custom-plugin", legacy, package]}),
-            {**foreign, "plugin": ["custom-plugin", package]},
-        ),
-        ("preinstalled", "none", None, foreign),
-        ("preinstalled", "none", legacy_initial, foreign),
-    ):
-        if seed is not None:
-            target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(seed)
-        data["local"]["bin"]["opencode"] = {} if host_method is None else {"installation_method": host_method}
-        data["ai"]["plugins"]["superpowers"]["installation_method"] = plugin_method
-        config.write_text(json.dumps({"data": data}))
-        result = subprocess.run(
-            [
-                "chezmoi",
-                "--config",
-                str(config),
-                "--source",
-                str(source),
-                "--destination",
-                str(destination),
-                "--cache",
-                str(tmp_path / "cache"),
-                "--persistent-state",
-                str(tmp_path / "state.boltdb"),
-                "apply",
-            ],
-            capture_output=True,
-            check=False,
-            text=True,
+
+    async def apply_case(case_dir, host_method, plugin_method, seed, expected):
+        destination = case_dir / "destination"
+        destination.mkdir(parents=True)
+        config = case_dir / "chezmoi.json"
+        target = destination / ".config/opencode/opencode.json"
+        package = str(
+            destination / ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers"
         )
-        assert result.returncode == 0, result.stderr
+        legacy = str(destination / ".local/share/agent-plugins/marketplace/plugins/superpowers")
+        foreign = {"plugin": ["custom-plugin"], "model": "custom/model"}
+        paths = {"foreign": [], "managed": [package], "legacy": [legacy], "both": [legacy, package]}
+
+        def settings(kind):
+            return {**foreign, "plugin": [*foreign["plugin"], *paths[kind]]}
+
+        initial = None
+        if seed is not None:
+            initial = json.dumps(settings(seed), indent=2) + "\n"
+            target.parent.mkdir(parents=True)
+            target.write_text(initial)
+
+        data = {
+            "ai": {"plugins": {"superpowers": {"installation_method": plugin_method}}},
+            "local": {"bin": {"opencode": {} if host_method is None else {"installation_method": host_method}}},
+            "mise": {},
+        }
+        config.write_text(json.dumps({"data": data}))
+        async with slots:
+            result = await run_chezmoi(
+                chezmoi_argv(
+                    "apply",
+                    source=source,
+                    config=config,
+                    destination=destination,
+                    cache=case_dir / "cache",
+                    state=case_dir / "state.boltdb",
+                )
+            )
+
+        assert result.returncode == 0, (case_dir.name, result.stderr)
         if expected is None:
-            assert not target.exists()
-        elif isinstance(expected, str):
-            assert target.read_text() == expected
+            assert not target.exists(), case_dir.name
+        elif expected == "unchanged":
+            assert target.read_text() == initial, case_dir.name
         else:
-            assert json.loads(target.read_text()) == expected
+            assert json.loads(target.read_text()) == settings(expected), case_dir.name
+
+    cases = [
+        (f"{method or 'unset'}-{seed or 'absent'}", method, "chezmoi_external", seed, "unchanged" if seed else None)
+        for method in (None, "none")
+        for seed in (None, "managed", "legacy")
+    ] + [
+        ("add-plugin", "preinstalled", "chezmoi_external", "foreign", "managed"),
+        ("replace-legacy", "preinstalled", "chezmoi_external", "legacy", "managed"),
+        ("remove-duplicate", "preinstalled", "chezmoi_external", "both", "managed"),
+        ("remove-managed", "preinstalled", "none", "managed", "foreign"),
+        ("remove-legacy", "preinstalled", "none", "legacy", "foreign"),
+    ]
+    slots = asyncio.Semaphore(3)
+    async with asyncio.TaskGroup() as group:
+        for name, host_method, plugin_method, seed, expected in cases:
+            group.create_task(apply_case(tmp_path / name, host_method, plugin_method, seed, expected))

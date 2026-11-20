@@ -150,6 +150,7 @@ unsound-yield = "ignore"
 dynamic-function-decorator-return = "ignore"
 
 [tool.pytest.ini_options]
+addopts = "-p no:anyio"
 asyncio_mode = "auto"
 
 [tool.coverage.run]
