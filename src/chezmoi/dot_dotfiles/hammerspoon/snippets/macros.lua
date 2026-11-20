@@ -22,12 +22,14 @@ function M.plan(text, location, length)
     end)
     if not ok then return nil end
     offsets[#chars + 1], bytes[#chars + 1] = units, #text + 1
+    -- Reject ranges that split a UTF-16 character.
     local first, last
     for i, offset in ipairs(offsets) do
         if offset == location then first = i end
         if offset == location + length then last = i end
     end
     if not first or not last then return nil end
+    -- Expand the word at the caret, or the partial words at each selection edge.
     if length == 0 then
         while first > 1 and isWord(chars[first - 1]) do first = first - 1 end
         while last <= #chars and isWord(chars[last]) do last = last + 1 end
@@ -42,10 +44,12 @@ function M.plan(text, location, length)
     -- Do not split a word that contains characters outside the supported alphabet.
     if (chars[first - 1] and utf8.codepoint(chars[first - 1]) > 127)
         or (chars[last] and utf8.codepoint(chars[last]) > 127) then return nil end
+    -- Convert spaces and tabs to hyphens and require an XML-style name.
     local name = text:sub(bytes[first], bytes[last] - 1):gsub("[ \t]+", "-")
     if not name:match("^[A-Za-z_][A-Za-z0-9_-]*$") then return nil end
     local open, close = "<" .. name .. ">", "</" .. name .. ">"
     local before, after = text:sub(1, bytes[first] - 1), text:sub(bytes[last])
+    -- Put the caret between the opening and closing tags. The tag is ASCII.
     return {
         location = offsets[first], length = offsets[last] - offsets[first],
         replacement = open .. close, cursor = offsets[first] + #open,
@@ -58,6 +62,7 @@ local function sameRange(a, b)
         and a.location == b.location and a.length == b.length
 end
 
+-- Keep timers alive while accessibility changes are pending.
 local activeTimers = {}
 local pending = false
 
@@ -88,6 +93,7 @@ local function waitFor(api, check, complete, fail)
     return schedule(poll)
 end
 
+-- Some fields cannot write AXSelectedText; type into the selected range instead.
 local function typeReplacement(api, system, element, app, value, range, expanded, plan)
     if not api.timer or not api.timer.doAfter or not api.eventtap or not api.eventtap.keyStrokes then return false end
     if not element:setAttributeValue("AXSelectedTextRange", expanded) then return false end
@@ -97,6 +103,7 @@ local function typeReplacement(api, system, element, app, value, range, expanded
         api.alert.show(typed and "Could not verify tag insertion; text may have changed"
             or "Cannot wrap text in this field")
     end
+    -- Wait for each selection and text change; stop if focus or text changes unexpectedly.
     local scheduled = waitFor(api, function()
         if system:attributeValue("AXFocusedUIElement") ~= element or element:attributeValue("AXValue") ~= value then
             return "stop"
@@ -156,6 +163,7 @@ function M.promptTag(api)
     local system = api.axuielement.systemWideElement()
     local element = system:attributeValue("AXFocusedUIElement")
     local app = api.application.frontmostApplication()
+    -- Ghostty and secure fields do not provide a supported writable text target.
     if not element or not app or app:bundleID() == "com.mitchellh.ghostty" then return false end
     local role, subrole = element:attributeValue("AXRole"), element:attributeValue("AXSubrole")
     if (role ~= "AXTextField" and role ~= "AXTextArea") or subrole == "AXSecureTextField" then return false end
@@ -166,6 +174,7 @@ function M.promptTag(api)
     if type(range) ~= "table" then return false end
     local plan = M.plan(value, range.location, range.length)
     if not plan then return false end
+    -- Confirm that focus, text, and selection did not change while planning.
     if system:attributeValue("AXFocusedUIElement") ~= element or element:attributeValue("AXValue") ~= value
         or not sameRange(element:attributeValue("AXSelectedTextRange"), range) then return false end
     local expanded = { location = plan.location, length = plan.length }
@@ -180,6 +189,7 @@ function M.promptTag(api)
         end
         return false
     end
+    -- Replace only the selected range, then verify the text and caret position.
     local ok, complete = pcall(function()
         local written = element:setAttributeValue("AXSelectedText", plan.replacement)
         if not written or element:attributeValue("AXValue") ~= plan.value

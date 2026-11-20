@@ -5,6 +5,7 @@ import time
 from pathlib import Path
 
 import pytest
+from integration_support.chezmoi import chezmoi_argv
 
 SOURCE = Path("src/chezmoi/dot_dotfiles/hammerspoon")
 
@@ -12,14 +13,7 @@ SOURCE = Path("src/chezmoi/dot_dotfiles/hammerspoon")
 def render_config(tmp_path):
     data = {"hammerspoon": {"window_manager": {"enabled": False}}}
     return subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(tmp_path),
-            "--destination",
-            str(tmp_path),
-            "--config",
-            "/dev/null",
+        chezmoi_argv(
             "--config-format",
             "toml",
             "execute-template",
@@ -27,7 +21,10 @@ def render_config(tmp_path):
             "--override-data",
             json.dumps(data),
             str(SOURCE / "config.lua.tmpl"),
-        ],
+            source=tmp_path,
+            destination=tmp_path,
+            config="/dev/null",
+        ),
         capture_output=True,
         text=True,
         check=True,
