@@ -4,6 +4,7 @@ import asyncio
 from collections.abc import Sequence
 from contextlib import suppress
 from pathlib import Path
+from subprocess import CompletedProcess
 
 
 def chezmoi_argv(
@@ -24,8 +25,8 @@ def chezmoi_argv(
     return ["chezmoi", "--source", str(source), *flags, *args]
 
 
-async def run_chezmoi_async(argv: Sequence[str]) -> str:
-    """Run a chezmoi command and return its standard output."""
+async def run_chezmoi(argv: Sequence[str]) -> CompletedProcess[str]:
+    """Run a chezmoi command and capture its exit status and output."""
     process = await asyncio.create_subprocess_exec(
         *argv,
         stdout=asyncio.subprocess.PIPE,
@@ -38,5 +39,9 @@ async def run_chezmoi_async(argv: Sequence[str]) -> str:
             with suppress(ProcessLookupError):
                 process.kill()
             await process.communicate()
-    assert process.returncode == 0, stderr.decode()
-    return stdout.decode()
+    return CompletedProcess(
+        argv,
+        await process.wait(),
+        stdout.decode(errors="replace"),
+        stderr.decode(errors="replace"),
+    )

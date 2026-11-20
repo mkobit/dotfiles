@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 from chezmoi_test_data import installation_method
-from integration_support.chezmoi import chezmoi_argv, run_chezmoi_async
+from integration_support.chezmoi import chezmoi_argv, run_chezmoi
 
 # Antigravity remains a direct skill consumer.
 DIRECT_SKILL_DIRS = [
@@ -65,7 +65,7 @@ def assert_entries_are_valid_skills(skills_dir: Path, allowed_marker_files: froz
 
 async def _render(relative: str) -> str:
     """Render one real source template with catalog data only."""
-    return await run_chezmoi_async(
+    result = await run_chezmoi(
         chezmoi_argv(
             "--config-format",
             "toml",
@@ -76,6 +76,8 @@ async def _render(relative: str) -> str:
             source=REPOSITORY_ROOT,
         ),
     )
+    assert result.returncode == 0, result.stderr
+    return result.stdout
 
 
 @pytest.mark.integration

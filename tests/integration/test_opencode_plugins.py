@@ -6,7 +6,7 @@ import shutil
 from pathlib import Path
 
 import pytest
-from integration_support.chezmoi import chezmoi_argv, run_chezmoi_async
+from integration_support.chezmoi import chezmoi_argv, run_chezmoi
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src/chezmoi"
 
@@ -58,7 +58,7 @@ async def test_opencode_apply_respects_host_and_plugin_control_plane(tmp_path, i
         }
         config.write_text(json.dumps({"data": data}))
         async with slots:
-            await run_chezmoi_async(
+            result = await run_chezmoi(
                 chezmoi_argv(
                     "apply",
                     source=source,
@@ -69,6 +69,7 @@ async def test_opencode_apply_respects_host_and_plugin_control_plane(tmp_path, i
                 )
             )
 
+        assert result.returncode == 0, (case_dir.name, result.stderr)
         if expected is None:
             assert not target.exists(), case_dir.name
         elif expected == "unchanged":
