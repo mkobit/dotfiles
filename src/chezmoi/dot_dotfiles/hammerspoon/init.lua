@@ -25,7 +25,8 @@ dofile(hs.configdir .. "/config.lua")
 
 -- Use hs.configdir to get the actual configured directory
 -- This respects the MJConfigFile preference we set during installation
-local configWatcher = hs.pathwatcher.new(hs.configdir, reloadConfig):start()
+-- Keep a reference so Lua does not collect and stop the watcher.
+_G.DotfilesConfigWatcher = hs.pathwatcher.new(hs.configdir, reloadConfig):start()
 hs.alert.show("Hammerspoon config loaded")
 
 -- Load the Rectangle Pro API

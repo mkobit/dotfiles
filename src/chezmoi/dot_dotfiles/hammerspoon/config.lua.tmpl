@@ -18,7 +18,27 @@ _G.DotfilesConfig = {
 
 -- Load base configuration
 dofile("{{ .chezmoi.destDir }}/.dotfiles/hammerspoon/snippets/init.lua")
+_G.DotfilesActions = dofile("{{ .chezmoi.destDir }}/.dotfiles/hammerspoon/snippets/macros.lua")
 
 {{ range (dig "chrome" "features" (list) .hammerspoon) -}}
 dofile("{{ $.chezmoi.destDir }}/.dotfiles/hammerspoon/snippets/chrome-{{ . }}.lua")
 {{ end -}}
+
+-- Load local additions in name order.
+local overlay = "{{ .chezmoi.destDir }}/.dotfiles/hammerspoon/overlay"
+if hs.fs.attributes(overlay, "mode") == "directory" then
+    local files = {}
+    for file in hs.fs.dir(overlay) do
+        if file:sub(-4) == ".lua" and hs.fs.attributes(overlay .. "/" .. file, "mode") == "file" then
+            files[#files + 1] = file
+        end
+    end
+    table.sort(files)
+    for _, file in ipairs(files) do
+        local ok, err = pcall(dofile, overlay .. "/" .. file)
+        if not ok then
+            hs.printf("Failed to load Hammerspoon overlay %s: %s", file, err)
+            hs.alert.show("Failed to load Hammerspoon overlay: " .. file)
+        end
+    end
+end
