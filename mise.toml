@@ -7,10 +7,12 @@ http_retries = 5
 
 [tasks."test:workflow"]
 description = "Check SBX policy and project environment"
+wait_for = ["python:test"]
 run = "uv run --frozen pytest -m 'not integration' tests/integration/test_sbx_command_policy.py tests/integration/test_sbx_command_retirement.py tests/integration/test_ai_workflow_permissions.py tests/integration/test_sbx_project_environment.py"
 
 [tasks."check:skill-metadata"]
 description = "Check Codex skill display names"
+wait_for = ["test:workflow"]
 run = """
 set -euo pipefail
 scratch=$(mktemp -d "${TMPDIR:-/tmp}/skill-metadata.XXXXXXXX")
@@ -22,13 +24,44 @@ uv run --frozen --with 'PyYAML==6.0.3' pytest -p no:cacheprovider -m 'not integr
 
 [tasks.verify]
 description = "Run project checks"
-run = [
-    "uv sync --all-packages --frozen",
-    "uv run --frozen ruff check .",
-    "uv run --frozen ruff format --check .",
-    "uv run --frozen ty check",
-    "uv run --frozen pytest src/python --cov --cov-report=term-missing",
-    "mise run test:workflow",
-    "mise run check:skill-metadata",
-    "uv build --all-packages",
+depends = [
+    "python:lint",
+    "python:format",
+    "python:typecheck",
+    "python:test",
+    "test:workflow",
+    "check:skill-metadata",
+    "python:build",
 ]
+
+[tasks."python:sync"]
+description = "Install Python dependencies"
+run = "uv sync --all-packages --frozen"
+
+[tasks."python:lint"]
+description = "Lint Python packages"
+depends = ["python:sync"]
+run = "uv run --frozen --no-sync ruff check ."
+
+[tasks."python:format"]
+description = "Check Python formatting"
+depends = ["python:sync"]
+wait_for = ["python:lint"]
+run = "uv run --frozen --no-sync ruff format --check ."
+
+[tasks."python:typecheck"]
+description = "Type check Python packages"
+depends = ["python:sync"]
+wait_for = ["python:format"]
+run = "uv run --frozen --no-sync ty check"
+
+[tasks."python:test"]
+description = "Test Python packages"
+depends = ["python:sync"]
+wait_for = ["python:typecheck"]
+run = "uv run --frozen --no-sync pytest src/python --cov --cov-report=term-missing"
+
+[tasks."python:build"]
+description = "Build Python packages"
+wait_for = ["check:skill-metadata"]
+run = "uv build --all-packages"
