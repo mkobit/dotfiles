@@ -28,7 +28,7 @@ MISE_TOOLS = {
         r"0\.[0-9]{1,9}\.[0-9]{1,9}",
         "https://github.com/ollama/ollama/releases/tag/v{version}",
     ),
-    "python": ("3", r"3\.[0-9]{1,9}\.[0-9]{1,9}", "https://docs.python.org/release/{version}/whatsnew/changelog.html"),
+    "python": ("3.14", r"3\.14\.[0-9]{1,9}", "https://docs.python.org/release/{version}/whatsnew/changelog.html"),
 }
 OID = re.compile(r"[0-9a-f]{40}")
 
