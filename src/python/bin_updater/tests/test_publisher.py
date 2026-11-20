@@ -132,7 +132,7 @@ version = "3.14.10"
         "bun@1": "1.4.4",
         "java@temurin-21": "temurin-21.0.13+9.0.LTS",
         "node@22": "22.23.5",
-        "python@3": "3.15.1",
+        "python@3.14": "3.14.11",
     }
 
     def command(*args: str) -> str:
@@ -168,9 +168,13 @@ version = "3.14.10"
 
 @pytest.mark.parametrize(
     "tool, old, new",
-    [("python", "3.14.10", "4.0.0"), ("ollama", "0.40.16", "1.0.0")],
+    [
+        ("python", "3.14.10", "3.15.1"),
+        ("python", "3.14.10", "4.0.0"),
+        ("ollama", "0.40.16", "1.0.0"),
+    ],
 )
-def test_publisher_rejects_mise_major_updates(tool: str, old: str, new: str) -> None:
+def test_publisher_rejects_mise_updates_outside_supported_series(tool: str, old: str, new: str) -> None:
     source = f'[mise.global_tools.{tool}]\nversion = "{old}"\n'
     with pytest.raises(ValueError, match="supported mise release series"):
         approved_catalog(source, source.replace(old, new), f"mise-{tool}")
