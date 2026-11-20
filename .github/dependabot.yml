@@ -18,6 +18,8 @@ updates:
     other:
       patterns:
       - '*'
+  assignees:
+  - mkobit
   commit-message:
     prefix: chore(deps)
     include: scope
@@ -48,6 +50,8 @@ updates:
     python-dependencies:
       patterns:
       - '*'
+  assignees:
+  - mkobit
   commit-message:
     prefix: chore(deps)
     include: scope
