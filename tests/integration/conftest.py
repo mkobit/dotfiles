@@ -3,16 +3,19 @@ import os
 import re
 import shlex
 import subprocess
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable, Sequence
 from functools import cache
 from pathlib import Path
+from typing import TypedDict, cast
 
 import pytest
 from chezmoi_test_data import required_installation_method
 from integration_support.chezmoi import chezmoi_argv
+from testinfra.host import Host
+from testinfra.modules.user import User
 
 
-def pytest_configure(config):
+def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "integration: mark test as a system integration test.")
     config.addinivalue_line(
         "markers",
@@ -21,7 +24,7 @@ def pytest_configure(config):
 
 
 @pytest.fixture(autouse=True)
-def skip_unmatched_chezmoi_installation(request):
+def skip_unmatched_chezmoi_installation(request: pytest.FixtureRequest) -> None:
     marker = request.node.get_closest_marker("chezmoi_installation")
     if marker is None:
         return
@@ -42,7 +45,7 @@ def skip_unmatched_chezmoi_installation(request):
         pytest.skip(f"{feature}.installation_method is {active_method!r}; expected one of: {allowed}")
 
 
-def _deployed_chezmoi_argv(*args):
+def _deployed_chezmoi_argv(*args: str) -> Sequence[str]:
     return chezmoi_argv(
         *args,
         source=Path.cwd(),
@@ -52,7 +55,7 @@ def _deployed_chezmoi_argv(*args):
     )
 
 
-def _chezmoi_command(*args):
+def _chezmoi_command(*args: str) -> str:
     return shlex.join(_deployed_chezmoi_argv(*args))
 
 
@@ -63,13 +66,18 @@ def _chezmoi_command(*args):
 _EXECUTABLE_FILE_ATTRS_RE = re.compile(r"^(create_)?(encrypted_|private_|readonly_|empty_)*executable_")
 
 
-def _is_shellcheck_candidate_file(source_relative):
+def _is_shellcheck_candidate_file(source_relative: str) -> bool:
     name = Path(source_relative).name
     return name.startswith("modify_") or bool(_EXECUTABLE_FILE_ATTRS_RE.match(name))
 
 
-def _shellcheck_candidates():
-    scripts = json.loads(
+class _ShellcheckCandidate(TypedDict):
+    sourceAbsolute: str
+    sourceRelative: str
+
+
+def _shellcheck_candidates() -> list[_ShellcheckCandidate]:
+    scripts: dict[str, _ShellcheckCandidate] = json.loads(
         subprocess.run(
             _deployed_chezmoi_argv("managed", "--include=scripts", "--format=json", "--path-style=all"),
             capture_output=True,
@@ -77,7 +85,7 @@ def _shellcheck_candidates():
             check=True,
         ).stdout
     )
-    files = json.loads(
+    files: dict[str, _ShellcheckCandidate] = json.loads(
         subprocess.run(
             _deployed_chezmoi_argv("managed", "--include=files", "--format=json", "--path-style=all"),
             capture_output=True,
@@ -94,7 +102,7 @@ def _shellcheck_candidates():
 
 
 @cache
-def _chezmoi_source_path(repository):
+def _chezmoi_source_path(repository: Path) -> Path:
     """Ask chezmoi itself where its source root is (respects .chezmoiroot).
     Pytest always runs from the repo root, so that's the --source to resolve
     against; a plain local subprocess call, not host.run, since this is a
@@ -109,7 +117,7 @@ def _chezmoi_source_path(repository):
 
 
 @pytest.fixture(scope="module")
-def chezmoi_data(host):
+def chezmoi_data(host: Host) -> dict[str, object]:
     """Return rendered chezmoi data from the initialized test environment.
     Module-scoped: the underlying `host` fixture (pytest-testinfra) is itself
     module-scoped, so session scope would raise a ScopeMismatch."""
@@ -119,33 +127,34 @@ def chezmoi_data(host):
 
 
 @pytest.fixture(scope="session")
-def chezmoi_source_root():
+def chezmoi_source_root() -> Path:
     """Return the absolute path to the chezmoi source directory, as resolved by chezmoi itself."""
     return _chezmoi_source_path(Path.cwd())
 
 
 @pytest.fixture(scope="session")
-def repo_root(chezmoi_source_root):
+def repo_root(chezmoi_source_root: Path) -> Path:
     """Return the absolute path to the repository root (src/chezmoi's grandparent)."""
     return chezmoi_source_root.parent.parent
 
 
 @pytest.fixture(scope="module")
-def chezmoi_dest(host):
+def chezmoi_dest(host: Host) -> Path:
     """Return the absolute path to the chezmoi destination (usually $HOME).
     Module-scoped to match `host`'s scope; see chezmoi_data for why."""
     result = host.run(_chezmoi_command("target-path"))
     if result.rc == 0:
         return Path(result.stdout.strip())
-    return Path(host.user().home)
+    # Testinfra's dynamic module loader types host.user() as the base Module.
+    return Path(cast(User, host.user()).home)
 
 
 @pytest.fixture
-def chezmoi_command():
+def chezmoi_command() -> Callable[..., str]:
     return _chezmoi_command
 
 
-def pytest_generate_tests(metafunc):
+def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """Dynamically parameterize tests that require layout_name, chezmoiscript_path, workflow_path, or shellcheck_candidate."""
     needs_source_root = {"layout_name", "chezmoiscript_path", "workflow_path", "shellcheck_candidate"} & set(
         metafunc.fixturenames
