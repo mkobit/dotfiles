@@ -1,3 +1,4 @@
+import json
 import runpy
 import subprocess
 from pathlib import Path
@@ -76,3 +77,100 @@ def test_publisher_checks_remote_lease(tmp_path: Path, monkeypatch: pytest.Monke
     with pytest.raises(subprocess.CalledProcessError):
         update_branch("bkt", catalog, NEW, base, directory)
     assert PUBLISHER["remote_tip"](ref) == base
+
+
+MISE_BASE = """[mise.updates]
+minimum_release_age = "21d"
+
+[mise.global_tools.java]
+version = "temurin-21.0.12+101.0.LTS"
+
+[mise.global_tools.node]
+version = "22.23.2"
+"""
+MISE_NEW = MISE_BASE.replace("temurin-21.0.12+101.0.LTS", "temurin-21.0.13+9.0.LTS")
+
+
+def test_publisher_updates_only_selected_mise_pin() -> None:
+    candidate = MISE_NEW.replace('version = "temurin-21.0.13+9.0.LTS"', 'version = "temurin-21.0.13+9.0.LTS" # Hint')
+    assert approved_catalog(MISE_BASE, candidate, "mise-java") == (
+        MISE_NEW,
+        "temurin-21.0.12+101.0.LTS",
+        "temurin-21.0.13+9.0.LTS",
+    )
+
+
+@pytest.mark.parametrize(
+    "candidate",
+    [
+        MISE_NEW.replace("21.0.13", "25.0.13"),
+        MISE_NEW.replace("21.0.13+9", "21.0.12+9"),
+        MISE_NEW.replace("22.23.2", "22.23.5"),
+        MISE_NEW.replace('"21d"', '"0d"'),
+    ],
+)
+def test_publisher_rejects_disallowed_mise_pin_edit(candidate: str) -> None:
+    with pytest.raises(ValueError):
+        approved_catalog(MISE_BASE, candidate, "mise-java")
+
+
+def test_mise_generator_isolates_updates_and_failures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    source = (
+        MISE_BASE
+        + """
+[mise.global_tools.bun]
+version = "1.4.4"
+
+[mise.global_tools.ollama]
+version = "0.40.16"
+
+[mise.global_tools.python]
+version = "3.14.10"
+"""
+    )
+    versions = {
+        "bun@1": "1.4.4",
+        "java@temurin-21": "temurin-21.0.13+9.0.LTS",
+        "node@22": "22.23.5",
+        "python@3": "3.15.1",
+    }
+
+    def command(*args: str) -> str:
+        if args[0] == "git":
+            return source
+        assert args[:4] == ("mise", "latest", "--minimum-release-age", "21d")
+        if args[4] == "ollama@0":
+            raise subprocess.CalledProcessError(1, args)
+        return versions[args[4]] + "\n"
+
+    generate_mise_updates = PUBLISHER["generate_mise_updates"]
+    monkeypatch.setitem(generate_mise_updates.__globals__, "command", command)
+    generate_mise_updates(tmp_path, "all")
+
+    assert sorted(path.name for path in tmp_path.iterdir()) == [
+        "failures.txt",
+        "mise-java.json",
+        "mise-java.toml",
+        "mise-node.json",
+        "mise-node.toml",
+        "mise-python.json",
+        "mise-python.toml",
+    ]
+    assert (tmp_path / "failures.txt").read_text() == "mise-ollama\n"
+    for tool in ("mise-java", "mise-node", "mise-python"):
+        candidate = (tmp_path / f"{tool}.toml").read_text()
+        approved, old, new = approved_catalog(source, candidate, tool)
+        assert approved == candidate
+        report = json.loads((tmp_path / f"{tool}.json").read_text())[0]
+        assert report["old_version"] == old
+        assert report["new_version"] == new
+
+
+@pytest.mark.parametrize(
+    "tool, old, new",
+    [("python", "3.14.10", "4.0.0"), ("ollama", "0.40.16", "1.0.0")],
+)
+def test_publisher_rejects_mise_major_updates(tool: str, old: str, new: str) -> None:
+    source = f'[mise.global_tools.{tool}]\nversion = "{old}"\n'
+    with pytest.raises(ValueError, match="supported mise release series"):
+        approved_catalog(source, source.replace(old, new), f"mise-{tool}")

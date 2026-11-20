@@ -14,6 +14,22 @@ CATALOGS = Path("src/chezmoi/.chezmoidata/bin")
 TOOL = re.compile(r"[a-z0-9][a-z0-9_-]*")
 VERSION = re.compile(r"v?[0-9]{1,9}(?:\.[0-9]{1,9}){1,5}")
 CHECKSUM = re.compile(r"[0-9a-f]{64}")
+# Each selector matches the supported release series for this catalog pin.
+MISE_TOOLS = {
+    "bun": ("1", r"1\.[0-9]{1,9}\.[0-9]{1,9}", "https://bun.com/blog/bun-v{version}"),
+    "java": (
+        "temurin-21",
+        r"temurin-(21\.[0-9]{1,9}\.[0-9]{1,9})\+([0-9]{1,9})\.0\.LTS",
+        "https://adoptium.net/temurin/releases/?version=21",
+    ),
+    "node": ("22", r"22\.[0-9]{1,9}\.[0-9]{1,9}", "https://nodejs.org/en/blog/release/v{version}"),
+    "ollama": (
+        "0",
+        r"0\.[0-9]{1,9}\.[0-9]{1,9}",
+        "https://github.com/ollama/ollama/releases/tag/v{version}",
+    ),
+    "python": ("3", r"3\.[0-9]{1,9}\.[0-9]{1,9}", "https://docs.python.org/release/{version}/whatsnew/changelog.html"),
+}
 OID = re.compile(r"[0-9a-f]{40}")
 
 
@@ -30,9 +46,38 @@ def catalog_fields(document, name):
     return tool, source, tool[source]
 
 
+def mise_version_key(tool, version):
+    _, pattern, _ = MISE_TOOLS[tool]
+    match = re.fullmatch(pattern, version) if isinstance(version, str) else None
+    if match is None:
+        raise ValueError("Expected a stable version within the supported mise release series")
+    numeric = ".".join(match.groups()) if tool == "java" else version
+    return version_key(numeric)
+
+
+def with_mise_version(document, tool, version):
+    fields = document["mise"]["global_tools"][tool]
+    old_version = fields["version"]
+    fields["version"] = version
+    return old_version, {f"mise.global_tools.{tool}": {"version": version}}
+
+
 def approved_catalog(base, candidate, name):
     original = tomllib.loads(base)
     proposed = tomllib.loads(candidate)
+    tool = name.removeprefix("mise-")
+    if name.startswith("mise-") and tool in MISE_TOOLS:
+        new = proposed["mise"]["global_tools"][tool]["version"]
+        old, replacements = with_mise_version(original, tool, new)
+        if mise_version_key(tool, new) <= mise_version_key(tool, old):
+            raise ValueError("Expected a forward mise version")
+        if original != proposed:
+            raise ValueError("Catalog edit exceeds the selected mise version field")
+        return rebuild_catalog(base, original, replacements), old, new
+    return approved_binary_catalog(base, original, proposed, name)
+
+
+def approved_binary_catalog(base, original, proposed, name):
     old, source, release = catalog_fields(original, name)
     new, _, new_release = catalog_fields(proposed, name)
     old_version = old["version"]
@@ -54,8 +99,12 @@ def approved_catalog(base, candidate, name):
     if original != proposed:
         raise ValueError("Catalog edit exceeds version and checksum fields")
 
-    # Rebuild from trusted bytes so generated TOML syntax never reaches Git.
     replacements = {f"bin.{name}": {"version": new_version}, f"bin.{name}.{source}.checksums": hashes.copy()}
+    return rebuild_catalog(base, original, replacements), old_version, new_version
+
+
+def rebuild_catalog(base, expected, replacements):
+    # Rebuild from trusted bytes so generated TOML syntax never reaches Git.
     table = ""
     lines = []
     for line in base.splitlines(keepends=True):
@@ -69,9 +118,9 @@ def approved_catalog(base, candidate, name):
         else:
             lines.append(line)
     rebuilt = "".join(lines)
-    if any(replacements.values()) or tomllib.loads(rebuilt) != original:
+    if any(replacements.values()) or tomllib.loads(rebuilt) != expected:
         raise ValueError("Unsupported trusted catalog layout")
-    return rebuilt, old_version, new_version
+    return rebuilt
 
 
 def command(*args, stdin=None, env=None):
@@ -148,9 +197,11 @@ def update_branch(name, catalog, approved, base, directory, expected_pr_head=Non
 
 
 def publish(name, artifact, base, repo):
-    catalog = CATALOGS / f"{name}.toml"
+    tool = name.removeprefix("mise-")
+    catalog_name = "mise" if name.startswith("mise-") and tool in MISE_TOOLS else name
+    catalog = CATALOGS / f"{catalog_name}.toml"
     original = command("git", "show", f"{base}:{catalog}")
-    updated = (artifact / catalog.name).read_text(encoding="utf-8")
+    updated = (artifact / f"{name}.toml").read_text(encoding="utf-8")
     approved, old, new = approved_catalog(original, updated, name)
     report = json.loads((artifact / f"{name}.json").read_text(encoding="utf-8"))
     title = f"Update {name} from {old} to {new}"
@@ -236,10 +287,48 @@ def open_pr(repo, branch):
     return prs[0]
 
 
+def generate_mise_updates(artifact, target):
+    source = command("git", "show", f"HEAD:{CATALOGS / 'mise.toml'}")
+    tools = MISE_TOOLS if target == "all" else (target.removeprefix("mise-"),)
+    for tool in tools:
+        name = f"mise-{tool}"
+        try:
+            selector, _, source_url = MISE_TOOLS[tool]
+            document = tomllib.loads(source)
+            age = document["mise"]["updates"]["minimum_release_age"]
+            new = command("mise", "latest", "--minimum-release-age", age, f"{tool}@{selector}").strip()
+            old, replacements = with_mise_version(document, tool, new)
+            if mise_version_key(tool, new) <= mise_version_key(tool, old):
+                continue
+            updated = rebuild_catalog(source, document, replacements)
+            title = f"Update {name} from {old} to {new}"
+            report = [
+                {
+                    "tool_name": name,
+                    "changed": True,
+                    "old_version": old,
+                    "new_version": new,
+                    "pr_title": title,
+                    "pr_body": f"Update {tool} from {old} to {new}.\n\n[Upstream releases]({source_url.format(version=new)})\n",
+                }
+            ]
+            (artifact / f"{name}.toml").write_text(updated, encoding="utf-8")
+            (artifact / f"{name}.json").write_text(json.dumps(report), encoding="utf-8")
+        except (ValueError, KeyError, OSError, subprocess.CalledProcessError) as error:
+            print(f"Generation failed for {name}: {error}", file=sys.stderr)
+            with (artifact / "failures.txt").open("a", encoding="utf-8") as log:
+                print(name, file=log)
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("artifact", type=Path)
-    artifact = parser.parse_args().artifact
+    parser.add_argument("--generate-mise", choices=["all", *(f"mise-{tool}" for tool in MISE_TOOLS)])
+    args = parser.parse_args()
+    artifact = args.artifact
+    if args.generate_mise is not None:
+        generate_mise_updates(artifact, args.generate_mise)
+        return 0
     repo = os.environ["GITHUB_REPOSITORY"]
     base = os.environ["GITHUB_SHA"]
     if not os.environ.get("GH_TOKEN", ""):

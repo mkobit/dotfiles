@@ -26,6 +26,9 @@ linux_arm64  = "dbe0b2141ba1d67cbfdd661cc8e6771cfda73d9f9998256d8e5ecdabfed66c07
 
 [mise]
 
+[mise.updates]
+minimum_release_age = "21d"
+
 [mise.settings]
 # Configuration settings: https://mise.jdx.dev/configuration/settings.html
 # Keep activation from adding shims: https://mise.jdx.dev/configuration/settings.html#activate_shims
@@ -47,16 +50,16 @@ package_manager = "bun"
 # setting installation_method = "none" in their own BOM entry.
 
   [mise.global_tools.python]
-  version = "3.14.7"
+  version = "3.14.10"
 
   [mise.global_tools.java]
-  version = "temurin-21.0.12+101.0.LTS"
+  version = "temurin-21.0.13+9.0.LTS"
 
   [mise.global_tools.bun]
-  version = "1.4.2"
+  version = "1.4.4"
 
   [mise.global_tools.node]
-  version = "22.23.2"
+  version = "22.23.5"
 
   [mise.global_tools.uv]
   version = "0.12.10"
@@ -64,4 +67,4 @@ package_manager = "bun"
   # CLI for the Windows-side ollama server (reachable via mirrored networking).
   # No WSL-side server — Windows install is canonical.
   [mise.global_tools.ollama]
-  version = "0.34.0"
+  version = "0.40.16"
