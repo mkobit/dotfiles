@@ -11,7 +11,7 @@ layout {
         }
     }
 
-    tab name="dotfiles" cwd={{ .chezmoi.sourceDir | quote }} focus=true {
+    tab name="dotfiles"{{ includeTemplate "kdl/props" (dict "cwd" (.chezmoi.sourceDir | toString)) }} focus=true {
         pane split_direction="horizontal" {
             pane name="AI" size="75%"
             pane name="chezmoi" size="25%"
@@ -20,7 +20,7 @@ layout {
 
     {{- range (glob (printf "%s/*" $workspaceDir)) }}
     {{-   if (stat .).isDir }}
-    tab name={{ base . | quote }} cwd={{ . | quote }} {
+    tab{{ includeTemplate "kdl/props" (dict "name" (base .) "cwd" .) }} {
         pane split_direction="horizontal" {
             pane name="Editor" size="75%"
             pane name="Shell" size="25%"

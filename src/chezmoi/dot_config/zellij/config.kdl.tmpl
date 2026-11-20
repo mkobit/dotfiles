@@ -54,11 +54,11 @@ keybinds clear-defaults=true {
 // https://zellij.dev/documentation/plugin-aliases
 plugins {
 {{- range $alias, $plugin := (dig "zellij" "plugins" (dict) .) }}
-    {{ $alias }} location={{ dig "location" "" $plugin | quote }}
+    {{ $alias }}{{ includeTemplate "kdl/props" (dict "location" (dig "location" "" $plugin)) }}
 {{-   $cfg := dig "config" (dict) $plugin }}
 {{-   if $cfg }} {
 {{-     range $k, $v := $cfg }}
-        {{ $k }} {{ if eq (kindOf $v) "string" }}{{ $v | quote }}{{ else }}{{ $v }}{{ end }}
+        {{ $k }} {{ includeTemplate "kdl/value" $v }}
 {{-     end }}
     }{{ end }}
 {{- end }}
