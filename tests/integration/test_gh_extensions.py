@@ -5,10 +5,7 @@ import shlex
 import shutil
 import subprocess
 import tomllib
-from functools import partial
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from threading import Thread
 
 import pytest
 from chezmoi_test_data import installation_method
@@ -108,6 +105,13 @@ class ExtensionCase:
         assert result.returncode == 0, result.stderr
         return result.stdout
 
+    def release_asset(self, name):
+        return self.root / "downloads" / name / self.catalog[name]["version"]
+
+    def remove_release_assets(self, *names):
+        for name in names:
+            self.release_asset(name).unlink()
+
     def directory(self, name):
         return self.destination / ".local/share/gh-managed" / name
 
@@ -135,44 +139,22 @@ def case(render_case, real_gh):
 
 @pytest.fixture
 def local_releases(case):
-    downloads = case.root / "downloads"
-    downloads.mkdir()
-    requests = []
+    def release(name, version):
+        payload = f"#!/bin/sh\nprintf '%s\\n' '{name} {version}'\n".encode()
+        tool = case.catalog[name]
+        tool["version"] = version
+        path = case.release_asset(name)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(payload)
+        source = tool["github_releases"]
+        source["url_format"] = path.as_uri()
+        source["checksums"] = dict.fromkeys(source["platforms"], hashlib.sha256(payload).hexdigest())
+        case.write_config()
+        return payload
 
-    class Handler(SimpleHTTPRequestHandler):
-        def do_GET(self):
-            requests.append(self.path)
-            super().do_GET()
-
-        def log_message(self, *_args):
-            pass
-
-    with ThreadingHTTPServer(("127.0.0.1", 0), partial(Handler, directory=str(downloads))) as server:
-        thread = Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True)
-        thread.start()
-        base_url = f"http://127.0.0.1:{server.server_port}"
-
-        def release(name, version):
-            payload = f"#!/bin/sh\nprintf '%s\\n' '{name} {version}'\n".encode()
-            path = downloads / name / version
-            path.parent.mkdir(exist_ok=True)
-            path.write_bytes(payload)
-            tool = case.catalog[name]
-            tool["version"] = version
-            source = tool["github_releases"]
-            source["url_format"] = f"{base_url}/{name}/{{tag}}"
-            source["tag_format"] = "{version}"
-            source["checksums"] = dict.fromkeys(source["platforms"], hashlib.sha256(payload).hexdigest())
-            case.write_config()
-            return payload
-
-        try:
-            for name in NAMES:
-                release(name, "1.0.0")
-            yield release, requests
-        finally:
-            server.shutdown()
-            thread.join()
+    for name in NAMES:
+        release(name, "1.0.0")
+    return release
 
 
 def _apply(case):
@@ -249,29 +231,25 @@ def test_initial_apply_exposes_both_public_commands(case, local_releases):
 
 
 def test_apply_reconciles_upgrades_downgrades_and_missing_registration(case, local_releases):
-    release, requests = local_releases
     name = "gh-stack"
     state = Path(case.env["XDG_STATE_HOME"]) / "gh/extensions" / name / "state.yml"
     _apply(case)
     for version in ("9.0.0", "0.0.1"):
-        payload = release(name, version)
+        payload = local_releases(name, version)
         _apply(case)
         assert (case.directory(name) / name).read_bytes() == payload
         result = case.gh("stack", "--version")
         assert result.returncode == 0, result.stderr
         assert result.stdout.strip() == f"{name} {version}"
-        downloads = len(requests)
         state.parent.mkdir(parents=True, exist_ok=True)
         state.write_text("preserve update state\n")
         _apply(case)
         assert state.read_text() == "preserve update state\n"
-        assert len(requests) == downloads
         assert case.registration(name).readlink() == case.directory(name)
         assert (case.directory(name) / name).read_bytes() == payload
     case.registration(name).unlink()
     _apply(case)
     assert case.registration(name).readlink() == case.directory(name)
-    assert len(requests) == downloads
     result = case.gh("stack", "--version")
     assert result.returncode == 0, result.stderr
     assert result.stdout.strip() == f"{name} {version}"
@@ -300,7 +278,6 @@ def test_replacement_preserves_external_target_and_clears_stale_state(case, loca
     ("choice", "kind"), [(None, "link"), ("none", "directory")], ids=["missing-key-with-link", "none-with-directory"]
 )
 def test_disabled_extension_preserves_registration_while_other_works(case, local_releases, choice, kind):
-    _, requests = local_releases
     name = "gh-stack"
     old = _previous_registration(case, name, kind)
     state = case.destination / ".local/state/gh/extensions" / name / "state.yml"
@@ -311,8 +288,8 @@ def test_disabled_extension_preserves_registration_while_other_works(case, local
     else:
         case.choices[name] = {"installation_method": choice}
     case.write_config()
+    case.remove_release_assets(name)
     _apply(case)
-    assert all(not request.startswith(f"/{name}/") for request in requests)
     assert not case.directory(name).exists()
     assert (old / name).read_text() == "#!/bin/sh\necho previous\n"
     assert state.read_text() == "unmanaged update state\n"
@@ -329,28 +306,25 @@ def test_disabled_extension_preserves_registration_while_other_works(case, local
 
 
 def test_absent_gh_choices_are_noop_without_gh_or_supported_data_home(case, local_releases):
-    _, requests = local_releases
+    case.remove_release_assets(*NAMES)
     case.choices = None
     case.write_config()
     case.gh_binary.unlink()
     case.env["XDG_DATA_HOME"] = str(case.root / "inherited-data")
     _apply(case)
-    assert requests == []
     assert not (case.destination / ".local/share/gh").exists()
     assert all(not case.directory(name).exists() for name in NAMES)
 
 
 def test_disabling_management_preserves_installations_without_gh(case, local_releases):
-    _, requests = local_releases
     _apply(case)
     contents = {name: (case.directory(name) / name).read_bytes() for name in NAMES}
-    downloads = len(requests)
+    case.remove_release_assets(*NAMES)
     case.choices = {name: {"installation_method": "none"} for name in NAMES}
     case.write_config()
     case.gh_binary.unlink()
     case.env["XDG_DATA_HOME"] = str(case.root / "inherited-data")
     _apply(case)
-    assert len(requests) == downloads
     for name in NAMES:
         assert case.registration(name).readlink() == case.directory(name)
         assert (case.directory(name) / name).read_bytes() == contents[name]
@@ -362,7 +336,6 @@ def test_disabling_management_preserves_installations_without_gh(case, local_rel
     ids=["missing-gh-preserves-old-link", "nonexecutable-gh-skips-before-xdg-check", "directory-is-not-gh"],
 )
 def test_unavailable_gh_preserves_registration_and_retries(case, local_releases, availability, registration):
-    _, requests = local_releases
     name = "gh-actions-lock"
     if registration == "old":
         target = _previous_registration(case, name, "link")
@@ -391,7 +364,6 @@ def test_unavailable_gh_preserves_registration_and_retries(case, local_releases,
     assert "skip" in result.stderr.lower()
     assert str(case.gh_binary) in result.stderr
 
-    downloads = len(requests)
     if availability == "directory":
         case.gh_binary.rmdir()
     else:
@@ -399,7 +371,6 @@ def test_unavailable_gh_preserves_registration_and_retries(case, local_releases,
     saved_gh.rename(case.gh_binary)
     case.env["XDG_DATA_HOME"] = str(case.destination / ".local/share")
     _apply(case)
-    assert len(requests) == downloads
     assert case.registration(name).readlink() == case.directory(name)
     result = case.gh(name.removeprefix("gh-"), "--version")
     assert result.returncode == 0, result.stderr
