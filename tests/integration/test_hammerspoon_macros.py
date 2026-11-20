@@ -14,14 +14,16 @@ import pytest
 from integration_support.chezmoi import chezmoi_argv, run_chezmoi
 
 SOURCE = Path("src/chezmoi/dot_dotfiles/hammerspoon")
+pytestmark = [
+    pytest.mark.hammerspoon,
+    pytest.mark.skipif(sys.platform != "darwin", reason="Hammerspoon requires macOS"),
+]
 
 
 @pytest.fixture
 def loaded_hammerspoon(request):
     if not request.config.getoption("--start-hammerspoon"):
         pytest.skip("Use --start-hammerspoon to start the config load check")
-    if sys.platform != "darwin":
-        pytest.skip("Hammerspoon requires macOS")
 
     app = Path(os.environ.get("HAMMERSPOON_APP", "/Applications/Hammerspoon.app"))
     executable = app / "Contents/MacOS/Hammerspoon"
@@ -124,7 +126,6 @@ def loaded_hammerspoon(request):
                         process.wait(timeout=5)
 
 
-@pytest.mark.hammerspoon
 def test_rendered_hammerspoon_config_loads(loaded_hammerspoon):
     result, log_path = loaded_hammerspoon
     assert result["ok"], f"Config load failed: {result['error']}\n{log_path.read_text()}"

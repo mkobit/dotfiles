@@ -285,7 +285,7 @@ jobs:
           set -o pipefail
           report_dir="$RUNNER_TEMP/integration-reports"
           mkdir -p "$report_dir"
-          mise exec -- uv run --frozen pytest tests/integration -m "not hammerspoon" -ra --durations=20 \
+          mise exec -- uv run --frozen pytest tests/integration -ra --durations=20 \
             --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
 
       - name: Check Hammerspoon config loading
@@ -294,9 +294,7 @@ jobs:
         env:
           HOME: ${{ env.CHEZMOI_DEST }}
         run: |
-          mise exec -- uv run --frozen pytest tests/integration/test_hammerspoon_macros.py \
-            -m hammerspoon --start-hammerspoon -ra \
-            --junitxml="$RUNNER_TEMP/integration-reports/hammerspoon.xml"
+          mise run test:hammerspoon -- --junitxml="$RUNNER_TEMP/integration-reports/hammerspoon.xml"
 
       - name: Upload integration reports
         if: always()

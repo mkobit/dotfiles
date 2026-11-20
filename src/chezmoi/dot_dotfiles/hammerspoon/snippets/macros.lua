@@ -206,6 +206,8 @@ function M.promptTag(api)
     return ok and complete, not (ok and complete)
 end
 
+-- Wrap selected ASCII words (or the word at the cursor); keep the cursor between tags.
+-- Example: copied prompt -> <copied-prompt></copied-prompt>.
 function M.wrapPromptTag(api)
     api = api or hs
     local ok, result, textMayHaveChanged = pcall(M.promptTag, api)
@@ -236,11 +238,13 @@ end
 
 M.actions = {}
 
+-- Overlays register menu actions before config.lua calls startMenu().
 function M.register(title, action)
     M.actions[#M.actions + 1] = { title = title, action = action }
 end
 
--- Capture the target before the menu takes focus. Do not type in another field.
+-- Put the cursor in the target field before opening the Macros menu.
+-- Capture that field and stop if focus cannot be restored.
 function M.startMenu(api)
     api = api or hs
     if not api.menubar then return nil end
