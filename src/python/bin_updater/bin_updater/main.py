@@ -64,7 +64,9 @@ def main(
     with HttpxReleaseClient(token=auth_token) as client:
         results = run_updates(catalogs, client, dry_run=dry_run)
     if report_file is not None:
-        report_file.write_text(json.dumps([r.model_dump() for r in results], indent=2) + "\n", encoding="utf-8")
+        report_file.write_text(
+            json.dumps([r.model_dump() for r in results], ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+        )
     for result in results:
         _print_result(result)
 

@@ -14,10 +14,6 @@ from bin_updater.cooldown import parse_cooldown_to_seconds
 from bin_updater.release import extract_version_from_tag, resolve_release_filename, select_mature_release
 
 
-class _ReleaseNotesTooLargeError(ValueError):
-    """Raised when a complete note range cannot fit in a pull request."""
-
-
 class ToolUpdateResult(BaseModel):
     tool_name: str
     changed: bool
@@ -72,11 +68,8 @@ def _release_notes(catalog: ToolCatalog, releases: Sequence[Mapping[str, Any]], 
         body = release.get("body")
         notes = body if isinstance(body, str) and body.strip() else "No release notes were provided."
         sections.append(f"## [{tag}]({url})\n\n{notes}")
-    body = "\n\n".join(sections) + "\n"
-    # GitHub limits pull request bodies to 65,536 characters.
-    if len(body) > 65536:
-        raise _ReleaseNotesTooLargeError("Complete release notes exceed the GitHub PR body limit of 65,536 characters")
-    return body
+    # Keep the handoff small. One extra character tells the publisher to add the upstream link.
+    return ("\n\n".join(sections) + "\n")[:65537]
 
 
 def _resolve_platform_checksums(
@@ -153,21 +146,7 @@ def update_tool(
         return ToolUpdateResult(
             tool_name=catalog.name, changed=False, old_version=catalog.version, new_version=catalog.version
         )
-    while True:
-        try:
-            pr_body = _release_notes(catalog, releases, target_version)
-            break
-        except _ReleaseNotesTooLargeError:
-            earlier = [
-                candidate
-                for candidate in stable_releases
-                if (version := _stable_version(candidate, catalog.tag_format)) is not None
-                and Version(catalog.version) < version < Version(target_version)
-            ]
-            release = select_mature_release(earlier, cooldown)
-            if release is None:
-                raise
-            target_version = extract_version_from_tag(str(release["tag_name"]), catalog.tag_format)
+    pr_body = _release_notes(catalog, releases, target_version)
     new_checksums = _resolve_platform_checksums(catalog, target_version, release, client)
     if not dry_run:
         content = catalog.path.read_text(encoding="utf-8")

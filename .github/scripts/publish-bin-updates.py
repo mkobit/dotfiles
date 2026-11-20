@@ -9,11 +9,13 @@ import sys
 import tempfile
 import tomllib
 from pathlib import Path
+from urllib.parse import quote
 
 CATALOGS = Path("src/chezmoi/.chezmoidata/bin")
 TOOL = re.compile(r"[a-z0-9][a-z0-9_-]*")
 VERSION = re.compile(r"v?[0-9]{1,9}(?:\.[0-9]{1,9}){1,5}")
 CHECKSUM = re.compile(r"[0-9a-f]{64}")
+PR_BODY_LIMIT = 65536
 AT_SIGN = re.compile(r"@|&(?:commat;|#(?:0*64(?![0-9])|[xX]0*40(?![0-9a-fA-F]));?)")
 NOTE_TOKEN = re.compile(
     r"(?P<url>https?://[a-zA-Z0-9.\-]+(?::[0-9]+)?/[^\s<>\[\]()?#]*)"
@@ -61,6 +63,14 @@ def catalog_fields(document, name):
     tool = document["bin"][name]
     source = "direct_release" if tool.get("updater", {}).get("source") == "claude" else "github_releases"
     return tool, source, tool[source]
+
+
+def upstream_notes(original, name, new):
+    if name.startswith("mise-") and (tool := name.removeprefix("mise-")) in MISE_TOOLS:
+        return MISE_TOOLS[tool][2].format(version=new)
+    fields, source, release = catalog_fields(tomllib.loads(original), name)
+    metadata = fields["updater"] if source == "direct_release" else release
+    return f"https://github.com/{quote(metadata['repo'], safe='/')}/releases"
 
 
 def mise_version_key(tool, version):
@@ -234,12 +244,16 @@ def publish(name, artifact, base, repo):
         or row.get("new_version") != new
         or row.get("pr_title") != title
         or not isinstance(body, str)
-        or not 0 < len(body) <= 65536
+        or not body
     ):
         raise ValueError("Update report does not match the catalog")
-    body = mute_mentions(body)
-    if len(body) > 65536:
-        raise ValueError("Update report exceeds the PR body limit after muting mentions")
+    preview = mute_mentions(body)
+    if max(len(body), len(preview)) > PR_BODY_LIMIT:
+        # Put the link before the notes so cut Markdown cannot hide it.
+        url = upstream_notes(original, name, new)
+        intro = f"Release notes preview. [Read the full upstream release notes]({url}).\n\n"
+        preview = intro + preview[: PR_BODY_LIMIT - len(intro)].rstrip()
+    body = preview
     branch = f"automation/bin-update-{name}"
     prior = open_pr(repo, branch)
     with tempfile.TemporaryDirectory() as temp:

@@ -57,10 +57,11 @@ def test_main_skips_non_github_release_tool(tmp_path: Path) -> None:
 def test_main_writes_result_report(tmp_path: Path, monkeypatch) -> None:
     report = tmp_path / "report.json"
     report.write_text("stale")
-    expected = ToolUpdateResult(tool_name="app", changed=True, old_version="1", new_version="2")
+    expected = ToolUpdateResult(tool_name="app", changed=True, old_version="1", new_version="2", pr_body="🚀" * 65537)
     monkeypatch.setattr("bin_updater.main.run_updates", lambda *_args, **_kwargs: [expected])
     result = runner.invoke(app, ["--all", "--catalog-dir", str(tmp_path), "--report-file", str(report)])
     assert result.exit_code == 0
+    assert report.stat().st_size < 512_000
     assert json.loads(report.read_text()) == [expected.model_dump()]
     assert "pr_title" in json.loads(report.read_text())[0]
     assert "pr_body" in json.loads(report.read_text())[0]
