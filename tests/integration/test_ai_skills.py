@@ -4,12 +4,11 @@ import json
 import shutil
 import subprocess
 import tomllib
-from contextlib import suppress
 from pathlib import Path
 
 import pytest
 from chezmoi_test_data import installation_method
-from integration_support.chezmoi import chezmoi_argv
+from integration_support.chezmoi import chezmoi_argv, run_chezmoi_async
 
 # Antigravity remains a direct skill consumer.
 DIRECT_SKILL_DIRS = [
@@ -66,8 +65,8 @@ def assert_entries_are_valid_skills(skills_dir: Path, allowed_marker_files: froz
 
 async def _render(relative: str) -> str:
     """Render one real source template with catalog data only."""
-    process = await asyncio.create_subprocess_exec(
-        *chezmoi_argv(
+    return await run_chezmoi_async(
+        chezmoi_argv(
             "--config-format",
             "toml",
             "execute-template",
@@ -76,18 +75,7 @@ async def _render(relative: str) -> str:
             config="/dev/null",
             source=REPOSITORY_ROOT,
         ),
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
     )
-    try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=30)
-    finally:
-        if process.returncode is None:
-            with suppress(ProcessLookupError):
-                process.kill()
-            await process.communicate()
-    assert process.returncode == 0, stderr.decode()
-    return stdout.decode()
 
 
 @pytest.mark.integration

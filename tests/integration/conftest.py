@@ -42,7 +42,7 @@ def skip_unmatched_chezmoi_installation(request):
         pytest.skip(f"{feature}.installation_method is {active_method!r}; expected one of: {allowed}")
 
 
-def _chezmoi_argv(*args):
+def _deployed_chezmoi_argv(*args):
     return chezmoi_argv(
         *args,
         source=Path.cwd(),
@@ -53,7 +53,7 @@ def _chezmoi_argv(*args):
 
 
 def _chezmoi_command(*args):
-    return " ".join(shlex.quote(part) for part in _chezmoi_argv(*args))
+    return shlex.join(_deployed_chezmoi_argv(*args))
 
 
 # chezmoi's documented attribute order for regular/create files is
@@ -71,7 +71,7 @@ def _is_shellcheck_candidate_file(source_relative):
 def _shellcheck_candidates():
     scripts = json.loads(
         subprocess.run(
-            _chezmoi_argv("managed", "--include=scripts", "--format=json", "--path-style=all"),
+            _deployed_chezmoi_argv("managed", "--include=scripts", "--format=json", "--path-style=all"),
             capture_output=True,
             text=True,
             check=True,
@@ -79,7 +79,7 @@ def _shellcheck_candidates():
     )
     files = json.loads(
         subprocess.run(
-            _chezmoi_argv("managed", "--include=files", "--format=json", "--path-style=all"),
+            _deployed_chezmoi_argv("managed", "--include=files", "--format=json", "--path-style=all"),
             capture_output=True,
             text=True,
             check=True,

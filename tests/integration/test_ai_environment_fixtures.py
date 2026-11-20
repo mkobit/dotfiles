@@ -229,8 +229,11 @@ def test_egm_disabled_after_install_removes_package(tmp_path, method):
 
 
 def test_base_init_enables_egm(tmp_path):
-    source, destination, config, _ = _upstream_fixture(tmp_path, None, EGM_ARCHIVE_CONTENTS, plugin="egm")
-    fixture_config = config.read_text()
+    source = tmp_path / "source"
+    source.mkdir()
+    destination = tmp_path / "destination"
+    destination.mkdir()
+    config = tmp_path / "chezmoi.toml"
     shutil.copy2(SOURCE_ROOT / ".chezmoi.toml.tmpl", source / ".chezmoi.toml.tmpl")
     rendered = subprocess.run(
         chezmoi_argv(
@@ -246,16 +249,8 @@ def test_base_init_enables_egm(tmp_path):
         text=True,
     )
     assert rendered.returncode == 0, rendered.stderr
-    method = tomllib.loads(config.read_text())["data"]["ai"]["plugins"]["egm"]["installation_method"]
-    config.write_text(
-        fixture_config.replace(
-            "[data.ai.plugins.egm]",
-            f'[data.ai.plugins.egm]\ninstallation_method = "{method}"',
-        )
-    )
-    applied = _apply(source, destination, config)
-    assert applied.returncode == 0, applied.stderr
-    assert (destination / ".local/share/agent-plugins/marketplaces/egm/plugins/egm").is_dir()
+    egm = tomllib.loads(config.read_text())["data"]["ai"]["plugins"]["egm"]
+    assert egm["installation_method"] == "chezmoi_external"
 
 
 @pytest.mark.parametrize("method", [None, "none", "chezmoi_external"])
