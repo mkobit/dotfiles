@@ -215,4 +215,67 @@ function M.wrapPromptTag(api)
     end
 end
 
+-- Literal insertion needs a focused text field, not a writable AX text value.
+-- This also supports terminal input without trying to edit terminal screen text.
+function M.insertText(text, api)
+    api = api or hs
+    if type(text) ~= "string" or text == "" then return false end
+    if api.eventtap.isSecureInputEnabled and api.eventtap.isSecureInputEnabled() then return false end
+    local app = api.application.frontmostApplication()
+    local system = api.axuielement.systemWideElement()
+    local element = system:attributeValue("AXFocusedUIElement")
+    if not app or not element then return false end
+    local role = element:attributeValue("AXRole")
+    if (role ~= "AXTextField" and role ~= "AXTextArea")
+        or element:attributeValue("AXSubrole") == "AXSecureTextField" then return false end
+    if api.application.frontmostApplication() ~= app
+        or system:attributeValue("AXFocusedUIElement") ~= element then return false end
+    api.eventtap.keyStrokes(text, app)
+    return true
+end
+
+M.actions = {}
+
+function M.register(title, action)
+    M.actions[#M.actions + 1] = { title = title, action = action }
+end
+
+-- Capture the target before the menu takes focus. Do not type in another field.
+function M.startMenu(api)
+    api = api or hs
+    if not api.menubar then return nil end
+    if M.menu then M.menu:delete() end
+    M.menu = api.menubar.new()
+    if not M.menu then return nil end
+    M.menu:setTitle("Macros")
+    M.menu:setMenu(function()
+        local app = api.application.frontmostApplication()
+        local system = api.axuielement.systemWideElement()
+        local element = system:attributeValue("AXFocusedUIElement")
+        local items = {}
+        for _, entry in ipairs(M.actions) do
+            items[#items + 1] = {
+                title = entry.title,
+                disabled = not app or not element,
+                fn = function()
+                    local function fail() api.alert.show("Cannot restore the macro text field") end
+                    if not app or not element or app:activate() == false then fail(); return end
+                    if not waitFor(api, function()
+                        if api.application.frontmostApplication() == app
+                            and system:attributeValue("AXFocusedUIElement") == element then return "ready" end
+                        return "wait"
+                    end, function()
+                        entry.action(api)
+                        return true
+                    end, fail) then fail() end
+                end,
+            }
+        end
+        return items
+    end)
+    return M.menu
+end
+
+M.register("Wrap prompt tag", M.wrapPromptTag)
+
 return M

@@ -1,3 +1,4 @@
+import html
 import json
 import os
 import re
@@ -9,6 +10,8 @@ from pathlib import Path
 from typing import TypedDict, cast
 
 import pytest
+from _pytest.reports import TestReport
+from _pytest.terminal import TerminalReporter
 from chezmoi_test_data import required_installation_method
 from integration_support.chezmoi import chezmoi_argv
 from testinfra.host import Host
@@ -183,3 +186,38 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     if "shellcheck_candidate" in metafunc.fixturenames:
         candidates = _shellcheck_candidates()
         metafunc.parametrize("shellcheck_candidate", candidates, ids=lambda c: c["sourceRelative"])
+
+
+def _slow_test_summary(reports: Iterable[TestReport]) -> str:
+    durations: dict[str, dict[str, float]] = {}
+    for report in reports:
+        phases = durations.setdefault(report.nodeid, {})
+        phases[report.when] = phases.get(report.when, 0.0) + report.duration
+    rows = [
+        "### Slowest integration tests",
+        "",
+        "Times include setup, call, and teardown. Shared fixture setup is charged to its first test.",
+        "",
+        "| Test | Total (s) | Setup (s) | Call (s) | Teardown (s) |",
+        "| --- | ---: | ---: | ---: | ---: |",
+    ]
+    slowest = sorted(durations.items(), key=lambda item: sum(item[1].values()), reverse=True)[:20]
+    for nodeid, phases in slowest:
+        name = html.escape(nodeid).replace("|", "&#124;").replace("`", "&#96;")
+        times = [sum(phases.values()), *(phases.get(phase, 0.0) for phase in ("setup", "call", "teardown"))]
+        rows.append(f"| `{name}` | " + " | ".join(f"{duration:.3f}" for duration in times) + " |")
+    return "\n".join(rows) + "\n"
+
+
+def pytest_terminal_summary(terminalreporter: TerminalReporter) -> None:
+    summary_path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if not summary_path:
+        return
+    reports = [
+        report for group in terminalreporter.stats.values() for report in group if isinstance(report, TestReport)
+    ]
+    try:
+        with Path(summary_path).open("a") as summary:
+            summary.write(_slow_test_summary(reports))
+    except OSError as error:
+        terminalreporter.write_line(f"Could not write test duration summary: {error}")

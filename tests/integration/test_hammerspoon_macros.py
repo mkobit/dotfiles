@@ -1,5 +1,6 @@
 import asyncio
 import json
+import os
 import shutil
 import sys
 import tempfile
@@ -35,16 +36,22 @@ async def render_config(tmp_path):
     return result.stdout
 
 
-async def run_lua(script):
-    hs = shutil.which("hs")
+async def run_lua(script, *, timeout=10):
+    hs = shutil.which(os.environ.get("HAMMERSPOON_CLI", "hs"))
     if not hs:
+        if os.environ.get("HAMMERSPOON_TEST_REQUIRED") == "1":
+            pytest.fail("Hammerspoon CLI is required for this CI job")
         pytest.skip("Hammerspoon CLI is not available")
-    args = [hs, "-a", "-q", "-t", "5", "-c", script]
+    args = [hs, "-q", "-t", "5", "-c", script]
     process = await asyncio.create_subprocess_exec(
-        *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        # hs reads stdin after -c; an inherited CI pipe can remain open.
+        *args,
+        stdin=asyncio.subprocess.DEVNULL,
+        stdout=asyncio.subprocess.PIPE,
+        stderr=asyncio.subprocess.PIPE,
     )
     try:
-        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=10)
+        stdout, stderr = await asyncio.wait_for(process.communicate(), timeout=timeout)
     finally:
         if process.returncode is None:
             with suppress(ProcessLookupError):
@@ -90,7 +97,7 @@ async def test_overlay_files_load_in_order_and_fail_independently(hammerspoon_sc
     script = f"""local env = setmetatable({{}}, {{__index = _G}})
         env._G = env
         env.hs = setmetatable({{alert = {{show = function(msg) env.alerts[#env.alerts + 1] = msg end}},
-            printf = function() end}}, {{__index = hs}})
+            printf = function() end, menubar = {{new = function() return nil end}}}}, {{__index = hs}})
         env.alerts, env.order = {{}}, {{}}
         env.dofile = function(file) return assert(loadfile(file, "t", env))() end
         env.dofile({path})
@@ -105,6 +112,7 @@ async def test_overlay_files_load_in_order_and_fail_independently(hammerspoon_sc
     (overlay / "bad.lua").write_text('error("bad overlay")')
     (overlay / "c.lua").write_text('order[#order + 1] = "c"')
     (overlay / "ignored.txt").write_text('error("not Lua")')
+    (overlay / "directory.lua").mkdir()
     result = await run_lua(script)
     assert result["order"] == ["a", "b", "c"]
     assert result["hasTagAction"] is True
@@ -113,7 +121,9 @@ async def test_overlay_files_load_in_order_and_fail_independently(hammerspoon_sc
 
 
 async def test_nested_change_reloads_after_watcher_garbage_collection(tmp_path):
-    if not shutil.which("hs"):
+    if not shutil.which(os.environ.get("HAMMERSPOON_CLI", "hs")):
+        if os.environ.get("HAMMERSPOON_TEST_REQUIRED") == "1":
+            pytest.fail("Hammerspoon CLI is required for this CI job")
         pytest.skip("Hammerspoon CLI is not available")
     nested = tmp_path / "overlay"
     nested.mkdir()
@@ -381,3 +391,219 @@ async def test_direct_replacement_warns_if_cursor_cannot_be_set():
     result = await run_lua(script)
     assert result["value"] == "<copied-prompt></copied-prompt>"
     assert_text_may_have_changed(result["alerts"])
+
+
+async def test_tag_plan_preserves_surrounding_text_at_selection_boundaries():
+    path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
+    plans = await run_lua(f"""local m = dofile({path})
+        return hs.json.encode({{
+            m.plan("before copied prompt after", 10, 7),
+            m.plan("🦊 copied prompt!", 6, 7),
+            m.plan("one\\t\\ttwo", 0, 8),
+            m.plan("copied", 6, 0),
+            m.plan("_copied-2", 0, 0),
+        }})""")
+    assert [(p["value"], p["cursor"]) for p in plans] == [
+        ("before <copied-prompt></copied-prompt> after", 22),
+        ("🦊 <copied-prompt></copied-prompt>!", 18),
+        ("<one-two></one-two>", 9),
+        ("<copied></copied>", 8),
+        ("<_copied-2></_copied-2>", 11),
+    ]
+
+
+async def test_tag_plan_rejects_malformed_and_multiline_ranges():
+    path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
+    result = await run_lua(f"""local m = dofile({path})
+        return hs.json.encode({{
+            m.plan("copied", -1, 0) == nil,
+            m.plan("copied", 1.5, 0) == nil,
+            m.plan("copied", 0, -1) == nil,
+            m.plan("copied", 0, 99) == nil,
+            m.plan("copied\\nprompt", 0, 13) == nil,
+            m.plan(string.char(255), 0, 0) == nil,
+            m.plan("🦊 copied", 0, 1) == nil,
+        }})""")
+    assert result == [True] * 7
+
+
+async def test_text_insertion_targets_the_app_and_rejects_secure_or_missing_fields():
+    path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
+    result = await run_lua(f"""local m = dofile({path})
+        local function run(bundle, role, subrole, focused)
+            local typed = {{}}
+            local app = {{bundleID=function() return bundle end}}
+            local element = {{attributeValue=function(_, name)
+                if name == "AXRole" then return role end
+                if name == "AXSubrole" then return subrole end
+            end}}
+            local system = {{attributeValue=function() if focused then return element end end}}
+            local api = {{application={{frontmostApplication=function() return app end}},
+                axuielement={{systemWideElement=function() return system end}},
+                eventtap={{keyStrokes=function(text, target)
+                    assert(target == app)
+                    typed[#typed + 1] = text
+                end}}}}
+            return {{ok=m.insertText("literal <tag>🦊\\n", api), typed=typed}}
+        end
+        return hs.json.encode({{run("com.google.Chrome", "AXTextArea", nil, true),
+            run("com.todesktop.230313mzl4w4u92", "AXTextArea", nil, true),
+            run("com.mitchellh.ghostty", "AXTextArea", nil, true),
+            run("browser", "AXTextField", "AXSecureTextField", true),
+            run("browser", "AXButton", nil, true), run("browser", "AXTextArea", nil, false)}})""")
+    for item in result[:3]:
+        assert item == {"ok": True, "typed": ["literal <tag>🦊\n"]}
+    for item in result[3:]:
+        assert item == {"ok": False, "typed": []}
+
+
+async def test_macro_menu_restores_the_saved_target_and_stops_if_focus_changes():
+    path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
+    result = await run_lua(f"""local m = dofile({path})
+        local function run(mode)
+            local queue, actions, alerts = {{}}, {{}}, {{}}
+            local saved = {{}}
+            local other = {{}}
+            local activations = 0
+            local app = {{activate=function() activations=activations + 1 end}}
+            local current = app
+            local focus = saved
+            local factory, menuTitle
+            local menu = {{setTitle=function(self, text) menuTitle=text; return self end,
+                setMenu=function(self, fn) factory=fn; return self end, delete=function() end}}
+            local api = {{menubar={{new=function() return menu end}},
+                application={{frontmostApplication=function() return current end}},
+                axuielement={{systemWideElement=function()
+                    return {{attributeValue=function() return focus end}}
+                end}},
+                timer={{doAfter=function(_, fn) queue[#queue + 1] = fn; return {{}} end}},
+                alert={{show=function(text) alerts[#alerts + 1] = text end}}}}
+            m.actions = {{}}
+            m.register("Insert test text", function(received)
+                assert(received == api)
+                actions[#actions + 1] = "inserted"
+            end)
+            m.startMenu(api)
+            local items = factory()
+            current = {{}}
+            focus = other
+            items[1].fn()
+            if mode == "both" or mode == "app" then current=app end
+            if mode == "both" or mode == "focus" then focus=saved end
+            local ticks=0
+            while #queue > 0 and ticks < 100 do
+                ticks=ticks + 1
+                table.remove(queue, 1)()
+            end
+            return {{title=menuTitle, item=items[1].title, actions=actions, alerts=alerts, pending=#queue,
+                activations=activations}}
+        end
+        return hs.json.encode({{run("both"), run("app"), run("focus"), run("neither")}})""")
+    success, *failures = result
+    assert success == {
+        "title": "Macros",
+        "item": "Insert test text",
+        "actions": ["inserted"],
+        "alerts": [],
+        "pending": 0,
+        "activations": 1,
+    }
+    for failure in failures:
+        assert failure["actions"] == []
+        assert failure["pending"] == 0
+        assert failure["activations"] == 1
+        assert_warning(failure["alerts"])
+
+
+async def test_direct_replacement_preserves_unicode_prefix_and_places_cursor_between_tags():
+    path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
+    result = await run_lua(f"""local m = dofile({path})
+        local state={{value="🦊 copied prompt!", range={{location=6, length=7}}, wholeWrites=0}}
+        local element={{}}
+        function element:attributeValue(name)
+            if name == "AXRole" then return "AXTextArea" end
+            if name == "AXValue" then return state.value end
+            if name == "AXSelectedTextRange" then return state.range end
+        end
+        function element:isAttributeSettable() return true end
+        function element:setAttributeValue(name, value)
+            if name == "AXSelectedTextRange" then state.range=value end
+            if name == "AXValue" then state.wholeWrites=state.wholeWrites + 1 end
+            if name == "AXSelectedText" then
+                assert(state.range.location == 3 and state.range.length == 13)
+                assert(value == "<copied-prompt></copied-prompt>")
+                state.value="🦊 " .. value .. "!"
+            end
+            return self
+        end
+        local app={{bundleID=function() return "browser" end}}
+        local api={{application={{frontmostApplication=function() return app end}},
+            axuielement={{systemWideElement=function()
+                return {{attributeValue=function() return element end}}
+            end}}}}
+        state.ok=m.promptTag(api)
+        return hs.json.encode(state)""")
+    assert result == {
+        "value": "🦊 <copied-prompt></copied-prompt>!",
+        "range": {"location": 18, "length": 0},
+        "wholeWrites": 0,
+        "ok": True,
+    }
+
+
+async def test_text_insertion_stops_when_secure_input_is_enabled():
+    path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
+    result = await run_lua(f"""local m = dofile({path})
+        local typed=0
+        local app={{}}
+        local element={{attributeValue=function(_, name)
+            if name == "AXRole" then return "AXTextArea" end
+        end}}
+        local api={{application={{frontmostApplication=function() return app end}},
+            axuielement={{systemWideElement=function()
+                return {{attributeValue=function() return element end}}
+            end}}, eventtap={{isSecureInputEnabled=function() return true end,
+                keyStrokes=function() typed=typed + 1 end}}}}
+        return hs.json.encode({{ok=m.insertText("private", api), typed=typed}})""")
+    assert result == {"ok": False, "typed": 0}
+
+
+async def test_lua_runner_closes_inherited_input(monkeypatch):
+    original = asyncio.create_subprocess_exec
+    read_fd, write_fd = os.pipe()
+
+    async def with_open_parent_input(*args, **kwargs):
+        # Simulate a CI parent whose input pipe remains open for the full job.
+        kwargs.setdefault("stdin", read_fd)
+        return await original(*args, **kwargs)
+
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", with_open_parent_input)
+    try:
+        assert await run_lua("return hs.json.encode({true})", timeout=2) == [True]
+    finally:
+        os.close(read_fd)
+        os.close(write_fd)
+
+
+async def test_lua_runner_kills_and_reaps_timed_out_process(monkeypatch):
+    original = asyncio.create_subprocess_exec
+    processes = []
+
+    async def stalled_cli(*args, **kwargs):
+        process = await original(sys.executable, "-c", "import time; time.sleep(60)", **kwargs)
+        processes.append(process)
+        return process
+
+    monkeypatch.setattr(shutil, "which", lambda _: sys.executable)
+    monkeypatch.setattr(asyncio, "create_subprocess_exec", stalled_cli)
+    with pytest.raises(TimeoutError):
+        await run_lua("return true", timeout=0.1)
+    assert len(processes) == 1
+    assert processes[0].returncode is not None
+
+
+async def test_lua_runner_fails_when_ci_requires_missing_cli(monkeypatch):
+    monkeypatch.setattr(shutil, "which", lambda _: None)
+    monkeypatch.setenv("HAMMERSPOON_TEST_REQUIRED", "1")
+    with pytest.raises(pytest.fail.Exception, match="required for this CI job"):
+        await run_lua("return true")

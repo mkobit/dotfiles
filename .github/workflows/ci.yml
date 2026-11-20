@@ -277,6 +277,54 @@ jobs:
         run: |
           mise exec -- uv sync --all-packages --frozen
 
+      - name: Start Hammerspoon for integration tests
+        if: runner.os == 'macOS'
+        timeout-minutes: 2
+        run: |
+          report_dir="$RUNNER_TEMP/integration-reports"
+          config_dir="$GITHUB_WORKSPACE/.scratch/hammerspoon-ci"
+          mkdir -p "$config_dir" "$report_dir"
+          printf '%s\n' 'require("hs.ipc")' 'DotfilesTestConfigReady = true' > "$config_dir/init.lua"
+          # Use the app's bundled CLI; hs.ipc.cliInstall is not required.
+          echo 'HAMMERSPOON_CLI=/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs' >> "$GITHUB_ENV"
+          echo 'HAMMERSPOON_TEST_REQUIRED=1' >> "$GITHUB_ENV"
+          # Bound the whole CLI process. Its -t flag bounds only IPC messages.
+          python3 - "$config_dir/init.lua" "$report_dir" <<'PYTHON'
+          import pathlib
+          import subprocess
+          import sys
+          import time
+
+          config, reports = pathlib.Path(sys.argv[1]), pathlib.Path(sys.argv[2])
+          app = pathlib.Path("/Applications/Hammerspoon.app/Contents/MacOS/Hammerspoon")
+          cli = "/Applications/Hammerspoon.app/Contents/Frameworks/hs/hs"
+          with (reports / "hammerspoon-startup.log").open("w") as log:
+              process = subprocess.Popen(
+                  [str(app), "-MJConfigFile", str(config)],
+                  stdin=subprocess.DEVNULL, stdout=log, stderr=subprocess.STDOUT,
+              )
+              deadline = time.monotonic() + 40
+              while time.monotonic() < deadline and process.poll() is None:
+                  try:
+                      result = subprocess.run(
+                          [cli, "-q", "-t", "1", "-c", "return DotfilesTestConfigReady == true"],
+                          stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=3,
+                      )
+                      log.write(result.stdout + result.stderr)
+                      log.flush()
+                      if result.returncode == 0 and result.stdout.strip() == "true":
+                          break
+                  except subprocess.TimeoutExpired:
+                      log.write("Hammerspoon CLI exceeded its process timeout\n")
+                      log.flush()
+                  time.sleep(0.5)
+              else:
+                  if process.poll() is None:
+                      process.kill()
+                  process.wait(timeout=5)
+                  raise SystemExit("Hammerspoon IPC was not ready; see hammerspoon-startup.log")
+          PYTHON
+
       - name: Run system integration tests
         env:
           HOME: ${{ env.CHEZMOI_DEST }}
@@ -285,9 +333,7 @@ jobs:
           set -o pipefail
           report_dir="$RUNNER_TEMP/integration-reports"
           mkdir -p "$report_dir"
-          # Hammerspoon tests require a running app, which is not set up in CI.
           mise exec -- uv run --frozen pytest tests/integration -ra --durations=20 \
-            --ignore=tests/integration/test_hammerspoon_macros.py \
             --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
 
       - name: Upload integration reports
