@@ -1,13 +1,20 @@
 import json
+import subprocess
 from pathlib import Path
 
 import pytest
 from typer.testing import CliRunner
 
 from bin_updater.main import app
+from bin_updater.policy import load_policy
 from bin_updater.service import ToolUpdateResult
 
 runner = CliRunner()
+
+
+@pytest.fixture(autouse=True)
+def stub_chezmoi_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr("bin_updater.main.load_policy", lambda _source: {"minimum_release_age": "7d"})
 
 
 def test_main_help() -> None:
@@ -82,3 +89,21 @@ def test_main_clears_stale_reports(tmp_path: Path, case: str) -> None:
     result = runner.invoke(app, args)
     assert result.exit_code == (0 if case == "vendor" else 1)
     assert json.loads(report.read_text()) == []
+
+
+@pytest.mark.parametrize("stdout", ['{"bin_updates": {"minimum_release_age": "5d"}}', "not JSON", None])
+def test_load_policy_uses_chezmoi_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, stdout: str | None) -> None:
+    def run(args: list[str], *, check: bool, capture_output: bool, text: bool) -> subprocess.CompletedProcess[str]:
+        assert args[:3] == ["chezmoi", "--source", str(tmp_path)]
+        assert args[-3:] == ["data", "--format", "json"]
+        assert check and capture_output and text
+        if stdout is None:
+            raise subprocess.CalledProcessError(1, args, stderr="init not called")
+        return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
+
+    monkeypatch.setattr("bin_updater.policy.subprocess.run", run)
+    if stdout is None or stdout == "not JSON":
+        with pytest.raises(ValueError, match="Could not read binary update policy"):
+            load_policy(tmp_path)
+    else:
+        assert load_policy(tmp_path) == {"minimum_release_age": "5d"}

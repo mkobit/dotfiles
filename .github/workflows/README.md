@@ -45,13 +45,16 @@ See the [v0.4.0 limitations](https://github.com/github/gh-actions-lock/tree/v0.4
 ## Binary tool upgrade PRs
 
 The [binary upgrade workflow](binary-tool-updates.yml) includes the old and new versions in each PR title.
-The description contains release notes for releases between those versions, with upstream release and comparison links.
+The description includes a table that shows both versions, the target release date in UTC, and the cooldown.
+For direct binary updates, the table precedes release notes and comparison links.
+The [update policy](../../src/chezmoi/.chezmoidata/bin-updates.toml) defines cooldowns and the mise release series.
+Both jobs use `chezmoi data` to read the policy from their checkout.
 Before publication, the updater inserts a zero-width space after at signs in text, including encoded at signs, to prevent GitHub mentions.
 It uses `%40` for at signs in absolute HTTP and HTTPS URL paths without user information, such as scoped package links.
 A later run updates the PR title and description even when the remote catalog content is unchanged.
 Generation passes the full release notes to the publisher.
 If the sanitized notes exceed GitHub's PR body limit, the publisher keeps the selected release and publishes a preview.
-The preview starts with a link to the full upstream release notes.
+The preview includes a link to the full upstream release notes.
 The publisher rejects JSON handoff reports larger than 8 MiB with a transfer error.
 
 The generation job reads release metadata with the read-only workflow token.

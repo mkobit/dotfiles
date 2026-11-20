@@ -1,6 +1,5 @@
 [bin.claude]
 version = "2.1.291"
-minimum_release_age = "7d"
 
 [bin.claude.updater]
 source = "claude"

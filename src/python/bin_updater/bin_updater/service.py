@@ -11,6 +11,7 @@ from bin_updater.catalog import ToolCatalog, update_catalog_content
 from bin_updater.checksums import find_checksum_manifest_asset, parse_checksum_manifest
 from bin_updater.client import ReleaseClient
 from bin_updater.cooldown import parse_cooldown_to_seconds
+from bin_updater.pr_summary import update_table
 from bin_updater.release import extract_version_from_tag, resolve_release_filename, select_mature_release
 
 
@@ -45,7 +46,13 @@ def _stable_version(release: Mapping[str, Any], tag_format: str) -> Version | No
     return parsed
 
 
-def _release_notes(catalog: ToolCatalog, releases: Sequence[Mapping[str, Any]], target_version: str) -> str:
+def _release_notes(
+    catalog: ToolCatalog,
+    releases: Sequence[Mapping[str, Any]],
+    target_version: str,
+    published_at: str,
+    cooldown: int,
+) -> str:
     old, new = Version(catalog.version), Version(target_version)
     selected = sorted(
         (
@@ -59,7 +66,7 @@ def _release_notes(catalog: ToolCatalog, releases: Sequence[Mapping[str, Any]], 
     old_tag = quote(catalog.tag_format.replace("{version}", catalog.version), safe="")
     new_tag = quote(catalog.tag_format.replace("{version}", target_version), safe="")
     sections = [
-        f"Update {catalog.name} from {catalog.version} to {target_version}.",
+        update_table(catalog.version, target_version, published_at, cooldown),
         f"[Compare changes]({repo_url}/compare/{old_tag}...{new_tag})",
     ]
     for _, release in selected:
@@ -145,7 +152,7 @@ def update_tool(
         return ToolUpdateResult(
             tool_name=catalog.name, changed=False, old_version=catalog.version, new_version=catalog.version
         )
-    pr_body = _release_notes(catalog, releases, target_version)
+    pr_body = _release_notes(catalog, releases, target_version, str(release["published_at"]), cooldown)
     new_checksums = _resolve_platform_checksums(catalog, target_version, release, client)
     if not dry_run:
         content = catalog.path.read_text(encoding="utf-8")

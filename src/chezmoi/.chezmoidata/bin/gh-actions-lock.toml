@@ -1,6 +1,5 @@
 [bin.gh-actions-lock]
 version = "0.4.0"
-minimum_release_age = "21d"
 
 [bin.gh-actions-lock.github_releases]
 repo            = "github/gh-actions-lock"

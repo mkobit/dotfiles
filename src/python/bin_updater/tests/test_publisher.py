@@ -2,6 +2,7 @@ import json
 import runpy
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,13 @@ linux_amd64 = "x86_64"
 linux_amd64 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 """
 NEW = BASE.replace("0.8.2", "0.8.3").replace("a" * 64, "b" * 64)
+
+
+@pytest.fixture(autouse=True)
+def stub_chezmoi_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    source = ROOT / "src/chezmoi/.chezmoidata/bin-updates.toml"
+    policy = tomllib.loads(source.read_text(encoding="utf-8"))["bin_updates"]
+    monkeypatch.setitem(approved_catalog.__globals__, "update_policy", lambda: policy)
 
 
 def test_publisher_uses_trusted_catalog_bytes() -> None:
@@ -80,10 +88,7 @@ def test_publisher_checks_remote_lease(tmp_path: Path, monkeypatch: pytest.Monke
     assert PUBLISHER["remote_tip"](ref) == base
 
 
-MISE_BASE = """[mise.updates]
-minimum_release_age = "21d"
-
-[mise.global_tools.java]
+MISE_BASE = """[mise.global_tools.java]
 version = "temurin-21.0.12+101.0.LTS"
 
 [mise.global_tools.node]
@@ -107,7 +112,7 @@ def test_publisher_updates_only_selected_mise_pin() -> None:
         MISE_NEW.replace("21.0.13", "25.0.13"),
         MISE_NEW.replace("21.0.13+9", "21.0.12+9"),
         MISE_NEW.replace("22.23.2", "22.23.5"),
-        MISE_NEW.replace('"21d"', '"0d"'),
+        MISE_NEW + '\n[mise.updates]\nminimum_release_age = "0d"\n',
     ],
 )
 def test_publisher_rejects_disallowed_mise_pin_edit(candidate: str) -> None:
@@ -139,10 +144,19 @@ version = "3.14.10"
     def command(*args: str) -> str:
         if args[0] == "git":
             return source
-        assert args[:4] == ("mise", "latest", "--minimum-release-age", "21d")
-        if args[4] == "ollama@0":
+        assert args[:5] == ("mise", "ls-remote", "--json", "--minimum-release-age", "21d")
+        if args[5] == "ollama":
             raise subprocess.CalledProcessError(1, args)
-        return versions[args[4]] + "\n"
+        rows = [{"version": versions[args[5]], "created_at": "2025-01-02T00:00:00Z"}]
+        if args[5] == "python@3.14":
+            rows.extend(
+                [
+                    {"version": "3.14.99"},
+                    {"version": "3.14.98", "created_at": "2099-01-01T00:00:00Z"},
+                    {"version": "3.15.1", "created_at": "2025-01-02T00:00:00Z"},
+                ]
+            )
+        return json.dumps(rows)
 
     generate_mise_updates = PUBLISHER["generate_mise_updates"]
     monkeypatch.setitem(generate_mise_updates.__globals__, "command", command)
@@ -165,6 +179,7 @@ version = "3.14.10"
         report = json.loads((tmp_path / f"{tool}.json").read_text())[0]
         assert report["old_version"] == old
         assert report["new_version"] == new
+        assert f"| `{old}` | `{new}` | 2025-01-02 | `21d` |" in report["pr_body"]
 
 
 @pytest.mark.parametrize(
@@ -172,13 +187,19 @@ version = "3.14.10"
     [
         ("python", "3.14.10", "3.15.1"),
         ("python", "3.14.10", "4.0.0"),
-        ("ollama", "0.40.16", "1.0.0"),
+        ("ollama", "0.40.16", "1.0.0-rc.1"),
     ],
 )
 def test_publisher_rejects_mise_updates_outside_supported_series(tool: str, old: str, new: str) -> None:
     source = f'[mise.global_tools.{tool}]\nversion = "{old}"\n'
     with pytest.raises(ValueError, match="supported mise release series"):
         approved_catalog(source, source.replace(old, new), f"mise-{tool}")
+
+
+def test_publisher_accepts_ollama_major_update() -> None:
+    source = '[mise.global_tools.ollama]\nversion = "0.40.16"\n'
+    candidate = source.replace("0.40.16", "1.0.0")
+    assert approved_catalog(source, candidate, "mise-ollama") == (candidate, "0.40.16", "1.0.0")
 
 
 @pytest.mark.parametrize("existing", [False, True])
@@ -201,12 +222,17 @@ def test_publisher_does_not_send_mentions(
         "Contact help@example.org. Keep &#640; and &#x400;.\n"
         "[Unclosed](https://example.org/@alice\n"
     )
+    summary = (
+        "| Current version | Target version | Target release date (UTC) | Cooldown |\n"
+        "| --- | --- | --- | --- |\n"
+        f"| `{old}` | `{new}` | 2020-01-01 | `21d` |\n\n"
+    )
     if case == "expands":
         body = "@alice, " * 8000
     elif case == "contracts":
         body = "&commat;alice, " * 7000
     elif case.endswith("oversize"):
-        body = "```\n@alice\n" + "x" * 65536
+        body = summary + "```\n@alice\n" + "x" * 65536
     (tmp_path / f"{name}.toml").write_text(updated, encoding="utf-8")
     (tmp_path / f"{name}.json").write_text(
         json.dumps(
@@ -250,6 +276,8 @@ def test_publisher_does_not_send_mentions(
         intro, preview = published.split("\n\n", 1)
         assert f"[Read the full upstream release notes]({upstream})" in intro
         assert len(published) <= 65536
+        if case.endswith("oversize"):
+            assert preview.startswith(summary)
         assert "@alice" not in preview
         assert "@\u200balice" in preview
         return

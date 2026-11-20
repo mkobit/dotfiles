@@ -2,7 +2,7 @@
 
 Chezmoi manages `github/gh-stack` and `github/gh-actions-lock` on Linux and macOS for amd64 and arm64.
 Release versions, platform assets, and SHA-256 checksums live in [the binary catalogs](../../../.chezmoidata/bin/).
-The existing binary updater uses each catalog's `minimum_release_age = "21d"` when selecting version updates.
+The binary updater uses the 21-day cooldown for each extension in `src/chezmoi/.chezmoidata/bin-updates.toml`.
 
 ## Installation controls
 
