@@ -207,7 +207,6 @@ def test_plugin_bridge_ownership_state(chezmoi_dest):
 # Tool agent directories actively deployed to by .chezmoiexternals/ai-agents.toml.tmpl.
 ACTIVE_AGENT_DIRS = [
     pytest.param(Path(".claude/agents"), id="claude"),
-    pytest.param(Path(".config/opencode/agents"), id="opencode"),
 ]
 
 

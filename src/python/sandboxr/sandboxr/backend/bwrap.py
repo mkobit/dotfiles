@@ -53,8 +53,6 @@ RW_HOME_PATHS = (
     ".gemini",
     ".antigravity",
     ".config/antigravity-cli",
-    ".config/opencode",
-    ".local/share/opencode",
 )
 
 # Dedicated cache mounted at ~/.cache. Never share the host cache: a

@@ -12,7 +12,6 @@ _DEFAULT_CLAUDE_SETTINGS = (
     Path.home() / ".config" / "ai-policy" / "claude" / "autonomous-settings.json"
 )
 _DEFAULT_AGY_SETTINGS = Path.home() / ".config" / "ai-policy" / "agy" / "autonomous-settings.json"
-_DEFAULT_OPENCODE_CONFIG = Path.home() / ".config" / "ai-policy" / "opencode" / "autonomous.json"
 
 
 def adapt_command(
@@ -21,7 +20,6 @@ def adapt_command(
     *,
     claude_settings: Path | None = None,
     agy_settings: Path | None = None,
-    opencode_config: Path | None = None,
 ) -> tuple[list[str], dict[str, str]]:
     """Return (adapted_command, extra_env) for the given tool.
 
@@ -51,9 +49,4 @@ def adapt_command(
             ),
         ]
         return adapted, {}
-    oc_path = opencode_config or _DEFAULT_OPENCODE_CONFIG
-    if tool == "opencode":
-        # Deliberately do NOT set OPENCODE_HARDENED_MODE=1: that engages
-        # opencode's own bwrap inside our bwrap, creating nested namespaces.
-        return list(command), {"OPENCODE_CONFIG": str(oc_path)}
     return list(command), {}

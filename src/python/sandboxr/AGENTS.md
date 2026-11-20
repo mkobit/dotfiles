@@ -6,12 +6,12 @@ Use Docker's [SBX documentation](https://docs.docker.com/ai/sandboxes/) for the 
 
 ## Purpose
 
-`sandboxr` wraps AI agent CLIs (claude, agy, opencode) in an outer sandbox so no-human-in-the-loop runs can use each tool's `--dangerously-skip-permissions`-equivalent without risking credential exfiltration, signed-commit forgery, or destruction of the home directory.
+`sandboxr` wraps AI agent CLIs (`claude`, `agy`) in an outer sandbox so no-human-in-the-loop runs can use each tool's `--dangerously-skip-permissions`-equivalent without risking credential exfiltration, signed-commit forgery, or destruction of the home directory.
 
 ## Mode split
 
 - **HITL.**
-Run the tool directly (`claude`, `agy`, `opencode`).
+Run the tool directly (`claude`, `agy`).
 Each tool's own approval prompts are the UX boundary.
 Nothing in this package applies.
 - **Autonomous.**
@@ -67,7 +67,6 @@ If scoped egress becomes a hard requirement before then, prefer a filtering prox
 Full reasoning: `docs/decisions/2026-08-12-sandboxr-sandbox-backend.md`.
 - **No global PreToolUse guard hook** — earlier design ripped out because the agent's own config files are agent-writable; only the OS-level boundary is real.
 - **No `--sandbox` flag passed to `agy`** — antigravity-cli#36: combining it with `--dangerously-skip-permissions` auto-approves bypassing it.
-- **No `OPENCODE_HARDENED_MODE=1`** — it would engage opencode's own bwrap inside our bwrap and create nested namespaces.
 - **No write credentials inside the sandbox** — `~/.ssh`, `~/.gnupg` private key material, `~/.config/gh`, and `/run/user/<uid>` are masked; only the SSH/GPG agent *sockets* are forwarded, for signing only.
 A read-only `gh` PAT at `~/.local/state/ai-policy/tokens/readonly.token` (chmod 600 required) is injected as `GH_TOKEN` if present.
 - **No macOS support** — bwrap is Linux-only; `run`/`shell`/`doctor` all require `bwrap` on PATH and fail closed otherwise.

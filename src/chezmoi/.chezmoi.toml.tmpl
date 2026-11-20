@@ -115,10 +115,6 @@ installation_method = {{ if eq .chezmoi.os "darwin" }}"homebrew"{{ else }}"githu
 [data.local.bin.chafa]
 installation_method = "none"
 
-# Linux only — no macOS release
-[data.local.bin.opencode]
-installation_method = {{ if eq .chezmoi.os "linux" }}"github_releases"{{ else }}"none"{{ end }}
-
 [data.local.bin.sbx]
 {{- $sbxMethod := "none" -}}
 {{- if and (eq .chezmoi.os "linux") (has .chezmoi.arch (list "amd64" "arm64")) -}}

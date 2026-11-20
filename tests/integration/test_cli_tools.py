@@ -28,23 +28,6 @@ def test_cli_tool_available(host, binary, shell_cmd):
 
 
 @pytest.mark.integration
-@pytest.mark.chezmoi_installation("local.bin.opencode", methods={"github_releases"})
-@pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
-def test_opencode_available(host, shell_cmd):
-    """Verify opencode is on PATH in bash and zsh, if supported by the OS."""
-    result = host.run(f"{shell_cmd} 'command -v opencode'")
-    assert result.rc == 0, f"'opencode' not found via {shell_cmd!r}.\nstderr: {result.stderr}"
-
-
-@pytest.mark.integration
-@pytest.mark.chezmoi_installation("local.bin.opencode", methods={"github_releases"})
-def test_opencode_help(host):
-    """Verify opencode --help runs successfully on supported platforms."""
-    result = host.run("opencode --help")
-    assert result.rc == 0, f"'opencode --help' failed.\nstderr: {result.stderr}\nstdout: {result.stdout}"
-
-
-@pytest.mark.integration
 @pytest.mark.chezmoi_installation("local.bin.sbx", methods={"github_releases"})
 @pytest.mark.parametrize("shell_cmd", ["bash -l -c", "zsh -l -c"])
 def test_sbx_available(host, shell_cmd):
