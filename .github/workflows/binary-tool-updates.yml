@@ -12,6 +12,9 @@ on:
 permissions:
   contents: read
 
+env:
+  CHEZMOI_VERSION: v2.74.0
+
 concurrency:
   group: binary-tool-updates
   cancel-in-progress: false
@@ -30,6 +33,14 @@ jobs:
           persist-credentials: false
 
       - uses: $/.github/actions/setup-mise
+
+      - name: Install chezmoi
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/chezmoi-bin"
+          mkdir -p "$install_dir"
+          sh -c "$(curl --retry 5 -fsLS get.chezmoi.io)" -- -b "$install_dir" -t "$CHEZMOI_VERSION"
+          echo "$install_dir" >> "$GITHUB_PATH"
 
       - name: Install generator dependencies
         run: uv sync --all-packages --frozen
@@ -92,6 +103,14 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
 
+      - name: Install chezmoi
+        run: |
+          set -euo pipefail
+          install_dir="$RUNNER_TEMP/chezmoi-bin"
+          mkdir -p "$install_dir"
+          sh -c "$(curl --retry 5 -fsLS get.chezmoi.io)" -- -b "$install_dir" -t "$CHEZMOI_VERSION"
+          echo "$install_dir" >> "$GITHUB_PATH"
+
       - name: Download catalog updates
         uses: actions/download-artifact@v8.0.2
         with:
@@ -102,6 +121,7 @@ jobs:
       - name: Publish catalog update pull requests
         env:
           GH_TOKEN: ${{ secrets.BIN_UPDATER_TOKEN }}
+          PYTHONPATH: src/python/bin_updater
         run: |
           set -euo pipefail
           handoff="$RUNNER_TEMP/binary-updates"

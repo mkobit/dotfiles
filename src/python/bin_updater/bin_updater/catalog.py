@@ -1,7 +1,7 @@
 import tomllib
 from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import tomlkit
 from pydantic import BaseModel, Field
@@ -27,7 +27,7 @@ class ToolCatalog(BaseModel):
     manifest_url_format: str = ""
 
 
-def load_catalog(path: Path) -> ToolCatalog:
+def load_catalog(path: Path, policy: Mapping[str, Any] | None = None) -> ToolCatalog:
     """Load and validate tool catalog TOML file with GitHub releases configuration."""
     content = path.read_text(encoding="utf-8")
     data = tomllib.loads(content)
@@ -57,7 +57,7 @@ def load_catalog(path: Path) -> ToolCatalog:
         raise ValueError(f"Invalid Claude manifest URL format in {path}")
     ext_data = gr.get("ext", {})
     ext = ext_data if isinstance(ext_data, Mapping) else {}
-    min_age = configured_age(path.parent.parent / "bin-updates.toml", name)
+    min_age = configured_age(policy, name) if policy is not None else None
     if min_age is None:
         min_age = tool_data.get("minimum_release_age")
     if min_age is None:
@@ -77,12 +77,12 @@ def load_catalog(path: Path) -> ToolCatalog:
     )
 
 
-def discover_catalogs(directory: Path) -> Sequence[ToolCatalog]:
+def discover_catalogs(directory: Path, policy: Mapping[str, Any] | None = None) -> Sequence[ToolCatalog]:
     """Find all valid tool catalogs with GitHub releases in target directory."""
 
     def _try_load(path: Path) -> ToolCatalog | None:
         try:
-            return load_catalog(path)
+            return load_catalog(path, policy)
         except NonGitHubReleaseError:
             return None
 

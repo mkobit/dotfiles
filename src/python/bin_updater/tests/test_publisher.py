@@ -2,6 +2,7 @@ import json
 import runpy
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 
 import pytest
@@ -23,6 +24,13 @@ linux_amd64 = "x86_64"
 linux_amd64 = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
 """
 NEW = BASE.replace("0.8.2", "0.8.3").replace("a" * 64, "b" * 64)
+
+
+@pytest.fixture(autouse=True)
+def stub_chezmoi_policy(monkeypatch: pytest.MonkeyPatch) -> None:
+    source = ROOT / "src/chezmoi/.chezmoidata/bin-updates.toml"
+    policy = tomllib.loads(source.read_text(encoding="utf-8"))["bin_updates"]
+    monkeypatch.setitem(approved_catalog.__globals__, "update_policy", lambda: policy)
 
 
 def test_publisher_uses_trusted_catalog_bytes() -> None:

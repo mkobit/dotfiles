@@ -8,12 +8,15 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+from functools import cache
 from pathlib import Path
 from urllib.parse import quote
 
+from bin_updater.cooldown import is_release_mature, parse_cooldown_to_seconds
+from bin_updater.policy import configured_age, load_policy
+from bin_updater.pr_summary import update_table
+
 CATALOGS = Path("src/chezmoi/.chezmoidata/bin")
-POLICY = Path(__file__).resolve().parents[2] / CATALOGS.parent / "bin-updates.toml"
-MISE_TOOLS = tomllib.loads(POLICY.read_text(encoding="utf-8"))["bin_updates"]["mise"]
 TOOL = re.compile(r"[a-z0-9][a-z0-9_-]*")
 VERSION = re.compile(r"v?[0-9]{1,9}(?:\.[0-9]{1,9}){1,5}")
 CHECKSUM = re.compile(r"[0-9a-f]{64}")
@@ -24,6 +27,15 @@ NOTE_TOKEN = re.compile(
     r"(?P<url>https?://[a-zA-Z0-9.\-]+(?::[0-9]+)?/[^\s<>\[\]()?#]*)"
     rf"|{AT_SIGN.pattern}"
 )
+
+
+@cache
+def update_policy():
+    return load_policy()
+
+
+def mise_tools():
+    return update_policy()["mise"]
 
 
 def mute_mentions(body):
@@ -53,15 +65,15 @@ def catalog_fields(document, name):
 
 
 def upstream_notes(original, name, new):
-    if name.startswith("mise-") and (tool := name.removeprefix("mise-")) in MISE_TOOLS:
-        return MISE_TOOLS[tool]["release_notes_url"].format(version=new)
+    if name.startswith("mise-") and (tool := name.removeprefix("mise-")) in mise_tools():
+        return mise_tools()[tool]["release_notes_url"].format(version=new)
     fields, source, release = catalog_fields(tomllib.loads(original), name)
     metadata = fields["updater"] if source == "direct_release" else release
     return f"https://github.com/{quote(metadata['repo'], safe='/')}/releases"
 
 
 def mise_version_key(tool, version):
-    pattern = MISE_TOOLS[tool]["version_pattern"]
+    pattern = mise_tools()[tool]["version_pattern"]
     match = re.fullmatch(pattern, version) if isinstance(version, str) else None
     if match is None:
         raise ValueError("Expected a stable version within the supported mise release series")
@@ -80,7 +92,7 @@ def approved_catalog(base, candidate, name):
     original = tomllib.loads(base)
     proposed = tomllib.loads(candidate)
     tool = name.removeprefix("mise-")
-    if name.startswith("mise-") and tool in MISE_TOOLS:
+    if name.startswith("mise-") and tool in mise_tools():
         new = proposed["mise"]["global_tools"][tool]["version"]
         old, replacements = with_mise_version(original, tool, new)
         if mise_version_key(tool, new) <= mise_version_key(tool, old):
@@ -212,7 +224,7 @@ def update_branch(name, catalog, approved, base, directory, expected_pr_head=Non
 
 def publish(name, artifact, base, repo):
     tool = name.removeprefix("mise-")
-    catalog_name = "mise" if name.startswith("mise-") and tool in MISE_TOOLS else name
+    catalog_name = "mise" if name.startswith("mise-") and tool in mise_tools() else name
     catalog = CATALOGS / f"{catalog_name}.toml"
     original = command("git", "show", f"{base}:{catalog}")
     updated = (artifact / f"{name}.toml").read_text(encoding="utf-8")
@@ -309,21 +321,14 @@ def open_pr(repo, branch):
 
 
 def generate_mise_updates(artifact, target):
-    # Publication runs with the standard library only.
-    from bin_updater.cooldown import is_release_mature, parse_cooldown_to_seconds  # noqa: PLC0415
-    from bin_updater.policy import configured_age  # noqa: PLC0415
-    from bin_updater.pr_summary import update_table  # noqa: PLC0415
-
     source = command("git", "show", f"HEAD:{CATALOGS / 'mise.toml'}")
-    tools = MISE_TOOLS if target == "all" else (target.removeprefix("mise-"),)
+    tools = mise_tools() if target == "all" else (target.removeprefix("mise-"),)
     for tool in tools:
         name = f"mise-{tool}"
         try:
-            policy = MISE_TOOLS[tool]
+            policy = mise_tools()[tool]
             document = tomllib.loads(source)
-            age = configured_age(POLICY, name, mise=True)
-            if age is None:
-                raise ValueError("Mise update policy is missing")
+            age = configured_age(update_policy(), name, mise=True)
             cooldown = parse_cooldown_to_seconds(age)
             age = f"{cooldown // 86400}d"
             releases = json.loads(
@@ -373,10 +378,16 @@ def generate_mise_updates(artifact, target):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("artifact", type=Path)
-    parser.add_argument("--generate-mise", choices=["all", *(f"mise-{tool}" for tool in MISE_TOOLS)])
+    parser.add_argument("--generate-mise", metavar="TOOL")
     args = parser.parse_args()
     artifact = args.artifact
     if args.generate_mise is not None:
+        try:
+            tools = mise_tools()
+        except ValueError as error:
+            parser.error(str(error))
+        if args.generate_mise not in {"all", *(f"mise-{tool}" for tool in tools)}:
+            parser.error("Unknown mise update target")
         generate_mise_updates(artifact, args.generate_mise)
         return 0
     repo = os.environ["GITHUB_REPOSITORY"]

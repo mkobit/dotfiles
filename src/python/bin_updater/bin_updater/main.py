@@ -7,6 +7,7 @@ import typer
 
 from bin_updater.catalog import NonGitHubReleaseError, discover_catalogs, load_catalog
 from bin_updater.client import HttpxReleaseClient
+from bin_updater.policy import DEFAULT_SOURCE, load_policy
 from bin_updater.service import ToolUpdateResult, run_updates
 
 app = typer.Typer(help="Automate chezmoi binary tools upgrades")
@@ -28,6 +29,9 @@ def main(
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Simulate updates without writing changes")] = False,
     token: Annotated[str | None, typer.Option("--token", help="GitHub API token")] = None,
     report_file: Annotated[Path | None, typer.Option("--report-file", help="Write update results as JSON")] = None,
+    chezmoi_source: Annotated[
+        Path, typer.Option("--chezmoi-source", help="Source for updater policy")
+    ] = DEFAULT_SOURCE,
     catalog_dir: Annotated[Path, typer.Option("--catalog-dir", help="Directory containing tool catalogs")] = Path(
         "src/chezmoi/.chezmoidata/bin"
     ),
@@ -47,7 +51,7 @@ def main(
             typer.echo(f"Error: Catalog file not found: {path}", err=True)
             raise typer.Exit(code=1)
         try:
-            catalogs = [load_catalog(path)]
+            catalogs = [load_catalog(path, load_policy(chezmoi_source))]
         except NonGitHubReleaseError as exc:
             typer.echo(f"Skipping {path.stem}: {exc}")
             raise typer.Exit(code=0) from None
@@ -56,7 +60,7 @@ def main(
             raise typer.Exit(code=1) from None
     else:
         try:
-            catalogs = discover_catalogs(catalog_dir)
+            catalogs = discover_catalogs(catalog_dir, load_policy(chezmoi_source))
         except ValueError as exc:
             typer.echo(f"Error: {exc}", err=True)
             raise typer.Exit(code=1) from None
