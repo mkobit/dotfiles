@@ -2,13 +2,18 @@
 Chasmois = "chezmoi"
 chezmoi = "chezmoi"
 egm = "EGM"
+fzf = "fzf"
 ghostty = "Ghostty"
+mise = "mise"
 zellij = "Zellij"
 zsh = "zsh"
 
 [macos.text_replacements]
 EGM = "elephant-goldfish model"
+FCF = "fzf"
+MIS = "mise"
 chesmoir = "chezmoi"
 Zealage = "Zellij"
 Zeld = "Zellij"
+Zellag = "Zellij"
 zelleedge = "Zellij"
