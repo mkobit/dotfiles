@@ -1,0 +1,19 @@
+{{- /* chezmoi:modify-template */ -}}
+{{- $handy := get . "handy" | default dict -}}
+{{- if and (eq .chezmoi.os "darwin") (get $handy "enabled") .chezmoi.stdin -}}
+{{- $store := .chezmoi.stdin | fromJson -}}
+{{- $merged := includeTemplate "handy/settings" (dict "data" . "store" $store) | fromJson -}}
+{{- if ne ($store | toJson) ($merged | toJson) -}}
+{{- if and (eq (get .chezmoi "command") "apply") (dig "lifecycle" "stop_before_update" true $handy) -}}
+{{- $state := output "/bin/sh" "-c" "/usr/bin/pgrep -x handy >/dev/null; status=$?; case \"$status\" in 0) printf running;; 1) printf stopped;; *) exit \"$status\";; esac" -}}
+{{- if eq $state "running" -}}
+{{- fail "Handy is running; run full chezmoi apply to stop it before changing settings" -}}
+{{- end -}}
+{{- end -}}
+{{- $merged | toPrettyJson -}}
+{{- else -}}
+{{- .chezmoi.stdin -}}
+{{- end -}}
+{{- else -}}
+{{- .chezmoi.stdin -}}
+{{- end -}}

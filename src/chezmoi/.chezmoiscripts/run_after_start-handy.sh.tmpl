@@ -1,0 +1,14 @@
+{{- $handy := get . "handy" | default dict -}}
+{{- $path := joinPath .chezmoi.destDir "Library" "Application Support" "com.pais.handy" "settings_store.json" -}}
+{{- if and (eq .chezmoi.os "darwin") (get $handy "enabled") (stat $path) -}}
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+state_dir={{ joinPath .chezmoi.destDir ".cache" "chezmoi" "handy" | shellQuote }}
+if [[ -f "$state_dir/restart" ]]; then
+{{ if dig "lifecycle" "restart_after_update" true $handy }}
+  /usr/bin/open -b com.pais.handy
+{{ end }}
+  rm -f "$state_dir/restart"
+fi
+{{- end }}

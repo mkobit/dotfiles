@@ -1,0 +1,3 @@
+{{- if or (ne .chezmoi.os "darwin") (not (dig "handy" "enabled" false .)) (not (stat (joinPath .chezmoi.destDir "Library" "Application Support" "com.pais.handy" "settings_store.json"))) }}
+settings_store.json
+{{- end }}
