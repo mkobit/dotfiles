@@ -1,6 +1,7 @@
 import json
 import runpy
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -79,10 +80,7 @@ def test_publisher_checks_remote_lease(tmp_path: Path, monkeypatch: pytest.Monke
     assert PUBLISHER["remote_tip"](ref) == base
 
 
-MISE_BASE = """[mise.updates]
-minimum_release_age = "21d"
-
-[mise.global_tools.java]
+MISE_BASE = """[mise.global_tools.java]
 version = "temurin-21.0.12+101.0.LTS"
 
 [mise.global_tools.node]
@@ -106,7 +104,7 @@ def test_publisher_updates_only_selected_mise_pin() -> None:
         MISE_NEW.replace("21.0.13", "25.0.13"),
         MISE_NEW.replace("21.0.13+9", "21.0.12+9"),
         MISE_NEW.replace("22.23.2", "22.23.5"),
-        MISE_NEW.replace('"21d"', '"0d"'),
+        MISE_NEW + '\n[mise.updates]\nminimum_release_age = "0d"\n',
     ],
 )
 def test_publisher_rejects_disallowed_mise_pin_edit(candidate: str) -> None:
@@ -194,3 +192,122 @@ def test_publisher_accepts_ollama_major_update() -> None:
     source = '[mise.global_tools.ollama]\nversion = "0.40.16"\n'
     candidate = source.replace("0.40.16", "1.0.0")
     assert approved_catalog(source, candidate, "mise-ollama") == (candidate, "0.40.16", "1.0.0")
+
+
+@pytest.mark.parametrize("existing", [False, True])
+@pytest.mark.parametrize("case", ["fits", "expands", "contracts", "raw-oversize", "mise-oversize"])
+def test_publisher_does_not_send_mentions(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, existing: bool, case: str
+) -> None:
+    publish = PUBLISHER["publish"]
+    publication = publish.__globals__
+    name, old, new, original, updated = "bkt", "0.8.2", "0.8.3", BASE, NEW
+    upstream = "https://github.com/example/bkt/releases"
+    if case == "mise-oversize":
+        name, old, new = "mise-bun", "1.2.3", "1.2.4"
+        original = f'[mise.global_tools.bun]\nversion = "{old}"\n'
+        updated = original.replace(old, new)
+        upstream = "https://bun.com/blog/bun-v1.2.4"
+    body = (
+        "Thanks @alice, &#64;bob, &#x40;carol, and &commat;org/team.\n"
+        "[@maintainer](https://unpkg.com/@scope/tool@1.2.3/README.md)\n"
+        "Contact help@example.org. Keep &#640; and &#x400;.\n"
+        "[Unclosed](https://example.org/@alice\n"
+    )
+    summary = (
+        "| Current version | Target version | Target release date (UTC) | Cooldown |\n"
+        "| --- | --- | --- | --- |\n"
+        f"| `{old}` | `{new}` | 2020-01-01 | `21d` |\n\n"
+    )
+    if case == "expands":
+        body = "@alice, " * 8000
+    elif case == "contracts":
+        body = "&commat;alice, " * 7000
+    elif case.endswith("oversize"):
+        body = summary + "```\n@alice\n" + "x" * 65536
+    (tmp_path / f"{name}.toml").write_text(updated, encoding="utf-8")
+    (tmp_path / f"{name}.json").write_text(
+        json.dumps(
+            [
+                {
+                    "changed": True,
+                    "tool_name": name,
+                    "old_version": old,
+                    "new_version": new,
+                    "pr_title": f"Update {name} from {old} to {new}",
+                    "pr_body": body,
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    sent = []
+
+    def command(*args: str, stdin: str | None = None) -> str:
+        if args[:2] == ("git", "show"):
+            return original
+        if existing:
+            assert args[:4] == ("gh", "api", "--method", "PATCH")
+            assert stdin is not None
+            sent.append(json.loads(stdin)["body"])
+        else:
+            assert args[:3] == ("gh", "pr", "create")
+            sent.append(Path(args[args.index("--body-file") + 1]).read_text(encoding="utf-8"))
+        return ""
+
+    monkeypatch.setitem(publication, "command", command)
+    monkeypatch.setitem(publication, "open_pr", lambda *_: {"number": 3, "head": {"sha": "head"}} if existing else None)
+    monkeypatch.setitem(publication, "update_branch", lambda *_: (f"automation/bin-update-{name}", "head"))
+    monkeypatch.setitem(publication, "remote_tip", lambda ref: "base" if ref == "refs/heads/main" else "head")
+    publish(name, tmp_path, "base", "example/repo")
+    if case == "contracts":
+        assert sent == ["@\u200balice, " * 7000]
+        return
+    if case != "fits":
+        (published,) = sent
+        intro, preview = published.split("\n\n", 1)
+        assert f"[Read the full upstream release notes]({upstream})" in intro
+        assert len(published) <= 65536
+        if case.endswith("oversize"):
+            assert preview.startswith(summary)
+        assert "@alice" not in preview
+        assert "@\u200balice" in preview
+        return
+    assert sent == [
+        (
+            "Thanks @\u200balice, @\u200bbob, @\u200bcarol, and @\u200borg/team.\n"
+            "[@\u200bmaintainer](https://unpkg.com/%40scope/tool%401.2.3/README.md)\n"
+            "Contact help@\u200bexample.org. Keep &#640; and &#x400;.\n"
+            "[Unclosed](https://example.org/%40alice\n"
+        )
+    ]
+
+
+@pytest.mark.parametrize("report_size", [600_000, 8 * 1024 * 1024 + 1])
+def test_publisher_checks_the_report_transfer_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], report_size: int
+) -> None:
+    main = PUBLISHER["main"]
+    publication = main.__globals__
+    base = "a" * 40
+    monkeypatch.setattr(sys, "argv", ["publish-bin-updates.py", str(tmp_path)])
+    monkeypatch.setenv("GITHUB_REPOSITORY", "example/repo")
+    monkeypatch.setenv("GITHUB_SHA", base)
+    monkeypatch.setenv("GH_TOKEN", "test-token")
+    monkeypatch.setitem(publication, "command", lambda *_: base)
+    monkeypatch.setitem(publication, "remote_tip", lambda *_: base)
+    sent = []
+    monkeypatch.setitem(publication, "publish", lambda name, *_: sent.append(name))
+    (tmp_path / "bkt.toml").write_text(NEW, encoding="utf-8")
+    with (tmp_path / "bkt.json").open("wb") as report:
+        report.truncate(report_size)
+
+    if report_size == 600_000:
+        assert main() == 0
+        assert sent == ["bkt"]
+    else:
+        with pytest.raises(SystemExit) as error:
+            main()
+        assert error.value.code == 2
+        assert "bkt.json exceeds the 8,388,608-byte transfer limit" in capsys.readouterr().err
+        assert not sent

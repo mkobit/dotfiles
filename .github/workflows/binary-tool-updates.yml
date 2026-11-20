@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tool:
-        description: 'Tool name, mise-bun, mise-java, mise-node, mise-ollama, mise-python, or all'
+        description: 'Catalog tool name, mise tool with the mise- prefix, or all'
         default: 'all'
 
 permissions:

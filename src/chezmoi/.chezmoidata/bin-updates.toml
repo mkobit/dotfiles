@@ -13,3 +13,30 @@ gh-stack = "21d"
 mise = "21d"
 sbx = "5d"
 zellij = "14d"
+
+# Each request selects the mise backend and release series.
+# If the pattern has capture groups, compare those parts as the numeric version.
+[bin_updates.mise.bun]
+request = "bun@1"
+version_pattern = '1\.[0-9]{1,9}\.[0-9]{1,9}'
+release_notes_url = "https://bun.com/blog/bun-v{version}"
+
+[bin_updates.mise.java]
+request = "java@temurin-21"
+version_pattern = 'temurin-(21\.[0-9]{1,9}\.[0-9]{1,9})\+([0-9]{1,9})\.0\.LTS'
+release_notes_url = "https://adoptium.net/temurin/releases/?version=21"
+
+[bin_updates.mise.node]
+request = "node@22"
+version_pattern = '22\.[0-9]{1,9}\.[0-9]{1,9}'
+release_notes_url = "https://nodejs.org/en/blog/release/v{version}"
+
+[bin_updates.mise.ollama]
+request = "ollama"
+version_pattern = '[0-9]{1,9}\.[0-9]{1,9}\.[0-9]{1,9}'
+release_notes_url = "https://github.com/ollama/ollama/releases/tag/v{version}"
+
+[bin_updates.mise.python]
+request = "python@3.14"
+version_pattern = '3\.14\.[0-9]{1,9}'
+release_notes_url = "https://docs.python.org/release/{version}/whatsnew/changelog.html"
