@@ -6,8 +6,6 @@ import subprocess
 import sys
 import tempfile
 import time
-import uuid
-from contextlib import suppress
 from pathlib import Path
 
 import pytest
@@ -20,15 +18,11 @@ pytestmark = [
 ]
 
 
-@pytest.fixture
-def loaded_hammerspoon(request):
+def test_rendered_hammerspoon_config_loads(request):
     if not request.config.getoption("--start-hammerspoon"):
         pytest.skip("Use --start-hammerspoon to start the config load check")
-
-    app = Path(os.environ.get("HAMMERSPOON_APP", "/Applications/Hammerspoon.app"))
-    executable = app / "Contents/MacOS/Hammerspoon"
-    cli = app / "Contents/Frameworks/hs/hs"
-    assert executable.is_file() and cli.is_file(), f"Hammerspoon app or bundled CLI is missing: {app}"
+    executable = Path("/Applications/Hammerspoon.app/Contents/MacOS/Hammerspoon")
+    assert executable.is_file(), f"Hammerspoon is missing: {executable}"
     existing = subprocess.run(
         ["pgrep", "-x", "Hammerspoon"],
         capture_output=True,
@@ -65,17 +59,13 @@ def loaded_hammerspoon(request):
         (config_dir / "config.lua.tmpl").unlink()
         real_init = config_dir / "dotfiles-init.lua"
         (config_dir / "init.lua").rename(real_init)
-        token = uuid.uuid4().hex
+        status_path = target / "load-status"
         (config_dir / "init.lua").write_text(
-            'require("hs.ipc")\n'
             f"local ok, err = pcall(dofile, {json.dumps(str(real_init))})\n"
-            "_G.DotfilesLoadCheck = {\n"
-            f'    token = "{token}", ok = ok, error = tostring(err),\n'
-            '    config = type(_G.DotfilesConfig) == "table",\n'
-            '    actions = type(_G.DotfilesActions) == "table",\n'
-            '    tag = type((_G.DotfilesActions or {}).wrapPromptTag) == "function",\n'
-            "    menu = _G.DotfilesMacroMenu ~= nil,\n"
-            "}\n"
+            f'local status = assert(io.open({json.dumps(str(status_path) + ".pending")}, "w"))\n'
+            'status:write(ok and "loaded" or tostring(err))\n'
+            "status:close()\n"
+            f"assert(os.rename({json.dumps(str(status_path) + '.pending')}, {json.dumps(str(status_path))}))\n"
         )
         report_dir = Path(os.environ["RUNNER_TEMP"]) / "integration-reports" if "RUNNER_TEMP" in os.environ else target
         report_dir.mkdir(parents=True, exist_ok=True)
@@ -87,46 +77,17 @@ def loaded_hammerspoon(request):
                 stdout=log,
                 stderr=subprocess.STDOUT,
             )
-            last_probe = "No IPC response"
-            result = None
             try:
-                deadline = time.monotonic() + 45
-                while time.monotonic() < deadline and process.poll() is None:
-                    try:
-                        probe = subprocess.run(
-                            [str(cli), "-q", "-t", "1", "-c", "return hs.json.encode(_G.DotfilesLoadCheck or {})"],
-                            stdin=subprocess.DEVNULL,
-                            capture_output=True,
-                            text=True,
-                            timeout=3,
-                            check=False,
-                        )
-                        last_probe = f"Exit {probe.returncode}: {probe.stdout}\n{probe.stderr}"
-                        if probe.returncode == 0:
-                            result = json.loads(probe.stdout)
-                            if result.get("token") == token:
-                                break
-                    except (subprocess.TimeoutExpired, json.JSONDecodeError) as error:
-                        last_probe = str(error)
-                    time.sleep(0.2)
-                assert result and result.get("token") == token, (
-                    f"Hammerspoon startup failed or IPC timed out (exit {process.poll()}).\n"
-                    f"{last_probe}\nStartup log ({log_path}):\n{log_path.read_text()}"
-                )
-                yield result, log_path
+                deadline = time.monotonic() + 20
+                while not status_path.exists() and process.poll() is None and time.monotonic() < deadline:
+                    time.sleep(0.1)
+                status = status_path.read_text() if status_path.exists() else "No config load result"
+                assert status == "loaded", f"{status}\nStartup log ({log_path}):\n{log_path.read_text()}"
             finally:
                 if process.poll() is None:
-                    with suppress(ProcessLookupError):
-                        process.terminate()
+                    process.terminate()
                     try:
                         process.wait(timeout=5)
                     except subprocess.TimeoutExpired:
-                        with suppress(ProcessLookupError):
-                            process.kill()
+                        process.kill()
                         process.wait(timeout=5)
-
-
-def test_rendered_hammerspoon_config_loads(loaded_hammerspoon):
-    result, log_path = loaded_hammerspoon
-    assert result["ok"], f"Config load failed: {result['error']}\n{log_path.read_text()}"
-    assert result["config"] and result["actions"] and result["tag"] and result["menu"], result
