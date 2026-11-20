@@ -1,3 +1,8 @@
+{{- /*
+  Render a map as KDL properties with a leading space before each property.
+  Append the result directly after the node name or its arguments.
+  An empty map emits nothing.
+*/ -}}
 {{- range $key, $value := . -}}
   {{- printf " " -}}{{- includeTemplate "kdl/value" $key -}}={{- includeTemplate "kdl/value" $value -}}
 {{- end -}}

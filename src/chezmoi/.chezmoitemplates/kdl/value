@@ -1,3 +1,8 @@
+{{- /*
+  Render one KDL value from a string, boolean, or number.
+  Quote strings and escape quotes, backslashes, and ASCII control characters.
+  Reject unsupported types.
+*/ -}}
 {{- $kind := kindOf . -}}
 {{- if eq $kind "string" -}}
   {{- $value := . | replace "\\" "\\\\" | replace "\"" "\\\"" -}}
