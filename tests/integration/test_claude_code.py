@@ -1,16 +1,15 @@
-import functools
 import hashlib
 import json
 import shlex
 import shutil
 import subprocess
-import threading
 import tomllib
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
 from chezmoi_test_data import installation_method
+from integration_support.chezmoi import chezmoi_argv
+from integration_support.http import serve_directory
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPOSITORY_ROOT / "src/chezmoi"
@@ -121,21 +120,15 @@ def _claude_source(tmp_path):
 
 def _apply_claude(tmp_path, source, destination, config):
     return subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            str(config),
-            "--source",
-            str(source),
-            "--destination",
-            str(destination),
-            "--cache",
-            str(tmp_path / "cache"),
-            "--persistent-state",
-            str(tmp_path / "state.boltdb"),
+        chezmoi_argv(
             "apply",
             "--force",
-        ],
+            source=source,
+            destination=destination,
+            config=config,
+            cache=tmp_path / "cache",
+            state=tmp_path / "state.boltdb",
+        ),
         capture_output=True,
         text=True,
         check=False,
@@ -195,38 +188,29 @@ def test_claude_apply_replaces_installer_launcher_and_preserves_old_binary(tmp_p
     downloads = tmp_path / "downloads"
     downloads.mkdir()
     (downloads / "claude").write_bytes(payload)
-    server = ThreadingHTTPServer(
-        ("127.0.0.1", 0), functools.partial(SimpleHTTPRequestHandler, directory=str(downloads))
-    )
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
-    release = catalog["bin"]["claude"]["direct_release"]
-    release["url_format"] = f"http://127.0.0.1:{server.server_port}/claude"
-    release["checksums"]["linux_amd64"] = hashlib.sha256(payload).hexdigest()
-    config = tmp_path / "chezmoi.json"
-    config.write_text(
-        json.dumps(
-            {
-                "data": {
-                    **catalog,
-                    "claude_code": {"installation_method": "direct_release"},
-                    "chezmoi": {"os": "linux", "arch": "amd64"},
+    with serve_directory(downloads) as base_url:
+        release = catalog["bin"]["claude"]["direct_release"]
+        release["url_format"] = f"{base_url}/claude"
+        release["checksums"]["linux_amd64"] = hashlib.sha256(payload).hexdigest()
+        config = tmp_path / "chezmoi.json"
+        config.write_text(
+            json.dumps(
+                {
+                    "data": {
+                        **catalog,
+                        "claude_code": {"installation_method": "direct_release"},
+                        "chezmoi": {"os": "linux", "arch": "amd64"},
+                    }
                 }
-            }
+            )
         )
-    )
-    launcher = destination / ".local/bin/claude"
-    launcher.parent.mkdir(parents=True)
-    old_binary = destination / ".local/share/claude/versions/old"
-    old_binary.parent.mkdir(parents=True)
-    old_binary.write_text("previous installation\n")
-    launcher.symlink_to(old_binary)
-    try:
+        launcher = destination / ".local/bin/claude"
+        launcher.parent.mkdir(parents=True)
+        old_binary = destination / ".local/share/claude/versions/old"
+        old_binary.parent.mkdir(parents=True)
+        old_binary.write_text("previous installation\n")
+        launcher.symlink_to(old_binary)
         result = _apply_claude(tmp_path, source, destination, config)
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join()
 
     assert result.returncode == 0, result.stderr
     binary = destination / f".local/lib/claude/{TEST_VERSION}/claude"

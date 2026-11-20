@@ -4,10 +4,12 @@ import re
 import shlex
 import subprocess
 from collections.abc import Iterable
+from functools import cache
 from pathlib import Path
 
 import pytest
 from chezmoi_test_data import required_installation_method
+from integration_support.chezmoi import chezmoi_argv
 
 
 def pytest_configure(config):
@@ -41,17 +43,13 @@ def skip_unmatched_chezmoi_installation(request):
 
 
 def _chezmoi_argv(*args):
-    command = ["chezmoi", "--source", str(Path.cwd())]
-
-    if cache_dir := os.environ.get("CHEZMOI_CACHE_DIR"):
-        command.extend(["--cache", cache_dir])
-    if config_path := os.environ.get("CHEZMOI_CONFIG"):
-        command.extend(["--config", config_path])
-    if dest := os.environ.get("CHEZMOI_DEST"):
-        command.extend(["--destination", dest])
-
-    command.extend(args)
-    return command
+    return chezmoi_argv(
+        *args,
+        source=Path.cwd(),
+        cache=os.environ.get("CHEZMOI_CACHE_DIR") or None,
+        config=os.environ.get("CHEZMOI_CONFIG") or None,
+        destination=os.environ.get("CHEZMOI_DEST") or None,
+    )
 
 
 def _chezmoi_command(*args):
@@ -95,13 +93,14 @@ def _shellcheck_candidates():
     return sorted(on_disk, key=lambda entry: entry["sourceRelative"])
 
 
-def _chezmoi_source_path():
+@cache
+def _chezmoi_source_path(repository):
     """Ask chezmoi itself where its source root is (respects .chezmoiroot).
     Pytest always runs from the repo root, so that's the --source to resolve
     against; a plain local subprocess call, not host.run, since this is a
     question about the checkout on this machine, not the deployed target."""
     result = subprocess.run(
-        ["chezmoi", "--source", str(Path.cwd()), "source-path"],
+        chezmoi_argv("source-path", source=repository),
         capture_output=True,
         text=True,
         check=True,
@@ -122,7 +121,7 @@ def chezmoi_data(host):
 @pytest.fixture(scope="session")
 def chezmoi_source_root():
     """Return the absolute path to the chezmoi source directory, as resolved by chezmoi itself."""
-    return _chezmoi_source_path()
+    return _chezmoi_source_path(Path.cwd())
 
 
 @pytest.fixture(scope="session")
@@ -154,7 +153,7 @@ def pytest_generate_tests(metafunc):
     if not needs_source_root:
         return
 
-    source_root = _chezmoi_source_path()
+    source_root = _chezmoi_source_path(Path.cwd())
     repo_root = source_root.parent.parent
 
     if "layout_name" in metafunc.fixturenames:

@@ -11,6 +11,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+from integration_support.chezmoi import chezmoi_argv
 
 from skill_filter import plugin_bridge
 
@@ -22,7 +23,6 @@ MARKETPLACE_TEMPLATES = (
     Path("dot_local/share/agent-plugins/marketplace/dot_agents/plugins/marketplace.json.tmpl"),
     Path("dot_local/share/agent-plugins/marketplace/dot_cursor-plugin/marketplace.json.tmpl"),
 )
-BRIDGE_TEMPLATE = Path(".chezmoitemplates/ai/plugin-bridge")
 SUPERPOWERS_ARCHIVE_CONTENTS = {
     ".claude-plugin/plugin.json": b'{"name":"superpowers","version":"7.0.0"}\n',
     ".codex-plugin/plugin.json": b'{"name":"superpowers","version":"7.0.0"}\n',
@@ -60,21 +60,15 @@ EGM_ARCHIVE_CONTENTS = {
 
 def _apply(source: Path, destination: Path, config: Path) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(source),
-            "--destination",
-            str(destination),
-            "--config",
-            str(config),
-            "--cache",
-            str(destination.parent / "cache"),
-            "--persistent-state",
-            str(destination.parent / "state.boltdb"),
+        chezmoi_argv(
             "--refresh-externals=always",
             "apply",
-        ],
+            source=source,
+            destination=destination,
+            config=config,
+            cache=destination.parent / "cache",
+            state=destination.parent / "state.boltdb",
+        ),
         capture_output=True,
         check=False,
         cwd=destination.parent,
@@ -110,7 +104,6 @@ def _upstream_fixture(
     config = tmp_path / "chezmoi.toml"
     files = (
         *MARKETPLACE_TEMPLATES,
-        BRIDGE_TEMPLATE,
         Path(".chezmoidata/ai/plugin-bridge.toml"),
         Path(".chezmoidata/ai/skills/superpowers.toml"),
         Path(".chezmoiexternals/ai-upstream-plugins.toml.tmpl"),
@@ -183,17 +176,13 @@ def test_egm_gate_controls_complete_package_and_host_registrations(tmp_path, met
             path = declared_source["path"] if isinstance(declared_source, dict) else declared_source
             assert path == "./plugins/egm"
     rendered = subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(source),
-            "--destination",
-            str(destination),
-            "--config",
-            str(config),
+        chezmoi_argv(
             "execute-template",
             '{{ includeTemplate "ai/plugin-bridge" . }}',
-        ],
+            source=source,
+            destination=destination,
+            config=config,
+        ),
         capture_output=True,
         check=False,
         text=True,
@@ -244,17 +233,13 @@ def test_base_init_enables_egm(tmp_path):
     fixture_config = config.read_text()
     shutil.copy2(SOURCE_ROOT / ".chezmoi.toml.tmpl", source / ".chezmoi.toml.tmpl")
     rendered = subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(source),
-            "--destination",
-            str(destination),
-            "--config",
-            str(config),
+        chezmoi_argv(
             "--no-tty",
             "init",
-        ],
+            source=source,
+            destination=destination,
+            config=config,
+        ),
         env={**os.environ, "CI": "true"},
         capture_output=True,
         check=False,
@@ -299,16 +284,12 @@ def test_upstream_plugin_gate_controls_marketplaces_and_registration(tmp_path, m
 
     runner = SOURCE_ROOT / ".chezmoiscripts/run_after_agent-plugin-bridge.sh.tmpl"
     rendered = subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(source),
-            "--destination",
-            str(destination),
-            "--config",
-            str(config),
+        chezmoi_argv(
             "execute-template",
-        ],
+            source=source,
+            destination=destination,
+            config=config,
+        ),
         input=runner.read_text(),
         capture_output=True,
         check=False,

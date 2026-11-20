@@ -1,15 +1,15 @@
-import functools
 import hashlib
 import json
 import os
 import shutil
 import subprocess
-import threading
 import tomllib
-from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from http.server import SimpleHTTPRequestHandler
 from pathlib import Path
 
 import pytest
+from integration_support.chezmoi import chezmoi_argv
+from integration_support.http import serve_directory
 
 SOURCE = Path(__file__).resolve().parents[2] / "src/chezmoi"
 EXTERNAL = Path("dot_local/share/gh-managed/.chezmoiexternals/extensions.toml.tmpl")
@@ -19,14 +19,17 @@ NAMES = ("gh-stack", "gh-actions-lock")
 
 
 @pytest.fixture(scope="module")
-def real_gh():
+def real_gh(record_testsuite_property):
     executable = shutil.which("gh")
     assert executable, "Unmet prerequisite: real GitHub CLI must be installed"
-    return Path(executable).resolve()
+    executable = Path(executable).resolve()
+    version = subprocess.run([str(executable), "--version"], capture_output=True, text=True, check=True, timeout=30)
+    record_testsuite_property("gh_version", version.stdout.splitlines()[0])
+    return executable
 
 
 class ExtensionCase:
-    def __init__(self, root, executable, record_property):
+    def __init__(self, root, executable):
         self.root = root
         self.source = root / "source"
         self.destination = root / "destination"
@@ -55,10 +58,7 @@ class ExtensionCase:
             Path(self.env[key]).mkdir(parents=True, exist_ok=True)
         self.gh_binary = self.destination / ".local/bin/gh"
         self.gh_binary.parent.mkdir(parents=True)
-        shutil.copy2(executable, self.gh_binary)
-        version = self.gh("--version")
-        assert version.returncode == 0, version.stderr
-        record_property("gh_version", version.stdout.splitlines()[0])
+        self.gh_binary.symlink_to(executable)
         for relative in (EXTERNAL, SCRIPT, DISPATCHER, Path(".chezmoitemplates/bin/github-releases-entry.tmpl")):
             target = self.source / relative
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -77,20 +77,14 @@ class ExtensionCase:
 
     def cm(self, *args):
         return self.run(
-            [
-                "chezmoi",
-                "--config",
-                str(self.config),
-                "--source",
-                str(self.source),
-                "--destination",
-                str(self.destination),
-                "--cache",
-                str(self.cache),
-                "--persistent-state",
-                str(self.state),
+            chezmoi_argv(
                 *args,
-            ]
+                source=self.source,
+                destination=self.destination,
+                config=self.config,
+                cache=self.cache,
+                state=self.state,
+            )
         )
 
     def gh(self, *args, **kwargs):
@@ -126,8 +120,8 @@ class ExtensionCase:
 
 
 @pytest.fixture
-def case(tmp_path, real_gh, record_property):
-    return ExtensionCase(tmp_path, real_gh, record_property)
+def case(tmp_path, real_gh):
+    return ExtensionCase(tmp_path, real_gh)
 
 
 @pytest.fixture
@@ -144,32 +138,25 @@ def local_releases(case):
         def log_message(self, *_args):
             pass
 
-    server = ThreadingHTTPServer(("127.0.0.1", 0), functools.partial(Handler, directory=str(downloads)))
-    thread = threading.Thread(target=server.serve_forever, daemon=True)
-    thread.start()
+    with serve_directory(downloads, Handler) as base_url:
 
-    def release(name, version):
-        payload = f"#!/bin/sh\nprintf '%s\\n' '{name} {version}'\n".encode()
-        path = downloads / name / version
-        path.parent.mkdir(exist_ok=True)
-        path.write_bytes(payload)
-        tool = case.catalog[name]
-        tool["version"] = version
-        source = tool["github_releases"]
-        source["url_format"] = f"http://127.0.0.1:{server.server_port}/{name}/{{tag}}"
-        source["tag_format"] = "{version}"
-        source["checksums"] = dict.fromkeys(source["platforms"], hashlib.sha256(payload).hexdigest())
-        case.write_config()
-        return payload
+        def release(name, version):
+            payload = f"#!/bin/sh\nprintf '%s\\n' '{name} {version}'\n".encode()
+            path = downloads / name / version
+            path.parent.mkdir(exist_ok=True)
+            path.write_bytes(payload)
+            tool = case.catalog[name]
+            tool["version"] = version
+            source = tool["github_releases"]
+            source["url_format"] = f"{base_url}/{name}/{{tag}}"
+            source["tag_format"] = "{version}"
+            source["checksums"] = dict.fromkeys(source["platforms"], hashlib.sha256(payload).hexdigest())
+            case.write_config()
+            return payload
 
-    for name in NAMES:
-        release(name, "1.0.0")
-    try:
+        for name in NAMES:
+            release(name, "1.0.0")
         yield release, requests
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join()
 
 
 def _apply(case):
@@ -370,13 +357,13 @@ def test_unavailable_gh_preserves_registration_and_retries(case, local_releases,
     state = case.destination / ".local/state/gh/extensions" / name / "state.yml"
     state.parent.mkdir(parents=True, exist_ok=True)
     state.write_text("keep update state\n")
+    case.gh_binary.unlink()
     if availability == "nonexecutable":
+        shutil.copyfile(real_gh, case.gh_binary)
         case.gh_binary.chmod(0o644)
         case.env["XDG_DATA_HOME"] = str(case.root / "inherited-data")
-    else:
-        case.gh_binary.unlink()
-        if availability == "directory":
-            case.gh_binary.mkdir()
+    elif availability == "directory":
+        case.gh_binary.mkdir()
 
     result = case.cm("apply", "--force")
     assert case.registration(name).is_symlink(), result.stderr
@@ -391,7 +378,9 @@ def test_unavailable_gh_preserves_registration_and_retries(case, local_releases,
     downloads = len(requests)
     if availability == "directory":
         case.gh_binary.rmdir()
-    shutil.copy2(real_gh, case.gh_binary)
+    elif availability == "nonexecutable":
+        case.gh_binary.unlink()
+    case.gh_binary.symlink_to(real_gh)
     case.env["XDG_DATA_HOME"] = str(case.destination / ".local/share")
     _apply(case)
     assert len(requests) == downloads
