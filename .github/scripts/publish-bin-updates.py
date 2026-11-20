@@ -16,6 +16,7 @@ TOOL = re.compile(r"[a-z0-9][a-z0-9_-]*")
 VERSION = re.compile(r"v?[0-9]{1,9}(?:\.[0-9]{1,9}){1,5}")
 CHECKSUM = re.compile(r"[0-9a-f]{64}")
 PR_BODY_LIMIT = 65536
+ARTIFACT_LIMITS = {".toml": 512_000, ".json": 8 * 1024 * 1024}
 AT_SIGN = re.compile(r"@|&(?:commat;|#(?:0*64(?![0-9])|[xX]0*40(?![0-9a-fA-F]));?)")
 NOTE_TOKEN = re.compile(
     r"(?P<url>https?://[a-zA-Z0-9.\-]+(?::[0-9]+)?/[^\s<>\[\]()?#]*)"
@@ -248,7 +249,7 @@ def publish(name, artifact, base, repo):
     ):
         raise ValueError("Update report does not match the catalog")
     preview = mute_mentions(body)
-    if max(len(body), len(preview)) > PR_BODY_LIMIT:
+    if len(preview) > PR_BODY_LIMIT:
         # Put the link before the notes so cut Markdown cannot hide it.
         url = upstream_notes(original, name, new)
         intro = f"Release notes preview. [Read the full upstream release notes]({url}).\n\n"
@@ -381,11 +382,13 @@ def main():
         if (
             path.is_symlink()
             or not path.is_file()
-            or path.stat().st_size > 512_000
-            or path.suffix not in {".toml", ".json"}
+            or path.suffix not in ARTIFACT_LIMITS
             or not TOOL.fullmatch(path.stem)
         ):
             parser.error("Unexpected update artifact entry")
+        limit = ARTIFACT_LIMITS[path.suffix]
+        if path.stat().st_size > limit:
+            parser.error(f"Update artifact {path.name} exceeds the {limit:,}-byte transfer limit")
         pairs.setdefault(path.stem, set()).add(path.suffix)
     if any(suffixes != {".toml", ".json"} for suffixes in pairs.values()):
         parser.error("Incomplete update artifact")

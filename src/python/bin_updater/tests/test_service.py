@@ -204,19 +204,19 @@ def test_api_failure_leaves_catalog_unchanged(tmp_path: Path) -> None:
     assert path.read_text() == TOML_TEMPLATE
 
 
-def test_oversized_notes_leave_a_bounded_preview_and_update_the_catalog(tmp_path: Path) -> None:
+def test_oversized_notes_are_handed_off_in_full(tmp_path: Path) -> None:
     path = tmp_path / "app.toml"
     path.write_text(TOML_TEMPLATE)
     release = {
         "tag_name": "v2.0.0",
         "published_at": "2020-01-01T00:00:00Z",
-        "body": "x" * 65536,
+        "body": "x" * 65536 + "Final release note.",
         "assets": [{"name": "app-v2.0.0-linux-amd64.tar.gz", "browser_download_url": "https://example.com/bin"}],
     }
     result = run_updates([load_catalog(path)], FakeClient([release]))[0]
     assert result.error is None
     assert result.new_version == "2.0.0"
-    assert len(result.pr_body) == 65537
+    assert result.pr_body.endswith("x" * 65536 + "Final release note.\n")
     assert 'version = "2.0.0"' in path.read_text()
 
 
@@ -257,9 +257,8 @@ def test_large_note_ranges_keep_the_latest_mature_release(tmp_path: Path) -> Non
     client = FakeClient([_large_release("3.0.0"), _large_release("2.0.0")])
     result = update_tool(load_catalog(path), client)
     assert result.new_version == "3.0.0"
-    assert len(result.pr_body) == 65537
     assert "2.0.0" + "x" * 33000 in result.pr_body
-    assert "3.0.0" + "x" * 100 in result.pr_body
+    assert "3.0.0" + "x" * 33000 in result.pr_body
 
 
 def test_large_notes_do_not_bypass_release_age(tmp_path: Path) -> None:

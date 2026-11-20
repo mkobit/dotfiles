@@ -1,6 +1,7 @@
 import json
 import runpy
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -181,7 +182,7 @@ def test_publisher_rejects_mise_updates_outside_supported_series(tool: str, old:
 
 
 @pytest.mark.parametrize("existing", [False, True])
-@pytest.mark.parametrize("case", ["fits", "expands", "raw-oversize", "mise-oversize"])
+@pytest.mark.parametrize("case", ["fits", "expands", "contracts", "raw-oversize", "mise-oversize"])
 def test_publisher_does_not_send_mentions(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, existing: bool, case: str
 ) -> None:
@@ -202,6 +203,8 @@ def test_publisher_does_not_send_mentions(
     )
     if case == "expands":
         body = "@alice, " * 8000
+    elif case == "contracts":
+        body = "&commat;alice, " * 7000
     elif case.endswith("oversize"):
         body = "```\n@alice\n" + "x" * 65536
     (tmp_path / f"{name}.toml").write_text(updated, encoding="utf-8")
@@ -239,6 +242,9 @@ def test_publisher_does_not_send_mentions(
     monkeypatch.setitem(publication, "update_branch", lambda *_: (f"automation/bin-update-{name}", "head"))
     monkeypatch.setitem(publication, "remote_tip", lambda ref: "base" if ref == "refs/heads/main" else "head")
     publish(name, tmp_path, "base", "example/repo")
+    if case == "contracts":
+        assert sent == ["@\u200balice, " * 7000]
+        return
     if case != "fits":
         (published,) = sent
         intro, preview = published.split("\n\n", 1)
@@ -255,3 +261,33 @@ def test_publisher_does_not_send_mentions(
             "[Unclosed](https://example.org/%40alice\n"
         )
     ]
+
+
+@pytest.mark.parametrize("report_size", [600_000, 8 * 1024 * 1024 + 1])
+def test_publisher_checks_the_report_transfer_limit(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], report_size: int
+) -> None:
+    main = PUBLISHER["main"]
+    publication = main.__globals__
+    base = "a" * 40
+    monkeypatch.setattr(sys, "argv", ["publish-bin-updates.py", str(tmp_path)])
+    monkeypatch.setenv("GITHUB_REPOSITORY", "example/repo")
+    monkeypatch.setenv("GITHUB_SHA", base)
+    monkeypatch.setenv("GH_TOKEN", "test-token")
+    monkeypatch.setitem(publication, "command", lambda *_: base)
+    monkeypatch.setitem(publication, "remote_tip", lambda *_: base)
+    sent = []
+    monkeypatch.setitem(publication, "publish", lambda name, *_: sent.append(name))
+    (tmp_path / "bkt.toml").write_text(NEW, encoding="utf-8")
+    with (tmp_path / "bkt.json").open("wb") as report:
+        report.truncate(report_size)
+
+    if report_size == 600_000:
+        assert main() == 0
+        assert sent == ["bkt"]
+    else:
+        with pytest.raises(SystemExit) as error:
+            main()
+        assert error.value.code == 2
+        assert "bkt.json exceeds the 8,388,608-byte transfer limit" in capsys.readouterr().err
+        assert not sent

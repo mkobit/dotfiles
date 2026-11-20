@@ -49,8 +49,10 @@ The description contains release notes for releases between those versions, with
 Before publication, the updater inserts a zero-width space after at signs in text, including encoded at signs, to prevent GitHub mentions.
 It uses `%40` for at signs in absolute HTTP and HTTPS URL paths without user information, such as scoped package links.
 A later run updates the PR title and description even when the remote catalog content is unchanged.
-If the full release notes exceed GitHub's PR body limit, the updater keeps the selected release and publishes a preview.
+Generation passes the full release notes to the publisher.
+If the sanitized notes exceed GitHub's PR body limit, the publisher keeps the selected release and publishes a preview.
 The preview starts with a link to the full upstream release notes.
+The publisher rejects JSON handoff reports larger than 8 MiB with a transfer error.
 
 The generation job reads release metadata with the read-only workflow token.
 It passes only catalog and report data to a fresh publication runner.

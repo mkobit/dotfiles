@@ -68,8 +68,7 @@ def _release_notes(catalog: ToolCatalog, releases: Sequence[Mapping[str, Any]], 
         body = release.get("body")
         notes = body if isinstance(body, str) and body.strip() else "No release notes were provided."
         sections.append(f"## [{tag}]({url})\n\n{notes}")
-    # Keep the handoff small. One extra character tells the publisher to add the upstream link.
-    return ("\n\n".join(sections) + "\n")[:65537]
+    return "\n\n".join(sections) + "\n"
 
 
 def _resolve_platform_checksums(
