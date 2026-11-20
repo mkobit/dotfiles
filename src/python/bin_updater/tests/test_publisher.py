@@ -178,3 +178,46 @@ def test_publisher_rejects_mise_updates_outside_supported_series(tool: str, old:
     source = f'[mise.global_tools.{tool}]\nversion = "{old}"\n'
     with pytest.raises(ValueError, match="supported mise release series"):
         approved_catalog(source, source.replace(old, new), f"mise-{tool}")
+
+
+@pytest.mark.parametrize("existing", [False, True])
+def test_publisher_does_not_send_mentions(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, existing: bool) -> None:
+    publish = PUBLISHER["publish"]
+    publication = publish.__globals__
+    title = "Update bkt from 0.8.2 to 0.8.3"
+    (tmp_path / "bkt.toml").write_text(NEW, encoding="utf-8")
+    (tmp_path / "bkt.json").write_text(
+        json.dumps(
+            [
+                {
+                    "changed": True,
+                    "tool_name": "bkt",
+                    "old_version": "0.8.2",
+                    "new_version": "0.8.3",
+                    "pr_title": title,
+                    "pr_body": "Thanks @alice, &#64;bob, &#x40;carol, and &commat;org/team.\n[Release](https://example.org/)",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    sent = []
+
+    def command(*args: str, stdin: str | None = None) -> str:
+        if args[:2] == ("git", "show"):
+            return BASE
+        if existing:
+            assert args[:4] == ("gh", "api", "--method", "PATCH")
+            assert stdin is not None
+            sent.append(json.loads(stdin)["body"])
+        else:
+            assert args[:3] == ("gh", "pr", "create")
+            sent.append(Path(args[args.index("--body-file") + 1]).read_text(encoding="utf-8"))
+        return ""
+
+    monkeypatch.setitem(publication, "command", command)
+    monkeypatch.setitem(publication, "open_pr", lambda *_: {"number": 3, "head": {"sha": "head"}} if existing else None)
+    monkeypatch.setitem(publication, "update_branch", lambda *_: ("automation/bin-update-bkt", "head"))
+    monkeypatch.setitem(publication, "remote_tip", lambda ref: "base" if ref == "refs/heads/main" else "head")
+    publish("bkt", tmp_path, "base", "example/repo")
+    assert sent == ["Thanks \uff20alice, \uff20bob, \uff20carol, and \uff20org/team.\n[Release](https://example.org/)"]
