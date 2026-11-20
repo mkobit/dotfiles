@@ -42,3 +42,6 @@ if hs.fs.attributes(overlay, "mode") == "directory" then
         end
     end
 end
+
+-- Build the menu after local actions have registered.
+_G.DotfilesMacroMenu = _G.DotfilesActions.startMenu()

@@ -42,9 +42,10 @@ def test_setup_skills_leave_command_approvals_to_central_policy(skill_dir: Path)
     assert isinstance(metadata["description"], str) and metadata["description"].strip()
 
 
-@pytest.fixture
-def deployed_setup_skills(tmp_path: Path):
-    """Apply a source copy without scripts or external expansion."""
+@pytest.fixture(scope="module")
+def deployed_setup_skills(tmp_path_factory: pytest.TempPathFactory):
+    """Apply one isolated source copy; consumers only read the deployed state."""
+    tmp_path = tmp_path_factory.mktemp("setup-skills")
     source = tmp_path / "source"
     shutil.copytree(
         REPO_ROOT / "src/chezmoi",

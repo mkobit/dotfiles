@@ -285,9 +285,7 @@ jobs:
           set -o pipefail
           report_dir="$RUNNER_TEMP/integration-reports"
           mkdir -p "$report_dir"
-          # Hammerspoon tests require a running app, which is not set up in CI.
           mise exec -- uv run --frozen pytest tests/integration -ra --durations=20 \
-            --ignore=tests/integration/test_hammerspoon_macros.py \
             --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
 
       - name: Upload integration reports
