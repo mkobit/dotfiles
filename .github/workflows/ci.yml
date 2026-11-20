@@ -99,27 +99,6 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Load scoped AppArmor profile for bwrap
-        if: runner.os == 'Linux'
-        # Ubuntu 24.04's AppArmor default blocks unprivileged CLONE_NEWUSER
-        # for otherwise-unconfined processes, which bwrap needs for rootless
-        # sandboxing -- without this, sandboxr's bwrap-backed integration
-        # tests fail with "setting up uid map: Permission denied" /
-        # "loopback: Failed RTM_NEWADDR". A profile scoped to /usr/bin/bwrap
-        # that grants it `userns,` exempts only that binary; every other
-        # process on the runner keeps the restriction, unlike flipping
-        # kernel.apparmor_restrict_unprivileged_userns off runner-wide.
-        # Ref: https://discourse.ubuntu.com/t/spec-unprivileged-user-namespace-restrictions-via-apparmor-in-ubuntu-23-10/37626
-        run: |
-          cat <<'PROFILE' | sudo tee /etc/apparmor.d/bwrap >/dev/null
-          abi <abi/4.0>,
-
-          /usr/bin/bwrap flags=(unconfined) {
-            allow userns create,
-          }
-          PROFILE
-          sudo apparmor_parser -r /etc/apparmor.d/bwrap
-
       - name: Prepare APT download cache
         id: apt-cache-prepare
         if: runner.os == 'Linux'
@@ -290,17 +269,13 @@ jobs:
           echo "$MISE_BIN_DIR" >> $GITHUB_PATH
           "$MISE_BIN_DIR/mise" cache prune --yes
 
+      # Use the mise binary installed by chezmoi apply and load tools from the test HOME.
       - name: Install python dependencies for integration tests
         env:
           HOME: ${{ env.CHEZMOI_DEST }}
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           mise exec -- uv sync --all-packages --frozen
-
-      - name: Check the SBX source package
-        env:
-          HOME: ${{ env.CHEZMOI_DEST }}
-        run: mise exec -- uv run --frozen pytest tests/integration/test_sbx_project_environment.py
 
       - name: Run system integration tests
         env:
@@ -310,7 +285,7 @@ jobs:
           set -o pipefail
           report_dir="$RUNNER_TEMP/integration-reports"
           mkdir -p "$report_dir"
-          mise exec -- uv run pytest tests/integration -ra --durations=20 \
+          mise exec -- uv run --frozen pytest tests/integration -ra --durations=20 \
             --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
 
       - name: Upload integration reports
@@ -324,6 +299,7 @@ jobs:
           if-no-files-found: ignore
 
       # Reuse the runner and report Python failures even if integration failed.
+      # The CI setup action adds mise shims to PATH so the Python steps can call uv directly.
       - name: Set up mise for Python tests
         id: python-test-setup
         if: ${{ !cancelled() && matrix.os != 'ubuntu-24.04-arm' && steps.checkout.outcome == 'success' }}
