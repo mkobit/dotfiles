@@ -1,6 +1,4 @@
-import base64
 import json
-import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -10,14 +8,14 @@ import pytest
 SOURCE = Path("src/chezmoi/dot_dotfiles/hammerspoon")
 
 
-def render_config(tmp_path, macros):
+def render_config(tmp_path):
     data = {"hammerspoon": {"window_manager": {"enabled": False}}}
-    if macros is not None:
-        data["hammerspoon"]["macros"] = macros
     return subprocess.run(
         [
             "chezmoi",
             "--source",
+            str(tmp_path),
+            "--destination",
             str(tmp_path),
             "--config",
             "/dev/null",
@@ -43,15 +41,37 @@ def run_lua(script):
     return json.loads(result.stdout)
 
 
-def test_macro_config_is_optional_and_serializes_user_text(tmp_path):
-    def decoded_macros(config):
-        encoded = re.search(r'macros = hs\.json\.decode\(hs\.base64\.decode\("([^"]+)"\)\)', config)
-        assert encoded
-        return json.loads(base64.b64decode(encoded.group(1)))
+def test_overlay_files_load_in_order_and_fail_independently(tmp_path):
+    config_dir = tmp_path / ".dotfiles/hammerspoon"
+    snippets = config_dir / "snippets"
+    snippets.mkdir(parents=True)
+    (snippets / "init.lua").write_text("")
+    shutil.copy(SOURCE / "snippets/macros.lua", snippets)
+    (config_dir / "config.lua").write_text(render_config(tmp_path))
+    path = json.dumps(str(config_dir / "config.lua"))
+    script = f"""local env = setmetatable({{}}, {{__index = _G}})
+        env._G = env
+        env.hs = setmetatable({{alert = {{show = function(msg) env.alerts[#env.alerts + 1] = msg end}},
+            printf = function() end}}, {{__index = hs}})
+        env.alerts, env.order = {{}}, {{}}
+        env.dofile = function(file) return assert(loadfile(file, "t", env))() end
+        env.dofile({path})
+        return hs.json.encode({{order=env.order, alerts=env.alerts,
+            hasTagAction=type(env.DotfilesActions.wrapPromptTag) == "function"}})"""
+    assert run_lua(script) == {"order": [], "alerts": [], "hasTagAction": True}
 
-    assert decoded_macros(render_config(tmp_path, None)) == []
-    macros = [{"action": "insert_text", "mods": ["ctrl", "alt"], "key": "f18", "text": 'a "quote"\n<🦊>'}]
-    assert decoded_macros(render_config(tmp_path, macros)) == macros
+    overlay = config_dir / "overlay"
+    overlay.mkdir()
+    (overlay / "b.lua").write_text('order[#order + 1] = "b"')
+    (overlay / "a.lua").write_text('order[#order + 1] = "a"')
+    (overlay / "bad.lua").write_text('error("bad overlay")')
+    (overlay / "c.lua").write_text('order[#order + 1] = "c"')
+    (overlay / "ignored.txt").write_text('error("not Lua")')
+    result = run_lua(script)
+    assert result["order"] == ["a", "b", "c"]
+    assert result["hasTagAction"] is True
+    assert len(result["alerts"]) == 1
+    assert "bad.lua" in result["alerts"][0]
 
 
 def test_tag_ranges_expand_partial_words_and_count_utf16_units():
@@ -129,26 +149,18 @@ def test_tag_action_checks_accessibility_and_replaces_only_selected_text():
         assert result["writes"] == 0
 
 
-def test_bindings_insert_text_and_report_unavailable_tag():
+def test_tag_action_reports_unavailable_field():
     path = json.dumps(str((SOURCE / "snippets/macros.lua").resolve()))
     script = f"""local m = dofile({path})
-        local callbacks, typed, alerts = {{}}, {{}}, {{}}
+        local alerts = {{}}
         local api = {{
-            hotkey = {{bind = function(mods, key, fn) callbacks[key] = fn end}},
-            eventtap = {{keyStrokes = function(text) typed[#typed + 1] = text end}},
             alert = {{show = function(text) alerts[#alerts + 1] = text end}},
             axuielement = {{systemWideElement = function() return {{attributeValue = function() return nil end}} end}},
             application = {{frontmostApplication = function() return nil end}},
         }}
-        m.start({{{{action="insert_text", mods={{"ctrl"}}, key="f18", text="@example/team"}},
-            {{action="prompt_tag", mods={{}}, key="f19"}}, {{action="unknown", mods={{}}, key="f20"}}}}, api)
-        callbacks.f18(); callbacks.f19()
-        return hs.json.encode({{typed=typed, alerts=alerts, ignored=callbacks.f20 == nil}})"""
-    assert run_lua(script) == {
-        "typed": ["@example/team"],
-        "alerts": ["Cannot wrap text in this field"],
-        "ignored": True,
-    }
+        m.wrapPromptTag(api)
+        return hs.json.encode(alerts)"""
+    assert run_lua(script) == ["Cannot wrap text in this field"]
 
 
 def test_tag_action_does_not_replace_text_when_selection_write_is_ignored():
@@ -283,13 +295,10 @@ def test_direct_replacement_warns_if_cursor_cannot_be_set():
             return self
         end
         local system = {{attributeValue = function() return element end}}
-        local callback
         local api = {{axuielement = {{systemWideElement = function() return system end}},
             application = {{frontmostApplication = function() return {{bundleID = function() return "editor" end}} end}},
-            hotkey = {{bind = function(_, _, fn) callback = fn end}},
             alert = {{show = function(message) state.alerts[#state.alerts + 1] = message end}}}}
-        m.start({{{{action="prompt_tag", mods={{}}, key="f19"}}}}, api)
-        callback()
+        m.wrapPromptTag(api)
         return hs.json.encode({{value=state.value, alerts=state.alerts}})"""
     assert run_lua(script) == {
         "value": "<copied-prompt></copied-prompt>",

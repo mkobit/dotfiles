@@ -1,4 +1,4 @@
--- Actions configured by the local chezmoi data.
+-- Reusable Hammerspoon actions.
 local M = {}
 
 local function isWord(char)
@@ -196,24 +196,12 @@ function M.promptTag(api)
     return ok and complete, not (ok and complete)
 end
 
-function M.start(macros, api)
+function M.wrapPromptTag(api)
     api = api or hs
-    for _, macro in ipairs(macros or {}) do
-        local action
-        if macro.action == "insert_text" and type(macro.text) == "string" then
-            action = function() api.eventtap.keyStrokes(macro.text) end
-        elseif macro.action == "prompt_tag" then
-            action = function()
-                local ok, result, textMayHaveChanged = pcall(M.promptTag, api)
-                if not ok or not result then
-                    api.alert.show(textMayHaveChanged and "Could not verify tag insertion; text may have changed"
-                        or "Cannot wrap text in this field")
-                end
-            end
-        end
-        if action and type(macro.mods) == "table" and type(macro.key) == "string" then
-            api.hotkey.bind(macro.mods, macro.key, action)
-        end
+    local ok, result, textMayHaveChanged = pcall(M.promptTag, api)
+    if not ok or not result then
+        api.alert.show(textMayHaveChanged and "Could not verify tag insertion; text may have changed"
+            or "Cannot wrap text in this field")
     end
 end
 
