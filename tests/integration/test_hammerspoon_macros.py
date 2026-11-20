@@ -12,15 +12,10 @@ import pytest
 from integration_support.chezmoi import chezmoi_argv, run_chezmoi
 
 SOURCE = Path("src/chezmoi/dot_dotfiles/hammerspoon")
-pytestmark = [
-    pytest.mark.hammerspoon,
-    pytest.mark.skipif(sys.platform != "darwin", reason="Hammerspoon requires macOS"),
-]
+pytestmark = pytest.mark.skipif(sys.platform != "darwin", reason="Hammerspoon requires macOS")
 
 
-def test_rendered_hammerspoon_config_loads(request):
-    if not request.config.getoption("--start-hammerspoon"):
-        pytest.skip("Use --start-hammerspoon to start the config load check")
+def test_rendered_hammerspoon_config_loads():
     executable = Path("/Applications/Hammerspoon.app/Contents/MacOS/Hammerspoon")
     assert executable.is_file(), f"Hammerspoon is missing: {executable}"
     existing = subprocess.run(
@@ -30,7 +25,9 @@ def test_rendered_hammerspoon_config_loads(request):
         timeout=5,
         check=False,
     )
-    assert existing.returncode == 1, "Stop the config load check: Hammerspoon is already running"
+    if existing.returncode == 0:
+        pytest.skip("Hammerspoon is already running")
+    assert existing.returncode == 1, f"Could not check Hammerspoon processes: {existing.stderr.decode()}"
 
     scratch = (Path.cwd() / ".scratch").resolve()
     scratch.mkdir(exist_ok=True)

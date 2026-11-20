@@ -10,11 +10,6 @@ description = "Check SBX policy and project environment"
 wait_for = ["python:test"]
 run = "uv run --frozen pytest -m 'not integration' tests/integration/test_sbx_command_policy.py tests/integration/test_sbx_command_retirement.py tests/integration/test_ai_workflow_permissions.py tests/integration/test_sbx_project_environment.py"
 
-[tasks."test:hammerspoon"]
-description = "Load Hammerspoon config in a new app process"
-skip_if = 'test "$(uname -s)" != Darwin'
-run = "uv run --frozen pytest tests/integration/test_hammerspoon_macros.py -m hammerspoon --start-hammerspoon"
-
 [tasks."check:skill-metadata"]
 description = "Check Codex skill display names"
 wait_for = ["test:workflow"]

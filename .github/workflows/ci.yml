@@ -288,14 +288,6 @@ jobs:
           mise exec -- uv run --frozen pytest tests/integration -ra --durations=20 \
             --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
 
-      - name: Check Hammerspoon config loading
-        if: runner.os == 'macOS'
-        timeout-minutes: 2
-        env:
-          HOME: ${{ env.CHEZMOI_DEST }}
-        run: |
-          mise run test:hammerspoon -- --junitxml="$RUNNER_TEMP/integration-reports/hammerspoon.xml"
-
       - name: Upload integration reports
         if: always()
         continue-on-error: true

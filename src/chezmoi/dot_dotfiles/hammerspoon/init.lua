@@ -1,6 +1,5 @@
 -- Hammerspoon configuration entry point
 -- Managed by chezmoi
--- Config load check: mise run test:hammerspoon (macOS; stop Hammerspoon first).
 
 -- Automatic configuration reloading
 -- Watches the config directory for .lua file changes and reloads automatically
