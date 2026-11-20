@@ -50,7 +50,7 @@ package_manager = "bun"
 # setting installation_method = "none" in their own BOM entry.
 
   [mise.global_tools.python]
-  version = "3.14.10"
+  version = "3.15.2"
 
   [mise.global_tools.java]
   version = "temurin-21.0.13+9.0.LTS"
