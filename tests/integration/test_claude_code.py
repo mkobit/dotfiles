@@ -9,7 +9,6 @@ from pathlib import Path
 import pytest
 from chezmoi_test_data import installation_method
 from integration_support.chezmoi import chezmoi_argv
-from integration_support.http import serve_directory
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPOSITORY_ROOT / "src/chezmoi"
@@ -185,32 +184,30 @@ def test_claude_apply_replaces_installer_launcher_and_preserves_old_binary(tmp_p
     catalog = {"bin": {"claude": _test_release()}}
     payload = f"#!/bin/sh\nprintf '{TEST_VERSION} (Claude Code)\\n'\n"
     payload = payload.encode()
-    downloads = tmp_path / "downloads"
-    downloads.mkdir()
-    (downloads / "claude").write_bytes(payload)
-    with serve_directory(downloads) as base_url:
-        release = catalog["bin"]["claude"]["direct_release"]
-        release["url_format"] = f"{base_url}/claude"
-        release["checksums"]["linux_amd64"] = hashlib.sha256(payload).hexdigest()
-        config = tmp_path / "chezmoi.json"
-        config.write_text(
-            json.dumps(
-                {
-                    "data": {
-                        **catalog,
-                        "claude_code": {"installation_method": "direct_release"},
-                        "chezmoi": {"os": "linux", "arch": "amd64"},
-                    }
+    asset = tmp_path / "claude"
+    asset.write_bytes(payload)
+    release = catalog["bin"]["claude"]["direct_release"]
+    release["url_format"] = asset.as_uri()
+    release["checksums"]["linux_amd64"] = hashlib.sha256(payload).hexdigest()
+    config = tmp_path / "chezmoi.json"
+    config.write_text(
+        json.dumps(
+            {
+                "data": {
+                    **catalog,
+                    "claude_code": {"installation_method": "direct_release"},
+                    "chezmoi": {"os": "linux", "arch": "amd64"},
                 }
-            )
+            }
         )
-        launcher = destination / ".local/bin/claude"
-        launcher.parent.mkdir(parents=True)
-        old_binary = destination / ".local/share/claude/versions/old"
-        old_binary.parent.mkdir(parents=True)
-        old_binary.write_text("previous installation\n")
-        launcher.symlink_to(old_binary)
-        result = _apply_claude(tmp_path, source, destination, config)
+    )
+    launcher = destination / ".local/bin/claude"
+    launcher.parent.mkdir(parents=True)
+    old_binary = destination / ".local/share/claude/versions/old"
+    old_binary.parent.mkdir(parents=True)
+    old_binary.write_text("previous installation\n")
+    launcher.symlink_to(old_binary)
+    result = _apply_claude(tmp_path, source, destination, config)
 
     assert result.returncode == 0, result.stderr
     binary = destination / f".local/lib/claude/{TEST_VERSION}/claude"

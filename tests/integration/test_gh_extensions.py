@@ -4,12 +4,14 @@ import os
 import shutil
 import subprocess
 import tomllib
-from http.server import SimpleHTTPRequestHandler
+from functools import partial
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from threading import Thread
 
 import pytest
+from chezmoi_test_data import installation_method
 from integration_support.chezmoi import chezmoi_argv
-from integration_support.http import serve_directory
 
 SOURCE = Path(__file__).resolve().parents[2] / "src/chezmoi"
 EXTERNAL = Path("dot_local/share/gh-managed/.chezmoiexternals/extensions.toml.tmpl")
@@ -29,7 +31,7 @@ def real_gh(record_testsuite_property):
 
 
 class ExtensionCase:
-    def __init__(self, root, executable):
+    def __init__(self, root):
         self.root = root
         self.source = root / "source"
         self.destination = root / "destination"
@@ -57,8 +59,6 @@ class ExtensionCase:
             assert Path(self.env[key]).resolve().is_relative_to(root.resolve())
             Path(self.env[key]).mkdir(parents=True, exist_ok=True)
         self.gh_binary = self.destination / ".local/bin/gh"
-        self.gh_binary.parent.mkdir(parents=True)
-        self.gh_binary.symlink_to(executable)
         for relative in (EXTERNAL, SCRIPT, DISPATCHER, Path(".chezmoitemplates/bin/github-releases-entry.tmpl")):
             target = self.source / relative
             target.parent.mkdir(parents=True, exist_ok=True)
@@ -120,8 +120,16 @@ class ExtensionCase:
 
 
 @pytest.fixture
-def case(tmp_path, real_gh):
-    return ExtensionCase(tmp_path, real_gh)
+def render_case(tmp_path):
+    return ExtensionCase(tmp_path)
+
+
+@pytest.fixture
+def case(render_case, real_gh):
+    # The registration script looks for gh in the destination.
+    render_case.gh_binary.parent.mkdir(parents=True)
+    render_case.gh_binary.symlink_to(real_gh)
+    return render_case
 
 
 @pytest.fixture
@@ -138,7 +146,10 @@ def local_releases(case):
         def log_message(self, *_args):
             pass
 
-    with serve_directory(downloads, Handler) as base_url:
+    with ThreadingHTTPServer(("127.0.0.1", 0), partial(Handler, directory=str(downloads))) as server:
+        thread = Thread(target=server.serve_forever, kwargs={"poll_interval": 0.01}, daemon=True)
+        thread.start()
+        base_url = f"http://127.0.0.1:{server.server_port}"
 
         def release(name, version):
             payload = f"#!/bin/sh\nprintf '%s\\n' '{name} {version}'\n".encode()
@@ -154,9 +165,13 @@ def local_releases(case):
             case.write_config()
             return payload
 
-        for name in NAMES:
-            release(name, "1.0.0")
-        yield release, requests
+        try:
+            for name in NAMES:
+                release(name, "1.0.0")
+            yield release, requests
+        finally:
+            server.shutdown()
+            thread.join()
 
 
 def _apply(case):
@@ -180,12 +195,12 @@ def _previous_registration(case, name, kind):
 
 
 @pytest.mark.parametrize("platform", ["linux_amd64", "linux_arm64", "darwin_amd64", "darwin_arm64"])
-def test_platform_catalogs_select_verified_release_assets(case, platform):
+def test_platform_catalogs_select_verified_release_assets(render_case, platform):
     os_name, arch = platform.split("_")
-    rendered = tomllib.loads(case.render(EXTERNAL, {"chezmoi": {"os": os_name, "arch": arch}}))
+    rendered = tomllib.loads(render_case.render(EXTERNAL, {"chezmoi": {"os": os_name, "arch": arch}}))
     assert set(rendered) == {f"{name}/{name}" for name in NAMES}
     for name in NAMES:
-        tool = case.catalog[name]
+        tool = render_case.catalog[name]
         assert rendered[f"{name}/{name}"] == {
             "type": "file",
             "executable": True,
@@ -194,28 +209,28 @@ def test_platform_catalogs_select_verified_release_assets(case, platform):
         }
 
 
-def test_init_choices_are_separate_from_generic_binaries(case):
-    shutil.copy2(SOURCE / ".chezmoi.toml.tmpl", case.source / ".chezmoi.toml.tmpl")
-    generated = case.root / "init.toml"
-    result = case.cm("init", "--config-path", str(generated), "--promptDefaults")
+def test_init_choices_are_separate_from_generic_binaries(render_case):
+    shutil.copy2(SOURCE / ".chezmoi.toml.tmpl", render_case.source / ".chezmoi.toml.tmpl")
+    generated = render_case.root / "init.toml"
+    result = render_case.cm("init", "--config-path", str(generated), "--promptDefaults")
     assert result.returncode == 0, result.stderr
     data = tomllib.loads(generated.read_text())["data"]
     for name in NAMES:
         assert data["gh"]["extensions"][name]["installation_method"] == "github_releases"
         assert name not in data["local"]["bin"]
-    assert tomllib.loads(case.render(DISPATCHER)) == {}
+    assert tomllib.loads(render_case.render(DISPATCHER)) == {}
 
 
-def test_unsupported_platform_disables_extension_choices(case):
+def test_unsupported_platform_disables_extension_choices(render_case):
     relative = Path(".chezmoi.toml.tmpl")
-    shutil.copy2(SOURCE / relative, case.source / relative)
-    result = case.cm(
+    shutil.copy2(SOURCE / relative, render_case.source / relative)
+    result = render_case.cm(
         "execute-template",
         "--init",
         "--override-data",
         json.dumps({"chezmoi": {"os": "freebsd", "arch": "amd64"}}),
         "--file",
-        str(case.source / relative),
+        str(render_case.source / relative),
     )
     assert result.returncode == 0, result.stderr
     data = tomllib.loads(result.stdout)["data"]
@@ -345,7 +360,7 @@ def test_disabling_management_preserves_installations_without_gh(case, local_rel
     [("absent", "old"), ("nonexecutable", "matching"), ("directory", "matching")],
     ids=["missing-gh-preserves-old-link", "nonexecutable-gh-skips-before-xdg-check", "directory-is-not-gh"],
 )
-def test_unavailable_gh_preserves_registration_and_retries(case, local_releases, real_gh, availability, registration):
+def test_unavailable_gh_preserves_registration_and_retries(case, local_releases, availability, registration):
     _, requests = local_releases
     name = "gh-actions-lock"
     if registration == "old":
@@ -357,10 +372,10 @@ def test_unavailable_gh_preserves_registration_and_retries(case, local_releases,
     state = case.destination / ".local/state/gh/extensions" / name / "state.yml"
     state.parent.mkdir(parents=True, exist_ok=True)
     state.write_text("keep update state\n")
-    case.gh_binary.unlink()
+    saved_gh = case.gh_binary.with_name("gh.saved")
+    case.gh_binary.rename(saved_gh)
     if availability == "nonexecutable":
-        shutil.copyfile(real_gh, case.gh_binary)
-        case.gh_binary.chmod(0o644)
+        case.gh_binary.write_text("#!/bin/sh\n")
         case.env["XDG_DATA_HOME"] = str(case.root / "inherited-data")
     elif availability == "directory":
         case.gh_binary.mkdir()
@@ -378,9 +393,9 @@ def test_unavailable_gh_preserves_registration_and_retries(case, local_releases,
     downloads = len(requests)
     if availability == "directory":
         case.gh_binary.rmdir()
-    elif availability == "nonexecutable":
-        case.gh_binary.unlink()
-    case.gh_binary.symlink_to(real_gh)
+    else:
+        case.gh_binary.unlink(missing_ok=True)
+    saved_gh.rename(case.gh_binary)
     case.env["XDG_DATA_HOME"] = str(case.destination / ".local/share")
     _apply(case)
     assert len(requests) == downloads
@@ -473,3 +488,19 @@ def test_inherited_state_is_untouched_during_registration(case, local_releases):
     _apply(case)
     assert state.read_text() == "inherited update state\n"
     assert case.registration("gh-stack").readlink() == case.directory("gh-stack")
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("name", NAMES)
+def test_enabled_extension_is_registered_after_apply(chezmoi_data, chezmoi_dest, name):
+    if installation_method(chezmoi_data, f"gh.extensions.{name}") != "github_releases":
+        pytest.skip(f"{name} is not managed by chezmoi")
+
+    data_dir = chezmoi_dest / ".local/share"
+    managed = data_dir / "gh-managed" / name
+    executable = managed / name
+    registration = data_dir / "gh/extensions" / name
+    assert executable.is_file(), f"Missing installed extension: {executable}"
+    assert os.access(executable, os.X_OK), f"Extension is not executable: {executable}"
+    assert registration.is_symlink(), f"Missing extension registration: {registration}"
+    assert registration.readlink() == managed
