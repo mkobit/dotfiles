@@ -9,6 +9,17 @@ http_retries = 5
 description = "Check SBX policy and project environment"
 run = "uv run --frozen pytest -m 'not integration' tests/integration/test_sbx_command_policy.py tests/integration/test_sbx_command_retirement.py tests/integration/test_ai_workflow_permissions.py tests/integration/test_sbx_project_environment.py"
 
+[tasks."check:skill-metadata"]
+description = "Check Codex skill display names"
+run = """
+set -euo pipefail
+scratch=$(mktemp -d "${TMPDIR:-/tmp}/skill-metadata.XXXXXXXX")
+trap 'rm -rf "$scratch"' EXIT
+chezmoi --source . --destination "$scratch/dest" --config "$scratch/config.toml" init --promptDefaults
+chezmoi --source . --destination "$scratch/dest" --config "$scratch/config.toml" data --format json | uv run --frozen --with 'PyYAML==6.0.3' python scripts/check_skill_metadata.py --source-root src/chezmoi --host codex --config -
+uv run --frozen --with 'PyYAML==6.0.3' pytest -p no:cacheprovider -m 'not integration' tests/integration/test_skill_metadata.py
+"""
+
 [tasks.verify]
 description = "Run project checks"
 run = [
@@ -18,5 +29,6 @@ run = [
     "uv run --frozen ty check",
     "uv run --frozen pytest src/python --cov --cov-report=term-missing",
     "mise run test:workflow",
+    "mise run check:skill-metadata",
     "uv build --all-packages",
 ]

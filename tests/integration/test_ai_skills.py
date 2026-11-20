@@ -116,6 +116,14 @@ def test_plugin_host_manifest_deployed_and_valid(chezmoi_dest, plugin_host):
 
 
 @pytest.mark.integration
+def test_codex_base_skill_display_name_and_id(chezmoi_dest):
+    """The deployed skill retains its ID and includes the Codex display name."""
+    skill = chezmoi_dest / PLUGIN_DIR / "skills/beads"
+    assert 'display_name: "Beads"' in (skill / "agents/openai.yaml").read_text()
+    assert "name: beads" in (skill / "SKILL.md").read_text()
+
+
+@pytest.mark.integration
 def test_antigravity_plugin_manifest_deployed_and_valid(chezmoi_dest):
     """Antigravity reads the plugin root manifest and its skills."""
     manifest = json.loads((chezmoi_dest / PLUGIN_DIR / "plugin.json").read_text(encoding="utf-8"))

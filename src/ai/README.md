@@ -201,6 +201,12 @@ Preview pending changes with `chezmoi diff`, then apply with `chezmoi apply`.
 Validate an overlay with its real assembly and `chezmoi init` in a temporary destination, with separate config, cache, and state paths.
 Then run a scoped `chezmoi apply --exclude scripts`, so that the bridge does not register temporary paths with the real host CLIs.
 
+Check authored Codex skill display names with `mise run check:skill-metadata`.
+The task renders base configuration in a temporary destination, selects enabled Codex skills, and checks their metadata.
+The check uses `PyYAML==6.0.3` through `uv --with`; this pinned extra is not governed by `uv.lock`.
+To check a different source and rendered configuration, pipe `chezmoi data --format json` to `uv run --frozen --with 'PyYAML==6.0.3' python scripts/check_skill_metadata.py --source-root <source> --host codex --config -`.
+Run the check once for each configuration that must be covered.
+
 Run the focused tests and linters:
 
 ```sh
