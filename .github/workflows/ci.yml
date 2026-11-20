@@ -89,7 +89,7 @@ jobs:
     needs: [lint]
     strategy:
       matrix:
-        os: [ubuntu-24.04, macos-15]
+        os: [ubuntu-24.04]
       fail-fast: false
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20
@@ -122,9 +122,10 @@ jobs:
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15]
       fail-fast: false
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.os == 'macos-15' && 50 || 30 }}
     steps:
       - uses: actions/checkout@v7.0.1
+        id: checkout
         with:
           persist-credentials: false
 
@@ -351,3 +352,20 @@ jobs:
           path: ${{ runner.temp }}/integration-reports/
           retention-days: 7
           if-no-files-found: ignore
+
+      # Reuse the macOS runner and report Python failures even if integration failed.
+      - name: Set up mise for macOS Python tests
+        id: macos-python-setup
+        if: ${{ !cancelled() && runner.os == 'macOS' && steps.checkout.outcome == 'success' }}
+        uses: $/.github/actions/setup-mise
+
+      - name: Test and build Python packages on macOS
+        if: ${{ !cancelled() && steps.macos-python-setup.outcome == 'success' }}
+        timeout-minutes: 20
+        env:
+          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/python-test-venv
+        run: |
+          uv sync --all-packages --frozen
+          uv run pytest src/python --cov --cov-report=term-missing
+          uv build --all-packages
+          uv cache prune --ci
