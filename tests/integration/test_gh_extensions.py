@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import shlex
 import shutil
 import subprocess
 import tomllib
@@ -492,15 +493,16 @@ def test_inherited_state_is_untouched_during_registration(case, local_releases):
 
 @pytest.mark.integration
 @pytest.mark.parametrize("name", NAMES)
-def test_enabled_extension_is_registered_after_apply(chezmoi_data, chezmoi_dest, name):
+def test_enabled_extension_shows_help_after_apply(host, chezmoi_data, chezmoi_dest, name):
     if installation_method(chezmoi_data, f"gh.extensions.{name}") != "github_releases":
         pytest.skip(f"{name} is not managed by chezmoi")
 
-    data_dir = chezmoi_dest / ".local/share"
-    managed = data_dir / "gh-managed" / name
-    executable = managed / name
-    registration = data_dir / "gh/extensions" / name
-    assert executable.is_file(), f"Missing installed extension: {executable}"
-    assert os.access(executable, os.X_OK), f"Extension is not executable: {executable}"
-    assert registration.is_symlink(), f"Missing extension registration: {registration}"
-    assert registration.readlink() == managed
+    gh = chezmoi_dest / ".local/bin/gh"
+    command = name.removeprefix("gh-")
+    result = host.run(
+        f"XDG_DATA_HOME={shlex.quote(str(chezmoi_dest / '.local/share'))} "
+        "GH_NO_UPDATE_NOTIFIER=1 GH_NO_EXTENSION_UPDATE_NOTIFIER=1 "
+        f"{shlex.join((str(gh), command, '--help'))}"
+    )
+    assert result.rc == 0, result.stderr
+    assert "Usage:" in result.stdout
