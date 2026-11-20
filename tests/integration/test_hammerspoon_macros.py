@@ -39,7 +39,7 @@ async def run_lua(script):
     hs = shutil.which("hs")
     if not hs:
         pytest.skip("Hammerspoon CLI is not available")
-    args = [hs, "-q", "-t", "5", "-c", script]
+    args = [hs, "-a", "-q", "-t", "5", "-c", script]
     process = await asyncio.create_subprocess_exec(
         *args, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
     )
