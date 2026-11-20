@@ -1,4 +1,0 @@
-{{- /* Manage Handy settings only on macOS, when configured and the settings file exists. */ -}}
-{{- if or (ne .chezmoi.os "darwin") (not (or (hasKey . "text_replacements") (hasKey . "handy"))) (not (stat (joinPath .chezmoi.destDir "Library" "Application Support" "com.pais.handy" "settings_store.json"))) }}
-settings_store.json
-{{- end }}
