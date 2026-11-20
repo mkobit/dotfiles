@@ -75,27 +75,28 @@ Keep real documents and shell commands out of the test.
 7. Check that opening the menu does not send text to another field.
 8. Check that tag edits in Ghostty and secure fields show a warning and leave text unchanged.
 
-[Automated tests](../tests/integration/test_hammerspoon_macros.py) exercise the macro module with controlled Accessibility, timer, event, and menu APIs.
-They prove the module's range, text, cursor, and failure decisions.
-They also check that a real Hammerspoon file watcher detects a nested Lua file change after garbage collection.
-They do not prove that Chrome, Cursor, or Ghostty implements those APIs as the test doubles do.
-Keep app checks separate from automated test results.
+## Automated config check
 
-## CI and test cost
+[The marked config test](../tests/integration/test_hammerspoon_macros.py) loads the rendered `init.lua` in a dedicated Hammerspoon process.
+It checks that the config, macro actions, and menu load without an error.
+Its fixture owns startup, process deadlines, logs, and cleanup.
+It does not test text insertion, cursor placement, or app behavior.
+Those checks remain manual.
 
-[The prior macOS run](https://github.com/mkobit/dotfiles/actions/runs/44795856355) failed in Hammerspoon startup after 133 seconds, before pytest ran.
-The exact startup failure could not be read from the public log download.
-A separate local probe confirmed that `hs` can wait for open standard input after it executes `-c`.
-Its `-t` option limits IPC messages, not the complete process.
-The test runner now closes standard input and kills and reaps a process that exceeds its deadline.
-CI starts the installed app directly with a minimal IPC configuration and a 40-second startup deadline.
-Each readiness probe has a three-second process limit.
-The startup log is included in the integration report artifact.
-The new startup path still needs a GitHub runner result.
-Three serial local macro runs passed all 18 tests before the laptop locked.
-After the lock, a combined run had three macro timeouts, and a separate run had two IPC timeouts.
-The locked session is not a verified test environment.
-These failures prevent a claim that the restored CI tests are reliable until the dedicated runner startup is checked.
+CI excludes the `hammerspoon` marker from the general integration run.
+The macOS job runs it separately with `--start-hammerspoon`.
+The option starts an app, so do not use it during desktop work.
+Without that option, the test skips and does not start Hammerspoon.
+
+`hs` uses IPC to a running Hammerspoon app; it cannot run Lua on its own.
+See [the IPC module](https://www.hammerspoon.org/docs/hs.ipc.html).
+[The prior macOS run](https://github.com/mkobit/dotfiles/actions/runs/44795856355) failed during startup, before pytest ran.
+The exact cause remains unconfirmed.
+A local probe confirmed that open standard input can hold `hs` open after `-c`.
+The fixture closes standard input and limits the full CLI process.
+The new config check still needs a GitHub runner result.
+
+## Test cost
 
 [The duration hook](../tests/integration/conftest.py) writes the 20 slowest integration tests to the GitHub job summary.
 It includes setup, call, and teardown time.

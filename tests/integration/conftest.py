@@ -18,8 +18,17 @@ from testinfra.host import Host
 from testinfra.modules.user import User
 
 
+def pytest_addoption(parser: pytest.Parser) -> None:
+    parser.addoption(
+        "--start-hammerspoon",
+        action="store_true",
+        help="Start a dedicated Hammerspoon process for the config load check (macOS CI).",
+    )
+
+
 def pytest_configure(config: pytest.Config) -> None:
     config.addinivalue_line("markers", "integration: mark test as a system integration test.")
+    config.addinivalue_line("markers", "hammerspoon: load the rendered config in Hammerspoon on macOS.")
     config.addinivalue_line(
         "markers",
         "chezmoi_installation(feature, methods): run only when feature installation_method is in methods.",
