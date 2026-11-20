@@ -44,7 +44,7 @@ jobs:
           handoff="$RUNNER_TEMP/binary-updates"
           mkdir -- "$handoff"
           if [[ "$TARGET_TOOL" == mise-* ]]; then
-            python3 .github/scripts/publish-bin-updates.py "$handoff" --generate-mise "$TARGET_TOOL"
+            uv run --frozen --package bin-updater python .github/scripts/publish-bin-updates.py "$handoff" --generate-mise "$TARGET_TOOL"
             exit 0
           fi
           if [[ "$TARGET_TOOL" == all ]]; then
@@ -67,7 +67,7 @@ jobs:
             fi
           done
           if [[ "$TARGET_TOOL" == all ]]; then
-            python3 .github/scripts/publish-bin-updates.py "$handoff" --generate-mise all
+            uv run --frozen --package bin-updater python .github/scripts/publish-bin-updates.py "$handoff" --generate-mise all
           fi
 
       - name: Upload catalog updates

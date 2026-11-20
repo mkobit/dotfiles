@@ -1,0 +1,15 @@
+[bin_updates]
+minimum_release_age = "7d"
+mise_minimum_release_age = "21d"
+
+[bin_updates.tools]
+agy = "5d"
+bkt = "60d"
+claude = "7d"
+codex = "5d"
+fzf = "21d"
+gh-actions-lock = "21d"
+gh-stack = "21d"
+mise = "21d"
+sbx = "5d"
+zellij = "14d"

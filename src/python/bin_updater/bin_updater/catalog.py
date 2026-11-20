@@ -6,6 +6,8 @@ from typing import Literal
 import tomlkit
 from pydantic import BaseModel, Field
 
+from bin_updater.policy import configured_age
+
 
 class NonGitHubReleaseError(ValueError):
     """Raised when a tool catalog does not use GitHub releases."""
@@ -55,7 +57,9 @@ def load_catalog(path: Path) -> ToolCatalog:
         raise ValueError(f"Invalid Claude manifest URL format in {path}")
     ext_data = gr.get("ext", {})
     ext = ext_data if isinstance(ext_data, Mapping) else {}
-    min_age = tool_data.get("minimum_release_age")
+    min_age = configured_age(path.parent.parent / "bin-updates.toml", name)
+    if min_age is None:
+        min_age = tool_data.get("minimum_release_age")
     if min_age is None:
         min_age = gr.get("minimum_release_age")
     return ToolCatalog(

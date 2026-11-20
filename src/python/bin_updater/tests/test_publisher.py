@@ -138,10 +138,19 @@ version = "3.14.10"
     def command(*args: str) -> str:
         if args[0] == "git":
             return source
-        assert args[:4] == ("mise", "latest", "--minimum-release-age", "21d")
-        if args[4] == "ollama@0":
+        assert args[:5] == ("mise", "ls-remote", "--json", "--minimum-release-age", "21d")
+        if args[5] == "ollama":
             raise subprocess.CalledProcessError(1, args)
-        return versions[args[4]] + "\n"
+        rows = [{"version": versions[args[5]], "created_at": "2025-01-02T00:00:00Z"}]
+        if args[5] == "python@3.14":
+            rows.extend(
+                [
+                    {"version": "3.14.99"},
+                    {"version": "3.14.98", "created_at": "2099-01-01T00:00:00Z"},
+                    {"version": "3.15.1", "created_at": "2025-01-02T00:00:00Z"},
+                ]
+            )
+        return json.dumps(rows)
 
     generate_mise_updates = PUBLISHER["generate_mise_updates"]
     monkeypatch.setitem(generate_mise_updates.__globals__, "command", command)
@@ -164,6 +173,7 @@ version = "3.14.10"
         report = json.loads((tmp_path / f"{tool}.json").read_text())[0]
         assert report["old_version"] == old
         assert report["new_version"] == new
+        assert f"| `{old}` | `{new}` | 2025-01-02 | `21d` |" in report["pr_body"]
 
 
 @pytest.mark.parametrize(
@@ -171,10 +181,16 @@ version = "3.14.10"
     [
         ("python", "3.14.10", "3.15.1"),
         ("python", "3.14.10", "4.0.0"),
-        ("ollama", "0.40.16", "1.0.0"),
+        ("ollama", "0.40.16", "1.0.0-rc.1"),
     ],
 )
 def test_publisher_rejects_mise_updates_outside_supported_series(tool: str, old: str, new: str) -> None:
     source = f'[mise.global_tools.{tool}]\nversion = "{old}"\n'
     with pytest.raises(ValueError, match="supported mise release series"):
         approved_catalog(source, source.replace(old, new), f"mise-{tool}")
+
+
+def test_publisher_accepts_ollama_major_update() -> None:
+    source = '[mise.global_tools.ollama]\nversion = "0.40.16"\n'
+    candidate = source.replace("0.40.16", "1.0.0")
+    assert approved_catalog(source, candidate, "mise-ollama") == (candidate, "0.40.16", "1.0.0")

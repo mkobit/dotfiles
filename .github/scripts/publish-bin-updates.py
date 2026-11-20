@@ -24,8 +24,8 @@ MISE_TOOLS = {
     ),
     "node": ("22", r"22\.[0-9]{1,9}\.[0-9]{1,9}", "https://nodejs.org/en/blog/release/v{version}"),
     "ollama": (
-        "0",
-        r"0\.[0-9]{1,9}\.[0-9]{1,9}",
+        None,
+        r"[0-9]{1,9}\.[0-9]{1,9}\.[0-9]{1,9}",
         "https://github.com/ollama/ollama/releases/tag/v{version}",
     ),
     "python": ("3.14", r"3\.14\.[0-9]{1,9}", "https://docs.python.org/release/{version}/whatsnew/changelog.html"),
@@ -288,6 +288,11 @@ def open_pr(repo, branch):
 
 
 def generate_mise_updates(artifact, target):
+    # Publication runs with the standard library only.
+    from bin_updater.cooldown import is_release_mature, parse_cooldown_to_seconds  # noqa: PLC0415
+    from bin_updater.policy import configured_age  # noqa: PLC0415
+    from bin_updater.pr_summary import update_table  # noqa: PLC0415
+
     source = command("git", "show", f"HEAD:{CATALOGS / 'mise.toml'}")
     tools = MISE_TOOLS if target == "all" else (target.removeprefix("mise-"),)
     for tool in tools:
@@ -295,11 +300,31 @@ def generate_mise_updates(artifact, target):
         try:
             selector, _, source_url = MISE_TOOLS[tool]
             document = tomllib.loads(source)
-            age = document["mise"]["updates"]["minimum_release_age"]
-            new = command("mise", "latest", "--minimum-release-age", age, f"{tool}@{selector}").strip()
-            old, replacements = with_mise_version(document, tool, new)
-            if mise_version_key(tool, new) <= mise_version_key(tool, old):
+            age = configured_age(CATALOGS.parent / "bin-updates.toml", name, mise=True)
+            if age is None:
+                raise ValueError("Mise update policy is missing")
+            cooldown = parse_cooldown_to_seconds(age)
+            age = f"{cooldown // 86400}d"
+            request = f"{tool}@{selector}" if selector is not None else tool
+            releases = json.loads(command("mise", "ls-remote", "--json", "--minimum-release-age", age, request))
+            old = document["mise"]["global_tools"][tool]["version"]
+            old_key = mise_version_key(tool, old)
+            candidates = []
+            for row in releases:
+                version = row["version"]
+                published_at = row.get("created_at")
+                if row.get("prerelease") is True or not isinstance(published_at, str):
+                    continue
+                try:
+                    key = mise_version_key(tool, version)
+                    if key > old_key and is_release_mature(published_at, cooldown):
+                        candidates.append((key, version, published_at))
+                except ValueError:
+                    continue
+            if not candidates:
                 continue
+            _, new, published_at = max(candidates)
+            _, replacements = with_mise_version(document, tool, new)
             updated = rebuild_catalog(source, document, replacements)
             title = f"Update {name} from {old} to {new}"
             report = [
@@ -309,7 +334,10 @@ def generate_mise_updates(artifact, target):
                     "old_version": old,
                     "new_version": new,
                     "pr_title": title,
-                    "pr_body": f"Update {tool} from {old} to {new}.\n\n[Upstream releases]({source_url.format(version=new)})\n",
+                    "pr_body": (
+                        update_table(old, new, published_at, cooldown)
+                        + f"\n\n[Upstream releases]({source_url.format(version=new)})\n"
+                    ),
                 }
             ]
             (artifact / f"{name}.toml").write_text(updated, encoding="utf-8")

@@ -1,6 +1,5 @@
 [bin.bkt]
 version = "0.8.2"
-minimum_release_age = "60d"
 
 [bin.bkt.github_releases]
 repo            = "dimo414/bkt"

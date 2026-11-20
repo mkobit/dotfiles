@@ -1,6 +1,5 @@
 [bin.gh-stack]
 version = "0.3.0"
-minimum_release_age = "21d"
 
 [bin.gh-stack.github_releases]
 repo            = "github/gh-stack"
