@@ -204,19 +204,20 @@ def test_api_failure_leaves_catalog_unchanged(tmp_path: Path) -> None:
     assert path.read_text() == TOML_TEMPLATE
 
 
-def test_oversized_notes_fail_before_catalog_write(tmp_path: Path) -> None:
+def test_oversized_notes_are_handed_off_in_full(tmp_path: Path) -> None:
     path = tmp_path / "app.toml"
     path.write_text(TOML_TEMPLATE)
     release = {
         "tag_name": "v2.0.0",
         "published_at": "2020-01-01T00:00:00Z",
-        "body": "x" * 65536,
+        "body": "x" * 65536 + "Final release note.",
         "assets": [{"name": "app-v2.0.0-linux-amd64.tar.gz", "browser_download_url": "https://example.com/bin"}],
     }
     result = run_updates([load_catalog(path)], FakeClient([release]))[0]
-    assert result.error is not None
-    assert "65,536" in result.error
-    assert path.read_text() == TOML_TEMPLATE
+    assert result.error is None
+    assert result.new_version == "2.0.0"
+    assert result.pr_body.endswith("x" * 65536 + "Final release note.\n")
+    assert 'version = "2.0.0"' in path.read_text()
 
 
 def test_prereleases_are_reported_but_not_selected(tmp_path: Path) -> None:
@@ -250,31 +251,27 @@ def _large_release(version: str, published_at: str = "2020-01-01T00:00:00Z") -> 
     }
 
 
-def test_large_note_ranges_update_in_complete_batches(tmp_path: Path) -> None:
+def test_large_note_ranges_keep_the_latest_mature_release(tmp_path: Path) -> None:
     path = tmp_path / "app.toml"
     path.write_text(TOML_TEMPLATE)
     client = FakeClient([_large_release("3.0.0"), _large_release("2.0.0")])
-    first = update_tool(load_catalog(path), client)
-    assert first.new_version == "2.0.0"
-    assert "2.0.0" + "x" * 33000 in first.pr_body
-    assert "3.0.0" + "x" * 33000 not in first.pr_body
-    second = update_tool(load_catalog(path), client)
-    assert second.new_version == "3.0.0"
-    assert "3.0.0" + "x" * 33000 in second.pr_body
-    assert "2.0.0" + "x" * 33000 not in second.pr_body
+    result = update_tool(load_catalog(path), client)
+    assert result.new_version == "3.0.0"
+    assert "2.0.0" + "x" * 33000 in result.pr_body
+    assert "3.0.0" + "x" * 33000 in result.pr_body
 
 
-def test_note_batch_fallback_keeps_release_age(tmp_path: Path) -> None:
+def test_large_notes_do_not_bypass_release_age(tmp_path: Path) -> None:
     path = tmp_path / "app.toml"
     path.write_text(TOML_TEMPLATE)
     client = FakeClient(
         [
-            _large_release("3.0.0"),
-            _large_release("2.0.0", (datetime.now(UTC) - timedelta(days=1)).isoformat()),
+            _large_release("3.0.0", (datetime.now(UTC) - timedelta(days=1)).isoformat()),
+            _large_release("2.0.0"),
             _large_release("1.5.0"),
         ]
     )
     result = update_tool(load_catalog(path), client)
-    assert result.new_version == "1.5.0"
+    assert result.new_version == "2.0.0"
     assert "1.5.0" + "x" * 33000 in result.pr_body
-    assert "2.0.0" + "x" * 33000 not in result.pr_body
+    assert "3.0.0" not in result.pr_body

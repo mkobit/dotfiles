@@ -9,11 +9,31 @@ import sys
 import tempfile
 import tomllib
 from pathlib import Path
+from urllib.parse import quote
 
 CATALOGS = Path("src/chezmoi/.chezmoidata/bin")
 TOOL = re.compile(r"[a-z0-9][a-z0-9_-]*")
 VERSION = re.compile(r"v?[0-9]{1,9}(?:\.[0-9]{1,9}){1,5}")
 CHECKSUM = re.compile(r"[0-9a-f]{64}")
+PR_BODY_LIMIT = 65536
+ARTIFACT_LIMITS = {".toml": 512_000, ".json": 8 * 1024 * 1024}
+AT_SIGN = re.compile(r"@|&(?:commat;|#(?:0*64(?![0-9])|[xX]0*40(?![0-9a-fA-F]));?)")
+NOTE_TOKEN = re.compile(
+    r"(?P<url>https?://[a-zA-Z0-9.\-]+(?::[0-9]+)?/[^\s<>\[\]()?#]*)"
+    rf"|{AT_SIGN.pattern}"
+)
+
+
+def mute_mentions(body):
+    def replace(match):
+        if match.group("url"):
+            # A malformed link can expose its path as text. Keep at signs inert there too.
+            return AT_SIGN.sub("%40", match[0])
+        return "@\u200b"
+
+    return NOTE_TOKEN.sub(replace, body)
+
+
 # Each selector matches the supported release series for this catalog pin.
 MISE_TOOLS = {
     "bun": ("1", r"1\.[0-9]{1,9}\.[0-9]{1,9}", "https://bun.com/blog/bun-v{version}"),
@@ -44,6 +64,14 @@ def catalog_fields(document, name):
     tool = document["bin"][name]
     source = "direct_release" if tool.get("updater", {}).get("source") == "claude" else "github_releases"
     return tool, source, tool[source]
+
+
+def upstream_notes(original, name, new):
+    if name.startswith("mise-") and (tool := name.removeprefix("mise-")) in MISE_TOOLS:
+        return MISE_TOOLS[tool][2].format(version=new)
+    fields, source, release = catalog_fields(tomllib.loads(original), name)
+    metadata = fields["updater"] if source == "direct_release" else release
+    return f"https://github.com/{quote(metadata['repo'], safe='/')}/releases"
 
 
 def mise_version_key(tool, version):
@@ -217,9 +245,16 @@ def publish(name, artifact, base, repo):
         or row.get("new_version") != new
         or row.get("pr_title") != title
         or not isinstance(body, str)
-        or not 0 < len(body) <= 65536
+        or not body
     ):
         raise ValueError("Update report does not match the catalog")
+    preview = mute_mentions(body)
+    if len(preview) > PR_BODY_LIMIT:
+        # Put the link before the notes so cut Markdown cannot hide it.
+        url = upstream_notes(original, name, new)
+        intro = f"Release notes preview. [Read the full upstream release notes]({url}).\n\n"
+        preview = intro + preview[: PR_BODY_LIMIT - len(intro)].rstrip()
+    body = preview
     branch = f"automation/bin-update-{name}"
     prior = open_pr(repo, branch)
     with tempfile.TemporaryDirectory() as temp:
@@ -347,11 +382,13 @@ def main():
         if (
             path.is_symlink()
             or not path.is_file()
-            or path.stat().st_size > 512_000
-            or path.suffix not in {".toml", ".json"}
+            or path.suffix not in ARTIFACT_LIMITS
             or not TOOL.fullmatch(path.stem)
         ):
             parser.error("Unexpected update artifact entry")
+        limit = ARTIFACT_LIMITS[path.suffix]
+        if path.stat().st_size > limit:
+            parser.error(f"Update artifact {path.name} exceeds the {limit:,}-byte transfer limit")
         pairs.setdefault(path.stem, set()).add(path.suffix)
     if any(suffixes != {".toml", ".json"} for suffixes in pairs.values()):
         parser.error("Incomplete update artifact")
