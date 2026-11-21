@@ -281,6 +281,7 @@ jobs:
         env:
           HOME: ${{ env.CHEZMOI_DEST }}
           GITHUB_TOKEN: ${{ github.token }}
+          INTEGRATION_SUMMARY_RUNNER: ${{ matrix.os }}
         run: |
           set -o pipefail
           report_dir="$RUNNER_TEMP/integration-reports"
