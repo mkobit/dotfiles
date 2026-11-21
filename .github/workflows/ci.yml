@@ -309,6 +309,14 @@ jobs:
           uv build --all-packages
           uv cache prune --ci
 
+      - name: Summarize slowest integration tests
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
+        env:
+          RUNNER_LABEL: ${{ matrix.os }}
+        run: |
+          python3 .github/scripts/summarize-integration-durations.py \
+            "$RUNNER_TEMP/integration-reports/pytest.xml" "$RUNNER_LABEL" >> "$GITHUB_STEP_SUMMARY"
+
       - name: Publish test results and durations
         if: ${{ !cancelled() }}
         uses: mikepenz/action-junit-report@v6.6.1
