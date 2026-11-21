@@ -198,10 +198,9 @@ installation_method = "mise"
 enabled = true
 {{- $personalGit := dig "git" "personal" (dict) . }}
 {{- $desktopSigningKey := ".ssh/desktop-commit-signing" }}
-{{- if hasKey $personalGit "ssh_signing_key" }}
-ssh_signing_key = {{ $personalGit.ssh_signing_key | quote }}
-{{- else if stat (joinPath .chezmoi.destDir (printf "%s.pub" $desktopSigningKey)) }}
-ssh_signing_key = {{ $desktopSigningKey | quote }}
+{{- $desktopSigningKeyStat := stat (joinPath .chezmoi.destDir $desktopSigningKey) }}
+{{- if or (hasKey $personalGit "ssh_signing_key") (and $desktopSigningKeyStat (eq $desktopSigningKeyStat.type "file")) }}
+ssh_signing_key = {{ dig "ssh_signing_key" $desktopSigningKey $personalGit | quote }}
 {{- end }}
 
 # Packages & Frameworks Installation Methods

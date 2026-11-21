@@ -13,11 +13,7 @@
 {{- end }}
 
 [commit]
-{{- if $sshSigningKey }}
-  gpgsign = true
-{{- else }}
-  gpgsign = false
-{{- end }}
+  gpgsign = {{ ne $sshSigningKey "" }}
 
 {{- if $sshSigningKey }}
 
