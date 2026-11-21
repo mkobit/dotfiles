@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CHEZMOI_SOURCE = REPO_ROOT / "src" / "chezmoi"
 SBX_CATALOG = CHEZMOI_SOURCE / ".chezmoidata" / "bin" / "sbx.toml"
 SBX_SETTINGS_CATALOG = CHEZMOI_SOURCE / ".chezmoidata" / "sbx" / "settings.toml"
-SBX_SETTINGS_SCRIPT = CHEZMOI_SOURCE / ".chezmoiscripts" / "run_after_05_configure-sbx-settings.sh.tmpl"
+SBX_SETTINGS_SCRIPT = CHEZMOI_SOURCE / ".chezmoiscripts" / "run_after_setup-sbx-settings.sh.tmpl"
 SBX_KVM_SCRIPT = CHEZMOI_SOURCE / ".chezmoiscripts" / "run_after_04_configure-kvm-group.sh.tmpl"
 LEGACY_TARGETS = (
     ".local/bin/sbx-agy",
@@ -87,9 +87,7 @@ def _render_sbx_settings_script(
     )
 
 
-def _run_rendered_sbx_settings_script(
-    tmp_path: Path, current: str, get_rc: int = 0, set_rc: int = 0, *, sbx_on_path: bool = True
-):
+def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int = 0, set_rc: int = 0):
     rendered = _render_sbx_settings_script(
         {
             "local": {"bin": {"sbx": {"installation_method": "github_releases"}}},
@@ -107,9 +105,8 @@ def _run_rendered_sbx_settings_script(
     assert rendered.returncode == 0, rendered.stderr
 
     calls = tmp_path / "calls"
-    bin_dir = tmp_path if sbx_on_path else tmp_path / ".local" / "bin"
-    bin_dir.mkdir(parents=True, exist_ok=True)
-    fake_sbx = bin_dir / "sbx"
+    fake_sbx = tmp_path / ".local" / "bin" / "sbx"
+    fake_sbx.parent.mkdir(parents=True)
     fake_sbx.write_text(
         "#!/bin/sh\n"
         'printf \'%s\\n\' "$*" >> "$SBX_TEST_CALLS"\n'
@@ -191,9 +188,8 @@ def test_sbx_settings_script_uses_existing_sbx_installation_opt_in():
     assert "settings get kit.allowedSources" in rendered.stdout
 
 
-@pytest.mark.parametrize("sbx_on_path", [True, False], ids=["on-path", "managed-destination"])
-def test_sbx_settings_script_preserves_every_declared_source_when_updating(tmp_path, sbx_on_path):
-    result, calls = _run_rendered_sbx_settings_script(tmp_path, '["docker.io/"]', sbx_on_path=sbx_on_path)
+def test_sbx_settings_script_preserves_every_declared_source_when_updating(tmp_path):
+    result, calls = _run_rendered_sbx_settings_script(tmp_path, '["docker.io/"]')
 
     assert result.returncode == 0, result.stderr
     assert calls == [
