@@ -288,16 +288,6 @@ jobs:
           mise exec -- uv run --frozen pytest tests/integration -ra --durations=20 \
             --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
 
-      - name: Upload integration reports
-        if: always()
-        continue-on-error: true
-        uses: actions/upload-artifact@v7.0.2
-        with:
-          name: integration-reports-${{ matrix.os }}-${{ runner.arch }}
-          path: ${{ runner.temp }}/integration-reports/
-          retention-days: 7
-          if-no-files-found: ignore
-
       # Reuse the runner and report Python failures even if integration failed.
       # The CI setup action adds mise shims to PATH so the Python steps can call uv directly.
       - name: Set up mise for Python tests
@@ -312,6 +302,30 @@ jobs:
           UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/python-test-venv
         run: |
           uv sync --all-packages --frozen
-          uv run pytest src/python --cov --cov-report=term-missing
+          report_dir="$RUNNER_TEMP/integration-reports"
+          mkdir -p "$report_dir"
+          uv run --frozen pytest src/python --cov --cov-report=term-missing \
+            --junitxml="$report_dir/python.xml"
           uv build --all-packages
           uv cache prune --ci
+
+      - name: Publish test results and durations
+        if: ${{ !cancelled() }}
+        uses: mikepenz/action-junit-report@v6.6.1
+        with:
+          report_paths: ${{ runner.temp }}/integration-reports/*.xml
+          skip_annotations: true
+          detailed_summary: true
+          failed_summary_logs: true
+          include_passed: true
+          include_time_in_summary: true
+
+      - name: Upload integration reports
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v7.0.2
+        with:
+          name: integration-reports-${{ matrix.os }}-${{ runner.arch }}
+          path: ${{ runner.temp }}/integration-reports/
+          retention-days: 7
+          if-no-files-found: ignore
