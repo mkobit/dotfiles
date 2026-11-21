@@ -1,6 +1,8 @@
 {{- $personal := dig "git" "personal" (dict) . }}
 {{- if dig "enabled" false $personal }}
-{{- $sshSigningKey := dig "ssh_signing_key" "" $personal }}
+{{- /* An empty signing key disables commit signing. SSH paths are relative to the Chezmoi destination. */}}
+{{- $signingKey := dig "signing_key" "" $personal }}
+{{- $signingFormat := dig "signing_format" "openpgp" $personal }}
 {{- if not (and $personal.name $personal.email) }}
 {{- fail "git.personal.enabled is true but name or email is empty" }}
 {{- end }}
@@ -8,16 +10,30 @@
 [user]
   name = {{ $personal.name | quote }}
   email = {{ $personal.email | quote }}
-{{- if $sshSigningKey }}
-  signingkey = {{ joinPath .chezmoi.destDir $sshSigningKey | quote }}
+{{- if $signingKey }}
+{{- if eq $signingFormat "ssh" }}
+{{- $sshSigningPath := joinPath .chezmoi.destDir $signingKey }}
+{{- $sshSigningFile := stat $sshSigningPath }}
+{{- if not (and $sshSigningFile (eq $sshSigningFile.type "file")) }}
+{{- /* Create the configured signing key in a trusted terminal, then apply again. */}}
+{{- $shellPath := replace "'" "'\"'\"'" $sshSigningPath }}
+{{- $shellComment := replace "'" "'\"'\"'" (printf "%s Git signing key" $personal.email) }}
+{{- fail (printf "SSH signing key is missing or is not a regular file at %s. Generate it with: ssh-keygen -t ed25519 -N '' -C '%s' -f '%s'" $sshSigningPath $shellComment $shellPath) }}
+{{- end }}
+  signingkey = {{ $sshSigningPath | quote }}
+{{- else }}
+  signingkey = {{ $signingKey | quote }}
+{{- end }}
 {{- end }}
 
 [commit]
-  gpgsign = {{ ne $sshSigningKey "" }}
-
-{{- if $sshSigningKey }}
+  gpgsign = {{ ne $signingKey "" }}
+{{- if $signingKey }}
 
 [gpg]
-  format = ssh
+  format = {{ $signingFormat | quote }}
+{{- if eq $signingFormat "openpgp" }}
+  program = gpg
+{{- end }}
 {{- end }}
 {{- end }}

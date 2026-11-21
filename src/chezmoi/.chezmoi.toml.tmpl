@@ -196,11 +196,10 @@ installation_method = "mise"
 # repo — including fresh `git init` with no remote — picks up identity.
 [data.git.personal]
 enabled = true
-{{- $personalGit := dig "git" "personal" (dict) . }}
-{{- $desktopSigningKey := ".ssh/desktop-commit-signing" }}
-{{- $desktopSigningKeyStat := stat (joinPath .chezmoi.destDir $desktopSigningKey) }}
-{{- if or (hasKey $personalGit "ssh_signing_key") (and $desktopSigningKeyStat (eq $desktopSigningKeyStat.type "file")) }}
-ssh_signing_key = {{ dig "ssh_signing_key" $desktopSigningKey $personalGit | quote }}
+{{- /* Set the personal desktop defaults here. Overlays can set either signing format and key in their init config. */}}
+{{- if ne (env "GITHUB_ACTIONS") "true" }}
+signing_format = "ssh"
+signing_key = ".ssh/desktop-commit-signing"
 {{- end }}
 
 # Packages & Frameworks Installation Methods
