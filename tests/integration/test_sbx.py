@@ -105,8 +105,7 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
     assert rendered.returncode == 0, rendered.stderr
 
     calls = tmp_path / "calls"
-    fake_sbx = tmp_path / ".local" / "bin" / "sbx"
-    fake_sbx.parent.mkdir(parents=True)
+    fake_sbx = tmp_path / "sbx"
     fake_sbx.write_text(
         "#!/bin/sh\n"
         'printf \'%s\\n\' "$*" >> "$SBX_TEST_CALLS"\n'
@@ -124,7 +123,7 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
     env = os.environ.copy()
     env.update(
         {
-            "PATH": str(tmp_path),
+            "PATH": f"{tmp_path}:{env['PATH']}",
             "SBX_TEST_CALLS": str(calls),
             "SBX_TEST_CURRENT": current,
             "SBX_TEST_GET_RC": str(get_rc),
@@ -132,7 +131,7 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
         }
     )
     result = subprocess.run(
-        ["/bin/bash"],
+        ["bash"],
         input=rendered.stdout,
         capture_output=True,
         check=False,
@@ -514,3 +513,13 @@ def test_sbx_installed_cli_version(host, chezmoi_data):
     assert version is not None, result.stdout
     if chezmoi_data["local"]["bin"]["sbx"]["installation_method"] == "github_releases":
         assert version[1] == chezmoi_data["bin"]["sbx"]["version"]
+
+
+@pytest.mark.integration
+@pytest.mark.chezmoi_installation("local.bin.sbx", methods={"github_releases", "homebrew"})
+def test_sbx_installed_kit_allowed_sources(host, chezmoi_data):
+    """Check that SBX uses the kit sources declared in chezmoi data."""
+    expected_sources = chezmoi_data["sbx"]["settings"]["kit_allowed_sources"]
+    result = host.run("sbx settings get kit.allowedSources")
+    assert result.rc == 0, f"Unable to read SBX kit.allowedSources: {result.stderr}"
+    assert json.loads(result.stdout) == [expected_sources[key] for key in sorted(expected_sources)]
