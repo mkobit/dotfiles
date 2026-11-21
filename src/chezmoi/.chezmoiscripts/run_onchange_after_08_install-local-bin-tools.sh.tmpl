@@ -17,7 +17,7 @@ fi
 {{ range $name, $tool := (default dict (get . "local_bin_tools")) -}}
 {{- $method := dig "installation_method" "none" $tool -}}
 {{- $sourceDir := dig "source_dir" "" $tool -}}
-{{- if eq $method "dotfiles.uv" }}
+{{- if and (eq $method "dotfiles.uv") $sourceDir }}
 UV_TOOL_BIN_DIR="{{ $.chezmoi.destDir }}/.local/bin/dotfiles" \
   "$MISE" exec --cd "{{ $root }}" -- uv tool install --force --python-preference system --python 3.14 \
     --editable "{{ $root }}/{{ $sourceDir }}"
