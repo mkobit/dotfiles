@@ -278,33 +278,16 @@ jobs:
           mise exec -- uv sync --all-packages --frozen
 
       - name: Run system integration tests
-        id: integration-tests
         env:
           HOME: ${{ env.CHEZMOI_DEST }}
           GITHUB_TOKEN: ${{ github.token }}
+          INTEGRATION_SUMMARY_RUNNER: ${{ matrix.os }}
         run: |
           set -o pipefail
           report_dir="$RUNNER_TEMP/integration-reports"
           mkdir -p "$report_dir"
-          mise exec -- uv run --frozen pytest tests/integration -ra --color=no --durations=20 \
+          mise exec -- uv run --frozen pytest tests/integration -ra --durations=20 \
             --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
-
-      - name: Summarize slowest integration tests
-        if: ${{ !cancelled() && (steps.integration-tests.outcome == 'success' || steps.integration-tests.outcome == 'failure') }}
-        env:
-          RUNNER_LABEL: ${{ matrix.os }}
-        run: |
-          log="$RUNNER_TEMP/integration-reports/pytest.log"
-          if [[ -f "$log" ]]; then
-            awk -v runner="$RUNNER_LABEL" '
-              /^=+ slowest .*durations =+$/ { durations = 1; next }
-              /^=+/ { durations = 0 }
-              durations && /^[0-9]+[.][0-9]+s[[:space:]]+(setup|call|teardown)[[:space:]]/ {
-                if (!printed++) printf "### Slowest integration test phases (%s)\n\n", runner
-                print "    " $0
-              }
-            ' "$log" >> "$GITHUB_STEP_SUMMARY"
-          fi
 
       # Reuse the runner and report Python failures even if integration failed.
       # The CI setup action adds mise shims to PATH so the Python steps can call uv directly.

@@ -5,6 +5,8 @@ import shlex
 import subprocess
 from collections.abc import Callable, Iterable, Sequence
 from functools import cache
+from heapq import nlargest
+from html import escape
 from pathlib import Path
 from typing import TypedDict, cast
 
@@ -21,6 +23,31 @@ def pytest_configure(config: pytest.Config) -> None:
         "markers",
         "chezmoi_installation(feature, methods): run only when feature installation_method is in methods.",
     )
+
+
+def pytest_terminal_summary(terminalreporter: pytest.TerminalReporter) -> None:
+    summary = os.environ.get("GITHUB_STEP_SUMMARY")
+    runner = os.environ.get("INTEGRATION_SUMMARY_RUNNER")
+    limit = terminalreporter.config.getoption("durations")
+    if summary is None or runner is None or not limit:
+        return
+
+    reports = (
+        report
+        for group in terminalreporter.stats.values()
+        for report in group
+        if isinstance(report, pytest.TestReport) and not report.skipped
+    )
+    slowest = nlargest(limit, reports, key=lambda report: report.duration)
+    if not slowest:
+        return
+
+    with Path(summary).open("a", encoding="utf-8") as output:
+        output.write(f"\n### Slowest integration test phases ({runner})\n\n")
+        output.write("| Test | Phase | Duration (s) |\n| --- | --- | ---: |\n")
+        for report in slowest:
+            test = escape(" ".join(report.nodeid.splitlines())).replace("|", "&#124;")
+            output.write(f"| <code>{test}</code> | {report.when} | {report.duration:.3f} |\n")
 
 
 @pytest.fixture(autouse=True)
