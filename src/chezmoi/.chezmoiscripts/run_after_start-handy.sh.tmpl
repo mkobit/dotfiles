@@ -1,0 +1,14 @@
+{{- $handy := get . "handy" | default dict -}}
+{{- $path := joinPath .chezmoi.destDir "Library" "Application Support" "com.pais.handy" "settings_store.json" -}}
+{{- if and (eq .chezmoi.os "darwin") (get $handy "enabled") (dig "lifecycle" "restart_after_update" true $handy) (stat $path) -}}
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+status=0
+/usr/bin/pgrep -x handy >/dev/null || status=$?
+case "$status" in
+  0) ;;
+  1) /usr/bin/open -b com.pais.handy ;;
+  *) printf 'Cannot check whether Handy is running\n' >&2; exit "$status" ;;
+esac
+{{- end }}

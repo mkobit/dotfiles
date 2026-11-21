@@ -1,0 +1,34 @@
+{{- $handy := get . "handy" | default dict -}}
+{{- $path := joinPath .chezmoi.destDir "Library" "Application Support" "com.pais.handy" "settings_store.json" -}}
+{{- if and (eq .chezmoi.os "darwin") (get $handy "enabled") (dig "lifecycle" "stop_before_update" true $handy) (stat $path) -}}
+{{- $store := include $path | fromJson -}}
+{{- $merged := includeTemplate "handy/settings" (dict "data" . "store" $store) | fromJson -}}
+{{- if ne ($store | toJson) ($merged | toJson) -}}
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+handy_running() {
+  local status=0
+  /usr/bin/pgrep -x handy >/dev/null || status=$?
+  case "$status" in
+    0) return 0 ;;
+    1) return 1 ;;
+    *) printf 'Cannot check whether Handy is running\n' >&2; exit "$status" ;;
+  esac
+}
+
+if handy_running; then
+  /usr/bin/osascript -e 'tell application id "com.pais.handy" to quit'
+  for ((attempt = 0; attempt < 50; attempt++)); do
+    if ! handy_running; then
+      break
+    fi
+    sleep 0.1
+  done
+  if handy_running; then
+    printf 'Handy did not stop; settings were not changed\n' >&2
+    exit 1
+  fi
+fi
+{{- end -}}
+{{- end }}

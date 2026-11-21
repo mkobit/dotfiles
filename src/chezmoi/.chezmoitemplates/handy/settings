@@ -1,0 +1,47 @@
+{{- $data := .data -}}
+{{- $store := deepCopy .store -}}
+{{- $settings := get $store "settings" | default dict -}}
+{{- $handy := get $data "handy" | default dict -}}
+{{- $desired := get $handy "settings" | default dict -}}
+{{- $settings = mergeOverwrite $settings (omit $desired "post_process_api_keys" "post_process_providers" "post_process_prompts") -}}
+{{- range $key := list "post_process_providers" "post_process_prompts" -}}
+{{- if hasKey $desired $key -}}
+{{- $changes := get $desired $key -}}
+{{- $merged := list -}}
+{{- $seen := dict -}}
+{{- range $entry := get $settings $key | default list -}}
+{{- $entry = deepCopy $entry -}}
+{{- range $change := $changes -}}
+{{- if eq (get $entry "id") (get $change "id") -}}
+{{- $entry = mergeOverwrite $entry $change -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $seen (get $entry "id") true -}}
+{{- $merged = append $merged $entry -}}
+{{- end -}}
+{{- range $change := $changes -}}
+{{- if not (hasKey $seen (get $change "id")) -}}
+{{- $merged = append $merged $change -}}
+{{- $_ := set $seen (get $change "id") true -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $settings $key $merged -}}
+{{- end -}}
+{{- end -}}
+{{- $rules := mergeOverwrite (dict) (get $handy "custom_words" | default dict) (get $data "text_replacements" | default dict) -}}
+{{- $words := list -}}
+{{- range $rules -}}
+{{- if not (kindIs "bool" .) -}}
+{{- $words = append $words . -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $settings "custom_words" ($words | uniq | sortAlpha) -}}
+{{- $keys := get $settings "post_process_api_keys" | default dict -}}
+{{- range $provider, $variable := get $handy "api_key_env" | default dict -}}
+{{- with env $variable -}}
+{{- $_ := set $keys $provider . -}}
+{{- $_ := set $settings "post_process_api_keys" $keys -}}
+{{- end -}}
+{{- end -}}
+{{- $_ := set $store "settings" $settings -}}
+{{- $store | toJson -}}
