@@ -10,21 +10,18 @@
   email = {{ $personal.email | quote }}
 {{- if $sshSigningKey }}
   signingkey = {{ joinPath .chezmoi.destDir $sshSigningKey | quote }}
-{{- else if $personal.signing_key }}
-  signingkey = {{ $personal.signing_key }}
 {{- end }}
 
 [commit]
-{{- if or $sshSigningKey $personal.signing_key }}
+{{- if $sshSigningKey }}
   gpgsign = true
 {{- else }}
   gpgsign = false
 {{- end }}
 
-[gpg]
 {{- if $sshSigningKey }}
+
+[gpg]
   format = ssh
-{{- else }}
-  program = gpg
 {{- end }}
 {{- end }}

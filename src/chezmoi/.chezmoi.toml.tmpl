@@ -187,7 +187,7 @@ installation_method = "mise"
 installation_method = "mise"
 
 # Git personal identity directive — turn on personal identity on this machine.
-# Identity values (name/email/signing_key) live in .chezmoidata/git.toml as
+# Identity values (name/email) live in .chezmoidata/git.toml as
 # data. Overlays restrict where personal applies by defining
 # `[data.git.personal.scopes]` as a label -> gitdir-pattern map (e.g.
 # `personal = "~/personal/"`); when any scope is present the renderer emits
@@ -196,6 +196,13 @@ installation_method = "mise"
 # repo — including fresh `git init` with no remote — picks up identity.
 [data.git.personal]
 enabled = true
+{{- $personalGit := dig "git" "personal" (dict) . }}
+{{- $desktopSigningKey := ".ssh/desktop-commit-signing" }}
+{{- if hasKey $personalGit "ssh_signing_key" }}
+ssh_signing_key = {{ $personalGit.ssh_signing_key | quote }}
+{{- else if stat (joinPath .chezmoi.destDir (printf "%s.pub" $desktopSigningKey)) }}
+ssh_signing_key = {{ $desktopSigningKey | quote }}
+{{- end }}
 
 # Packages & Frameworks Installation Methods
 [data.packages.ghostty]
