@@ -521,5 +521,11 @@ def test_sbx_installed_kit_allowed_sources(host, chezmoi_data):
     """Check that SBX uses the kit sources declared in chezmoi data."""
     expected_sources = chezmoi_data["sbx"]["settings"]["kit_allowed_sources"]
     result = host.run("sbx settings get kit.allowedSources")
+    if (
+        os.environ.get("GITHUB_ACTIONS") == "true"
+        and result.rc != 0
+        and "503 Service Unavailable: administrator settings are unavailable" in result.stderr
+    ):
+        pytest.skip("The CI runner cannot read SBX administrator settings.")
     assert result.rc == 0, f"Unable to read SBX kit.allowedSources: {result.stderr}"
     assert json.loads(result.stdout) == [expected_sources[key] for key in sorted(expected_sources)]
