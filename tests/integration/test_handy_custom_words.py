@@ -1,5 +1,4 @@
 import json
-import shutil
 import subprocess
 from pathlib import Path
 
@@ -25,7 +24,10 @@ def fixture(tmp_path, data, *, running=True, process_error=False, quit_fails=Fal
         assert original.is_file(), f"The Handy source is missing: {original}"
         target = source / relative
         target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copyfile(original, target)
+        # Exercise the macOS templates on every CI runner.
+        target.write_text(
+            original.read_text().replace('eq .chezmoi.os "darwin"', "true").replace('ne .chezmoi.os "darwin"', "false")
+        )
     settings = destination / HANDY / "settings_store.json"
     settings.parent.mkdir(parents=True)
     settings.write_text(json.dumps({"settings": {"custom_words": ["existing"], "paste_method": "direct"}}))
@@ -174,7 +176,7 @@ def test_handy_stop_errors_prevent_writes(tmp_path, process_error, quit_fails):
     [
         ({"stop_before_update": False}, True, 0, 0),
         ({"restart_after_update": False}, True, 1, 0),
-        ({}, False, 0, 0),
+        ({}, False, 0, 1),
     ],
 )
 def test_handy_lifecycle_options(tmp_path, lifecycle, running, quit, start):
@@ -187,8 +189,7 @@ def test_handy_lifecycle_options(tmp_path, lifecycle, running, quit, start):
     status = json.loads(state.read_text())
     assert status["quit"] == quit
     assert status["start"] == start
-    assert not (destination / ".cache/chezmoi/handy/ready").exists()
-    assert not (destination / ".cache/chezmoi/handy/restart").exists()
+    assert not (destination / ".cache/chezmoi/handy").exists()
 
 
 def test_handy_changed_scoped_apply_requires_stop(tmp_path):
@@ -238,15 +239,14 @@ def test_handy_lifecycle_scripts_do_not_contain_api_keys(tmp_path, monkeypatch):
         assert "secret-value" not in rendered
 
 
-def test_handy_stale_ready_marker_does_not_allow_running_scoped_write(tmp_path):
-    command, settings, _, destination = fixture(tmp_path, {"handy": {"enabled": True}})
-    ready = destination / ".cache/chezmoi/handy/ready"
-    ready.parent.mkdir(parents=True)
-    ready.write_text("old apply")
+def test_handy_starts_when_settings_are_already_current(tmp_path):
+    command, settings, state, _ = fixture(tmp_path, {"handy": {"enabled": True}}, running=False)
+    settings.write_text(json.dumps({"settings": {"custom_words": [], "paste_method": "direct"}}))
     original = settings.read_bytes()
-    result = apply(command, settings)
-    assert result.returncode != 0
+    result = apply(command)
+    assert result.returncode == 0, result.stderr
     assert settings.read_bytes() == original
+    assert json.loads(state.read_text()) == {"running": True, "quit": 0, "start": 1}
 
 
 def test_handy_scoped_apply_is_safe_when_app_is_stopped(tmp_path):
