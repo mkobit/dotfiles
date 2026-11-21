@@ -3,7 +3,7 @@
 ## Creating a new tool
 
 A new tool needs three registrations, or it won't build or deploy.
-Copy an existing package (e.g. `sandboxr/`) as a template for the shape.
+Copy an existing package (e.g. `termstatus/`) as a template for the shape.
 
 1. `src/python/<name>/` package with `main.py` and a `pyproject.toml` declaring `[project.scripts]`.
 2. Added to `members` under `[tool.uv.workspace]` in the root `pyproject.toml`.
