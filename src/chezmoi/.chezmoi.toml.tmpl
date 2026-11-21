@@ -197,7 +197,7 @@ installation_method = "mise"
 [data.git.personal]
 enabled = true
 {{- /* Set the personal desktop defaults here. Overlays can set either signing format and key in their init config. */}}
-{{- if ne (env "GITHUB_ACTIONS") "true" }}
+{{- if not (or (env "CI") (eq (env "GITHUB_ACTIONS") "true")) }}
 signing_format = "ssh"
 signing_key = ".ssh/desktop-commit-signing"
 {{- end }}

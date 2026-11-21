@@ -11,6 +11,9 @@
   name = {{ $personal.name | quote }}
   email = {{ $personal.email | quote }}
 {{- if $signingKey }}
+{{- if not (has $signingFormat (list "ssh" "openpgp")) }}
+{{- fail "git.personal.signing_format must be ssh or openpgp" }}
+{{- end }}
 {{- if eq $signingFormat "ssh" }}
 {{- $sshSigningPath := joinPath .chezmoi.destDir $signingKey }}
 {{- $sshSigningFile := stat $sshSigningPath }}
