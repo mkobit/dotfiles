@@ -15,6 +15,7 @@ workflows:
         - 'actions/checkout@v7.0.1'
         - 'actions/upload-artifact@v7.0.2'
         - 'jdx/mise-action@8008c3f4db491fde6fd6d72dc97fbdb752dac949'
+        - 'mikepenz/action-junit-report@v6.6.1'
     '.github/workflows/verify-lockfile.yml':
         - 'actions/checkout@v7.0.1'
 dependencies:
@@ -43,3 +44,8 @@ dependencies:
         commit: 'sha1-8008c3f4db491fde6fd6d72dc97fbdb752dac949'
         owner_id: 216188
         repo_id: 738284564
+    'mikepenz/action-junit-report@v6.6.1':
+        ref: 'v6.6.1'
+        commit: 'sha1-6ef3fdcfcd5f0b5d14df3e659ef19b8c6820f93d'
+        owner_id: 1476232
+        repo_id: 330384746
