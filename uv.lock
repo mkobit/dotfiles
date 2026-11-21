@@ -7,7 +7,6 @@ members = [
     "bin-updater",
     "browser-sync",
     "dotfiles",
-    "sandboxr",
     "skill-filter",
     "termbud",
     "termstatus",
@@ -187,7 +186,6 @@ version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "browser-sync" },
-    { name = "sandboxr" },
     { name = "skill-filter" },
     { name = "termbud" },
     { name = "termstatus" },
@@ -207,7 +205,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "browser-sync", editable = "src/python/browser_sync" },
-    { name = "sandboxr", editable = "src/python/sandboxr" },
     { name = "skill-filter", editable = "src/python/skill_filter" },
     { name = "termbud", editable = "src/python/termbud" },
     { name = "termstatus", editable = "src/python/termstatus" },
@@ -760,14 +757,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/b9/ab/d8e407669ffe5014429baf780c2df47e001968a6e4c17f615e2e7b13a9ba/ruff-0.17.4-py3-none-win32.whl", hash = "sha256:3971a78cba76298b284c8321e6d40d93045ed348bec5c369d85099efc97fb7cf", size = 9931993, upload-time = "2026-11-05T18:52:11.169Z" },
     { url = "https://files.pythonhosted.org/packages/bd/15/42af8a72d8946e3c9efd2bbf6641e462b6832783b0d043d63ef5b280ba7f/ruff-0.17.4-py3-none-win_amd64.whl", hash = "sha256:67c5a894fc054cf41f75f7afa24815de5a74329d97634126c2a1015740ff4e8c", size = 10292922, upload-time = "2026-11-05T18:52:13.436Z" },
     { url = "https://files.pythonhosted.org/packages/68/9e/f1dbffcfb8ff25dadbc21f87a8b73c3848abe4abada9d4b08ccef8bec40c/ruff-0.17.4-py3-none-win_arm64.whl", hash = "sha256:181ae38a9a8fb94925bf7d0794327b48d7fd7f4b50cfd84c0e999cc09ef8d131", size = 9889396, upload-time = "2026-11-05T18:52:15.549Z" },
-]
-
-[[package]]
-name = "sandboxr"
-version = "0.0.0"
-source = { editable = "src/python/sandboxr" }
-dependencies = [
-    { name = "typer" },
 ]
 
 [package.metadata]
