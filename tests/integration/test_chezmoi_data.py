@@ -104,6 +104,11 @@ def test_chezmoi_data_contains_agy_installation_method(chezmoi_data):
     assert installation_method(chezmoi_data, "local.bin.agy") in AGY_INSTALLATION_METHODS
 
 
+def test_installation_method_defaults_missing_openshell_to_none():
+    assert installation_method({}, "local.bin.openshell") == "none"
+    assert installation_method({"local": {"bin": {}}}, "local.bin.openshell") == "none"
+
+
 @pytest.mark.integration
 @pytest.mark.parametrize("feature,methods", MARKER_GATED_INSTALLATION_METHODS.items())
 def test_marker_gated_installation_method_contract(chezmoi_data, feature, methods):

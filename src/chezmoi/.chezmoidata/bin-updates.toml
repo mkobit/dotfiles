@@ -11,6 +11,7 @@ fzf = "21d"
 gh-actions-lock = "21d"
 gh-stack = "21d"
 mise = "21d"
+openshell = "10d"
 sbx = "5d"
 zellij = "14d"
 
