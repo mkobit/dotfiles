@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CHEZMOI_SOURCE = REPO_ROOT / "src" / "chezmoi"
 SBX_CATALOG = CHEZMOI_SOURCE / ".chezmoidata" / "bin" / "sbx.toml"
 SBX_SETTINGS_CATALOG = CHEZMOI_SOURCE / ".chezmoidata" / "sbx" / "settings.toml"
-SBX_SETTINGS_SCRIPT = CHEZMOI_SOURCE / ".chezmoiscripts" / "run_after_05_configure-sbx-settings.sh.tmpl"
+SBX_SETTINGS_SCRIPT = CHEZMOI_SOURCE / ".chezmoiscripts" / "run_after_setup-sbx-settings.sh.tmpl"
 SBX_KVM_SCRIPT = CHEZMOI_SOURCE / ".chezmoiscripts" / "run_after_04_configure-kvm-group.sh.tmpl"
 LEGACY_TARGETS = (
     ".local/bin/sbx-agy",
@@ -62,7 +62,9 @@ def test_sbx_does_not_manage_legacy_host_integration_targets():
         assert target not in managed_targets
 
 
-def _render_sbx_settings_script(override_data: dict) -> subprocess.CompletedProcess[str]:
+def _render_sbx_settings_script(
+    override_data: dict, destination: Path | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
             "chezmoi",
@@ -72,6 +74,7 @@ def _render_sbx_settings_script(override_data: dict) -> subprocess.CompletedProc
             "toml",
             "--source",
             str(REPO_ROOT),
+            *(["--destination", str(destination)] if destination is not None else []),
             "execute-template",
             "--file",
             "--override-data",
@@ -96,7 +99,8 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
                     },
                 }
             },
-        }
+        },
+        destination=tmp_path,
     )
     assert rendered.returncode == 0, rendered.stderr
 
@@ -231,7 +235,8 @@ def test_sbx_settings_script_skips_when_sbx_is_unavailable(tmp_path):
                     "kit_allowed_sources": {"docker_hub": "docker.io/"},
                 }
             },
-        }
+        },
+        destination=tmp_path,
     )
     assert rendered.returncode == 0, rendered.stderr
 
@@ -508,3 +513,19 @@ def test_sbx_installed_cli_version(host, chezmoi_data):
     assert version is not None, result.stdout
     if chezmoi_data["local"]["bin"]["sbx"]["installation_method"] == "github_releases":
         assert version[1] == chezmoi_data["bin"]["sbx"]["version"]
+
+
+@pytest.mark.integration
+@pytest.mark.chezmoi_installation("local.bin.sbx", methods={"github_releases", "homebrew"})
+def test_sbx_installed_kit_allowed_sources(host, chezmoi_data):
+    """Check that SBX uses the kit sources declared in chezmoi data."""
+    expected_sources = chezmoi_data["sbx"]["settings"]["kit_allowed_sources"]
+    result = host.run("sbx settings get kit.allowedSources")
+    if (
+        os.environ.get("GITHUB_ACTIONS") == "true"
+        and result.rc != 0
+        and "503 Service Unavailable: administrator settings are unavailable" in result.stderr
+    ):
+        pytest.skip("The CI runner cannot read SBX administrator settings.")
+    assert result.rc == 0, f"Unable to read SBX kit.allowedSources: {result.stderr}"
+    assert json.loads(result.stdout) == [expected_sources[key] for key in sorted(expected_sources)]
