@@ -62,7 +62,9 @@ def test_sbx_does_not_manage_legacy_host_integration_targets():
         assert target not in managed_targets
 
 
-def _render_sbx_settings_script(override_data: dict) -> subprocess.CompletedProcess[str]:
+def _render_sbx_settings_script(
+    override_data: dict, destination: Path | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [
             "chezmoi",
@@ -72,6 +74,7 @@ def _render_sbx_settings_script(override_data: dict) -> subprocess.CompletedProc
             "toml",
             "--source",
             str(REPO_ROOT),
+            *(["--destination", str(destination)] if destination is not None else []),
             "execute-template",
             "--file",
             "--override-data",
@@ -84,7 +87,9 @@ def _render_sbx_settings_script(override_data: dict) -> subprocess.CompletedProc
     )
 
 
-def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int = 0, set_rc: int = 0):
+def _run_rendered_sbx_settings_script(
+    tmp_path: Path, current: str, get_rc: int = 0, set_rc: int = 0, *, sbx_on_path: bool = True
+):
     rendered = _render_sbx_settings_script(
         {
             "local": {"bin": {"sbx": {"installation_method": "github_releases"}}},
@@ -96,12 +101,15 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
                     },
                 }
             },
-        }
+        },
+        destination=tmp_path,
     )
     assert rendered.returncode == 0, rendered.stderr
 
     calls = tmp_path / "calls"
-    fake_sbx = tmp_path / "sbx"
+    bin_dir = tmp_path if sbx_on_path else tmp_path / ".local" / "bin"
+    bin_dir.mkdir(parents=True, exist_ok=True)
+    fake_sbx = bin_dir / "sbx"
     fake_sbx.write_text(
         "#!/bin/sh\n"
         'printf \'%s\\n\' "$*" >> "$SBX_TEST_CALLS"\n'
@@ -119,7 +127,7 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
     env = os.environ.copy()
     env.update(
         {
-            "PATH": f"{tmp_path}:{env['PATH']}",
+            "PATH": str(tmp_path),
             "SBX_TEST_CALLS": str(calls),
             "SBX_TEST_CURRENT": current,
             "SBX_TEST_GET_RC": str(get_rc),
@@ -127,7 +135,7 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
         }
     )
     result = subprocess.run(
-        ["bash"],
+        ["/bin/bash"],
         input=rendered.stdout,
         capture_output=True,
         check=False,
@@ -183,8 +191,9 @@ def test_sbx_settings_script_uses_existing_sbx_installation_opt_in():
     assert "settings get kit.allowedSources" in rendered.stdout
 
 
-def test_sbx_settings_script_preserves_every_declared_source_when_updating(tmp_path):
-    result, calls = _run_rendered_sbx_settings_script(tmp_path, '["docker.io/"]')
+@pytest.mark.parametrize("sbx_on_path", [True, False], ids=["on-path", "managed-destination"])
+def test_sbx_settings_script_preserves_every_declared_source_when_updating(tmp_path, sbx_on_path):
+    result, calls = _run_rendered_sbx_settings_script(tmp_path, '["docker.io/"]', sbx_on_path=sbx_on_path)
 
     assert result.returncode == 0, result.stderr
     assert calls == [
@@ -231,7 +240,8 @@ def test_sbx_settings_script_skips_when_sbx_is_unavailable(tmp_path):
                     "kit_allowed_sources": {"docker_hub": "docker.io/"},
                 }
             },
-        }
+        },
+        destination=tmp_path,
     )
     assert rendered.returncode == 0, rendered.stderr
 

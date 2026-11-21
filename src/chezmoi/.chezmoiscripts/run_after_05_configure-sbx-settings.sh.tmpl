@@ -13,6 +13,8 @@ set -euo pipefail
 
 source "{{ .chezmoi.sourceDir }}/.chezmoitemplates/shell/logging.sh"
 
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+
 if ! SBX="$(command -v sbx)"; then
     log_warn "sbx is unavailable. Skipping SBX settings configuration."
     exit 0
