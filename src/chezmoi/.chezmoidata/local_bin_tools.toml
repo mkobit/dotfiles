@@ -18,3 +18,6 @@ package_name = "termbud"
 [local_bin_tools.browser_sync]
 source_dir = "src/python/browser_sync"
 package_name = "browser-sync"
+
+[local_bin_tools.sandboxr]
+package_name = "sandboxr"

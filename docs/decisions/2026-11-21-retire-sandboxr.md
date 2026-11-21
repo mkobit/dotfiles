@@ -30,6 +30,8 @@ The repository already has an SBX environment and a documented signing design, s
 
 Workflows that call `sandboxr` must move to SBX or use a separately maintained runner.
 This source change stops future managed installs of the package.
-An existing installation requires a separate uninstall.
+The base chezmoi init template selects uninstall for the old uv tool.
+Run `chezmoi init` to refresh an existing base configuration, then run `chezmoi apply` to remove the tool.
+Overlays that replace the init template must select uninstall in their own configuration.
 
 Revisit the decision if a required workflow cannot use SBX and needs a maintained Linux runner with host signing-agent forwarding.
