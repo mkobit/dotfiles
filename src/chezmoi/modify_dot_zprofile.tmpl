@@ -19,6 +19,10 @@ cat >> "${tempfile}" << 'EOF'
 {{ template "shell/xdg_path.sh" $ctx }}
 {{ template "shell/antigravity.sh" $ctx }}
 {{ template "shell/telemetry.sh" $ctx }}
+{{/* Keep early activation for interactive login shells until the work overlay
+     confirms that activation from .zshrc alone preserves tool precedence.
+     The helper runs only in interactive shells. In a clean non-interactive
+     shell, use mise exec -- <tool> to run a mise-managed tool. */ -}}
 {{ template "shell/mise.sh" $ctx }}
 # {{ .chezmoi.workingTree }}/{{ .chezmoi.sourceFile }}:END:chezmoi:zsh:{{ include "modify_dot_zprofile.tmpl" | sha256sum | substr 0 8 }}
 EOF
