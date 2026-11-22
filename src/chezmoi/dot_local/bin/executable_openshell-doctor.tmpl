@@ -36,6 +36,7 @@ else
     fail "openshell binary not found on PATH"
 fi
 
+{{- if eq .chezmoi.os "linux" }}
 docker_info_out=""
 if ! command -v docker >/dev/null 2>&1; then
     fail "docker CLI not found on PATH"
@@ -45,7 +46,6 @@ else
     pass "docker daemon is reachable"
 fi
 
-{{- if eq .chezmoi.os "linux" }}
 if [[ "${docker_info_out}" == *"rootless"* ]] || [[ "${DOCKER_HOST:-}" == *"/run/user/"* ]]; then
     if command -v loginctl >/dev/null 2>&1; then
         target_user="${USER:-{{ .chezmoi.username }}}"
@@ -60,6 +60,14 @@ if [[ "${docker_info_out}" == *"rootless"* ]] || [[ "${DOCKER_HOST:-}" == *"/run
     fi
 else
     info "rootless Docker not detected; skipping loginctl linger check"
+fi
+{{- else }}
+if ! command -v docker >/dev/null 2>&1; then
+    fail "docker CLI not found on PATH"
+elif ! docker info >/dev/null 2>&1; then
+    fail "docker daemon is not reachable (docker info failed)"
+else
+    pass "docker daemon is reachable"
 fi
 {{- end }}
 
