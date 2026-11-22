@@ -4,6 +4,10 @@ This guide covers host initialization, credential provider setup, dedicated agen
 
 ## 1. Host installation and Gateway startup
 
+On an existing WSL host that uses this repository's init template, run `chezmoi init` to refresh the configuration for the Windows font, Windows Terminal, and `.wslconfig` hooks.
+If you use an overlay, set `windows_integration = true` under `[data.wsl]` in its init template to enable these hooks on the WSL host.
+The sandbox build leaves this setting unset.
+
 When `[data.local.bin.openshell].installation_method` is `"github_releases"` (the default on Linux `amd64`/`arm64` and macOS `darwin/arm64`), `chezmoi apply` installs `~/.local/bin/openshell`, `~/.local/bin/openshell-doctor`, shell completions, and host-gated command policy rules.
 
 1. Apply dotfiles on the host:

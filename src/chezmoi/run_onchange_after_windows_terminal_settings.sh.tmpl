@@ -1,4 +1,6 @@
-{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+{{- $enabled := and (eq (dig "wsl" "windows_integration" false . | toJson) "true") (eq .chezmoi.os "linux") (contains "microsoft" (get (default dict .chezmoi.kernel) "osrelease" | default "" | lower)) (lookPath "powershell.exe") -}}
+{{- $cmd := and $enabled (stat "/mnt/c/Windows/System32/cmd.exe") -}}
+{{- if and $cmd (eq $cmd.type "file") (regexMatch "[1357]" (printf "%03o" $cmd.perm)) -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -7,7 +9,8 @@ set -euo pipefail
 main() {
     local WIN_LOCALAPPDATA
     WIN_LOCALAPPDATA=$(/mnt/c/Windows/System32/cmd.exe /c "echo %LOCALAPPDATA%" 2>/dev/null | tr -d '\r')
-    if [[ -z "${WIN_LOCALAPPDATA}" ]]; then
+    local windows_absolute_path='^([[:alpha:]]:[\\/]|\\\\)'
+    if [[ ! "${WIN_LOCALAPPDATA}" =~ $windows_absolute_path ]]; then
         echo "ERROR: Could not determine Windows LOCALAPPDATA path" >&2
         return 1
     fi
