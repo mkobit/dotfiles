@@ -1,4 +1,4 @@
-{{- $enabled := and (eq (dig "wsl" "windows_integration" false . | toJson) "true") (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) (lookPath "wslpath") -}}
+{{- $enabled := and (eq (dig "wsl" "windows_integration" false . | toJson) "true") (eq .chezmoi.os "linux") (contains "microsoft" (get (default dict .chezmoi.kernel) "osrelease" | default "" | lower)) (lookPath "wslpath") -}}
 {{- $cmd := and $enabled (stat "/mnt/c/Windows/System32/cmd.exe") -}}
 {{- if and $cmd (eq $cmd.type "file") (regexMatch "[1357]" (printf "%03o" $cmd.perm)) -}}
 #!/usr/bin/env bash

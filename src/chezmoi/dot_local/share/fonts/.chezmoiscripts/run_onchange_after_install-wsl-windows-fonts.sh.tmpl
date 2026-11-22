@@ -1,4 +1,4 @@
-{{- if and (eq (dig "wsl" "windows_integration" false . | toJson) "true") (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) (lookPath "wslpath") (lookPath "powershell.exe") -}}
+{{- if and (eq (dig "wsl" "windows_integration" false . | toJson) "true") (eq .chezmoi.os "linux") (contains "microsoft" (get (default dict .chezmoi.kernel) "osrelease" | default "" | lower)) (lookPath "wslpath") (lookPath "powershell.exe") -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
