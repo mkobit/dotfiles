@@ -127,6 +127,13 @@ installation_method = "none"
 {{- end }}
 installation_method = {{ $sbxMethod | quote }}
 
+[data.local.bin.openshell]
+{{- $openshellMethod := "none" -}}
+{{- if or (and (eq .chezmoi.os "linux") (has .chezmoi.arch (list "amd64" "arm64"))) (and (eq .chezmoi.os "darwin") (eq .chezmoi.arch "arm64")) -}}
+{{-   $openshellMethod = "github_releases" -}}
+{{- end }}
+installation_method = {{ $openshellMethod | quote }}
+
 [data.local.bin.agy]
 installation_method = "github_releases"
 auto_update = false

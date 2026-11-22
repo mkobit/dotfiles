@@ -1,0 +1,48 @@
+# Contributor-portable NVIDIA OpenShell policy for isolated /sandbox/workspace clones.
+# Enforces creation-locked Landlock filesystem rules, seccomp isolation, and
+# default-deny OPA network egress policies.
+version: 1
+
+filesystem_policy:
+  read_only:
+    - /bin
+    - /etc
+    - /lib
+    - /lib64
+    - /sbin
+    - /usr
+    - /sandbox/.agent-signing
+    - /sandbox/.config
+    - /sandbox/.dotfiles
+    - /sandbox/.local
+  read_write:
+    - /sandbox/workspace
+    - /tmp
+    - /sandbox/.claude
+    - /sandbox/.codex
+    - /sandbox/.gemini
+
+process:
+  run_as_user: "1000"
+  run_as_group: "1000"
+  seccomp:
+    enabled: true
+
+network_policies:
+  default_action: deny
+  rules:
+    - name: github-https
+      action: allow
+      protocol: tcp
+      ports: [443]
+      domains:
+        - github.com
+        - api.github.com
+    - name: llm-api-https
+      action: allow
+      protocol: tcp
+      ports: [443]
+      domains:
+        - api.anthropic.com
+        - api.openai.com
+        - generativelanguage.googleapis.com

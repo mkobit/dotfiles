@@ -1,0 +1,104 @@
+{{- if ne (dig "local" "bin" "openshell" "installation_method" "none" $) "none" -}}
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Host diagnostics for NVIDIA OpenShell Gateway and provider setup.
+# Checks binary presence, Docker daemon readiness, Gateway health, Linux
+# rootless Docker linger state, and provider placeholder substitution without
+# printing secret values.
+
+export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+
+failures=0
+
+info() {
+    printf '[INFO] %s\n' "$1"
+}
+
+pass() {
+    printf '[PASS] %s\n' "$1"
+}
+
+warn() {
+    printf '[WARN] %s\n' "$1"
+}
+
+fail() {
+    printf '[FAIL] %s\n' "$1" >&2
+    failures=$((failures + 1))
+}
+
+if command -v openshell >/dev/null 2>&1; then
+    openshell_path="$(command -v openshell)"
+    openshell_ver="$(openshell --version 2>/dev/null || printf 'unknown')"
+    pass "openshell binary found at ${openshell_path} (${openshell_ver})"
+else
+    fail "openshell binary not found on PATH"
+fi
+
+{{- if eq .chezmoi.os "linux" }}
+docker_info_out=""
+if ! command -v docker >/dev/null 2>&1; then
+    fail "docker CLI not found on PATH"
+elif ! docker_info_out="$(docker info 2>/dev/null)"; then
+    fail "docker daemon is not reachable (docker info failed)"
+else
+    pass "docker daemon is reachable"
+fi
+
+if [[ "${docker_info_out}" == *"rootless"* ]] || [[ "${DOCKER_HOST:-}" == *"/run/user/"* ]]; then
+    if command -v loginctl >/dev/null 2>&1; then
+        target_user="${USER:-{{ .chezmoi.username }}}"
+        linger_state="$(loginctl show-user "${target_user}" -p Linger --value 2>/dev/null || true)"
+        if [[ "${linger_state}" == "yes" ]]; then
+            pass "systemd user linger enabled for ${target_user} (rootless Docker Gateway persistence)"
+        else
+            fail "systemd user linger is not enabled for ${target_user} (run: loginctl enable-linger ${target_user})"
+        fi
+    else
+        warn "loginctl not available to verify systemd user linger for rootless Docker"
+    fi
+else
+    info "rootless Docker not detected; skipping loginctl linger check"
+fi
+{{- else }}
+if ! command -v docker >/dev/null 2>&1; then
+    fail "docker CLI not found on PATH"
+elif ! docker info >/dev/null 2>&1; then
+    fail "docker daemon is not reachable (docker info failed)"
+else
+    pass "docker daemon is reachable"
+fi
+{{- end }}
+
+if command -v openshell >/dev/null 2>&1; then
+    if openshell status >/dev/null 2>&1 && openshell gateway info >/dev/null 2>&1; then
+        pass "openshell gateway is active and reachable"
+    else
+        fail "openshell gateway is not reachable (run: openshell gateway start)"
+    fi
+
+    provider_out=""
+    if provider_out="$(openshell provider list 2>/dev/null)"; then
+        # Count non-empty, non-header provider entries without printing secret values.
+        provider_count=0
+        while IFS= read -r line; do
+            trimmed="${line#"${line%%[![:space:]]*}"}"
+            if [[ -z "${trimmed}" ]] || [[ "${trimmed}" =~ ^(NAME|ID|PROVIDER|---|\+|No[[:space:]]) ]]; then
+                continue
+            fi
+            provider_count=$((provider_count + 1))
+        done <<< "${provider_out}"
+        pass "openshell provider query succeeded (${provider_count} provider record(s) found; values redacted)"
+    else
+        fail "openshell provider list failed"
+    fi
+fi
+
+if (( failures > 0 )); then
+    printf 'openshell-doctor failed with %d error(s).\n' "${failures}" >&2
+    exit 1
+fi
+
+printf 'openshell-doctor passed all checks.\n'
+{{- end -}}

@@ -14,7 +14,14 @@
 {{- $allow := list -}}
 {{- $deny := concat (dig "permissions" "deny" (list) $config) (dig "permissions" "deny" (list) .claude_code.settings) -}}
 {{- $ask := concat (dig "permissions" "ask" (list) $config) (dig "permissions" "ask" (list) .claude_code.settings) -}}
-{{- range $cmd, $mode := dig "ai" "command_policy" "commands" (dict) . -}}
+{{- $commands := dict -}}
+{{- range $feature, $featureCommands := dig "ai" "command_policy" "host_commands" (dict) . -}}
+{{-   if ne (dig "local" "bin" $feature "installation_method" "none" $) "none" -}}
+{{-     $commands = mergeOverwrite $commands (deepCopy $featureCommands) -}}
+{{-   end -}}
+{{- end -}}
+{{- $commands = mergeOverwrite $commands (deepCopy (dig "ai" "command_policy" "commands" (dict) .)) -}}
+{{- range $cmd, $mode := $commands -}}
 {{-   if eq $mode "allow" -}}
 {{-     $allow = append $allow (printf "Bash(%s:*)" $cmd) -}}
 {{-   else if eq $mode "prompt" -}}

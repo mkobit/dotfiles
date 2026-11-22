@@ -1,0 +1,190 @@
+# Static chezmoi configuration for building the standalone /sandbox OCI layer.
+# Invoked via: chezmoi apply --config /tmp/sandbox-chezmoi.toml --destination /sandbox
+# Never runs interactive chezmoi init probes or host-only OS package managers.
+
+[scriptEnv]
+MISE_CONFIG_DIR = "/sandbox/.config/mise"
+MISE_DATA_DIR   = "/sandbox/.local/share/mise"
+MISE_STATE_DIR  = "/sandbox/.local/state/mise"
+
+[data.zsh]
+set_as_default_login_shell = false
+
+[data.ai.plugins.superpowers]
+installation_method = "chezmoi_external"
+
+[data.ai.plugins.egm]
+installation_method = "chezmoi_external"
+
+[data.ai.plugin_bridge]
+default_hosts = ["claude", "codex"]
+
+[data.ai.sandbox]
+signing_key = "/sandbox/.agent-signing/id_ed25519"
+
+[data.claude_code]
+installation_method = "direct_release"
+
+[data.codex.telemetry]
+enabled = false
+log_user_prompt = false
+
+[data.gemini.general]
+enable_auto_update = false
+
+[data.git.personal]
+enabled = true
+
+[data.git_hooks]
+backend = "config"
+
+[data.git_hooks.pre_commit]
+installation_method = "none"
+
+[data.local.bin.agy]
+installation_method = "github_releases"
+auto_update = false
+
+[data.local.bin.bat]
+installation_method = "github_releases"
+
+[data.local.bin.betterleaks]
+installation_method = "none"
+
+[data.local.bin.bkt]
+installation_method = "github_releases"
+
+[data.local.bin.btop]
+installation_method = "github_releases"
+
+[data.local.bin.chafa]
+installation_method = "none"
+
+[data.local.bin.codex]
+installation_method = "github_releases"
+
+[data.local.bin.delta]
+installation_method = "github_releases"
+
+[data.local.bin.eza]
+installation_method = "github_releases"
+
+[data.local.bin.fd]
+installation_method = "github_releases"
+
+[data.local.bin.fzf]
+installation_method = "github_releases"
+
+[data.local.bin.gh]
+installation_method = "github_releases"
+
+[data.local.bin.jq]
+installation_method = "github_releases"
+
+[data.local.bin.mise]
+installation_method = "github_releases"
+
+[data.local.bin.nvim]
+installation_method = "github_releases"
+
+[data.local.bin.openshell]
+installation_method = "none"
+
+[data.local.bin.pi]
+installation_method = "github_releases"
+
+[data.local.bin.ripgrep]
+installation_method = "github_releases"
+
+[data.local.bin.sbx]
+installation_method = "none"
+
+[data.local.bin.shellcheck]
+installation_method = "github_releases"
+
+[data.local.bin.starship]
+installation_method = "github_releases"
+
+[data.local.bin.zellij]
+installation_method = "none"
+
+[data.local.bin.zoxide]
+installation_method = "github_releases"
+
+[data.gh.extensions.gh-stack]
+installation_method = "none"
+
+[data.gh.extensions.gh-actions-lock]
+installation_method = "none"
+
+[data.local.mise.global_tools.python]
+installation_method = "none"
+
+[data.local.mise.global_tools.java]
+installation_method = "none"
+
+[data.local.mise.global_tools.bun]
+installation_method = "none"
+
+[data.local.mise.global_tools.node]
+installation_method = "none"
+
+[data.local.mise.global_tools.ollama]
+installation_method = "none"
+
+[data.packages.at]
+installation_method = "none"
+
+[data.packages.bubblewrap]
+installation_method = "none"
+
+[data.packages.chafa]
+installation_method = "none"
+
+[data.packages.eza]
+installation_method = "none"
+
+[data.packages.ffmpeg]
+installation_method = "none"
+
+[data.packages.ghostty]
+installation_method = "none"
+
+[data.packages.git]
+installation_method = "none"
+
+[data.packages.hammerspoon]
+installation_method = "none"
+
+[data.packages.ollama]
+installation_method = "none"
+
+[data.packages.socat]
+installation_method = "none"
+
+[data.packages.strace]
+installation_method = "none"
+
+[data.packages.wl_clipboard]
+installation_method = "none"
+
+[data.local_bin_tools.termstatus]
+installation_method = "none"
+
+[data.local_bin_tools.transcribe]
+installation_method = "none"
+
+[data.local_bin_tools.termbud]
+installation_method = "none"
+
+[data.local_bin_tools.browser_sync]
+installation_method = "none"
+
+[data.fonts.fira_mono]
+installation_method = "none"
+
+[data.fonts.jetbrains_mono]
+installation_method = "none"
+
+[data.npmrc]
+installation_method = "none"

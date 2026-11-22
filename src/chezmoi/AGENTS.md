@@ -2,7 +2,7 @@
 
 ## Notable cross-cutting features
 
-- **AI agent sandbox**: Docker Sandboxes (`sbx`) provides microVM-isolated execution environments for AI agent CLIs.
+- **AI agent sandbox**: Docker Sandboxes (`sbx`) provides microVM-isolated execution environments for AI agent CLIs, and NVIDIA OpenShell (`openshell`) provides Landlock/seccomp/OPA-isolated sandboxes with a standalone `/sandbox` OCI layer (`docker/openshell/`).
 - **Command approval policy** (see below): shared Claude Code and Antigravity catalog; SBX integrations for Codex and Cursor are separate units.
 - **Secrets** (`[data.secrets]` in `.chezmoi.toml.tmpl`): rendered to a private (`0600`) file sourced by shell rc fragments, never inlined into a fragment itself.
 
@@ -19,7 +19,7 @@ Pi approval support is excluded.
 Codex and Cursor integration remain separate units.
 Documented here rather than inside `.chezmoidata/ai/command_policy/` itself: chezmoi parses every file under `.chezmoidata/` as a data source, so a `.md` file there breaks every template reading chezmoi data with an "unknown format" error.
 
-- One file per domain under `.chezmoidata/ai/command_policy/*.toml` (e.g. `git.toml`, `beads.toml`); every file contributes keys to the same `[ai.command_policy.commands]` table.
+- One file per domain under `.chezmoidata/ai/command_policy/*.toml` (e.g. `git.toml`, `beads.toml`); every file contributes keys to `[ai.command_policy.commands]` or host-gated `[ai.command_policy.host_commands.<feature>]` (e.g. `openshell.toml`, merged only when `local.bin.<feature>.installation_method` is not `"none"`).
 - Key: a literal, complete command head, e.g. `"git commit"`, `"bd"`.
   Value: `"allow"`, `"ask"`, `"prompt"`, or `"deny"`.
 - `"ask"` (or simply omitting the command) renders nowhere in either tool.

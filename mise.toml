@@ -6,9 +6,9 @@ locked = true
 http_retries = 5
 
 [tasks."test:workflow"]
-description = "Check SBX policy and project environment"
+description = "Check SBX and OpenShell policy and project environment"
 wait_for = ["python:test"]
-run = "uv run --frozen pytest -m 'not integration' tests/integration/test_sbx_command_policy.py tests/integration/test_sbx_command_retirement.py tests/integration/test_ai_workflow_permissions.py tests/integration/test_sbx_project_environment.py"
+run = "uv run --frozen pytest -m 'not integration' tests/integration/test_sbx_command_policy.py tests/integration/test_sbx_command_retirement.py tests/integration/test_openshell_command_policy.py tests/integration/test_ai_workflow_permissions.py tests/integration/test_sbx_project_environment.py"
 
 [tasks."check:skill-metadata"]
 description = "Check Codex skill display names"
