@@ -4,8 +4,10 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Start Handy when it is stopped, including when no settings changed.
 status=0
 /usr/bin/pgrep -x handy >/dev/null || status=$?
+# Treat process-check errors as failures rather than starting another app.
 case "$status" in
   0) ;;
   1) /usr/bin/open -b com.pais.handy ;;

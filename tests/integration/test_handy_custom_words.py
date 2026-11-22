@@ -1,4 +1,6 @@
 import json
+import shlex
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -6,9 +8,15 @@ import pytest
 
 SOURCE = Path("src/chezmoi")
 HANDY = Path("Library/Application Support/com.pais.handy")
+PROCESS_FIXTURE = Path("tests/integration/fixtures/handy_process.py")
+SCRIPT_PATHS = (
+    Path(".chezmoiscripts/handy/run_before_stop.sh.tmpl"),
+    Path(".chezmoiscripts/handy/run_after_start.sh.tmpl"),
+)
 
 
 def fixture(tmp_path, data, *, running=True, process_error=False, quit_fails=False):
+    # Apply copied source files to a test destination, not to the home directory.
     source = tmp_path / "source"
     destination = tmp_path / "dest"
     source.mkdir()
@@ -16,8 +24,7 @@ def fixture(tmp_path, data, *, running=True, process_error=False, quit_fails=Fal
     for relative in [
         HANDY / "modify_private_settings_store.json",
         HANDY / ".chezmoiignore.tmpl",
-        Path(".chezmoiscripts/run_before_stop-handy.sh.tmpl"),
-        Path(".chezmoiscripts/run_after_start-handy.sh.tmpl"),
+        *SCRIPT_PATHS,
         Path(".chezmoitemplates/handy/settings"),
     ]:
         original = SOURCE / relative
@@ -31,46 +38,24 @@ def fixture(tmp_path, data, *, running=True, process_error=False, quit_fails=Fal
     settings = destination / HANDY / "settings_store.json"
     settings.parent.mkdir(parents=True)
     settings.write_text(json.dumps({"settings": {"custom_words": ["existing"], "paste_method": "direct"}}))
+    # The helper records app state and command counts for the assertions.
     state = tmp_path / "state.json"
     state.write_text(json.dumps({"running": running, "quit": 0, "start": 0}))
-    mock = tmp_path / "mock-process"
-    mock.write_text(
-        """#!/usr/bin/env python3
-import json, sys
-from pathlib import Path
-state_path = Path("""
-        + repr(str(state))
-        + """)
-settings_path = Path("""
-        + repr(str(settings))
-        + """)
-state = json.loads(state_path.read_text())
-command = sys.argv[1]
-if command == 'pgrep':
-    sys.exit(2 if """
-        + repr(process_error)
-        + """ else (0 if state['running'] else 1))
-if command == 'osascript':
-    state['quit'] += 1
-    if not """
-        + repr(quit_fails)
-        + """:
-        state['running'] = False
-        store = json.loads(settings_path.read_text())
-        store['settings']['flushed'] = True
-        settings_path.write_text(json.dumps(store))
-if command == 'open':
-    state['running'] = True
-    state['start'] += 1
-state_path.write_text(json.dumps(state))
-"""
-    )
+    # Copy the static process helper into the test directory before execution.
+    mock = tmp_path / "handy_process.py"
+    shutil.copyfile(PROCESS_FIXTURE, mock)
     mock.chmod(0o755)
-    scripts = [*(source / ".chezmoiscripts").iterdir(), source / HANDY / "modify_private_settings_store.json"]
+    mock_command = [str(mock), "--state", str(state), "--settings", str(settings)]
+    if process_error:
+        mock_command.append("--process-error")
+    if quit_fails:
+        mock_command.append("--quit-fails")
+    # Replace process commands only in the test copies to avoid controlling real apps.
+    scripts = [*(source / relative for relative in SCRIPT_PATHS), source / HANDY / "modify_private_settings_store.json"]
     for script in scripts:
         text = script.read_text()
         for command in ("pgrep", "osascript", "open"):
-            text = text.replace("/usr/bin/" + command, str(mock) + " " + command)
+            text = text.replace("/usr/bin/" + command, shlex.join([*mock_command, command]))
         text = text.replace("sleep 0.1", ":")
         script.write_text(text)
     config = tmp_path / "config.json"
@@ -228,8 +213,9 @@ def test_handy_lifecycle_scripts_do_not_contain_api_keys(tmp_path, monkeypatch):
         },
     )
     monkeypatch.setenv("TEST_HANDY_KEY", "secret-value")
-    source = tmp_path / "source/.chezmoiscripts"
-    for path in source.iterdir():
+    source = tmp_path / "source"
+    for relative in SCRIPT_PATHS:
+        path = source / relative
         rendered = subprocess.run(
             [*command, "execute-template", "-f", str(path)],
             capture_output=True,
