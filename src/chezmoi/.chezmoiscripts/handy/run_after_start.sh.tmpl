@@ -5,10 +5,12 @@
 set -Eeuo pipefail
 
 state_dir={{ joinPath .chezmoi.destDir ".cache" "chezmoi" "handy" | shellQuote }}
+# The marker also permits restart after an interrupted apply.
 if [[ -f "$state_dir/restart" ]]; then
 {{ if dig "lifecycle" "restart_after_update" true $handy }}
   /usr/bin/open -b com.pais.handy
 {{ end }}
+  # Clear the request after success, or when restart is disabled.
   rm -f "$state_dir/restart"
 fi
 {{- end }}

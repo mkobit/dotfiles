@@ -7,6 +7,10 @@ import pytest
 
 SOURCE = Path('src/chezmoi')
 HANDY = Path('Library/Application Support/com.pais.handy')
+SCRIPT_PATHS = (
+    Path('.chezmoiscripts/handy/run_before_stop.sh.tmpl'),
+    Path('.chezmoiscripts/handy/run_after_start.sh.tmpl'),
+)
 
 
 def fixture(tmp_path, data, *, running=True, process_error=False, quit_fails=False):
@@ -17,8 +21,7 @@ def fixture(tmp_path, data, *, running=True, process_error=False, quit_fails=Fal
     for relative in [
         HANDY / 'modify_private_settings_store.json',
         HANDY / '.chezmoiignore.tmpl',
-        Path('.chezmoiscripts/run_before_stop-handy.sh.tmpl'),
-        Path('.chezmoiscripts/run_after_start-handy.sh.tmpl'),
+        *SCRIPT_PATHS,
         Path('.chezmoitemplates/handy/settings'),
     ]:
         original = SOURCE / relative
@@ -54,7 +57,7 @@ if command == 'open':
 state_path.write_text(json.dumps(state))
 ''')
     mock.chmod(0o755)
-    scripts = [*(source / '.chezmoiscripts').iterdir(), source / HANDY / 'modify_private_settings_store.json']
+    scripts = [*(source / relative for relative in SCRIPT_PATHS), source / HANDY / 'modify_private_settings_store.json']
     for script in scripts:
         text = script.read_text()
         for command in ('pgrep', 'osascript', 'open'):
@@ -173,8 +176,9 @@ def test_handy_lifecycle_scripts_do_not_contain_api_keys(tmp_path, monkeypatch):
         'enabled': True, 'api_key_env': {'provider': 'TEST_HANDY_KEY'},
     }})
     monkeypatch.setenv('TEST_HANDY_KEY', 'secret-value')
-    source = tmp_path / 'source/.chezmoiscripts'
-    for path in source.iterdir():
+    source = tmp_path / 'source'
+    for relative in SCRIPT_PATHS:
+        path = source / relative
         rendered = subprocess.run(
             [*command, 'execute-template', '-f', str(path)], capture_output=True, text=True, check=True,
         ).stdout

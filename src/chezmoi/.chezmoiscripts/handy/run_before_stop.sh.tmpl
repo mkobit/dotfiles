@@ -1,6 +1,7 @@
 {{- $handy := get . "handy" | default dict -}}
 {{- $path := joinPath .chezmoi.destDir "Library" "Application Support" "com.pais.handy" "settings_store.json" -}}
 {{- if and (eq .chezmoi.os "darwin") (get $handy "enabled") (dig "lifecycle" "stop_before_update" true $handy) (stat $path) -}}
+{{- /* Use the settings merge to skip shutdown when no settings change. */ -}}
 {{- $store := include $path | fromJson -}}
 {{- $merged := includeTemplate "handy/settings" (dict "data" . "store" $store) | fromJson -}}
 {{- if ne ($store | toJson) ($merged | toJson) -}}
@@ -9,6 +10,7 @@ set -Eeuo pipefail
 
 state_dir={{ joinPath .chezmoi.destDir ".cache" "chezmoi" "handy" | shellQuote }}
 
+# Treat process-check errors as failures, not as a stopped app.
 handy_running() {
   local status=0
   /usr/bin/pgrep -x handy >/dev/null || status=$?
@@ -24,7 +26,9 @@ mkdir -p "$state_dir"
 chmod 700 "$state_dir"
 if handy_running; then
   rm -f "$state_dir/restart"
+  # Let Handy save its settings before the modifier reads the file.
   /usr/bin/osascript -e 'tell application id "com.pais.handy" to quit'
+  # Wait for a graceful shutdown; do not write while Handy is running.
   for ((attempt = 0; attempt < 50; attempt++)); do
     if ! handy_running; then
       break
@@ -35,6 +39,7 @@ if handy_running; then
     printf 'Handy did not stop; settings were not changed\n' >&2
     exit 1
   fi
+  # Restart only an app stopped here; keep the marker if apply fails.
   : > "$state_dir/restart"
 fi
 {{- end -}}
