@@ -53,7 +53,8 @@ content = """
 content = """
 ## Preferences
 - Prefer available agentic file searching and read tools over CLI tools when available.
-- Prefer strict TypeScript configuration."""
+- Prefer strict TypeScript configuration.
+- When a worktree is used, prefer creating it locally in `.worktrees/` (globally ignored via chezmoi)."""
 
 [[ai.guidelines.sections]]
 content = """
