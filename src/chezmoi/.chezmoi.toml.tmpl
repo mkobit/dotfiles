@@ -271,6 +271,10 @@ installation_method = "chezmoi_external"
 [data.fonts.jetbrains_mono]
 installation_method = "chezmoi_external"
 
+# Enable Windows profile changes on a WSL host with Windows interop tools.
+[data.wsl]
+windows_integration = {{ if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) (lookPath "wslpath") }}true{{ else }}false{{ end }}
+
 # External Scripts & Configs Installation Methods
 [data.claude_code]
 installation_method = "direct_release"

@@ -1,4 +1,6 @@
-{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+{{- $enabled := and (eq (dig "wsl" "windows_integration" false . | toJson) "true") (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) (lookPath "wslpath") -}}
+{{- $cmd := and $enabled (stat "/mnt/c/Windows/System32/cmd.exe") -}}
+{{- if and $cmd (eq $cmd.type "file") (regexMatch "[1357]" (printf "%03o" $cmd.perm)) -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -13,7 +15,12 @@ if [[ -z "${WIN_PROFILE}" ]]; then
   echo "ERROR: Could not determine Windows user profile path via cmd.exe" >&2
   exit 1
 fi
-WSLCONFIG_PATH="$(wslpath -u "${WIN_PROFILE}")/.wslconfig"
+WSL_PROFILE=$(wslpath -u "$WIN_PROFILE")
+if [[ "$WSL_PROFILE" != /* || "$WSL_PROFILE" == / || ! -d "$WSL_PROFILE" ]]; then
+  echo "ERROR: Could not resolve the Windows user profile directory" >&2
+  exit 1
+fi
+WSLCONFIG_PATH="$WSL_PROFILE/.wslconfig"
 
 cat > "${WSLCONFIG_PATH}" << 'CONFIG_EOF'
 {{ template "wsl/wslconfig" . }}

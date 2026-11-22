@@ -1,4 +1,4 @@
-{{- if and (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) -}}
+{{- if and (eq (dig "wsl" "windows_integration" false . | toJson) "true") (eq .chezmoi.os "linux") (contains "microsoft" (lower .chezmoi.kernel.osrelease)) (lookPath "wslpath") (lookPath "powershell.exe") -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -6,6 +6,10 @@ set -euo pipefail
 
 LINUX_SRC_FOLDER="{{ .chezmoi.destDir }}/.local/share/fonts/NerdFonts"
 WINDOWS_SRC_FOLDER=$(wslpath -w "$LINUX_SRC_FOLDER")
+if [[ -z "$WINDOWS_SRC_FOLDER" ]]; then
+    echo "ERROR: Could not resolve the Windows path for the font source" >&2
+    exit 1
+fi
 
 powershell.exe -NoProfile -Command "
 \$srcFolder = '${WINDOWS_SRC_FOLDER}'
