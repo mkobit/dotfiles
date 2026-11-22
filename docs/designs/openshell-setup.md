@@ -194,7 +194,7 @@ All repository changes below must execute in a dedicated git worktree branched f
 | :--- | :--- | :--- |
 | **Phase 0 (Host & BOM)** | Add `[data.local.bin.openshell]`, binary catalog, completions, `openshell-doctor`, and host-gated command policy alongside intact `sbx`. | `chezmoi apply` passes idempotently on Linux/macOS/CI; `openshell gateway start` and `openshell-doctor` pass on host. |
 | **Phase 1 (Sandbox layer & pilot)** | Add `sandbox-chezmoi.toml`, standalone `/sandbox` builder Dockerfile, SSH agent signing gitconfig updates, `openshell` skills/docs, and portable pilot `policy.yaml`. | `/sandbox` OCI layer builds without host leaks; sandboxed agent commits with SSH signing and pushes via `gh` provider. |
-| **Phase 2 (`sbx` retirement)** | Move `sbx` grants to `[ai.command_policy.retired_commands]`, remove `sbx` chezmoi scripts/templates/CI checks/skills, and decouple `exact_repo-bootstrap` / `exact_worker-handoff`. | Zero `sbx` references remain in active templates or CI; `pytest`, `ruff`, `ty`, and `shellcheck` pass. |
+| **Phase 2 (`sbx` retirement, deferred)** | Move `sbx` grants to `[ai.command_policy.retired_commands]`, remove `sbx` chezmoi scripts/templates/CI checks/skills, and decouple `exact_repo-bootstrap` / `exact_worker-handoff`. Deferred while `sbx` and `openshell` coexist. | Zero `sbx` references remain in active templates or CI; `pytest`, `ruff`, `ty`, and `shellcheck` pass. |
 
 ### Target files to create or modify
 

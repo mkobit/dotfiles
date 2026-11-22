@@ -7,6 +7,7 @@ MARKER_GATED_INSTALLATION_METHODS = {
     "local.bin.agy": AGY_INSTALLATION_METHODS,
     "local.bin.btop": frozenset({"github_releases", "homebrew", "none"}),
     "local.bin.codex": frozenset({"github_releases", "none"}),
+    "local.bin.openshell": frozenset({"github_releases", "none"}),
     "local.bin.pi": frozenset({"github_releases", "existing", "none"}),
     "packages.bubblewrap": frozenset({"apt", "none"}),
     "packages.ffmpeg": frozenset({"apt", "homebrew", "none"}),
