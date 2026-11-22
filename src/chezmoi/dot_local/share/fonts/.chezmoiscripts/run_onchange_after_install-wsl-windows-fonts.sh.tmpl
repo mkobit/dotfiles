@@ -12,25 +12,28 @@ if [[ -z "$WINDOWS_SRC_FOLDER" ]]; then
 fi
 
 powershell.exe -NoProfile -Command "
+\$ErrorActionPreference = 'Stop'
 \$srcFolder = '${WINDOWS_SRC_FOLDER}'
 \$destFolder = \"\$env:LOCALAPPDATA\Microsoft\Windows\Fonts\"
 
-if (!(Test-Path \$destFolder)) { New-Item -Path \$destFolder -ItemType Directory }
+\$srcFiles = @(Get-ChildItem -LiteralPath \$srcFolder -File -Recurse |
+    Where-Object { \$_.Extension -in '.ttf', '.otf' })
+if (\$srcFiles.Count -eq 0) { return }
+
+if (!(Test-Path -LiteralPath \$destFolder)) { New-Item -Path \$destFolder -ItemType Directory }
 
 \$shell = New-Object -ComObject Shell.Application
 \$fontsFolder = \$shell.Namespace(\$destFolder)
-\$srcFiles = Get-ChildItem -Path \$srcFolder -Include '*.ttf', '*.otf' -Recurse
-\$srcNames = \$srcFiles | ForEach-Object { \$_.Name }
+if (\$null -eq \$fontsFolder) { throw 'Could not open the Windows font folder' }
 
-# Remove fonts no longer in source
-Get-ChildItem -Path \$destFolder -Include '*.ttf', '*.otf' |
-    Where-Object { \$srcNames -notcontains \$_.Name } |
-    ForEach-Object { Remove-Item \$_.FullName -Force }
-
-# Install/overwrite all source fonts
 \$srcFiles | ForEach-Object {
     \$destFile = Join-Path \$destFolder \$_.Name
-    if (Test-Path \$destFile) { Remove-Item \$destFile -Force }
+    if (Test-Path -LiteralPath \$destFile) {
+        if (!(Test-Path -LiteralPath \$destFile -PathType Leaf)) {
+            throw \"The font destination is not a file: \$destFile\"
+        }
+        Remove-Item -LiteralPath \$destFile -Force
+    }
     \$fontsFolder.CopyHere(\$_.FullName, 0x14)
 }
 "
