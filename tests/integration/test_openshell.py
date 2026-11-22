@@ -7,6 +7,7 @@ import tomllib
 from pathlib import Path
 
 import pytest
+import yaml
 from chezmoi_test_data import installation_method
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
@@ -17,6 +18,22 @@ OPENSHELL_DOCTOR_TEMPLATE = CHEZMOI_SOURCE / "dot_local" / "bin" / "executable_o
 BINS_EXTERNAL_TEMPLATE = CHEZMOI_SOURCE / "dot_local" / "bin" / ".chezmoiexternals" / "bins.toml.tmpl"
 BASH_CONFIG_TEMPLATE = CHEZMOI_SOURCE / "dot_dotfiles" / "bash" / "config.bash.tmpl"
 ZSH_CONFIG_TEMPLATE = CHEZMOI_SOURCE / "dot_dotfiles" / "zsh" / "config.zsh.tmpl"
+SANDBOX_GITCONFIG_TEMPLATE = CHEZMOI_SOURCE / "dot_config" / "ai-policy" / "git" / "sandbox.gitconfig.tmpl"
+SANDBOX_CHEZMOI_CONFIG = REPO_ROOT / "docker" / "openshell" / "sandbox-chezmoi.toml"
+SANDBOX_DOCKERFILE = REPO_ROOT / "docker" / "openshell" / "Dockerfile"
+OPENSHELL_POLICY = REPO_ROOT / ".openshell" / "policy.yaml"
+OPENSHELL_SKILL_DIR = (
+    CHEZMOI_SOURCE
+    / "dot_local"
+    / "share"
+    / "agent-plugins"
+    / "marketplace"
+    / "exact_plugins"
+    / "exact_mkobit-dotfiles"
+    / "exact_skills"
+    / "exact_openshell-sandboxes"
+)
+OPENSHELL_BOOTSTRAP_DOC = REPO_ROOT / "docs" / "openshell-bootstrap.md"
 
 
 def test_openshell_release_catalog_pins_v0_1_9_with_verified_checksums() -> None:
@@ -330,6 +347,152 @@ def test_openshell_doctor_fails_when_linger_disabled_on_rootless_linux(tmp_path:
     )
     assert result.returncode == 1
     assert "systemd user linger is not enabled" in result.stderr
+
+
+def test_sandbox_gitconfig_enables_ssh_signing_when_key_configured(tmp_path: Path) -> None:
+    key_path = "/sandbox/.agent-signing/id_ed25519"
+    rendered = _render_template(
+        SANDBOX_GITCONFIG_TEMPLATE,
+        {"ai": {"sandbox": {"signing_key": key_path}}},
+        destination=tmp_path,
+    )
+    assert rendered.returncode == 0, rendered.stderr
+    assert f"path = {tmp_path}/.dotfiles/git/config" in rendered.stdout
+    assert "format = ssh" in rendered.stdout
+    assert "program = ssh-keygen" in rendered.stdout
+    assert "defaultKeyCommand =" in rendered.stdout
+    assert f"signingkey = {key_path}" in rendered.stdout
+    assert "gpgsign = true" in rendered.stdout
+    assert "gpgSign = true" in rendered.stdout
+    assert "sandboxr" not in rendered.stdout
+
+
+@pytest.mark.parametrize(
+    "override_data",
+    [
+        {},
+        {"ai": {}},
+        {"ai": {"sandbox": {}}},
+        {"ai": {"sandbox": {"signing_key": ""}}},
+    ],
+)
+def test_sandbox_gitconfig_disables_signing_when_key_omitted_or_empty(
+    tmp_path: Path,
+    override_data: dict,
+) -> None:
+    rendered = _render_template(
+        SANDBOX_GITCONFIG_TEMPLATE,
+        override_data,
+        destination=tmp_path,
+    )
+    assert rendered.returncode == 0, rendered.stderr
+    assert f"path = {tmp_path}/.dotfiles/git/config" in rendered.stdout
+    assert "format = ssh" in rendered.stdout
+    assert "program = ssh-keygen" in rendered.stdout
+    assert "defaultKeyCommand =" in rendered.stdout
+    assert "signingkey" not in rendered.stdout
+    assert "gpgsign = false" in rendered.stdout
+    assert "gpgSign = false" in rendered.stdout
+    assert "gpgsign = true" not in rendered.stdout
+
+
+def test_sandbox_chezmoi_config_disables_host_only_features_and_sets_signing_key() -> None:
+    with SANDBOX_CHEZMOI_CONFIG.open("rb") as config_file:
+        config = tomllib.load(config_file)
+
+    assert config["scriptEnv"] == {
+        "MISE_CONFIG_DIR": "/sandbox/.config/mise",
+        "MISE_DATA_DIR": "/sandbox/.local/share/mise",
+        "MISE_STATE_DIR": "/sandbox/.local/state/mise",
+    }
+    data = config["data"]
+    assert data["zsh"]["set_as_default_login_shell"] is False
+    assert data["claude_code"]["installation_method"] == "direct_release"
+    assert data["ai"]["plugins"]["superpowers"]["installation_method"] == "chezmoi_external"
+    assert data["ai"]["plugins"]["egm"]["installation_method"] == "chezmoi_external"
+    assert data["ai"]["plugin_bridge"]["default_hosts"] == ["claude", "codex"]
+    assert data["ai"]["sandbox"]["signing_key"] == "/sandbox/.agent-signing/id_ed25519"
+    assert data["git"]["personal"]["enabled"] is True
+    assert data["git_hooks"]["backend"] == "config"
+    assert data["git_hooks"]["pre_commit"]["installation_method"] == "none"
+    assert data["gemini"]["general"]["enable_auto_update"] is False
+    assert data["codex"]["telemetry"]["enabled"] is False
+    assert data["local"]["bin"]["agy"] == {
+        "installation_method": "github_releases",
+        "auto_update": False,
+    }
+    for host_only_bin in ("openshell", "sbx", "betterleaks"):
+        assert data["local"]["bin"][host_only_bin]["installation_method"] == "none"
+    for enabled_bin in (
+        "codex",
+        "mise",
+        "gh",
+        "ripgrep",
+        "fd",
+        "jq",
+        "bat",
+        "delta",
+        "fzf",
+        "nvim",
+        "shellcheck",
+        "starship",
+        "zoxide",
+        "eza",
+        "btop",
+        "bkt",
+        "pi",
+    ):
+        assert data["local"]["bin"][enabled_bin]["installation_method"] == "github_releases"
+
+
+def test_sandbox_dockerfile_and_policy_define_isolated_sandbox_layer() -> None:
+    dockerfile = SANDBOX_DOCKERFILE.read_text(encoding="utf-8")
+    assert "FROM debian:bookworm-slim" in dockerfile
+    assert "ARG SANDBOX_UID=1000" in dockerfile
+    assert "ARG SANDBOX_GID=1000" in dockerfile
+    assert "HOME=/sandbox" in dockerfile
+    assert "AGY_CLI_DISABLE_AUTO_UPDATE=true" in dockerfile
+    assert "--config /tmp/sandbox-chezmoi.toml" in dockerfile
+    assert "--destination /sandbox" in dockerfile
+    assert 'chown -R "${SANDBOX_UID}:${SANDBOX_GID}" /sandbox' in dockerfile
+
+    policy = yaml.safe_load(OPENSHELL_POLICY.read_text(encoding="utf-8"))
+    rw_paths = set(policy["filesystem_policy"]["read_write"])
+    ro_paths = set(policy["filesystem_policy"]["read_only"])
+    assert {
+        "/sandbox/workspace",
+        "/tmp",
+        "/sandbox/.claude",
+        "/sandbox/.codex",
+        "/sandbox/.gemini",
+    } <= rw_paths
+    assert "/sandbox/.agent-signing" in ro_paths
+    assert "/sandbox/.agent-signing" not in rw_paths
+    assert policy["process"]["seccomp"]["enabled"] is True
+    assert policy["network_policies"]["default_action"] == "deny"
+
+
+def test_openshell_skill_and_bootstrap_docs_exist_and_follow_metadata_contract() -> None:
+    skill_text = (OPENSHELL_SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+    frontmatter = yaml.safe_load(skill_text.split("---", 2)[1])
+    assert frontmatter["name"] == "openshell-sandboxes"
+    assert "allowed-tools" not in frontmatter
+    assert isinstance(frontmatter["description"], str) and frontmatter["description"].strip()
+    assert "policy.yaml" in skill_text
+    assert "/sandbox/workspace" in skill_text
+
+    openai_meta = yaml.safe_load((OPENSHELL_SKILL_DIR / "exact_agents" / "openai.yaml").read_text(encoding="utf-8"))
+    assert openai_meta["interface"]["display_name"] == "OpenShell sandboxes"
+
+    bootstrap_text = OPENSHELL_BOOTSTRAP_DOC.read_text(encoding="utf-8")
+    for required in (
+        "openshell gateway start",
+        "openshell provider create",
+        "allowed_signers",
+        "Signing Key only",
+        "git fetch",
+    ):
+        assert required in bootstrap_text
 
 
 @pytest.mark.integration

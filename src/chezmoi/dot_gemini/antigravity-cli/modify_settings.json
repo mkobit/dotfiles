@@ -7,7 +7,7 @@
 {{- $agyMethod := dig "local" "bin" "agy" "installation_method" "none" . -}}
 {{- if ne $agyMethod "none" -}}
 {{-   $agAllow := list -}}
-{{-   $agDeny := concat (dig "permissions" "deny" (list) $config) (dig "permissions" "deny" (list) .) -}}
+{{-   $agDeny := concat (dig "permissions" "deny" (list) $config) (dig "gemini" "permissions" "deny" (list) .) -}}
 {{-   $agAsk := concat (dig "permissions" "ask" (list) $config) (dig "gemini" "permissions" "ask" (list) .) -}}
 {{-   $commands := dict -}}
 {{-   range $feature, $featureCommands := dig "ai" "command_policy" "host_commands" (dict) . -}}

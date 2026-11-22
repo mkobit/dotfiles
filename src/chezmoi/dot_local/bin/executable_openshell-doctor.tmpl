@@ -45,23 +45,23 @@ else
     pass "docker daemon is reachable"
 fi
 
-if [[ "{{ .chezmoi.os }}" == "linux" ]]; then
-    if [[ "${docker_info_out}" == *"rootless"* ]] || [[ "${DOCKER_HOST:-}" == *"/run/user/"* ]]; then
-        if command -v loginctl >/dev/null 2>&1; then
-            target_user="${USER:-{{ .chezmoi.username }}}"
-            linger_state="$(loginctl show-user "${target_user}" -p Linger --value 2>/dev/null || true)"
-            if [[ "${linger_state}" == "yes" ]]; then
-                pass "systemd user linger enabled for ${target_user} (rootless Docker Gateway persistence)"
-            else
-                fail "systemd user linger is not enabled for ${target_user} (run: loginctl enable-linger ${target_user})"
-            fi
+{{- if eq .chezmoi.os "linux" }}
+if [[ "${docker_info_out}" == *"rootless"* ]] || [[ "${DOCKER_HOST:-}" == *"/run/user/"* ]]; then
+    if command -v loginctl >/dev/null 2>&1; then
+        target_user="${USER:-{{ .chezmoi.username }}}"
+        linger_state="$(loginctl show-user "${target_user}" -p Linger --value 2>/dev/null || true)"
+        if [[ "${linger_state}" == "yes" ]]; then
+            pass "systemd user linger enabled for ${target_user} (rootless Docker Gateway persistence)"
         else
-            warn "loginctl not available to verify systemd user linger for rootless Docker"
+            fail "systemd user linger is not enabled for ${target_user} (run: loginctl enable-linger ${target_user})"
         fi
     else
-        info "rootless Docker not detected; skipping loginctl linger check"
+        warn "loginctl not available to verify systemd user linger for rootless Docker"
     fi
+else
+    info "rootless Docker not detected; skipping loginctl linger check"
 fi
+{{- end }}
 
 if command -v openshell >/dev/null 2>&1; then
     if openshell status >/dev/null 2>&1 && openshell gateway info >/dev/null 2>&1; then
