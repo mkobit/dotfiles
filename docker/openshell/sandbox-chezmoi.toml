@@ -177,9 +177,6 @@ installation_method = "none"
 [data.local_bin_tools.termbud]
 installation_method = "none"
 
-[data.local_bin_tools.sandboxr]
-installation_method = "none"
-
 [data.local_bin_tools.browser_sync]
 installation_method = "none"
 

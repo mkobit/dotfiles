@@ -194,7 +194,7 @@ installation_method = "mise"
 installation_method = "mise"
 
 # Git personal identity directive — turn on personal identity on this machine.
-# Identity values (name/email/signing_key) live in .chezmoidata/git.toml as
+# Identity values (name/email) live in .chezmoidata/git.toml as
 # data. Overlays restrict where personal applies by defining
 # `[data.git.personal.scopes]` as a label -> gitdir-pattern map (e.g.
 # `personal = "~/personal/"`); when any scope is present the renderer emits
@@ -203,6 +203,11 @@ installation_method = "mise"
 # repo — including fresh `git init` with no remote — picks up identity.
 [data.git.personal]
 enabled = true
+{{- /* Set the personal desktop defaults here. Overlays can set either signing format and key in their init config. */}}
+{{- if not (or (env "CI") (eq (env "GITHUB_ACTIONS") "true")) }}
+signing_format = "ssh"
+signing_key = ".ssh/desktop-commit-signing"
+{{- end }}
 
 # Packages & Frameworks Installation Methods
 [data.packages.ghostty]
@@ -257,7 +262,7 @@ installation_method = "dotfiles.uv"
 installation_method = "dotfiles.uv"
 
 [data.local_bin_tools.sandboxr]
-installation_method = "dotfiles.uv"
+installation_method = "uninstall"
 
 # Fonts Installation Methods
 [data.fonts.fira_mono]

@@ -1,8 +1,15 @@
+{{- $personal := dig "git" "personal" (dict) . }}
+{{- $signingKey := dig "signing_key" "" $personal }}
+{{- $signingFormat := dig "signing_format" "openpgp" $personal }}
 [user]
   # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-username
   name = {{ dig "git" "personal" "name" "" . | quote }}
   # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-useremail
   email = {{ dig "git" "personal" "email" "" . | quote }}
-  # Documentation: https://git-scm.com/docs/git-config#Documentation/git-config.txt-usersigningKey
-  signingkey = {{ dig "git" "personal" "signing_key" "" . }}
-
+{{- if $signingKey }}
+{{- if eq $signingFormat "ssh" }}
+  signingkey = {{ joinPath .chezmoi.destDir $signingKey | quote }}
+{{- else }}
+  signingkey = {{ $signingKey | quote }}
+{{- end }}
+{{- end }}

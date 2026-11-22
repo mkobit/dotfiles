@@ -62,7 +62,6 @@ def test_mise_and_editable_tool_use_configured_checkout_root(tmp_path):
         "termstatus",
         "transcribe",
         "termbud",
-        "sandboxr",
         "browser_sync",
         "fixture",
     )
