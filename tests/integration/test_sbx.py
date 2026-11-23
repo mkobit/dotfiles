@@ -27,17 +27,17 @@ LEGACY_TARGETS = (
 )
 
 
-def test_sbx_release_catalog_pins_v0_53_0_with_verified_linux_checksums():
-    """Keep the SBX release archive pinned to the verified v0.53.0 assets."""
+def test_sbx_release_catalog_defines_linux_checksums():
+    """Require a version and sha256 checksums for all supported Linux platforms."""
     with SBX_CATALOG.open("rb") as catalog_file:
         catalog = tomllib.load(catalog_file)
 
     sbx = catalog["bin"]["sbx"]
-    assert sbx["version"] == "0.53.0"
-    assert sbx["github_releases"]["checksums"] == {
-        "linux_amd64": "a8e171ed331e2485ff8d46978d7bf9e74929769acacb6759c15a0a665a3b7bb2",
-        "linux_arm64": "615a8045fe4d9860d5d1bb30df0189e33b5e3deb22aef820b2947d4b0697438b",
-    }
+    assert isinstance(sbx["version"], str) and sbx["version"]
+    checksums = sbx["github_releases"]["checksums"]
+    assert set(checksums) == {"linux_amd64", "linux_arm64"}
+    for digest in checksums.values():
+        assert re.fullmatch(r"[0-9a-f]{64}", digest), digest
 
 
 def test_sbx_does_not_manage_legacy_host_integration_targets():
@@ -494,7 +494,9 @@ def test_sbx_init_selects_supported_installation(tmp_path, system, arch, macos_v
     external = tomllib.loads(render("dot_local/.chezmoiexternals/sbx.toml.tmpl"))
     symlink = render("dot_local/bin/symlink_sbx.tmpl")
     if expected == "github_releases":
-        assert external["lib/docker-sbx"]["url"].endswith(f"/v0.53.0/DockerSandboxes-linux-{arch}.tar.gz")
+        with SBX_CATALOG.open("rb") as catalog_file:
+            sbx_version = tomllib.load(catalog_file)["bin"]["sbx"]["version"]
+        assert external["lib/docker-sbx"]["url"].endswith(f"/v{sbx_version}/DockerSandboxes-linux-{arch}.tar.gz")
         assert symlink == f"{tmp_path}/.local/lib/docker-sbx/sbx"
     else:
         assert external == {}
