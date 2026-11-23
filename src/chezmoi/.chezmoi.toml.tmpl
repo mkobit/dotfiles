@@ -15,20 +15,12 @@ installation_method = "chezmoi_external"
 [data.ai.plugin_bridge]
 default_hosts = ["claude", "codex", "cursor"]
 
-{{- $openshellSkillsEnabled := dig "ai" "skills" "openshell" "enabled" true . -}}
-{{- if not (env "CI") -}}
-{{-   $openshellSkillsEnabled = promptBoolOnce . "ai.skills.openshell.enabled" "Install NVIDIA OpenShell agent skills" true -}}
-{{- end }}
-[data.ai.skills.openshell]
-enabled = {{ $openshellSkillsEnabled }}
-
-{{- /* Keep absent entries so the Antigravity cleanup can remove old copies. */ -}}
-{{- $openshellSkillState := ternary "present" "absent" $openshellSkillsEnabled | quote }}
+# Overlays can select "absent" to remove installed copies.
 [data.ai.skills.external.openshell.skills]
-debug-inference = {{ $openshellSkillState }}
-debug-openshell-cluster = {{ $openshellSkillState }}
-generate-sandbox-policy = {{ $openshellSkillState }}
-openshell-cli = {{ $openshellSkillState }}
+debug-inference = "present"
+debug-openshell-cluster = "present"
+generate-sandbox-policy = "present"
+openshell-cli = "present"
 
 # BOM — static binaries strongly preferred over package managers.
 # github_releases = static binary download via chezmoi externals
