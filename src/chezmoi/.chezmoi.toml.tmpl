@@ -295,3 +295,10 @@ installation_method = "chezmoi"
 {{- end }}
 [data.secrets]
 stitch_api_key = {{ $stitchApiKey | quote }}
+
+{{- $sbxRestartOnUpdate := true -}}
+{{- if not (env "CI") -}}
+{{-   $sbxRestartOnUpdate = promptBoolOnce . "sbx.daemon.restart_on_update" "Restart Docker Sandboxes daemon automatically on sbx update (stops running sandboxes)" true -}}
+{{- end }}
+[data.sbx.daemon]
+restart_on_update = {{ $sbxRestartOnUpdate }}

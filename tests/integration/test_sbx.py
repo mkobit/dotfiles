@@ -87,18 +87,28 @@ def _render_sbx_settings_script(
     )
 
 
-def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int = 0, set_rc: int = 0):
+def _run_rendered_sbx_settings_script(
+    tmp_path: Path,
+    current: str,
+    get_rc: int = 0,
+    set_rc: int = 0,
+    version_json: str = "",
+    restart_on_update: bool | None = None,
+):
+    sbx_data: dict[str, object] = {
+        "settings": {
+            "kit_allowed_sources": {
+                "docker_hub": "docker.io/",
+                "github_docker": "github.com/docker/",
+            },
+        }
+    }
+    if restart_on_update is not None:
+        sbx_data["daemon"] = {"restart_on_update": restart_on_update}
     rendered = _render_sbx_settings_script(
         {
             "local": {"bin": {"sbx": {"installation_method": "github_releases"}}},
-            "sbx": {
-                "settings": {
-                    "kit_allowed_sources": {
-                        "docker_hub": "docker.io/",
-                        "github_docker": "github.com/docker/",
-                    },
-                }
-            },
+            "sbx": sbx_data,
         },
         destination=tmp_path,
     )
@@ -109,6 +119,15 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
     fake_sbx.write_text(
         "#!/bin/sh\n"
         'printf \'%s\\n\' "$*" >> "$SBX_TEST_CALLS"\n'
+        "if [ \"$1 $2\" = 'version --json' ]; then\n"
+        '  if [ -n "$SBX_TEST_VERSION_JSON" ]; then\n'
+        "    printf '%s\\n' \"$SBX_TEST_VERSION_JSON\"\n"
+        "  fi\n"
+        "  exit 0\n"
+        "fi\n"
+        "if [ \"$1 $2\" = 'daemon restart' ]; then\n"
+        "  exit 0\n"
+        "fi\n"
         "if [ \"$1 $2\" = 'settings get' ]; then\n"
         "  printf '%s\\n' \"$SBX_TEST_CURRENT\"\n"
         '  exit "$SBX_TEST_GET_RC"\n'
@@ -128,6 +147,7 @@ def _run_rendered_sbx_settings_script(tmp_path: Path, current: str, get_rc: int 
             "SBX_TEST_CURRENT": current,
             "SBX_TEST_GET_RC": str(get_rc),
             "SBX_TEST_SET_RC": str(set_rc),
+            "SBX_TEST_VERSION_JSON": version_json,
         }
     )
     result = subprocess.run(
@@ -192,6 +212,7 @@ def test_sbx_settings_script_preserves_every_declared_source_when_updating(tmp_p
 
     assert result.returncode == 0, result.stderr
     assert calls == [
+        "version --json",
         "settings get kit.allowedSources",
         'settings set kit.allowedSources ["docker.io/","github.com/docker/"]',
     ]
@@ -204,14 +225,14 @@ def test_sbx_settings_script_is_idempotent_for_matching_sources(tmp_path):
     )
 
     assert result.returncode == 0, result.stderr
-    assert calls == ["settings get kit.allowedSources"]
+    assert calls == ["version --json", "settings get kit.allowedSources"]
 
 
 def test_sbx_settings_script_skips_update_when_daemon_is_unavailable(tmp_path):
     result, calls = _run_rendered_sbx_settings_script(tmp_path, "", get_rc=1)
 
     assert result.returncode == 0, result.stderr
-    assert calls == ["settings get kit.allowedSources"]
+    assert calls == ["version --json", "settings get kit.allowedSources"]
     assert "Skipping SBX settings configuration" in result.stdout
 
 
@@ -220,10 +241,51 @@ def test_sbx_settings_script_skips_when_daemon_fails_during_update(tmp_path):
 
     assert result.returncode == 0, result.stderr
     assert calls == [
+        "version --json",
         "settings get kit.allowedSources",
         'settings set kit.allowedSources ["docker.io/","github.com/docker/"]',
     ]
     assert "Unable to configure kit.allowedSources" in result.stdout
+
+
+def test_sbx_settings_script_restarts_daemon_on_version_mismatch_by_default(tmp_path):
+    mismatch_json = json.dumps(
+        {
+            "client": {"version": "v0.54.0", "revision": "newrev"},
+            "server": {"state": "running", "version": "v0.53.0", "revision": "oldrev"},
+        }
+    )
+    result, calls = _run_rendered_sbx_settings_script(
+        tmp_path,
+        '["docker.io/", "github.com/docker/"]',
+        version_json=mismatch_json,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert calls == [
+        "version --json",
+        "daemon restart",
+        "settings get kit.allowedSources",
+    ]
+
+
+def test_sbx_settings_script_skips_daemon_restart_when_disabled(tmp_path):
+    mismatch_json = json.dumps(
+        {
+            "client": {"version": "v0.54.0", "revision": "newrev"},
+            "server": {"state": "running", "version": "v0.53.0", "revision": "oldrev"},
+        }
+    )
+    result, calls = _run_rendered_sbx_settings_script(
+        tmp_path,
+        '["docker.io/", "github.com/docker/"]',
+        version_json=mismatch_json,
+        restart_on_update=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert calls == ["version --json"]
+    assert "sbx.daemon.restart_on_update=false" in result.stdout
 
 
 def test_sbx_settings_script_skips_when_sbx_is_unavailable(tmp_path):

@@ -1,5 +1,6 @@
 {{- $method := dig "local" "bin" "sbx" "installation_method" "none" . -}}
 {{- $sourceMap := dig "sbx" "settings" "kit_allowed_sources" dict . -}}
+{{- $restartOnUpdate := dig "sbx" "daemon" "restart_on_update" true . -}}
 {{- if and (ne $method "none") $sourceMap -}}
 #!/usr/bin/env bash
 {{- $sources := list -}}
@@ -8,6 +9,7 @@
 {{- end }}
 {{- $desiredSources := $sources | toJson }}
 # sbx kit.allowedSources hash: {{ $desiredSources | sha256sum }}
+# sbx.daemon.restart_on_update: {{ $restartOnUpdate }}
 
 set -euo pipefail
 
@@ -20,7 +22,37 @@ if ! SBX="$(command -v sbx)"; then
     exit 0
 fi
 
-if ! current_sources="$("$SBX" settings get kit.allowedSources)"; then
+version_json="$("$SBX" version --json </dev/null 2>/dev/null || true)"
+if [[ -n "$version_json" ]] && command -v python3 >/dev/null 2>&1; then
+    if python3 -c '
+import json, sys
+try:
+    data = json.load(sys.stdin)
+except Exception:
+    sys.exit(1)
+client = data.get("client") or {}
+server = data.get("server") or {}
+if server.get("state") == "running" and (
+    client.get("version") != server.get("version")
+    or client.get("revision") != server.get("revision")
+):
+    sys.exit(0)
+sys.exit(1)
+' <<<"$version_json"; then
+        {{- if $restartOnUpdate }}
+        log_info "SBX client/daemon version mismatch detected; restarting daemon."
+        if ! printf 'y\n' | "$SBX" daemon restart; then
+            log_warn "Unable to restart SBX daemon. Skipping SBX settings configuration."
+            exit 0
+        fi
+        {{- else }}
+        log_warn "SBX daemon restart required after update (sbx.daemon.restart_on_update=false). Skipping SBX settings configuration."
+        exit 0
+        {{- end }}
+    fi
+fi
+
+if ! current_sources="$("$SBX" settings get kit.allowedSources </dev/null)"; then
     log_warn "Unable to read kit.allowedSources. Skipping SBX settings configuration."
     exit 0
 fi
