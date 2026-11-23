@@ -16,7 +16,7 @@ Merge only after required checks pass.
 - `src/chezmoi/` - Chezmoi templates and deployment configuration (the source of truth; `.chezmoiroot`).
 - `src/chezmoi/.chezmoidata/` - Modular configuration data (TOML).
 - `src/chezmoi/.chezmoidata/ai/skills/` - AI skill deployment catalog (pinned upstream skills installed via chezmoi externals).
-- `src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/` - Authored AI plugins, one native chezmoi folder per plugin; base skills live in `exact_mkobit-dotfiles/exact_skills/`.
+- `src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/` - Authored AI plugins, one native chezmoi folder per plugin; authored skills live in `exact_mkobit-dotfiles/exact_skills/` and `exact_code-writing/exact_skills/`.
 - `src/python/` - Local Python tools (uv workspace).
 
 ## Subagent delegation

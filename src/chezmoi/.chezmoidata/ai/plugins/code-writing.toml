@@ -1,0 +1,4 @@
+# Identity of the authored code-writing plugin.
+[ai.plugins.code-writing]
+description = "Code authoring and black-box testing guidance."
+author = "mkobit"

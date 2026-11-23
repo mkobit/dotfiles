@@ -62,3 +62,9 @@ content = """
 - Repositories that require modern web guidance must track `.agents/skills/modern-web-guidance/` and its installation in `skills-lock.json`.
 - Require `modern-web-guidance` as a local `package.json` devDependency so `bun x modern-web-guidance` works offline in under one second after dependency installation.
 - Respect `minimumReleaseAge`; do not bypass it globally."""
+
+[[ai.guidelines.sections]]
+content = """
+## Testing
+- Scope ambiguous or high-risk business constraints with the test-invariants skill before writing tests.
+- Write and expand tests with the black-box-testing skill from public contracts, data tables, and iterable inspectors without mirroring private implementation branches."""

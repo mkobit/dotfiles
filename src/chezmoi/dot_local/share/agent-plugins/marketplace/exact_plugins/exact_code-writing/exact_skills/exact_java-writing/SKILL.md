@@ -1,11 +1,11 @@
 ---
-name: modern-java-patterns
-description: Modernize imperative Java (instanceof/cast chains, null-check ladders, hand-rolled POJOs and defensive copies, manual ExecutorService/Future, index-based collection access, loops with mutable accumulators) to JDK 17/21/25 idioms. Covers records, sealed types, pattern matching, virtual threads, streams/Gatherers, sequenced collections, and Guava/AutoValue when already a dependency. Not for Spring or framework conventions; not for codebases below JDK 17.
+name: java-writing
+description: Write and modernize Java 17/21/25+ code using records, sealed types, pattern matching, virtual threads, streams/Gatherers, sequenced collections, and Guava/AutoValue when already a dependency. Replaces imperative instanceof/cast chains, null-check ladders, hand-rolled POJOs and defensive copies, manual ExecutorService/Future, index-based collection access, and mutable-accumulator loops. Not for Spring or framework conventions; not for codebases below JDK 17.
 ---
 
-# Modern Java patterns
+# Java writing
 
-Maps imperative symptoms to their modern JDK replacement, gated by minimum version.
+Guides writing new Java 17/21/25+ code and modernizing imperative Java symptoms, gated by minimum JDK version.
 
 ## Quick reference
 
