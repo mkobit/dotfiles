@@ -1,0 +1,66 @@
+{{- $method := dig "local" "bin" "sbx" "installation_method" "none" . -}}
+{{- $restartOnUpdate := dig "sbx" "daemon" "restart_on_update" true . -}}
+{{- if ne $method "none" -}}
+#!/usr/bin/env python3
+"""Restart the sbx daemon when client and running server versions differ."""
+# sbx.daemon.restart_on_update: {{ $restartOnUpdate }}
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+
+RESTART_ON_UPDATE = {{ if $restartOnUpdate }}True{{ else }}False{{ end }}
+
+
+def main() -> int:
+    path = f"{{ .chezmoi.destDir }}/.local/bin:{os.environ.get('PATH', '')}"
+    sbx = shutil.which("sbx", path=path)
+    if not sbx:
+        return 0
+
+    version_proc = subprocess.run(
+        [sbx, "version", "--json"],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if version_proc.returncode != 0 or not version_proc.stdout.strip():
+        return 0
+
+    try:
+        data = json.loads(version_proc.stdout)
+    except json.JSONDecodeError:
+        return 0
+
+    client = data.get("client") or {}
+    server = data.get("server") or {}
+    if server.get("state") != "running":
+        return 0
+    if client.get("version") == server.get("version") and client.get("revision") == server.get("revision"):
+        return 0
+
+    if not RESTART_ON_UPDATE:
+        print(
+            "WARN: SBX daemon restart required after update (sbx.daemon.restart_on_update=false). Skipping restart.",
+            file=sys.stderr,
+        )
+        return 0
+
+    print("INFO: SBX client/daemon version mismatch detected; restarting daemon.")
+    restart_proc = subprocess.run(
+        [sbx, "daemon", "restart"],
+        input="y\n",
+        text=True,
+        check=False,
+    )
+    if restart_proc.returncode != 0:
+        print("WARN: Unable to restart SBX daemon.", file=sys.stderr)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
+{{- end -}}
