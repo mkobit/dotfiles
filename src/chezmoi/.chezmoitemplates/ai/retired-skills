@@ -8,14 +8,16 @@
 {{- $retired := dict
       "docker-sandboxes" "2026-10-29"
       "example_skill" "2026-11-06"
+      "modern-java-patterns" "2026-11-22"
       "pr-reviewer" "2026-06-11"
       "typescript-expert" "2026-06-11" -}}
 {{- $names := keys $retired -}}
-{{- $bundle := dig "mkobit-dotfiles" (dict) (includeTemplate "ai/authored-plugins" . | fromJson) -}}
-{{- range $skills := dig "skills" (dict) $bundle -}}
-{{-   $names = concat $names $skills -}}
-{{- end -}}
-{{- range $path := dig "deselected" (list) $bundle -}}
-{{-   $names = append $names (base $path) -}}
+{{- range $_, $bundle := includeTemplate "ai/authored-plugins" . | fromJson -}}
+{{-   range $skills := dig "skills" (dict) $bundle -}}
+{{-     $names = concat $names $skills -}}
+{{-   end -}}
+{{-   range $path := dig "deselected" (list) $bundle -}}
+{{-     $names = append $names (base $path) -}}
+{{-   end -}}
 {{- end -}}
 {{- toJson ($names | uniq | sortAlpha) -}}

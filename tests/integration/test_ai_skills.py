@@ -15,8 +15,10 @@ DIRECT_SKILL_DIRS = [
     pytest.param(Path(".gemini/antigravity-cli/skills"), frozenset(), id="antigravity"),
 ]
 
-# Claude, Codex, and Cursor share one mkobit-dotfiles plugin folder; each reads its own manifest.
-PLUGIN_DIR = Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles")
+# Claude, Codex, and Cursor share each authored plugin folder; each reads its own manifest.
+PLUGINS_ROOT = Path(".local/share/agent-plugins/marketplace/plugins")
+AUTHORED_PLUGINS = ("mkobit-dotfiles", "code-writing")
+CODE_WRITING_SKILLS = {"black-box-testing", "java-writing", "test-invariants"}
 PLUGIN_HOSTS = ["claude", "codex", "cursor"]
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -94,20 +96,24 @@ def test_direct_skill_dir_deployed_and_valid(chezmoi_data, chezmoi_dest, relativ
 
 
 @pytest.mark.integration
+@pytest.mark.parametrize("plugin_name", AUTHORED_PLUGINS)
 @pytest.mark.parametrize("plugin_host", PLUGIN_HOSTS)
-def test_plugin_host_manifest_deployed_and_valid(chezmoi_dest, plugin_host):
-    """Every host reads its own manifest in the shared plugin folder, and no direct copies remain."""
-    plugin_dir = chezmoi_dest / PLUGIN_DIR
+def test_plugin_host_manifest_deployed_and_valid(chezmoi_dest, plugin_name, plugin_host):
+    """Every host reads its own manifest in each plugin folder, and no direct copies remain."""
+    plugin_dir = chezmoi_dest / PLUGINS_ROOT / plugin_name
     manifest = json.loads((plugin_dir / f".{plugin_host}-plugin/plugin.json").read_text(encoding="utf-8"))
-    assert manifest["name"] == "mkobit-dotfiles"
+    assert manifest["name"] == plugin_name
     assert manifest["version"].startswith("1.0.0+")
     assert manifest["author"] == {"name": "mkobit"}
     skills = manifest["skills"] if isinstance(manifest["skills"], list) else [manifest["skills"]]
     assert "./skills" in skills
     for path in skills:
         assert_entries_are_valid_skills(plugin_dir / path)
+    deployed_skill_names = {path.name for path in _entries(plugin_dir / "skills")}
+    if plugin_name == "code-writing":
+        assert deployed_skill_names == CODE_WRITING_SKILLS
     if plugin_host == "codex":
-        assert set(manifest["interface"]["capabilities"]) >= {path.name for path in _entries(plugin_dir / "skills")}
+        assert set(manifest["interface"]["capabilities"]) >= deployed_skill_names
     direct_skills_dir = chezmoi_dest / f".{plugin_host}" / "skills"
     for plugin_skill in _entries(plugin_dir / "skills"):
         assert not (direct_skills_dir / plugin_skill.name).exists(), (
@@ -116,20 +122,33 @@ def test_plugin_host_manifest_deployed_and_valid(chezmoi_dest, plugin_host):
 
 
 @pytest.mark.integration
-def test_codex_base_skill_display_name_and_id(chezmoi_dest):
+@pytest.mark.parametrize(
+    ("plugin_name", "skill_name", "display_name"),
+    [
+        ("mkobit-dotfiles", "beads", "Beads"),
+        ("code-writing", "java-writing", "Java writing"),
+        ("code-writing", "test-invariants", "Test invariants"),
+        ("code-writing", "black-box-testing", "Black-box testing"),
+    ],
+)
+def test_codex_base_skill_display_name_and_id(chezmoi_dest, plugin_name, skill_name, display_name):
     """The deployed skill retains its ID and includes the Codex display name."""
-    skill = chezmoi_dest / PLUGIN_DIR / "skills/beads"
-    assert 'display_name: "Beads"' in (skill / "agents/openai.yaml").read_text()
-    assert "name: beads" in (skill / "SKILL.md").read_text()
+    skill = chezmoi_dest / PLUGINS_ROOT / plugin_name / "skills" / skill_name
+    assert f'display_name: "{display_name}"' in (skill / "agents/openai.yaml").read_text()
+    assert f"name: {skill_name}" in (skill / "SKILL.md").read_text()
 
 
 @pytest.mark.integration
-def test_antigravity_plugin_manifest_deployed_and_valid(chezmoi_dest):
+@pytest.mark.parametrize("plugin_name", AUTHORED_PLUGINS)
+def test_antigravity_plugin_manifest_deployed_and_valid(chezmoi_dest, plugin_name):
     """Antigravity reads the plugin root manifest and its skills."""
-    manifest = json.loads((chezmoi_dest / PLUGIN_DIR / "plugin.json").read_text(encoding="utf-8"))
-    assert manifest["name"] == "mkobit-dotfiles"
+    plugin_dir = chezmoi_dest / PLUGINS_ROOT / plugin_name
+    manifest = json.loads((plugin_dir / "plugin.json").read_text(encoding="utf-8"))
+    assert manifest["name"] == plugin_name
     assert manifest["skills"] == ["./skills"]
     assert manifest["version"].startswith("1.0.0+")
+    if plugin_name == "code-writing":
+        assert {path.name for path in _entries(plugin_dir / "skills")} == CODE_WRITING_SKILLS
 
 
 @pytest.mark.integration
@@ -139,12 +158,14 @@ def test_marketplace_manifests_deployed_and_valid(chezmoi_dest):
     codex = json.loads((marketplace / ".agents/plugins/marketplace.json").read_text(encoding="utf-8"))
     assert codex["name"] == "dotfiles"
     codex_plugins = {plugin["name"]: plugin for plugin in codex["plugins"]}
-    assert codex_plugins["mkobit-dotfiles"]["source"]["path"] == "./plugins/mkobit-dotfiles"
+    for plugin_name in AUTHORED_PLUGINS:
+        assert codex_plugins[plugin_name]["source"]["path"] == f"./plugins/{plugin_name}"
     for host_path in (".claude-plugin/marketplace.json", ".cursor-plugin/marketplace.json"):
         data = json.loads((marketplace / host_path).read_text(encoding="utf-8"))
         assert data["name"] == "dotfiles"
         plugins = {plugin["name"]: plugin["source"] for plugin in data["plugins"]}
-        assert plugins["mkobit-dotfiles"] == "./plugins/mkobit-dotfiles"
+        for plugin_name in AUTHORED_PLUGINS:
+            assert plugins[plugin_name] == f"./plugins/{plugin_name}"
 
     superpowers_root = chezmoi_dest / ".local/share/agent-plugins/marketplaces/superpowers-marketplace"
     superpowers_agents = json.loads((superpowers_root / ".agents/plugins/marketplace.json").read_text(encoding="utf-8"))
@@ -165,9 +186,27 @@ async def test_host_skill_roots_tombstone_base_and_retired_skills():
         renders = {host: group.create_task(_render(relative)) for host, relative in templates.items()}
     rendered = {host: set(task.result().splitlines()) for host, task in renders.items()}
     for host, lines in rendered.items():
-        for name in ("beads", "technical-writing", "docker-sandboxes", "example_skill"):
+        for name in (
+            "beads",
+            "technical-writing",
+            "docker-sandboxes",
+            "example_skill",
+            "modern-java-patterns",
+            "java-writing",
+            "test-invariants",
+            "black-box-testing",
+        ):
             assert f"skills/{name}" in lines, (templates[host], name)
+    for host in ("claude", "codex"):
+        assert "plugins/cache/dotfiles/mkobit-dotfiles/*/skills/modern-java-patterns" in rendered[host]
     assert "plugins/local/mkobit-dotfiles" not in rendered["cursor"]
+
+
+@pytest.mark.integration
+def test_retired_modern_java_patterns_removed(chezmoi_dest):
+    """Retired modern-java-patterns paths are absent after apply."""
+    assert not (chezmoi_dest / PLUGINS_ROOT / "mkobit-dotfiles/skills/modern-java-patterns").exists()
+    assert not (chezmoi_dest / ".gemini/antigravity-cli/skills/modern-java-patterns").exists()
 
 
 GLOBAL_MODERN_WEB_PATHS = (
