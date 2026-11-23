@@ -196,6 +196,28 @@ All repository changes below must execute in a dedicated git worktree branched f
 | **Phase 1 (Sandbox layer & pilot)** | Add `sandbox-chezmoi.toml`, standalone `/sandbox` builder Dockerfile, SSH agent signing gitconfig updates, `openshell` skills/docs, and portable pilot `policy.yaml`. | `/sandbox` OCI layer builds without host leaks; sandboxed agent commits with SSH signing and pushes via `gh` provider. |
 | **Phase 2 (`sbx` retirement, deferred)** | Move `sbx` grants to `[ai.command_policy.retired_commands]`, remove `sbx` chezmoi scripts/templates/CI checks/skills, and decouple `exact_repo-bootstrap` / `exact_worker-handoff`. Deferred while `sbx` and `openshell` coexist. | Zero `sbx` references remain in active templates or CI; `pytest`, `ruff`, `ty`, and `shellcheck` pass. |
 
+### WSL MicroVM pilot
+
+On 2026-11-23, the stock Ubuntu MicroVM test passed on the Linux x86-64 WSL 2 host with OpenShell 0.1.9.
+The standalone Gateway and VM driver archives matched the published SHA-256 digests.
+The test used a temporary Gateway on `127.0.0.1:17671` with separate CLI configuration, state, and TLS credentials.
+The CLI reported mutual TLS authentication, the sandbox supervisor reported ready, and `id` exited with code `0` and returned `uid=1000(ubuntu) gid=1000(ubuntu) groups=1000(ubuntu)`.
+The test used `nvcr.io/nvidia/base/ubuntu:24.04` and the default policy with no providers or host mounts.
+
+The first host run failed during root disk formatting because the test's `PATH` excluded `/usr/sbin`.
+The retry used fresh test state and the installed `mke2fs` 1.47.0.
+The VM driver used the local Docker engine to export the Ubuntu image root filesystem.
+The test stopped the temporary Gateway and driver after the run.
+Keep the managed OpenShell install gated by `[data.local.bin.openshell].installation_method` in the `chezmoi init` configuration.
+The standalone Gateway and VM driver were temporary pilot binaries.
+
+The next checks are the `chezmoi` sandbox image and the two-session test.
+Define the session topology and its pass criteria before running the two-session test.
+Phase 1 still requires evidence that the `/sandbox` image builds without host data and that an agent can sign a commit with SSH and push through the `gh` provider.
+Keep SBX available during the pilot.
+
+[OpenShell 0.1.9 release assets](https://github.com/ai-openshell/openshell/releases/expanded_assets/v0.1.9) · [MicroVM Gateway configuration](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/gateways/configuration#microvm)
+
 ### Target files to create or modify
 
 #### 1. `src/chezmoi/.chezmoi.toml.tmpl` (Modify)
