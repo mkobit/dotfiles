@@ -211,8 +211,19 @@ The test stopped the temporary Gateway and driver after the run.
 Keep the managed OpenShell install gated by `[data.local.bin.openshell].installation_method` in the `chezmoi init` configuration.
 The standalone Gateway and VM driver were temporary pilot binaries.
 
-The next checks are the `chezmoi` sandbox image and the two-session test.
-Define the session topology and its pass criteria before running the two-session test.
+On 2026-11-24 UTC, the `chezmoi` sandbox image built from tracked files at `0054961e` and ran in a WSL MicroVM.
+The guest ran as UID 1000, had the sandbox Git configuration, had no `/sandbox/.claude.json`, and ran Codex 0.169.0.
+The guest command exited with code `0`.
+
+The two-session check used separate MicroVMs with the same image.
+With simultaneous launch requests, one guest ran and the other exited during provisioning.
+The libkrun log reported `Failure during vcpu run: Bad address (os error 14)`.
+With staggered launches, both guests reached ready, ran Codex 0.169.0, and kept different values at the same guest file path.
+Their commands overlapped for 10 seconds and both exited with code `0`.
+Simultaneous startup reliability remains open.
+
+The managed MicroVM Gateway still needs a host install and lifecycle design.
+The OpenShell 0.1.9 CLI has no `openshell gateway start` command.
 Phase 1 still requires evidence that the `/sandbox` image builds without host data and that an agent can sign a commit with SSH and push through the `gh` provider.
 Keep SBX available during the pilot.
 
