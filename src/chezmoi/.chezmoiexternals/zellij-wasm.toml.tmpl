@@ -1,7 +1,14 @@
-{{- $releaseBase := dig "github_releases" "base_url" "https://github.com" . -}}
+{{- $releaseBase := dig "zellij" "release_base_url" (dig "github_releases" "base_url" "https://github.com" .) . -}}
 {{- range $name, $plugin := .zellij.wasm_plugins }}
+{{-   if not (regexMatch "^[a-fA-F0-9]{64}$" (dig "sha256" "" $plugin)) }}
+{{-     fail (printf "Zellij WASM plugin %s requires a SHA-256 checksum" $name) }}
+{{-   end }}
+{{-   $url := dig "url" "" $plugin }}
+{{-   if not $url }}
+{{-     $url = printf "%s/%s/releases/download/%s/%s.wasm" $releaseBase $plugin.repository $plugin.version $name }}
+{{-   end }}
 [".config/zellij/plugins/{{ $name }}.wasm"]
 type = "file"
-url = {{ printf "%s/%s/releases/download/%s/%s.wasm" $releaseBase $plugin.repository $plugin.version $name | quote }}
+url = {{ $url | quote }}
 checksum.sha256 = {{ $plugin.sha256 | quote }}
 {{- end }}
