@@ -1,7 +1,5 @@
-{{- $signingKey := dig "ai" "sandbox" "signing_key" "" . -}}
 # Global git config used inside OpenShell sandboxes via GIT_CONFIG_GLOBAL.
-# Inherits the regular config, then overrides signing to use a dedicated
-# agent signing-only SSH key when configured, or disables signing when absent.
+# A signing session sets the signing configuration in its guest clone.
 [include]
 	path = {{ .chezmoi.destDir }}/.dotfiles/git/config
 [gpg]
@@ -9,16 +7,7 @@
 [gpg "ssh"]
 	program = ssh-keygen
 	defaultKeyCommand =
-{{- if $signingKey }}
-[user]
-	signingkey = {{ $signingKey }}
-[commit]
-	gpgsign = true
-[tag]
-	gpgSign = true
-{{- else }}
 [commit]
 	gpgsign = false
 [tag]
 	gpgSign = false
-{{- end }}

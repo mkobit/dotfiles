@@ -1,4 +1,4 @@
-# Narrow policy for an explicit signed-bundle push to mkobit/dotfiles.
+# Narrow policy for an explicit signed commit push to mkobit/dotfiles.
 version: 1
 
 filesystem_policy:
