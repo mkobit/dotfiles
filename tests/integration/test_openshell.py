@@ -21,7 +21,7 @@ ZSH_CONFIG_TEMPLATE = CHEZMOI_SOURCE / "dot_dotfiles" / "zsh" / "config.zsh.tmpl
 SANDBOX_GITCONFIG_TEMPLATE = CHEZMOI_SOURCE / "dot_config" / "ai-policy" / "git" / "sandbox.gitconfig.tmpl"
 SANDBOX_CHEZMOI_CONFIG = REPO_ROOT / "docker" / "openshell" / "sandbox-chezmoi.toml"
 SANDBOX_DOCKERFILE = REPO_ROOT / "docker" / "openshell" / "Dockerfile"
-OPENSHELL_POLICY = REPO_ROOT / ".openshell" / "policy.yaml"
+GITHUB_PUSH_POLICY = REPO_ROOT / "docker" / "openshell" / "github-push.yaml"
 OPENSHELL_SKILL_DIR = (
     CHEZMOI_SOURCE
     / "dot_local"
@@ -346,37 +346,8 @@ def test_openshell_doctor_fails_when_linger_disabled_on_rootless_linux(tmp_path:
     assert "systemd user linger is not enabled" in result.stderr
 
 
-def test_sandbox_gitconfig_enables_ssh_signing_when_key_configured(tmp_path: Path) -> None:
-    key_path = "/sandbox/.agent-signing/id_ed25519"
-    rendered = _render_template(
-        SANDBOX_GITCONFIG_TEMPLATE,
-        {"ai": {"sandbox": {"signing_key": key_path}}},
-        destination=tmp_path,
-    )
-    assert rendered.returncode == 0, rendered.stderr
-    assert f"path = {tmp_path}/.dotfiles/git/config" in rendered.stdout
-    assert "format = ssh" in rendered.stdout
-    assert "program = ssh-keygen" in rendered.stdout
-    assert "defaultKeyCommand =" in rendered.stdout
-    assert f"signingkey = {key_path}" in rendered.stdout
-    assert "gpgsign = true" in rendered.stdout
-    assert "gpgSign = true" in rendered.stdout
-    assert "sandboxr" not in rendered.stdout
-
-
-@pytest.mark.parametrize(
-    "override_data",
-    [
-        {},
-        {"ai": {}},
-        {"ai": {"sandbox": {}}},
-        {"ai": {"sandbox": {"signing_key": ""}}},
-    ],
-)
-def test_sandbox_gitconfig_disables_signing_when_key_omitted_or_empty(
-    tmp_path: Path,
-    override_data: dict,
-) -> None:
+@pytest.mark.parametrize("override_data", [{}, {"ai": {"sandbox": {"signing_key": "/tmp/old-key"}}}])
+def test_sandbox_gitconfig_requires_an_explicit_signing_session(tmp_path: Path, override_data: dict) -> None:
     rendered = _render_template(
         SANDBOX_GITCONFIG_TEMPLATE,
         override_data,
@@ -408,7 +379,6 @@ def test_sandbox_chezmoi_config_disables_host_only_features() -> None:
     assert data["ai"]["plugins"]["superpowers"]["installation_method"] == "chezmoi_external"
     assert data["ai"]["plugins"]["egm"]["installation_method"] == "chezmoi_external"
     assert data["ai"]["plugin_bridge"]["default_hosts"] == ["claude", "codex"]
-    assert not data["ai"].get("sandbox", {}).get("signing_key")
     assert data["git"]["personal"]["enabled"] is True
     assert data["git_hooks"]["backend"] == "config"
     assert data["git_hooks"]["pre_commit"]["installation_method"] == "none"
@@ -442,7 +412,7 @@ def test_sandbox_chezmoi_config_disables_host_only_features() -> None:
         assert data["local"]["bin"][enabled_bin]["installation_method"] == "github_releases"
 
 
-def test_sandbox_dockerfile_and_policy_define_isolated_sandbox_layer() -> None:
+def test_sandbox_dockerfile_defines_isolated_sandbox_layer() -> None:
     dockerfile = SANDBOX_DOCKERFILE.read_text(encoding="utf-8")
     base, build_stages = dockerfile.split("\nFROM base AS builder\n", maxsplit=1)
     builder, final = build_stages.split("\nFROM base\n", maxsplit=1)
@@ -462,20 +432,25 @@ def test_sandbox_dockerfile_and_policy_define_isolated_sandbox_layer() -> None:
         "WORKDIR /sandbox",
     ]
 
-    policy = yaml.safe_load(OPENSHELL_POLICY.read_text(encoding="utf-8"))
-    rw_paths = set(policy["filesystem_policy"]["read_write"])
-    ro_paths = set(policy["filesystem_policy"]["read_only"])
-    assert {
-        "/sandbox/workspace",
-        "/tmp",
-        "/sandbox/.claude",
-        "/sandbox/.codex",
-        "/sandbox/.gemini",
-    } <= rw_paths
-    assert "/sandbox/.agent-signing" in ro_paths
-    assert "/sandbox/.agent-signing" not in rw_paths
-    assert policy["process"]["seccomp"]["enabled"] is True
-    assert policy["network_policies"]["default_action"] == "deny"
+
+def test_github_push_policy_limits_access_to_git_transport() -> None:
+    policy = yaml.safe_load(GITHUB_PUSH_POLICY.read_text(encoding="utf-8"))
+    assert set(policy["filesystem_policy"]["read_write"]) == {"/tmp", "/dev/null"}
+    assert "/sandbox" in policy["filesystem_policy"]["read_only"]
+    assert policy["landlock"]["compatibility"] == "hard_requirement"
+
+    (network_policy,) = policy["network_policies"].values()
+    assert network_policy["binaries"] == [{"path": "/usr/bin/git"}]
+    (endpoint,) = network_policy["endpoints"]
+    assert endpoint["host"] == "github.com"
+    assert endpoint["port"] == 443
+    assert endpoint["protocol"] == "rest"
+    assert endpoint["enforcement"] == "enforce"
+    assert {(rule["allow"]["method"], rule["allow"]["path"]) for rule in endpoint["rules"]} == {
+        ("GET", "/mkobit/dotfiles.git/info/refs*"),
+        ("POST", "/mkobit/dotfiles.git/git-upload-pack"),
+        ("POST", "/mkobit/dotfiles.git/git-receive-pack"),
+    }
 
 
 def test_openshell_skill_and_bootstrap_docs_exist_and_follow_metadata_contract() -> None:
@@ -484,8 +459,7 @@ def test_openshell_skill_and_bootstrap_docs_exist_and_follow_metadata_contract()
     assert frontmatter["name"] == "openshell-sandboxes"
     assert "allowed-tools" not in frontmatter
     assert isinstance(frontmatter["description"], str) and frontmatter["description"].strip()
-    assert "policy.yaml" in skill_text
-    assert "/sandbox/workspace" in skill_text
+    assert "docs/openshell-bootstrap.md" in skill_text
 
     openai_meta = yaml.safe_load((OPENSHELL_SKILL_DIR / "exact_agents" / "openai.yaml").read_text(encoding="utf-8"))
     assert openai_meta["interface"]["display_name"] == "OpenShell sandboxes"
