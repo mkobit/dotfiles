@@ -135,6 +135,8 @@ def decode_payload(raw: Mapping[str, object]) -> AgyPayload:
     plan = mapping(raw.get("plan"))
     confirmation = raw.get("confirmation_pending")
     if confirmation is None:
+        confirmation = raw.get("tool_confirmation_pending")
+    if confirmation is None:
         confirmation = mapping(raw.get("confirmation")).get("pending")
     return AgyPayload(
         normalized_text(raw.get("agent_state")) or "idle",
@@ -144,9 +146,11 @@ def decode_payload(raw: Mapping[str, object]) -> AgyPayload:
         normalized_text(model.get("effort"))
         or normalized_text(model.get("reasoning_effort"))
         or normalized_text(raw.get("effort")),
-        normalized_text(raw.get("execution_mode")) or normalized_text(raw.get("mode")),
+        normalized_text(raw.get("execution_mode"))
+        or normalized_text(raw.get("cycle_mode"))
+        or normalized_text(raw.get("mode")),
         normalized_text(plan.get("tier")) or normalized_text(raw.get("plan_tier")),
-        normalized_text(raw.get("vim_mode")),
+        normalized_text(raw.get("vim_mode")) or normalized_text(mapping(raw.get("vim")).get("mode")),
         cost_value(raw.get("cost")),
         max(1, integer(raw.get("terminal_width")) or 80),
         decode_quotas(mapping(raw.get("quota"))),
