@@ -220,7 +220,7 @@ jobs:
 
       - name: Run chezmoi apply
         id: chezmoi-apply
-        timeout-minutes: 20
+        timeout-minutes: 15
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GOMAXPROCS: "1"
