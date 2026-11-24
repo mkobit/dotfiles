@@ -1,0 +1,7 @@
+{{- $releaseBase := dig "github_releases" "base_url" "https://github.com" . -}}
+{{- range $name, $plugin := .zellij.wasm_plugins }}
+[".config/zellij/plugins/{{ $name }}.wasm"]
+type = "file"
+url = {{ printf "%s/%s/releases/download/%s/%s.wasm" $releaseBase $plugin.repository $plugin.version $name | quote }}
+checksum.sha256 = {{ $plugin.sha256 | quote }}
+{{- end }}

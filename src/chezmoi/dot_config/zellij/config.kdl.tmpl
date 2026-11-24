@@ -11,8 +11,17 @@
   (must be separate since clear-defaults applies to the whole block).
   Custom modes unsupported until: https://github.com/zellij-org/zellij/issues/248
 */ -}}
+{{- $roomPath := printf "file:%s/.config/zellij/plugins/room.wasm" .chezmoi.destDir | includeTemplate "kdl/value" -}}
+{{- $roomBind := printf `bind "Ctrl y" {
+            LaunchOrFocusPlugin %s {
+                floating true
+                ignore_case true
+                quick_jump true
+            }
+        }` $roomPath -}}
+{{- $modes := mergeOverwrite (dict "normal" (dict "keybinds" (dict "room" $roomBind))) (dig "zellij" "modes" (dict) .) -}}
 {{- $normalModes := dict -}}
-{{- range $mode, $modeData := (dig "zellij" "modes" (dict) .) -}}
+{{- range $mode, $modeData := $modes -}}
 {{-   if and (dig "keybinds" (dict) $modeData) (not (dig "clear_defaults" false $modeData)) -}}
 {{-     $_ := set $normalModes $mode $modeData -}}
 {{-   end -}}
@@ -33,7 +42,7 @@ keybinds {
     }
 {{- end }}
 }
-{{- range $mode, $modeData := (dig "zellij" "modes" (dict) .) }}
+{{- range $mode, $modeData := $modes }}
 {{-   $keybinds := dig "keybinds" (dict) $modeData }}
 {{-   if and $keybinds (dig "clear_defaults" false $modeData) }}
 keybinds clear-defaults=true {
