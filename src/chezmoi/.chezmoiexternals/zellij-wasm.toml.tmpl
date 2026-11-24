@@ -1,5 +1,5 @@
 {{- $releaseBase := dig "zellij" "release_base_url" (dig "github_releases" "base_url" "https://github.com" .) . -}}
-{{- range $name, $plugin := .zellij.wasm_plugins }}
+{{- range $name, $plugin := .zellij.plugin_artifacts }}
 {{-   if not (regexMatch "^[a-fA-F0-9]{64}$" (dig "sha256" "" $plugin)) }}
 {{-     fail (printf "Zellij WASM plugin %s requires a SHA-256 checksum" $name) }}
 {{-   end }}

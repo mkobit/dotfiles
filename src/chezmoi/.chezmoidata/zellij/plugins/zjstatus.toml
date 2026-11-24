@@ -1,0 +1,4 @@
+[zellij.plugin_artifacts.zjstatus]
+repository = "dj95/zjstatus"
+version = "v0.25.0"
+sha256 = "282ceab219e56e1908c9fac33907241fe6c3e1ef7d85faab3e5f438cef87b8fe"

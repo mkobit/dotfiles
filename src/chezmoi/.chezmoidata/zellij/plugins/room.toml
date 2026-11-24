@@ -1,12 +1,7 @@
-[zellij.wasm_plugins.room]
+[zellij.plugin_artifacts.room]
 repository = "rvcas/room"
 version = "v1.2.2"
 sha256 = "8f79a67fc9e3655c22f18f5e9c50560ff3053cf45d85ad28445de71e3c54f307"
-
-[zellij.wasm_plugins.zjstatus]
-repository = "dj95/zjstatus"
-version = "v0.25.0"
-sha256 = "282ceab219e56e1908c9fac33907241fe6c3e1ef7d85faab3e5f438cef87b8fe"
 
 [zellij.modes.normal.plugin_shortcuts.room]
 key = "Ctrl y"
