@@ -1,0 +1,4 @@
+[ai.skills.external.openshell]
+repo = "NVIDIA/OpenShell"
+ref = "ce58cf8e9b953281352d98a637e41616295b1318" # v0.1.9
+sha256 = "19510ae38d60bdeac5007807bf622e5d70aebf88c7e2fb0db4b8c902d5cdc54a"

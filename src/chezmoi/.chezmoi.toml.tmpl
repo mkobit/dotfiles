@@ -15,6 +15,13 @@ installation_method = "chezmoi_external"
 [data.ai.plugin_bridge]
 default_hosts = ["claude", "codex", "cursor"]
 
+# Overlays can select "absent" to remove installed copies.
+[data.ai.skills.external.openshell.skills]
+debug-inference = "present"
+debug-openshell-cluster = "present"
+generate-sandbox-policy = "present"
+openshell-cli = "present"
+
 # BOM — static binaries strongly preferred over package managers.
 # github_releases = static binary download via chezmoi externals
 # homebrew        = fallback where no static binary exists for the platform
