@@ -243,15 +243,17 @@ function M.register(title, action)
     M.actions[#M.actions + 1] = { title = title, action = action }
 end
 
--- Put the cursor in the target field before opening the Macros menu.
+-- Put the cursor in the target field before opening the menu.
 -- Capture that field and stop if focus cannot be restored.
 function M.startMenu(api)
     api = api or hs
     if not api.menubar then return nil end
+    local icon = api.image.imageFromPath(api.processInfo.bundlePath .. "/Contents/Resources/statusicon.pdf")
+    if not icon then return nil end
     if M.menu then M.menu:delete() end
     M.menu = api.menubar.new()
     if not M.menu then return nil end
-    M.menu:setTitle("Macros")
+    M.menu:setIcon(icon, true)
     M.menu:setMenu(function()
         local app = api.application.frontmostApplication()
         local system = api.axuielement.systemWideElement()
@@ -275,8 +277,13 @@ function M.startMenu(api)
                 end,
             }
         end
+        items[#items + 1] = { title = "-" }
+        items[#items + 1] = { title = "Console", fn = function() api.openConsole() end }
+        items[#items + 1] = { title = "Reload config", fn = function() api.reload() end }
+        items[#items + 1] = { title = "Preferences", fn = function() api.openPreferences() end }
         return items
     end)
+    api.menuIcon(false)
     return M.menu
 end
 
