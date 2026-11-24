@@ -322,7 +322,7 @@ jobs:
 
       - name: Publish test results and durations
         if: ${{ !cancelled() }}
-        uses: mikepenz/action-junit-report@v6.6.1
+        uses: mikepenz/action-junit-report@v6.7.0
         with:
           report_paths: ${{ runner.temp }}/integration-reports/*.xml
           skip_annotations: true
