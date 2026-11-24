@@ -37,6 +37,10 @@ case "$name" in
         fi
         ;;
     apt-get)
+        printf 'raw apt output: %s\n' "$*"
+        if [[ "$TEST_APT_HANG_SECONDS" != 0 ]]; then
+            /bin/sleep "$TEST_APT_HANG_SECONDS"
+        fi
         if [[ "$1" = install && "$TEST_FAIL_FIRST_INSTALL" = 1 && ! -f "$TEST_INSTALL_FAILED" ]]; then
             touch "$TEST_INSTALL_FAILED"
             exit 100
@@ -72,6 +76,9 @@ esac
         installed_packages=(),
         fail_first_install=False,
         add_succeed_at=1,
+        ci=True,
+        apt_hang_seconds=0,
+        timeout_seconds=None,
     ):
         data = {
             "chezmoi": {"os": "linux"},
@@ -115,7 +122,6 @@ esac
             **os.environ,
             "PATH": f"{commands}:/usr/bin:/bin",
             "XDG_STATE_HOME": str(tmp_path / "state"),
-            "CI": "1",
             "TEST_LOG": str(log),
             "TEST_INSTALLED": str(int(installed)),
             "TEST_INSTALLED_PACKAGES": " ".join(installed_packages),
@@ -126,11 +132,90 @@ esac
             "TEST_ADD_ATTEMPTS": str(tmp_path / "add-attempts"),
             "TEST_ADD_SUCCEED_AT": str(add_succeed_at),
             "TEST_APT_EXIT": str(apt_exit),
+            "TEST_APT_HANG_SECONDS": str(apt_hang_seconds),
         }
-        result = subprocess.run(["bash", str(script)], env=env, capture_output=True, text=True, check=False)
+        if ci:
+            env["CI"] = "1"
+            env["CHEZMOI_APT_REPORT_DIR"] = str(tmp_path / "apt-report")
+        command = ["bash", str(script)]
+        try:
+            result = subprocess.run(
+                command,
+                env=env,
+                capture_output=True,
+                text=True,
+                check=False,
+                timeout=timeout_seconds,
+            )
+        except subprocess.TimeoutExpired as error:
+            stdout = error.stdout.decode() if isinstance(error.stdout, bytes) else error.stdout or ""
+            stderr = error.stderr.decode() if isinstance(error.stderr, bytes) else error.stderr or ""
+            result = subprocess.CompletedProcess(command, 124, stdout, stderr)
         return result, log.read_text().splitlines(), tmp_path / "state/chezmoi/apt-packages.hash"
 
     return run
+
+
+def test_ci_apt_commands_write_timing_and_raw_output_to_report(apt_script):
+    result, calls, cache = apt_script(
+        packages=BATCH_PACKAGES,
+        installed=False,
+        fail_first_install=True,
+    )
+    assert result.returncode == 0, result.stderr
+    assert [call for call in calls if call.startswith("apt-get ")] == [
+        "apt-get install -y socat strace chafa",
+        "apt-get update",
+        "apt-get install -y socat strace chafa",
+    ]
+    report_dir = cache.parents[2] / "apt-report"
+    report = sorted(report_dir.glob("apt-command-*.log"))
+    assert len(report) == 3
+    assert "raw apt output: install -y socat strace chafa" in report[0].read_text()
+    assert "raw apt output: update" in report[1].read_text()
+    assert "raw apt output: install -y socat strace chafa" in report[2].read_text()
+    assert result.stdout.count("APT command started:") == 3
+    assert "APT command finished:" in result.stdout
+    assert "elapsed_seconds=" in result.stdout
+    assert "result=0" in result.stdout
+    assert "raw apt output" not in result.stdout
+
+
+def test_ci_apt_failure_shows_raw_output_tail_and_result(apt_script):
+    result, _, cache = apt_script(packages=BATCH_PACKAGES, installed=False, apt_exit=100)
+    assert result.returncode != 0
+    assert "raw apt output: install -y socat strace chafa" in result.stderr
+    assert "result=100" in result.stdout
+    assert not cache.exists()
+
+
+def test_non_ci_apt_output_remains_visible(apt_script):
+    result, _, _ = apt_script(packages=BATCH_PACKAGES, installed=False, ci=False)
+    assert result.returncode == 0
+    assert "raw apt output: install -y socat strace chafa" in result.stdout
+    assert "APT command started:" not in result.stdout
+
+
+def test_non_ci_apt_failure_keeps_command_status(apt_script):
+    result, _, cache = apt_script(packages=BATCH_PACKAGES, installed=False, apt_exit=100, ci=False)
+    assert result.returncode == 100
+    assert "raw apt output: install -y socat strace chafa" in result.stdout
+    assert "APT command started:" not in result.stdout
+    assert not cache.exists()
+
+
+def test_ci_apt_hang_emits_start_record_before_timeout(apt_script):
+    result, _, cache = apt_script(
+        packages=BATCH_PACKAGES,
+        installed=False,
+        apt_hang_seconds=5,
+        timeout_seconds=0.2,
+    )
+    assert result.returncode == 124
+    assert "APT command started:" in result.stdout
+    assert "APT command finished:" not in result.stdout
+    report = cache.parents[2] / "apt-report/apt-command-1.log"
+    assert "raw apt output: install -y socat strace chafa" in report.read_text()
 
 
 @pytest.mark.parametrize(
