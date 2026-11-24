@@ -1,0 +1,4 @@
+{{- $openshell := dig "local" "bin" "openshell" (dict) . -}}
+{{- if and (eq .chezmoi.os "linux") (eq .chezmoi.arch "amd64") (eq (dig "installation_method" "none" $openshell) "github_releases") (eq (dig "microvm" false $openshell) true) -}}
+true
+{{- end -}}

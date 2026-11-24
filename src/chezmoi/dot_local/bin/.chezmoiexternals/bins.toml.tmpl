@@ -31,3 +31,10 @@
 {{ includeTemplate "bin/direct-release-entry.tmpl" (dict "name" $name "tool" $tool "platform" $platform) }}
 {{-   end -}}
 {{- end -}}
+
+{{- if includeTemplate "openshell/microvm-enabled" . -}}
+{{-   $microvm := .bin.openshell.microvm -}}
+{{-   range $name, $release := $microvm.releases -}}
+{{ includeTemplate "bin/github-releases-entry.tmpl" (dict "name" $name "tool" (dict "version" $microvm.version "github_releases" $release) "platform" $platform "base" $base) }}
+{{-   end -}}
+{{- end -}}

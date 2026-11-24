@@ -1,0 +1,21 @@
+{{- $destDir := .chezmoi.destDir | replace "%" "%%" -}}
+{{- $stateDir := printf "%s/.local/state/openshell-microvm" $destDir -}}
+{{- $gateway := printf ":%s/.local/bin/openshell-gateway" $destDir -}}
+[Unit]
+Description=OpenShell MicroVM Gateway
+
+[Service]
+UMask=0077
+Environment={{ printf "PATH=%s/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin" $destDir | quote }}
+Environment={{ printf "XDG_CONFIG_HOME=%s/config" $stateDir | quote }}
+Environment={{ printf "XDG_STATE_HOME=%s" $stateDir | quote }}
+Environment={{ printf "OPENSHELL_LOCAL_TLS_DIR=%s/tls" $stateDir | quote }}
+UnsetEnvironment=OPENSHELL_DB_URL
+ExecStartPre=:/usr/bin/install -d -m 0700 {{ $stateDir | quote }}
+ExecStartPre={{ $gateway | quote }} generate-certs --output-dir {{ printf "%s/tls" $stateDir | quote }} --server-san 127.0.0.1 --server-san host.openshell.internal
+ExecStart={{ $gateway | quote }} --config {{ printf "%s/.config/openshell/microvm-gateway.toml" $destDir | quote }} --health-port 0
+Restart=on-failure
+RestartSec=3s
+
+[Install]
+WantedBy=default.target

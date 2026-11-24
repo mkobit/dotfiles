@@ -4,29 +4,48 @@ This guide covers host initialization, credential provider setup, dedicated agen
 
 ## 1. Host installation and Gateway startup
 
-On an existing WSL host that uses this repository's init template, run `chezmoi init` to refresh the configuration for the Windows font, Windows Terminal, and `.wslconfig` hooks.
-If you use an overlay, set `windows_integration = true` under `[data.wsl]` in its init template to enable these hooks on the WSL host.
-The sandbox build leaves this setting unset.
+Run `chezmoi init` to refresh the host install settings.
+When `[data.local.bin.openshell].installation_method` is `"github_releases"`, `chezmoi apply` installs the OpenShell CLI, doctor, shell completions, and host command policy.
 
-When `[data.local.bin.openshell].installation_method` is `"github_releases"` (the default on Linux `amd64`/`arm64` and macOS `darwin/arm64`), `chezmoi apply` installs `~/.local/bin/openshell`, `~/.local/bin/openshell-doctor`, shell completions, and host-gated command policy rules.
+The base init template also sets `[data.local.bin.openshell].microvm = true` on WSL x86-64.
+An overlay must set this key in its own init template to enable the standalone Gateway and VM driver.
+The MicroVM Gateway requires read and write access to `/dev/kvm`, the `mke2fs`, `debugfs`, and `e2fsck` tools, and a reachable Docker engine for local image export.
 
-1. Apply dotfiles on the host:
-
-   ```bash
-   chezmoi apply
-   ```
-
-2. On Linux hosts running rootless Docker, enable systemd user linger so the Docker-hosted OpenShell Gateway container survives SSH logout:
+1. Apply these targets on the WSL MicroVM host.
 
    ```bash
-   loginctl enable-linger "$USER"
+   chezmoi diff ~/.local/bin/openshell ~/.local/bin/openshell-doctor \
+     ~/.local/bin/openshell-gateway ~/.local/bin/openshell-driver-vm \
+     ~/.config/openshell/microvm-gateway.toml ~/.config/systemd
+   chezmoi apply ~/.local/bin/openshell ~/.local/bin/openshell-doctor \
+     ~/.local/bin/openshell-gateway ~/.local/bin/openshell-driver-vm \
+     ~/.config/openshell/microvm-gateway.toml ~/.config/systemd
    ```
 
-3. Start the local Docker-hosted OpenShell Gateway:
+2. Start the user service.
+   It listens on `127.0.0.1:17671` and keeps state and certificates under `~/.local/state/openshell-microvm/`.
 
    ```bash
-   openshell gateway start
+   systemctl --user daemon-reload
+   systemctl --user enable --now openshell-microvm.service
    ```
+
+3. Register the Gateway once, then check mutual TLS and run the default guest.
+
+   ```bash
+   OPENSHELL_LOCAL_TLS_DIR=~/.local/state/openshell-microvm/tls \
+     openshell gateway add https://127.0.0.1:17671 --local --name openshell-microvm
+   openshell status -g openshell-microvm
+   openshell sandbox create -g openshell-microvm --name microvm-smoke \
+     --no-keep --no-tty --no-auto-providers -- id
+   ```
+
+Use `systemctl --user restart openshell-microvm.service` after a Gateway or driver update.
+Use `systemctl --user disable --now openshell-microvm.service` to stop the service and disable startup.
+Use `journalctl --user -u openshell-microvm.service` to inspect Gateway and driver logs.
+When you have more than one Gateway, pass `-g openshell-microvm` to provider and sandbox commands for this service.
+
+[OpenShell 0.1.9 MicroVM configuration](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/gateways/configuration#microvm)
 
 ## 2. Out-of-band credential bootstrap (`openshell provider`)
 
@@ -39,19 +58,16 @@ Register secrets out-of-band in `openshell provider` so the Gateway proxy-substi
    - **Workflows**: No access (prevents sandboxed runs from modifying `.github/workflows/*`)
    - Pair with GitHub branch rulesets protecting `main`.
 
-2. Register the GitHub provider and LLM API providers on the host:
+2. Review and import the provider profiles for the Gateway.
+   Match each profile's executable paths to the tools in the sandbox image.
+   Use the official GitHub tutorial to create the provider from a scoped host credential and allow writes to the target repository.
+   [OpenShell 0.1.9 GitHub provider and push tutorial](https://docs.nvidia.com/openshell/v0.1.9/tutorials/github-push-access)
+
+3. Check the Gateway and list the registered provider names.
 
    ```bash
-   openshell provider create github --token "$GITHUB_SANDBOX_PAT"
-   openshell provider create anthropic --api-key "$ANTHROPIC_API_KEY"
-   openshell provider create openai --api-key "$OPENAI_API_KEY"
-   openshell provider create gemini --api-key "$GEMINI_API_KEY"
-   ```
-
-3. Run `openshell-doctor` to verify binary presence, Docker daemon readiness, Linux linger status, Gateway health, and redacted provider registration:
-
-   ```bash
-   openshell-doctor
+   openshell status -g openshell-microvm
+   openshell provider list -g openshell-microvm --names
    ```
 
 ## 3. Dedicated agent SSH signing key setup (`gpg.format = ssh`)
@@ -75,7 +91,7 @@ Provision a dedicated persistent `ed25519` keypair used exclusively for sandboxe
    printf '%s %s\n' "mkobit@gmail.com" "$(cat ~/.config/openshell/agent-signing/id_ed25519.pub)" >> ~/.config/git/allowed_signers
    ```
 
-4. Mount or upload the private key `read_only` (`0600`) at `/sandbox/.agent-signing/id_ed25519` when launching a sandbox.
+4. Configure how the sandbox receives the dedicated signing key before attempting a signed push.
    Inside `/sandbox`, `GIT_CONFIG_GLOBAL=/sandbox/.config/ai-policy/git/sandbox.gitconfig` sets `gpg.format = ssh`, `gpg.ssh.program = ssh-keygen`, empty `gpg.ssh.defaultKeyCommand =`, and `user.signingkey = /sandbox/.agent-signing/id_ed25519`.
    If `ai.sandbox.signing_key` is empty, `sandbox.gitconfig` falls back to `commit.gpgsign = false` and `tag.gpgSign = false`.
 
@@ -107,26 +123,21 @@ Instead, build the reusable `/sandbox` layer from `docker/openshell/Dockerfile`:
 Every sandbox operates on an isolated clone under `/sandbox/workspace` governed by `.openshell/policy.yaml`.
 Never mount a host `.git` directory or linked worktree `read_write` into a sandbox.
 
-1. Create and enter a sandbox using the repository's `.openshell/policy.yaml`:
+For a local check, use the default policy and the built image.
 
-   ```bash
-   openshell sandbox create --policy .openshell/policy.yaml --name pilot-task
-   ```
+```bash
+openshell sandbox create -g openshell-microvm --name pilot-image \
+  --from dotfiles-openshell-sandbox:latest --no-keep --no-tty --no-auto-providers \
+  -- /sandbox/.local/bin/codex --version
+```
 
-2. Inside `/sandbox/workspace`, clone the repository (via the `github` provider or a seeded `git bundle`), create a feature branch, and run the coding agent (`claude`, `codex`, or `agy`).
+The repository policy still needs the OpenShell 0.1.9 schema update.
+Before a GitHub push, use a compatible policy, attach the scoped GitHub provider, and configure dedicated signing.
+After the push, fetch the feature branch on the host and verify the signature.
 
-3. Commit with the agent SSH signing key and push the feature branch over HTTPS via `gh` credential helper:
+```bash
+git fetch origin feat/pilot-change
+git log --show-signature origin/feat/pilot-change -n 1
+```
 
-   ```bash
-   gh auth setup-git
-   git checkout -b feat/pilot-change
-   git commit -S -m "Implement pilot change"
-   git push -u origin feat/pilot-change
-   ```
-
-4. On the host worktree, fetch and verify the signed branch before review or merge:
-
-   ```bash
-   git fetch origin feat/pilot-change
-   git log --show-signature origin/feat/pilot-change -n 1
-   ```
+[OpenShell 0.1.9 policy schema](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/policies/schema)

@@ -246,12 +246,13 @@ def _write_executable(path: Path, content: str) -> None:
     path.chmod(0o755)
 
 
-def test_openshell_doctor_passes_and_redacts_provider_output(tmp_path: Path) -> None:
+@pytest.mark.parametrize("microvm", [False, True], ids=["active-gateway", "microvm-gateway"])
+def test_openshell_doctor_passes_and_redacts_provider_output(tmp_path: Path, *, microvm: bool) -> None:
     rendered = _render_template(
         OPENSHELL_DOCTOR_TEMPLATE,
         {
-            "chezmoi": {"os": "linux", "username": "mkobit"},
-            "local": {"bin": {"openshell": {"installation_method": "github_releases"}}},
+            "chezmoi": {"os": "linux", "arch": "amd64", "username": "mkobit"},
+            "local": {"bin": {"openshell": {"installation_method": "github_releases", "microvm": microvm}}},
         },
         destination=tmp_path,
     )
@@ -260,19 +261,15 @@ def test_openshell_doctor_passes_and_redacts_provider_output(tmp_path: Path) -> 
     bin_dir = tmp_path / ".local" / "bin"
     bin_dir.mkdir(parents=True)
 
+    gateway_arg = " -g openshell-microvm" if microvm else ""
     _write_executable(
         bin_dir / "openshell",
         "#!/bin/sh\n"
-        'case "$1" in\n'
+        'case "$*" in\n'
         "  --version) echo 'openshell 0.1.9' ;;\n"
-        "  status) exit 0 ;;\n"
-        "  gateway) [ \"$2\" = 'info' ] && exit 0 || exit 1 ;;\n"
-        "  provider)\n"
-        "    if [ \"$2\" = 'list' ]; then\n"
-        "      printf 'NAME   PROVIDER   SECRET\\ngithub github     ghp_SUPER_SECRET_TOKEN_VALUE_12345\\n'\n"
-        "      exit 0\n"
-        "    fi\n"
-        "    exit 1\n"
+        f"  'status{gateway_arg}'|'gateway info{gateway_arg}') exit 0 ;;\n"
+        f"  'provider list{gateway_arg}')\n"
+        "    printf 'NAME   PROVIDER   SECRET\\ngithub github     ghp_SUPER_SECRET_TOKEN_VALUE_12345\\n'\n"
         "    ;;\n"
         "  *) exit 1 ;;\n"
         "esac\n",
@@ -486,8 +483,8 @@ def test_openshell_skill_and_bootstrap_docs_exist_and_follow_metadata_contract()
 
     bootstrap_text = OPENSHELL_BOOTSTRAP_DOC.read_text(encoding="utf-8")
     for required in (
-        "openshell gateway start",
-        "openshell provider create",
+        "systemctl --user enable --now openshell-microvm.service",
+        "https://docs.nvidia.com/openshell/v0.1.9/tutorials/github-push-access",
         "allowed_signers",
         "Signing Key only",
         "git fetch",
