@@ -147,9 +147,9 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: ${{ env.MISE_CACHE_DIR }}
-          key: mise-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/bin/mise.toml') }}
+          key: mise-cache-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'src/chezmoi/.chezmoidata/bin/mise.toml') }}
           restore-keys: |
-            mise-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
+            mise-cache-v2-${{ runner.os }}-${{ runner.arch }}-
             mise-cache-v1-${{ runner.os }}-${{ runner.arch }}-main-
 
       - name: Cache bun install cache
@@ -224,15 +224,25 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GOMAXPROCS: "1"
+          CHEZMOI_APT_REPORT_DIR: ${{ runner.temp }}/integration-reports/apt
         run: |
           set -o pipefail
           report_dir="$RUNNER_TEMP/integration-reports"
           mkdir -p "$report_dir"
-          chezmoi apply \
+          apply_started_at=$SECONDS
+          printf '%s chezmoi apply started\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          if chezmoi apply \
             --cache="$CHEZMOI_CACHE_DIR" \
             --config="$CHEZMOI_CONFIG" \
             --source="$GITHUB_WORKSPACE" \
-            --destination="$CHEZMOI_DEST" 2>&1 | tee "$report_dir/chezmoi-apply.log"
+            --destination="$CHEZMOI_DEST" 2>&1 | tee "$report_dir/chezmoi-apply.log"; then
+            apply_result=0
+          else
+            apply_result=$?
+          fi
+          printf '%s chezmoi apply finished elapsed_seconds=%s result=%s\n' \
+            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$((SECONDS - apply_started_at))" "$apply_result"
+          exit "$apply_result"
 
       - name: Check SBX version
         run: |

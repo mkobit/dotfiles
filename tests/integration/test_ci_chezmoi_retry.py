@@ -12,6 +12,21 @@ def workflow_script(name):
     return textwrap.dedent(step.split("        run: |\n", 1)[1])
 
 
+def test_mise_cache_key_is_shared_and_tracks_tool_inputs():
+    workflow = (Path.cwd() / ".github/workflows/ci.yml").read_text()
+    step = workflow.split("      - name: Cache mise downloads\n", 1)[1].split("\n      - name:", 1)[0]
+    expected_key = (
+        "key: mise-cache-v2-${{ runner.os }}-${{ runner.arch }}-"
+        "${{ hashFiles('mise.toml', 'mise.lock', 'src/chezmoi/.chezmoidata/bin/mise.toml') }}"
+    )
+    assert expected_key in step
+    new_prefix = "mise-cache-v2-${{ runner.os }}-${{ runner.arch }}-"
+    legacy_prefix = "mise-cache-v1-${{ runner.os }}-${{ runner.arch }}-main-"
+    restore_keys = step.split("restore-keys: |", 1)[1]
+    assert new_prefix in restore_keys
+    assert restore_keys.index(new_prefix) < restore_keys.index(legacy_prefix)
+
+
 @pytest.fixture
 def retry_workflow(tmp_path):
     commands = tmp_path / "bin"
@@ -86,6 +101,9 @@ def test_prefetch_retries_downloads_then_applies_once(retry_workflow, succeed_at
     prefetch, apply, calls, sleeps = retry_workflow(succeed_at=succeed_at)
     assert prefetch.returncode == 0
     assert apply.returncode == 0
+    assert "chezmoi apply started" in apply.stdout
+    assert "chezmoi apply finished elapsed_seconds=" in apply.stdout
+    assert "result=0" in apply.stdout
     assert len(calls) == succeed_at + 1
     assert all("--dry-run --exclude=scripts" in call for call in calls[:-1])
     assert "--dry-run" not in calls[-1]
@@ -104,5 +122,7 @@ def test_apply_failure_is_not_retried(retry_workflow):
     prefetch, apply, calls, sleeps = retry_workflow(apply_exit=42)
     assert prefetch.returncode == 0
     assert apply.returncode == 42
+    assert "chezmoi apply finished elapsed_seconds=" in apply.stdout
+    assert "result=42" in apply.stdout
     assert len(calls) == 2
     assert sleeps == []

@@ -34,6 +34,37 @@ else
 fi
 
 skipped_any=0
+apt_command_count=0
+
+run_apt_get() {
+    if [[ -z "${CI:-}" || -z "${CHEZMOI_APT_REPORT_DIR:-}" ]]; then
+        sudo apt-get "$@"
+        return
+    fi
+
+    local command_display started_at elapsed_seconds result raw_log
+    apt_command_count=$((apt_command_count + 1))
+    raw_log="${CHEZMOI_APT_REPORT_DIR}/apt-command-${apt_command_count}.log"
+    mkdir -p "$CHEZMOI_APT_REPORT_DIR"
+    printf -v command_display '%q ' sudo apt-get "$@"
+    command_display=${command_display% }
+    started_at=$SECONDS
+    printf '%s APT command started: %s log=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$command_display" "$raw_log"
+
+    if sudo apt-get "$@" >"$raw_log" 2>&1; then
+        result=0
+    else
+        result=$?
+    fi
+
+    elapsed_seconds=$((SECONDS - started_at))
+    printf '%s APT command finished: %s elapsed_seconds=%s result=%s\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$command_display" "$elapsed_seconds" "$result"
+    if [[ "$result" -ne 0 ]]; then
+        tail -n 40 "$raw_log" >&2 || true
+        return "$result"
+    fi
+}
 
 {{- $ppaPkgs := list -}}
 {{- range $aptPkgs -}}
@@ -126,10 +157,10 @@ fi
 
 if [ "${#missing_packages[@]}" -gt 0 ]; then
     log_info "🔒 Installing apt packages: ${missing_packages[*]}..."
-    if ! sudo apt-get install -y "${missing_packages[@]}"; then
+    if ! run_apt_get install -y "${missing_packages[@]}"; then
         log_warn "Failed to install apt packages, updating apt cache and retrying..."
-        sudo apt-get update
-        sudo apt-get install -y "${missing_packages[@]}" \
+        run_apt_get update
+        run_apt_get install -y "${missing_packages[@]}" \
             || { log_error "Failed to install apt packages after update"; exit 1; }
     fi
     log_success "Apt packages installed"
@@ -148,7 +179,7 @@ if ppa_is_configured {{ $ppa | quote }}; then
 elif [ "$has_sudo_access" -eq 1 ]; then
     if ! check_command add-apt-repository; then
         log_info "🔒 Installing software-properties-common for add-apt-repository..."
-        sudo apt-get install -y software-properties-common \
+        run_apt_get install -y software-properties-common \
             || { log_error "Failed to install software-properties-common"; exit 1; }
     fi
     log_info "🔒 Adding apt repository {{ $ppa }} for {{ $name }}..."
@@ -163,7 +194,7 @@ elif [ "$has_sudo_access" -eq 1 ]; then
         log_warn "Failed to add repository {{ $ppa }} for {{ $name }} (attempt $attempt), retrying..."
         sleep $((5 * 2 ** (attempt - 1)))
     done
-    sudo apt-get update
+    run_apt_get update
 else
     log_warn "No TTY and no cached sudo credentials — skipping repository {{ $ppa }}, will retry next apply"
     skipped_any=1
@@ -173,7 +204,7 @@ if dpkg -l {{ $name }} 2>/dev/null | grep -q "^ii"; then
     log_success "{{ $name }} already installed via apt"
 elif [ "$has_sudo_access" -eq 1 ]; then
     log_info "🔒 Installing {{ $name }} via apt (from {{ $ppa }})..."
-    sudo apt-get install -y {{ $name }} \
+    run_apt_get install -y {{ $name }} \
         || { log_error "Failed to install {{ $name }} via apt"; exit 1; }
     log_success "{{ $name }} installed"
 else
