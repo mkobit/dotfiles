@@ -193,7 +193,8 @@ openshell sandbox exec -g openshell-microvm signed-push -- \
     ref=refs/heads/test/openshell-signed-push
     git clone --no-checkout /tmp/dotfiles.bundle /tmp/dotfiles
     git -C /tmp/dotfiles fetch /tmp/signed.bundle "$ref:$ref"
-    GIT_AUTH_HEADER="Authorization: Bearer ${GITHUB_TOKEN:?provider missing}" \
+    auth=$(printf "%s" "x-access-token:${GITHUB_TOKEN:?provider missing}" | base64 -w 0)
+    GIT_AUTH_HEADER="Authorization: Basic $auth" \
       GIT_TERMINAL_PROMPT=0 git -C /tmp/dotfiles \
       --config-env=http.extraHeader=GIT_AUTH_HEADER push \
       https://github.com/mkobit/dotfiles.git "$ref:$ref"
@@ -202,10 +203,12 @@ openshell sandbox exec -g openshell-microvm signed-push -- \
 
 Replace the two host bundle paths and policy path with local files.
 The first bundle supplies the isolated repository history; the second supplies the signed feature branch.
-The provider substitutes the `GITHUB_TOKEN` placeholder in the HTTP Authorization header.
+Use HTTP Basic authentication for GitHub Git requests.
+The OpenShell proxy substitutes the provider placeholder in the Authorization header.
 Do not enable shell tracing or put a token in the remote URL or command.
 Do not pass a bundle in `--upload` together with a trailing command to `sandbox create`; 0.1.9 requires a separate upload command.
-The custom image booted and imported both bundles.
+The custom image booted, imported both bundles, and pushed commit `4976d176` with the scoped provider.
+The host and GitHub both verified the commit signature.
 After the push, fetch the branch on the host and verify the same commit in Git and on GitHub.
 
 ```bash
