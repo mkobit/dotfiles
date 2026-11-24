@@ -246,12 +246,13 @@ def _write_executable(path: Path, content: str) -> None:
     path.chmod(0o755)
 
 
-def test_openshell_doctor_passes_and_redacts_provider_output(tmp_path: Path) -> None:
+@pytest.mark.parametrize("microvm", [False, True], ids=["active-gateway", "microvm-gateway"])
+def test_openshell_doctor_passes_and_redacts_provider_output(tmp_path: Path, *, microvm: bool) -> None:
     rendered = _render_template(
         OPENSHELL_DOCTOR_TEMPLATE,
         {
-            "chezmoi": {"os": "linux", "username": "mkobit"},
-            "local": {"bin": {"openshell": {"installation_method": "github_releases"}}},
+            "chezmoi": {"os": "linux", "arch": "amd64", "username": "mkobit"},
+            "local": {"bin": {"openshell": {"installation_method": "github_releases", "microvm": microvm}}},
         },
         destination=tmp_path,
     )
@@ -260,19 +261,15 @@ def test_openshell_doctor_passes_and_redacts_provider_output(tmp_path: Path) -> 
     bin_dir = tmp_path / ".local" / "bin"
     bin_dir.mkdir(parents=True)
 
+    gateway_arg = " -g openshell-microvm" if microvm else ""
     _write_executable(
         bin_dir / "openshell",
         "#!/bin/sh\n"
-        'case "$1" in\n'
+        'case "$*" in\n'
         "  --version) echo 'openshell 0.1.9' ;;\n"
-        "  status) exit 0 ;;\n"
-        "  gateway) [ \"$2\" = 'info' ] && exit 0 || exit 1 ;;\n"
-        "  provider)\n"
-        "    if [ \"$2\" = 'list' ]; then\n"
-        "      printf 'NAME   PROVIDER   SECRET\\ngithub github     ghp_SUPER_SECRET_TOKEN_VALUE_12345\\n'\n"
-        "      exit 0\n"
-        "    fi\n"
-        "    exit 1\n"
+        f"  'status{gateway_arg}'|'gateway info{gateway_arg}') exit 0 ;;\n"
+        f"  'provider list{gateway_arg}')\n"
+        "    printf 'NAME   PROVIDER   SECRET\\ngithub github     ghp_SUPER_SECRET_TOKEN_VALUE_12345\\n'\n"
         "    ;;\n"
         "  *) exit 1 ;;\n"
         "esac\n",
@@ -396,7 +393,7 @@ def test_sandbox_gitconfig_disables_signing_when_key_omitted_or_empty(
     assert "gpgsign = true" not in rendered.stdout
 
 
-def test_sandbox_chezmoi_config_disables_host_only_features_and_sets_signing_key() -> None:
+def test_sandbox_chezmoi_config_disables_host_only_features() -> None:
     with SANDBOX_CHEZMOI_CONFIG.open("rb") as config_file:
         config = tomllib.load(config_file)
 
@@ -411,7 +408,7 @@ def test_sandbox_chezmoi_config_disables_host_only_features_and_sets_signing_key
     assert data["ai"]["plugins"]["superpowers"]["installation_method"] == "chezmoi_external"
     assert data["ai"]["plugins"]["egm"]["installation_method"] == "chezmoi_external"
     assert data["ai"]["plugin_bridge"]["default_hosts"] == ["claude", "codex"]
-    assert data["ai"]["sandbox"]["signing_key"] == "/sandbox/.agent-signing/id_ed25519"
+    assert not data["ai"].get("sandbox", {}).get("signing_key")
     assert data["git"]["personal"]["enabled"] is True
     assert data["git_hooks"]["backend"] == "config"
     assert data["git_hooks"]["pre_commit"]["installation_method"] == "none"
@@ -447,14 +444,23 @@ def test_sandbox_chezmoi_config_disables_host_only_features_and_sets_signing_key
 
 def test_sandbox_dockerfile_and_policy_define_isolated_sandbox_layer() -> None:
     dockerfile = SANDBOX_DOCKERFILE.read_text(encoding="utf-8")
-    assert "FROM debian:bookworm-slim" in dockerfile
-    assert "ARG SANDBOX_UID=1000" in dockerfile
-    assert "ARG SANDBOX_GID=1000" in dockerfile
-    assert "HOME=/sandbox" in dockerfile
-    assert "AGY_CLI_DISABLE_AUTO_UPDATE=true" in dockerfile
-    assert "--config /tmp/sandbox-chezmoi.toml" in dockerfile
-    assert "--destination /sandbox" in dockerfile
-    assert 'chown -R "${SANDBOX_UID}:${SANDBOX_GID}" /sandbox' in dockerfile
+    base, build_stages = dockerfile.split("\nFROM base AS builder\n", maxsplit=1)
+    builder, final = build_stages.split("\nFROM base\n", maxsplit=1)
+    assert re.search(r"^FROM debian:bookworm-slim@sha256:[0-9a-f]{64} AS base$", base, re.MULTILINE)
+    assert "ARG SANDBOX_UID=1000" in base
+    assert "ARG SANDBOX_GID=1000" in base
+    assert "HOME=/sandbox" in base
+    assert "AGY_CLI_DISABLE_AUTO_UPDATE=true" in base
+    assert not re.search(r"^(COPY|ADD)\s", base + builder, re.MULTILINE)
+    assert "RUN --mount=type=bind,target=/tmp/dotfiles,readonly " in builder
+    assert "--source /tmp/dotfiles" in builder
+    assert "--config /tmp/dotfiles/docker/openshell/sandbox-chezmoi.toml" in builder
+    assert "--destination /sandbox" in builder
+    assert final.splitlines() == [
+        "COPY --from=builder /usr/local/bin/chezmoi /usr/local/bin/chezmoi",
+        "COPY --from=builder --chown=${SANDBOX_UID}:${SANDBOX_GID} /sandbox /sandbox",
+        "WORKDIR /sandbox",
+    ]
 
     policy = yaml.safe_load(OPENSHELL_POLICY.read_text(encoding="utf-8"))
     rw_paths = set(policy["filesystem_policy"]["read_write"])
@@ -486,11 +492,10 @@ def test_openshell_skill_and_bootstrap_docs_exist_and_follow_metadata_contract()
 
     bootstrap_text = OPENSHELL_BOOTSTRAP_DOC.read_text(encoding="utf-8")
     for required in (
-        "openshell gateway start",
-        "openshell provider create",
-        "allowed_signers",
-        "Signing Key only",
+        "systemctl --user enable --now openshell-microvm.service",
+        "https://docs.nvidia.com/openshell/v0.1.9/tutorials/github-push-access",
         "git fetch",
+        "git verify-commit FETCH_HEAD",
     ):
         assert required in bootstrap_text
 

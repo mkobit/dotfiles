@@ -140,6 +140,7 @@ installation_method = {{ $sbxMethod | quote }}
 {{-   $openshellMethod = "github_releases" -}}
 {{- end }}
 installation_method = {{ $openshellMethod | quote }}
+microvm = {{ and (eq .chezmoi.os "linux") (eq .chezmoi.arch "amd64") (contains "microsoft-standard-wsl2" (get (default dict .chezmoi.kernel) "osrelease" | default "" | lower)) (not (empty (lookPath "wslpath"))) }}
 
 [data.local.bin.agy]
 installation_method = "github_releases"

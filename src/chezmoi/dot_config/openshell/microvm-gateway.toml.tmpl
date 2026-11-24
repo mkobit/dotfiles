@@ -1,0 +1,15 @@
+{{- $stateDir := printf "%s/.local/state/openshell-microvm" .chezmoi.destDir -}}
+{{- $stockImage := "nvcr.io/nvidia/base/ubuntu@sha256:494398fac1b07614c63ba179e3558d84a5a9ce19a6374560ceac04d822462e45" -}}
+[openshell]
+version = 2
+
+[openshell.gateway]
+bind_address   = "127.0.0.1:17671"
+compute_driver = "vm"
+guest_tls_ca   = {{ printf "%s/tls/ca.crt" $stateDir | quote }}
+
+[openshell.drivers.vm]
+state_dir       = {{ printf "%s/vm" $stateDir | quote }}
+driver_dir      = {{ printf "%s/.local/bin" .chezmoi.destDir | quote }}
+default_image   = {{ $stockImage | quote }}
+bootstrap_image = {{ $stockImage | quote }}

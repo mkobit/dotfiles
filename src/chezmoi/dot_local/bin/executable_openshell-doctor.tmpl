@@ -1,4 +1,7 @@
 {{- if ne (dig "local" "bin" "openshell" "installation_method" "none" $) "none" -}}
+{{- $microvm := includeTemplate "openshell/microvm-enabled" . -}}
+{{- $gatewayArgs := "" -}}
+{{- if $microvm }}{{ $gatewayArgs = " -g openshell-microvm" }}{{ end -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -72,14 +75,19 @@ fi
 {{- end }}
 
 if command -v openshell >/dev/null 2>&1; then
-    if openshell status >/dev/null 2>&1 && openshell gateway info >/dev/null 2>&1; then
+    if openshell status{{ $gatewayArgs }} >/dev/null 2>&1 &&
+       openshell gateway info{{ $gatewayArgs }} >/dev/null 2>&1; then
         pass "openshell gateway is active and reachable"
     else
-        fail "openshell gateway is not reachable (run: openshell gateway start)"
+{{- if $microvm }}
+        fail "openshell gateway is not reachable (check: systemctl --user status openshell-microvm.service)"
+{{- else }}
+        fail "openshell gateway is not reachable (check: openshell gateway list)"
+{{- end }}
     fi
 
     provider_out=""
-    if provider_out="$(openshell provider list 2>/dev/null)"; then
+    if provider_out="$(openshell provider list{{ $gatewayArgs }} 2>/dev/null)"; then
         # Count non-empty, non-header provider entries without printing secret values.
         provider_count=0
         while IFS= read -r line; do

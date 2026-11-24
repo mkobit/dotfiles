@@ -1,5 +1,5 @@
 # Static chezmoi configuration for building the standalone /sandbox OCI layer.
-# Invoked via: chezmoi apply --config /tmp/sandbox-chezmoi.toml --destination /sandbox
+# The Dockerfile uses this file with the /sandbox destination.
 # Never runs interactive chezmoi init probes or host-only OS package managers.
 
 [scriptEnv]
@@ -18,9 +18,6 @@ installation_method = "chezmoi_external"
 
 [data.ai.plugin_bridge]
 default_hosts = ["claude", "codex"]
-
-[data.ai.sandbox]
-signing_key = "/sandbox/.agent-signing/id_ed25519"
 
 [data.claude_code]
 installation_method = "direct_release"

@@ -41,3 +41,8 @@
 
 # Authored plugin content that the init decisions deselect.
 {{ includeTemplate "ai/plugin-ignore" . }}
+
+{{- if not (and (eq (dig "local" "bin" "openshell" "microvm" false .) true) (includeTemplate "openshell/microvm-enabled" .)) }}
+.config/openshell/microvm-gateway.toml
+.config/systemd/user/openshell-microvm.service
+{{- end }}
