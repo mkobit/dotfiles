@@ -51,6 +51,8 @@ run_apt_get() {
     started_at=$SECONDS
     printf '%s APT command started: %s log=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$command_display" "$raw_log"
 
+    # Keep report files runner-owned so CI can upload them after this command.
+    # shellcheck disable=SC2024
     if sudo apt-get "$@" >"$raw_log" 2>&1; then
         result=0
     else
