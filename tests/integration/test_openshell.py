@@ -393,7 +393,7 @@ def test_sandbox_gitconfig_disables_signing_when_key_omitted_or_empty(
     assert "gpgsign = true" not in rendered.stdout
 
 
-def test_sandbox_chezmoi_config_disables_host_only_features_and_sets_signing_key() -> None:
+def test_sandbox_chezmoi_config_disables_host_only_features() -> None:
     with SANDBOX_CHEZMOI_CONFIG.open("rb") as config_file:
         config = tomllib.load(config_file)
 
@@ -408,7 +408,7 @@ def test_sandbox_chezmoi_config_disables_host_only_features_and_sets_signing_key
     assert data["ai"]["plugins"]["superpowers"]["installation_method"] == "chezmoi_external"
     assert data["ai"]["plugins"]["egm"]["installation_method"] == "chezmoi_external"
     assert data["ai"]["plugin_bridge"]["default_hosts"] == ["claude", "codex"]
-    assert data["ai"]["sandbox"]["signing_key"] == "/sandbox/.agent-signing/id_ed25519"
+    assert not data["ai"].get("sandbox", {}).get("signing_key")
     assert data["git"]["personal"]["enabled"] is True
     assert data["git_hooks"]["backend"] == "config"
     assert data["git_hooks"]["pre_commit"]["installation_method"] == "none"
