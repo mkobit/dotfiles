@@ -1,5 +1,6 @@
 import io
 import json
+import re
 import sys
 from collections.abc import Mapping, MutableMapping
 from dataclasses import FrozenInstanceError
@@ -60,15 +61,22 @@ def rendered(raw: Mapping[str, object], vcs: VcsState | None = None) -> list[str
     return strip_ansi(render_statusline(decode_payload(raw), vcs)).splitlines()
 
 
-def test_wide_render_uses_four_aligned_table_rows() -> None:
+def _has_osc8_link(output: str, url: str, label: str) -> bool:
+    pattern = (
+        rf"\x1b\]8;[^;]*;{re.escape(url)}\x1b\\(?:\x1b\[[0-9;]*m)*{re.escape(label)}(?:\x1b\[[0-9;]*m)*\x1b\]8;;\x1b\\"
+    )
+    return re.search(pattern, output) is not None
+
+
+def test_wide_render_uses_independent_semantic_bands() -> None:
     lines = rendered(FULL_PAYLOAD)
 
-    assert len(lines) == 4
+    assert len(lines) == 5
     assert all(" • " not in line for line in lines)
     assert all(
         expected in lines[0]
         for expected in (
-            "[🔄 working] \ue7c5I",
+            "[🔄 working] \ue7c5 I",
             "GPT-5.6",
             "high",
             "autonomous",
@@ -79,38 +87,35 @@ def test_wide_render_uses_four_aligned_table_rows() -> None:
     assert "vim:" not in lines[0]
     assert "plan:" not in lines[0]
     assert "full" not in lines[0]
+
     assert "/work/repo" in lines[1]
-    assert "<feature/renderer → origin/feature/renderer>" in lines[1]
-    assert "!" in lines[1]
-    assert "↑2" in lines[1] and "↓1" in lines[1]
+    assert "feature/renderer" not in lines[1]
 
-    assert "82% ctx" in lines[2]
-    assert "5h ◕ 50%" in lines[2]
-    assert "7d ◔ 10%" in lines[2]
-    assert lines[2].index("5h ◕ 50%") < lines[2].index("7d ◔ 10%")
-    assert "$0.01" in lines[2]
-    assert "full" in lines[2]
-    assert "plan:" not in lines[2]
-    assert lines[2].index("$0.01") < lines[2].index("full")
+    assert "<feature/renderer → origin/feature/renderer>" in lines[2]
+    assert "!" in lines[2]
+    assert "↑2" in lines[2] and "↓1" in lines[2]
 
-    assert lines[3].startswith("confirm")
-    assert "tasks:3" in lines[3] and "input:2" in lines[3] and "artifacts:1" in lines[3]
+    assert "82% ctx" in lines[3]
+    assert "5h ◕ 50%" in lines[3]
+    assert "7d ◔ 10%" in lines[3]
+    assert lines[3].index("5h ◕ 50%") < lines[3].index("7d ◔ 10%")
+    assert "$0.01" in lines[3]
+    assert "full" in lines[3]
+    assert "plan:" not in lines[3]
+    assert lines[3].index("$0.01") < lines[3].index("full")
 
-    # Verify Col 1 aligns vertically across all 4 rows
-    col1_starts = [
-        display_width(lines[0][: lines[0].index("GPT-5.6")]),
-        display_width(lines[1][: lines[1].index("<feature/renderer") - 2]),
-        display_width(lines[2][: lines[2].index("[5h")]),
-        display_width(lines[3][: lines[3].index("tasks:3")]),
-    ]
-    assert len(set(col1_starts)) == 1
+    assert lines[4].startswith("confirm")
+    assert "tasks:3" in lines[4] and "input:2" in lines[4]
+    assert "artifacts:" not in "\n".join(lines)
 
-    # Verify Col 2 aligns vertically between Row 0 and Row 2
-    col2_starts = [
-        display_width(lines[0][: lines[0].index("autonomous")]),
-        display_width(lines[2][: lines[2].index("$0.01")]),
-    ]
-    assert len(set(col2_starts)) == 1
+
+def test_artifacts_decoded_but_omitted_from_rendered_output() -> None:
+    raw = {"agent_state": "idle", "artifacts": [{"id": "one"}, {"id": "two"}], "terminal_width": 120}
+    payload = decode_payload(raw)
+    assert payload.artifact_count == 2
+    lines = rendered(raw)
+    assert lines == ["[idle]"]
+    assert "artifacts" not in "\n".join(lines)
 
 
 @pytest.mark.parametrize("width", [40, 60, 80, 120, 160])
@@ -159,18 +164,21 @@ def test_quota_row_layout_and_bracket_formatting() -> None:
 def test_narrow_render_omits_lower_priority_slots_and_splits_overflow_quotas() -> None:
     lines = rendered({**FULL_PAYLOAD, "terminal_width": 40})
 
-    assert "[🔄 working] \ue7c5I" in lines[0]
+    assert "[🔄 working] \ue7c5 I" in lines[0]
     assert "GPT-5.6" in lines[0]
     assert "autonomous" not in lines[0] and "sandbox:no-net" not in lines[0]
     assert all(display_width(line) <= 40 for line in lines)
     plain = "\n".join(lines)
     assert "5h ◕ 50%" in plain
     assert "7d ◔ 10%" in plain
-    # 7d quota splits onto a continuation usage row at width 40
+    # 7d quota splits onto a continuation usage row aligned beneath 5h at width 40
     usage_idx = next(idx for idx, line in enumerate(lines) if "82% ctx" in line)
     assert "5h ◕ 50%" in lines[usage_idx]
     assert "7d ◔ 10%" in lines[usage_idx + 1]
     assert "full" not in lines[usage_idx]
+    assert display_width(lines[usage_idx][: lines[usage_idx].index("[5h")]) == display_width(
+        lines[usage_idx + 1][: lines[usage_idx + 1].index("[7d")]
+    )
 
 
 def test_payload_display_text_cannot_inject_terminal_controls_or_rows() -> None:
@@ -187,7 +195,7 @@ def test_payload_display_text_cannot_inject_terminal_controls_or_rows() -> None:
         VcsState("branch\nname\x1b[41m", True, True),
     )
 
-    assert output.count("\n") == 2
+    assert output.count("\n") == 3
     assert "\x1b[41m" not in output
     assert "\r" not in output
 
@@ -393,7 +401,7 @@ def test_parse_porcelain_v2_and_renders_github_origin_as_osc8_link() -> None:
         decode_payload({"terminal_width": 160}),
         VcsState("feature/demo", False, True, "origin/feature/demo", 2, 1, "git@github.com:stripe/example.git"),
     )
-    assert "\033]8;;https://github.com/stripe/example\033\\feature/demo\033]8;;\033\\" in line
+    assert _has_osc8_link(line, "https://github.com/stripe/example", "feature/demo")
 
 
 def test_parse_porcelain_v2_detached_head_extracts_commit_and_renders_link() -> None:
@@ -410,9 +418,10 @@ def test_parse_porcelain_v2_detached_head_extracts_commit_and_renders_link() -> 
             commit="113285f1a6ea58a80bde1e59f5d626779fd6180a",
         ),
     )
-    assert (
-        "\033]8;;https://github.com/stripe/example/commit/113285f1a6ea58a80bde1e59f5d626779fd6180a\033\\113285f\033]8;;\033\\"
-        in line
+    assert _has_osc8_link(
+        line,
+        "https://github.com/stripe/example/commit/113285f1a6ea58a80bde1e59f5d626779fd6180a",
+        "113285f",
     )
     assert "(detached@" in line
     assert "[✓]" in strip_ansi(line)
@@ -649,8 +658,8 @@ def test_vim_mode_compact_badge_and_no_icons_fallback(
 ) -> None:
     raw = {"agent_state": "idle", "vim_mode": vim_mode, "terminal_width": 120}
     ansi = render_statusline(decode_payload(raw), None)
-    assert f"{expected_color}\ue7c5{expected_char}" in ansi
-    assert strip_ansi(ansi) == f"[idle] \ue7c5{expected_char}"
+    assert f"{expected_color}\ue7c5 {expected_char}" in ansi
+    assert strip_ansi(ansi) == f"[idle] \ue7c5 {expected_char}"
 
     monkeypatch.setenv("TERMSTATUS_NO_ICONS", "1")
     ansi_no_icons = render_statusline(decode_payload(raw), None)
@@ -699,7 +708,7 @@ def test_standard_payload_row0_fits_under_80_cols_at_width_120() -> None:
     }
     lines = rendered(standard)
     assert display_width(lines[0]) < 80
-    assert "[idle] \ue7c5I" in lines[0]
+    assert "[idle] \ue7c5 I" in lines[0]
     assert "Gemini 4 Neon" in lines[0]
     assert "accept-edits" in lines[0]
     assert "Google AI Pro" in lines[2]
@@ -707,8 +716,70 @@ def test_standard_payload_row0_fits_under_80_cols_at_width_120() -> None:
 
 def test_directory_shortening_and_link() -> None:
     home = str(Path.home())
-    lines = rendered({"cwd": f"{home}/.local/share/chezmoi", "terminal_width": 160})
-    assert "~/.local/share/chezmoi" in lines[1]
+    chezmoi_cwd = f"{home}/.local/share/chezmoi"
+    raw_wide = render_statusline(decode_payload({"cwd": chezmoi_cwd, "terminal_width": 160}), None)
+    assert "~/.local/share/chezmoi" in strip_ansi(raw_wide).splitlines()[1]
+    assert _has_osc8_link(raw_wide, f"file://{chezmoi_cwd}", "~/.local/share/chezmoi")
+
+    # Full-width directory band keeps ~/.local/share/chezmoi unshortened at width 60
+    raw_60 = render_statusline(
+        decode_payload(
+            {
+                "cwd": chezmoi_cwd,
+                "model": {"display_name": "Gemini 4 Neon (Medium)", "effort": "medium"},
+                "terminal_width": 60,
+            }
+        ),
+        None,
+    )
+    assert "~/.local/share/chezmoi" in strip_ansi(raw_60).splitlines()[1]
+    assert f"file://{chezmoi_cwd}\x1b\\" in raw_60
+
+    # Deep nested path applies fish-style shortening when exceeding terminal width, preserving OSC-8 target
+    long_cwd = f"{home}/workspace/very-long-org-name/monorepo-project/packages/deeply-nested-service"
+    for width in (60, 80, 120):
+        raw_long = render_statusline(
+            decode_payload(
+                {
+                    "cwd": long_cwd,
+                    "model": {"display_name": "Gemini 4 Neon (Medium)", "effort": "medium"},
+                    "context_window": {"remaining_percentage": 100},
+                    "quota": {"gemini-5h": {"remaining_percentage": 50}},
+                    "terminal_width": width,
+                }
+            ),
+            None,
+        )
+        long_lines = strip_ansi(raw_long).splitlines()
+        assert len(long_lines) == 3
+        assert all(display_width(line) <= width for line in long_lines)
+        assert f"file://{long_cwd}\x1b\\" in raw_long
+    assert (
+        "~/w/v/monorepo-project/packages/deeply-nested-service"
+        in strip_ansi(render_statusline(decode_payload({"cwd": long_cwd, "terminal_width": 60}), None)).splitlines()[1]
+    )
+
+    # Ultra-long final folder name truncates with ellipsis without wrapping and preserves full OSC-8 hyperlink
+    ultra_long_cwd = (
+        f"{home}/workspace/org/this-is-an-extremely-long-final-repository-directory-name-for-testing-truncation"
+    )
+    raw_ultra = render_statusline(
+        decode_payload(
+            {
+                "cwd": ultra_long_cwd,
+                "model": {"display_name": "Gemini 4 Neon (Medium)", "effort": "medium"},
+                "context_window": {"remaining_percentage": 100},
+                "quota": {"gemini-5h": {"remaining_percentage": 50}},
+                "terminal_width": 80,
+            }
+        ),
+        None,
+    )
+    ultra_lines = strip_ansi(raw_ultra).splitlines()
+    assert len(ultra_lines) == 3
+    assert display_width(ultra_lines[1]) <= 80
+    assert ultra_lines[1].endswith("…")
+    assert f"file://{ultra_long_cwd}\x1b\\" in raw_ultra
 
 
 def test_fullness_icon() -> None:
