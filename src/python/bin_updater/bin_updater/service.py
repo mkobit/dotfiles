@@ -11,7 +11,7 @@ from bin_updater.catalog import ToolCatalog, update_catalog_content
 from bin_updater.checksums import find_checksum_manifest_asset, parse_checksum_manifest
 from bin_updater.client import ReleaseClient
 from bin_updater.cooldown import parse_cooldown_to_seconds
-from bin_updater.pr_summary import update_table
+from bin_updater.pr_summary import update_table, update_title
 from bin_updater.release import extract_version_from_tag, resolve_release_filename, select_mature_release
 
 
@@ -163,7 +163,7 @@ def update_tool(
         changed=True,
         old_version=catalog.version,
         new_version=target_version,
-        pr_title=f"Update {catalog.name} from {catalog.version} to {target_version}",
+        pr_title=update_title(catalog.name, catalog.version, target_version),
         pr_body=pr_body,
     )
 

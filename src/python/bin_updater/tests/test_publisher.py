@@ -84,7 +84,7 @@ def test_publisher_checks_remote_lease(tmp_path: Path, monkeypatch: pytest.Monke
     update_branch = PUBLISHER["update_branch"]
     monkeypatch.setitem(update_branch.__globals__, "command", concurrent_push)
     with pytest.raises(subprocess.CalledProcessError):
-        update_branch("bkt", catalog, NEW, base, directory)
+        update_branch("bkt", catalog, NEW, "chore(deps): bump bkt from 0.8.2 to 0.8.3", base, directory)
     assert PUBLISHER["remote_tip"](ref) == base
 
 
@@ -217,11 +217,12 @@ def test_publisher_does_not_send_mentions(
         updated = original.replace(old, new)
         upstream = "https://bun.com/blog/bun-v1.2.4"
     body = (
-        "Thanks @alice, &#64;bob, &#x40;carol, and &commat;org/team.\n"
+        "Thanks @alice and @alice-dev, &#64;bob, &#x40;carol, and &commat;org/team.\n"
         "[@maintainer](https://unpkg.com/@scope/tool@1.2.3/README.md)\n"
         "Contact help@example.org. Keep &#640; and &#x400;.\n"
         "[Unclosed](https://example.org/@alice\n"
     )
+    title = f"chore(deps): bump {name} from {old} to {new}"
     summary = (
         "| Current version | Target version | Target release date (UTC) | Cooldown |\n"
         "| --- | --- | --- | --- |\n"
@@ -242,7 +243,7 @@ def test_publisher_does_not_send_mentions(
                     "tool_name": name,
                     "old_version": old,
                     "new_version": new,
-                    "pr_title": f"Update {name} from {old} to {new}",
+                    "pr_title": title,
                     "pr_body": body,
                 }
             ]
@@ -257,9 +258,12 @@ def test_publisher_does_not_send_mentions(
         if existing:
             assert args[:4] == ("gh", "api", "--method", "PATCH")
             assert stdin is not None
-            sent.append(json.loads(stdin)["body"])
+            payload = json.loads(stdin)
+            assert payload["title"] == title
+            sent.append(payload["body"])
         else:
             assert args[:3] == ("gh", "pr", "create")
+            assert args[args.index("--title") + 1] == title
             sent.append(Path(args[args.index("--body-file") + 1]).read_text(encoding="utf-8"))
         return ""
 
@@ -279,11 +283,12 @@ def test_publisher_does_not_send_mentions(
         if case.endswith("oversize"):
             assert preview.startswith(summary)
         assert "@alice" not in preview
-        assert "@\u200balice" in preview
+        assert "[alice](https://github.com/alice)" in preview
         return
     assert sent == [
         (
-            "Thanks @\u200balice, @\u200bbob, @\u200bcarol, and @\u200borg/team.\n"
+            "Thanks [alice](https://github.com/alice) and [alice-dev](https://github.com/alice-dev), "
+            "@\u200bbob, @\u200bcarol, and @\u200borg/team.\n"
             "[@\u200bmaintainer](https://unpkg.com/%40scope/tool%401.2.3/README.md)\n"
             "Contact help@\u200bexample.org. Keep &#640; and &#x400;.\n"
             "[Unclosed](https://example.org/%40alice\n"

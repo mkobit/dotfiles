@@ -156,7 +156,7 @@ def test_report_contains_all_stable_notes_in_version_order(tmp_path: Path) -> No
         {"tag_name": "app-v1.0.0", "body": "Old notes"},
     ]
     result = update_tool(cat, FakeClient(releases))
-    assert result.pr_title == "Update app from 1.0.0 to 2.0.0"
+    assert result.pr_title == "chore(deps): bump app from 1.0.0 to 2.0.0"
     assert "| `1.0.0` | `2.0.0` | 2020-01-01 | `7d` |" in result.pr_body
     assert (
         result.pr_body.index("Middle notes")

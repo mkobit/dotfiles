@@ -8,6 +8,10 @@ def release_date(published_at: str) -> datetime:
     return date.replace(tzinfo=UTC) if date.tzinfo is None else date.astimezone(UTC)
 
 
+def update_title(name: str, old: str, new: str) -> str:
+    return f"chore(deps): bump {name} from {old} to {new}"
+
+
 def update_table(old: str, new: str, published_at: str, cooldown_seconds: int) -> str:
     date = release_date(published_at).date().isoformat()
     return (

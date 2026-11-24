@@ -14,7 +14,7 @@ from urllib.parse import quote
 
 from bin_updater.cooldown import is_release_mature, parse_cooldown_to_seconds
 from bin_updater.policy import configured_age, load_policy
-from bin_updater.pr_summary import update_table
+from bin_updater.pr_summary import update_table, update_title
 
 CATALOGS = Path("src/chezmoi/.chezmoidata/bin")
 TOOL = re.compile(r"[a-z0-9][a-z0-9_-]*")
@@ -25,6 +25,7 @@ ARTIFACT_LIMITS = {".toml": 512_000, ".json": 8 * 1024 * 1024}
 AT_SIGN = re.compile(r"@|&(?:commat;|#(?:0*64(?![0-9])|[xX]0*40(?![0-9a-fA-F]));?)")
 NOTE_TOKEN = re.compile(
     r"(?P<url>https?://[a-zA-Z0-9.\-]+(?::[0-9]+)?/[^\s<>\[\]()?#]*)"
+    r"|(?<![^\s(])@(?P<login>[a-zA-Z0-9](?:-?[a-zA-Z0-9]){0,38})(?![\w/@-]|\.[a-zA-Z0-9]|\[bot\])"
     rf"|{AT_SIGN.pattern}"
 )
 
@@ -43,6 +44,8 @@ def mute_mentions(body):
         if match.group("url"):
             # A malformed link can expose its path as text. Keep at signs inert there too.
             return AT_SIGN.sub("%40", match[0])
+        if login := match.group("login"):
+            return f"[{login}](https://github.com/{login})"
         return "@\u200b"
 
     return NOTE_TOKEN.sub(replace, body)
@@ -163,7 +166,7 @@ def remote_tip(ref):
     return sha
 
 
-def update_branch(name, catalog, approved, base, directory, expected_pr_head=None):
+def update_branch(name, catalog, approved, title, base, directory, expected_pr_head=None):
     branch = f"automation/bin-update-{name}"
     ref = f"refs/heads/{branch}"
     inspected = remote_tip(ref)
@@ -206,7 +209,7 @@ def update_branch(name, catalog, approved, base, directory, expected_pr_head=Non
         "-p",
         base,
         "-m",
-        f"Update {name}",
+        title,
     ).strip()
     command(
         "git",
@@ -230,7 +233,7 @@ def publish(name, artifact, base, repo):
     updated = (artifact / f"{name}.toml").read_text(encoding="utf-8")
     approved, old, new = approved_catalog(original, updated, name)
     report = json.loads((artifact / f"{name}.json").read_text(encoding="utf-8"))
-    title = f"Update {name} from {old} to {new}"
+    title = update_title(name, old, new)
     if not isinstance(report, list) or len(report) != 1 or not isinstance(report[0], dict):
         raise ValueError("Expected one update report")
     row = report[0]
@@ -257,7 +260,9 @@ def publish(name, artifact, base, repo):
     prior = open_pr(repo, branch)
     with tempfile.TemporaryDirectory() as temp:
         directory = Path(temp)
-        branch, head = update_branch(name, catalog, approved, base, directory, prior["head"]["sha"] if prior else None)
+        branch, head = update_branch(
+            name, catalog, approved, title, base, directory, prior["head"]["sha"] if prior else None
+        )
         if remote_tip(f"refs/heads/{branch}") != head or remote_tip("refs/heads/main") != base:
             raise ValueError("PR base or head changed before publication")
         current = open_pr(repo, branch)
@@ -353,7 +358,7 @@ def generate_mise_updates(artifact, target):
             _, new, published_at = max(candidates)
             _, replacements = with_mise_version(document, tool, new)
             updated = rebuild_catalog(source, document, replacements)
-            title = f"Update {name} from {old} to {new}"
+            title = update_title(name, old, new)
             notes_url = policy["release_notes_url"].format(version=new)
             report = [
                 {
