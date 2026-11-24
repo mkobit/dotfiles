@@ -66,18 +66,23 @@ CI does not cover nested WSL MicroVM execution.
 ## 3. Register the scoped GitHub provider locally
 
 Never put a PAT or LLM API key in `chezmoi.toml` or this repository.
-Create a fine-grained PAT for only the target repository with **Contents: Read and write**, **Pull requests: Read and write**, and **Workflows: No access**.
+Create a fine-grained PAT for only the target repository.
+For the push test, grant **Contents: Read and write** and keep GitHub's default **Metadata: Read-only** permission.
+Leave **Pull requests**, **Workflows**, and account permissions at **No access**.
 Protect `main` with a GitHub ruleset.
 
-Set `GITHUB_TOKEN` in the host environment from your local password manager.
-The provider command reads that environment variable and registers it with the Gateway.
-Do not paste the PAT into a command argument or a file.
+Run these commands in a local Bash or Zsh terminal on the host.
+Paste the PAT when `read` waits for input.
+The provider command reads the PAT from the environment.
 
 ```bash
+set +x
+IFS= read -rs GITHUB_TOKEN
+export GITHUB_TOKEN
 openshell provider create -g openshell-microvm --type github \
   --name rollout-github --credential GITHUB_TOKEN
-openshell provider list -g openshell-microvm --names
 unset GITHUB_TOKEN
+openshell provider list -g openshell-microvm --names
 ```
 
 The provider keeps the credential in the Gateway and substitutes it for approved sandbox requests.
@@ -201,9 +206,7 @@ The provider substitutes the `GITHUB_TOKEN` placeholder in the HTTP Authorizatio
 Do not enable shell tracing or put a token in the remote URL or command.
 Do not pass a bundle in `--upload` together with a trailing command to `sandbox create`; 0.1.9 requires a separate upload command.
 The custom image booted and imported both bundles.
-The end-to-end push still needs validation with the scoped GitHub provider.
-
-After a push, fetch the branch on the host and verify the signature before review.
+After the push, fetch the branch on the host and verify the same commit in Git and on GitHub.
 
 ```bash
 git fetch origin test/openshell-signed-push
