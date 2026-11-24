@@ -1,5 +1,7 @@
 {{- if ne (dig "local" "bin" "openshell" "installation_method" "none" $) "none" -}}
 {{- $microvm := includeTemplate "openshell/microvm-enabled" . -}}
+{{- $gatewayArgs := "" -}}
+{{- if $microvm }}{{ $gatewayArgs = " -g openshell-microvm" }}{{ end -}}
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -11,7 +13,6 @@ set -euo pipefail
 export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
 
 failures=0
-gateway_args=({{ if $microvm }}-g openshell-microvm{{ end }})
 
 info() {
     printf '[INFO] %s\n' "$1"
@@ -74,8 +75,8 @@ fi
 {{- end }}
 
 if command -v openshell >/dev/null 2>&1; then
-    if openshell status "${gateway_args[@]}" >/dev/null 2>&1 &&
-       openshell gateway info "${gateway_args[@]}" >/dev/null 2>&1; then
+    if openshell status{{ $gatewayArgs }} >/dev/null 2>&1 &&
+       openshell gateway info{{ $gatewayArgs }} >/dev/null 2>&1; then
         pass "openshell gateway is active and reachable"
     else
 {{- if $microvm }}
@@ -86,7 +87,7 @@ if command -v openshell >/dev/null 2>&1; then
     fi
 
     provider_out=""
-    if provider_out="$(openshell provider list "${gateway_args[@]}" 2>/dev/null)"; then
+    if provider_out="$(openshell provider list{{ $gatewayArgs }} 2>/dev/null)"; then
         # Count non-empty, non-header provider entries without printing secret values.
         provider_count=0
         while IFS= read -r line; do
