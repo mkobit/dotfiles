@@ -65,6 +65,7 @@ _ICONS: Final[Mapping[str, tuple[str, str]]] = MappingProxyType(
         "clean": ("✓", "✓"),
         "tokens": ("\uf4a5", "⚡"),
         "cost": ("💳", "💳"),
+        "vim": ("\ue7c5", ""),
     }
 )
 

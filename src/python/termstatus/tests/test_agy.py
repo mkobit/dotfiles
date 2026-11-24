@@ -25,7 +25,7 @@ from termstatus.agy.statusline import (
 from termstatus.agy.term_colors import fullness_icon, meter_color
 from termstatus.git_status import VcsState, parse_git_status
 from termstatus.main import main
-from termstatus.segments.constants import CYAN, DIM, GREEN, ORANGE, RED, YELLOW
+from termstatus.segments.constants import CYAN, DIM, GREEN, MAGENTA, ORANGE, RED, YELLOW
 
 FULL_PAYLOAD = {
     "agent_state": "working",
@@ -60,40 +60,66 @@ def rendered(raw: Mapping[str, object], vcs: VcsState | None = None) -> list[str
     return strip_ansi(render_statusline(decode_payload(raw), vcs)).splitlines()
 
 
-def test_wide_render_uses_five_conditional_rows() -> None:
+def test_wide_render_uses_four_aligned_table_rows() -> None:
     lines = rendered(FULL_PAYLOAD)
 
-    assert len(lines) == 5
+    assert len(lines) == 4
+    assert all(" • " not in line for line in lines)
     assert all(
-        expected in line
-        for expected, line in zip(
-            (
-                "working",
-                "GPT-5.6",
-                "think:high",
-                "autonomous",
-                "plan:full",
-                "sandbox:no-net",
-                "vim:insert",
-            ),
-            [lines[0]] * 7,
-            strict=True,
+        expected in lines[0]
+        for expected in (
+            "[🔄 working] \ue7c5I",
+            "GPT-5.6",
+            "high",
+            "autonomous",
+            "sandbox:no-net",
         )
     )
-    assert " • " in lines[0]
+    assert "think:" not in lines[0]
+    assert "vim:" not in lines[0]
+    assert "plan:" not in lines[0]
+    assert "full" not in lines[0]
     assert "/work/repo" in lines[1]
-    assert "82% ctx" in lines[1]
-    assert "5h ◕ 50%" in lines[1]
-    assert "$0.01" in lines[1]
-    assert " • " in lines[1]
+    assert "<feature/renderer → origin/feature/renderer>" in lines[1]
+    assert "!" in lines[1]
+    assert "↑2" in lines[1] and "↓1" in lines[1]
+
+    assert "82% ctx" in lines[2]
+    assert "5h ◕ 50%" in lines[2]
     assert "7d ◔ 10%" in lines[2]
-    assert "5h" not in lines[2]
-    assert "<feature/renderer → origin/feature/renderer>" in lines[3]
-    assert "!" in lines[3]
-    assert "↑2" in lines[3] and "↓1" in lines[3]
-    assert "tasks:3" in lines[4] and "input:2" in lines[4]
-    assert "confirm" in lines[4] and "artifacts:1" in lines[4]
-    assert " • " in lines[4]
+    assert lines[2].index("5h ◕ 50%") < lines[2].index("7d ◔ 10%")
+    assert "$0.01" in lines[2]
+    assert "full" in lines[2]
+    assert "plan:" not in lines[2]
+    assert lines[2].index("$0.01") < lines[2].index("full")
+
+    assert lines[3].startswith("confirm")
+    assert "tasks:3" in lines[3] and "input:2" in lines[3] and "artifacts:1" in lines[3]
+
+    # Verify Col 1 aligns vertically across all 4 rows
+    col1_starts = [
+        display_width(lines[0][: lines[0].index("GPT-5.6")]),
+        display_width(lines[1][: lines[1].index("<feature/renderer") - 2]),
+        display_width(lines[2][: lines[2].index("[5h")]),
+        display_width(lines[3][: lines[3].index("tasks:3")]),
+    ]
+    assert len(set(col1_starts)) == 1
+
+    # Verify Col 2 aligns vertically between Row 0 and Row 2
+    col2_starts = [
+        display_width(lines[0][: lines[0].index("autonomous")]),
+        display_width(lines[2][: lines[2].index("$0.01")]),
+    ]
+    assert len(set(col2_starts)) == 1
+
+
+@pytest.mark.parametrize("width", [40, 60, 80, 120, 160])
+def test_responsive_table_never_exceeds_terminal_width(width: int) -> None:
+    lines = rendered({**FULL_PAYLOAD, "terminal_width": width})
+
+    assert len(lines) >= 1
+    assert "working" in lines[0]
+    assert all(display_width(line) <= width for line in lines)
 
 
 def test_quota_row_layout_and_bracket_formatting() -> None:
@@ -113,9 +139,7 @@ def test_quota_row_layout_and_bracket_formatting() -> None:
 
     assert len(lines) == 3
     assert "/work/repo" in lines[1]
-    assert "[5h ● 81% ⏳ 30m]" in lines[1]
-    assert " • " in lines[1]
-    assert "[7d ◔ 10% ⏳ 2h]" in lines[2]
+    assert "[5h ● 81% ⏳ 30m]  [7d ◔ 10% ⏳ 2h]" in lines[2]
 
     solo_payload = {
         "cwd": "/work/repo",
@@ -127,16 +151,26 @@ def test_quota_row_layout_and_bracket_formatting() -> None:
     with patch("termstatus.agy.statusline._format_quota_reset_duration", return_value="⏳ 30m"):
         solo_lines = rendered(solo_payload)
 
-    assert len(solo_lines) == 2
-    assert "/work/repo • [5h ● 81% ⏳ 30m]" in solo_lines[1]
+    assert len(solo_lines) == 3
+    assert "/work/repo" in solo_lines[1]
+    assert "[5h ● 81% ⏳ 30m]" in solo_lines[2]
 
 
-def test_narrow_render_omits_lower_priority_slots_without_overflowing() -> None:
+def test_narrow_render_omits_lower_priority_slots_and_splits_overflow_quotas() -> None:
     lines = rendered({**FULL_PAYLOAD, "terminal_width": 40})
 
-    assert "working" in lines[0]
-    assert "plan:full" not in lines[0] and "vim:insert" not in lines[0]
+    assert "[🔄 working] \ue7c5I" in lines[0]
+    assert "GPT-5.6" in lines[0]
+    assert "autonomous" not in lines[0] and "sandbox:no-net" not in lines[0]
     assert all(display_width(line) <= 40 for line in lines)
+    plain = "\n".join(lines)
+    assert "5h ◕ 50%" in plain
+    assert "7d ◔ 10%" in plain
+    # 7d quota splits onto a continuation usage row at width 40
+    usage_idx = next(idx for idx, line in enumerate(lines) if "82% ctx" in line)
+    assert "5h ◕ 50%" in lines[usage_idx]
+    assert "7d ◔ 10%" in lines[usage_idx + 1]
+    assert "full" not in lines[usage_idx]
 
 
 def test_payload_display_text_cannot_inject_terminal_controls_or_rows() -> None:
@@ -153,7 +187,7 @@ def test_payload_display_text_cannot_inject_terminal_controls_or_rows() -> None:
         VcsState("branch\nname\x1b[41m", True, True),
     )
 
-    assert output.count("\n") == 3
+    assert output.count("\n") == 2
     assert "\x1b[41m" not in output
     assert "\r" not in output
 
@@ -233,6 +267,35 @@ def test_reasoning_precedence_is_model_effort_then_reasoning_then_top_level() ->
     assert decode_payload({"effort": "low"}).effort == "low"
 
 
+def test_live_agy_payload_field_aliases() -> None:
+    payload = decode_payload(
+        {
+            "cycle_mode": "accept-edits",
+            "vim": {"mode": "INSERT"},
+            "tool_confirmation_pending": True,
+        }
+    )
+    assert payload.execution_mode == "accept-edits"
+    assert payload.vim_mode == "INSERT"
+    assert payload.confirmation_pending is True
+
+    # Precedence checks
+    assert (
+        decode_payload({"execution_mode": "auto", "cycle_mode": "accept-edits", "mode": "ask"}).execution_mode == "auto"
+    )
+    assert decode_payload({"cycle_mode": "accept-edits", "mode": "ask"}).execution_mode == "accept-edits"
+    assert decode_payload({"mode": "ask"}).execution_mode == "ask"
+    assert decode_payload({"vim_mode": "normal", "vim": {"mode": "INSERT"}}).vim_mode == "normal"
+    assert (
+        decode_payload({"confirmation_pending": False, "tool_confirmation_pending": True}).confirmation_pending is False
+    )
+    assert (
+        decode_payload({"tool_confirmation_pending": False, "confirmation": {"pending": True}}).confirmation_pending
+        is False
+    )
+    assert decode_payload({"confirmation": {"pending": True}}).confirmation_pending is True
+
+
 def test_activity_task_count_never_invents_a_total() -> None:
     line = "\n".join(rendered({"tasks": 3, "terminal_width": 80}))
 
@@ -240,14 +303,31 @@ def test_activity_task_count_never_invents_a_total() -> None:
     assert "/" not in line
 
 
-def test_malformed_json_renders_without_throwing(
+def test_malformed_json_renders_visible_error_token(
     capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    monkeypatch.delenv("TERMSTATUS_DEBUG", raising=False)
     monkeypatch.setattr(sys, "stdin", io.StringIO("not json"))
 
     render_from_stdin()
 
-    assert strip_ansi(capsys.readouterr().out) == "[idle]\n"
+    captured = capsys.readouterr()
+    assert strip_ansi(captured.out) == "[statusline:err]\n"
+    assert RED in captured.out
+    assert captured.err == ""
+
+
+def test_malformed_json_prints_traceback_when_debug_enabled(
+    capsys: pytest.CaptureFixture[str], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("TERMSTATUS_DEBUG", "1")
+    monkeypatch.setattr(sys, "stdin", io.StringIO("not json"))
+
+    render_from_stdin()
+
+    captured = capsys.readouterr()
+    assert strip_ansi(captured.out) == "[statusline:err]\n"
+    assert "JSONDecodeError" in captured.err
 
 
 def test_main_dispatches_antigravity_render_without_subprocess(
@@ -259,7 +339,7 @@ def test_main_dispatches_antigravity_render_without_subprocess(
     with patch("termstatus.git_status.asyncio.create_subprocess_exec") as create_process:
         main()
 
-    assert strip_ansi(capsys.readouterr().out) == "[idle]\n"
+    assert strip_ansi(capsys.readouterr().out) == "[statusline:err]\n"
     create_process.assert_not_called()
 
 
@@ -408,7 +488,7 @@ def test_3p_quotas_filtered_and_quota_meters_formatted() -> None:
     assert "3p-weekly" not in plain
     assert "capacity:" not in plain
     assert "[5h ● 97%]" in lines[1]
-    assert "[7d ● 84%]" in lines[2]
+    assert "[7d ● 84%]" in lines[1]
 
 
 def test_format_quota_label_preserves_tier_and_normalizes_intervals() -> None:
@@ -519,7 +599,7 @@ def test_quota_labels_disambiguate_multiple_buckets_sharing_interval() -> None:
     assert "[pro-5h" in plain
 
 
-def test_model_name_strips_effort_case_insensitively() -> None:
+def test_model_name_strips_effort_case_insensitively(monkeypatch: pytest.MonkeyPatch) -> None:
     lines = rendered(
         {
             "model": {"display_name": "Gemini 3.8 Flash (Medium)"},
@@ -528,8 +608,101 @@ def test_model_name_strips_effort_case_insensitively() -> None:
         }
     )
     assert "Gemini 3.8 Flash" in lines[0]
-    assert "think:medium" in lines[0]
+    assert "🧠 ▁▂▄▆█ medium" in lines[0]
+    assert "think:" not in lines[0]
     assert "Gemini 3.8 Flash (Medium)" not in lines[0]
+
+    monkeypatch.setenv("TERMSTATUS_NO_ICONS", "1")
+    no_icon_lines = rendered(
+        {
+            "model": {"display_name": "Gemini 3.8 Flash (Medium)"},
+            "effort": "medium",
+            "terminal_width": 160,
+        }
+    )
+    assert "Gemini 3.8 Flash  medium" in no_icon_lines[0]
+    assert "think:" not in no_icon_lines[0]
+    assert "🧠" not in no_icon_lines[0]
+
+
+@pytest.mark.parametrize(
+    ("vim_mode", "expected_char", "expected_color"),
+    [
+        ("insert", "I", GREEN),
+        ("INSERT", "I", GREEN),
+        ("i", "I", GREEN),
+        ("normal", "N", CYAN),
+        ("n", "N", CYAN),
+        ("visual", "V", MAGENTA),
+        ("v", "V", MAGENTA),
+        ("v-line", "V", MAGENTA),
+        ("v-block", "V", MAGENTA),
+        ("replace", "R", RED),
+        ("r", "R", RED),
+        ("command", "C", YELLOW),
+        ("c", "C", YELLOW),
+        ("select", "S", DIM),
+    ],
+)
+def test_vim_mode_compact_badge_and_no_icons_fallback(
+    monkeypatch: pytest.MonkeyPatch, vim_mode: str, expected_char: str, expected_color: str
+) -> None:
+    raw = {"agent_state": "idle", "vim_mode": vim_mode, "terminal_width": 120}
+    ansi = render_statusline(decode_payload(raw), None)
+    assert f"{expected_color}\ue7c5{expected_char}" in ansi
+    assert strip_ansi(ansi) == f"[idle] \ue7c5{expected_char}"
+
+    monkeypatch.setenv("TERMSTATUS_NO_ICONS", "1")
+    ansi_no_icons = render_statusline(decode_payload(raw), None)
+    assert f"{expected_color}{expected_char}" in ansi_no_icons
+    assert "\ue7c5" not in ansi_no_icons
+    assert strip_ansi(ansi_no_icons) == f"[idle] {expected_char}"
+
+
+def test_plan_tier_on_usage_row_drops_before_cost_on_narrow_width() -> None:
+    raw = {
+        "agent_state": "idle",
+        "context_window": {"remaining_percentage": 100},
+        "quota": {"gemini-5h": {"remaining_percentage": 80}},
+        "cost": {"estimated": 0.12},
+        "plan_tier": "Google AI Pro",
+        "terminal_width": 120,
+    }
+    wide = render_statusline(decode_payload(raw), None)
+    wide_lines = strip_ansi(wide).splitlines()
+    assert "Google AI Pro" not in wide_lines[0]
+    assert "$0.12" in wide_lines[1]
+    assert "Google AI Pro" in wide_lines[1]
+    assert f"{DIM}Google AI Pro" in wide
+
+    # Width 40 fits ctx + 5h badge + $0.12, but drops Google AI Pro first
+    narrow_lines = rendered({**raw, "terminal_width": 40})
+    assert "$0.12" in narrow_lines[1]
+    assert "Google AI Pro" not in narrow_lines[1]
+
+
+def test_standard_payload_row0_fits_under_80_cols_at_width_120() -> None:
+    standard = {
+        "agent_state": "idle",
+        "cwd": "/work/repo",
+        "model": {"display_name": "Gemini 4 Neon (Medium)", "effort": "medium"},
+        "cycle_mode": "accept-edits",
+        "sandbox": {"enabled": False},
+        "plan_tier": "Google AI Pro",
+        "vim": {"mode": "INSERT"},
+        "context_window": {"remaining_percentage": 100},
+        "quota": {
+            "gemini-5h": {"remaining_fraction": 0.03, "reset_in_seconds": 12044},
+            "gemini-weekly": {"remaining_fraction": 0.51, "reset_in_seconds": 580844},
+        },
+        "terminal_width": 120,
+    }
+    lines = rendered(standard)
+    assert display_width(lines[0]) < 80
+    assert "[idle] \ue7c5I" in lines[0]
+    assert "Gemini 4 Neon" in lines[0]
+    assert "accept-edits" in lines[0]
+    assert "Google AI Pro" in lines[2]
 
 
 def test_directory_shortening_and_link() -> None:
@@ -566,32 +739,34 @@ def test_meter_color_tiers() -> None:
     assert meter_color(0) == RED
 
 
-def test_thinking_cellular_graph() -> None:
-    assert strip_ansi(_thinking_cellular_graph("low")) == "▂▅█"
-    assert strip_ansi(_thinking_cellular_graph("medium")) == "▂▅█"
-    assert strip_ansi(_thinking_cellular_graph("high")) == "▂▅█"
-    assert strip_ansi(_thinking_cellular_graph("off")) == "▂▅█"
+@pytest.mark.parametrize(
+    ("effort", "filled"),
+    [
+        ("off", 0),
+        ("none", 0),
+        ("low", 1),
+        ("medium", 2),
+        ("med", 2),
+        ("high", 3),
+        ("xhigh", 4),
+        ("max", 5),
+        ("0", 0),
+        ("1", 1),
+        ("2", 2),
+        ("3", 3),
+        ("4", 4),
+        ("5", 5),
+        ("9", 5),
+    ],
+)
+def test_thinking_cellular_graph(effort: str, filled: int) -> None:
+    graph = _thinking_cellular_graph(effort)
+    assert strip_ansi(graph) == "▁▂▄▆█"
+    assert graph.count("\x1b[36m") == filled
+    assert graph.count("\x1b[90m") == 5 - filled
 
-    # Off: all 3 bars in dark grey, no cyan
-    off = _thinking_cellular_graph("off")
-    assert "\x1b[36m" not in off
-    assert "\x1b[90m" in off
 
-    # Low: 1st bar cyan, remaining dark grey
-    low = _thinking_cellular_graph("low")
-    assert low.count("\x1b[36m") == 1
-    assert low.count("\x1b[90m") == 2
-
-    # Medium: 2 bars cyan, 1 dark grey
-    med = _thinking_cellular_graph("medium")
-    assert med.count("\x1b[36m") == 2
-    assert med.count("\x1b[90m") == 1
-
-    # High: all 3 cyan, no dark grey
-    high = _thinking_cellular_graph("high")
-    assert high.count("\x1b[36m") == 3
-    assert "\x1b[90m" not in high
-
+def test_thinking_cellular_graph_invalid_inputs() -> None:
     assert _thinking_cellular_graph(None) == ""
     assert _thinking_cellular_graph("unknown") == ""
 

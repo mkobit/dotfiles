@@ -12,7 +12,6 @@ from whenever import TimeDelta
 from termstatus.agy.protocol import AgyPayload, Quota
 from termstatus.agy.term_colors import (
     _STATE_COLORS,
-    SEPARATOR,
     fullness_icon,
     get_icon,
     meter_color,
@@ -38,12 +37,24 @@ from termstatus.terminal_text import normalized_text
 _ANSI_ESCAPE: Final[Pattern[str]] = re.compile(r"(?:\x1b\[[0-9;]*m|\x1b]8;;.*?(?:\x1b\\|\x07))")
 
 
+_GAP: Final[str] = "  "
+_GAP_WIDTH: Final[int] = len(_GAP)
+
+
 @dataclass(frozen=True, slots=True)
-class _Slot:
-    line: int
-    index: int
-    minimum_width: int
-    text: str
+class _RowSpec:
+    col0: str
+    col1_items: tuple[str, ...] = ()
+    col2_items: tuple[str, ...] = ()
+    col1_overflow: bool = False
+
+
+@dataclass(frozen=True, slots=True)
+class _FittedRow:
+    col0: str
+    col1: str = ""
+    col2: str = ""
+    is_continuation: bool = False
 
 
 def strip_ansi(value: str) -> str:
@@ -160,15 +171,6 @@ def git_branch(vcs: VcsState) -> str | None:
     return f"{icon_prefix}{pair_text}{bracketed}"
 
 
-def _fit_slots(slots: Sequence[_Slot], width: int) -> str | None:
-    chosen: list[str] = []
-    for slot in sorted(slots, key=lambda item: item.index):
-        candidate = (*chosen, slot.text)
-        if width >= slot.minimum_width and display_width(SEPARATOR.join(candidate)) <= width:
-            chosen.append(slot.text)
-    return SEPARATOR.join(chosen) or None
-
-
 _THINK_LEVELS: Final[dict[str, int]] = {
     "off": 0,
     "none": 0,
@@ -176,10 +178,11 @@ _THINK_LEVELS: Final[dict[str, int]] = {
     "medium": 2,
     "med": 2,
     "high": 3,
-    "max": 3,
+    "xhigh": 4,
+    "max": 5,
 }
 
-_CELL_BARS: Final[tuple[str, ...]] = ("▂", "▅", "█")
+_CELL_BARS: Final[tuple[str, ...]] = ("▁", "▂", "▄", "▆", "█")
 
 
 def _thinking_cellular_graph(effort: str | None) -> str:
@@ -189,48 +192,65 @@ def _thinking_cellular_graph(effort: str | None) -> str:
     if low in _THINK_LEVELS:
         lvl = _THINK_LEVELS[low]
     elif low.isdigit():
-        lvl = max(0, min(3, int(low)))
+        lvl = max(0, min(len(_CELL_BARS), int(low)))
     else:
         return ""
-    bars = [f"{CYAN}{_CELL_BARS[i]}{RESET}" if i < lvl else f"{DARK_GREY}{_CELL_BARS[i]}{RESET}" for i in range(3)]
+    bars = [f"{CYAN}{bar}{RESET}" if idx < lvl else f"{DARK_GREY}{bar}{RESET}" for idx, bar in enumerate(_CELL_BARS)]
     return "".join(bars)
 
 
-def _identity_slots(payload: AgyPayload) -> list[_Slot]:
+_VIM_MODES: Final[dict[str, tuple[str, str]]] = {
+    "insert": ("I", GREEN),
+    "i": ("I", GREEN),
+    "normal": ("N", CYAN),
+    "n": ("N", CYAN),
+    "visual": ("V", MAGENTA),
+    "v": ("V", MAGENTA),
+    "v-line": ("V", MAGENTA),
+    "v-block": ("V", MAGENTA),
+    "replace": ("R", RED),
+    "r": ("R", RED),
+    "command": ("C", YELLOW),
+    "c": ("C", YELLOW),
+}
+
+
+def _format_vim_mode(vim_mode: str | None) -> str | None:
+    if vim_mode is None:
+        return None
+    key = vim_mode.strip().lower()
+    if not key:
+        return None
+    char, color = _VIM_MODES.get(key, (key[0].upper(), DIM))
+    vim_icon = get_icon("vim")
+    return f"{color}{vim_icon}{char}{RESET}"
+
+
+def _agent_row(payload: AgyPayload) -> _RowSpec:
     icon = state_icon(payload.state)
     icon_prefix = f"{icon} " if icon else ""
     color = _STATE_COLORS.get(payload.state, "\033[37m")
     state = f"{color}[{icon_prefix}{payload.state}]{RESET}"
-    slots = [_Slot(0, 0, 1, state)]
+    vim_badge = _format_vim_mode(payload.vim_mode)
+    col0 = f"{state} {vim_badge}" if vim_badge is not None else state
+
     model = _model_name(payload.model, payload.effort)
     model_text = f"{BOLD}{model}{RESET}" if model is not None else None
     brain = "🧠 " if use_icons() else ""
-    graph = (
-        f"{_thinking_cellular_graph(payload.effort)} "
-        if use_icons() and _thinking_cellular_graph(payload.effort)
-        else ""
-    )
-    think_text = f"{brain}{graph}{DIM}think:{RESET}{payload.effort}" if payload.effort is not None else None
+    cellular = _thinking_cellular_graph(payload.effort)
+    graph = f"{cellular} " if use_icons() and cellular else ""
+    think_text = f"{brain}{graph}{payload.effort}" if payload.effort is not None else None
+
     mode_text = f"{DIM}{payload.execution_mode}{RESET}" if payload.execution_mode is not None else None
-    plan_text = f"{DIM}plan:{RESET}{payload.plan_tier}" if payload.plan_tier is not None else None
 
     sandbox_text = None
     if payload.sandbox and payload.sandbox.enabled:
         net_mode = "net" if payload.sandbox.allow_network else "no-net"
         sandbox_text = f"{DIM}sandbox:{RESET}{net_mode}"
 
-    vim_text = f"{DIM}vim:{payload.vim_mode}{RESET}" if payload.vim_mode is not None else None
-
-    values = (
-        (1, 30, model_text),
-        (2, 45, think_text),
-        (3, 65, mode_text),
-        (4, 85, plan_text),
-        (5, 105, sandbox_text),
-        (6, 125, vim_text),
-    )
-    slots.extend(_Slot(0, index, minimum_width, text) for index, minimum_width, text in values if text is not None)
-    return slots
+    col1 = tuple(item for item in (model_text, think_text) if item is not None)
+    col2 = tuple(item for item in (mode_text, sandbox_text) if item is not None)
+    return _RowSpec(col0=col0, col1_items=col1, col2_items=col2)
 
 
 def _format_directory(cwd: str) -> str:
@@ -311,95 +331,213 @@ def _format_quota_badge(name: str, quota: Quota, base_label: str, *, is_ambiguou
     return f"{DIM}[{RESET}{color}{label}{icon_text} {meter}{RESET}{reset_text}{DIM}]{RESET}"
 
 
-def _resource_slots(payload: AgyPayload) -> list[_Slot]:
-    slots = [_Slot(1, 0, 10, _format_directory(payload.cwd))] if payload.cwd is not None else []
-    if payload.remaining_context is not None:
-        color = meter_color(payload.remaining_context)
-        icon = fullness_icon(payload.remaining_context)
-        slots.append(_Slot(1, 1, 20, f"{color}{icon} {_format_meter(payload.remaining_context)} ctx{RESET}"))
-
-    five_hour_quotas: list[tuple[str, str]] = []
+def _ordered_quota_badges(payload: AgyPayload) -> list[str]:
+    five_hour: list[tuple[str, str, str | None]] = []
+    other: list[tuple[str, str, str | None]] = []
     for name in payload.quotas:
-        if _quota_interval(name) != "5h":
-            continue
-        base_label = _format_quota_label(name)
-        if base_label is None:
-            continue
-        five_hour_quotas.append((name, base_label))
-
-    if five_hour_quotas:
-        five_hour_parts: list[str] = []
-        is_multiple = len(five_hour_quotas) > 1
-        for name, base_label in five_hour_quotas:
-            quota = payload.quotas[name]
-            is_ambiguous = is_multiple and base_label == "5h"
-            five_hour_parts.append(_format_quota_badge(name, quota, base_label, is_ambiguous=is_ambiguous))
-        slots.append(_Slot(1, 2, 40, " ".join(five_hour_parts)))
-
-    if payload.cost is not None:
-        slots.append(_Slot(1, 3, 90, f"{DIM}{_format_cost(payload.cost)}{RESET}"))
-    return slots
-
-
-def _quota_slots(payload: AgyPayload) -> list[_Slot]:
-    valid_quotas: list[tuple[str, str, str | None]] = []
-    for name in payload.quotas:
-        if _quota_interval(name) == "5h":
-            continue
         base_label = _format_quota_label(name)
         if base_label is None:
             continue
         interval = _quota_interval(name)
-        valid_quotas.append((name, base_label, interval))
+        entry = (name, base_label, interval)
+        if interval == "5h":
+            five_hour.append(entry)
+        else:
+            other.append(entry)
 
+    ordered = five_hour + other
     interval_counts: dict[str, int] = {}
-    for _, _, interval in valid_quotas:
+    for _, _, interval in ordered:
         if interval is not None:
             interval_counts[interval] = interval_counts.get(interval, 0) + 1
 
-    quota_parts: list[str] = []
-    for name, base_label, interval in valid_quotas:
+    badges: list[str] = []
+    for name, base_label, interval in ordered:
         quota = payload.quotas[name]
         is_ambiguous = bool(interval and interval_counts.get(interval, 0) > 1 and base_label == interval)
-        quota_parts.append(_format_quota_badge(name, quota, base_label, is_ambiguous=is_ambiguous))
-
-    if quota_parts:
-        return [_Slot(2, 0, 10, " ".join(quota_parts))]
-    return []
+        badges.append(_format_quota_badge(name, quota, base_label, is_ambiguous=is_ambiguous))
+    return badges
 
 
-def _vcs_slots(vcs: VcsState | None) -> list[_Slot]:
-    if not vcs or not vcs.is_repo:
-        return []
-    if (branch := git_branch(vcs)) is not None:
-        return [_Slot(3, 0, 10, branch)]
-    return []
+def _workspace_row(payload: AgyPayload, vcs: VcsState | None) -> _RowSpec | None:
+    dir_text = _format_directory(payload.cwd) if payload.cwd is not None else None
+    effective_vcs = vcs or payload.vcs
+    vcs_text = git_branch(effective_vcs) if effective_vcs and effective_vcs.is_repo else None
+    if dir_text is not None and vcs_text is not None:
+        return _RowSpec(col0=dir_text, col1_items=(vcs_text,))
+    if dir_text is not None:
+        return _RowSpec(col0=dir_text)
+    if vcs_text is not None:
+        return _RowSpec(col0=vcs_text)
+    return None
 
 
-def _activity_slots(payload: AgyPayload) -> list[_Slot]:
-    values = (
-        (0, 10, f"{CYAN}tasks:{payload.task_count}{RESET}" if payload.task_count is not None else None),
-        (
-            1,
-            30,
+def _usage_row(payload: AgyPayload) -> _RowSpec | None:
+    ctx_text = None
+    if payload.remaining_context is not None:
+        color = meter_color(payload.remaining_context)
+        icon = fullness_icon(payload.remaining_context)
+        ctx_text = f"{color}{icon} {_format_meter(payload.remaining_context)} ctx{RESET}"
+
+    quota_badges = _ordered_quota_badges(payload)
+    cost_text = f"{DIM}{_format_cost(payload.cost)}{RESET}" if payload.cost is not None else None
+    plan_text = f"{DIM}{payload.plan_tier}{RESET}" if payload.plan_tier is not None else None
+    col2_items = tuple(item for item in (cost_text, plan_text) if item is not None)
+
+    if ctx_text is not None:
+        return _RowSpec(
+            col0=ctx_text,
+            col1_items=tuple(quota_badges),
+            col2_items=col2_items,
+            col1_overflow=True,
+        )
+    if quota_badges:
+        return _RowSpec(
+            col0=quota_badges[0],
+            col1_items=tuple(quota_badges[1:]),
+            col2_items=col2_items,
+            col1_overflow=True,
+        )
+    if col2_items:
+        return _RowSpec(col0=col2_items[0], col1_items=col2_items[1:])
+    return None
+
+
+def _activity_row(payload: AgyPayload) -> _RowSpec | None:
+    items = [
+        text
+        for text in (
+            f"{BOLD}{RED}confirm{RESET}" if payload.confirmation_pending else None,
+            f"{CYAN}tasks:{payload.task_count}{RESET}" if payload.task_count is not None else None,
             f"{YELLOW}input:{payload.pending_input_count}{RESET}" if payload.pending_input_count is not None else None,
+            f"{BLUE}artifacts:{payload.artifact_count}{RESET}" if payload.artifact_count is not None else None,
+        )
+        if text is not None
+    ]
+    if not items:
+        return None
+    return _RowSpec(col0=items[0], col1_items=tuple(items[1:]))
+
+
+def _fit_items(items: Sequence[str], max_width: int) -> tuple[list[str], list[str]]:
+    fitted: list[str] = []
+    used = 0
+    for idx, item in enumerate(items):
+        item_width = display_width(item)
+        needed = item_width if not fitted else used + _GAP_WIDTH + item_width
+        if needed <= max_width:
+            fitted.append(item)
+            used = needed
+        else:
+            return fitted, list(items[idx:])
+    return fitted, []
+
+
+def _fit_row_spec(spec: _RowSpec, width: int) -> list[_FittedRow]:
+    col0_w = display_width(spec.col0)
+    remaining_after_col0 = width - col0_w - _GAP_WIDTH
+
+    col1_fitted: list[str] = []
+    col1_leftover: list[str] = list(spec.col1_items)
+    if spec.col1_items and remaining_after_col0 > 0:
+        col1_fitted, col1_leftover = _fit_items(spec.col1_items, remaining_after_col0)
+
+    col1_str = _GAP.join(col1_fitted)
+    col1_w = display_width(col1_str)
+
+    col2_fitted: list[str] = []
+    if spec.col2_items and not col1_leftover:
+        remaining_after_col1 = width - col0_w - _GAP_WIDTH - col1_w - _GAP_WIDTH if col1_str else remaining_after_col0
+        if remaining_after_col1 > 0:
+            col2_fitted, _ = _fit_items(spec.col2_items, remaining_after_col1)
+
+    col2_str = _GAP.join(col2_fitted)
+    if not col1_str and col2_str:
+        col1_str, col2_str = col2_str, ""
+
+    rows = [_FittedRow(col0=spec.col0, col1=col1_str, col2=col2_str)]
+
+    if spec.col1_overflow and col1_leftover:
+        overflow_fitted, _ = _fit_items(col1_leftover, width)
+        if overflow_fitted:
+            rows.append(_FittedRow(col0="", col1=_GAP.join(overflow_fitted), is_continuation=True))
+
+    return rows
+
+
+def _render_table(specs: Sequence[_RowSpec], width: int) -> str:
+    fitted_rows = [row for spec in specs for row in _fit_row_spec(spec, width)]
+
+    col0_cap = max(16, width // 3)
+    col0_candidates = [
+        display_width(row.col0)
+        for row in fitted_rows
+        if not row.is_continuation and (row.col1 or row.col2) and display_width(row.col0) <= col0_cap
+    ]
+    col0_width = max(col0_candidates, default=0)
+
+    col0_ends: list[int] = []
+    for row in fitted_rows:
+        if row.is_continuation:
+            col1_w = display_width(row.col1)
+            if col0_width > 0 and col0_width + _GAP_WIDTH + col1_w <= width:
+                col0_ends.append(col0_width)
+            else:
+                col0_ends.append(-_GAP_WIDTH)
+        elif not row.col1 and not row.col2:
+            col0_ends.append(display_width(row.col0))
+        else:
+            raw_col0_w = display_width(row.col0)
+            rest_w = _GAP_WIDTH + display_width(row.col1) + (_GAP_WIDTH + display_width(row.col2) if row.col2 else 0)
+            if raw_col0_w <= col0_width and col0_width + rest_w <= width:
+                col0_ends.append(col0_width)
+            else:
+                col0_ends.append(raw_col0_w)
+
+    target_col2_start = max(
+        (
+            col0_ends[idx] + _GAP_WIDTH + display_width(row.col1) + _GAP_WIDTH
+            for idx, row in enumerate(fitted_rows)
+            if row.col2
         ),
-        (2, 50, f"{BOLD}{RED}confirm{RESET}" if payload.confirmation_pending else None),
-        (3, 65, f"{BLUE}artifacts:{payload.artifact_count}{RESET}" if payload.artifact_count is not None else None),
+        default=0,
     )
-    return [_Slot(4, index, minimum_width, text) for index, minimum_width, text in values if text is not None]
+
+    lines: list[str] = []
+    for idx, row in enumerate(fitted_rows):
+        if row.is_continuation:
+            indent = col0_ends[idx] + _GAP_WIDTH
+            lines.append(f"{' ' * indent}{row.col1}" if indent > 0 else row.col1)
+            continue
+        if not row.col1:
+            lines.append(row.col0)
+            continue
+
+        pad0 = " " * (col0_ends[idx] - display_width(row.col0) + _GAP_WIDTH)
+        if not row.col2:
+            lines.append(f"{row.col0}{pad0}{row.col1}")
+            continue
+
+        natural_col2_start = col0_ends[idx] + _GAP_WIDTH + display_width(row.col1) + _GAP_WIDTH
+        col2_w = display_width(row.col2)
+        if target_col2_start >= natural_col2_start and target_col2_start + col2_w <= width:
+            pad1 = " " * (target_col2_start - natural_col2_start + _GAP_WIDTH)
+        else:
+            pad1 = _GAP
+        lines.append(f"{row.col0}{pad0}{row.col1}{pad1}{row.col2}")
+
+    return "\n".join(lines)
 
 
 def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
-    slots = (
-        _identity_slots(payload)
-        + _resource_slots(payload)
-        + _quota_slots(payload)
-        + _vcs_slots(vcs or payload.vcs)
-        + _activity_slots(payload)
-    )
-    return "\n".join(
+    specs = [
         row
-        for line in range(5)
-        if (row := _fit_slots([slot for slot in slots if slot.line == line], payload.terminal_width)) is not None
-    )
+        for row in (
+            _agent_row(payload),
+            _workspace_row(payload, vcs),
+            _usage_row(payload),
+            _activity_row(payload),
+        )
+        if row is not None
+    ]
+    return _render_table(specs, payload.terminal_width)
