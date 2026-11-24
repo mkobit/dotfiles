@@ -7,42 +7,54 @@
   Data path: zellij.modes.<mode>.keybinds
     Keys:   unique bind identifiers (merge key only, not emitted)
     Values: raw KDL bind statement, or empty string to suppress a bind from an inner layer
+  Plugin shortcuts: zellij.modes.<mode>.plugin_shortcuts.<id>
+    Set key and either destination-relative path or literal location.
+    Optional config contains plugin options. A raw bind with the same ID takes precedence.
   clear_defaults = true on a mode emits a separate "keybinds clear-defaults=true" block
   (must be separate since clear-defaults applies to the whole block).
   Custom modes unsupported until: https://github.com/zellij-org/zellij/issues/248
 */ -}}
-{{- $normalModes := dict -}}
-{{- range $mode, $modeData := (dig "zellij" "modes" (dict) .) -}}
-{{-   if and (dig "keybinds" (dict) $modeData) (not (dig "clear_defaults" false $modeData)) -}}
-{{-     $_ := set $normalModes $mode $modeData -}}
-{{-   end -}}
+{{- define "zellij-mode-bindings" -}}
+{{- $raw := dig "keybinds" (dict) .mode -}}
+{{- range $id, $plugin := dig "plugin_shortcuts" (dict) .mode }}
+{{-   if not (hasKey $raw $id) }}
+{{-     $location := dig "location" "" $plugin }}
+{{-     if (dig "path" "" $plugin) }}
+{{-       $location = printf "file:%s" (joinPath $.destDir $plugin.path) }}
+{{-     end }}
+        bind {{ includeTemplate "kdl/value" $plugin.key }} {
+            LaunchOrFocusPlugin {{ includeTemplate "kdl/value" $location }} {
+{{-       range $key, $value := dig "config" (dict) $plugin }}
+                {{ $key }} {{ includeTemplate "kdl/value" $value }}
+{{-       end }}
+            }
+        }
+{{-   end }}
+{{- end }}
+{{- range $_, $line := $raw }}
+{{-   if $line }}
+        {{ $line }}
+{{-   end }}
+{{- end }}
 {{- end -}}
+{{- $modes := dig "zellij" "modes" (dict) . -}}
 // Keybind overrides — zellij built-in defaults are preserved.
 // https://zellij.dev/documentation/keybindings
 keybinds {
     shared_except "locked" "scroll" "search" "tmux" {
         unbind "Ctrl b"
     }
-{{- range $mode, $modeData := $normalModes }}
-    {{ $mode }} {
-{{-     range $_, $line := dig "keybinds" (dict) $modeData }}
-{{-       if $line }}
-        {{ $line }}
-{{-       end }}
-{{-     end }}
+{{- range $mode, $data := $modes }}
+{{-   if and (or (dig "keybinds" (dict) $data) (dig "plugin_shortcuts" (dict) $data)) (not (dig "clear_defaults" false $data)) }}
+    {{ $mode }} { {{- template "zellij-mode-bindings" (dict "mode" $data "destDir" $.chezmoi.destDir) }}
     }
+{{-   end }}
 {{- end }}
 }
-{{- range $mode, $modeData := (dig "zellij" "modes" (dict) .) }}
-{{-   $keybinds := dig "keybinds" (dict) $modeData }}
-{{-   if and $keybinds (dig "clear_defaults" false $modeData) }}
+{{- range $mode, $data := $modes }}
+{{-   if and (or (dig "keybinds" (dict) $data) (dig "plugin_shortcuts" (dict) $data)) (dig "clear_defaults" false $data) }}
 keybinds clear-defaults=true {
-    {{ $mode }} {
-{{-     range $_, $line := $keybinds }}
-{{-       if $line }}
-        {{ $line }}
-{{-       end }}
-{{-     end }}
+    {{ $mode }} { {{- template "zellij-mode-bindings" (dict "mode" $data "destDir" $.chezmoi.destDir) }}
     }
 }
 {{-   end }}

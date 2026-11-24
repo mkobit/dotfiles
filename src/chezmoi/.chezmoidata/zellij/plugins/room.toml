@@ -1,0 +1,13 @@
+[zellij.plugin_artifacts.room]
+repository = "rvcas/room"
+version = "v1.2.2"
+sha256 = "8f79a67fc9e3655c22f18f5e9c50560ff3053cf45d85ad28445de71e3c54f307"
+
+[zellij.modes.normal.plugin_shortcuts.room]
+key = "Ctrl y"
+path = ".config/zellij/plugins/room.wasm"
+
+[zellij.modes.normal.plugin_shortcuts.room.config]
+floating = true
+ignore_case = true
+quick_jump = true

@@ -1,0 +1,24 @@
+// https://zellij.dev/documentation/creating-a-layout
+layout {
+    default_tab_template {
+        children
+        pane size=1 borderless=true {
+            // zjstatus requires RunCommands even when no command widget is configured.
+            // Send only short, printable status text from trusted tools.
+            plugin location="file:{{ .chezmoi.destDir }}/.config/zellij/plugins/zjstatus.wasm" {
+                format_left "{mode} #[bold]{session} "
+                format_center "{tabs}"
+                format_right "{pipe_work}"
+                border_enabled "false"
+                mode_normal "#[fg=green,bold] Normal "
+                mode_locked "#[fg=yellow,bold] Locked "
+                tab_normal " {name} "
+                tab_active "#[fg=cyan,bold] {name} "
+                // Set work status: zellij pipe 'zjstatus::pipe::pipe_work::Example'
+                pipe_work_format "{output}"
+                pipe_work_rendermode "static"
+            }
+        }
+    }
+    pane
+}
