@@ -1,13 +1,15 @@
 # OpenShell host bootstrap and sandbox workflow
 
-This guide covers the supported OpenShell 0.1.9 WSL 2 MicroVM setup, a stock guest smoke test, provider registration, and an isolated-clone Git workflow.
-It keeps the signing key on the host and keeps SBX available during the pilot.
+This guide covers OpenShell 0.1.9 on WSL 2, credential-free public repository work, and a separate signed push workflow.
+Keep the SSH signing private key on the host.
+SBX remains available during the pilot.
 
 ## 1. Enable and install OpenShell
 
 OpenShell installs only when `[data.local.bin.openshell].installation_method` is `"github_releases"` in the active `chezmoi` configuration.
 The base init template enables the MicroVM Gateway only on Linux x86-64 WSL 2 when `wslpath` is available.
 An overlay replaces the base init template, so it must declare the installation method and `microvm = true` itself to enable these targets.
+The OpenShell CLI supports other platforms, but this managed MicroVM service uses Linux x86-64 binaries.
 
 Run `chezmoi init` to select the OpenShell installation method.
 The generated configuration must keep the setting at `"none"` on unsupported hosts.
@@ -22,7 +24,7 @@ chezmoi apply ~/.local/bin/openshell ~/.local/bin/openshell-doctor \
   ~/.config/openshell/microvm-gateway.toml ~/.config/systemd
 ```
 
-The MicroVM Gateway needs read and write access to `/dev/kvm`, `mke2fs`, `debugfs`, and `e2fsck`, plus a reachable Docker engine for local image export.
+The MicroVM Gateway needs `/dev/kvm`, `mke2fs`, `debugfs`, and `e2fsck`, plus a reachable Docker engine for local image export.
 The managed service listens on `127.0.0.1:17671` and stores Gateway state and TLS certificates under `~/.local/state/openshell-microvm/`.
 
 ```bash
@@ -34,9 +36,6 @@ openshell status -g openshell-microvm
 openshell-doctor
 ```
 
-This setup supports Linux x86-64 WSL 2 only.
-It needs `/dev/kvm`, filesystem tools, and a reachable Docker engine.
-SBX remains available during the pilot.
 Pass `-g openshell-microvm` to Gateway-specific commands when more than one Gateway is registered.
 Restart the service after a Gateway or driver update.
 
@@ -48,32 +47,119 @@ journalctl --user -u openshell-microvm.service
 ## 2. Run the stock guest smoke test
 
 Use the default Ubuntu guest and policy first, with no providers and no host mounts.
-This checks Gateway mutual TLS, VM startup, and guest command execution without granting GitHub access.
+This checks Gateway mutual TLS, VM startup, guest command execution, and basic isolation.
 
 ```bash
 openshell sandbox create -g openshell-microvm --name microvm-smoke \
   --no-keep --no-tty --no-auto-providers -- id
 ```
 
-The WSL x86-64 pilot passed this smoke test with OpenShell 0.1.9 and `nvcr.io/nvidia/base/ubuntu:24.04`.
+The WSL x86-64 pilot passed with OpenShell 0.1.9 and `nvcr.io/nvidia/base/ubuntu@sha256:494398fac1b07614c63ba179e3558d84a5a9ce19a6374560ceac04d822462e45`.
 The guest supervisor became ready and `id` returned exit code 0 as `uid=1000(ubuntu)`.
-The `--no-keep` option removed the smoke sandbox after completion.
-The managed Gateway service remains active for later testing.
-The stock guest does not include Git, so this smoke test does not validate the `/sandbox` image or GitHub push flow.
-Two concurrent guest sandboxes also passed on the managed service after an earlier libkrun startup error.
+A separate strict-policy check confirmed that `/tmp` is writable, `/etc` writes are denied, and the guest has no Docker socket, `/dev/kvm`, or `/mnt/c` mount.
+The `--no-keep` option removes the smoke sandbox after completion.
+The stock guest does not include Git, so this smoke test does not validate the `/sandbox` image or Git operations.
 CI does not cover nested WSL MicroVM execution.
 
-## 3. Register the scoped GitHub provider locally
+## 3. Build the sandbox image from tracked files
 
-Never put a PAT or LLM API key in `chezmoi.toml` or this repository.
-Create a fine-grained PAT for only the target repository.
-For the push test, grant **Contents: Read and write** and keep GitHub's default **Metadata: Read-only** permission.
+Check out the reviewed commit and run this command from the repository root.
+Git sends only tracked files to the builder.
+The final image includes the rendered sandbox files and the verified chezmoi binary.
+Debian packages and some chezmoi externals can still change between builds.
+
+```bash
+git archive --format=tar HEAD | docker build --platform linux/amd64 \
+  -f docker/openshell/Dockerfile \
+  -t dotfiles-openshell-sandbox:local -
+```
+
+The image provides `/usr/bin/git` and the `/sandbox` environment.
+Use the local tag for this pilot.
+Use an immutable registry digest when you reference a published image.
+Compose that layer into a repository sandbox image when you need the repository's tools.
+
+```dockerfile
+FROM <repo-base-image>
+COPY --from=dotfiles-openshell-sandbox:local /sandbox /sandbox
+ENV HOME=/sandbox \
+    PATH="/sandbox/.local/bin:/sandbox/.local/bin/dotfiles:${PATH}" \
+    AGY_CLI_DISABLE_AUTO_UPDATE=true \
+    GIT_CONFIG_GLOBAL=/sandbox/.config/ai-policy/git/sandbox.gitconfig
+WORKDIR /sandbox/workspace
+```
+
+## 4. Start normal work without GitHub credentials
+
+For normal work on this public repository, clone it over HTTPS without a provider or token.
+Use a fresh isolated guest and a read-only Git policy.
+Set `REVIEWED_REF` to the public branch or tag that contains the reviewed commit.
+Set `REVIEWED_COMMIT` to its full 40-character commit ID.
+
+Create the read-only policy from the push policy by removing its single `git-receive-pack` rule.
+This preserves the same filesystem restrictions and permits only public Git fetch requests for this repository.
+
+```bash
+read -r -p 'Reviewed public ref: ' REVIEWED_REF
+read -r -p 'Reviewed full commit ID: ' REVIEWED_COMMIT
+[[ "$REVIEWED_COMMIT" =~ ^[0-9a-f]{40}$ ]] || {
+  printf 'Enter a full 40-character lowercase commit ID.\n' >&2
+  exit 2
+}
+read_policy="$(mktemp)"
+trap 'rm -f "$read_policy"' EXIT
+sed '/git-receive-pack/d' docker/openshell/github-push.yaml > "$read_policy"
+openshell sandbox create -g openshell-microvm --name dotfiles-read \
+  --from dotfiles-openshell-sandbox:local --policy "$read_policy" \
+  --detach --no-auto-providers -- sleep 3600
+rm -f "$read_policy"
+trap - EXIT
+openshell sandbox exec -g openshell-microvm dotfiles-read -- sh -ec '
+  git clone --no-checkout https://github.com/mkobit/dotfiles.git /tmp/dotfiles
+  git -C /tmp/dotfiles fetch --no-tags origin "$1"
+  git -C /tmp/dotfiles checkout --detach "$2"
+  test "$(git -C /tmp/dotfiles rev-parse HEAD)" = "$2"
+' sh "$REVIEWED_REF" "$REVIEWED_COMMIT"
+```
+
+This path does not use GitHub authentication.
+Use a separate approved model provider if the coding agent needs model access.
+The repository clone lives in writable `/tmp`.
+Delete only the `dotfiles-read` sandbox after the task.
+
+## 5. Prepare a host-signed bundle for offline transfer
+
+Use Git bundles only when you need to transfer host-signed commits or work without public Git access.
+Do not copy or mount the SSH signing private key into the sandbox.
+Register its public key on GitHub as a **Signing Key only** and add it to the host's `allowed_signers` file.
+
+Create bundles from a host clone that contains the intended base and signed feature branch.
+Configure Git's `gpg.ssh.allowedSignersFile` on the host.
+Check that the branch contains only the intended commits and verify its signature before creating the bundles.
+
+```bash
+git -C /path/to/dotfiles verify-commit test/openshell-signed-push
+git -C /path/to/dotfiles bundle create /path/to/dotfiles.bundle main
+git -C /path/to/dotfiles bundle create /path/to/signed.bundle test/openshell-signed-push
+```
+
+The sandbox uses `GIT_CONFIG_GLOBAL=/sandbox/.config/ai-policy/git/sandbox.gitconfig`.
+With no signing key configured there, commit and tag signing are disabled.
+The host must verify the fetched commit signature before review or merge.
+
+## 6. Push a signed bundle with an explicit provider
+
+This section is only for a deliberate push test.
+The policy in `docker/openshell/github-push.yaml` allows Git smart-HTTP requests to `mkobit/dotfiles`.
+It adds only the `git-receive-pack` request to the public read-only rules.
+The existing `.openshell/policy.yaml` remains unchanged and is not compatible with this OpenShell 0.1.9 Gateway because its `process.seccomp` setting is rejected.
+Use a fine-grained PAT scoped to this repository with **Contents: Read and write** and GitHub's default **Metadata: Read-only** permission.
 Leave **Pull requests**, **Workflows**, and account permissions at **No access**.
 Protect `main` with a GitHub ruleset.
 
-Run these commands in a local Bash or Zsh terminal on the host.
-Paste the PAT when `read` waits for input.
-The provider command reads the PAT from the environment.
+Register the provider on the selected Gateway only when you need this push workflow.
+Enter the PAT at the hidden prompt.
+The command receives the value through the environment and names the variable; it does not place the PAT in command history or arguments.
 
 ```bash
 set +x
@@ -85,131 +171,35 @@ unset GITHUB_TOKEN
 openshell provider list -g openshell-microvm --names
 ```
 
-The provider keeps the credential in the Gateway and substitutes it for approved sandbox requests.
-
-[OpenShell 0.1.9 GitHub provider and push tutorial](https://docs.nvidia.com/openshell/v0.1.9/tutorials/github-push-access)
-
-## 4. Keep commit signing on the host
-
-Keep the dedicated SSH signing private key on the host.
-Do not copy or mount it into the sandbox for this rollout.
-Register its public key on GitHub as a **Signing Key only** and add it to the host's `allowed_signers` file.
-
-Prepare a signed Git bundle on the host, then upload that bundle into the isolated sandbox clone.
-The known staged bundle head is `4976d176` on `test/openshell-signed-push`.
-The host verified its SSH signature with `allowedSignersFile`, and the public fingerprint matched a GitHub signing key.
-Create bundles from a host clone that contains the intended base and signed feature branch.
-Configure the signing public key in Git's `gpg.ssh.allowedSignersFile` on the host and register it as a signing key in GitHub.
-Check that the branch contains only the intended commits.
-Verify the signature before creating the bundles.
-
-```bash
-git -C /path/to/dotfiles verify-commit test/openshell-signed-push
-git -C /path/to/dotfiles bundle create /path/to/dotfiles.bundle main
-git -C /path/to/dotfiles bundle create /path/to/signed.bundle test/openshell-signed-push
-```
-
-The sandbox uses `GIT_CONFIG_GLOBAL=/sandbox/.config/ai-policy/git/sandbox.gitconfig`.
-With no key configured there, commit and tag signing are disabled, so the sandbox can push the already signed bundle without receiving the private signing key.
-The host must verify the fetched commit signature before review or merge.
-
-## 5. Build and compose the `/sandbox` image
-
-Sandboxes do not run `chezmoi apply` at runtime because creation-locked filesystem policies and default-deny egress block live downloads and package managers.
-Build the reusable `/sandbox` layer from the repository root.
-
-```bash
-docker build -f docker/openshell/Dockerfile -t dotfiles-openshell-sandbox:latest .
-```
-
-The pilot image booted with `/usr/bin/git` available.
-Its detached sandbox accepted both bundles, and the signed bundle fetch resolved to commit `4976d176`.
-
-Compose the layer into a repository sandbox image.
-
-```dockerfile
-FROM <repo-base-image>
-COPY --from=dotfiles-openshell-sandbox:latest /sandbox /sandbox
-ENV HOME=/sandbox \
-    PATH="/sandbox/.local/bin:/sandbox/.local/bin/dotfiles:${PATH}" \
-    AGY_CLI_DISABLE_AUTO_UPDATE=true \
-    GIT_CONFIG_GLOBAL=/sandbox/.config/ai-policy/git/sandbox.gitconfig
-WORKDIR /sandbox/workspace
-```
-
-## 6. Create an isolated sandbox and push a signed bundle
-
-Never mount a host `.git` directory or linked worktree as writable into a sandbox.
-The repository's existing `.openshell/policy.yaml` is not compatible with this OpenShell 0.1.9 Gateway because its `process.seccomp` setting is rejected.
-Save this pilot policy as `github-push.yaml` on the host.
-It grants `/usr/bin/git` access to the Git smart-HTTP paths for `mkobit/dotfiles`.
-
-```yaml
-version: 1
-filesystem_policy:
-  include_workdir: true
-  read_only:
-    - /bin
-    - /usr
-    - /lib
-    - /proc
-    - /dev/urandom
-    - /etc
-    - /var/log
-  read_write:
-    - /tmp
-    - /dev/null
-landlock:
-  compatibility: best_effort
-network_policies:
-  dotfiles_push:
-    name: dotfiles-push
-    endpoints:
-      - host: github.com
-        port: 443
-        protocol: rest
-        enforcement: enforce
-        rules:
-          - allow: {method: GET, path: "/mkobit/dotfiles.git/info/refs*"}
-          - allow: {method: POST, path: "/mkobit/dotfiles.git/git-upload-pack"}
-          - allow: {method: POST, path: "/mkobit/dotfiles.git/git-receive-pack"}
-    binaries:
-      - path: /usr/bin/git
-```
-
-Use the repository sandbox image for Git operations.
-Pass the `rollout-github` provider explicitly.
+Start a fresh sandbox for the push.
+Pass the provider explicitly and disable automatic provider attachment.
 
 ```bash
 openshell sandbox create -g openshell-microvm --name signed-push \
-  --from dotfiles-openshell-sandbox:latest --policy /path/to/github-push.yaml \
+  --from dotfiles-openshell-sandbox:local \
+  --policy docker/openshell/github-push.yaml \
   --provider rollout-github --detach --no-auto-providers -- sleep 3600
 openshell sandbox upload -g openshell-microvm --no-git-ignore signed-push \
   /path/to/dotfiles.bundle /tmp/dotfiles.bundle
 openshell sandbox upload -g openshell-microvm --no-git-ignore signed-push \
   /path/to/signed.bundle /tmp/signed.bundle
-openshell sandbox exec -g openshell-microvm signed-push -- \
-  sh -ec '
-    ref=refs/heads/test/openshell-signed-push
-    git clone --no-checkout /tmp/dotfiles.bundle /tmp/dotfiles
-    git -C /tmp/dotfiles fetch /tmp/signed.bundle "$ref:$ref"
-    auth=$(printf "%s" "x-access-token:${GITHUB_TOKEN:?provider missing}" | base64 -w 0)
-    GIT_AUTH_HEADER="Authorization: Basic $auth" \
-      GIT_TERMINAL_PROMPT=0 git -C /tmp/dotfiles \
-      --config-env=http.extraHeader=GIT_AUTH_HEADER push \
-      https://github.com/mkobit/dotfiles.git "$ref:$ref"
-  '
+openshell sandbox exec -g openshell-microvm signed-push -- sh -ec '
+  ref=refs/heads/test/openshell-signed-push
+  git clone --no-checkout /tmp/dotfiles.bundle /tmp/dotfiles
+  git -C /tmp/dotfiles fetch /tmp/signed.bundle "$ref:$ref"
+  auth=$(printf "%s" "x-access-token:${GITHUB_TOKEN:?provider missing}" | base64 -w 0)
+  GIT_AUTH_HEADER="Authorization: Basic $auth" \
+    GIT_TERMINAL_PROMPT=0 git -C /tmp/dotfiles \
+    --config-env=http.extraHeader=GIT_AUTH_HEADER push \
+    https://github.com/mkobit/dotfiles.git "$ref:$ref"
+'
 ```
 
-Replace the two host bundle paths and policy path with local files.
-The first bundle supplies the isolated repository history; the second supplies the signed feature branch.
-Use HTTP Basic authentication for GitHub Git requests.
-The OpenShell proxy substitutes the provider placeholder in the Authorization header.
 Do not enable shell tracing or put a token in the remote URL or command.
-Do not pass a bundle in `--upload` together with a trailing command to `sandbox create`; 0.1.9 requires a separate upload command.
-The custom image booted, imported both bundles, and pushed commit `4976d176` with the scoped provider.
-The host and GitHub both verified the commit signature.
-After the push, fetch the branch on the host and verify the same commit in Git and on GitHub.
+The OpenShell proxy substitutes the provider placeholder in the Authorization header.
+The sandbox cannot sign new commits because it has no private signing key.
+The previous pilot pushed commit `4976d176`. The host and GitHub verified its signature.
+Verify each new push before review or merge.
 
 ```bash
 git fetch origin test/openshell-signed-push
@@ -219,22 +209,25 @@ commit_sha="$(git rev-parse FETCH_HEAD)"
 gh api "repos/mkobit/dotfiles/commits/${commit_sha}" --jq .commit.verification.verified
 ```
 
-## 7. Stop services and remove pilot state
+## 7. Remove pilot state
 
-Remove a Gateway registration with `openshell gateway remove`; this removes the CLI registration only.
-It does not stop the service or delete Gateway state, certificates, or provider credentials.
-Remove the test sandbox and the locally registered provider when the pilot ends.
+Delete only the test sandboxes created by these examples and the local provider when the push test ends.
+Provider deletion removes the Gateway's copy of the PAT.
+Revoke the PAT separately in GitHub if it is no longer needed.
+These actions do not affect the managed Gateway service.
 
 ```bash
+openshell sandbox delete -g openshell-microvm dotfiles-read
 openshell sandbox delete -g openshell-microvm signed-push
 openshell provider delete -g openshell-microvm rollout-github
-openshell gateway remove openshell-pilot
 ```
 
-The smoke sandbox was created with `--no-keep` and is removed automatically.
-The example removes the separate `openshell-pilot` registration only; keep the active `openshell-microvm` Gateway registered and running.
+The stock smoke sandbox uses `--no-keep` and is removed automatically.
+To remove the Gateway CLI registration, run `openshell gateway remove openshell-microvm`.
+This removes only the registration; it does not stop the service or delete Gateway state, certificates, or providers.
 To stop the managed service, run `systemctl --user disable --now openshell-microvm.service`.
-If you also want to delete persisted Gateway data, first inspect `~/.local/state/openshell-microvm/` and remove it only after confirming it contains no state you need.
+Inspect `~/.local/state/openshell-microvm/` before deleting persisted Gateway data.
 
+[OpenShell 0.1.9 GitHub provider and push tutorial](https://docs.nvidia.com/openshell/v0.1.9/tutorials/github-push-access)
 [OpenShell 0.1.9 MicroVM configuration](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/gateways/configuration#microvm)
 [OpenShell 0.1.9 provider credential injection](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/providers/overview#how-credential-injection-works)

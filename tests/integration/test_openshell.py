@@ -444,14 +444,23 @@ def test_sandbox_chezmoi_config_disables_host_only_features_and_sets_signing_key
 
 def test_sandbox_dockerfile_and_policy_define_isolated_sandbox_layer() -> None:
     dockerfile = SANDBOX_DOCKERFILE.read_text(encoding="utf-8")
-    assert "FROM debian:bookworm-slim" in dockerfile
-    assert "ARG SANDBOX_UID=1000" in dockerfile
-    assert "ARG SANDBOX_GID=1000" in dockerfile
-    assert "HOME=/sandbox" in dockerfile
-    assert "AGY_CLI_DISABLE_AUTO_UPDATE=true" in dockerfile
-    assert "--config /tmp/sandbox-chezmoi.toml" in dockerfile
-    assert "--destination /sandbox" in dockerfile
-    assert 'chown -R "${SANDBOX_UID}:${SANDBOX_GID}" /sandbox' in dockerfile
+    base, build_stages = dockerfile.split("\nFROM base AS builder\n", maxsplit=1)
+    builder, final = build_stages.split("\nFROM base\n", maxsplit=1)
+    assert re.search(r"^FROM debian:bookworm-slim@sha256:[0-9a-f]{64} AS base$", base, re.MULTILINE)
+    assert "ARG SANDBOX_UID=1000" in base
+    assert "ARG SANDBOX_GID=1000" in base
+    assert "HOME=/sandbox" in base
+    assert "AGY_CLI_DISABLE_AUTO_UPDATE=true" in base
+    assert not re.search(r"^(COPY|ADD)\s", base + builder, re.MULTILINE)
+    assert "RUN --mount=type=bind,target=/tmp/dotfiles,readonly " in builder
+    assert "--source /tmp/dotfiles" in builder
+    assert "--config /tmp/dotfiles/docker/openshell/sandbox-chezmoi.toml" in builder
+    assert "--destination /sandbox" in builder
+    assert final.splitlines() == [
+        "COPY --from=builder /usr/local/bin/chezmoi /usr/local/bin/chezmoi",
+        "COPY --from=builder --chown=${SANDBOX_UID}:${SANDBOX_GID} /sandbox /sandbox",
+        "WORKDIR /sandbox",
+    ]
 
     policy = yaml.safe_load(OPENSHELL_POLICY.read_text(encoding="utf-8"))
     rw_paths = set(policy["filesystem_policy"]["read_write"])
@@ -485,9 +494,8 @@ def test_openshell_skill_and_bootstrap_docs_exist_and_follow_metadata_contract()
     for required in (
         "systemctl --user enable --now openshell-microvm.service",
         "https://docs.nvidia.com/openshell/v0.1.9/tutorials/github-push-access",
-        "allowed_signers",
-        "Signing Key only",
         "git fetch",
+        "git verify-commit FETCH_HEAD",
     ):
         assert required in bootstrap_text
 

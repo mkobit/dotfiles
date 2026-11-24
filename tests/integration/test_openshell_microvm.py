@@ -28,6 +28,7 @@ def _chezmoi(
     destination: Path,
     *args: str,
     source: Path = REPO_ROOT,
+    path: str = os.defpath,
 ) -> str:
     chezmoi = shutil.which("chezmoi")
     assert chezmoi is not None
@@ -45,7 +46,7 @@ def _chezmoi(
             str(destination),
             *args,
         ],
-        env={**os.environ, "CI": "1", "PATH": f"{destination}:{os.defpath}"},
+        env={**os.environ, "CI": "1", "PATH": path},
         capture_output=True,
         text=True,
         check=False,
@@ -60,18 +61,23 @@ def _platform(system: str, arch: str, osrelease: str) -> dict[str, object]:
 
 
 @pytest.mark.parametrize(
-    ("system", "arch", "osrelease", "enabled"),
+    ("system", "arch", "osrelease", "has_wslpath", "enabled"),
     [
-        pytest.param("linux", "amd64", WSL_KERNEL, True, id="wsl-amd64"),
-        pytest.param("linux", "arm64", WSL_KERNEL, False, id="wsl-arm64"),
-        pytest.param("linux", "amd64", LINUX_KERNEL, False, id="native-linux"),
-        pytest.param("darwin", "arm64", "", False, id="macos"),
+        pytest.param("linux", "amd64", WSL_KERNEL, True, True, id="wsl2-amd64"),
+        pytest.param("linux", "arm64", WSL_KERNEL, True, False, id="wsl2-arm64"),
+        pytest.param("linux", "amd64", "4.4.0-19041-Microsoft", True, False, id="wsl1-amd64"),
+        pytest.param("linux", "amd64", WSL_KERNEL, False, False, id="wsl2-without-wslpath"),
+        pytest.param("linux", "amd64", LINUX_KERNEL, True, False, id="native-linux"),
+        pytest.param("darwin", "arm64", "", True, False, id="macos"),
     ],
 )
-def test_init_selects_microvm_on_wsl_amd64(
-    tmp_path: Path, system: str, arch: str, osrelease: str, *, enabled: bool
+def test_init_selects_microvm_on_wsl2_amd64(
+    tmp_path: Path, system: str, arch: str, osrelease: str, *, has_wslpath: bool, enabled: bool
 ) -> None:
-    for name, output in (("sw_vers", "15.7.1"), ("wslpath", "/mnt/c/Users/example")):
+    stubs = {"sw_vers": "15.7.1"}
+    if has_wslpath:
+        stubs["wslpath"] = "/mnt/c/Users/example"
+    for name, output in stubs.items():
         stub = tmp_path / name
         stub.write_text(f"#!/bin/sh\nprintf '%s\\n' '{output}'\n", encoding="utf-8")
         stub.chmod(0o755)
@@ -84,6 +90,7 @@ def test_init_selects_microvm_on_wsl_amd64(
         json.dumps({"chezmoi": _platform(system, arch, osrelease)}),
         "--file",
         str(CHEZMOI_SOURCE / ".chezmoi.toml.tmpl"),
+        path=str(tmp_path),
     )
     assert tomllib.loads(rendered)["data"]["local"]["bin"]["openshell"].get("microvm", False) is enabled
 
@@ -179,4 +186,34 @@ def test_microvm_managed_targets(tmp_path: Path, microvm_case: tuple[str, bool])
         assert config["gateway"]["guest_tls_ca"] == str(state_dir / "tls/ca.crt")
         assert config["drivers"]["vm"]["state_dir"] == str(state_dir / "vm")
         assert config["drivers"]["vm"]["driver_dir"] == str(tmp_path / ".local/bin")
-        assert config["drivers"]["vm"]["default_image"] == "nvcr.io/nvidia/base/ubuntu:24.04"
+        assert config["drivers"]["vm"]["default_image"] == (
+            "nvcr.io/nvidia/base/ubuntu@sha256:494398fac1b07614c63ba179e3558d84a5a9ce19a6374560ceac04d822462e45"
+        )
+        assert config["drivers"]["vm"]["bootstrap_image"] == config["drivers"]["vm"]["default_image"]
+
+
+def test_microvm_service_uses_quoted_destination_paths(tmp_path: Path) -> None:
+    source = tmp_path / "source"
+    shutil.copytree(CHEZMOI_SOURCE, source, ignore=shutil.ignore_patterns(".chezmoiexternals"))
+    destination = tmp_path / "home with 100%"
+    destination.mkdir()
+    unit = _chezmoi(
+        destination,
+        "cat",
+        "--override-data",
+        json.dumps(
+            {
+                "chezmoi": _platform("linux", "amd64", WSL_KERNEL),
+                "local": {"bin": {"openshell": {"installation_method": "github_releases", "microvm": True}}},
+            }
+        ),
+        str(destination / ".config/systemd/user/openshell-microvm.service"),
+        source=source,
+    ).splitlines()
+    home = tmp_path / "home with 100%%"
+    gateway = f'":{home}/.local/bin/openshell-gateway"'
+    tls_dir = home / ".local/state/openshell-microvm/tls"
+    config = home / ".config/openshell/microvm-gateway.toml"
+    assert f'Environment="OPENSHELL_LOCAL_TLS_DIR={tls_dir}"' in unit
+    assert any(line.startswith(f'ExecStartPre={gateway} generate-certs --output-dir "{tls_dir}" ') for line in unit)
+    assert f'ExecStart={gateway} --config "{config}" --health-port 0' in unit
