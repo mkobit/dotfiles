@@ -10,8 +10,7 @@ filesystem_policy:
     - /dev/urandom
     - /etc
     - /var/log
-    - /sandbox/.config
-    - /sandbox/.local
+    - /sandbox
   read_write:
     - /tmp
     - /dev/null
