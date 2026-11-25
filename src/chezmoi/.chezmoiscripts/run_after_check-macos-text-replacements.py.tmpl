@@ -6,21 +6,25 @@
 
 import plistlib
 import subprocess
-import sys
 
+{{ includeTemplate "python/logging" . }}
 desired = {{ $replacements | toJson }}
 
 try:
     result = subprocess.run(["/usr/bin/defaults", "export", "-g", "-"], check=True, capture_output=True)
     current = plistlib.loads(result.stdout).get("NSUserDictionaryReplacementItems", [])
+    missing = False
     for shortcut, phrase in desired.items():
         if not any(
             entry.get("on", True) and entry.get("replace") == shortcut and entry.get("with") == phrase
             for entry in current
         ):
-            print(f"macOS text replacement missing or different: {shortcut} → {phrase}", file=sys.stderr)
+            logging.warning("macOS text replacement missing or different: %s → %s", shortcut, phrase)
+            missing = True
+    if missing:
+        logging.warning("Update these in System Settings > Keyboard > Text Replacements.")
 except Exception as error:
-    print(f"Could not check macOS text replacements: {type(error).__name__}", file=sys.stderr)
+    logging.warning("Could not check macOS text replacements: %s", type(error).__name__)
 {{- else -}}
 {{- warnf "Could not check macOS text replacements: python3 not found" -}}
 {{- end -}}
