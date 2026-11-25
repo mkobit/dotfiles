@@ -120,7 +120,25 @@ This path does not use GitHub authentication.
 Use a separate approved model provider if the coding agent needs model access.
 The repository clone lives in writable `/tmp`.
 
-## 5. Sign a guest commit with a host key
+## 5. Run the chezmoi-skills pilot
+
+Run the launcher from the repository root after you build or load the pilot image `dotfiles-openshell-sandbox:8a19efcd`.
+It uses the existing `openshell-microvm` Gateway by default.
+It reads the host Codex ChatGPT login from `CODEX_HOME/auth.json`, or `~/.codex/auth.json` when `CODEX_HOME` is not set.
+Use a Codex login that stores credentials in this file.
+Set this checkout's `git config user.signingkey` to the path of a readable SSH private key without a passphrase.
+The launcher signs as the pilot identity, `Mike Kobit <mkobit@gmail.com>`.
+
+```bash
+python3 docker/openshell/run-chezmoi-skills.py
+```
+
+Pass `--gateway <name>` to use another registered Gateway.
+The task uses a read-only clone of the pinned `chezmoi-skills` revision and creates one empty, signed commit to check host signing.
+The launcher creates a private directory under the OS temporary directory and prints its path.
+It keeps logs there and adds `result.bundle` only after it verifies the signed commit and removes the temporary Gateway profile, provider, and sandbox.
+
+## 6. Sign a guest commit with a host key
 
 Create a dedicated Ed25519 key for guest commits and keep the private key on the host.
 Add a line of the form `agent@example.org namespaces="git" ssh-ed25519 <public-key-data>` to the host's Git `gpg.ssh.allowedSignersFile`.
@@ -152,7 +170,7 @@ Any process that runs as the sandbox user can submit the one signing request.
 The repository path selects the clone to configure.
 The signature covers commit data, so enforce repository and branch permissions when you push.
 
-## 6. Push a signed guest commit with an explicit provider
+## 7. Push a signed guest commit with an explicit provider
 
 Prepare a push sandbox before you start work if the task authorizes a push.
 Use a fine-grained PAT scoped to this repository with **Contents: Read and write** and GitHub's default **Metadata: Read-only** permission.
@@ -207,7 +225,7 @@ commit_sha="$(git rev-parse FETCH_HEAD)"
 gh api "repos/mkobit/dotfiles/commits/${commit_sha}" --jq .commit.verification.verified
 ```
 
-## 7. Remove the task sandbox
+## 8. Remove the task sandbox
 
 Delete the task sandbox when work ends.
 Delete the provider if you created it for this task.
