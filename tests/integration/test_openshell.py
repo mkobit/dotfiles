@@ -19,10 +19,11 @@ BINS_EXTERNAL_TEMPLATE = CHEZMOI_SOURCE / "dot_local" / "bin" / ".chezmoiexterna
 BASH_CONFIG_TEMPLATE = CHEZMOI_SOURCE / "dot_dotfiles" / "bash" / "config.bash.tmpl"
 ZSH_CONFIG_TEMPLATE = CHEZMOI_SOURCE / "dot_dotfiles" / "zsh" / "config.zsh.tmpl"
 SANDBOX_GITCONFIG_TEMPLATE = CHEZMOI_SOURCE / "dot_config" / "ai-policy" / "git" / "sandbox.gitconfig.tmpl"
-SANDBOX_CHEZMOI_CONFIG = REPO_ROOT / "docker" / "openshell" / "sandbox-chezmoi.toml"
-SANDBOX_DOCKERFILE = REPO_ROOT / "docker" / "openshell" / "Dockerfile"
-GITHUB_READ_ONLY_POLICY = REPO_ROOT / "docker" / "openshell" / "github-read-only.yaml"
-GITHUB_PUSH_POLICY = REPO_ROOT / "docker" / "openshell" / "github-push.yaml"
+OPENSHELL_ROOT = REPO_ROOT / "docker" / "openshell"
+SANDBOX_CHEZMOI_CONFIG = OPENSHELL_ROOT / "images" / "shared" / "sandbox-chezmoi.toml"
+SANDBOX_DOCKERFILE = OPENSHELL_ROOT / "images" / "shared" / "Dockerfile"
+GITHUB_READ_ONLY_POLICY = OPENSHELL_ROOT / "policies" / "dotfiles" / "github-read-only.yaml"
+GITHUB_PUSH_POLICY = OPENSHELL_ROOT / "policies" / "dotfiles" / "github-push.yaml"
 OPENSHELL_SKILL_DIR = (
     CHEZMOI_SOURCE
     / "dot_local"
@@ -425,7 +426,7 @@ def test_sandbox_dockerfile_defines_isolated_sandbox_layer() -> None:
     assert not re.search(r"^(COPY|ADD)\s", base + builder, re.MULTILINE)
     assert "RUN --mount=type=bind,target=/tmp/dotfiles,readonly " in builder
     assert "--source /tmp/dotfiles" in builder
-    assert "--config /tmp/dotfiles/docker/openshell/sandbox-chezmoi.toml" in builder
+    assert f"--config /tmp/dotfiles/{SANDBOX_CHEZMOI_CONFIG.relative_to(REPO_ROOT).as_posix()}" in builder
     assert "--destination /sandbox" in builder
     assert final.splitlines() == [
         "COPY --from=builder /usr/local/bin/chezmoi /usr/local/bin/chezmoi",

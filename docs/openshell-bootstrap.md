@@ -64,7 +64,7 @@ Debian packages and some chezmoi externals can still change between builds.
 
 ```bash
 git archive --format=tar HEAD | docker build --platform linux/amd64 \
-  -f docker/openshell/Dockerfile \
+  -f docker/openshell/images/shared/Dockerfile \
   -t dotfiles-openshell-sandbox:local -
 ```
 
@@ -91,7 +91,7 @@ Set `REVIEWED_REF` to the public branch or tag that contains the reviewed commit
 Set `REVIEWED_COMMIT` to its full 40-character commit ID.
 Enter the Beads issue ID if the task has one.
 
-The tracked policy permits Git ref discovery and fetch over HTTPS for `mkobit/dotfiles`. [Read-only policy](../docker/openshell/github-read-only.yaml)
+The tracked policy permits Git ref discovery and fetch over HTTPS for `mkobit/dotfiles`. [Read-only policy](../docker/openshell/policies/dotfiles/github-read-only.yaml)
 
 ```bash
 read -r -p 'Reviewed public ref: ' REVIEWED_REF
@@ -109,7 +109,7 @@ fi
 openshell sandbox create -g openshell-microvm --name "$task_sandbox" \
   "${task_labels[@]}" \
   --from dotfiles-openshell-sandbox:local \
-  --policy docker/openshell/github-read-only.yaml \
+  --policy docker/openshell/policies/dotfiles/github-read-only.yaml \
   --detach --no-auto-providers -- sleep 3600 || exit 1
 if ! openshell sandbox exec -g openshell-microvm "$task_sandbox" -- sh -ec '
   git clone --no-checkout https://github.com/mkobit/dotfiles.git /tmp/dotfiles
@@ -148,13 +148,13 @@ Set this checkout's `git config user.signingkey` to the path of a readable SSH p
 The launcher signs as the pilot identity, `Mike Kobit <mkobit@gmail.com>`.
 
 ```bash
-python3 docker/openshell/run-chezmoi-skills.py
+python3 docker/openshell/pilots/chezmoi-skills/run.py
 ```
 
 Pass `--gateway <name>` to use another registered Gateway.
 The launcher uses a per-task copy of the tracked Codex provider profile.
-Use `openshell profile lint -g openshell-microvm --file docker/openshell/codex-provider-profile.json` to check the profile before import.
-Supply the access token on the host when you create a provider. [Codex provider profile](../docker/openshell/codex-provider-profile.json)
+Use `openshell profile lint -g openshell-microvm --file docker/openshell/provider-profiles/codex-dispatch.json` to check the profile before import.
+Supply the access token on the host when you create a provider. [Codex provider profile](../docker/openshell/provider-profiles/codex-dispatch.json)
 The task uses a read-only clone of the pinned `chezmoi-skills` revision and creates one empty, signed commit to check host signing.
 The launcher creates a private directory under the OS temporary directory and prints its path.
 It keeps logs there and adds `result.bundle` only after it verifies the signed commit and removes the temporary Gateway profile, provider, and sandbox.
@@ -207,7 +207,7 @@ Run the trusted host signer with the reviewed parent, tree, and exact message ha
 Use the same `signing_name` and `signing_email` as in the candidate.
 
 ```bash
-python3 docker/openshell/sign-commit.py \
+python3 docker/openshell/tools/sign-commit.py \
   --gateway openshell-microvm --sandbox "$task_sandbox" --repo /tmp/dotfiles \
   --key "$signing_key" --identity "$signing_name <$signing_email>" \
   --expected-parent "$REVIEWED_COMMIT" --expected-tree "$reviewed_tree" \
