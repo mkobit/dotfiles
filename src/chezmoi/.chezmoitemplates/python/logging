@@ -1,0 +1,13 @@
+# Shared logging configuration for chezmoi scripts.
+import logging
+import time
+
+_chezmoi_formatter = logging.Formatter(
+    fmt="%(asctime)s [%(levelname)s] %(message)s",
+    datefmt="%Y-%m-%dT%H:%M:%SZ",
+)
+_chezmoi_formatter.converter = time.gmtime
+_chezmoi_handler = logging.StreamHandler()
+_chezmoi_handler.setFormatter(_chezmoi_formatter)
+logging.basicConfig(level=logging.INFO, handlers=[_chezmoi_handler])
+del _chezmoi_formatter, _chezmoi_handler
