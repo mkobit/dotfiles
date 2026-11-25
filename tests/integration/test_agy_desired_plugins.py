@@ -4,8 +4,6 @@ import json
 import subprocess
 from pathlib import Path
 
-import pytest
-
 from skill_filter import plugin_bridge
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src/chezmoi"
@@ -49,14 +47,8 @@ def _agy_manifest(plugin_dir: Path) -> dict:
     return manifest
 
 
-@pytest.mark.parametrize("superpowers_method", ["chezmoi_external", "none"])
-def test_agy_desired_set_matches_the_rendered_plugins(tmp_path, superpowers_method):
-    config = {
-        "data": {
-            "ai": {"plugins": {"superpowers": {"installation_method": superpowers_method}}},
-            "local": {"bin": {"agy": {"installation_method": "preinstalled"}}},
-        }
-    }
+def test_agy_desired_set_matches_the_rendered_plugins(tmp_path):
+    config = {"data": {"local": {"bin": {"agy": {"installation_method": "preinstalled"}}}}}
     (tmp_path / "chezmoi.json").write_text(json.dumps(config), encoding="utf-8")
     destination = tmp_path / "destination"
     (destination / AGENT_PLUGINS).mkdir(parents=True)
@@ -70,13 +62,6 @@ def test_agy_desired_set_matches_the_rendered_plugins(tmp_path, superpowers_meth
     for name in expected:
         assert _agy_manifest(marketplace_plugins / name)["name"] == name
     assert expected, "no authored plugin is enabled"
-
-    if superpowers_method == "chezmoi_external":
-        superpowers = destination / AGENT_PLUGINS / "marketplaces/superpowers-marketplace/plugins/superpowers"
-        pinned = json.loads(_chezmoi(tmp_path, "data", "--format=json"))["ai"]["plugins"]["superpowers"]["version"]
-        manifest = _agy_manifest(superpowers)
-        assert (manifest["name"], manifest["version"]) == ("superpowers", pinned)
-        expected.add("superpowers")
 
     bridge = json.loads(_chezmoi(tmp_path, "execute-template", '{{ includeTemplate "ai/plugin-bridge" . }}'))
     assert bridge["cli_hosts"] == ["antigravity"]

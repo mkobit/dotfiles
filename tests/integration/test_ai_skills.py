@@ -167,15 +167,6 @@ def test_marketplace_manifests_deployed_and_valid(chezmoi_dest):
         for plugin_name in AUTHORED_PLUGINS:
             assert plugins[plugin_name] == f"./plugins/{plugin_name}"
 
-    superpowers_root = chezmoi_dest / ".local/share/agent-plugins/marketplaces/superpowers-marketplace"
-    superpowers_agents = json.loads((superpowers_root / ".agents/plugins/marketplace.json").read_text(encoding="utf-8"))
-    assert superpowers_agents["name"] == "superpowers-marketplace"
-    superpowers_agents_plugins = {plugin["name"]: plugin for plugin in superpowers_agents["plugins"]}
-    assert superpowers_agents_plugins["superpowers"]["source"]["path"] == "./plugins/superpowers"
-    superpowers_claude = json.loads((superpowers_root / ".claude-plugin/marketplace.json").read_text(encoding="utf-8"))
-    superpowers_claude_plugins = {plugin["name"]: plugin for plugin in superpowers_claude["plugins"]}
-    assert superpowers_claude_plugins["superpowers"]["source"] == "./plugins/superpowers"
-
     json.loads((marketplace / "bridge-provenance.json").read_text(encoding="utf-8"))
 
 

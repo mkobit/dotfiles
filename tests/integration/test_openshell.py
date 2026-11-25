@@ -376,8 +376,8 @@ def test_sandbox_chezmoi_config_disables_host_only_features() -> None:
     data = config["data"]
     assert data["zsh"]["set_as_default_login_shell"] is False
     assert data["claude_code"]["installation_method"] == "direct_release"
-    assert data["ai"]["plugins"]["superpowers"]["installation_method"] == "chezmoi_external"
     assert data["ai"]["plugins"]["egm"]["installation_method"] == "chezmoi_external"
+    assert "superpowers" not in data["ai"]["plugins"]
     assert data["ai"]["plugin_bridge"]["default_hosts"] == ["claude", "codex"]
     assert data["git"]["personal"]["enabled"] is True
     assert data["git_hooks"]["backend"] == "config"

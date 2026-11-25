@@ -496,6 +496,48 @@ def test_codex_marketplace_with_missing_manifest_is_reregistered(tmp_path, fake)
     assert fake.marketplaces["codex"] == {"market": root}
 
 
+@pytest.mark.parametrize(
+    ("provenance", "active_marketplace"),
+    [("owned", False), ("owned", True), ("ambiguous", True), (None, True)],
+)
+def test_codex_retires_a_missing_marketplace_only_when_owned(
+    tmp_path, fake, provenance, active_marketplace
+):
+    name = "superpowers-marketplace"
+    old_root = str(tmp_path / "old-root")
+    plugin_id = f"superpowers@{name}"
+    fake.marketplaces["codex"].update({name: old_root, "manual": "/manual"})
+    fake.broken.add(old_root)
+    fake.add_plugin("codex", plugin_id)
+    fake.add_plugin("codex", "keep@manual")
+    records = (
+        [
+            f"marketplace\tcodex\t{name}\t\t{provenance}",
+            f"plugin\tcodex\t{name}\tsuperpowers\t{provenance}",
+        ]
+        if provenance
+        else []
+    )
+    _write_records(tmp_path, *records)
+    marketplaces = {name: {"source_type": "generated", "hosts": [], "retired": True}}
+    if active_marketplace:
+        marketplaces["manual"] = {"source_type": "host-provided", "hosts": ["codex"]}
+    declaration = _declaration(marketplaces)
+
+    if provenance == "owned":
+        plugin_bridge.reconcile(tmp_path, declaration)
+        assert fake.marketplaces["codex"] == {"manual": "/manual"}
+        assert set(fake.plugins["codex"]) == {"keep@manual"}
+        assert _records(tmp_path) == []
+    else:
+        with pytest.raises(BridgeError, match="supported manifest"):
+            plugin_bridge.reconcile(tmp_path, declaration)
+        assert fake.marketplaces["codex"] == {name: old_root, "manual": "/manual"}
+        assert set(fake.plugins["codex"]) == {plugin_id, "keep@manual"}
+        assert _records(tmp_path) == records
+    assert not any(call[2:4] == ("marketplace", "add") for call in fake.writes)
+
+
 def test_unrelated_codex_marketplace_errors_are_not_repaired(tmp_path, fake):
     fake.fail.add(("plugin", "marketplace", "list", "--json"))
     with pytest.raises(BridgeError, match="failed"):
@@ -1179,6 +1221,37 @@ def test_agy_uninstalls_owned_undesired_plugins_only(tmp_path, monkeypatch):
     reconcile()
     assert agy.mutations() == [("agy", "plugin", "uninstall", "gone")]
     assert agy.installed == {"manual": "1", "keep": "1"}
+    assert _records(tmp_path) == [_agy_record("keep")]
+
+
+def test_agy_opt_out_retires_owned_superpowers_when_cli_returns(tmp_path, monkeypatch):
+    agy = _FakeAgy({"superpowers": "1", "keep": "1", "manual": "1"}, probe_status=None)
+    marketplace, _ = _agy_setup(tmp_path, monkeypatch, agy, {"new": "1"})
+    retired_record = "plugin\tantigravity\tsuperpowers-marketplace\tsuperpowers\towned"
+    _write_records(tmp_path, _agy_record("keep"), retired_record)
+    declaration = _declaration(
+        {
+            "dotfiles": {
+                "source_type": "generated",
+                "source_locator": str(marketplace),
+                "hosts": ["antigravity"],
+            },
+            "superpowers-marketplace": {
+                "source_type": "generated",
+                "hosts": [],
+                "retired": True,
+            },
+        },
+        cli_hosts=[],
+    )
+
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert agy.installed == {"superpowers": "1", "keep": "1", "manual": "1"}
+    assert _records(tmp_path) == [_agy_record("keep"), retired_record]
+
+    agy.probe_status = 0
+    plugin_bridge.reconcile(tmp_path, declaration)
+    assert agy.installed == {"keep": "1", "manual": "1"}
     assert _records(tmp_path) == [_agy_record("keep")]
 
 

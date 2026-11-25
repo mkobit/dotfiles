@@ -37,17 +37,10 @@ content = """
 [[ai.guidelines.sections]]
 content = """
 ## Delegation
-- Root owns decomposition, architecture, unresolved ambiguity and risk, integration, and final judgment.
-- Delegate aggressively to keep root context clean: use read-only research subagents for discovery, and directed subagents for implementation tasks that run build and evaluation cycles (e.g. linters, tests).
-- Delegate tasks to run end-to-end in sandboxes; probe progress if needed, and inspect outputs on the host before committing or publishing.
-- Favor general architectural principles over hyper-specific, brittle constraints that fail to generalize across repositories and contexts.
-- Inspect available skills and agent roles; apply the narrowest relevant skill and prefer the narrowest capable specialist over a general agent.
-- Choose the least costly capable specialist; use a general agent only as fallback.
-- If isolation is uncertain, delegate a bounded, read-only scout, even for an apparently small edit.
-- For coupled, expanding, or multi-step work, prefer scout or planner → implementer → test and lint repair → independent reviewer → root integration.
-- Give every delegate explicit scope, file ownership, constraints, acceptance criteria, and a concise handoff.
-- Delegation never broadens user authorization; avoid duplicate work and escalate capability only when needed.
-- Implement directly only after isolation is established; root verifies evidence before finalizing."""
+- Delegate research and implementation to available subagents when authorized.
+- Give each delegate a bounded scope, ownership, constraints, and acceptance criteria.
+- Select the least costly capable specialist and use the repository's available isolation.
+- Root owns architecture, unresolved decisions, integration, and verification."""
 
 [[ai.guidelines.sections]]
 content = """

@@ -40,10 +40,10 @@ uv run --frozen pytest -p no:cacheprovider -m 'not integration' --basetemp "$ai_
 ```
 
 The pytest marker excludes integration tests that inspect deployed targets.
-For changes to the Superpowers archive, run its integration checks with a fresh `--basetemp` path:
+To check that Antigravity receives the authored plugins, use a fresh `--basetemp` path:
 
 ```sh
-uv run --frozen pytest --basetemp "$ai_test_run/pytest-upstream" tests/integration/test_agy_desired_plugins.py
+uv run --frozen pytest --basetemp "$ai_test_run/pytest-agy" tests/integration/test_agy_desired_plugins.py
 ```
 
 ## Overlay validation

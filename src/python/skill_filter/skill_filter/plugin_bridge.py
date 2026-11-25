@@ -363,8 +363,10 @@ def _validate_state_root(destination: Path) -> Path:
     return path
 
 
-def _repair_missing_codex_marketplaces(host: _Host, sources: Mapping[str, str]) -> None:
-    """Read the Codex marketplaces, re-registering generated roots that lost their manifest."""
+def _repair_missing_codex_marketplaces(
+    host: _Host, sources: Mapping[str, str | None]
+) -> None:
+    """Repair broken generated registrations. A None locator means removal only."""
     try:
         host.marketplaces  # noqa: B018 - reading raises while a root lacks its manifest
     except BridgeError as error:
@@ -376,13 +378,16 @@ def _repair_missing_codex_marketplaces(host: _Host, sources: Mapping[str, str]) 
             for line in str(error).splitlines():
                 if line.startswith(prefix) and line.endswith(suffix):
                     path = Path(line[len(prefix) : -len(suffix)])
-                    if path.is_absolute() and path.resolve() != Path(locator).resolve():
+                    if path.is_absolute() and (
+                        locator is None or path.resolve() != Path(locator).resolve()
+                    ):
                         repairs[name] = locator
         if not repairs:
             raise
         for name, locator in repairs.items():
             host.run("plugin", "marketplace", "remove", name)
-            host.run("plugin", "marketplace", "add", locator)
+            if locator is not None:
+                host.run("plugin", "marketplace", "add", locator)
 
 
 def _ensure_marketplace(
@@ -710,12 +715,17 @@ def _desired_agy_plugins(
 
 
 def _converge_agy(
-    marketplaces: Mapping[str, Mapping[str, Any]], destination: Path, own: _Ownership
+    marketplaces: Mapping[str, Mapping[str, Any]],
+    destination: Path,
+    own: _Ownership,
+    *,
+    retire_only: frozenset[str] | None = None,
 ) -> None:
     """Install missing or changed plugins, uninstall owned and undesired ones.
 
     Plugins that the bridge did not install are never uninstalled. An unusable host or an
     unparseable list changes nothing. Failures are logged and never raised.
+    With retire_only, remove only plugins from those marketplaces.
     """
     probe, listing = _agy("--help"), _agy("list", "--json")
     if probe is None or probe[0] or listing is None or listing[0]:
@@ -725,7 +735,9 @@ def _converge_agy(
     if installed is None:
         logger.info("host=%s event=skipped reason=unparseable-plugin-list", _AGY_HOST)
         return
-    desired = _desired_agy_plugins(marketplaces, destination)
+    desired = (
+        _desired_agy_plugins(marketplaces, destination) if retire_only is None else {}
+    )
     for name, (marketplace, plugin_dir, version) in sorted(desired.items()):
         if name in installed:
             listed_version = installed[name]
@@ -736,7 +748,12 @@ def _converge_agy(
         if _agy_mutate(name, "install", str(plugin_dir)):
             own.claim(_Record("plugin", _AGY_HOST, marketplace, name))
     for record in sorted(own.records):
-        if record.host != _AGY_HOST or not own.owns(record):
+        if (
+            record.kind != "plugin"
+            or record.host != _AGY_HOST
+            or not own.owns(record)
+            or (retire_only is not None and record.marketplace not in retire_only)
+        ):
             continue
         name = record.plugin
         if desired.get(name, ("",))[0] == record.marketplace:
@@ -764,6 +781,7 @@ class _HostPlan:
     plugins: Sequence[_PluginRow]
     source_types: Mapping[str, str]
     marketplace_roots: Mapping[str, Path]  # generated marketplaces only
+    retired_marketplaces: frozenset[str]
 
 
 def _converge_host(
@@ -773,13 +791,19 @@ def _converge_host(
 
     Plugins the bridge did not install (unowned) are never removed.
     """
-    generated = {
-        name: locator
-        for name, source_type, locator in plan.marketplaces
-        if source_type == "generated"
-    }
-    if not host.claude and generated:
-        _repair_missing_codex_marketplaces(host, generated)
+    if not host.claude:
+        sources: dict[str, str | None] = {
+            name: None
+            for name in sorted(plan.retired_marketplaces)
+            if own.owns(_Record("marketplace", host.name, name, ""))
+        }
+        sources.update(
+            (name, locator)
+            for name, source_type, locator in plan.marketplaces
+            if source_type == "generated"
+        )
+        if sources:
+            _repair_missing_codex_marketplaces(host, sources)
     refreshed: set[str] = set()
     unavailable: set[str] = set()
     for name, source_type, locator in plan.marketplaces:
@@ -856,6 +880,11 @@ def reconcile(
         name: str(definition.get("source_type", ""))
         for name, definition in marketplaces.items()
     }
+    retired_marketplaces = frozenset(
+        name
+        for name, definition in marketplaces.items()
+        if definition.get("retired") is True
+    )
     marketplace_rows = _marketplace_rows(destination, marketplaces)
     marketplace_roots = {
         (name, host): Path(locator)
@@ -894,6 +923,7 @@ def reconcile(
                 for (name, root_host), root in marketplace_roots.items()
                 if root_host == host.name
             },
+            retired_marketplaces=retired_marketplaces,
         )
         try:
             _converge_host(host, own, plan, refresh=refresh)
@@ -908,6 +938,14 @@ def reconcile(
         raise BridgeError(f"cli_hosts must list hosts from {sorted(_CLI_HOSTS)!r}")
     if _AGY_HOST in cli_hosts:
         _converge_agy(marketplaces, destination, own)
+    elif any(
+        record.kind == "plugin"
+        and record.host == _AGY_HOST
+        and record.marketplace in retired_marketplaces
+        and own.owns(record)
+        for record in own.records
+    ):
+        _converge_agy(marketplaces, destination, own, retire_only=retired_marketplaces)
 
 
 def _refresh_requested(arguments: str) -> bool:

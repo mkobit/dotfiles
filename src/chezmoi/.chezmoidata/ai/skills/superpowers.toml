@@ -1,4 +1,4 @@
-# Remove retired skill copies during migration to the full upstream plugin.
+# Remove skill copies from before the full plugin was installed.
 [ai.skills.external.superpowers.skills]
 brainstorming = "absent"
 dispatching-parallel-agents = "absent"
