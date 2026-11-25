@@ -126,6 +126,18 @@ This path does not use GitHub authentication.
 Use a separate approved model provider if the coding agent needs model access.
 The repository clone lives in writable `/tmp`.
 
+For a Beads task, use the project's tracker instructions on the host.
+Use `bd ready` and `bd show "$task_bead"` to select and review one approved issue.
+Set `task_actor` to a unique name for this run.
+Claim it with `bd --actor "$task_actor" update "$task_bead" --claim` and confirm the assignee before launch.
+If the tracker uses claim leases, renew your claim with `bd --actor "$task_actor" heartbeat "$task_bead"` during work.
+Pass the issue text and reviewed base to the guest.
+Keep the tracker and its credentials on the host, and record the draft PR on the issue after verification. [Beads pilot](https://github.com/mkobit/chezmoi-skills/pull/143)
+
+For a different repository, select its image and read-only policy before launch.
+Use its clone URL and guest checkout path in the transfer and signing commands.
+Verify its GitHub repository and target branch on the host before publication.
+
 ## 5. Run the chezmoi-skills pilot
 
 Run the launcher from the repository root after you build or load the pilot image `dotfiles-openshell-sandbox:8a19efcd`.
