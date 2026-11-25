@@ -37,7 +37,10 @@ content = """
 [[ai.guidelines.sections]]
 content = """
 ## Delegation
-- Delegate research and implementation to available subagents when authorized.
+- When session rules permit, delegate probes, scoping, research, and bounded implementation by default.
+- Treat a short steering note as direction for the next task within the current objective.
+- Use a fast model for simple lookups and a stronger model for complex analysis.
+- Keep a short record of decisions, active assignments, and next actions so work can continue after compaction.
 - Give each delegate a bounded scope and each writer file ownership; use available isolation and verify results.
 - Use `mkobit-dotfiles:delegating-tasks` when available."""
 
