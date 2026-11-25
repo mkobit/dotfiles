@@ -5,8 +5,11 @@
 {{- $handy := get $data "handy" | default dict -}}
 {{- $desired := get $handy "settings" | default dict -}}
 {{- $settings = mergeOverwrite $settings (omit $desired "post_process_api_keys" "post_process_providers" "post_process_prompts") -}}
-{{- /* Merge records by ID instead of replacing unrelated providers or prompts. */ -}}
-{{- range $key := list "post_process_providers" "post_process_prompts" -}}
+{{- if hasKey $desired "post_process_prompts" -}}
+{{- $_ := set $settings "post_process_prompts" (get $desired "post_process_prompts") -}}
+{{- end -}}
+{{- /* Merge providers by ID so unrelated providers are preserved. */ -}}
+{{- $key := "post_process_providers" -}}
 {{- if hasKey $desired $key -}}
 {{- $changes := get $desired $key -}}
 {{- $merged := list -}}
@@ -28,7 +31,6 @@
 {{- end -}}
 {{- end -}}
 {{- $_ := set $settings $key $merged -}}
-{{- end -}}
 {{- end -}}
 {{- /* Overlay rules replace base words; Boolean values remove rules. */ -}}
 {{- $rules := mergeOverwrite (dict) (get $handy "custom_words" | default dict) (get $data "text_replacements" | default dict) -}}

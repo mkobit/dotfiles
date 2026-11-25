@@ -137,13 +137,81 @@ def test_handy_nested_settings_and_api_keys(tmp_path, monkeypatch):
     assert result.returncode == 0, result.stderr
     store = json.loads(settings.read_text())["settings"]
     assert store["bindings"]["transcribe"] == {"current_binding": "new", "description": "keep"}
-    assert store["post_process_prompts"] == [{"id": "prompt", "name": "keep", "prompt": "new"}, {"id": "other"}]
+    assert store["post_process_prompts"] == [{"id": "prompt", "prompt": "new"}]
     assert store["post_process_providers"] == [{"id": "provider", "name": "keep", "base_url": "new"}]
     assert store["post_process_api_keys"] == {"provider": "secret-value", "other": "keep"}
     monkeypatch.delenv("TEST_HANDY_KEY")
     result = apply(command)
     assert result.returncode == 0, result.stderr
     assert json.loads(settings.read_text())["settings"]["post_process_api_keys"] == store["post_process_api_keys"]
+
+
+@pytest.mark.parametrize(
+    "configured,existing,key,expected",
+    [
+        pytest.param(
+            {"post_process_prompts": [{"id": "new", "prompt": "configured"}]},
+            {"post_process_prompts": [{"id": "new", "name": "old"}, {"id": "other"}]},
+            "post_process_prompts",
+            [{"id": "new", "prompt": "configured"}],
+            id="replace-prompts",
+        ),
+        pytest.param(
+            {"post_process_prompts": []},
+            {"post_process_prompts": [{"id": "old"}]},
+            "post_process_prompts",
+            [],
+            id="clear-prompts",
+        ),
+        pytest.param(
+            {},
+            {"post_process_prompts": [{"id": "old", "prompt": "keep"}]},
+            "post_process_prompts",
+            [{"id": "old", "prompt": "keep"}],
+            id="preserve-prompts-when-absent",
+        ),
+        pytest.param(
+            {"post_process_providers": [{"id": "existing", "base_url": "new"}, {"id": "new", "name": "added"}]},
+            {
+                "post_process_providers": [
+                    {"id": "existing", "base_url": "old", "name": "keep"},
+                    {"id": "other", "name": "unrelated"},
+                ]
+            },
+            "post_process_providers",
+            [
+                {"id": "existing", "base_url": "new", "name": "keep"},
+                {"id": "other", "name": "unrelated"},
+                {"id": "new", "name": "added"},
+            ],
+            id="merge-providers-by-id",
+        ),
+    ],
+)
+def test_handy_settings_lists_render(tmp_path, configured, existing, key, expected):
+    config = tmp_path / "config.json"
+    config.write_text(json.dumps({"data": {"handy": {"settings": configured}}}))
+    result = subprocess.run(
+        [
+            "chezmoi",
+            "--source",
+            str(SOURCE.resolve()),
+            "--destination",
+            str(tmp_path),
+            "--config",
+            str(config),
+            "--no-tty",
+            "execute-template",
+            "--with-stdin",
+            '{{ $store := .chezmoi.stdin | fromJson }}{{ includeTemplate "handy/settings" (dict "data" . "store" $store) }}',
+        ],
+        input=json.dumps({"settings": existing}),
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout)["settings"][key] == expected
 
 
 @pytest.mark.parametrize("process_error,quit_fails", [(True, False), (False, True)])
