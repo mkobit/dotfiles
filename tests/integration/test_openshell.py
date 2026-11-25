@@ -418,6 +418,7 @@ def test_sandbox_dockerfile_defines_isolated_sandbox_layer() -> None:
     dockerfile = SANDBOX_DOCKERFILE.read_text(encoding="utf-8")
     base, build_stages = dockerfile.split("\nFROM base AS builder\n", maxsplit=1)
     builder, final = build_stages.split("\nFROM base\n", maxsplit=1)
+    assert re.match(r"# syntax=docker/dockerfile:1@sha256:[0-9a-f]{64}\n", base)
     assert re.search(r"^FROM debian:bookworm-slim@sha256:[0-9a-f]{64} AS base$", base, re.MULTILINE)
     assert "ARG SANDBOX_UID=1000" in base
     assert "ARG SANDBOX_GID=1000" in base

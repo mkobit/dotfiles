@@ -55,3 +55,12 @@ updates:
   commit-message:
     prefix: chore
     include: scope
+- package-ecosystem: docker
+  directory: /docker/openshell/images/shared
+  schedule:
+    interval: weekly
+  assignees:
+  - mkobit
+  commit-message:
+    prefix: chore
+    include: scope

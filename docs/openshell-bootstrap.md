@@ -59,13 +59,24 @@ The `--no-keep` option removes the smoke sandbox after completion.
 
 Check out the reviewed commit and run this command from the repository root.
 Git sends only tracked files to the builder.
-The final image includes the rendered sandbox files and the verified chezmoi binary.
-Debian packages and some chezmoi externals can still change between builds.
+The Dockerfile pins the Debian base and the Dockerfile frontend by SHA-256.
+It verifies the pinned chezmoi release with a checksum for each supported architecture.
+APT selects Debian package versions at build time, and some chezmoi externals can also change between builds.
+Review base image updates in Dependabot pull requests.
+Update the frontend pin separately. [Docker build practices](https://docs.docker.com/build/building/best-practices/)
 
 ```bash
 git archive --format=tar HEAD | docker build --platform linux/amd64 \
   -f docker/openshell/images/shared/Dockerfile \
   -t dotfiles-openshell-sandbox:local -
+```
+
+CI runs Docker's build checks on the shared Dockerfile.
+Run the same check on a reviewed commit with the tracked build context. [Docker build checks](https://docs.docker.com/build/checks/)
+
+```bash
+git archive --format=tar HEAD | docker build --check --platform linux/amd64 \
+  -f docker/openshell/images/shared/Dockerfile -
 ```
 
 The image provides `/usr/bin/git` and the `/sandbox` environment.
