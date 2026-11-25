@@ -1,7 +1,7 @@
 # OpenShell host bootstrap and sandbox workflow
 
 This guide covers OpenShell 0.1.9 on WSL 2, public repository work, and guest commit signing with a host-held key.
-GitHub push requires a separate provider.
+Use anonymous GitHub access in the guest and publish from the host after verification.
 
 ## 1. Enable and install OpenShell
 
@@ -100,20 +100,25 @@ read -r -p 'Reviewed full commit ID: ' REVIEWED_COMMIT
   printf 'Enter a full 40-character lowercase commit ID.\n' >&2
   exit 2
 }
-read_policy="$(mktemp)"
+read_policy="$(mktemp)" || exit 1
 trap 'rm -f "$read_policy"' EXIT
-sed '/git-receive-pack/d' docker/openshell/github-push.yaml > "$read_policy"
-openshell sandbox create -g openshell-microvm --name dotfiles-task \
-  --from dotfiles-openshell-sandbox:local --policy "$read_policy" \
-  --detach --no-auto-providers -- sleep 3600
-rm -f "$read_policy"
-trap - EXIT
-openshell sandbox exec -g openshell-microvm dotfiles-task -- sh -ec '
+task_sandbox="task-$(python3 -c 'import uuid; print(uuid.uuid4().hex[:12])')" || exit 1
+sed '/git-receive-pack/d' docker/openshell/github-push.yaml > "$read_policy" &&
+  openshell sandbox create -g openshell-microvm --name "$task_sandbox" \
+    --from dotfiles-openshell-sandbox:local --policy "$read_policy" \
+    --detach --no-auto-providers -- sleep 3600 || exit 1
+if ! openshell sandbox exec -g openshell-microvm "$task_sandbox" -- sh -ec '
   git clone --no-checkout https://github.com/mkobit/dotfiles.git /tmp/dotfiles
   git -C /tmp/dotfiles fetch --no-tags origin "$1"
   git -C /tmp/dotfiles checkout --detach "$2"
   test "$(git -C /tmp/dotfiles rev-parse HEAD)" = "$2"
-' sh "$REVIEWED_REF" "$REVIEWED_COMMIT"
+' sh "$REVIEWED_REF" "$REVIEWED_COMMIT"; then
+  openshell sandbox delete -g openshell-microvm "$task_sandbox" ||
+    printf 'Remove task sandbox %s after you check the Gateway.\n' "$task_sandbox" >&2
+  exit 1
+fi
+rm -f "$read_policy"
+trap - EXIT
 ```
 
 This path does not use GitHub authentication.
@@ -138,106 +143,144 @@ The task uses a read-only clone of the pinned `chezmoi-skills` revision and crea
 The launcher creates a private directory under the OS temporary directory and prints its path.
 It keeps logs there and adds `result.bundle` only after it verifies the signed commit and removes the temporary Gateway profile, provider, and sandbox.
 
-## 6. Sign a guest commit with a host key
+## 6. Review and sign a guest commit
 
-Create a dedicated Ed25519 key for guest commits and keep the private key on the host.
+Use a dedicated Ed25519 key for guest commits.
+Keep the private key on the host.
 Add a line of the form `agent@example.org namespaces="git" ssh-ed25519 <public-key-data>` to the host's Git `gpg.ssh.allowedSignersFile`.
-Register the public key as a GitHub **Signing Key** if you want GitHub to verify pushed commits.
-The signer accepts commits whose author and committer both match the configured identity.
+Register the public key as a GitHub **Signing Key** to get GitHub verification.
 [Git SSH signing settings](https://git-scm.com/docs/git-config#Documentation/git-config.txt-gpgsshprogram)
 
-Start the signer on the host for the target guest clone.
-It handles one commit request, then exits.
+After the guest finishes its work and checks, stage the intended files in `/tmp/dotfiles`.
+Create one unsigned candidate commit.
+Set `signing_name`, `signing_email`, and `message` to the intended author name, email, and commit message.
 
 ```bash
-python3 docker/openshell/sign-commit.py \
-  --gateway openshell-microvm --sandbox dotfiles-task --repo /tmp/dotfiles \
-  --key /absolute/path/to/host-signing-key \
-  --identity 'OpenShell Agent <agent@example.org>'
+git -C /tmp/dotfiles -c user.name="$signing_name" -c user.email="$signing_email" \
+  commit --no-gpg-sign -m "$message"
 ```
 
-When the signer reports that it is ready, run the commit in the guest.
-Stage the intended changes first.
-Git fails the signed commit if the signer is unavailable.
+On the host, set `REVIEWED_COMMIT` to the trusted base commit from step 4.
+Use `git fetch` with object validation to import the candidate bundle into a private temporary repository.
+Check the sole parent against the trusted base, then review the full diff and commit message.
 
 ```bash
-git -C /tmp/dotfiles commit -S -m "Describe the change"
+review="$(mktemp -d)" &&
+  git -C "$review" init --bare &&
+  openshell sandbox exec -g openshell-microvm --no-tty --no-login-shell "$task_sandbox" -- \
+    git -C /tmp/dotfiles bundle create - HEAD > "$review/candidate.bundle" &&
+  git -C "$review" bundle verify "$review/candidate.bundle" &&
+  git -C "$review" -c fetch.fsckObjects=true fetch "$review/candidate.bundle" HEAD &&
+  test "$(git -C "$review" show -s --format=%P FETCH_HEAD)" = "$REVIEWED_COMMIT" &&
+  git -C "$review" show --format=fuller --binary --no-ext-diff --no-textconv FETCH_HEAD
 ```
 
-Start another signer invocation for each commit.
-Run one signer at a time for each clone.
-Any process that runs as the sandbox user can submit the one signing request.
-The repository path selects the clone to configure.
-The signature covers commit data, so enforce repository and branch permissions when you push.
-
-## 7. Push a signed guest commit with an explicit provider
-
-Prepare a push sandbox before you start work if the task authorizes a push.
-Use a fine-grained PAT scoped to this repository with **Contents: Read and write** and GitHub's default **Metadata: Read-only** permission.
-Leave **Pull requests**, **Workflows**, and account permissions at **No access**.
-Protect `main` with a GitHub ruleset.
-
-Register the provider on the selected Gateway only when you need this push workflow.
-Enter the PAT at the hidden prompt.
-The command receives the value through the environment and names the variable; it does not place the PAT in command history or arguments.
+Continue only if the checks pass and you approve the candidate.
+Record the approved tree ID and commit message from the host copy.
+Run the trusted host signer with both the approved parent and tree IDs.
+Set `signing_key` to the host private key path.
+Use the same `signing_name` and `signing_email` as in the candidate.
 
 ```bash
-set +x
-IFS= read -rs GITHUB_TOKEN
-export GITHUB_TOKEN
-openshell provider create -g openshell-microvm --type github \
-  --name rollout-github --credential GITHUB_TOKEN
-unset GITHUB_TOKEN
-openshell provider list -g openshell-microvm --names
+reviewed_tree="$(git -C "$review" rev-parse 'FETCH_HEAD^{tree}')" &&
+  git -C "$review" show -s --format=%B FETCH_HEAD > "$review/candidate.message" &&
+  python3 docker/openshell/sign-commit.py \
+    --gateway openshell-microvm --sandbox "$task_sandbox" --repo /tmp/dotfiles \
+    --key "$signing_key" --identity "$signing_name <$signing_email>" \
+    --expected-parent "$REVIEWED_COMMIT" --expected-tree "$reviewed_tree"
 ```
 
-Use this launch command in place of the read-only launch in section 4.
-Run the clone and checkout commands in that sandbox, then sign the commit as in section 5.
-The push policy permits Git smart-HTTP requests to `mkobit/dotfiles`.
+When the signer reports that it is ready, amend the candidate in the guest.
 
 ```bash
-openshell sandbox create -g openshell-microvm --name dotfiles-task \
-  --from dotfiles-openshell-sandbox:local \
-  --policy docker/openshell/github-push.yaml \
-  --provider rollout-github --detach --no-auto-providers -- sleep 3600
+git -C /tmp/dotfiles commit --amend -S --reset-author --no-edit
 ```
 
-Run this command in the guest to push the signed commit to an authorized feature ref.
-The OpenShell proxy substitutes the provider placeholder in the Authorization header.
-Keep shell tracing disabled.
+Check that the signer reports success and exits with status 0.
+Each signer invocation accepts one request.
+Any process that runs as the sandbox user can submit it.
+The signer checks the parent, tree, author, and committer.
+Check the message after transfer.
+
+## 7. Verify and publish from the host
+
+Transfer the signed commit into the same host repository.
+Check its sole parent, tree, and SSH signature.
+Set `allowed_signers` to the absolute path of the host allowed signers file.
+Compare the commit message with the approved message and record the verified commit ID only after all checks pass.
 
 ```bash
-ref=refs/heads/test/openshell-signed-push
-auth=$(printf '%s' "x-access-token:${GITHUB_TOKEN:?provider missing}" | base64 -w 0)
-GIT_AUTH_HEADER="Authorization: Basic $auth" \
-  GIT_TERMINAL_PROMPT=0 git -C /tmp/dotfiles \
-  --config-env=http.extraHeader=GIT_AUTH_HEADER push \
-  https://github.com/mkobit/dotfiles.git "HEAD:$ref"
+unset commit_sha
+openshell sandbox exec -g openshell-microvm --no-tty --no-login-shell "$task_sandbox" -- \
+  git -C /tmp/dotfiles bundle create - HEAD > "$review/signed.bundle" &&
+  git -C "$review" bundle verify "$review/signed.bundle" &&
+  git -C "$review" -c fetch.fsckObjects=true fetch "$review/signed.bundle" HEAD &&
+  test "$(git -C "$review" show -s --format=%P FETCH_HEAD)" = "$REVIEWED_COMMIT" &&
+  test "$(git -C "$review" rev-parse 'FETCH_HEAD^{tree}')" = "$reviewed_tree" &&
+  git -C "$review" config --local gpg.format ssh &&
+  git -C "$review" config --local gpg.ssh.allowedSignersFile "$allowed_signers" &&
+  GIT_DIR="$review" git verify-commit FETCH_HEAD &&
+  git -C "$review" show -s --format=%B FETCH_HEAD > "$review/signed.message" &&
+  cmp "$review/candidate.message" "$review/signed.message" &&
+  commit_sha="$(git -C "$review" rev-parse FETCH_HEAD)"
 ```
 
-Verify each new push before review or merge.
+When publication is authorized, use host Git credentials to push the verified commit ID to the approved feature branch.
+Set `feature_ref` to its full ref under `refs/heads/`.
+Check the remote commit ID and GitHub signature before you create a pull request.
 
 ```bash
-git fetch origin test/openshell-signed-push
-git log --show-signature FETCH_HEAD -n 1
-git verify-commit FETCH_HEAD
-commit_sha="$(git rev-parse FETCH_HEAD)"
-gh api "repos/mkobit/dotfiles/commits/${commit_sha}" --jq .commit.verification.verified
+unset published_sha
+remote=git@github.com:mkobit/dotfiles.git
+test -n "${commit_sha:-}" &&
+  test "${feature_ref#refs/heads/}" != "$feature_ref" &&
+  test "$feature_ref" != refs/heads/main &&
+  git check-ref-format "$feature_ref" &&
+  git -C "$review" push "$remote" "$commit_sha:$feature_ref" &&
+  test "$(git ls-remote "$remote" "$feature_ref" | cut -f1)" = "$commit_sha" &&
+  test "$(gh api "repos/mkobit/dotfiles/commits/${commit_sha}" --jq .commit.verification.verified)" = true &&
+  published_sha="$commit_sha"
+```
+
+After the remote checks pass, create a draft pull request from the host if authorized.
+Set `pr_title` to the title and `pr_body` to the path of the description file.
+Watch GitHub checks for the pull request.
+
+```bash
+feature_branch="${feature_ref#refs/heads/}"
+test -n "${published_sha:-}" &&
+  test "$published_sha" = "$commit_sha" &&
+  gh pr create --repo mkobit/dotfiles --base main --head "$feature_branch" \
+    --draft --title "$pr_title" --body-file "$pr_body" &&
+  gh pr checks "$feature_branch" --repo mkobit/dotfiles --watch
 ```
 
 ## 8. Remove the task sandbox
 
 Delete the task sandbox when work ends.
-Delete the provider if you created it for this task.
-Provider deletion removes the Gateway's copy of the PAT.
-Revoke the PAT separately in GitHub if it is no longer needed.
-These actions do not affect the managed Gateway service.
+Wait until the task sandbox is absent from `openshell sandbox list -g openshell-microvm`.
+The Gateway can accept the delete request before it detaches the provider.
+If you created a model provider or profile for this task, set `task_provider` or `task_profile` to its name before cleanup.
+Provider deletion removes the Gateway's copy of the credential.
+Remove the temporary review directory after you finish using the bundles.
 
 ```bash
-openshell sandbox delete -g openshell-microvm dotfiles-task
-openshell provider delete -g openshell-microvm rollout-github
+openshell sandbox delete -g openshell-microvm "$task_sandbox"
+openshell sandbox list -g openshell-microvm
 ```
 
-[OpenShell 0.1.9 GitHub provider and push tutorial](https://docs.nvidia.com/openshell/v0.1.9/tutorials/github-push-access)
+```bash
+if [ -n "${task_provider:-}" ]; then
+  openshell provider delete -g openshell-microvm "$task_provider"
+fi
+if [ -n "${task_profile:-}" ]; then
+  openshell profile delete -g openshell-microvm "$task_profile"
+fi
+if [ -n "${review:-}" ]; then
+  rm -r -- "$review"
+fi
+```
+
+[OpenShell 0.1.9 GitHub provider and push reference](https://docs.nvidia.com/openshell/v0.1.9/tutorials/github-push-access)
 [OpenShell 0.1.9 MicroVM configuration](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/gateways/configuration#microvm)
 [OpenShell 0.1.9 provider credential injection](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/providers/overview#how-credential-injection-works)

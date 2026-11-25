@@ -3,6 +3,7 @@
 ## Notable cross-cutting features
 
 - **AI agent sandbox**: Docker Sandboxes (`sbx`) provides microVM-isolated execution environments for AI agent CLIs, and NVIDIA OpenShell (`openshell`) provides Landlock/seccomp/OPA-isolated sandboxes with a standalone `/sandbox` OCI layer (`docker/openshell/`).
+  See the [OpenShell runbook](../../docs/openshell-bootstrap.md).
 - **Command approval policy** (see below): shared Claude Code and Antigravity catalog; SBX integrations for Codex and Cursor are separate units.
 - **Secrets** (`[data.secrets]` in `.chezmoi.toml.tmpl`): rendered to a private (`0600`) file sourced by shell rc fragments, never inlined into a fragment itself.
 
