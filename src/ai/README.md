@@ -173,7 +173,7 @@ A missing method also means `"none"`.
 The archive pin uses a full commit ref and archive SHA-256.
 Archive hosts use the existing `ai.skills.hosts` catalog, so an overlay can select its package mirror.
 
-[Superpowers v7.0.0](https://github.com/obra/superpowers/tree/bb92a77741419a4ab5f06e711a283343f1ada0c3) deploys the complete repository, with no skill filter or workflow edits.
+[Superpowers v7.0.2](https://github.com/obra/superpowers/tree/22f0b463e7a5e579904dd6211a520321035526f7) deploys the complete repository, with no skill filter or workflow edits.
 Its shared root is `.local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers/`.
 Claude Code and Codex register it as `superpowers@superpowers-marketplace`, separate from `mkobit-dotfiles@dotfiles`.
 Each generated marketplace declares its destination-relative `source_locator`, owner, source, trust class, and native hosts in the keyed marketplace catalog.
