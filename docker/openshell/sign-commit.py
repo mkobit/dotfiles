@@ -2,6 +2,7 @@
 """Sign one Git commit from an OpenShell guest with a host key."""
 
 import argparse
+import hashlib
 import os
 import re
 import subprocess
@@ -41,15 +42,21 @@ exit 1
 
 
 def validate_commit(
-    payload: bytes, identity: str, expected_parent: str | None = None, expected_tree: str | None = None
+    payload: bytes,
+    identity: str,
+    expected_parent: str | None = None,
+    expected_tree: str | None = None,
+    expected_message_sha256: str | None = None,
 ) -> None:
-    """Accept a commit that matches the authorized identity and object IDs."""
-    header, separator, _ = payload.partition(b"\n\n")
+    """Accept a commit that matches the authorized identity, object IDs, and message."""
+    header, separator, message = payload.partition(b"\n\n")
     lines = header.splitlines()
     if not separator or not lines or not re.fullmatch(rb"tree " + OBJECT_ID, lines[0]):
         raise ValueError("Signing request is not a Git commit")
     if expected_tree is not None and lines[0] != b"tree " + expected_tree.encode():
         raise ValueError("Commit tree does not match the authorized object ID")
+    if expected_message_sha256 is not None and hashlib.sha256(message).hexdigest() != expected_message_sha256:
+        raise ValueError("Commit message does not match the authorized message")
     first_identity = 1
     while first_identity < len(lines) and re.fullmatch(rb"parent " + OBJECT_ID, lines[first_identity]):
         first_identity += 1
@@ -148,7 +155,9 @@ def sign_commit(args: argparse.Namespace, name: str, email: str) -> None:
             raise ValueError("No signing request before the deadline")
         if len(result.stdout) > MAX_PAYLOAD:
             raise ValueError("Signing request exceeds the size limit")
-        validate_commit(result.stdout, args.identity, args.expected_parent, args.expected_tree)
+        validate_commit(
+            result.stdout, args.identity, args.expected_parent, args.expected_tree, args.expected_message_sha256
+        )
         signature = subprocess.run(
             ["ssh-keygen", "-Y", "sign", "-n", "git", "-f", key],
             input=result.stdout,
@@ -192,6 +201,7 @@ def main() -> int:
     parser.add_argument("--identity", required=True, help="Git identity in the form Name <email>")
     parser.add_argument("--expected-parent", help="Require the commit to have this object ID as its sole parent")
     parser.add_argument("--expected-tree", help="Require the commit to have this tree object ID")
+    parser.add_argument("--expected-message-sha256", help="SHA-256 of the exact commit message bytes")
     parser.add_argument("--timeout", type=int, default=120, help="Seconds to wait for one commit")
     args = parser.parse_args()
     identity = re.fullmatch(r"([^<>\r\n]+) <([^<>\s]+)>", args.identity)
@@ -200,6 +210,8 @@ def main() -> int:
     for object_id in (args.expected_parent, args.expected_tree):
         if object_id is not None and not re.fullmatch(OBJECT_ID, object_id.encode()):
             parser.error("Expected object IDs must be full hexadecimal hashes")
+    if args.expected_message_sha256 is not None and not re.fullmatch(r"[0-9a-f]{64}", args.expected_message_sha256):
+        parser.error("Expected message SHA-256 must be a lowercase hexadecimal digest")
     try:
         args.key = args.key.resolve(strict=True)
         sign_commit(args, *identity.groups())

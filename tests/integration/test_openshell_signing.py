@@ -132,19 +132,20 @@ def test_host_signer_completes_one_guest_commit(tmp_path: Path) -> None:
 
 
 @pytest.mark.parametrize(
-    ("expected_option", "diagnostic"),
+    ("expected_args", "diagnostic"),
     [
-        ("--expected-parent", "authorized parent as its sole parent"),
-        ("--expected-tree", "Commit tree does not match the authorized object ID"),
+        (("--expected-parent", "0" * 40), "authorized parent as its sole parent"),
+        (("--expected-tree", "0" * 40), "Commit tree does not match the authorized object ID"),
+        (("--expected-message-sha256", "0" * 64), "Commit message does not match the authorized message"),
     ],
 )
-def test_host_signer_rejects_a_commit_outside_expected_parent_or_tree(
-    tmp_path: Path, expected_option: str, diagnostic: str
+def test_host_signer_rejects_an_unapproved_commit(
+    tmp_path: Path, expected_args: tuple[str, ...], diagnostic: str
 ) -> None:
     guest, host, key, email, env, git, _ = _prepare_signing_fixture(tmp_path)
     subprocess.run([*git, "commit", "--allow-empty", "-m", "Baseline"], check=True, env=env)
     before = subprocess.check_output([*git, "rev-parse", "HEAD"], env=env)
-    with _running_signer(host, guest, key, email, env, (expected_option, "0" * 40)) as (relay, log):
+    with _running_signer(host, guest, key, email, env, expected_args) as (relay, log):
         git_request = subprocess.Popen(
             [*git, "commit", "-S", "--allow-empty", "-m", "Must not be signed"],
             env=env,

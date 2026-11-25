@@ -146,9 +146,11 @@ It keeps logs there and adds `result.bundle` only after it verifies the signed c
 ## 6. Review and sign a guest commit
 
 Use a dedicated Ed25519 key for guest commits.
-Keep the private key on the host.
+Keep the private key on the host and set `signing_key` to its absolute path.
 Add a line of the form `agent@example.org namespaces="git" ssh-ed25519 <public-key-data>` to the host's Git `gpg.ssh.allowedSignersFile`.
-Register the public key as a GitHub **Signing Key** to get GitHub verification.
+Use `ssh-keygen -y -f "$signing_key"` to get the public key from the actual host private key.
+Use that public key in the allowed signers entry and register it as a GitHub **Signing Key**.
+Set `allowed_signers` to the absolute path of the host allowed signers file.
 [Git SSH signing settings](https://git-scm.com/docs/git-config#Documentation/git-config.txt-gpgsshprogram)
 
 After the guest finishes its work and checks, stage the intended files in `/tmp/dotfiles`.
@@ -160,7 +162,9 @@ git -C /tmp/dotfiles -c user.name="$signing_name" -c user.email="$signing_email"
   commit --no-gpg-sign -m "$message"
 ```
 
-On the host, set `REVIEWED_COMMIT` to the trusted base commit from step 4.
+Run the remaining commands on the host in Bash, except for the guest amend.
+Use the trusted full `REVIEWED_COMMIT` from step 4.
+Stop if a command block fails.
 Use `git fetch` with object validation to import the candidate bundle into a private temporary repository.
 Check the sole parent against the trusted base, then review the full diff and commit message.
 
@@ -172,41 +176,44 @@ review="$(mktemp -d)" &&
   git -C "$review" bundle verify "$review/candidate.bundle" &&
   git -C "$review" -c fetch.fsckObjects=true fetch "$review/candidate.bundle" HEAD &&
   test "$(git -C "$review" show -s --format=%P FETCH_HEAD)" = "$REVIEWED_COMMIT" &&
-  git -C "$review" show --format=fuller --binary --no-ext-diff --no-textconv FETCH_HEAD
+  reviewed_tree="$(git -C "$review" rev-parse 'FETCH_HEAD^{tree}')" &&
+  git -C "$review" cat-file commit FETCH_HEAD > "$review/candidate.raw" &&
+  sed '1,/^$/d' "$review/candidate.raw" > "$review/candidate.message" &&
+  reviewed_message="$(sha256sum < "$review/candidate.message")" &&
+  git -C "$review" diff --binary --no-color --no-ext-diff --no-textconv \
+    --ignore-submodules=none "$REVIEWED_COMMIT" FETCH_HEAD -- > "$review/candidate.patch" &&
+  LC_ALL=C sed -n 'l 0' "$review/candidate.message" "$review/candidate.patch"
 ```
 
 Continue only if the checks pass and you approve the candidate.
-Record the approved tree ID and commit message from the host copy.
-Run the trusted host signer with both the approved parent and tree IDs.
-Set `signing_key` to the host private key path.
+The display marks line ends with `$` and escapes nonprintable bytes.
+Run the trusted host signer with the reviewed parent, tree, and exact message hash.
 Use the same `signing_name` and `signing_email` as in the candidate.
 
 ```bash
-reviewed_tree="$(git -C "$review" rev-parse 'FETCH_HEAD^{tree}')" &&
-  git -C "$review" show -s --format=%B FETCH_HEAD > "$review/candidate.message" &&
-  python3 docker/openshell/sign-commit.py \
-    --gateway openshell-microvm --sandbox "$task_sandbox" --repo /tmp/dotfiles \
-    --key "$signing_key" --identity "$signing_name <$signing_email>" \
-    --expected-parent "$REVIEWED_COMMIT" --expected-tree "$reviewed_tree"
+python3 docker/openshell/sign-commit.py \
+  --gateway openshell-microvm --sandbox "$task_sandbox" --repo /tmp/dotfiles \
+  --key "$signing_key" --identity "$signing_name <$signing_email>" \
+  --expected-parent "$REVIEWED_COMMIT" --expected-tree "$reviewed_tree" \
+  --expected-message-sha256 "${reviewed_message%% *}"
 ```
 
 When the signer reports that it is ready, amend the candidate in the guest.
 
 ```bash
-git -C /tmp/dotfiles commit --amend -S --reset-author --no-edit
+git -C /tmp/dotfiles commit --amend -S --only --reset-author --no-edit --cleanup=verbatim
 ```
 
 Check that the signer reports success and exits with status 0.
 Each signer invocation accepts one request.
 Any process that runs as the sandbox user can submit it.
-The signer checks the parent, tree, author, and committer.
-Check the message after transfer.
+The signer checks the parent, tree, author, committer, and exact message before it releases a signature.
 
 ## 7. Verify and publish from the host
 
 Transfer the signed commit into the same host repository.
-Check its sole parent, tree, and SSH signature.
-Set `allowed_signers` to the absolute path of the host allowed signers file.
+Check its sole parent, tree, author, committer, and SSH signature.
+Compare the signature fingerprint with the fingerprint of the host signing key.
 Compare the commit message with the approved message and record the verified commit ID only after all checks pass.
 
 ```bash
@@ -220,13 +227,20 @@ openshell sandbox exec -g openshell-microvm --no-tty --no-login-shell "$task_san
   git -C "$review" config --local gpg.format ssh &&
   git -C "$review" config --local gpg.ssh.allowedSignersFile "$allowed_signers" &&
   GIT_DIR="$review" git verify-commit FETCH_HEAD &&
-  git -C "$review" show -s --format=%B FETCH_HEAD > "$review/signed.message" &&
+  ssh-keygen -y -f "$signing_key" > "$review/signing.pub" &&
+  fingerprint="$(ssh-keygen -E sha256 -lf "$review/signing.pub")" &&
+  read -r _ signing_fingerprint _ <<< "$fingerprint" &&
+  test "$(git -C "$review" show -s --format=%GF FETCH_HEAD)" = "$signing_fingerprint" &&
+  identity="$signing_name <$signing_email>" &&
+  test "$(git -C "$review" show -s --format='%an <%ae>%n%cn <%ce>' FETCH_HEAD)" = "$identity"$'\n'"$identity" &&
+  git -C "$review" cat-file commit FETCH_HEAD > "$review/signed.raw" &&
+  sed '1,/^$/d' "$review/signed.raw" > "$review/signed.message" &&
   cmp "$review/candidate.message" "$review/signed.message" &&
   commit_sha="$(git -C "$review" rev-parse FETCH_HEAD)"
 ```
 
 When publication is authorized, use host Git credentials to push the verified commit ID to the approved feature branch.
-Set `feature_ref` to its full ref under `refs/heads/`.
+Set `feature_ref` to a new full ref under `refs/heads/`.
 Check the remote commit ID and GitHub signature before you create a pull request.
 
 ```bash
@@ -236,23 +250,26 @@ test -n "${commit_sha:-}" &&
   test "${feature_ref#refs/heads/}" != "$feature_ref" &&
   test "$feature_ref" != refs/heads/main &&
   git check-ref-format "$feature_ref" &&
-  git -C "$review" push "$remote" "$commit_sha:$feature_ref" &&
-  test "$(git ls-remote "$remote" "$feature_ref" | cut -f1)" = "$commit_sha" &&
+  existing_ref="$(git ls-remote --refs "$remote" "$feature_ref")" &&
+  test -z "$existing_ref" &&
+  git -C "$review" push --force-with-lease="$feature_ref:" "$remote" "$commit_sha:$feature_ref" &&
+  test "$(git ls-remote --refs "$remote" "$feature_ref")" = "$commit_sha"$'\t'"$feature_ref" &&
   test "$(gh api "repos/mkobit/dotfiles/commits/${commit_sha}" --jq .commit.verification.verified)" = true &&
   published_sha="$commit_sha"
 ```
 
 After the remote checks pass, create a draft pull request from the host if authorized.
 Set `pr_title` to the title and `pr_body` to the path of the description file.
-Watch GitHub checks for the pull request.
+Check that the draft PR head is the verified commit.
 
 ```bash
 feature_branch="${feature_ref#refs/heads/}"
 test -n "${published_sha:-}" &&
   test "$published_sha" = "$commit_sha" &&
-  gh pr create --repo mkobit/dotfiles --base main --head "$feature_branch" \
-    --draft --title "$pr_title" --body-file "$pr_body" &&
-  gh pr checks "$feature_branch" --repo mkobit/dotfiles --watch
+  pr_url="$(gh pr create --repo mkobit/dotfiles --base main --head "$feature_branch" \
+    --draft --title "$pr_title" --body-file "$pr_body")" &&
+  printf '%s\n' "$pr_url" &&
+  test "$(gh pr view "$pr_url" --json headRefOid,isDraft --jq 'select(.isDraft).headRefOid')" = "$commit_sha"
 ```
 
 ## 8. Remove the task sandbox
