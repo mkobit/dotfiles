@@ -11,6 +11,7 @@ import uuid
 from pathlib import Path, PurePosixPath
 
 MAX_PAYLOAD = 65536
+OBJECT_ID = rb"(?:[0-9a-f]{40}|[0-9a-f]{64})"
 
 # Git passes the unsigned commit as a file and expects its signature in a sibling file.
 GUEST_SIGNER = """#!/bin/sh
@@ -39,16 +40,22 @@ exit 1
 """
 
 
-def validate_commit(payload: bytes, identity: str) -> None:
-    """Accept a commit with the configured author and committer."""
+def validate_commit(
+    payload: bytes, identity: str, expected_parent: str | None = None, expected_tree: str | None = None
+) -> None:
+    """Accept a commit that matches the authorized identity and object IDs."""
     header, separator, _ = payload.partition(b"\n\n")
     lines = header.splitlines()
-    object_id = rb"(?:[0-9a-f]{40}|[0-9a-f]{64})"
-    if not separator or not lines or not re.fullmatch(rb"tree " + object_id, lines[0]):
+    if not separator or not lines or not re.fullmatch(rb"tree " + OBJECT_ID, lines[0]):
         raise ValueError("Signing request is not a Git commit")
-    identities = lines[1:]
-    while identities and re.fullmatch(rb"parent " + object_id, identities[0]):
-        identities = identities[1:]
+    if expected_tree is not None and lines[0] != b"tree " + expected_tree.encode():
+        raise ValueError("Commit tree does not match the authorized object ID")
+    first_identity = 1
+    while first_identity < len(lines) and re.fullmatch(rb"parent " + OBJECT_ID, lines[first_identity]):
+        first_identity += 1
+    if expected_parent is not None and lines[1:first_identity] != [b"parent " + expected_parent.encode()]:
+        raise ValueError("Commit must have the authorized parent as its sole parent")
+    identities = lines[first_identity:]
     identity_line = re.escape(identity.encode()) + rb" [0-9]+ [+-][0-9]{4}"
     if len(identities) != 2 or any(
         not re.fullmatch(field + b" " + identity_line, line)
@@ -141,7 +148,7 @@ def sign_commit(args: argparse.Namespace, name: str, email: str) -> None:
             raise ValueError("No signing request before the deadline")
         if len(result.stdout) > MAX_PAYLOAD:
             raise ValueError("Signing request exceeds the size limit")
-        validate_commit(result.stdout, args.identity)
+        validate_commit(result.stdout, args.identity, args.expected_parent, args.expected_tree)
         signature = subprocess.run(
             ["ssh-keygen", "-Y", "sign", "-n", "git", "-f", key],
             input=result.stdout,
@@ -183,11 +190,16 @@ def main() -> int:
     parser.add_argument("--repo", required=True, help="Absolute guest repository root")
     parser.add_argument("--key", required=True, type=Path, help="Dedicated host SSH private key")
     parser.add_argument("--identity", required=True, help="Git identity in the form Name <email>")
+    parser.add_argument("--expected-parent", help="Require the commit to have this object ID as its sole parent")
+    parser.add_argument("--expected-tree", help="Require the commit to have this tree object ID")
     parser.add_argument("--timeout", type=int, default=120, help="Seconds to wait for one commit")
     args = parser.parse_args()
     identity = re.fullmatch(r"([^<>\r\n]+) <([^<>\s]+)>", args.identity)
     if identity is None or not PurePosixPath(args.repo).is_absolute() or args.timeout <= 0:
         parser.error("Provide a Git identity, an absolute guest path, and a positive timeout")
+    for object_id in (args.expected_parent, args.expected_tree):
+        if object_id is not None and not re.fullmatch(OBJECT_ID, object_id.encode()):
+            parser.error("Expected object IDs must be full hexadecimal hashes")
     try:
         args.key = args.key.resolve(strict=True)
         sign_commit(args, *identity.groups())

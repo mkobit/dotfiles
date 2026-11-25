@@ -1,0 +1,71 @@
+# Read-only clone and pinned tool downloads for the chezmoi-skills pilot.
+version: 1
+
+filesystem_policy:
+  read_only:
+    - /bin
+    - /usr
+    - /lib
+    - /proc
+    - /dev/urandom
+    - /etc
+    - /var/log
+    - /sandbox
+  read_write:
+    - /tmp
+    - /dev/null
+
+landlock:
+  compatibility: hard_requirement
+
+network_policies:
+  project_clone:
+    name: project-clone
+    endpoints:
+      - host: github.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow: {method: GET, path: "/mkobit/chezmoi-skills.git/info/refs*"}
+          - allow: {method: POST, path: "/mkobit/chezmoi-skills.git/git-upload-pack"}
+    binaries:
+      - path: /usr/bin/git
+  project_packages:
+    name: project-packages
+    endpoints:
+      - host: mise.jdx.dev
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow: {method: GET, path: "/**"}
+      - host: github.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow: {method: GET, path: "/oven-sh/bun/releases/download/bun-v1.4.4/**"}
+          - allow: {method: GET, path: "/gastownhall/beads/releases/download/v1.3.2/**"}
+      - host: api.github.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow: {method: GET, path: "/repos/gastownhall/beads/releases/**"}
+          - allow: {method: GET, path: "/repos/oven-sh/bun/releases/**"}
+      - host: release-assets.githubusercontent.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow: {method: GET, path: "/**"}
+      - host: registry.npmjs.org
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow: {method: GET, path: "/**"}
+    binaries:
+      - path: /sandbox/.local/bin/mise
+      - path: /tmp/project-mise/installs/bun/1.4.4/bin/bun
