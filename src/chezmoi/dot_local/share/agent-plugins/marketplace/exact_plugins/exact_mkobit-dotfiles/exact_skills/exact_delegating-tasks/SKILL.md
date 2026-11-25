@@ -1,7 +1,7 @@
 ---
 name: delegating-tasks
 description: >-
-  Use to plan or assign subagent work for independent research, bounded changes, or review.
+  Use when a question or follow-up needs research, or when assigning implementation or review to subagents.
 ---
 
 # Delegate tasks
@@ -11,10 +11,26 @@ Honor requests to work without subagents.
 Use only supported delegation tools and pass on only the authority needed for the assignment.
 If delegation is unavailable, work directly when permitted and report any required work that remains blocked.
 
-Assign independent questions to read-only researchers and bounded changes to implementers.
-Choose the least costly available specialist who can do the work.
+## Research questions
+
+Delegate research by default when a question needs new evidence.
+Treat a follow-up that tests a new claim or changes the topic as a new research question.
+Answer directly when the conversation or evidence already in hand is sufficient.
+
+- Start with a read-only specialist on the fastest suitable model, such as Luna or Terra where available.
+- Give the worker one question or claim to check, the repository or source scope, the available search tools or skills, and a stop condition.
+- Ask for a short finding, source links or file and line references, and any gaps or conflicting evidence.
+- Use the result to answer or inspect the relevant sources yourself.
+- If the evidence is incomplete or the analysis is complex, give a stronger specialist the findings, sources, and remaining question.
+
+For example, for “I thought this code did X,” ask a fast code researcher to find the entry point and one caller or test, and report what the sources show.
+If behavior depends on several services or runtime settings, send those findings to a stronger reviewer or trace that path yourself.
+
+## Implementation and review
+
+Assign bounded changes to implementers and choose the least costly specialist who can do the work.
 Use a general agent only when no suitable specialist is available.
-Give each agent the necessary context, scope, constraints, acceptance criteria, and evidence to return.
+Give each agent the necessary context, constraints, acceptance criteria, and evidence to return.
 
 Give each implementer exclusive ownership of named files.
 Ask implementers to run appropriate checks and fix failures within their scope.

@@ -21,7 +21,9 @@ Merge only after required checks pass.
 
 ## Subagent delegation
 
-Use available subagents for independent research or implementation with a clear scope when session rules permit delegation.
+Delegate questions that need research, including follow-up probes, to a read-only subagent by default when session rules permit.
+Use a fast model for simple lookups and a stronger model for complex analysis.
+Delegate independent implementation when it has a clear scope and file ownership.
 Give each delegate a bounded scope and each writer file ownership; use available isolation and verify results.
 Use `mkobit-dotfiles:delegating-tasks` when available.
 
