@@ -42,7 +42,7 @@ content = """
 - Use a fast model for simple lookups and a stronger model for complex analysis.
 - Keep a short record of decisions, active assignments, and next actions so work can continue after compaction.
 - Give each delegate a bounded scope and each writer file ownership; use available isolation and verify results.
-- Use `mkobit-dotfiles:delegating-tasks` when available."""
+- Use `agent-workflows:delegating-tasks` when available."""
 
 [[ai.guidelines.sections]]
 content = """

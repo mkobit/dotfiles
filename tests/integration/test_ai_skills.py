@@ -17,7 +17,7 @@ DIRECT_SKILL_DIRS = [
 
 # Claude, Codex, and Cursor share each authored plugin folder; each reads its own manifest.
 PLUGINS_ROOT = Path(".local/share/agent-plugins/marketplace/plugins")
-AUTHORED_PLUGINS = ("mkobit-dotfiles", "code-writing")
+AUTHORED_PLUGINS = ("mkobit-dotfiles", "code-writing", "agent-workflows")
 CODE_WRITING_SKILLS = {"black-box-testing", "java-writing", "test-invariants"}
 PLUGIN_HOSTS = ["claude", "codex", "cursor"]
 

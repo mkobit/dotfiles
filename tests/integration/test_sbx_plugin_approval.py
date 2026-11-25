@@ -8,7 +8,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[2]
-BUNDLE = ROOT / "src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles"
+BUNDLE = ROOT / "src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_agent-workflows"
 SKILL = BUNDLE / "exact_skills/exact_sbx-sandboxes"
 
 

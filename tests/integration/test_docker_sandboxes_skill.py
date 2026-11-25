@@ -12,7 +12,7 @@ from test_sbx_command_policy import native_codex_decision
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SKILLS_SOURCE = (
-    REPO_ROOT / "src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles/exact_skills"
+    REPO_ROOT / "src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_agent-workflows/exact_skills"
 )
 SKILL_DIR = SKILLS_SOURCE / "exact_sbx-sandboxes"
 SKILL_FILE = SKILL_DIR / "SKILL.md"
@@ -20,7 +20,7 @@ REFERENCES_DIR = SKILL_DIR / "exact_references"
 TEMPLATES_DIR = SKILL_DIR / "exact_templates"
 ORCHESTRATOR_DIR = SKILLS_SOURCE / "exact_sbx-orchestrator"
 BOOTSTRAP_DIR = SKILLS_SOURCE / "exact_repo-bootstrap"
-DEPLOYED_SKILLS = Path(".local/share/agent-plugins/marketplace/plugins/mkobit-dotfiles/skills")
+DEPLOYED_SKILLS = Path(".local/share/agent-plugins/marketplace/plugins/agent-workflows/skills")
 
 
 def _source_path(directory: Path, relative: str) -> Path:
@@ -104,7 +104,7 @@ def test_deployed_setup_skill_discovery_and_local_links(deployed_setup_skills) -
     plugins = json.loads(chezmoi("execute-template", '{{ includeTemplate "ai/authored-plugins" . }}'))
     for host in ("claude", "codex"):
         assert {"repo-bootstrap", "sbx-sandboxes", "worker-handoff", "architect-scoping"} <= set(
-            plugins["mkobit-dotfiles"]["skills"][host]
+            plugins["agent-workflows"]["skills"][host]
         )
     manifest = json.loads(chezmoi("cat", str(destination / DEPLOYED_SKILLS.parent / ".codex-plugin/plugin.json")))
     assert {"repo-bootstrap", "sbx-sandboxes", "worker-handoff", "architect-scoping"} <= set(
