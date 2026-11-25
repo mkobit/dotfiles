@@ -12,10 +12,22 @@ The same project should be usable from a developer checkout with its normal tool
 Start with the existing [chezmoi-built guest image](../../docker/openshell/Dockerfile) as the place to assemble the shared setup.
 Keep the build in this repository for the first trial.
 Revisit separate repositories if the shared environment needs its own release or ownership.
+Keep shared chezmoi components reusable as they change so host and guest builds can select the components they need.
+
+For a typical project, use its existing mise configuration to install project tools.
+For projects that need system packages, use a project image built with the shared guest environment.
+An Obsidian test image can add Xvfb, the required system libraries, and a pinned Obsidian build.
+Keep the test command in the project so the same command can run in CI and in OpenShell.
+
+Reuse the shared image when its inputs are unchanged.
+When a task changes a chezmoi input or image build file, build a trial image from the task revision and test it in a fresh guest.
+Use that image only for the task until the change has passed review.
 
 The dispatcher should select the guest image and supply one effective OpenShell policy for the task.
 Gateway providers supply credentials at launch.
 The host signs commits with its existing key, and GitHub push remains a separate authorization.
+Keep GitHub access read-only by default and give the guest writable checkout, cache, and agent state paths.
+For on-demand inspection, prefer Cursor and test `openshell sandbox create --editor cursor` with a retained guest.
 
 ## Next check
 
