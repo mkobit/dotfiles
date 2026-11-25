@@ -44,19 +44,45 @@ Codex returned a response with the existing ChatGPT login through a temporary Ga
 agy used a placeholder in its usual OAuth file and reached the Google model endpoint with the existing Google login.
 Google returned the expected weekly quota error.
 Both probes supplied current access tokens to the Gateway and put placeholders in the guests.
-Automatic renewal and unattended signed task delivery still need tests.
+
+The [host launcher](../openshell-bootstrap.md#5-run-the-chezmoi-skills-pilot) passed in two fresh guests with the existing image and ChatGPT login.
+The final run passed 111 contract checks and 99 unit tests and returned signed commit `dd2fd1266478590342f4fb83d04e7bcbf80bd75d` in a Git bundle.
+The host signer checked the authorized parent and tree before signing, and the launcher verified the signature and commit after transfer.
+The OpenShell VM supplied isolation because Codex could not start its inner bubblewrap sandbox.
+The guest used anonymous, read-only GitHub access.
+Both runs removed their guest, provider, and profile.
+
+The shared image rebuilt from launcher commit `094fb450` under a separate local tag.
+A fresh guest started from that image and reported the installed agy, Codex, Claude, and mise versions.
+
+The agy trial used a placeholder in a file-backed login and a temporary Gateway provider with the host access token.
+The policy allowed only the agy binary to call the Google model endpoint.
+After the host token expired, `agy models` renewed it and advanced its expiry.
+A fresh guest used the renewed token through a new provider, received HTTP 429 `RESOURCE_EXHAUSTED`, and removed its temporary resources.
+The OAuth endpoint and refresh token stayed outside the guest.
+
+The [Routine Flow](https://github.com/mkobit/routine-flow/tree/54bc045b5b997d637bf9521c207eb692a6e0ee46) image added Xvfb, xauth, fonts, and Electron system libraries.
+The guest used the project's pinned mise tools, Bun lockfile, and Obsidian 1.15.1.
+The installer needed more space than the guest `/tmp` provided, so the checkout and caches moved to `/var/tmp`.
+Xvfb needed a trial-only change for an identity reset that the VM rejects, and Chromium needed guest-local write access to `/dev/shm`.
+The native Playwright run reached Obsidian and stopped after the first test because the guest denied a process-group signal during teardown.
+In a disposable checkout, a graceful CDP close made that test pass and left no Obsidian or Chromium processes.
+The trial did not verify cleanup after a forced shutdown or the full suite with the teardown change.
+
+On WSL, `openshell sandbox create --editor cursor` started the Cursor wrapper and produced no Remote SSH connection in the Cursor logs.
+The wrapper passed a second `--remote` option.
+A temporary Windows Cursor profile reached a fresh guest through Windows OpenSSH and a WSL OpenShell proxy command.
+Cursor's SSH server upload failed, including on a writable guest disk with free space.
+With `remote.SSH.localServerDownload` set to `off`, the guest downloaded the exact Cursor server archive from `downloads.cursor.com` through a `GET` rule for `/usr/bin/curl`.
+Cursor installed the server in a writable guest path, started forwarding, and completed a remote command.
+The trial removed its guests and temporary SSH settings.
 
 ## Next tasks
 
-1. Add a host-side launch command for one `chezmoi-skills` task.
-   Use the existing Codex login, start a fresh guest, run the repo checks, sign one commit with the existing host signer, return the verified commit, and delete the guest.
-   Use read-only GitHub access and keep SBX available.
-2. Add the agy launch path with the same guest lifecycle and a placeholder OAuth file.
+1. Verify an agy model response after the quota resets, then record the launch path with the same guest lifecycle and a placeholder OAuth file.
    Keep credential renewal outside the guest.
-   Verify access after quota reset and test how a subsequent launch obtains a fresh token.
    Use the [reference Antigravity policy](https://github.com/fredrikp999/openshell-configs/blob/f97c4090dff8dff176c0eea4035620a881f58b5e/policies/antigravity.yaml) to group rules by endpoint and explain their purpose.
    Use the guest's actual binary path and the requests observed in our probes to select rules.
-3. Try the launcher on an Obsidian plugin repo before choosing a project config format.
-   Keep shared images, provider bindings, and signing in the launcher.
-   Reuse each repo's mise and test commands, and record which additional inputs the Obsidian image needs.
-   Test rebuilding the shared setup from a task revision and opening a retained guest in Cursor.
+2. Verify Routine Flow teardown on both success and failure, then run its full suite in a fresh guest.
+   Keep its normal mise and test commands usable from developer checkouts and CI.
+   Use the second repo's results before choosing a shared project config format.
