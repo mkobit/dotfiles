@@ -26,7 +26,7 @@ from termstatus.agy.statusline import (
 from termstatus.agy.term_colors import fullness_icon, meter_color
 from termstatus.git_status import VcsState, parse_git_status
 from termstatus.main import main
-from termstatus.segments.constants import CYAN, DIM, GREEN, MAGENTA, ORANGE, RED, YELLOW
+from termstatus.segments.constants import AMBER, BLUE, CYAN, DIM, GREEN, MAGENTA, ORANGE, RED, YELLOW
 
 FULL_PAYLOAD = {
     "agent_state": "working",
@@ -71,10 +71,11 @@ def _has_osc8_link(output: str, url: str, label: str) -> bool:
 def test_wide_render_uses_independent_semantic_bands() -> None:
     lines = rendered(FULL_PAYLOAD)
 
-    assert len(lines) == 5
+    assert len(lines) == 6
     assert all(" • " not in line for line in lines)
+    assert lines[0] == "✨ full"
     assert all(
-        expected in lines[0]
+        expected in lines[1]
         for expected in (
             "[🔄 working] \ue7c5 I",
             "GPT-5.6",
@@ -83,29 +84,28 @@ def test_wide_render_uses_independent_semantic_bands() -> None:
             "sandbox:no-net",
         )
     )
-    assert "think:" not in lines[0]
-    assert "vim:" not in lines[0]
-    assert "plan:" not in lines[0]
-    assert "full" not in lines[0]
+    assert "full" not in lines[1]
+    assert "think:" not in lines[1]
+    assert "vim:" not in lines[1]
+    assert "plan:" not in lines[1]
 
-    assert "/work/repo" in lines[1]
-    assert "feature/renderer" not in lines[1]
+    assert "/work/repo" in lines[2]
+    assert "feature/renderer" not in lines[2]
 
-    assert "<feature/renderer → origin/feature/renderer>" in lines[2]
-    assert "!" in lines[2]
-    assert "↑2" in lines[2] and "↓1" in lines[2]
+    assert "<feature/renderer → origin/feature/renderer>" in lines[3]
+    assert "!" in lines[3]
+    assert "↑2" in lines[3] and "↓1" in lines[3]
 
-    assert "82% ctx" in lines[3]
-    assert "5h ◕ 50%" in lines[3]
-    assert "7d ◔ 10%" in lines[3]
-    assert lines[3].index("5h ◕ 50%") < lines[3].index("7d ◔ 10%")
-    assert "$0.01" in lines[3]
-    assert "full" in lines[3]
-    assert "plan:" not in lines[3]
-    assert lines[3].index("$0.01") < lines[3].index("full")
+    assert "82% ctx" in lines[4]
+    assert "5h ◕ 50%" in lines[4]
+    assert "7d ◔ 10%" in lines[4]
+    assert lines[4].index("5h ◕ 50%") < lines[4].index("7d ◔ 10%")
+    assert "$0.01" in lines[4]
+    assert "full" not in lines[4]
+    assert "plan:" not in lines[4]
 
-    assert lines[4].startswith("confirm")
-    assert "tasks:3" in lines[4] and "input:2" in lines[4]
+    assert lines[5].startswith("confirm")
+    assert "tasks:3" in lines[5] and "input:2" in lines[5]
     assert "artifacts:" not in "\n".join(lines)
 
 
@@ -122,12 +122,13 @@ def test_artifacts_decoded_but_omitted_from_rendered_output() -> None:
 def test_responsive_table_never_exceeds_terminal_width(width: int) -> None:
     lines = rendered({**FULL_PAYLOAD, "terminal_width": width})
 
-    assert len(lines) >= 1
-    assert "working" in lines[0]
+    assert len(lines) >= 2
+    assert lines[0] == "✨ full"
+    assert "working" in lines[1]
     assert all(display_width(line) <= width for line in lines)
 
 
-def test_quota_row_layout_and_bracket_formatting() -> None:
+def test_quota_row_layout_without_brackets() -> None:
     payload = {
         "cwd": "/work/repo",
         "quota": {
@@ -136,15 +137,12 @@ def test_quota_row_layout_and_bracket_formatting() -> None:
         },
         "terminal_width": 160,
     }
-    with patch(
-        "termstatus.agy.statusline._format_quota_reset_duration",
-        side_effect=lambda delta: "⏳ 30m" if delta and delta.total("seconds") == 1800 else "⏳ 2h",
-    ):
-        lines = rendered(payload)
+    lines = rendered(payload)
 
     assert len(lines) == 3
     assert "/work/repo" in lines[1]
-    assert "[5h ● 81% ⏳ 30m]  [7d ◔ 10% ⏳ 2h]" in lines[2]
+    assert "5h ● 81% ↻ 30m  7d ◔ 10% ↻ 2h" in lines[2]
+    assert "[" not in lines[2] and "]" not in lines[2]
 
     solo_payload = {
         "cwd": "/work/repo",
@@ -153,31 +151,32 @@ def test_quota_row_layout_and_bracket_formatting() -> None:
         },
         "terminal_width": 160,
     }
-    with patch("termstatus.agy.statusline._format_quota_reset_duration", return_value="⏳ 30m"):
-        solo_lines = rendered(solo_payload)
+    solo_lines = rendered(solo_payload)
 
     assert len(solo_lines) == 3
     assert "/work/repo" in solo_lines[1]
-    assert "[5h ● 81% ⏳ 30m]" in solo_lines[2]
+    assert "5h ● 81% ↻ 30m" in solo_lines[2]
+    assert "[" not in solo_lines[2] and "]" not in solo_lines[2]
 
 
 def test_narrow_render_omits_lower_priority_slots_and_splits_overflow_quotas() -> None:
-    lines = rendered({**FULL_PAYLOAD, "terminal_width": 40})
+    lines = rendered({**FULL_PAYLOAD, "terminal_width": 35})
 
-    assert "[🔄 working] \ue7c5 I" in lines[0]
-    assert "GPT-5.6" in lines[0]
-    assert "autonomous" not in lines[0] and "sandbox:no-net" not in lines[0]
-    assert all(display_width(line) <= 40 for line in lines)
+    assert lines[0] == "✨ full"
+    assert "[🔄 working] \ue7c5 I" in lines[1]
+    assert "GPT-5.6" in lines[1]
+    assert "autonomous" not in lines[1] and "sandbox:no-net" not in lines[1] and "full" not in lines[1]
+    assert all(display_width(line) <= 35 for line in lines)
     plain = "\n".join(lines)
     assert "5h ◕ 50%" in plain
     assert "7d ◔ 10%" in plain
-    # 7d quota splits onto a continuation usage row aligned beneath 5h at width 40
+    # 7d quota splits onto a continuation usage row aligned beneath 5h at width 35
     usage_idx = next(idx for idx, line in enumerate(lines) if "82% ctx" in line)
     assert "5h ◕ 50%" in lines[usage_idx]
     assert "7d ◔ 10%" in lines[usage_idx + 1]
     assert "full" not in lines[usage_idx]
-    assert display_width(lines[usage_idx][: lines[usage_idx].index("[5h")]) == display_width(
-        lines[usage_idx + 1][: lines[usage_idx + 1].index("[7d")]
+    assert display_width(lines[usage_idx][: lines[usage_idx].index("5h")]) == display_width(
+        lines[usage_idx + 1][: lines[usage_idx + 1].index("7d")]
     )
 
 
@@ -496,8 +495,9 @@ def test_3p_quotas_filtered_and_quota_meters_formatted() -> None:
     assert "3p-5h" not in plain
     assert "3p-weekly" not in plain
     assert "capacity:" not in plain
-    assert "[5h ● 97%]" in lines[1]
-    assert "[7d ● 84%]" in lines[1]
+    assert "5h ● 97%" in lines[1]
+    assert "7d ● 84%" in lines[1]
+    assert "[" not in lines[1] and "]" not in lines[1]
 
 
 def test_format_quota_label_preserves_tier_and_normalizes_intervals() -> None:
@@ -523,14 +523,19 @@ def test_format_quota_reset_duration(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert (
         strip_ansi(_format_quota_reset_duration(TimeDelta(days=5, hours=6, minutes=12, days_assumed_24h_ok=True)) or "")
-        == "⏳ 5d 6h 12m"
+        == "↻ 5d6h"
     )
-    assert strip_ansi(_format_quota_reset_duration(TimeDelta(hours=2, minutes=15)) or "") == "⏳ 2h 15m"
-    assert strip_ansi(_format_quota_reset_duration(TimeDelta(minutes=45)) or "") == "⏳ 45m"
-    assert strip_ansi(_format_quota_reset_duration(TimeDelta(seconds=30)) or "") == "⏳ 1m"
+    assert (
+        strip_ansi(_format_quota_reset_duration(TimeDelta(days=5, hours=0, minutes=12, days_assumed_24h_ok=True)) or "")
+        == "↻ 5d"
+    )
+    assert strip_ansi(_format_quota_reset_duration(TimeDelta(hours=2, minutes=15)) or "") == "↻ 2h15m"
+    assert strip_ansi(_format_quota_reset_duration(TimeDelta(hours=2)) or "") == "↻ 2h"
+    assert strip_ansi(_format_quota_reset_duration(TimeDelta(minutes=45)) or "") == "↻ 45m"
+    assert strip_ansi(_format_quota_reset_duration(TimeDelta(seconds=30)) or "") == "↻ 1m"
 
     monkeypatch.setenv("TERMSTATUS_NO_ICONS", "1")
-    assert strip_ansi(_format_quota_reset_duration(TimeDelta(hours=2, minutes=15)) or "") == "2h 15m"
+    assert strip_ansi(_format_quota_reset_duration(TimeDelta(hours=2, minutes=15)) or "") == "↻ 2h15m"
     monkeypatch.delenv("TERMSTATUS_NO_ICONS", raising=False)
 
     short_reset = _format_quota_reset_duration(TimeDelta(seconds=1800))
@@ -553,9 +558,9 @@ def test_quota_labels_disambiguate_multiple_buckets_sharing_interval() -> None:
         }
     )
     plain = "\n".join(lines)
-    assert "[gemini-7d" in plain
-    assert "[pro-7d" in plain
-    assert "[7d " not in plain
+    assert "gemini-7d " in plain
+    assert "pro-7d " in plain
+    assert not re.search(r"(?<![-\w])7d ", plain)
 
     lines = rendered(
         {
@@ -567,8 +572,8 @@ def test_quota_labels_disambiguate_multiple_buckets_sharing_interval() -> None:
         }
     )
     plain = "\n".join(lines)
-    assert "[gemini-7d" in plain
-    assert "[pro-7d" in plain
+    assert "gemini-7d " in plain
+    assert "pro-7d " in plain
 
     lines = rendered(
         {
@@ -579,8 +584,8 @@ def test_quota_labels_disambiguate_multiple_buckets_sharing_interval() -> None:
         }
     )
     plain = "\n".join(lines)
-    assert "[7d " in plain
-    assert "[gemini-7d" not in plain
+    assert re.search(r"(?<![-\w])7d ", plain) is not None
+    assert "gemini-7d" not in plain
 
     lines = rendered(
         {
@@ -591,8 +596,8 @@ def test_quota_labels_disambiguate_multiple_buckets_sharing_interval() -> None:
         }
     )
     plain = "\n".join(lines)
-    assert "[5h " in plain
-    assert "[gemini-5h" not in plain
+    assert re.search(r"(?<![-\w])5h ", plain) is not None
+    assert "gemini-5h" not in plain
 
     lines = rendered(
         {
@@ -604,8 +609,8 @@ def test_quota_labels_disambiguate_multiple_buckets_sharing_interval() -> None:
         }
     )
     plain = "\n".join(lines)
-    assert "[gemini-5h" in plain
-    assert "[pro-5h" in plain
+    assert "gemini-5h " in plain
+    assert "pro-5h " in plain
 
 
 def test_model_name_strips_effort_case_insensitively(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -668,26 +673,83 @@ def test_vim_mode_compact_badge_and_no_icons_fallback(
     assert strip_ansi(ansi_no_icons) == f"[idle] {expected_char}"
 
 
-def test_plan_tier_on_usage_row_drops_before_cost_on_narrow_width() -> None:
-    raw = {
+@pytest.mark.parametrize(
+    ("mode", "expected_icon_text", "expected_fallback_text", "expected_color"),
+    [
+        ("accept-edits", "\uf044 edits", "✎ edits", GREEN),
+        ("ACCEPT-EDITS", "\uf044 edits", "✎ edits", GREEN),
+        ("auto", "⚡ auto", "⚡ auto", AMBER),
+        ("plan", "\uf0cb plan", "☰ plan", BLUE),
+        ("custom-mode", "custom-mode", "custom-mode", DIM),
+    ],
+)
+def test_execution_mode_styling_and_no_icons_fallback(
+    monkeypatch: pytest.MonkeyPatch,
+    mode: str,
+    expected_icon_text: str,
+    expected_fallback_text: str,
+    expected_color: str,
+) -> None:
+    raw = {"agent_state": "idle", "execution_mode": mode, "terminal_width": 120}
+    ansi = render_statusline(decode_payload(raw), None)
+    assert f"{expected_color}{expected_icon_text}" in ansi
+    assert expected_icon_text in strip_ansi(ansi)
+
+    monkeypatch.setenv("TERMSTATUS_NO_ICONS", "1")
+    ansi_no_icons = render_statusline(decode_payload(raw), None)
+    assert f"{expected_color}{expected_fallback_text}" in ansi_no_icons
+    assert expected_fallback_text in strip_ansi(ansi_no_icons)
+
+
+def test_plan_tier_shown_as_striped_first_line_for_new_session_and_hidden_once_active(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    new_session_raw = {
         "agent_state": "idle",
-        "context_window": {"remaining_percentage": 100},
+        "conversation_id": "",
+        "session_id": "",
+        "context_window": {
+            "remaining_percentage": 100,
+            "total_input_tokens": 0,
+            "total_output_tokens": 0,
+        },
         "quota": {"gemini-5h": {"remaining_percentage": 80}},
         "cost": {"estimated": 0.12},
         "plan_tier": "Google AI Pro",
         "terminal_width": 120,
     }
-    wide = render_statusline(decode_payload(raw), None)
+    payload = decode_payload(new_session_raw)
+    assert payload.is_new_session is True
+    wide = render_statusline(payload, None)
     wide_lines = strip_ansi(wide).splitlines()
-    assert "Google AI Pro" not in wide_lines[0]
-    assert "$0.12" in wide_lines[1]
-    assert "Google AI Pro" in wide_lines[1]
-    assert f"{DIM}Google AI Pro" in wide
+    assert wide_lines[0] == "✨ Google AI Pro"
+    assert "[idle]" in wide_lines[1]
+    assert "$0.12" in wide_lines[2]
+    assert "Google AI Pro" not in wide_lines[1]
+    assert "Google AI Pro" not in wide_lines[2]
+    # Striped across multiple ANSI colors on the banner line
+    banner_ansi = wide.splitlines()[0]
+    assert "\x1b[1;38;5;75mG" in banner_ansi
+    assert "\x1b[1;31mo" in banner_ansi
+    assert "\x1b[1;33mo" in banner_ansi
+    assert "\x1b[1;32mg" in banner_ansi
 
-    # Width 40 fits ctx + 5h badge + $0.12, but drops Google AI Pro first
-    narrow_lines = rendered({**raw, "terminal_width": 40})
-    assert "$0.12" in narrow_lines[1]
-    assert "Google AI Pro" not in narrow_lines[1]
+    monkeypatch.setenv("TERMSTATUS_NO_ICONS", "1")
+    no_icons_lines = rendered(new_session_raw)
+    assert no_icons_lines[0] == "★ Google AI Pro"
+    monkeypatch.delenv("TERMSTATUS_NO_ICONS")
+
+    for active_override in (
+        {"conversation_id": "conv-123"},
+        {"session_id": "sess-456"},
+        {"context_window": {"remaining_percentage": 95, "total_input_tokens": 10, "total_output_tokens": 0}},
+        {"context_window": {"remaining_percentage": 95, "total_input_tokens": 0, "total_output_tokens": 5}},
+    ):
+        active_payload = decode_payload({**new_session_raw, **active_override})
+        assert active_payload.is_new_session is False
+        active_lines = rendered({**new_session_raw, **active_override})
+        assert "[idle]" in active_lines[0]
+        assert "Google AI Pro" not in "\n".join(active_lines)
 
 
 def test_standard_payload_row0_fits_under_80_cols_at_width_120() -> None:
@@ -707,11 +769,15 @@ def test_standard_payload_row0_fits_under_80_cols_at_width_120() -> None:
         "terminal_width": 120,
     }
     lines = rendered(standard)
-    assert display_width(lines[0]) < 80
-    assert "[idle] \ue7c5 I" in lines[0]
-    assert "Gemini 4 Neon" in lines[0]
-    assert "accept-edits" in lines[0]
-    assert "Google AI Pro" in lines[2]
+    assert lines[0] == "✨ Google AI Pro"
+    assert display_width(lines[1]) < 80
+    assert "[idle] \ue7c5 I" in lines[1]
+    assert "Gemini 4 Neon" in lines[1]
+    assert "\uf044 edits" in lines[1]
+    assert "Google AI Pro" not in lines[1]
+    assert "Google AI Pro" not in lines[3]
+    assert "5h ○ 3% ↻ 3h20m" in lines[3]
+    assert "7d ◕ 51% ↻ 6d17h" in lines[3]
 
 
 def test_directory_shortening_and_link() -> None:

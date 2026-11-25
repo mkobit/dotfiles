@@ -43,6 +43,7 @@ class AgyPayload:
     pending_input_count: int | None
     confirmation_pending: bool
     artifact_count: int | None
+    is_new_session: bool = True
 
 
 def mapping(value: object) -> Mapping[str, object]:
@@ -138,6 +139,10 @@ def decode_payload(raw: Mapping[str, object]) -> AgyPayload:
         confirmation = raw.get("tool_confirmation_pending")
     if confirmation is None:
         confirmation = mapping(raw.get("confirmation")).get("pending")
+    has_session_id = bool(normalized_text(raw.get("conversation_id")) or normalized_text(raw.get("session_id")))
+    input_tokens = integer(context.get("total_input_tokens")) or 0
+    output_tokens = integer(context.get("total_output_tokens")) or 0
+    is_new_session = not has_session_id and input_tokens <= 0 and output_tokens <= 0
     return AgyPayload(
         normalized_text(raw.get("agent_state")) or "idle",
         max(0, min(100, remaining)) if remaining is not None else None,
@@ -160,4 +165,5 @@ def decode_payload(raw: Mapping[str, object]) -> AgyPayload:
         first_count(raw.get("pending_input_count"), raw.get("pending_inputs")),
         bool(confirmation),
         first_count(raw.get("artifact_count"), raw.get("artifacts")),
+        is_new_session=is_new_session,
     )

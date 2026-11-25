@@ -21,6 +21,8 @@ from termstatus.agy.term_colors import (
 )
 from termstatus.git_status import VcsState
 from termstatus.segments.constants import (
+    AMBER,
+    BLUE,
     BOLD,
     CYAN,
     DARK_GREY,
@@ -245,6 +247,27 @@ def _format_vim_mode(vim_mode: str | None) -> str | None:
     return f"{color}{icon_prefix}{char}{RESET}"
 
 
+_EXECUTION_MODES: Final[dict[str, tuple[str, str, str]]] = {
+    "accept-edits": ("mode_edits", "edits", GREEN),
+    "auto": ("mode_auto", "auto", AMBER),
+    "plan": ("mode_plan", "plan", BLUE),
+}
+
+
+def _format_execution_mode(mode: str | None) -> str | None:
+    if mode is None:
+        return None
+    key = mode.strip().lower()
+    if not key:
+        return None
+    if spec := _EXECUTION_MODES.get(key):
+        icon_key, label, color = spec
+        icon = get_icon(icon_key)
+        icon_prefix = f"{icon} " if icon else ""
+        return f"{color}{icon_prefix}{label}{RESET}"
+    return f"{DIM}{mode}{RESET}"
+
+
 def _format_directory(cwd: str, *, max_width: int | None = None) -> str:
     icon = get_icon("dir")
     icon_prefix = f"{icon} " if icon else ""
@@ -296,18 +319,13 @@ def _format_quota_reset_duration(reset_in: TimeDelta | None) -> str | None:
     remainder = total_seconds % 86400
     hours = remainder // 3600
     minutes = (remainder % 3600) // 60
-    if total_seconds > 0 and days == 0 and hours == 0 and minutes == 0:
-        minutes = 1
-    parts: list[str] = []
     if days > 0:
-        parts.append(f"{days}d")
-    if hours > 0 or (days > 0 and minutes > 0):
-        parts.append(f"{hours}h")
-    if minutes > 0 or not parts:
-        parts.append(f"{minutes}m")
-    duration = " ".join(parts)
-    icon = "⏳ " if use_icons() else ""
-    formatted = f"{icon}{duration}"
+        duration = f"{days}d{hours}h" if hours > 0 else f"{days}d"
+    elif hours > 0:
+        duration = f"{hours}h{minutes}m" if minutes > 0 else f"{hours}h"
+    else:
+        duration = f"{max(1, minutes)}m"
+    formatted = f"↻ {duration}"
     if total_seconds <= 1800:
         return f"{CYAN}{formatted}{RESET}"
     return f"{DIM}{formatted}{RESET}"
@@ -321,7 +339,7 @@ def _format_quota_badge(name: str, quota: Quota, base_label: str, *, is_ambiguou
     icon_text = f" {icon}" if use_icons() else ""
     reset_str = _format_quota_reset_duration(quota.reset_in)
     reset_text = f" {reset_str}" if reset_str is not None else ""
-    return f"{DIM}[{RESET}{color}{label}{icon_text} {meter}{RESET}{reset_text}{DIM}]{RESET}"
+    return f"{color}{label}{icon_text} {meter}{RESET}{reset_text}"
 
 
 def _ordered_quota_badges(payload: AgyPayload) -> list[str]:
@@ -376,6 +394,29 @@ def _grid_band(rows: Sequence[Sequence[str]], *, gap: int = _GAP_WIDTH) -> Table
     return grid
 
 
+_PLAN_STRIPE_COLORS: Final[tuple[str, ...]] = (SKY_BLUE, RED, YELLOW, GREEN)
+
+
+def _format_striped_text(text: str, colors: Sequence[str] = _PLAN_STRIPE_COLORS) -> str:
+    parts: list[str] = []
+    color_index = 0
+    for char in text:
+        if char.isspace():
+            parts.append(char)
+        else:
+            parts.append(f"{BOLD}{colors[color_index % len(colors)]}{char}")
+            color_index += 1
+    return f"{''.join(parts)}{RESET}"
+
+
+def _plan_band(payload: AgyPayload) -> Text | None:
+    if not payload.is_new_session or payload.plan_tier is None or not payload.plan_tier:
+        return None
+    star = "✨ " if use_icons() else "★ "
+    banner = f"{YELLOW}{star}{RESET}{_format_striped_text(payload.plan_tier)}"
+    return Text.from_ansi(banner, no_wrap=True, overflow="ellipsis")
+
+
 def _harness_band(payload: AgyPayload, max_width: int) -> Table:
     icon = state_icon(payload.state)
     icon_prefix = f"{icon} " if icon else ""
@@ -390,7 +431,7 @@ def _harness_band(payload: AgyPayload, max_width: int) -> Table:
     cellular = _thinking_cellular_graph(payload.effort)
     graph = f"{cellular} " if use_icons() and cellular else ""
     think_text = f"{brain}{graph}{payload.effort}" if payload.effort is not None else None
-    mode_text = f"{DIM}{payload.execution_mode}{RESET}" if payload.execution_mode is not None else None
+    mode_text = _format_execution_mode(payload.execution_mode)
 
     sandbox_text = None
     if payload.sandbox and payload.sandbox.enabled:
@@ -424,23 +465,18 @@ def _usage_band(payload: AgyPayload, max_width: int) -> Table | None:
 
     quota_badges = _ordered_quota_badges(payload)
     cost_text = f"{DIM}{_format_cost(payload.cost)}{RESET}" if payload.cost is not None else None
-    plan_text = f"{DIM}{payload.plan_tier}{RESET}" if payload.plan_tier is not None else None
 
     items = [
         *([ctx_text] if ctx_text is not None else []),
         *quota_badges,
         *([cost_text] if cost_text is not None else []),
-        *([plan_text] if plan_text is not None else []),
     ]
     if not items:
         return None
 
-    # Drop plan_tier first, then cost, if the single row exceeds terminal width.
-    for droppable in (plan_text, cost_text):
-        if _row_width(items) <= max_width:
-            break
-        if droppable is not None and len(items) > 1:
-            items.pop()
+    # Drop cost if the single row exceeds terminal width.
+    if _row_width(items) > max_width and cost_text is not None and len(items) > 1:
+        items.pop()
 
     rows: list[list[str]]
     if _row_width(items) <= max_width:
@@ -477,6 +513,7 @@ def render_statusline(payload: AgyPayload, vcs: VcsState | None) -> str:
     bands: list[RenderableType] = [
         band
         for band in (
+            _plan_band(payload),
             _harness_band(payload, effective_width),
             _directory_band(payload, effective_width),
             _vcs_band(payload, vcs),
