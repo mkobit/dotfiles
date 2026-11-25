@@ -1,0 +1,4 @@
+# Identity of the authored agent-workflows plugin.
+[ai.plugins.agent-workflows]
+description = "Guidance for task delegation, sandbox setup, and worker handoff."
+author = "mkobit"
