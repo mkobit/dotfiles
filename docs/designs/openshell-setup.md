@@ -19,6 +19,8 @@ The host signs commits with its existing key, and GitHub push remains a separate
 
 ## Next check
 
-Start a fresh guest with the shared image and confirm that it can find the installed tools and configuration in an unrelated checkout.
+On the managed OpenShell 0.1.9 Gateway, a launch with the local image tag booted the stock Ubuntu image.
+A launch with an exported root filesystem was rejected because the Gateway disables caller driver configuration.
+Identify how the Gateway can select an approved shared image, then confirm that a fresh guest can find the installed tools and configuration in an unrelated checkout.
 Then test one noninteractive prompt with each of agy, Codex, and Claude Code to establish which credential flows the dispatcher can use.
 Use those results to decide what project configuration is necessary.
