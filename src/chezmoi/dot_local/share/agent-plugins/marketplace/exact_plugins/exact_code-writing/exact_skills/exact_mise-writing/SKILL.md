@@ -7,8 +7,8 @@ description: Write, change, review, or troubleshoot mise project configuration a
 
 Check the repository's mise version, configuration files, and task names before making changes.
 Use the existing layout for small edits.
-For new layouts and requested migrations, prefer `.mise/config.toml` for shared settings, `.mise/conf.d/<group>.toml` for groups of short tasks, and `.mise/tasks/<group>/<task>` for tasks that need scripts.
-Split tasks when distinct groups emerge or task definitions make the core configuration hard to scan.
+For new layouts and requested migrations, prefer `.mise/config.toml` for shared settings and `.mise/conf.d/<group>.toml` for groups of short tasks.
+Use an executable file in `.mise/tasks/<group>/<task>` for tasks with more than about ten lines of commands or with branches, loops, or cleanup.
 Keep existing task names and arguments during a move unless the user requests a change.
 
 Read only the references for the work:
@@ -18,6 +18,6 @@ Read only the references for the work:
 - [Configuration layout](references/config/layout.md) for fragments, precedence, environment overlays, and migration.
 - [Project configuration](references/config/project.md) for tools, environment variables, settings, hooks, and watchers.
 
-After a layout change, run `mise config ls` and `mise tasks` from the project root with the supported mise version.
-Check for the expected files and task names.
-For tool or environment changes, use `mise ls`, `mise env`, or `mise doctor` as applicable.
+After a layout change, check loaded files with `mise config ls` and task names with `mise tasks` from the project root.
+Check tool versions with `mise ls` and environment values with `mise env`.
+Use `mise doctor` to diagnose setup problems.

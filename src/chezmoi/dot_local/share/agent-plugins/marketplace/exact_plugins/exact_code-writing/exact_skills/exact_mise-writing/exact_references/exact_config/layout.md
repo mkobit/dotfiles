@@ -1,7 +1,7 @@
 # Configuration layout
 
-Use this layout when a project needs more than one configuration file.
-Add only the paths the project needs.
+Start with `.mise/config.toml`.
+Add the other paths only when the project needs them.
 
 ```text
 project/
