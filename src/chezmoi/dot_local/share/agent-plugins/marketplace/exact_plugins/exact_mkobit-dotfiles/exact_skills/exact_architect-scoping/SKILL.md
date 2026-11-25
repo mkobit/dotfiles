@@ -1,13 +1,16 @@
 ---
 name: architect-scoping
 description: >-
-  Use when assessing a bounded implementation unit and assigning available native subagents to implementation and review.
+  Use when sizing an assigned Docker Sandbox (SBX) work unit and checking the guest's scope and model limits.
 ---
 
 # Architect scoping
 
-Read the [assignment](../worker-handoff/references/assignment.md), project instructions, and current state. Assess complexity, dependencies, risk, acceptance criteria, and the smallest coherent unit before delegating. The assigned scope governs which available subagent models and reasoning efforts may be used; keep the coordinator model fixed for the run. Record choices and rationale through the project's existing mechanisms.
+Read the [assignment](../worker-handoff/references/assignment.md), project instructions, and current state.
+Use the dependencies, risks, and acceptance criteria to select the smallest complete unit within the assignment.
+Defer work outside that unit and record the decision through the project's existing mechanisms.
 
-When native subagents are available, use their actual supported capabilities and assign one implementation writer and a separate reviewer with bounded responsibilities. Do not invent tool names or nested sandbox launchers. If required capability or an authorized model is unavailable, preserve evidence and report the prerequisite instead of changing models or credentials without authority.
-
-Split work exceeding the assigned unit into follow-ups instead of unbounded rearchitecture. Resolve routine transient failures pragmatically, preserving evidence and checks; do not disable checks to make progress.
+Keep the coordinator model fixed for the run.
+Use only native subagent models and reasoning settings that the assignment and harness permit.
+Do not start nested sandboxes or disable required checks.
+If the guest lacks a required capability, record the evidence and report what is missing.

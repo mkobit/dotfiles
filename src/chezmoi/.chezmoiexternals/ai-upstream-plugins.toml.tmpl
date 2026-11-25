@@ -1,6 +1,9 @@
 {{- /* Acquire complete upstream plugins; init templates own installation choices. */ -}}
 {{- $entries := dict -}}
 {{- range $name, $plugin := dig "ai" "plugins" (dict) . -}}
+{{-   if dig "retired" false $plugin -}}
+{{-     continue -}}
+{{-   end -}}
 {{-   $method := dig "installation_method" "none" $plugin -}}
 {{-   if eq $method "chezmoi_external" -}}
 {{-     if not (and (regexMatch "^[0-9a-f]{40}$" $plugin.ref) (regexMatch "^[0-9a-f]{64}$" $plugin.sha256)) -}}

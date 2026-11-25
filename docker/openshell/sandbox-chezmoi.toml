@@ -10,9 +10,6 @@ MISE_STATE_DIR  = "/sandbox/.local/state/mise"
 [data.zsh]
 set_as_default_login_shell = false
 
-[data.ai.plugins.superpowers]
-installation_method = "chezmoi_external"
-
 [data.ai.plugins.egm]
 installation_method = "chezmoi_external"
 

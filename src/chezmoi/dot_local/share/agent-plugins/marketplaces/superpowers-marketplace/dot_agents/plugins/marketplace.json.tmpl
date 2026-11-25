@@ -1,1 +1,6 @@
-{{- includeTemplate "ai/codex/marketplace" (dict "root" . "name" "superpowers-marketplace") -}}
+{{- /* Codex cannot list marketplaces if this manifest is missing before unregistration. TODO(2026-12-09): Review whether to delete this manifest after cleanup of stale marketplace registrations. */ -}}
+{
+  "name": "superpowers-marketplace",
+  "interface": {"displayName": "Superpowers"},
+  "plugins": []
+}

@@ -5,9 +5,9 @@
   file added, and passes everything else through unchanged. Delete this file once
   the old entries are gone from every machine.
 */ -}}
-{{- $old := list (joinPath .chezmoi.destDir ".local/share/agent-plugins/marketplace/plugins") -}}
-{{- $plugin := dig "ai" "plugins" "superpowers" (dict) . -}}
-{{- $old = append $old (dir (joinPath .chezmoi.destDir (dig "path" ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers" $plugin))) -}}
+{{- $old := list
+      (joinPath .chezmoi.destDir ".local/share/agent-plugins/marketplace/plugins")
+      (joinPath .chezmoi.destDir ".local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins") -}}
 {{- if .chezmoi.stdin -}}
 {{-   $config := fromJson .chezmoi.stdin -}}
 {{-   $entries := dig "entries" list $config -}}

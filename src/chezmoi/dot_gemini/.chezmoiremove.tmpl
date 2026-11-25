@@ -7,14 +7,17 @@
   base bare and retired skills from the shared ai/retired-skills list.
 */ -}}
 {{- $antigravityEnabled := ne (dig "local" "bin" "agy" "installation_method" "none" $) "none" -}}
-{{- if $antigravityEnabled -}}
-{{- range $sourceName, $source := .ai.skills.external -}}
-{{-   range $skillName, $state := dig "skills" (dict) $source -}}
-{{-     if not (or (eq $state "present") (eq $state "antigravity")) }}
+{{- /* Remove old Superpowers skill copies even when agy is off. */ -}}
+{{- range $sourceName, $source := dig "ai" "skills" "external" (dict) . -}}
+{{-   if or $antigravityEnabled (eq $sourceName "superpowers") -}}
+{{-     range $skillName, $state := dig "skills" (dict) $source -}}
+{{-       if not (or (eq $state "present") (eq $state "antigravity")) }}
 antigravity-cli/skills/{{ $skillName }}
+{{-       end -}}
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
+{{- if $antigravityEnabled -}}
 {{- /* Base bare skills reach Antigravity through the mkobit-dotfiles plugin, not flat copies. */ -}}
 {{- range $skillName := includeTemplate "ai/retired-skills" . | fromJson }}
 antigravity-cli/skills/{{ $skillName }}

@@ -1,1 +1,6 @@
-{{- includeTemplate "ai/claude/marketplace" (dict "root" . "name" "superpowers-marketplace") -}}
+{{- /* Keep this manifest valid while the bridge unregisters the marketplace. TODO(2026-12-09): Review whether to delete this manifest after cleanup of stale marketplace registrations. */ -}}
+{
+  "name": "superpowers-marketplace",
+  "owner": {"name": "obra"},
+  "plugins": []
+}

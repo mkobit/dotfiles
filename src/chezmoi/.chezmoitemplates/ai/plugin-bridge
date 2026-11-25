@@ -26,7 +26,11 @@
 {{- $marketplaces := dict -}}
 {{- range $name, $marketplace := dig "marketplaces" (dict) $bridge -}}
 {{-   $source := dig "external_source" "" $marketplace -}}
-{{-   if or (not $source) (eq (dig "ai" "plugins" $source "installation_method" "none" $) "chezmoi_external") -}}
+{{-   $retired := dig "retired" false $marketplace -}}
+{{-   if or $retired (not $source) (eq (dig "ai" "plugins" $source "installation_method" "none" $) "chezmoi_external") -}}
+{{-     if $retired -}}
+{{-       $_ := set $marketplace "hosts" (list) -}}
+{{-     end -}}
 {{-     if eq (dig "source_type" "" $marketplace) "generated" -}}
 {{-       $path := dig "source_locator" ".local/share/agent-plugins/marketplace" $marketplace -}}
 {{-       if not (isAbs $path) -}}
@@ -37,6 +41,14 @@
 {{-   end -}}
 {{- end -}}
 {{- $_ := set $bridge "marketplaces" $marketplaces -}}
+{{- /* Keep retired marketplaces for ownership cleanup and discard their old plugin declarations. */ -}}
+{{- range $table := list $capabilities (dig "plugins" (dict) $bridge) -}}
+{{-   range $name, $plugin := $table -}}
+{{-     if dig (dig "marketplace" "" $plugin) "retired" false $marketplaces -}}
+{{-       $_ := unset $table $name -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
 {{- /* Hosts whose plugin CLI installs generated plugin directories; agy is opt-in. */ -}}
 {{- $cliHosts := list -}}
 {{- if ne (dig "local" "bin" "agy" "installation_method" "none" .) "none" -}}

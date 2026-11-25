@@ -14,7 +14,7 @@
 {{-   end -}}
 {{- end }}
 {{- range $name, $plugin := dig "ai" "plugins" (dict) . -}}
-{{-   if eq (dig "installation_method" "none" $plugin) "chezmoi_external" }}
+{{-   if and (not (dig "retired" false $plugin)) (eq (dig "installation_method" "none" $plugin) "chezmoi_external") }}
 !{{ $plugin.path }}/**
 {{-     $capability := dig "ai" "plugin_bridge" "capabilities" $name (dict) $ -}}
 {{-     if has "cursor" (dig "hosts" (list) $capability) }}
