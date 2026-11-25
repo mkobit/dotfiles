@@ -934,9 +934,28 @@ def test_owned_record_for_an_absent_codex_plugin_is_removed_once_then_dropped(
     tmp_path, fake
 ):
     _write_records(tmp_path, "plugin\tcodex\tmarket\tgone\towned")
-    fake.fail.add(("plugin", "remove", "gone@market"))  # not installed
     plugin_bridge.reconcile(tmp_path, _declaration({}))
     assert fake.writes == [("codex", "plugin", "remove", "gone@market")]
+    assert _records(tmp_path) == []
+    fake.calls.clear()
+    plugin_bridge.reconcile(tmp_path, _declaration({}))
+    assert fake.writes == []
+
+
+def test_failed_removal_of_absent_codex_plugin_is_retried(tmp_path, fake):
+    record = "plugin\tcodex\tmarket\tgone\towned"
+    remove = ("plugin", "remove", "gone@market")
+    _write_records(tmp_path, record)
+    fake.fail.add(remove)
+
+    with pytest.raises(BridgeError, match="failed"):
+        plugin_bridge.reconcile(tmp_path, _declaration({}))
+
+    assert _records(tmp_path) == [record]
+    fake.fail.remove(remove)
+    fake.calls.clear()
+    plugin_bridge.reconcile(tmp_path, _declaration({}))
+    assert fake.writes == [("codex", *remove)]
     assert _records(tmp_path) == []
     fake.calls.clear()
     plugin_bridge.reconcile(tmp_path, _declaration({}))

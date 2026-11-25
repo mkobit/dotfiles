@@ -567,10 +567,7 @@ def _remove_plugin(host: _Host, expected: str) -> None:
     if expected not in host.plugins:
         if not host.claude:
             # Codex lists can omit stale registrations that stay in its config.
-            try:
-                host.uninstall(expected)
-            except BridgeError as error:
-                logger.info("%s", error)  # not installed: nothing to remove
+            host.uninstall(expected)
         return
     host.uninstall(expected)
     if expected in host.plugins:

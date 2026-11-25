@@ -38,9 +38,8 @@ content = """
 content = """
 ## Delegation
 - Delegate research and implementation to available subagents when authorized.
-- Give each delegate a bounded scope, ownership, constraints, and acceptance criteria.
-- Select the least costly capable specialist and use the repository's available isolation.
-- Root owns architecture, unresolved decisions, integration, and verification."""
+- Give each delegate a bounded scope and each writer file ownership; use available isolation and verify results.
+- Use `mkobit-dotfiles:delegating-tasks` when available."""
 
 [[ai.guidelines.sections]]
 content = """
