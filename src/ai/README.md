@@ -173,7 +173,7 @@ A missing method also means `"none"`.
 The archive pin uses a full commit ref and archive SHA-256.
 Archive hosts use the existing `ai.skills.hosts` catalog, so an overlay can select its package mirror.
 
-[Superpowers v7.0.2](https://github.com/obra/superpowers/tree/22f0b463e7a5e579904dd6211a520321035526f7) deploys the complete repository, with no skill filter or workflow edits.
+[Superpowers](https://github.com/obra/superpowers) deploys the complete repository, with no skill filter or workflow edits.
 Its shared root is `.local/share/agent-plugins/marketplaces/superpowers-marketplace/plugins/superpowers/`.
 Claude Code and Codex register it as `superpowers@superpowers-marketplace`, separate from `mkobit-dotfiles@dotfiles`.
 Each generated marketplace declares its destination-relative `source_locator`, owner, source, trust class, and native hosts in the keyed marketplace catalog.
@@ -203,8 +203,8 @@ Then run a scoped `chezmoi apply --exclude scripts`, so that the bridge does not
 
 Check authored Codex skill display names with `mise run check:skill-metadata`.
 The task renders base configuration in a temporary destination, selects enabled Codex skills, and checks their metadata.
-The check uses `PyYAML==6.0.3` through `uv --with`; this pinned extra is not governed by `uv.lock`.
-To check a different source and rendered configuration, pipe `chezmoi data --format json` to `uv run --frozen --with 'PyYAML==6.0.3' python scripts/check_skill_metadata.py --source-root <source> --host codex --config -`.
+The check uses the PyYAML requirement pinned in [`mise.toml`](../../mise.toml); `uv.lock` does not govern this extra.
+To check a different source and rendered configuration, set `PYYAML_SPEC` to the PyYAML requirement from `mise.toml`, then pipe `chezmoi data --format json` to `uv run --frozen --with "$PYYAML_SPEC" python scripts/check_skill_metadata.py --source-root <source> --host codex --config -`.
 Run the check once for each configuration that must be covered.
 
 Run the focused tests and linters:
