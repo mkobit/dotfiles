@@ -21,7 +21,7 @@ Merge only after required checks pass.
 
 ## Subagent delegation
 
-Delegate research and implementation to available subagents when authorized.
+Use available subagents for independent research or implementation with a clear scope when session rules permit delegation.
 Give each delegate a bounded scope and each writer file ownership; use available isolation and verify results.
 Use `mkobit-dotfiles:delegating-tasks` when available.
 
