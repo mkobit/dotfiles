@@ -21,6 +21,7 @@ ZSH_CONFIG_TEMPLATE = CHEZMOI_SOURCE / "dot_dotfiles" / "zsh" / "config.zsh.tmpl
 SANDBOX_GITCONFIG_TEMPLATE = CHEZMOI_SOURCE / "dot_config" / "ai-policy" / "git" / "sandbox.gitconfig.tmpl"
 SANDBOX_CHEZMOI_CONFIG = REPO_ROOT / "docker" / "openshell" / "sandbox-chezmoi.toml"
 SANDBOX_DOCKERFILE = REPO_ROOT / "docker" / "openshell" / "Dockerfile"
+GITHUB_READ_ONLY_POLICY = REPO_ROOT / "docker" / "openshell" / "github-read-only.yaml"
 GITHUB_PUSH_POLICY = REPO_ROOT / "docker" / "openshell" / "github-push.yaml"
 OPENSHELL_SKILL_DIR = (
     CHEZMOI_SOURCE
@@ -433,8 +434,30 @@ def test_sandbox_dockerfile_defines_isolated_sandbox_layer() -> None:
     ]
 
 
-def test_github_push_policy_limits_access_to_git_transport() -> None:
-    policy = yaml.safe_load(GITHUB_PUSH_POLICY.read_text(encoding="utf-8"))
+@pytest.mark.parametrize(
+    ("policy_path", "expected_rules"),
+    [
+        pytest.param(
+            GITHUB_READ_ONLY_POLICY,
+            {
+                ("GET", "/mkobit/dotfiles.git/info/refs*"),
+                ("POST", "/mkobit/dotfiles.git/git-upload-pack"),
+            },
+            id="read-only",
+        ),
+        pytest.param(
+            GITHUB_PUSH_POLICY,
+            {
+                ("GET", "/mkobit/dotfiles.git/info/refs*"),
+                ("POST", "/mkobit/dotfiles.git/git-upload-pack"),
+                ("POST", "/mkobit/dotfiles.git/git-receive-pack"),
+            },
+            id="push",
+        ),
+    ],
+)
+def test_github_policy_limits_access_to_git_transport(policy_path: Path, expected_rules: set[tuple[str, str]]) -> None:
+    policy = yaml.safe_load(policy_path.read_text(encoding="utf-8"))
     assert set(policy["filesystem_policy"]["read_write"]) == {"/tmp", "/dev/null"}
     assert "/sandbox" in policy["filesystem_policy"]["read_only"]
     assert policy["landlock"]["compatibility"] == "hard_requirement"
@@ -446,11 +469,7 @@ def test_github_push_policy_limits_access_to_git_transport() -> None:
     assert endpoint["port"] == 443
     assert endpoint["protocol"] == "rest"
     assert endpoint["enforcement"] == "enforce"
-    assert {(rule["allow"]["method"], rule["allow"]["path"]) for rule in endpoint["rules"]} == {
-        ("GET", "/mkobit/dotfiles.git/info/refs*"),
-        ("POST", "/mkobit/dotfiles.git/git-upload-pack"),
-        ("POST", "/mkobit/dotfiles.git/git-receive-pack"),
-    }
+    assert {(rule["allow"]["method"], rule["allow"]["path"]) for rule in endpoint["rules"]} == expected_rules
 
 
 def test_openshell_skill_and_bootstrap_docs_exist_and_follow_metadata_contract() -> None:

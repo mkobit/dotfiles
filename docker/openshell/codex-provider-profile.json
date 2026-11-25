@@ -1,0 +1,43 @@
+{
+  "id": "codex-dispatch",
+  "display_name": "Disposable Codex dispatch",
+  "category": "agent",
+  "inference_capable": true,
+  "credentials": [
+    {
+      "name": "access_token",
+      "env_vars": [
+        "CODEX_AUTH_ACCESS_TOKEN"
+      ],
+      "required": true,
+      "auth_style": "bearer",
+      "header_name": "authorization"
+    }
+  ],
+  "endpoints": [
+    {
+      "host": "chatgpt.com",
+      "port": 443,
+      "protocol": "rest",
+      "access": "read-write",
+      "enforcement": "enforce"
+    },
+    {
+      "host": "api.openai.com",
+      "port": 443,
+      "protocol": "rest",
+      "access": "read-write",
+      "enforcement": "enforce"
+    },
+    {
+      "host": "ab.chatgpt.com",
+      "port": 443,
+      "protocol": "rest",
+      "access": "read-write",
+      "enforcement": "enforce"
+    }
+  ],
+  "binaries": [
+    "/sandbox/.local/lib/codex/bin/codex"
+  ]
+}

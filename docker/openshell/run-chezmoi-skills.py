@@ -77,26 +77,9 @@ def login():
 
 
 def profile(name):
-    return {
-        "id": name,
-        "display_name": "Disposable Codex dispatch",
-        "category": "agent",
-        "inference_capable": True,
-        "credentials": [
-            {
-                "name": "access_token",
-                "env_vars": ["CODEX_AUTH_ACCESS_TOKEN"],
-                "required": True,
-                "auth_style": "bearer",
-                "header_name": "authorization",
-            }
-        ],
-        "endpoints": [
-            {"host": host, "port": 443, "protocol": "rest", "access": "read-write", "enforcement": "enforce"}
-            for host in ("chatgpt.com", "api.openai.com", "ab.chatgpt.com")
-        ],
-        "binaries": ["/sandbox/.local/lib/codex/bin/codex"],
-    }
+    definition = json.loads((HERE / "codex-provider-profile.json").read_bytes())
+    definition["id"] = name
+    return definition
 
 
 def sign(guest, gateway, name, key, environment, results):

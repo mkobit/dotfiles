@@ -15,8 +15,12 @@ Use host delivery as the default before expanding the rollout to more agents and
 The chezmoi-skills pilot proved transfer of an empty signed commit from a read-only guest.
 Its host signer checked the expected parent and tree before signing, and the launcher verified the signature and commit after transfer.
 The pilot passed 111 contract checks and 99 unit tests and removed the temporary guest, provider, and profile.
-Use a task that changes files to verify the full host review and delivery path.
-[Host signer (#1171)](https://github.com/mkobit/dotfiles/pull/1171), [Codex pilot (#1177)](https://github.com/mkobit/dotfiles/pull/1177)
+The dotfiles trial delivered a real code change from a disposable guest through host review, signing, and a draft pull request.
+[Host signer (#1171)](https://github.com/mkobit/dotfiles/pull/1171), [Codex pilot (#1177)](https://github.com/mkobit/dotfiles/pull/1177), [Host delivery trial (#1183)](https://github.com/mkobit/dotfiles/pull/1183)
+
+For Beads work, claim one approved issue on the host and start a fresh guest with the repository and issue labels.
+Keep the guest until the host verifies its result.
+Record the pull request on the issue from the host.
 
 See the [OpenShell runbook](../openshell-bootstrap.md) for host and guest setup.
 
@@ -29,7 +33,7 @@ Reuse the image when its inputs are unchanged.
 If a task changes a chezmoi input or image build file, build a trial image from the task revision and test it in a fresh guest.
 Use the trial image only for that task until review is complete.
 
-The dispatcher selects the guest image and supplies one effective OpenShell policy for the task.
+Select the guest image and base policy for each task.
 Gateway providers supply credentials at launch.
 Each project declares its tools, setup commands, and additional network access.
 Use the project's mise configuration and locked dependencies where available.
