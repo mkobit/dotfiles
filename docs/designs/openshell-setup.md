@@ -19,8 +19,12 @@ The host signs commits with its existing key, and GitHub push remains a separate
 
 ## Next check
 
-On the managed OpenShell 0.1.9 Gateway, a launch with the local image tag booted the stock Ubuntu image.
-A launch with an exported root filesystem was rejected because the Gateway disables caller driver configuration.
-Identify how the Gateway can select an approved shared image, then confirm that a fresh guest can find the installed tools and configuration in an unrelated checkout.
+The managed OpenShell 0.1.9 Gateway loaded the shared image from a local image tag.
+The launch output showed the stock Ubuntu bootstrap image, and the Gateway journal identified the separate shared image.
+An explicit guest `PATH` that includes `/sandbox/.local/bin` let the guest run `agy --version`, `codex --version`, and `claude --version`.
+The same checks passed from a fresh `chezmoi-skills` checkout with a read-only Git network policy and no providers.
+The guest had the shared Git configuration.
+Codex reported that it could not create aliases under `/sandbox/.codex/tmp` with that policy.
+Give each agent writable runtime state when testing unattended prompts.
 Then test one noninteractive prompt with each of agy, Codex, and Claude Code to establish which credential flows the dispatcher can use.
 Use those results to decide what project configuration is necessary.
