@@ -30,4 +30,4 @@ Antigravity uses `agy` to install plugin directories and can also receive select
 Selected upstream agents are delivered as native agents for Claude Code, native roles for Codex, or skills for Cursor and Antigravity.
 The [agent external](../chezmoi/.chezmoiexternals/ai-agents.toml.tmpl) defines these transformations.
 
-See [AI checks](test.md) for validation and tests.
+See [AI checks](TEST.md) for validation and tests.
