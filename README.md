@@ -17,3 +17,9 @@ These records name the host and operation, without command arguments or captured
 A start record without an end record shows that the call did not report completion.
 The bridge keeps its existing command execution and output capture.
 Logging failures do not stop setup.
+
+## Pull requests and releases
+
+Open a pull request for changes to `main`.
+Wait for the required CI checks to pass, then squash merge.
+If this repository starts publishing releases, use an unprefixed UTC CalVer tag such as `2026.11.5`.
