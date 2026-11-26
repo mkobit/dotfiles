@@ -1,7 +1,9 @@
 # OpenShell repository files
 
 Use the runbook to build an image, start a sandbox, and deliver a reviewed commit from the host.
-Use the installed OpenShell skills for CLI, policy, and troubleshooting guidance. [Runbook](../../docs/openshell-bootstrap.md) · [Local skill](../../src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles/exact_skills/exact_openshell-sandboxes/SKILL.md)
+Docker and OpenShell read the files here from the checkout.
+Chezmoi applies the separate source tree under `src/chezmoi/`.
+Use the installed OpenShell skills for CLI, policy, and troubleshooting guidance. [Runbook](../../docs/openshell-bootstrap.md) · [Local skill](../chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_mkobit-dotfiles/exact_skills/exact_openshell-sandboxes/SKILL.md)
 
 ## Files in this repository
 
@@ -15,7 +17,7 @@ Use the installed OpenShell skills for CLI, policy, and troubleshooting guidance
 
 Keep project-specific image recipes, setup commands, and network requirements in the project that uses them.
 Chezmoi installs the WSL MicroVM Gateway configuration and systemd unit from its source tree.
-The host approval catalog controls which OpenShell CLI commands coding agents can run without approval. [Gateway configuration](../../src/chezmoi/dot_config/openshell/microvm-gateway.toml.tmpl) · [Systemd unit](../../src/chezmoi/dot_config/systemd/user/openshell-microvm.service.tmpl) · [Host command policy](../../src/chezmoi/.chezmoidata/ai/command_policy/openshell.toml)
+The host approval catalog controls which OpenShell CLI commands coding agents can run without approval. [Gateway configuration](../chezmoi/dot_config/openshell/microvm-gateway.toml.tmpl) · [Systemd unit](../chezmoi/dot_config/systemd/user/openshell-microvm.service.tmpl) · [Host command policy](../chezmoi/.chezmoidata/ai/command_policy/openshell.toml)
 
 ## Gateway resources
 

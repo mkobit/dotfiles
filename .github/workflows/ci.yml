@@ -46,7 +46,7 @@ jobs:
         timeout-minutes: 5
         run: |
           set -o pipefail
-          git archive HEAD | docker build --check --file docker/openshell/images/shared/Dockerfile -
+          git archive HEAD | docker build --check --file src/openshell/images/shared/Dockerfile -
       - uses: $/.github/actions/setup-mise
       - name: Restore uv cache
         uses: actions/cache@v6.1.0

@@ -26,7 +26,7 @@ See the [OpenShell runbook](../openshell-bootstrap.md) for host and guest setup.
 
 ## 2. Reuse the shared guest environment
 
-Use the [chezmoi-built guest image](../../docker/openshell/images/shared/Dockerfile) for the shared plugins, skills, terminal setup, and CLI tools.
+Use the [chezmoi-built guest image](../../src/openshell/images/shared/Dockerfile) for the shared plugins, skills, terminal setup, and CLI tools.
 Keep the image build in this repository until the shared environment needs its own release or ownership.
 Keep the chezmoi components selectable for host and guest builds.
 Reuse the image when its inputs are unchanged.

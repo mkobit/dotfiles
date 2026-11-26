@@ -40,7 +40,7 @@ RUN case "$TARGETARCH" in \
 RUN --mount=type=bind,target=/tmp/dotfiles,readonly mkdir -p /sandbox/.local/bin && chezmoi apply \
         --no-tty \
         --source /tmp/dotfiles \
-        --config /tmp/dotfiles/docker/openshell/images/shared/sandbox-chezmoi.toml \
+        --config /tmp/dotfiles/src/openshell/images/shared/sandbox-chezmoi.toml \
         --destination /sandbox \
         --cache /tmp/chezmoi-cache \
         --persistent-state /tmp/chezmoi-state.boltdb \
