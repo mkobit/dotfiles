@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "if [ \"${CHEZMOI_ENABLE_PERSONAL_SESSION_EVAL_CAPTURE:-}\" = 1 ]; then python3 \"$(git rev-parse --show-toplevel)/scripts/review-chezmoi-session.py\" capture; fi",
+            "timeout": 3
+          }
+        ]
+      }
+    ]
+  }
+}
