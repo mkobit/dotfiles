@@ -71,7 +71,9 @@ git archive --format=tar HEAD | docker build --platform linux/amd64 \
   -t dotfiles-openshell-sandbox:local -
 ```
 
-CI runs Docker's build checks on the shared Dockerfile.
+The [OpenShell image workflow](../.github/workflows/openshell-image.yml) builds the shared `linux/amd64` image from tracked files when its inputs change.
+It runs Git, Antigravity, Codex, and Claude as UID 1000 with networking disabled, and checks that `/sandbox` is writable and Git uses SSH signing format.
+The CI lint job runs Docker's build checks on the shared Dockerfile.
 Run the same check on a reviewed commit with the tracked build context. [Docker build checks](https://docs.docker.com/build/checks/)
 
 ```bash
