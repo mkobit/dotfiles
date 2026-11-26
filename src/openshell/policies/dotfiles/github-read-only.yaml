@@ -1,0 +1,33 @@
+# Read-only Git transport for the public mkobit/dotfiles repository.
+version: 1
+
+filesystem_policy:
+  read_only:
+    - /bin
+    - /usr
+    - /lib
+    - /proc
+    - /dev/urandom
+    - /etc
+    - /var/log
+    - /sandbox
+  read_write:
+    - /tmp
+    - /dev/null
+
+landlock:
+  compatibility: hard_requirement
+
+network_policies:
+  dotfiles_read_only:
+    name: dotfiles_read_only
+    endpoints:
+      - host: github.com
+        port: 443
+        protocol: rest
+        enforcement: enforce
+        rules:
+          - allow: {method: GET, path: "/mkobit/dotfiles.git/info/refs*"}
+          - allow: {method: POST, path: "/mkobit/dotfiles.git/git-upload-pack"}
+    binaries:
+      - path: /usr/bin/git

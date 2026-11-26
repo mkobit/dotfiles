@@ -12,7 +12,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-SIGNER = REPO_ROOT / "docker" / "openshell" / "sign-commit.py"
+SIGNER = REPO_ROOT / "src" / "openshell" / "tools" / "sign-commit.py"
 
 
 def _prepare_signing_fixture(

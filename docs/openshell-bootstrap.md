@@ -59,13 +59,24 @@ The `--no-keep` option removes the smoke sandbox after completion.
 
 Check out the reviewed commit and run this command from the repository root.
 Git sends only tracked files to the builder.
-The final image includes the rendered sandbox files and the verified chezmoi binary.
-Debian packages and some chezmoi externals can still change between builds.
+The Dockerfile pins the Debian base and the Dockerfile frontend by SHA-256.
+It verifies the pinned chezmoi release with a checksum for each supported architecture.
+APT selects Debian package versions at build time, and some chezmoi externals can also change between builds.
+Review base image updates in Dependabot pull requests.
+Update the frontend pin separately. [Docker build practices](https://docs.docker.com/build/building/best-practices/)
 
 ```bash
 git archive --format=tar HEAD | docker build --platform linux/amd64 \
-  -f docker/openshell/Dockerfile \
+  -f src/openshell/images/shared/Dockerfile \
   -t dotfiles-openshell-sandbox:local -
+```
+
+CI runs Docker's build checks on the shared Dockerfile.
+Run the same check on a reviewed commit with the tracked build context. [Docker build checks](https://docs.docker.com/build/checks/)
+
+```bash
+git archive --format=tar HEAD | docker build --check --platform linux/amd64 \
+  -f src/openshell/images/shared/Dockerfile -
 ```
 
 The image provides `/usr/bin/git` and the `/sandbox` environment.
@@ -89,41 +100,54 @@ For normal work on this public repository, clone it over HTTPS without a provide
 Use a fresh isolated guest and a read-only Git policy.
 Set `REVIEWED_REF` to the public branch or tag that contains the reviewed commit.
 Set `REVIEWED_COMMIT` to its full 40-character commit ID.
+Enter the Beads issue ID if the task has one.
 
-Create the read-only policy from the push policy by removing its single `git-receive-pack` rule.
-This preserves the same filesystem restrictions and permits only public Git fetch requests for this repository.
+The tracked policy permits Git ref discovery and fetch over HTTPS for `mkobit/dotfiles`. [Read-only policy](../src/openshell/policies/dotfiles/github-read-only.yaml)
 
 ```bash
 read -r -p 'Reviewed public ref: ' REVIEWED_REF
 read -r -p 'Reviewed full commit ID: ' REVIEWED_COMMIT
+read -r -p 'Beads issue ID: ' task_bead
 [[ "$REVIEWED_COMMIT" =~ ^[0-9a-f]{40}$ ]] || {
   printf 'Enter a full 40-character lowercase commit ID.\n' >&2
   exit 2
 }
-read_policy="$(mktemp)" || exit 1
-trap 'rm -f "$read_policy"' EXIT
 task_sandbox="task-$(python3 -c 'import uuid; print(uuid.uuid4().hex[:12])')" || exit 1
-sed '/git-receive-pack/d' docker/openshell/github-push.yaml > "$read_policy" &&
-  openshell sandbox create -g openshell-microvm --name "$task_sandbox" \
-    --from dotfiles-openshell-sandbox:local --policy "$read_policy" \
-    --detach --no-auto-providers -- sleep 3600 || exit 1
+task_labels=(--label repo=dotfiles)
+if [ -n "$task_bead" ]; then
+  task_labels+=(--label "bead=$task_bead")
+fi
+openshell sandbox create -g openshell-microvm --name "$task_sandbox" \
+  "${task_labels[@]}" \
+  --from dotfiles-openshell-sandbox:local \
+  --policy src/openshell/policies/dotfiles/github-read-only.yaml \
+  --detach --no-auto-providers -- sleep 3600 || exit 1
 if ! openshell sandbox exec -g openshell-microvm "$task_sandbox" -- sh -ec '
   git clone --no-checkout https://github.com/mkobit/dotfiles.git /tmp/dotfiles
   git -C /tmp/dotfiles fetch --no-tags origin "$1"
   git -C /tmp/dotfiles checkout --detach "$2"
   test "$(git -C /tmp/dotfiles rev-parse HEAD)" = "$2"
 ' sh "$REVIEWED_REF" "$REVIEWED_COMMIT"; then
-  openshell sandbox delete -g openshell-microvm "$task_sandbox" ||
-    printf 'Remove task sandbox %s after you check the Gateway.\n' "$task_sandbox" >&2
+  printf 'Checkout failed in %s. Inspect the sandbox before starting work.\n' "$task_sandbox" >&2
   exit 1
 fi
-rm -f "$read_policy"
-trap - EXIT
 ```
 
 This path does not use GitHub authentication.
 Use a separate approved model provider if the coding agent needs model access.
 The repository clone lives in writable `/tmp`.
+
+For a Beads task, use the project's tracker instructions on the host.
+Use `bd ready` and `bd show "$task_bead"` to select and review one approved issue.
+Set `task_actor` to a unique name for this run.
+Claim it with `bd --actor "$task_actor" update "$task_bead" --claim` and confirm the assignee before launch.
+If the tracker uses claim leases, renew your claim with `bd --actor "$task_actor" heartbeat "$task_bead"` during work.
+Pass the issue text and reviewed base to the guest.
+Keep the tracker and its credentials on the host, and record the draft PR on the issue after verification. [Beads pilot](https://github.com/mkobit/chezmoi-skills/pull/143)
+
+For a different repository, select its image and read-only policy before launch.
+Use its clone URL and guest checkout path in the transfer and signing commands.
+Verify its GitHub repository and target branch on the host before publication.
 
 ## 5. Run the chezmoi-skills pilot
 
@@ -135,10 +159,13 @@ Set this checkout's `git config user.signingkey` to the path of a readable SSH p
 The launcher signs as the pilot identity, `Mike Kobit <mkobit@gmail.com>`.
 
 ```bash
-python3 docker/openshell/run-chezmoi-skills.py
+python3 src/openshell/pilots/chezmoi-skills/run.py
 ```
 
 Pass `--gateway <name>` to use another registered Gateway.
+The launcher uses a per-task copy of the tracked Codex provider profile.
+Use `openshell profile lint -g openshell-microvm --file src/openshell/provider-profiles/codex-dispatch.json` to check the profile before import.
+Supply the access token on the host when you create a provider. [Codex provider profile](../src/openshell/provider-profiles/codex-dispatch.json)
 The task uses a read-only clone of the pinned `chezmoi-skills` revision and creates one empty, signed commit to check host signing.
 The launcher creates a private directory under the OS temporary directory and prints its path.
 It keeps logs there and adds `result.bundle` only after it verifies the signed commit and removes the temporary Gateway profile, provider, and sandbox.
@@ -191,7 +218,7 @@ Run the trusted host signer with the reviewed parent, tree, and exact message ha
 Use the same `signing_name` and `signing_email` as in the candidate.
 
 ```bash
-python3 docker/openshell/sign-commit.py \
+python3 src/openshell/tools/sign-commit.py \
   --gateway openshell-microvm --sandbox "$task_sandbox" --repo /tmp/dotfiles \
   --key "$signing_key" --identity "$signing_name <$signing_email>" \
   --expected-parent "$REVIEWED_COMMIT" --expected-tree "$reviewed_tree" \
@@ -274,7 +301,21 @@ test -n "${published_sha:-}" &&
 
 ## 8. Remove the task sandbox
 
-Delete the task sandbox when work ends.
+List the sandboxes for the repository.
+Add the bead selector if the task has a Beads issue.
+Set `task_sandbox` to the exact name of the sandbox to inspect. [Sandbox labels](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/sandboxes/overview#label-a-sandbox)
+
+```bash
+task_selector=repo=dotfiles
+if [ -n "${task_bead:-}" ]; then
+  task_selector+=",bead=$task_bead"
+fi
+openshell sandbox list -g openshell-microvm --selector "$task_selector"
+openshell sandbox get -g openshell-microvm "$task_sandbox" --output json
+```
+
+Delete that sandbox after the task ends and you verify that the reviewed artifact is on the host.
+For a failed task, inspect the failure and keep any files or logs you need before you delete the sandbox.
 Wait until the task sandbox is absent from `openshell sandbox list -g openshell-microvm`.
 The Gateway can accept the delete request before it detaches the provider.
 If you created a model provider or profile for this task, set `task_provider` or `task_profile` to its name before cleanup.
@@ -297,6 +338,33 @@ if [ -n "${review:-}" ]; then
   rm -r -- "$review"
 fi
 ```
+
+## Optional templates and services
+
+Create a named template if you reuse the same image across tasks. [Sandbox templates](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/sandboxes/templates)
+
+```bash
+openshell sandbox template create -g openshell-microvm dotfiles-task \
+  --image dotfiles-openshell-sandbox:local
+```
+
+In step 4, replace `--from dotfiles-openshell-sandbox:local` with `--template dotfiles-task`.
+Keep `--policy` on the sandbox create command.
+If a task needs model access, attach its approved provider to that sandbox.
+The template can also hold resource limits and non-secret environment settings.
+Use a direct launch with `--from` for a task that needs `--env-from`.
+
+Use a named service when a workload already listens on a loopback port inside the sandbox and its Gateway has service routing configured.
+Set `task_gateway` to that Gateway's name and `task_sandbox` to the running sandbox name.
+This example exposes a process on port 8080 and shows its Gateway URL. [Sandbox services](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/sandboxes/overview#expose-long-running-services)
+
+```bash
+openshell service expose -g "$task_gateway" "$task_sandbox" 8080 web
+openshell service get -g "$task_gateway" "$task_sandbox" web
+```
+
+OpenShell strips incoming `Authorization` headers by default.
+Run `openshell service delete -g "$task_gateway" "$task_sandbox" web` when the endpoint is no longer needed.
 
 [OpenShell 0.1.9 GitHub provider and push reference](https://docs.nvidia.com/openshell/v0.1.9/tutorials/github-push-access)
 [OpenShell 0.1.9 MicroVM configuration](https://docs.nvidia.com/openshell/v0.1.9/how-it-works/gateways/configuration#microvm)

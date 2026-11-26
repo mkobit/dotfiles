@@ -13,7 +13,8 @@ import uuid
 from contextlib import ExitStack
 from pathlib import Path
 
-HERE = Path(__file__).resolve().parent
+PILOT_DIR = Path(__file__).resolve().parent
+OPENSHELL_ROOT = PILOT_DIR.parents[1]
 IMAGE = "dotfiles-openshell-sandbox:8a19efcd"
 GUEST_REPO = "/tmp/project"  # noqa: S108 - Private to the fresh sandbox.
 GUEST_RESPONSE = "/tmp/codex-dispatch/last-message"  # noqa: S108 - Private to the fresh sandbox.
@@ -77,26 +78,9 @@ def login():
 
 
 def profile(name):
-    return {
-        "id": name,
-        "display_name": "Disposable Codex dispatch",
-        "category": "agent",
-        "inference_capable": True,
-        "credentials": [
-            {
-                "name": "access_token",
-                "env_vars": ["CODEX_AUTH_ACCESS_TOKEN"],
-                "required": True,
-                "auth_style": "bearer",
-                "header_name": "authorization",
-            }
-        ],
-        "endpoints": [
-            {"host": host, "port": 443, "protocol": "rest", "access": "read-write", "enforcement": "enforce"}
-            for host in ("chatgpt.com", "api.openai.com", "ab.chatgpt.com")
-        ],
-        "binaries": ["/sandbox/.local/lib/codex/bin/codex"],
-    }
+    definition = json.loads((OPENSHELL_ROOT / "provider-profiles" / "codex-dispatch.json").read_bytes())
+    definition["id"] = name
+    return definition
 
 
 def sign(guest, gateway, name, key, environment, results):
@@ -104,7 +88,7 @@ def sign(guest, gateway, name, key, environment, results):
         signer = subprocess.Popen(
             [
                 sys.executable,
-                str(HERE / "sign-commit.py"),
+                str(OPENSHELL_ROOT / "tools" / "sign-commit.py"),
                 "--gateway",
                 gateway,
                 "--sandbox",
@@ -182,7 +166,9 @@ def verify_bundle(bundle, public_key, scratch):
 def dispatch(gateway):
     access_token, account_id = login()
     try:
-        key = str(Path(output(["git", "-C", str(HERE), "config", "--path", "user.signingkey"])).resolve(strict=True))
+        key = str(
+            Path(output(["git", "-C", str(PILOT_DIR), "config", "--path", "user.signingkey"])).resolve(strict=True)
+        )
         public_key = " ".join(output(["ssh-keygen", "-y", "-P", "", "-f", key], stderr=subprocess.DEVNULL).split()[:2])
     except (OSError, subprocess.SubprocessError):  # fmt: skip
         raise ValueError("Git user.signingkey must point to a host SSH private key usable without a prompt.") from None
@@ -243,7 +229,7 @@ def dispatch(gateway):
                 "--from",
                 IMAGE,
                 "--policy",
-                str(HERE / "chezmoi-skills-policy.yaml"),
+                str(OPENSHELL_ROOT / "policies" / "chezmoi-skills" / "task.yaml"),
                 "--provider",
                 name,
                 "--env-from",
@@ -256,7 +242,7 @@ def dispatch(gateway):
                 env={**environment, "CODEX_ACCOUNT_ID": account_id},
                 timeout=180,
             )
-            with (HERE / "chezmoi-skills-setup.sh").open("rb") as setup, (results / "tests.log").open("wb") as log:
+            with (PILOT_DIR / "setup.sh").open("rb") as setup, (results / "tests.log").open("wb") as log:
                 guest("sh", "-es", "--", REVISION, stdin=setup, stdout=log, stderr=subprocess.STDOUT, timeout=480)
             with (results / "agent.log").open("wb") as log:
                 guest("sh", "-ec", AGENT, "sh", GUEST_REPO, stdout=log, stderr=subprocess.STDOUT, timeout=95)
