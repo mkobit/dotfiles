@@ -1,5 +1,5 @@
 [bin.delta]
-version = "0.20.1"
+version = "0.21.1"
 
 [bin.delta.github_releases]
 repo            = "dandavison/delta"
@@ -19,6 +19,6 @@ linux_amd64  = "x86_64-unknown-linux-gnu"
 linux_arm64  = "aarch64-unknown-linux-gnu"
 
 [bin.delta.github_releases.checksums]
-darwin_arm64 = "bc1839cea69288d4673a24faffbb825d408ca907e0f7d33b1678c9e6cdd5e58e"
-linux_amd64  = "50f08c879f84c81ceb220e476491a7f492d2c9c671e79918cc44badf961a6240"
-linux_arm64  = "da7f4338f593572ff426ae153e0870e2fdc72729416eff551b40cdeb67940db8"
+darwin_arm64 = "410442570af59c7d8d7f1303abfdc41ba8abc7527a1be697fd03546edeaba9d6"
+linux_amd64  = "d3fa53f78b8d63f2c0620aad591441e7d47b5c77e552869aa6fe21fd08b21ff6"
+linux_arm64  = "efe38626967f550c1d3bbe2014990dff5c8028a0a65a3f9b9b6c4a3bb53bfa28"
