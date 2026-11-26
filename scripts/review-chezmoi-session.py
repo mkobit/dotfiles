@@ -18,7 +18,7 @@ REVIEW_PROMPT = "Use $session-eval-review to review the original session for an 
 def queue() -> Path:
     """Return the private local directory for Codex session markers."""
     state = os.environ.get("XDG_STATE_HOME")
-    state_home = Path(state) if state and Path(state).is_absolute() else Path.home() / ".local/state"
+    state_home = Path(state) if state is not None and Path(state).is_absolute() else Path.home() / ".local/state"
     return state_home / "chezmoi-session-eval/codex"
 
 
@@ -79,7 +79,7 @@ def review() -> int:
     pending = sorted(
         marker
         for marker in markers.iterdir()
-        if session_id(marker.name) and marker.is_dir() and not (marker / "handled").exists()
+        if session_id(marker.name) is not None and marker.is_dir() and not (marker / "handled").exists()
     )
     if not pending:
         print("No sampled Codex sessions are available.")
