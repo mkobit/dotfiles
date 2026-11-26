@@ -6,6 +6,7 @@ import shutil
 import subprocess
 import tomllib
 from pathlib import Path
+from stat import S_IMODE
 
 import pytest
 
@@ -168,6 +169,26 @@ def test_microvm_managed_targets(tmp_path: Path, microvm_case: tuple[str, bool])
     shutil.copytree(CHEZMOI_SOURCE, source, ignore=shutil.ignore_patterns(".chezmoiexternals"))
     managed = _chezmoi(tmp_path, "managed", "--override-data", override, source=source).splitlines()
     assert MICROVM_TARGETS.intersection(managed) == (MICROVM_TARGETS if enabled else set())
+
+    config_dir = tmp_path / ".config/openshell"
+    config_dir.mkdir(mode=0o700, parents=True)
+    gateway = config_dir / "gateways" / "test-gateway"
+    gateway.parent.mkdir()
+    gateway.write_text("OpenShell gateway state", encoding="utf-8")
+    _chezmoi(
+        tmp_path,
+        "apply",
+        "--persistent-state",
+        str(tmp_path / "chezmoistate.boltdb"),
+        "--exclude",
+        "scripts",
+        "--override-data",
+        override,
+        str(config_dir),
+        source=source,
+    )
+    assert S_IMODE(config_dir.stat().st_mode) == 0o700
+    assert gateway.read_text(encoding="utf-8") == "OpenShell gateway state"
 
     if enabled:
         config = tomllib.loads(
