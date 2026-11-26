@@ -16,6 +16,8 @@ workflows:
         - 'actions/upload-artifact@v7.0.2'
         - 'jdx/mise-action@8008c3f4db491fde6fd6d72dc97fbdb752dac949'
         - 'mikepenz/action-junit-report@v6.7.0'
+    '.github/workflows/openshell-image.yml':
+        - 'actions/checkout@v7.0.1'
     '.github/workflows/verify-lockfile.yml':
         - 'actions/checkout@v7.0.1'
 dependencies:

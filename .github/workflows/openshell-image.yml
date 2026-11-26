@@ -1,0 +1,56 @@
+name: OpenShell image
+
+on:
+  push:
+    branches: [main]
+    paths: &image-inputs
+      - .github/workflows/openshell-image.yml
+      - .chezmoiroot
+      - .dockerignore
+      - .gitattributes
+      - mise.toml
+      - mise.lock
+      - src/chezmoi/**
+      - src/openshell/images/shared/**
+      - src/python/skill_filter/**
+      - src/python/*/pyproject.toml
+  pull_request:
+    branches: [main]
+    paths: *image-inputs
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  shared-image:
+    name: Build and smoke-test shared image
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - name: Build from tracked files
+        run: |
+          git archive --format=tar HEAD | docker build --platform linux/amd64 \
+            --file src/openshell/images/shared/Dockerfile \
+            --tag dotfiles-openshell-sandbox:ci -
+      - name: Smoke-test the sandbox environment
+        run: |
+          docker run --rm --network none --user 1000:1000 dotfiles-openshell-sandbox:ci sh -ec '
+            test "$HOME" = /sandbox
+            test -w "$HOME"
+            git --version
+            test "$(git config --global --get gpg.format)" = ssh
+            agy --version
+            codex --version
+            claude --version
+          '
