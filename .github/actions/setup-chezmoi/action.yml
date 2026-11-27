@@ -1,0 +1,24 @@
+name: Set up chezmoi
+description: Install chezmoi at the specified version and add it to PATH.
+inputs:
+  version:
+    description: Chezmoi release tag to install.
+    default: v2.74.0
+    required: false
+  install-dir:
+    description: Directory to install the chezmoi binary into.
+    default: ${{ runner.temp }}/chezmoi-bin
+    required: false
+runs:
+  using: composite
+  steps:
+    - name: Install chezmoi
+      shell: bash
+      env:
+        CHEZMOI_VERSION: ${{ inputs.version }}
+        INSTALL_DIR: ${{ inputs.install-dir }}
+      run: |
+        set -euo pipefail
+        mkdir -p "$INSTALL_DIR"
+        sh -c "$(curl --retry 5 -fsLS get.chezmoi.io)" -- -b "$INSTALL_DIR" -t "$CHEZMOI_VERSION"
+        echo "$INSTALL_DIR" >> "$GITHUB_PATH"

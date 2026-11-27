@@ -1,15 +1,10 @@
 import os
 import subprocess
-import textwrap
 from pathlib import Path
 
 import pytest
 
-
-def workflow_script(name):
-    workflow = (Path.cwd() / ".github/workflows/ci.yml").read_text()
-    step = workflow.split(f"      - name: {name}\n", 1)[1].split("\n      - name:", 1)[0]
-    return textwrap.dedent(step.split("        run: |\n", 1)[1])
+CI_CHEZMOI_SCRIPT = Path(__file__).resolve().parent.parent.parent / ".github" / "scripts" / "ci-chezmoi-apply.sh"
 
 
 def test_mise_cache_key_is_shared_and_tracks_tool_inputs():
@@ -71,7 +66,7 @@ fi
     def run(succeed_at=1, apply_exit=0):
         env.update(TEST_SUCCEED_AT=str(succeed_at), TEST_APPLY_EXIT=str(apply_exit))
         prefetch = subprocess.run(
-            ["bash", "-e", "-c", workflow_script("Prefetch chezmoi externals")],
+            [str(CI_CHEZMOI_SCRIPT), "prefetch"],
             env=env,
             capture_output=True,
             text=True,
@@ -80,7 +75,7 @@ fi
         apply = None
         if prefetch.returncode == 0:
             apply = subprocess.run(
-                ["bash", "-e", "-c", workflow_script("Run chezmoi apply")],
+                [str(CI_CHEZMOI_SCRIPT), "apply"],
                 env=env,
                 capture_output=True,
                 text=True,
