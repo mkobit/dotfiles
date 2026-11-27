@@ -3,6 +3,7 @@
 # Docs: https://zellij.dev/documentation/configuration
 
 [zellij.config]
+default_layout                = "zjstatus"
 scrollback_lines_to_serialize = 75000
 show_startup_tips             = true
 
