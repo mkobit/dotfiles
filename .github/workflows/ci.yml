@@ -134,7 +134,7 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: ${{ env.CHEZMOI_DEST }}/.local/share/mise
-          key: mise-data-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'src/chezmoi/.chezmoidata/bin/mise.toml', 'src/chezmoi/.chezmoi.toml.tmpl') }}
+          key: mise-data-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.lock', 'src/chezmoi/.chezmoidata/bin/mise.toml', 'src/chezmoi/.chezmoi.toml.tmpl') }}
           restore-keys: |
             mise-data-v1-${{ runner.os }}-${{ runner.arch }}-
 
