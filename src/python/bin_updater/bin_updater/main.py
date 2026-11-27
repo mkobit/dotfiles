@@ -1,11 +1,12 @@
 import json
+from collections.abc import Sequence
 from os import environ
 from pathlib import Path
 from typing import Annotated
 
 import typer
 
-from bin_updater.catalog import NonGitHubReleaseError, discover_catalogs, load_catalog
+from bin_updater.catalog import NonGitHubReleaseError, ToolCatalog, discover_catalogs, load_catalog
 from bin_updater.client import HttpxReleaseClient
 from bin_updater.policy import DEFAULT_SOURCE, load_policy
 from bin_updater.service import ToolUpdateResult, run_updates
@@ -29,6 +30,9 @@ def main(
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Simulate updates without writing changes")] = False,
     token: Annotated[str | None, typer.Option("--token", help="GitHub API token")] = None,
     report_file: Annotated[Path | None, typer.Option("--report-file", help="Write update results as JSON")] = None,
+    handoff_dir: Annotated[
+        Path | None, typer.Option("--handoff-dir", help="Write per-tool handoff artifacts to directory")
+    ] = None,
     chezmoi_source: Annotated[
         Path, typer.Option("--chezmoi-source", help="Source for updater policy")
     ] = DEFAULT_SOURCE,
@@ -71,11 +75,40 @@ def main(
         report_file.write_text(
             json.dumps([r.model_dump() for r in results], ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
+    if handoff_dir is not None:
+        _write_handoff_dir(handoff_dir, catalogs, results, dry_run=dry_run)
     for result in results:
         _print_result(result)
 
     if any(r.error is not None for r in results):
         raise typer.Exit(code=1)
+
+
+def _write_handoff_dir(
+    handoff_dir: Path,
+    catalogs: Sequence[ToolCatalog],
+    results: Sequence[ToolUpdateResult],
+    *,
+    dry_run: bool,
+) -> None:
+    handoff_dir.mkdir(parents=True, exist_ok=True)
+    catalog_by_name = {c.name: c for c in catalogs}
+    failures: list[str] = []
+    for result in results:
+        if result.error is not None:
+            failures.append(result.tool_name)
+        elif result.changed:
+            if not dry_run and result.tool_name in catalog_by_name:
+                content = catalog_by_name[result.tool_name].path.read_text(encoding="utf-8")
+                (handoff_dir / f"{result.tool_name}.toml").write_text(content, encoding="utf-8")
+            (handoff_dir / f"{result.tool_name}.json").write_text(
+                json.dumps([result.model_dump()], ensure_ascii=False, indent=2) + "\n",
+                encoding="utf-8",
+            )
+    if failures:
+        with (handoff_dir / "failures.txt").open("a", encoding="utf-8") as log:
+            for name in failures:
+                log.write(f"{name}\n")
 
 
 if __name__ == "__main__":

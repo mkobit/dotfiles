@@ -42,7 +42,7 @@ class HttpxReleaseClient:
             self._client.close()
 
     def list_releases(self, repo: str) -> Sequence[Mapping[str, Any]]:
-        per_page = 50
+        per_page = 100
         releases: list[Mapping[str, Any]] = []
         page = 1
         while True:

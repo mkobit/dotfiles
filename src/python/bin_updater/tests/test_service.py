@@ -276,3 +276,75 @@ def test_large_notes_do_not_bypass_release_age(tmp_path: Path) -> None:
     assert result.new_version == "2.0.0"
     assert "1.5.0" + "x" * 33000 in result.pr_body
     assert "3.0.0" not in result.pr_body
+
+
+def test_run_updates_processes_multiple_catalogs_in_order_with_error_isolation(tmp_path: Path) -> None:
+    catalogs = []
+    for name in ("alpha", "broken", "gamma"):
+        path = tmp_path / f"{name}.toml"
+        path.write_text(TOML_TEMPLATE.replace("app", name), encoding="utf-8")
+        catalogs.append(load_catalog(path))
+
+    class MultiRepoClient(FakeClient):
+        @override
+        def list_releases(self, repo: str) -> Sequence[Mapping[str, Any]]:
+            if repo == "org/broken":
+                raise RuntimeError("broken repo")
+            name = repo.split("/")[1]
+            return [
+                {
+                    "tag_name": "v2.0.0",
+                    "published_at": "2020-01-01T00:00:00Z",
+                    "assets": [
+                        {
+                            "name": f"{name}-v2.0.0-linux-amd64.tar.gz",
+                            "browser_download_url": f"https://example.com/{name}",
+                        }
+                    ],
+                }
+            ]
+
+        @override
+        def compute_asset_hash(self, url: str) -> str:
+            return ("a" if url.endswith("alpha") else "c") * 64
+
+    results = run_updates(catalogs, MultiRepoClient([]))
+    assert [r.tool_name for r in results] == ["alpha", "broken", "gamma"]
+    assert results[0].changed is True
+    assert results[0].new_version == "2.0.0"
+    assert results[1].changed is False
+    assert results[1].error == "broken repo"
+    assert results[2].changed is True
+    assert results[2].new_version == "2.0.0"
+    assert 'linux_amd64 = "' + "a" * 64 + '"' in (tmp_path / "alpha.toml").read_text(encoding="utf-8")
+    assert 'linux_amd64 = "' + "c" * 64 + '"' in (tmp_path / "gamma.toml").read_text(encoding="utf-8")
+
+
+def test_update_tool_computes_multiple_platform_hashes(tmp_path: Path) -> None:
+    path = tmp_path / "app.toml"
+    path.write_text(
+        TOML_TEMPLATE.replace(
+            'linux_amd64 = "linux-amd64"', 'linux_amd64 = "linux-amd64"\ndarwin_arm64 = "darwin-arm64"'
+        ).replace('linux_amd64 = "oldhash"', 'linux_amd64 = "oldhash"\ndarwin_arm64 = "oldhash2"'),
+        encoding="utf-8",
+    )
+    release = {
+        "tag_name": "v2.0.0",
+        "published_at": "2020-01-01T00:00:00Z",
+        "assets": [
+            {"name": "app-v2.0.0-linux-amd64.tar.gz", "browser_download_url": "https://example.com/linux"},
+            {"name": "app-v2.0.0-darwin-arm64.tar.gz", "browser_download_url": "https://example.com/darwin"},
+        ],
+    }
+    client = FakeClient(
+        [release],
+        hashes={
+            "https://example.com/linux": "1" * 64,
+            "https://example.com/darwin": "2" * 64,
+        },
+    )
+    result = update_tool(load_catalog(path), client)
+    assert result.changed is True
+    updated = path.read_text(encoding="utf-8")
+    assert f'linux_amd64 = "{"1" * 64}"' in updated
+    assert f'darwin_arm64 = "{"2" * 64}"' in updated

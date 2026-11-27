@@ -71,11 +71,13 @@ def test_list_releases_reads_all_pages() -> None:
 
     def handler(request: httpx2.Request) -> httpx2.Response:
         page = int(request.url.params["page"])
+        per_page = int(request.url.params["per_page"])
         pages.append(page)
-        return httpx2.Response(200, json=[{"tag_name": f"v{page}.0.0"}] * (50 if page <= 4 else 1))
+        assert per_page == 100
+        return httpx2.Response(200, json=[{"tag_name": f"v{page}.0.0"}] * (per_page if page <= 4 else 1))
 
     client = HttpxReleaseClient(client=httpx2.Client(transport=httpx2.MockTransport(handler)))
-    assert len(client.list_releases("org/app")) == 201
+    assert len(client.list_releases("org/app")) == 401
     assert pages == [1, 2, 3, 4, 5]
 
 
@@ -83,7 +85,8 @@ def test_list_releases_late_api_error() -> None:
     def handler(request: httpx2.Request) -> httpx2.Response:
         if int(request.url.params["page"]) == 4:
             return httpx2.Response(500)
-        return httpx2.Response(200, json=[{"tag_name": "v2.0.0"}] * 50)
+        per_page = int(request.url.params["per_page"])
+        return httpx2.Response(200, json=[{"tag_name": "v2.0.0"}] * per_page)
 
     client = HttpxReleaseClient(client=httpx2.Client(transport=httpx2.MockTransport(handler)))
     with pytest.raises(httpx2.HTTPStatusError):
