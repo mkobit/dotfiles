@@ -20,5 +20,14 @@ runs:
       run: |
         set -euo pipefail
         mkdir -p "$INSTALL_DIR"
-        sh -c "$(curl --retry 5 -fsLS get.chezmoi.io)" -- -b "$INSTALL_DIR" -t "$CHEZMOI_VERSION"
-        echo "$INSTALL_DIR" >> "$GITHUB_PATH"
+        for attempt in 1 2 3 4 5; do
+          if sh -c "$(curl --retry 5 -fsLS get.chezmoi.io)" -- -b "$INSTALL_DIR" -t "$CHEZMOI_VERSION"; then
+            echo "$INSTALL_DIR" >> "$GITHUB_PATH"
+            exit 0
+          fi
+          echo "::warning::chezmoi install attempt $attempt failed"
+          if [[ "$attempt" -lt 5 ]]; then
+            sleep $((5 * attempt))
+          fi
+        done
+        exit 1
