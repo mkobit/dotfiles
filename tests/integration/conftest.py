@@ -2,7 +2,7 @@ import json
 import os
 import re
 import tempfile
-from collections.abc import Callable, Iterable, Sequence
+from collections.abc import Callable, Iterable
 from functools import cache
 from heapq import nlargest
 from html import escape
@@ -104,10 +104,6 @@ def _deployed_chezmoi() -> ChezmoiCli:
         config=os.environ.get("CHEZMOI_CONFIG") or None,
         destination=os.environ.get("CHEZMOI_DEST") or None,
     )
-
-
-def _deployed_chezmoi_argv(*args: str) -> Sequence[str]:
-    return list(_deployed_chezmoi().raw(*args).argv)
 
 
 def _chezmoi_command(*args: str, subcommand: ChezmoiSubcommand | None = None) -> str:

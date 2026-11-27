@@ -132,11 +132,9 @@ def update_tool(
     catalog: ToolCatalog,
     client: ReleaseClient,
     dry_run: bool = False,
-    min_age_override: int | None = None,
 ) -> ToolUpdateResult:
     """Update a single tool catalog if a newer mature release is available."""
-    min_age = min_age_override if min_age_override is not None else catalog.minimum_release_age
-    cooldown = parse_cooldown_to_seconds(min_age)
+    cooldown = parse_cooldown_to_seconds(catalog.minimum_release_age)
     releases = client.list_releases(catalog.repo)
     stable_releases = [r for r in releases if _stable_version(r, catalog.tag_format) is not None]
     release = select_mature_release(stable_releases, cooldown)
@@ -145,16 +143,7 @@ def update_tool(
             tool_name=catalog.name, changed=False, old_version=catalog.version, new_version=catalog.version
         )
     target_version = extract_version_from_tag(str(release.get("tag_name", "")), catalog.tag_format)
-    if target_version == catalog.version:
-        return ToolUpdateResult(
-            tool_name=catalog.name, changed=False, old_version=catalog.version, new_version=catalog.version
-        )
-    try:
-        if Version(target_version) <= Version(catalog.version):
-            return ToolUpdateResult(
-                tool_name=catalog.name, changed=False, old_version=catalog.version, new_version=catalog.version
-            )
-    except InvalidVersion:
+    if Version(target_version) <= Version(catalog.version):
         return ToolUpdateResult(
             tool_name=catalog.name, changed=False, old_version=catalog.version, new_version=catalog.version
         )
