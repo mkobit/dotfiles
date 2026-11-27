@@ -45,6 +45,12 @@ These actions need not kill the running Zellij session; do not use session-kill 
 If the user prefers a terminal and the host already accepts SSH, Termux can attach with a pseudo-terminal, for example `ssh -t <user>@<host> 'zellij attach <session>'`.
 Verify host identity and SSH authorization, and use an existing session name to avoid creating or resurrecting an unintended session.
 
+## Mobile keyboard input
+
+The Zellij web client uses `xterm.js` with a hidden `<textarea>` and disables autocomplete/autocorrect, which prevents Gboard swipe typing and voice-to-text from working reliably.
+In the browser, tap keys individually or dictate/swipe in another app and paste into the terminal.
+In Termux over SSH, swipe horizontally across the extra keys row above the keyboard to open Termux's native Text Input View, where Gboard swipe and voice-to-text work before sending with Enter.
+
 ## References
 
 - [Zellij web client](https://zellij.dev/documentation/web-client.html)
