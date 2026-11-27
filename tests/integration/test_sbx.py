@@ -45,7 +45,11 @@ def test_sbx_release_catalog_defines_linux_checksums():
 
 def test_sbx_does_not_manage_legacy_host_integration_targets():
     """Keep SBX limited to its binary rather than host-managed launchers or kits."""
-    result = ChezmoiCli(source=CHEZMOI_SOURCE).managed(include="files", format="json", path_style="all").run(check=True)
+    result = (
+        ChezmoiCli(source=CHEZMOI_SOURCE)
+        .managed(include="files", exclude="externals", format="json", path_style="all")
+        .run(check=True)
+    )
     managed_targets = json.loads(result.stdout)
 
     for target in LEGACY_TARGETS:

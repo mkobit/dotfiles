@@ -241,10 +241,11 @@ installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end
 installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 
 # git-core PPA (see .chezmoidata/packages/git.toml) tracks current upstream
-# stable; macOS keeps its Xcode/Homebrew git untouched — overlay never sets
-# this, so it stays "none" there.
+# stable; GitHub runners already ship current git, and macOS keeps its
+# Xcode/Homebrew git untouched — overlay never sets this, so it stays "none"
+# there.
 [data.packages.git]
-installation_method = {{ if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
+installation_method = {{ if eq (env "GITHUB_ACTIONS") "true" }}"none"{{ else if eq .chezmoi.os "linux" }}"apt"{{ else }}"none"{{ end }}
 
 # `at`/`atq`/`atrm` job scheduling — Linux only, no macOS equivalent.
 [data.packages.at]

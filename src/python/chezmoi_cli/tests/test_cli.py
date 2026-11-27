@@ -97,12 +97,13 @@ def test_subcommands_build_expected_argv(tmp_path: Path) -> None:
         "--promptDefaults",
         "--no-tty",
     )
-    assert cli.managed(include=("files", "scripts"), format="json", path_style="all").argv == (
+    assert cli.managed(include=("files", "scripts"), exclude="externals", format="json", path_style="all").argv == (
         "chezmoi",
         "--source",
         str(tmp_path),
         "managed",
         "--include=files,scripts",
+        "--exclude=externals",
         "--format=json",
         "--path-style=all",
     )

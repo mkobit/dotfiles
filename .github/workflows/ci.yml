@@ -159,6 +159,15 @@ jobs:
           restore-keys: |
             uv-${{ runner.os }}-${{ runner.arch }}-
 
+      - name: Cache Homebrew downloads
+        if: runner.os == 'macOS'
+        uses: actions/cache@v6.1.0
+        with:
+          path: ~/Library/Caches/Homebrew
+          key: ${{ runner.os }}-${{ runner.arch }}-homebrew-v1-${{ hashFiles('src/chezmoi/.chezmoitemplates/brewfile', 'src/chezmoi/.chezmoiscripts/run_once_install-tmux.sh.tmpl', 'src/chezmoi/.chezmoiscripts/run_onchange_after_install-brew-packages.sh.tmpl') }}
+          restore-keys: |
+            ${{ runner.os }}-${{ runner.arch }}-homebrew-v1-
+
       - name: Install chezmoi
         run: |
           sh -c "$(curl --retry 5 -fsLS get.chezmoi.io)" -- -b ~/.local/bin -t ${{ env.CHEZMOI_VERSION }}
@@ -214,6 +223,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           GOMAXPROCS: "1"
+          HOMEBREW_NO_AUTO_UPDATE: "1"
           CHEZMOI_APT_REPORT_DIR: ${{ runner.temp }}/integration-reports/apt
         run: |
           set -o pipefail

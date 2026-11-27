@@ -45,8 +45,8 @@ def test_agy_desired_set_matches_the_rendered_plugins(tmp_path):
     destination = tmp_path / "destination"
     (destination / AGENT_PLUGINS).mkdir(parents=True)
 
-    # Scripts are excluded: the test needs only the files that the bridge reads.
-    _chezmoi(tmp_path, "apply", "--exclude=scripts", str(destination / AGENT_PLUGINS))
+    # Scripts and externals are excluded: the test needs only the authored plugin manifests that the bridge reads.
+    _chezmoi(tmp_path, "apply", "--exclude=scripts,externals", str(destination / AGENT_PLUGINS))
 
     authored = json.loads(_chezmoi(tmp_path, "execute-template", '{{ includeTemplate "ai/authored-plugins" . }}'))
     expected = {name for name, plugin in authored.items() if plugin["enabled"]}

@@ -161,6 +161,7 @@ class Managed:
     """Model for ``chezmoi managed``."""
 
     include: tuple[str, ...] | str | None = None
+    exclude: tuple[str, ...] | str | None = None
     format: DataFormat | None = None
     path_style: PathStyle | None = None
     override_data: OverrideData | None = None
@@ -170,6 +171,7 @@ class Managed:
         return (
             "managed",
             *_comma_option("--include", self.include),
+            *_comma_option("--exclude", self.exclude),
             *_optional_equals("--format", self.format),
             *_optional_equals("--path-style", self.path_style),
             *_override_data_args(self.override_data),
@@ -370,6 +372,7 @@ class ChezmoiCli:
         self,
         *,
         include: tuple[str, ...] | str | None = None,
+        exclude: tuple[str, ...] | str | None = None,
         format: DataFormat | None = None,
         path_style: PathStyle | None = None,
         override_data: OverrideData | None = None,
@@ -378,6 +381,7 @@ class ChezmoiCli:
         return self.command(
             Managed(
                 include=include,
+                exclude=exclude,
                 format=format,
                 path_style=path_style,
                 override_data=override_data,
