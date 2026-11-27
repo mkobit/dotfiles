@@ -8,7 +8,7 @@ show_startup_tips             = true
 
 [zellij.web_client]
 font      = "monospace"
-font_size = 14
+font_size = 10
 
 # Plugin aliases. Keys are alias names used in layouts and keybinds.
 # location: plugin URL — zellij:<name>, file:/path, https://, or bare alias
