@@ -6,6 +6,8 @@ from contextlib import suppress
 from pathlib import Path
 from subprocess import CompletedProcess
 
+from chezmoi_cli import ChezmoiCli
+
 
 def chezmoi_argv(
     *args: str,
@@ -15,14 +17,17 @@ def chezmoi_argv(
     cache: Path | str | None = None,
     state: Path | None = None,
 ) -> Sequence[str]:
-    options = (
-        ("--cache", cache),
-        ("--config", config),
-        ("--destination", destination),
-        ("--persistent-state", state),
+    return list(
+        ChezmoiCli(
+            source=source,
+            destination=destination,
+            config=config,
+            cache=cache,
+            persistent_state=state,
+        )
+        .raw(*args)
+        .argv
     )
-    flags = [part for flag, value in options if value is not None for part in (flag, str(value))]
-    return ["chezmoi", "--source", str(source), *flags, *args]
 
 
 async def run_chezmoi(argv: Sequence[str]) -> CompletedProcess[str]:

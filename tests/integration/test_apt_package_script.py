@@ -1,9 +1,10 @@
-import json
 import os
 import subprocess
 from pathlib import Path
 
 import pytest
+
+from chezmoi_cli import ChezmoiCli
 
 
 @pytest.fixture
@@ -85,30 +86,17 @@ esac
             "packages": packages
             or {"git": {"installation_method": "apt", "package": {"apt": {"ppa": "ppa:git-core/ppa"}}}},
         }
-        render = subprocess.run(
-            [
-                "chezmoi",
-                "--config",
-                "/dev/null",
-                "--config-format",
-                "toml",
-                "--source",
-                str(source),
-                "--destination",
-                str(tmp_path / "dest"),
-                "--cache",
-                str(tmp_path / "cache"),
-                "--persistent-state",
-                str(tmp_path / "state.db"),
-                "--override-data",
-                json.dumps(data),
-                "execute-template",
-                "-f",
-                str(template),
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
+        render = (
+            ChezmoiCli(
+                config="/dev/null",
+                config_format="toml",
+                source=source,
+                destination=tmp_path / "dest",
+                cache=tmp_path / "cache",
+                persistent_state=tmp_path / "state.db",
+            )
+            .execute_template(file=template, override_data=data)
+            .run(check=True)
         )
         assert render.stdout.startswith("#!/usr/bin/env bash\n"), render.stdout
         script = tmp_path / "install.sh"

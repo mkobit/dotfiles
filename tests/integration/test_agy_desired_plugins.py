@@ -1,9 +1,9 @@
 """Check that the agy plugin bridge desires exactly the plugins that chezmoi renders for it."""
 
 import json
-import subprocess
 from pathlib import Path
 
+from chezmoi_cli import ChezmoiCli
 from skill_filter import plugin_bridge
 
 SOURCE_ROOT = Path(__file__).resolve().parents[2] / "src/chezmoi"
@@ -14,25 +14,17 @@ AGY_MANIFESTS = ("plugin.json", ".antigravity-plugin/plugin.json")
 def _chezmoi(tmp_path: Path, *args: str) -> str:
     destination = tmp_path / "destination"
     destination.mkdir(exist_ok=True)
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            str(tmp_path / "chezmoi.json"),
-            "--source",
-            str(SOURCE_ROOT),
-            "--destination",
-            str(destination),
-            "--cache",
-            str(tmp_path / "cache"),
-            "--persistent-state",
-            str(tmp_path / "state.boltdb"),
-            "--no-tty",
-            *args,
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
+    result = (
+        ChezmoiCli(
+            config=tmp_path / "chezmoi.json",
+            source=SOURCE_ROOT,
+            destination=destination,
+            cache=tmp_path / "cache",
+            persistent_state=tmp_path / "state.boltdb",
+            no_tty=True,
+        )
+        .raw(*args)
+        .run()
     )
     assert result.returncode == 0, result.stderr
     return result.stdout

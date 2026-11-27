@@ -1,8 +1,9 @@
 """Ensure mise and editable local tools use the configured source checkout root."""
 
-import json
 import subprocess
 from pathlib import Path
+
+from chezmoi_cli import ChezmoiCli
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_DIR = REPOSITORY_ROOT / "src/chezmoi/.chezmoiscripts"
@@ -32,25 +33,10 @@ def _render(
             "installation_method": "dotfiles.uv",
             "source_dir": "src/python/termstatus",
         }
-    return subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPOSITORY_ROOT),
-            *(["--destination", str(destination)] if destination is not None else []),
-            "execute-template",
-            "--file",
-            "--override-data",
-            json.dumps(data),
-            str(template),
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
+    return (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=REPOSITORY_ROOT, destination=destination)
+        .execute_template(file=template, override_data=data)
+        .run()
     )
 
 

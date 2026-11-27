@@ -5,33 +5,18 @@ from pathlib import Path
 
 import pytest
 
+from chezmoi_cli import ChezmoiCli
+
 
 def _render_codex_config(
     template: Path,
     stdin: str,
     override_data: str | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    command = [
-        "chezmoi",
-        "--config",
-        "/dev/null",
-        "--config-format",
-        "toml",
-        "--source",
-        str(Path.cwd()),
-        "execute-template",
-        "-f",
-        "--with-stdin",
-    ]
-    if override_data is not None:
-        command.extend(["--override-data", override_data])
-    command.append(str(template))
-    return subprocess.run(
-        command,
-        input=stdin,
-        capture_output=True,
-        check=False,
-        text=True,
+    return (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=Path.cwd())
+        .execute_template(file=template, with_stdin=True, override_data=override_data)
+        .run(input=stdin)
     )
 
 
@@ -268,12 +253,7 @@ def test_codex_personal_init_enables_usage_limits(tmp_path: Path, monkeypatch: p
     init_source.mkdir()
     (init_source / ".chezmoi.toml.tmpl").write_text((source / ".chezmoi.toml.tmpl").read_text())
     config = tmp_path / "chezmoi.toml"
-    initialized = subprocess.run(
-        ["chezmoi", "--config", str(config), "--source", str(init_source), "init", "--no-tty"],
-        capture_output=True,
-        check=False,
-        text=True,
-    )
+    initialized = ChezmoiCli(config=config, source=init_source).init(no_tty=True).run()
     assert initialized.returncode == 0, initialized.stderr
     data = tomllib.loads(config.read_text())["data"]
     result = _render_codex_config(

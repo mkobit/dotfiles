@@ -2,13 +2,13 @@ import asyncio
 import hashlib
 import json
 import shutil
-import subprocess
 import tomllib
 from pathlib import Path
 
 import pytest
 from chezmoi_test_data import installation_method
-from integration_support.chezmoi import chezmoi_argv, run_chezmoi
+
+from chezmoi_cli import ChezmoiCli
 
 # Antigravity remains a direct skill consumer.
 DIRECT_SKILL_DIRS = [
@@ -67,16 +67,10 @@ def assert_entries_are_valid_skills(skills_dir: Path, allowed_marker_files: froz
 
 async def _render(relative: str) -> str:
     """Render one real source template with catalog data only."""
-    result = await run_chezmoi(
-        chezmoi_argv(
-            "--config-format",
-            "toml",
-            "execute-template",
-            "--file",
-            str(SOURCE_ROOT / relative),
-            config="/dev/null",
-            source=REPOSITORY_ROOT,
-        ),
+    result = await (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=REPOSITORY_ROOT)
+        .execute_template(file=SOURCE_ROOT / relative)
+        .run_async()
     )
     assert result.returncode == 0, result.stderr
     return result.stdout
@@ -316,13 +310,7 @@ def test_technical_writing_template_accepts_missing_ai_root(tmp_path):
     config.write_text("")
     source = tmp_path / "source"
     source.mkdir()
-    result = subprocess.run(
-        ["chezmoi", "--source", str(source), "--config", str(config), "execute-template"],
-        capture_output=True,
-        check=False,
-        input=skill_file.read_text(),
-        text=True,
-    )
+    result = ChezmoiCli(source=source, config=config).execute_template().run(input=skill_file.read_text())
     assert result.returncode == 0, result.stderr
     assert (
         hashlib.sha256(result.stdout.encode()).hexdigest()

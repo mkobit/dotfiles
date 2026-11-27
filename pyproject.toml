@@ -8,6 +8,7 @@ dependencies = [
     "termstatus",
     "skill-filter",
     "browser-sync",
+    "chezmoi-cli",
 ]
 
 [dependency-groups]
@@ -31,6 +32,7 @@ members = [
     "src/python/transcribe",
     "src/python/skill_filter",
     "src/python/bin_updater",
+    "src/python/chezmoi_cli",
 ]
 
 [tool.uv.sources]
@@ -40,6 +42,7 @@ transcribe = { workspace = true }
 termstatus = { workspace = true }
 skill-filter = { workspace = true }
 bin-updater = { workspace = true }
+chezmoi-cli = { workspace = true }
 
 
 [tool.ruff]
@@ -130,7 +133,7 @@ ban-relative-imports = "all"
 max-complexity = 15
 
 [tool.ruff.lint.isort]
-known-first-party = ["browser_sync", "termbud", "termstatus", "transcribe", "skill_filter", "bin_updater"]
+known-first-party = ["browser_sync", "termbud", "termstatus", "transcribe", "skill_filter", "bin_updater", "chezmoi_cli"]
 
 [tool.ty.src]
 include = [

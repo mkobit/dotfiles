@@ -1,10 +1,11 @@
 import json
 import shlex
 import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
+
+from chezmoi_cli import ChezmoiCli
 
 SOURCE = Path("src/chezmoi")
 HANDY = Path("Library/Application Support/com.pais.handy")
@@ -60,21 +61,12 @@ def fixture(tmp_path, data, *, running=True, process_error=False, quit_fails=Fal
         script.write_text(text)
     config = tmp_path / "config.json"
     config.write_text(json.dumps({"data": data}))
-    command = [
-        "chezmoi",
-        "--source",
-        str(source),
-        "--destination",
-        str(destination),
-        "--config",
-        str(config),
-        "--no-tty",
-    ]
-    return command, settings, state, destination
+    cli = ChezmoiCli(source=source, destination=destination, config=config, no_tty=True)
+    return cli, settings, state, destination
 
 
-def apply(command, *paths):
-    return subprocess.run([*command, "apply", *map(str, paths)], capture_output=True, text=True, check=False)
+def apply(cli, *paths):
+    return cli.apply(*paths).run()
 
 
 def test_handy_custom_words_preserve_existing_settings(tmp_path):
@@ -191,24 +183,13 @@ def test_handy_nested_settings_and_api_keys(tmp_path, monkeypatch):
 def test_handy_settings_lists_render(tmp_path, configured, existing, key, expected):
     config = tmp_path / "config.json"
     config.write_text(json.dumps({"data": {"handy": {"settings": configured}}}))
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(SOURCE.resolve()),
-            "--destination",
-            str(tmp_path),
-            "--config",
-            str(config),
-            "--no-tty",
-            "execute-template",
-            "--with-stdin",
+    result = (
+        ChezmoiCli(source=SOURCE.resolve(), destination=tmp_path, config=config, no_tty=True)
+        .execute_template(
             '{{ $store := .chezmoi.stdin | fromJson }}{{ includeTemplate "handy/settings" (dict "data" . "store" $store) }}',
-        ],
-        input=json.dumps({"settings": existing}),
-        capture_output=True,
-        text=True,
-        check=False,
+            with_stdin=True,
+        )
+        .run(input=json.dumps({"settings": existing}))
     )
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)["settings"][key] == expected
@@ -284,12 +265,7 @@ def test_handy_lifecycle_scripts_do_not_contain_api_keys(tmp_path, monkeypatch):
     source = tmp_path / "source"
     for relative in SCRIPT_PATHS:
         path = source / relative
-        rendered = subprocess.run(
-            [*command, "execute-template", "-f", str(path)],
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
+        rendered = command.execute_template(file=path).run(check=True).stdout
         assert "secret-value" not in rendered
 
 

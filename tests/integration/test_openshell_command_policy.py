@@ -3,10 +3,11 @@
 import json
 import shlex
 import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
+
+from chezmoi_cli import ChezmoiCli
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = {
@@ -104,26 +105,14 @@ def _render(
     }
     if override:
         data.update(override)
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(source),
-            "execute-template",
-            "-f",
-            "--with-stdin",
-            "--override-data",
-            json.dumps(data),
-            str(source / TEMPLATES[tool].relative_to(ROOT)),
-        ],
-        input=json.dumps(live or {}),
-        capture_output=True,
-        text=True,
-        check=False,
+    result = (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=source)
+        .execute_template(
+            file=source / TEMPLATES[tool].relative_to(ROOT),
+            with_stdin=True,
+            override_data=data,
+        )
+        .run(input=json.dumps(live or {}))
     )
     assert result.returncode == 0, result.stderr
     return json.loads(result.stdout)
@@ -231,18 +220,12 @@ def test_apply_preserves_native_permissions_and_prompts_for_openshell(tool: str,
             }
         )
     )
-    command = [
-        "chezmoi",
-        "--source",
-        str(source),
-        "--destination",
-        str(destination),
-        "--config",
-        str(config),
-        "--persistent-state",
-        str(tmp_path / "state.boltdb"),
-    ]
-    subprocess.run([*command, "apply"], capture_output=True, text=True, check=True)
+    ChezmoiCli(
+        source=source,
+        destination=destination,
+        config=config,
+        persistent_state=tmp_path / "state.boltdb",
+    ).apply().run(check=True)
     rendered = json.loads(target.read_bytes())
     permissions = rendered["permissions"]
 

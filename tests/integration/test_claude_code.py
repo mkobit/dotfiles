@@ -8,7 +8,8 @@ from pathlib import Path
 
 import pytest
 from chezmoi_test_data import installation_method
-from integration_support.chezmoi import chezmoi_argv
+
+from chezmoi_cli import ChezmoiCli
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPOSITORY_ROOT / "src/chezmoi"
@@ -45,25 +46,10 @@ def _render(template, *, method="direct_release", os_name="linux", arch="amd64",
         "chezmoi": {"os": os_name, "arch": arch},
         "claude_code": {"installation_method": method} if method is not None else {},
     }
-    return subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPOSITORY_ROOT),
-            *(["--destination", str(destination)] if destination is not None else []),
-            "execute-template",
-            "--file",
-            "--override-data",
-            json.dumps(data),
-            str(template),
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
+    return (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=REPOSITORY_ROOT, destination=destination)
+        .execute_template(file=template, override_data=data)
+        .run()
     )
 
 
@@ -118,19 +104,16 @@ def _claude_source(tmp_path):
 
 
 def _apply_claude(tmp_path, source, destination, config):
-    return subprocess.run(
-        chezmoi_argv(
-            "apply",
-            "--force",
+    return (
+        ChezmoiCli(
             source=source,
             destination=destination,
             config=config,
             cache=tmp_path / "cache",
-            state=tmp_path / "state.boltdb",
-        ),
-        capture_output=True,
-        text=True,
-        check=False,
+            persistent_state=tmp_path / "state.boltdb",
+        )
+        .apply(force=True)
+        .run()
     )
 
 

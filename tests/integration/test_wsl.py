@@ -1,4 +1,3 @@
-import json
 import os
 import platform
 import shutil
@@ -6,6 +5,8 @@ import subprocess
 from pathlib import Path
 
 import pytest
+
+from chezmoi_cli import ChezmoiCli
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 WSL_CMD = "/mnt/c/Windows/System32/cmd.exe"
@@ -20,9 +21,8 @@ def test_wslconfig_deployed_to_windows_profile(host):
     """Verify .wslconfig was deployed to the Windows user profile."""
     if not os.access(WSL_CMD, os.X_OK) or shutil.which("wslpath") is None:
         pytest.skip("Windows interop tools are unavailable")
-    integration = subprocess.check_output(
-        ["chezmoi", "execute-template", '{{ dig "wsl" "windows_integration" false . | toJson }}'],
-        text=True,
+    integration = (
+        ChezmoiCli().execute_template('{{ dig "wsl" "windows_integration" false . | toJson }}').run(check=True).stdout
     )
     if integration.strip() != "true":
         pytest.skip("Windows integration is disabled in the chezmoi config")
@@ -41,21 +41,10 @@ def test_wslconfig_deployed_to_windows_profile(host):
 
 def test_wslconfig_template_renders_nested_virtualization():
     """Verify wslconfig template renders nestedVirtualization under [wsl2]."""
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPO_ROOT),
-            "execute-template",
-            '{{ template "wsl/wslconfig" . }}',
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
+    result = (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=REPO_ROOT)
+        .execute_template('{{ template "wsl/wslconfig" . }}')
+        .run()
     )
     assert result.returncode == 0, result.stderr
     assert "nestedVirtualization=true" in result.stdout
@@ -89,25 +78,19 @@ def test_windows_hook_rendering(
     }
     if enabled is not None:
         data["wsl"] = {"windows_integration": enabled}
-    result = subprocess.run(
-        [
-            chezmoi,
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPO_ROOT),
-            "--destination",
-            str(tmp_path),
-            "execute-template",
-            "--override-data",
-            json.dumps(data),
-        ],
-        input=(REPO_ROOT / "src" / "chezmoi" / hook).read_text(),
-        env={**os.environ, "PATH": str(tmp_path)},
-        capture_output=True,
-        text=True,
-        check=True,
+    result = (
+        ChezmoiCli(
+            executable=chezmoi,
+            config="/dev/null",
+            config_format="toml",
+            source=REPO_ROOT,
+            destination=tmp_path,
+        )
+        .execute_template(override_data=data)
+        .run(
+            input=(REPO_ROOT / "src" / "chezmoi" / hook).read_text(),
+            env={**os.environ, "PATH": str(tmp_path)},
+            check=True,
+        )
     )
     assert bool(result.stdout.strip()) is expected

@@ -1,11 +1,16 @@
 version = 1
-revision = 5
+revision = 3
 requires-python = ">=3.14"
+
+[options]
+exclude-newer = "0001-01-01T00:00:00Z" # This has no effect and is included for backwards compatibility when using relative exclude-newer values.
+exclude-newer-span = "P7D"
 
 [manifest]
 members = [
     "bin-updater",
     "browser-sync",
+    "chezmoi-cli",
     "dotfiles",
     "skill-filter",
     "termbud",
@@ -74,6 +79,7 @@ name = "bin-updater"
 version = "0.1.0"
 source = { editable = "src/python/bin_updater" }
 dependencies = [
+    { name = "chezmoi-cli" },
     { name = "httpx2" },
     { name = "packaging" },
     { name = "pydantic" },
@@ -83,6 +89,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "chezmoi-cli", editable = "src/python/chezmoi_cli" },
     { name = "httpx2", specifier = ">=2.16.0" },
     { name = "packaging", specifier = ">=24.0" },
     { name = "pydantic", specifier = ">=2.13.4" },
@@ -109,6 +116,11 @@ sdist = { url = "https://files.pythonhosted.org/packages/a3/c2/24167ea9858356b47
 wheels = [
     { url = "https://files.pythonhosted.org/packages/0b/a7/71ac2cff56fec219ed242bb11b8efb69fcc4bec75db06fb7bfe35de520e6/certifi-2026.7.22-py3-none-any.whl", hash = "sha256:62f22742b58a1a33014a2b6b706588a8d7e2a88ae7bd1a6ebe8c992928483775", size = 136983, upload-time = "2026-07-22T03:35:11.276Z" },
 ]
+
+[[package]]
+name = "chezmoi-cli"
+version = "0.1.0"
+source = { editable = "src/python/chezmoi_cli" }
 
 [[package]]
 name = "colorama"
@@ -186,6 +198,7 @@ version = "0.0.0"
 source = { virtual = "." }
 dependencies = [
     { name = "browser-sync" },
+    { name = "chezmoi-cli" },
     { name = "skill-filter" },
     { name = "termbud" },
     { name = "termstatus" },
@@ -205,6 +218,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "browser-sync", editable = "src/python/browser_sync" },
+    { name = "chezmoi-cli", editable = "src/python/chezmoi_cli" },
     { name = "skill-filter", editable = "src/python/skill_filter" },
     { name = "termbud", editable = "src/python/termbud" },
     { name = "termstatus", editable = "src/python/termstatus" },

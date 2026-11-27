@@ -93,15 +93,17 @@ def test_main_clears_stale_reports(tmp_path: Path, case: str) -> None:
 
 @pytest.mark.parametrize("stdout", ['{"bin_updates": {"minimum_release_age": "5d"}}', "not JSON", None])
 def test_load_policy_uses_chezmoi_data(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, stdout: str | None) -> None:
-    def run(args: list[str], *, check: bool, capture_output: bool, text: bool) -> subprocess.CompletedProcess[str]:
-        assert args[:3] == ["chezmoi", "--source", str(tmp_path)]
-        assert args[-3:] == ["data", "--format", "json"]
+    def run(
+        args: tuple[str, ...], *, check: bool, capture_output: bool, text: bool, **_kwargs: object
+    ) -> subprocess.CompletedProcess[str]:
+        assert args[:3] == ("chezmoi", "--source", str(tmp_path))
+        assert args[-2:] == ("data", "--format=json")
         assert check and capture_output and text
         if stdout is None:
             raise subprocess.CalledProcessError(1, args, stderr="init not called")
         return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
 
-    monkeypatch.setattr("bin_updater.policy.subprocess.run", run)
+    monkeypatch.setattr("chezmoi_cli.cli.subprocess.run", run)
     if stdout is None or stdout == "not JSON":
         with pytest.raises(ValueError, match="Could not read binary update policy"):
             load_policy(tmp_path)
