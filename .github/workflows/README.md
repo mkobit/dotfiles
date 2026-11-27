@@ -20,7 +20,6 @@ gh actions-lock --verify
 
 Commit the generated lock and migrated references together.
 Regenerating without dependency changes should produce no diff.
-Remove redundant generated trailing version comments if the comment check rejects them, then verify again.
 The verification workflow independently installs v0.4.0 and uses the standard workflow token with read-only repository permissions.
 Its output records `github.workflow_sha` for comparison with runner action-preparation logs before merge.
 

@@ -5,7 +5,7 @@
 set -euo pipefail
 
 MISE="{{ .chezmoi.destDir }}/.local/bin/mise"
-export PATH="{{ .chezmoi.destDir }}/.local/bin:${PATH}"
+export PATH="{{ .chezmoi.destDir }}/.local/bin/dotfiles:{{ .chezmoi.destDir }}/.local/bin:${PATH}"
 
 if [[ ! -x "$MISE" ]]; then
     echo "[WARN] mise not found at $MISE, skipping uv tool installs"

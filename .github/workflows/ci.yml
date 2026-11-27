@@ -88,7 +88,7 @@ jobs:
         env:
           PYTHONPATH: src/python/skill_filter
           UV_PYTHON_DOWNLOADS: manual
-        run: uv run --no-project --python 3.8 --with pytest -- python -m pytest src/python/skill_filter/tests/ -q
+        run: uv run --no-project --python 3.8 --with pytest -- python -m pytest -c src/python/skill_filter/pyproject.toml src/python/skill_filter/tests/ -q
 
   integration:
     needs: [lint]
@@ -132,7 +132,6 @@ jobs:
           path: ${{ env.CHEZMOI_CACHE_DIR }}
           key: chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}
           restore-keys: |
-            chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}-
             chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
             chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-main-
 
