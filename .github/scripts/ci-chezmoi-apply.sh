@@ -90,7 +90,16 @@ cmd_mise_prune() {
   if [[ -n "${GITHUB_PATH:-}" ]]; then
     echo "$mise_bin_dir" >> "$GITHUB_PATH"
   fi
-  "$mise_bin_dir/mise" cache prune --yes
+  HOME="$CHEZMOI_DEST" \
+    MISE_CONFIG_DIR="$CHEZMOI_DEST/.config/mise" \
+    MISE_DATA_DIR="$CHEZMOI_DEST/.local/share/mise" \
+    MISE_STATE_DIR="$CHEZMOI_DEST/.local/state/mise" \
+    "$mise_bin_dir/mise" prune --yes -C "$GITHUB_WORKSPACE"
+  HOME="$CHEZMOI_DEST" \
+    MISE_CONFIG_DIR="$CHEZMOI_DEST/.config/mise" \
+    MISE_DATA_DIR="$CHEZMOI_DEST/.local/share/mise" \
+    MISE_STATE_DIR="$CHEZMOI_DEST/.local/state/mise" \
+    "$mise_bin_dir/mise" cache prune --yes
 }
 
 subcommand="${1:-}"

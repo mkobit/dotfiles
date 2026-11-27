@@ -9,17 +9,16 @@ CI_CHEZMOI_SCRIPT = Path(__file__).resolve().parent.parent.parent / ".github" / 
 
 def test_mise_cache_key_is_shared_and_tracks_tool_inputs():
     workflow = (Path.cwd() / ".github/workflows/ci.yml").read_text()
-    step = workflow.split("      - name: Cache mise downloads\n", 1)[1].split("\n      - name:", 1)[0]
+    step = workflow.split("      - name: Cache mise data\n", 1)[1].split("\n      - name:", 1)[0]
     expected_key = (
-        "key: mise-cache-v2-${{ runner.os }}-${{ runner.arch }}-"
-        "${{ hashFiles('mise.toml', 'mise.lock', 'src/chezmoi/.chezmoidata/bin/mise.toml') }}"
+        "key: mise-data-v1-${{ runner.os }}-${{ runner.arch }}-"
+        "${{ hashFiles('mise.toml', 'mise.lock', 'src/chezmoi/.chezmoidata/bin/mise.toml', "
+        "'src/chezmoi/.chezmoi.toml.tmpl') }}"
     )
     assert expected_key in step
-    new_prefix = "mise-cache-v2-${{ runner.os }}-${{ runner.arch }}-"
-    legacy_prefix = "mise-cache-v1-${{ runner.os }}-${{ runner.arch }}-main-"
+    prefix = "mise-data-v1-${{ runner.os }}-${{ runner.arch }}-"
     restore_keys = step.split("restore-keys: |", 1)[1]
-    assert new_prefix in restore_keys
-    assert restore_keys.index(new_prefix) < restore_keys.index(legacy_prefix)
+    assert prefix in restore_keys
 
 
 @pytest.fixture
