@@ -5,10 +5,6 @@ inputs:
     description: Chezmoi release tag to install.
     default: v2.74.0
     required: false
-  install-dir:
-    description: Directory to install the chezmoi binary into.
-    default: ${{ runner.temp }}/chezmoi-bin
-    required: false
 runs:
   using: composite
   steps:
@@ -16,19 +12,19 @@ runs:
       shell: bash
       env:
         CHEZMOI_VERSION: ${{ inputs.version }}
-        INSTALL_DIR: ${{ inputs.install-dir }}
+        INSTALL_DIR: ${{ runner.temp }}/chezmoi-bin
       run: |
         set -euo pipefail
         version="${CHEZMOI_VERSION#v}"
-        case "${RUNNER_OS:-$(uname -s)}" in
+        case "$RUNNER_OS" in
           Linux) os=linux ;;
-          macOS|Darwin) os=darwin ;;
-          *) echo "Unsupported OS: ${RUNNER_OS:-$(uname -s)}" >&2; exit 1 ;;
+          macOS) os=darwin ;;
+          *) echo "Unsupported OS: $RUNNER_OS" >&2; exit 1 ;;
         esac
-        case "${RUNNER_ARCH:-$(uname -m)}" in
-          X64|x86_64|amd64) arch=amd64 ;;
-          ARM64|arm64|aarch64) arch=arm64 ;;
-          *) echo "Unsupported arch: ${RUNNER_ARCH:-$(uname -m)}" >&2; exit 1 ;;
+        case "$RUNNER_ARCH" in
+          X64) arch=amd64 ;;
+          ARM64) arch=arm64 ;;
+          *) echo "Unsupported arch: $RUNNER_ARCH" >&2; exit 1 ;;
         esac
 
         tarball="chezmoi_${version}_${os}_${arch}.tar.gz"

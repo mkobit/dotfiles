@@ -29,7 +29,6 @@ def main(
     all_tools: Annotated[bool, typer.Option("--all", "-a", help="Update all binary tools")] = False,
     dry_run: Annotated[bool, typer.Option("--dry-run", help="Simulate updates without writing changes")] = False,
     token: Annotated[str | None, typer.Option("--token", help="GitHub API token")] = None,
-    report_file: Annotated[Path | None, typer.Option("--report-file", help="Write update results as JSON")] = None,
     handoff_dir: Annotated[
         Path | None, typer.Option("--handoff-dir", help="Write per-tool handoff artifacts to directory")
     ] = None,
@@ -41,8 +40,6 @@ def main(
     ),
 ) -> None:
     """Automate chezmoi binary tools upgrades."""
-    if report_file is not None:
-        report_file.write_text("[]\n", encoding="utf-8")
     if not all_tools and tool is None:
         typer.echo("Error: specify either --tool <name> or --all", err=True)
         raise typer.Exit(code=1)
@@ -71,10 +68,6 @@ def main(
 
     with HttpxReleaseClient(token=auth_token) as client:
         results = run_updates(catalogs, client, dry_run=dry_run)
-    if report_file is not None:
-        report_file.write_text(
-            json.dumps([r.model_dump() for r in results], ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
     if handoff_dir is not None:
         _write_handoff_dir(handoff_dir, catalogs, results, dry_run=dry_run)
     for result in results:

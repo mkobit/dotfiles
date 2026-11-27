@@ -11,7 +11,6 @@ on:
 
 permissions:
   contents: read
-  actions: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.ref }}
@@ -50,14 +49,8 @@ jobs:
           key: uv-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
             uv-${{ runner.os }}-${{ runner.arch }}-
-      - name: Install dependencies
-        run: mise run python:sync
-      - name: Lint (ruff)
-        run: mise run python:lint
-      - name: Format check (ruff)
-        run: mise run python:format
-      - name: Type check (ty)
-        run: mise run python:typecheck
+      - name: Lint, format, type check, and test Python packages
+        run: "mise run python:lint ::: python:format ::: python:typecheck ::: python:test"
       - name: Minimize uv cache
         run: uv cache prune --ci
 
@@ -69,6 +62,13 @@ jobs:
         with:
           persist-credentials: false
       - uses: $/.github/actions/setup-mise
+      - name: Restore uv cache
+        uses: actions/cache@v6.1.0
+        with:
+          path: ${{ env.UV_CACHE_DIR }}
+          key: uv-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('uv.lock') }}
+          restore-keys: |
+            uv-${{ runner.os }}-${{ runner.arch }}-
       - name: Restore uv Python cache
         uses: actions/cache@v6.1.0
         with:
@@ -121,10 +121,7 @@ jobs:
       - name: Cache skill-filter output
         uses: actions/cache@v6.1.0
         with:
-          # Apply uses the runner home; integration pytest uses CHEZMOI_DEST as HOME.
-          path: |
-            ~/.cache/skill-filter
-            ${{ env.CHEZMOI_DEST }}/.cache/skill-filter
+          path: ~/.cache/skill-filter
           key: skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-${{ hashFiles('src/chezmoi/.chezmoidata/ai/**', 'src/chezmoi/.chezmoi.toml.tmpl', 'src/chezmoi/.chezmoiexternals/ai-*.toml.tmpl') }}
           restore-keys: |
             skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-
@@ -186,7 +183,7 @@ jobs:
 
       # Use unique keys after failed applies so later runs can save more packages.
       - name: Save APT downloads
-        if: ${{ always() && runner.os == 'Linux' && steps.apt-cache.outputs.cache-primary-key != '' && steps.apt-cache.outputs.cache-hit != 'true' }}
+        if: ${{ !cancelled() && runner.os == 'Linux' && steps.apt-cache.outputs.cache-hit != 'true' && (steps.chezmoi-prefetch.outcome == 'success' || steps.chezmoi-apply.outcome == 'success') }}
         uses: actions/cache/save@v6.1.0
         with:
           path: ${{ env.APT_CACHE_DIR }}/*.deb
@@ -205,12 +202,6 @@ jobs:
         run: .github/scripts/ci-chezmoi-apply.sh mise-prune
 
       # Use the mise binary installed by chezmoi apply and load tools from the test HOME.
-      - name: Install python dependencies for integration tests
-        env:
-          HOME: ${{ env.CHEZMOI_DEST }}
-          GITHUB_TOKEN: ${{ github.token }}
-        run: mise run python:sync
-
       - name: Run system integration tests
         env:
           HOME: ${{ env.CHEZMOI_DEST }}
@@ -223,23 +214,15 @@ jobs:
           mise run test:integration -- -ra --durations=20 \
             --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
 
-      # Reuse .venv from integration setup when chezmoi apply succeeded; fall back to setup-mise otherwise.
-      - name: Set up mise for Python tests
-        id: python-test-setup
-        if: ${{ !cancelled() && matrix.os != 'ubuntu-24.04-arm' && steps.checkout.outcome == 'success' && steps.chezmoi-apply.outcome != 'success' }}
-        uses: $/.github/actions/setup-mise
-
       - name: Test Python packages
-        if: ${{ !cancelled() && matrix.os != 'ubuntu-24.04-arm' && steps.checkout.outcome == 'success' }}
+        if: ${{ !cancelled() && matrix.os == 'macos-15' && steps.chezmoi-apply.outcome == 'success' }}
         timeout-minutes: 20
+        env:
+          HOME: ${{ env.CHEZMOI_DEST }}
         run: |
           report_dir="$RUNNER_TEMP/integration-reports"
           mkdir -p "$report_dir"
-          if [[ "${{ steps.chezmoi-apply.outcome }}" == "success" ]]; then
-            HOME="${{ env.CHEZMOI_DEST }}" mise run python:test -- --junitxml="$report_dir/python.xml"
-          else
-            mise run python:test -- --junitxml="$report_dir/python.xml"
-          fi
+          .venv/bin/pytest src/python --cov --cov-report=term-missing --junitxml="$report_dir/python.xml"
 
       - name: Prune uv cache
         if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
