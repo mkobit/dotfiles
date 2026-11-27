@@ -74,7 +74,7 @@ run = "uv run --no-project --python 3.8 --with pytest -- python -m pytest -c src
 [tasks."test:integration"]
 description = "Run system integration tests"
 depends = ["python:sync"]
-run = "uv run --frozen --no-sync pytest tests/integration"
+run = "uv run --frozen --no-sync pytest tests/integration -n auto --dist loadgroup"
 
 [tasks."openshell:check"]
 description = "Check OpenShell Dockerfile"
