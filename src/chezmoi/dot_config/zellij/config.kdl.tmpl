@@ -125,3 +125,8 @@ show_release_notes {{ $config.show_release_notes }}
 // https://zellij.dev/documentation/options#theme
 theme {{ toJson . }}
 {{- end }}
+{{- with get $config "default_layout" }}
+
+// https://zellij.dev/documentation/options#default_layout
+default_layout {{ includeTemplate "kdl/value" . }}
+{{- end }}
