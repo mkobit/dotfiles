@@ -22,7 +22,6 @@ env:
   UV_CACHE_DIR: /tmp/.uv-cache
   UV_PYTHON_INSTALL_DIR: /tmp/.uv-python
   MISE_CACHE_DIR: /tmp/.mise-cache
-  BUN_INSTALL_CACHE_DIR: /tmp/.bun-cache
   CHEZMOI_CACHE_DIR: /tmp/.chezmoi-cache
   APT_CACHE_DIR: /tmp/.apt-cache
   CHEZMOI_CONFIG: /tmp/.chezmoi-config.toml
@@ -52,10 +51,9 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: ${{ env.UV_CACHE_DIR }}
-          key: uv-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}
+          key: uv-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
-            uv-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
-            uv-${{ runner.os }}-${{ runner.arch }}-main-
+            uv-${{ runner.os }}-${{ runner.arch }}-
       - name: Install dependencies
         run: uv sync --all-packages --frozen
       - name: Lint (ruff)
@@ -79,9 +77,9 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: ${{ env.UV_PYTHON_INSTALL_DIR }}
-          key: uv-python-3.8-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}
+          key: uv-python-3.8-${{ runner.os }}-${{ runner.arch }}
           restore-keys: |
-            uv-python-3.8-${{ runner.os }}-${{ runner.arch }}-main
+            uv-python-3.8-${{ runner.os }}-${{ runner.arch }}-
       - name: Install Python 3.8
         run: uv python install 3.8
       - name: Test skill_filter on Python 3.8
@@ -91,7 +89,6 @@ jobs:
         run: uv run --no-project --python 3.8 --with pytest -- python -m pytest -c src/python/skill_filter/pyproject.toml src/python/skill_filter/tests/ -q
 
   integration:
-    needs: [lint]
     strategy:
       matrix:
         os: [ubuntu-24.04, ubuntu-24.04-arm, macos-15]
@@ -120,20 +117,18 @@ jobs:
         uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ env.APT_CACHE_DIR }}/*.deb
-          key: apt-v1-${{ matrix.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ steps.apt-cache-prepare.outputs.week }}-${{ hashFiles('src/chezmoi/.chezmoidata/packages/**', 'src/chezmoi/.chezmoi.toml.tmpl') }}
+          key: apt-v1-${{ matrix.os }}-${{ runner.arch }}-${{ steps.apt-cache-prepare.outputs.week }}-${{ hashFiles('src/chezmoi/.chezmoidata/packages/**', 'src/chezmoi/.chezmoi.toml.tmpl') }}
           restore-keys: |
-            apt-v1-${{ matrix.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
-            apt-v1-${{ matrix.os }}-${{ runner.arch }}-main-
+            apt-v1-${{ matrix.os }}-${{ runner.arch }}-
 
       - name: Restore chezmoi downloads
         id: chezmoi-cache
         uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ env.CHEZMOI_CACHE_DIR }}
-          key: chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/**', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/**/.chezmoiexternals/**') }}
+          key: chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/chezmoi/.chezmoidata/bin/**', 'src/chezmoi/.chezmoidata/ai/agents.toml', 'src/chezmoi/.chezmoidata/ai/plugins/**', 'src/chezmoi/.chezmoidata/ai/plugin-bridge.toml', 'src/chezmoi/.chezmoidata/ai/skills/**', 'src/chezmoi/.chezmoidata/fonts/**', 'src/chezmoi/.chezmoidata/tmux/plugins/**', 'src/chezmoi/.chezmoidata/zellij/plugins/**', 'src/chezmoi/.chezmoidata/fzf_plugins_data.toml', 'src/chezmoi/.chezmoidata/github_releases.toml', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/.chezmoi.toml.tmpl', 'src/chezmoi/**/.chezmoiexternals/**') }}
           restore-keys: |
-            chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
-            chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-main-
+            chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Cache skill-filter output
         uses: actions/cache@v6.1.0
@@ -142,10 +137,10 @@ jobs:
           path: |
             ~/.cache/skill-filter
             ${{ env.CHEZMOI_DEST }}/.cache/skill-filter
-          key: skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/ai/**', 'src/chezmoi/.chezmoi.toml.tmpl', 'src/chezmoi/.chezmoiexternals/ai-*.toml.tmpl') }}
+          key: skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-${{ hashFiles('src/chezmoi/.chezmoidata/ai/**', 'src/chezmoi/.chezmoi.toml.tmpl', 'src/chezmoi/.chezmoiexternals/ai-*.toml.tmpl') }}
           restore-keys: |
-            skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-${{ github.head_ref || github.ref_name }}-
-            skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-main-
+            skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-
+            skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Cache mise downloads
         uses: actions/cache@v6.1.0
@@ -156,23 +151,13 @@ jobs:
             mise-cache-v2-${{ runner.os }}-${{ runner.arch }}-
             mise-cache-v1-${{ runner.os }}-${{ runner.arch }}-main-
 
-      - name: Cache bun install cache
-        uses: actions/cache@v6.1.0
-        with:
-          path: ${{ env.BUN_INSTALL_CACHE_DIR }}
-          key: bun-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('src/chezmoi/.chezmoidata/bin/mise.toml') }}
-          restore-keys: |
-            bun-cache-v1-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
-            bun-cache-v1-${{ runner.os }}-${{ runner.arch }}-main-
-
       - name: Restore uv cache
         uses: actions/cache@v6.1.0
         with:
           path: ${{ env.UV_CACHE_DIR }}
-          key: uv-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-${{ hashFiles('uv.lock') }}
+          key: uv-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('uv.lock') }}
           restore-keys: |
-            uv-${{ runner.os }}-${{ runner.arch }}-${{ github.head_ref || github.ref_name }}-
-            uv-${{ runner.os }}-${{ runner.arch }}-main-
+            uv-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install chezmoi
         run: |
@@ -199,6 +184,7 @@ jobs:
 
       - name: Prefetch chezmoi externals
         id: chezmoi-prefetch
+        if: steps.chezmoi-cache.outputs.cache-hit != 'true'
         timeout-minutes: 20
         env:
           GITHUB_TOKEN: ${{ github.token }}
@@ -303,26 +289,38 @@ jobs:
           mise exec -- uv run --frozen pytest tests/integration -ra --durations=20 \
             --junitxml="$report_dir/pytest.xml" 2>&1 | tee "$report_dir/pytest.log"
 
-      # Reuse the runner and report Python failures even if integration failed.
-      # The CI setup action adds mise shims to PATH so the Python steps can call uv directly.
+      # Reuse .venv from integration setup when chezmoi apply succeeded; fall back to setup-mise otherwise.
       - name: Set up mise for Python tests
         id: python-test-setup
-        if: ${{ !cancelled() && matrix.os != 'ubuntu-24.04-arm' && steps.checkout.outcome == 'success' }}
+        if: ${{ !cancelled() && matrix.os != 'ubuntu-24.04-arm' && steps.checkout.outcome == 'success' && steps.chezmoi-apply.outcome != 'success' }}
         uses: $/.github/actions/setup-mise
 
-      - name: Test and build Python packages
-        if: ${{ !cancelled() && steps.python-test-setup.outcome == 'success' }}
+      - name: Test Python packages
+        if: ${{ !cancelled() && matrix.os != 'ubuntu-24.04-arm' && steps.checkout.outcome == 'success' }}
         timeout-minutes: 20
-        env:
-          UV_PROJECT_ENVIRONMENT: ${{ runner.temp }}/python-test-venv
         run: |
-          uv sync --all-packages --frozen
           report_dir="$RUNNER_TEMP/integration-reports"
           mkdir -p "$report_dir"
-          uv run --frozen pytest src/python --cov --cov-report=term-missing \
-            --junitxml="$report_dir/python.xml"
-          uv build --all-packages
-          uv cache prune --ci
+          if [[ "${{ steps.chezmoi-apply.outcome }}" == "success" ]]; then
+            if [[ ! -d .venv ]]; then
+              HOME="${{ env.CHEZMOI_DEST }}" mise exec -- uv sync --all-packages --frozen
+            fi
+            HOME="${{ env.CHEZMOI_DEST }}" mise exec -- uv run --frozen pytest src/python --cov --cov-report=term-missing \
+              --junitxml="$report_dir/python.xml"
+          else
+            uv sync --all-packages --frozen
+            uv run --frozen pytest src/python --cov --cov-report=term-missing \
+              --junitxml="$report_dir/python.xml"
+          fi
+
+      - name: Prune uv cache
+        if: ${{ !cancelled() && steps.checkout.outcome == 'success' }}
+        run: |
+          if command -v uv >/dev/null 2>&1; then
+            uv cache prune --ci
+          elif [[ "${{ steps.chezmoi-apply.outcome }}" == "success" ]]; then
+            HOME="${{ env.CHEZMOI_DEST }}" mise exec -- uv cache prune --ci
+          fi
 
       - name: Publish test results and durations
         if: ${{ !cancelled() }}
