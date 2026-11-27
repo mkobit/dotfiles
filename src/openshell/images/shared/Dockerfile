@@ -37,7 +37,7 @@ RUN case "$TARGETARCH" in \
     && tar -xzf /tmp/chezmoi.tar.gz -C /usr/local/bin chezmoi \
     && rm /tmp/chezmoi.tar.gz
 
-RUN --mount=type=bind,target=/tmp/dotfiles,readonly mkdir -p /sandbox/.local/bin && chezmoi apply \
+RUN --mount=type=bind,target=/tmp/dotfiles,readonly --mount=type=cache,id=openshell-chezmoi,target=/tmp/chezmoi-cache mkdir -p /sandbox/.local/bin && chezmoi apply \
         --no-tty \
         --source /tmp/dotfiles \
         --config /tmp/dotfiles/src/openshell/images/shared/sandbox-chezmoi.toml \

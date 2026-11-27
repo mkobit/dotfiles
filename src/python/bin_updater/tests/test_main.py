@@ -109,3 +109,46 @@ def test_load_policy_uses_chezmoi_data(tmp_path: Path, monkeypatch: pytest.Monke
             load_policy(tmp_path)
     else:
         assert load_policy(tmp_path) == {"minimum_release_age": "5d"}
+
+
+def test_main_handoff_dir_writes_changed_and_failures(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    catalog_dir = tmp_path / "catalogs"
+    catalog_dir.mkdir()
+    for name in ("changed_app", "unchanged_app", "failed_app"):
+        (catalog_dir / f"{name}.toml").write_text(
+            f'[bin.{name}]\nversion = "2.0.0"\n[bin.{name}.github_releases]\nrepo = "org/{name}"\n'
+            f'tag_format = "v{{version}}"\nfilename_format = "{name}-{{target}}"\n'
+            f'[bin.{name}.github_releases.platforms]\nlinux_amd64 = "x"\n',
+            encoding="utf-8",
+        )
+    handoff_dir = tmp_path / "handoff"
+    fake_results = [
+        ToolUpdateResult(
+            tool_name="changed_app",
+            changed=True,
+            old_version="1.0.0",
+            new_version="2.0.0",
+            pr_title="chore(deps): bump changed_app from 1.0.0 to 2.0.0",
+            pr_body="Notes",
+        ),
+        ToolUpdateResult(tool_name="unchanged_app", changed=False, old_version="2.0.0", new_version="2.0.0"),
+        ToolUpdateResult(
+            tool_name="failed_app",
+            changed=False,
+            old_version="2.0.0",
+            new_version="2.0.0",
+            error="rate limited",
+        ),
+    ]
+    monkeypatch.setattr("bin_updater.main.run_updates", lambda _cats, _client, dry_run=False: fake_results)
+
+    result = runner.invoke(app, ["--all", "--catalog-dir", str(catalog_dir), "--handoff-dir", str(handoff_dir)])
+    assert result.exit_code == 1
+    assert (handoff_dir / "changed_app.toml").read_text(encoding="utf-8") == (
+        catalog_dir / "changed_app.toml"
+    ).read_text(encoding="utf-8")
+    assert json.loads((handoff_dir / "changed_app.json").read_text(encoding="utf-8")) == [fake_results[0].model_dump()]
+    assert not (handoff_dir / "unchanged_app.toml").exists()
+    assert not (handoff_dir / "unchanged_app.json").exists()
+    assert not (handoff_dir / "failed_app.toml").exists()
+    assert (handoff_dir / "failures.txt").read_text(encoding="utf-8") == "failed_app\n"

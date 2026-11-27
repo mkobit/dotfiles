@@ -39,7 +39,27 @@ jobs:
         with:
           persist-credentials: false
       - uses: $/.github/actions/setup-mise
+      - name: Cache BuildKit layers
+        uses: actions/cache@v6.1.0
+        with:
+          path: /tmp/.buildx-cache
+          key: buildx-openshell-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/openshell/images/shared/Dockerfile', 'src/openshell/images/shared/sandbox-chezmoi.toml', 'src/chezmoi/.chezmoidata/bin/**', 'src/chezmoi/.chezmoidata/ai/**', 'src/chezmoi/.chezmoi.toml.tmpl') }}
+          restore-keys: |
+            buildx-openshell-${{ runner.os }}-${{ runner.arch }}-
+      - name: Set up Docker Buildx builder
+        run: |
+          if ! docker buildx inspect ci-builder >/dev/null 2>&1; then
+            docker buildx create --name ci-builder --driver docker-container --use
+          else
+            docker buildx use ci-builder
+          fi
       - name: Build from tracked files
-        run: mise run openshell:build
+        env:
+          OPENSHELL_BUILD_CACHE_FROM: /tmp/.buildx-cache
+          OPENSHELL_BUILD_CACHE_TO: /tmp/.buildx-cache-new
+        run: |
+          mise run openshell:build
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
       - name: Smoke-test the sandbox environment
         run: mise run openshell:smoke-test

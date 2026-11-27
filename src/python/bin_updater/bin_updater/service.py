@@ -1,6 +1,7 @@
 import json
 import re
 from collections.abc import Mapping, Sequence
+from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 from urllib.parse import quote
 
@@ -99,7 +100,12 @@ def _resolve_platform_checksums(
             raise ValueError(f"Asset '{expected}' not found for platform '{platform}' in release {target_version}")
         return client.compute_asset_hash(str(asset["browser_download_url"]))
 
-    return {platform: _hash_for_platform(platform) for platform in catalog.platforms}
+    platforms = list(catalog.platforms)
+    if len(platforms) <= 1:
+        return {platform: _hash_for_platform(platform) for platform in platforms}
+    with ThreadPoolExecutor(max_workers=min(len(platforms), 4)) as executor:
+        hashes = list(executor.map(_hash_for_platform, platforms))
+    return dict(zip(platforms, hashes, strict=True))
 
 
 def _claude_checksums(catalog: ToolCatalog, version: str, client: ReleaseClient) -> Mapping[str, str]:
@@ -185,4 +191,7 @@ def run_updates(
                 error=str(exc),
             )
 
-    return [_safe_update(c) for c in catalogs]
+    if len(catalogs) <= 1:
+        return [_safe_update(c) for c in catalogs]
+    with ThreadPoolExecutor(max_workers=min(len(catalogs), 8)) as executor:
+        return list(executor.map(_safe_update, catalogs))
