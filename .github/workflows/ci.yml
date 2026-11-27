@@ -21,7 +21,6 @@ env:
   DEBIAN_FRONTEND: noninteractive
   UV_CACHE_DIR: /tmp/.uv-cache
   UV_PYTHON_INSTALL_DIR: /tmp/.uv-python
-  MISE_CACHE_DIR: /tmp/.mise-cache
   CHEZMOI_CACHE_DIR: /tmp/.chezmoi-cache
   APT_CACHE_DIR: /tmp/.apt-cache
   CHEZMOI_CONFIG: /tmp/.chezmoi-config.toml
@@ -131,14 +130,13 @@ jobs:
             skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/python/skill_filter/**') }}-
             skill-filter-v1-${{ runner.os }}-${{ runner.arch }}-
 
-      - name: Cache mise downloads
+      - name: Cache mise data
         uses: actions/cache@v6.1.0
         with:
-          path: ${{ env.MISE_CACHE_DIR }}
-          key: mise-cache-v2-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'src/chezmoi/.chezmoidata/bin/mise.toml') }}
+          path: ${{ env.CHEZMOI_DEST }}/.local/share/mise
+          key: mise-data-v1-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('mise.toml', 'mise.lock', 'src/chezmoi/.chezmoidata/bin/mise.toml', 'src/chezmoi/.chezmoi.toml.tmpl') }}
           restore-keys: |
-            mise-cache-v2-${{ runner.os }}-${{ runner.arch }}-
-            mise-cache-v1-${{ runner.os }}-${{ runner.arch }}-main-
+            mise-data-v1-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Restore uv cache
         uses: actions/cache@v6.1.0
@@ -179,7 +177,6 @@ jobs:
         timeout-minutes: 15
         env:
           GITHUB_TOKEN: ${{ github.token }}
-          GOMAXPROCS: "1"
           HOMEBREW_NO_AUTO_UPDATE: "1"
           CHEZMOI_APT_REPORT_DIR: ${{ runner.temp }}/integration-reports/apt
         run: .github/scripts/ci-chezmoi-apply.sh apply
