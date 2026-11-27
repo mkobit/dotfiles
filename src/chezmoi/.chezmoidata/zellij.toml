@@ -6,6 +6,10 @@
 scrollback_lines_to_serialize = 75000
 show_startup_tips             = true
 
+[zellij.web_client]
+font      = "monospace"
+font_size = 14
+
 # Plugin aliases. Keys are alias names used in layouts and keybinds.
 # location: plugin URL — zellij:<name>, file:/path, https://, or bare alias
 # config:   optional plugin-specific key/value configuration
