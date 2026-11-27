@@ -8,6 +8,8 @@ from pathlib import Path
 
 import pytest
 
+from chezmoi_cli import ChezmoiCli
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CHEZMOI_SOURCE = REPO_ROOT / "src" / "chezmoi"
 SBX_CATALOG = CHEZMOI_SOURCE / ".chezmoidata" / "bin" / "sbx.toml"
@@ -43,20 +45,7 @@ def test_sbx_release_catalog_defines_linux_checksums():
 
 def test_sbx_does_not_manage_legacy_host_integration_targets():
     """Keep SBX limited to its binary rather than host-managed launchers or kits."""
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--source",
-            str(CHEZMOI_SOURCE),
-            "managed",
-            "--include=files",
-            "--format=json",
-            "--path-style=all",
-        ],
-        capture_output=True,
-        check=True,
-        text=True,
-    )
+    result = ChezmoiCli(source=CHEZMOI_SOURCE).managed(include="files", format="json", path_style="all").run(check=True)
     managed_targets = json.loads(result.stdout)
 
     for target in LEGACY_TARGETS:
@@ -66,25 +55,10 @@ def test_sbx_does_not_manage_legacy_host_integration_targets():
 def _render_sbx_script(
     script_path: Path, override_data: dict[str, object], destination: Path | None = None
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPO_ROOT),
-            *(["--destination", str(destination)] if destination is not None else []),
-            "execute-template",
-            "--file",
-            "--override-data",
-            json.dumps(override_data),
-            str(script_path),
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
+    return (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=REPO_ROOT, destination=destination)
+        .execute_template(file=script_path, override_data=override_data)
+        .run()
     )
 
 
@@ -383,24 +357,10 @@ def _render_sbx_kvm_script(override_data: dict) -> subprocess.CompletedProcess[s
         else:
             data[key] = val
 
-    return subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPO_ROOT),
-            "execute-template",
-            "--file",
-            "--override-data",
-            json.dumps(data),
-            str(SBX_KVM_SCRIPT),
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
+    return (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=REPO_ROOT)
+        .execute_template(file=SBX_KVM_SCRIPT, override_data=data)
+        .run()
     )
 
 
@@ -553,28 +513,16 @@ def test_sbx_init_selects_supported_installation(tmp_path, system, arch, macos_v
     assert chezmoi is not None
     config = tmp_path / "config.toml"
     platform = {"chezmoi": {"os": system, "arch": arch}, "ai": {"sandbox": {"provider": provider}}}
-    initialized = subprocess.run(
-        [
-            chezmoi,
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPO_ROOT),
-            "--destination",
-            str(tmp_path),
-            "execute-template",
-            "--init",
-            "--override-data",
-            json.dumps(platform),
-            "--file",
-            str(CHEZMOI_SOURCE / ".chezmoi.toml.tmpl"),
-        ],
-        env={**os.environ, "CI": "1", "PATH": f"{tmp_path}:{os.defpath}"},
-        capture_output=True,
-        text=True,
-        check=True,
+    initialized = (
+        ChezmoiCli(
+            executable=chezmoi,
+            config="/dev/null",
+            config_format="toml",
+            source=REPO_ROOT,
+            destination=tmp_path,
+        )
+        .execute_template(file=CHEZMOI_SOURCE / ".chezmoi.toml.tmpl", init=True, override_data=platform)
+        .run(env={**os.environ, "CI": "1", "PATH": f"{tmp_path}:{os.defpath}"}, check=True)
     )
     config.write_text(initialized.stdout, encoding="utf-8")
     data = tomllib.loads(initialized.stdout)["data"]
@@ -585,24 +533,15 @@ def test_sbx_init_selects_supported_installation(tmp_path, system, arch, macos_v
         assert not calls.exists()
 
     def render(relative):
-        result = subprocess.run(
-            [
-                chezmoi,
-                "--config",
-                str(config),
-                "--source",
-                str(REPO_ROOT),
-                "--destination",
-                str(tmp_path),
-                "execute-template",
-                "--override-data",
-                json.dumps(platform),
-                "--file",
-                str(CHEZMOI_SOURCE / relative),
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
+        result = (
+            ChezmoiCli(
+                executable=chezmoi,
+                config=config,
+                source=REPO_ROOT,
+                destination=tmp_path,
+            )
+            .execute_template(file=CHEZMOI_SOURCE / relative, override_data=platform)
+            .run(check=True)
         )
         return result.stdout
 

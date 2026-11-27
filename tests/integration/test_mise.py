@@ -1,4 +1,3 @@
-import json
 import os
 import shlex
 import shutil
@@ -8,31 +7,20 @@ from pathlib import Path
 
 import pytest
 
+from chezmoi_cli import ChezmoiCli
+
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 
 
 def _render_shell(template, destination, shell):
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPOSITORY_ROOT),
-            "--destination",
-            str(destination),
-            "execute-template",
-            "--override-data",
-            json.dumps({"shell": shell, "local": {"bin": {"mise": {"installation_method": "github_releases"}}}}),
-            *(["--file", str(template)] if isinstance(template, Path) else [template]),
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
+    override = {"shell": shell, "local": {"bin": {"mise": {"installation_method": "github_releases"}}}}
+    cli = ChezmoiCli(config="/dev/null", config_format="toml", source=REPOSITORY_ROOT, destination=destination)
+    invocation = (
+        cli.execute_template(file=template, override_data=override)
+        if isinstance(template, Path)
+        else cli.execute_template(template, override_data=override)
     )
-    return result.stdout
+    return invocation.run(check=True).stdout
 
 
 @pytest.mark.parametrize("shell", ["bash", "zsh"])
@@ -126,43 +114,24 @@ def test_mise_config_disables_activation_shims_unless_overridden(
     chezmoi = shutil.which("chezmoi")
     assert chezmoi is not None
     if overlay_settings is None:
-        command = [
-            chezmoi,
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPOSITORY_ROOT),
-            "--destination",
-            str(tmp_path),
-            "execute-template",
-            "--init",
-            "--file",
-            str(REPOSITORY_ROOT / "src/chezmoi/.chezmoi.toml.tmpl"),
-        ]
-        initialized = subprocess.run(
-            command, env={**os.environ, "CI": "1", "PATH": os.defpath}, capture_output=True, text=True, check=True
+        initialized = (
+            ChezmoiCli(
+                executable=chezmoi,
+                config="/dev/null",
+                config_format="toml",
+                source=REPOSITORY_ROOT,
+                destination=tmp_path,
+            )
+            .execute_template(file=REPOSITORY_ROOT / "src/chezmoi/.chezmoi.toml.tmpl", init=True)
+            .run(env={**os.environ, "CI": "1", "PATH": os.defpath}, check=True)
         )
         config.write_text(initialized.stdout, encoding="utf-8")
     else:
         config.write_text("[data.mise.settings]\n" + overlay_settings, encoding="utf-8")
-    rendered = subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            str(config),
-            "--source",
-            str(REPOSITORY_ROOT),
-            "--destination",
-            str(tmp_path),
-            "execute-template",
-            "--file",
-            str(REPOSITORY_ROOT / "src/chezmoi/dot_config/mise/config.toml.tmpl"),
-        ],
-        capture_output=True,
-        text=True,
-        check=True,
+    rendered = (
+        ChezmoiCli(config=config, source=REPOSITORY_ROOT, destination=tmp_path)
+        .execute_template(file=REPOSITORY_ROOT / "src/chezmoi/dot_config/mise/config.toml.tmpl")
+        .run(check=True)
     )
 
     settings = tomllib.loads(rendered.stdout)["settings"]

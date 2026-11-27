@@ -9,6 +9,8 @@ from pathlib import Path
 import pytest
 from test_sbx_command_retirement import ALLOW_HEADS, PROMPT_HEADS, ROOT, TEMPLATES, rule
 
+from chezmoi_cli import ChezmoiCli
+
 
 def documented_decision(tool: str, permissions: dict, command: str) -> str:
     """Model the documented token-prefix and deny > ask > allow contract.
@@ -62,20 +64,15 @@ def test_apply_preserves_native_permissions_and_prompts(tool: str, tmp_path: Pat
             }
         )
     )
-    command = [
-        "chezmoi",
-        "--source",
-        str(source),
-        "--destination",
-        str(destination),
-        "--config",
-        str(config),
-        "--persistent-state",
-        str(tmp_path / "state.boltdb"),
-    ]
-    preview = subprocess.run([*command, "diff"], capture_output=True, text=True, check=True)
+    cli = ChezmoiCli(
+        source=source,
+        destination=destination,
+        config=config,
+        persistent_state=tmp_path / "state.boltdb",
+    )
+    preview = cli.diff().run(check=True)
     assert preview.stdout
-    subprocess.run([*command, "apply"], capture_output=True, text=True, check=True)
+    cli.apply().run(check=True)
     first = target.read_bytes()
     rendered = json.loads(first)
     permissions = rendered["permissions"]
@@ -103,8 +100,8 @@ def test_apply_preserves_native_permissions_and_prompts(tool: str, tmp_path: Pat
         "sbx secret set",
     ):
         assert documented_decision(tool, selected, sample) == "ask"
-    assert not subprocess.run([*command, "diff"], capture_output=True, text=True, check=True).stdout
-    subprocess.run([*command, "apply"], capture_output=True, text=True, check=True)
+    assert not cli.diff().run(check=True).stdout
+    cli.apply().run(check=True)
     assert target.read_bytes() == first
 
 
@@ -132,30 +129,25 @@ def codex_rules(tmp_path: Path):
         (rules / name).write_text(content)
     config = tmp_path / "config.json"
     config.write_text("{}")
-    command = [
-        "chezmoi",
-        "--source",
-        str(source),
-        "--destination",
-        str(destination),
-        "--config",
-        str(config),
-        "--persistent-state",
-        str(tmp_path / "state.boltdb"),
-    ]
+    cli = ChezmoiCli(
+        source=source,
+        destination=destination,
+        config=config,
+        persistent_state=tmp_path / "state.boltdb",
+    )
 
     def apply(commands: dict[str, str] | None = None, *, empty_catalog: bool = False) -> Path:
         if empty_catalog:
             shutil.rmtree(source / ".chezmoidata")
         data = {} if empty_catalog else {"ai": {"command_policy": {"commands": commands or {}}}}
         config.write_text(json.dumps({"data": data}))
-        preview = subprocess.run([*command, "diff"], capture_output=True, text=True, check=True)
+        preview = cli.diff().run(check=True)
         assert preview.stdout
-        subprocess.run([*command, "apply"], capture_output=True, text=True, check=True)
+        cli.apply().run(check=True)
         target = rules / "dotfiles-sbx.rules"
         first = target.read_bytes()
-        assert not subprocess.run([*command, "diff"], capture_output=True, text=True, check=True).stdout
-        subprocess.run([*command, "apply"], capture_output=True, text=True, check=True)
+        assert not cli.diff().run(check=True).stdout
+        cli.apply().run(check=True)
         assert target.read_bytes() == first
         for name, content in user_files.items():
             assert (rules / name).read_text() == content

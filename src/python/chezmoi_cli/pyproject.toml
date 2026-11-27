@@ -1,0 +1,10 @@
+[project]
+name = "chezmoi-cli"
+version = "0.1.0"
+description = "Strongly typed chezmoi CLI command builder and runner"
+requires-python = ">=3.14"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

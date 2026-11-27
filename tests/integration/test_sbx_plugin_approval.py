@@ -7,21 +7,15 @@ from pathlib import Path
 
 import pytest
 
+from chezmoi_cli import ChezmoiCli
+
 ROOT = Path(__file__).resolve().parents[2]
 BUNDLE = ROOT / "src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_agent-workflows"
 SKILL = BUNDLE / "exact_skills/exact_sbx-sandboxes"
 
 
 def _render(path: Path) -> dict:
-    result = subprocess.run(
-        [
-            *("chezmoi", "--config", "/dev/null", "--config-format", "toml", "--source", str(ROOT)),
-            *("execute-template", "--file", str(path)),
-        ],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    result = ChezmoiCli(config="/dev/null", config_format="toml", source=ROOT).execute_template(file=path).run()
     assert result.returncode == 0, result.stderr
     return json.loads(result.stdout)
 

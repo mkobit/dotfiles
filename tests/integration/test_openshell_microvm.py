@@ -3,12 +3,13 @@
 import json
 import os
 import shutil
-import subprocess
 import tomllib
 from pathlib import Path
 from stat import S_IMODE
 
 import pytest
+
+from chezmoi_cli import ChezmoiCli
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 CHEZMOI_SOURCE = REPO_ROOT / "src" / "chezmoi"
@@ -33,25 +34,17 @@ def _chezmoi(
 ) -> str:
     chezmoi = shutil.which("chezmoi")
     assert chezmoi is not None
-    result = subprocess.run(
-        [
-            chezmoi,
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(source),
-            "--no-tty",
-            "--destination",
-            str(destination),
-            *args,
-        ],
-        env={**os.environ, "CI": "1", "PATH": path},
-        capture_output=True,
-        text=True,
-        check=False,
-        timeout=15,
+    result = (
+        ChezmoiCli(
+            executable=chezmoi,
+            config="/dev/null",
+            config_format="toml",
+            source=source,
+            no_tty=True,
+            destination=destination,
+        )
+        .raw(*args)
+        .run(env={**os.environ, "CI": "1", "PATH": path}, timeout=15)
     )
     assert result.returncode == 0, result.stderr
     return result.stdout

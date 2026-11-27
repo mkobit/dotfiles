@@ -6,6 +6,8 @@ from typing import Any
 
 import pytest
 
+from chezmoi_cli import ChezmoiCli
+
 
 @pytest.mark.integration
 @pytest.mark.chezmoi_installation("local.bin.agy", methods={"github_releases", "preinstalled"})
@@ -40,26 +42,10 @@ def _render_antigravity_settings(
     data: dict[str, Any] = {"local": {"bin": {"agy": {"installation_method": agy_method}}}}
     if override_data is not None:
         _deep_merge(data, override_data)
-    return subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(Path.cwd()),
-            "execute-template",
-            "-f",
-            "--with-stdin",
-            "--override-data",
-            json.dumps(data),
-            str(template),
-        ],
-        input=stdin,
-        capture_output=True,
-        check=False,
-        text=True,
+    return (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=Path.cwd())
+        .execute_template(file=template, with_stdin=True, override_data=data)
+        .run(input=stdin)
     )
 
 
@@ -142,27 +128,10 @@ def _render_antigravity_keybindings(
     override_data: dict[str, Any] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     template = Path.cwd() / "src/chezmoi/dot_gemini/antigravity-cli/modify_keybindings.json"
-    command = [
-        "chezmoi",
-        "--config",
-        "/dev/null",
-        "--config-format",
-        "toml",
-        "--source",
-        str(Path.cwd()),
-        "execute-template",
-        "-f",
-        "--with-stdin",
-    ]
-    if override_data is not None:
-        command.extend(["--override-data", json.dumps(override_data)])
-    command.append(str(template))
-    return subprocess.run(
-        command,
-        input=stdin,
-        capture_output=True,
-        check=False,
-        text=True,
+    return (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=Path.cwd())
+        .execute_template(file=template, with_stdin=True, override_data=override_data)
+        .run(input=stdin)
     )
 
 
@@ -264,56 +233,26 @@ def _render_antigravity_plugins(
     destination: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
     template = Path.cwd() / "src/chezmoi/dot_gemini/config/modify_plugins.json"
-    command = [
-        "chezmoi",
-        "--config",
-        "/dev/null",
-        "--config-format",
-        "toml",
-        "--source",
-        str(Path.cwd()),
-    ]
-    if destination is not None:
-        command.extend(["--destination", str(destination)])
-    command.extend(
-        [
-            "execute-template",
-            "-f",
-            "--with-stdin",
-            "--override-data",
-            json.dumps({"local": {"bin": {"agy": {"installation_method": agy_method}}}}),
-            str(template),
-        ]
-    )
-    return subprocess.run(
-        command,
-        input=stdin,
-        capture_output=True,
-        check=False,
-        text=True,
+    return (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=Path.cwd(), destination=destination)
+        .execute_template(
+            file=template,
+            with_stdin=True,
+            override_data={"local": {"bin": {"agy": {"installation_method": agy_method}}}},
+        )
+        .run(input=stdin)
     )
 
 
 def _render_antigravity_externals(template_name: str, agy_method: str) -> dict[str, Any]:
     template = Path.cwd() / "src/chezmoi/.chezmoiexternals" / template_name
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(Path.cwd()),
-            "execute-template",
-            "-f",
-            "--override-data",
-            json.dumps({"local": {"bin": {"agy": {"installation_method": agy_method}}}}),
-            str(template),
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
+    result = (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=Path.cwd())
+        .execute_template(
+            file=template,
+            override_data={"local": {"bin": {"agy": {"installation_method": agy_method}}}},
+        )
+        .run()
     )
     assert result.returncode == 0, result.stderr
     return tomllib.loads(result.stdout)
@@ -380,22 +319,10 @@ def test_antigravity_auto_update_disabled_in_shell_configs() -> None:
         "dot_config/environment.d/10-default-env.conf.tmpl",
     ]:
         template = Path.cwd() / "src/chezmoi" / shell_file
-        result = subprocess.run(
-            [
-                "chezmoi",
-                "--config",
-                "/dev/null",
-                "--config-format",
-                "toml",
-                "--source",
-                str(Path.cwd()),
-                "execute-template",
-                "-f",
-                str(template),
-            ],
-            capture_output=True,
-            check=False,
-            text=True,
+        result = (
+            ChezmoiCli(config="/dev/null", config_format="toml", source=Path.cwd())
+            .execute_template(file=template)
+            .run()
         )
         assert result.returncode == 0, result.stderr
         assert "AGY_CLI_DISABLE_AUTO_UPDATE=true" in result.stdout
@@ -411,24 +338,10 @@ def test_antigravity_auto_update_enabled_still_disables_native_shell_updater() -
         "dot_config/environment.d/10-default-env.conf.tmpl",
     ]:
         template = Path.cwd() / "src/chezmoi" / shell_file
-        result = subprocess.run(
-            [
-                "chezmoi",
-                "--config",
-                "/dev/null",
-                "--config-format",
-                "toml",
-                "--source",
-                str(Path.cwd()),
-                "execute-template",
-                "-f",
-                "--override-data",
-                json.dumps({"local": {"bin": {"agy": {"auto_update": True}}}}),
-                str(template),
-            ],
-            capture_output=True,
-            check=False,
-            text=True,
+        result = (
+            ChezmoiCli(config="/dev/null", config_format="toml", source=Path.cwd())
+            .execute_template(file=template, override_data={"local": {"bin": {"agy": {"auto_update": True}}}})
+            .run()
         )
         assert result.returncode == 0, result.stderr
         assert "AGY_CLI_DISABLE_AUTO_UPDATE=true" in result.stdout

@@ -9,7 +9,8 @@ import time
 from pathlib import Path
 
 import pytest
-from integration_support.chezmoi import chezmoi_argv, run_chezmoi
+
+from chezmoi_cli import ChezmoiCli
 
 SOURCE = Path("src/chezmoi/dot_dotfiles/hammerspoon")
 pytestmark = pytest.mark.skipif(sys.platform != "darwin", reason="Hammerspoon requires macOS")
@@ -36,20 +37,12 @@ def test_rendered_hammerspoon_config_loads():
         config_dir = target / ".dotfiles/hammerspoon"
         shutil.copytree(SOURCE, config_dir)
         rendered = asyncio.run(
-            run_chezmoi(
-                chezmoi_argv(
-                    "--config-format",
-                    "toml",
-                    "execute-template",
-                    "-f",
-                    "--override-data",
-                    json.dumps({"hammerspoon": {"window_manager": {"enabled": False}}}),
-                    str(SOURCE / "config.lua.tmpl"),
-                    source=target,
-                    destination=target,
-                    config="/dev/null",
-                )
+            ChezmoiCli(source=target, destination=target, config="/dev/null", config_format="toml")
+            .execute_template(
+                file=SOURCE / "config.lua.tmpl",
+                override_data={"hammerspoon": {"window_manager": {"enabled": False}}},
             )
+            .run_async()
         )
         assert rendered.returncode == 0, rendered.stderr
         (config_dir / "config.lua").write_text(rendered.stdout)

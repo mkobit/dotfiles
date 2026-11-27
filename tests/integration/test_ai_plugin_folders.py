@@ -3,11 +3,10 @@
 import json
 import re
 import shutil
-import subprocess
 import tomllib
 from pathlib import Path
 
-from integration_support.chezmoi import chezmoi_argv
+from chezmoi_cli import ChezmoiCli
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
 SOURCE_ROOT = REPOSITORY_ROOT / "src/chezmoi"
@@ -128,19 +127,17 @@ def _config(config: Path, beta: str = "", extra: str = "") -> None:
 
 
 def _chezmoi(source: Path, destination: Path, config: Path, *args: str) -> str:
-    result = subprocess.run(
-        chezmoi_argv(
-            "--no-tty",
-            *args,
+    result = (
+        ChezmoiCli(
             source=source,
             destination=destination,
             config=config,
             cache=destination.parent / "cache",
-            state=destination.parent / "state.boltdb",
-        ),
-        capture_output=True,
-        check=False,
-        text=True,
+            persistent_state=destination.parent / "state.boltdb",
+            no_tty=True,
+        )
+        .raw(*args)
+        .run()
     )
     assert result.returncode == 0, result.stderr
     return result.stdout

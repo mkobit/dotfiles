@@ -9,7 +9,8 @@ from pathlib import Path
 
 import pytest
 from chezmoi_test_data import installation_method
-from integration_support.chezmoi import chezmoi_argv
+
+from chezmoi_cli import ChezmoiCli
 
 SOURCE = Path(__file__).resolve().parents[2] / "src/chezmoi"
 EXTERNAL = Path("dot_local/share/gh-managed/.chezmoiexternals/extensions.toml.tmpl")
@@ -75,14 +76,15 @@ class ExtensionCase:
 
     def cm(self, *args):
         return self.run(
-            chezmoi_argv(
-                *args,
+            ChezmoiCli(
                 source=self.source,
                 destination=self.destination,
                 config=self.config,
                 cache=self.cache,
-                state=self.state,
+                persistent_state=self.state,
             )
+            .raw(*args)
+            .argv
         )
 
     def gh(self, *args, **kwargs):

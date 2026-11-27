@@ -1,8 +1,6 @@
 import json
 import os
 import re
-import shlex
-import subprocess
 from collections.abc import Callable, Iterable, Sequence
 from functools import cache
 from heapq import nlargest
@@ -12,9 +10,10 @@ from typing import TypedDict, cast
 
 import pytest
 from chezmoi_test_data import required_installation_method
-from integration_support.chezmoi import chezmoi_argv
 from testinfra.host import Host
 from testinfra.modules.user import User
+
+from chezmoi_cli import ChezmoiCli, ChezmoiSubcommand, Data, RawCommand, TargetPath
 
 
 def pytest_configure(config: pytest.Config) -> None:
@@ -72,9 +71,8 @@ def skip_unmatched_chezmoi_installation(request: pytest.FixtureRequest) -> None:
         pytest.skip(f"{feature}.installation_method is {active_method!r}; expected one of: {allowed}")
 
 
-def _deployed_chezmoi_argv(*args: str) -> Sequence[str]:
-    return chezmoi_argv(
-        *args,
+def _deployed_chezmoi() -> ChezmoiCli:
+    return ChezmoiCli(
         source=Path.cwd(),
         cache=os.environ.get("CHEZMOI_CACHE_DIR") or None,
         config=os.environ.get("CHEZMOI_CONFIG") or None,
@@ -82,8 +80,13 @@ def _deployed_chezmoi_argv(*args: str) -> Sequence[str]:
     )
 
 
-def _chezmoi_command(*args: str) -> str:
-    return shlex.join(_deployed_chezmoi_argv(*args))
+def _deployed_chezmoi_argv(*args: str) -> Sequence[str]:
+    return list(_deployed_chezmoi().raw(*args).argv)
+
+
+def _chezmoi_command(*args: str, subcommand: ChezmoiSubcommand | None = None) -> str:
+    cli = _deployed_chezmoi()
+    return cli.command(subcommand if subcommand is not None else RawCommand(args=args)).shell
 
 
 # chezmoi's documented attribute order for regular/create files is
@@ -104,21 +107,12 @@ class _ShellcheckCandidate(TypedDict):
 
 
 def _shellcheck_candidates() -> list[_ShellcheckCandidate]:
+    cli = _deployed_chezmoi()
     scripts: dict[str, _ShellcheckCandidate] = json.loads(
-        subprocess.run(
-            _deployed_chezmoi_argv("managed", "--include=scripts", "--format=json", "--path-style=all"),
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
+        cli.managed(include="scripts", format="json", path_style="all").run(check=True).stdout
     )
     files: dict[str, _ShellcheckCandidate] = json.loads(
-        subprocess.run(
-            _deployed_chezmoi_argv("managed", "--include=files", "--format=json", "--path-style=all"),
-            capture_output=True,
-            text=True,
-            check=True,
-        ).stdout
+        cli.managed(include="files", format="json", path_style="all").run(check=True).stdout
     )
 
     candidates = list(scripts.values())
@@ -134,12 +128,7 @@ def _chezmoi_source_path(repository: Path) -> Path:
     Pytest always runs from the repo root, so that's the --source to resolve
     against; a plain local subprocess call, not host.run, since this is a
     question about the checkout on this machine, not the deployed target."""
-    result = subprocess.run(
-        chezmoi_argv("source-path", source=repository),
-        capture_output=True,
-        text=True,
-        check=True,
-    )
+    result = ChezmoiCli(source=repository).source_path().run(check=True)
     return Path(result.stdout.strip())
 
 
@@ -148,7 +137,7 @@ def chezmoi_data(host: Host) -> dict[str, object]:
     """Return rendered chezmoi data from the initialized test environment.
     Module-scoped: the underlying `host` fixture (pytest-testinfra) is itself
     module-scoped, so session scope would raise a ScopeMismatch."""
-    result = host.run(_chezmoi_command("data", "--format=json"))
+    result = host.run(_chezmoi_command(subcommand=Data(format="json")))
     assert result.rc == 0, f"chezmoi data failed.\nstderr: {result.stderr}\nstdout: {result.stdout}"
     return json.loads(result.stdout)
 
@@ -169,7 +158,7 @@ def repo_root(chezmoi_source_root: Path) -> Path:
 def chezmoi_dest(host: Host) -> Path:
     """Return the absolute path to the chezmoi destination (usually $HOME).
     Module-scoped to match `host`'s scope; see chezmoi_data for why."""
-    result = host.run(_chezmoi_command("target-path"))
+    result = host.run(_chezmoi_command(subcommand=TargetPath()))
     if result.rc == 0:
         return Path(result.stdout.strip())
     # Testinfra's dynamic module loader types host.user() as the base Module.

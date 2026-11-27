@@ -1,4 +1,3 @@
-import json
 import os
 import re
 import shutil
@@ -9,6 +8,8 @@ from pathlib import Path
 import pytest
 import yaml
 from chezmoi_test_data import installation_method
+
+from chezmoi_cli import ChezmoiCli
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 CHEZMOI_SOURCE = REPO_ROOT / "src" / "chezmoi"
@@ -101,28 +102,16 @@ def test_openshell_init_selects_supported_installation(
     assert chezmoi is not None
     config = tmp_path / "config.toml"
     platform = {"chezmoi": {"os": system, "arch": arch}}
-    initialized = subprocess.run(
-        [
-            chezmoi,
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPO_ROOT),
-            "--destination",
-            str(tmp_path),
-            "execute-template",
-            "--init",
-            "--override-data",
-            json.dumps(platform),
-            "--file",
-            str(CHEZMOI_SOURCE / ".chezmoi.toml.tmpl"),
-        ],
-        env={**os.environ, "CI": "1", "PATH": f"{tmp_path}:{os.defpath}"},
-        capture_output=True,
-        text=True,
-        check=True,
+    initialized = (
+        ChezmoiCli(
+            executable=chezmoi,
+            config="/dev/null",
+            config_format="toml",
+            source=REPO_ROOT,
+            destination=tmp_path,
+        )
+        .execute_template(file=CHEZMOI_SOURCE / ".chezmoi.toml.tmpl", init=True, override_data=platform)
+        .run(env={**os.environ, "CI": "1", "PATH": f"{tmp_path}:{os.defpath}"}, check=True)
     )
     config.write_text(initialized.stdout, encoding="utf-8")
     data = tomllib.loads(initialized.stdout)["data"]
@@ -130,24 +119,10 @@ def test_openshell_init_selects_supported_installation(
 
     def render(template_path: Path, extra_override: dict | None = None) -> str:
         override = {**platform, **(extra_override or {})}
-        result = subprocess.run(
-            [
-                chezmoi,
-                "--config",
-                str(config),
-                "--source",
-                str(REPO_ROOT),
-                "--destination",
-                str(tmp_path),
-                "execute-template",
-                "--override-data",
-                json.dumps(override),
-                "--file",
-                str(template_path),
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
+        result = (
+            ChezmoiCli(executable=chezmoi, config=config, source=REPO_ROOT, destination=tmp_path)
+            .execute_template(file=template_path, override_data=override)
+            .run(check=True)
         )
         return result.stdout
 
@@ -173,25 +148,10 @@ def _render_template(
     override_data: dict,
     destination: Path | None = None,
 ) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(REPO_ROOT),
-            *(["--destination", str(destination)] if destination is not None else []),
-            "execute-template",
-            "--file",
-            "--override-data",
-            json.dumps(override_data),
-            str(template_path),
-        ],
-        capture_output=True,
-        check=False,
-        text=True,
+    return (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=REPO_ROOT, destination=destination)
+        .execute_template(file=template_path, override_data=override_data)
+        .run()
     )
 
 

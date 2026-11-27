@@ -1,8 +1,9 @@
 import json
 import shutil
-import subprocess
 
 import pytest
+
+from chezmoi_cli import ChezmoiCli
 
 
 @pytest.mark.parametrize("ignores", [None, [], ["zebra/", "*.swp", ".worktrees/"], ["*.log", "!important.log"]])
@@ -19,22 +20,16 @@ def test_git_global_ignores_apply(tmp_path, chezmoi_source_root, ignores):
     config = tmp_path / "chezmoi.json"
     data = {} if ignores is None else {"git": {"global_ignores": ignores}}
     config.write_text(json.dumps({"data": data}))
-    command = [
-        "chezmoi",
-        "--source",
-        str(source),
-        "--destination",
-        str(dest),
-        "--config",
-        str(config),
-        "--persistent-state",
-        str(tmp_path / "state.boltdb"),
-        "--cache",
-        str(tmp_path / "cache"),
-        "--no-tty",
-    ]
+    cli = ChezmoiCli(
+        source=source,
+        destination=dest,
+        config=config,
+        persistent_state=tmp_path / "state.boltdb",
+        cache=tmp_path / "cache",
+        no_tty=True,
+    )
 
-    subprocess.run([*command, "apply", "--force"], capture_output=True, text=True, check=True)
+    cli.apply(force=True).run(check=True)
 
     if ignores:
         assert target.read_text().splitlines() == [

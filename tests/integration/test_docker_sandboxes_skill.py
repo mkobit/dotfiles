@@ -10,6 +10,8 @@ import pytest
 import yaml
 from test_sbx_command_policy import native_codex_decision
 
+from chezmoi_cli import ChezmoiCli
+
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 SKILLS_SOURCE = (
     REPO_ROOT / "src/chezmoi/dot_local/share/agent-plugins/marketplace/exact_plugins/exact_agent-workflows/exact_skills"
@@ -54,32 +56,19 @@ def deployed_setup_skills(tmp_path_factory: pytest.TempPathFactory):
     )
     destination = tmp_path / "destination"
     (destination / DEPLOYED_SKILLS).mkdir(parents=True)
-    command = [
-        "chezmoi",
-        "--source",
-        str(source),
-        "--destination",
-        str(destination),
-        "--config",
-        str(tmp_path / "config.toml"),
-        "--cache",
-        str(tmp_path / "cache"),
-        "--persistent-state",
-        str(tmp_path / "state.boltdb"),
-        "--no-tty",
-    ]
+    cli = ChezmoiCli(
+        source=source,
+        destination=destination,
+        config=tmp_path / "config.toml",
+        cache=tmp_path / "cache",
+        persistent_state=tmp_path / "state.boltdb",
+        no_tty=True,
+    )
 
     def chezmoi(*arguments: str) -> str:
         exclusions = ["--exclude=scripts,externals"] if arguments[0] in {"managed", "diff", "apply"} else []
         recursive = ["--recursive"] if arguments[0] == "diff" else []
-        result = subprocess.run(
-            [*command, *arguments, *exclusions, *recursive],
-            env={**os.environ, "CI": "1"},
-            capture_output=True,
-            check=False,
-            text=True,
-            timeout=60,
-        )
+        result = cli.raw(*arguments, *exclusions, *recursive).run(env={**os.environ, "CI": "1"}, timeout=60)
         assert result.returncode == 0, result.stderr
         return result.stdout
 

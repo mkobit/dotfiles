@@ -2,10 +2,11 @@
 
 import json
 import shutil
-import subprocess
 from pathlib import Path
 
 import pytest
+
+from chezmoi_cli import ChezmoiCli
 
 ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = {
@@ -85,26 +86,14 @@ def _render(tool: str, live: dict | None = None, override: dict | None = None, s
     data = {"local": {"bin": {"agy": {"installation_method": "preinstalled"}}}}
     if override:
         data.update(override)
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            "/dev/null",
-            "--config-format",
-            "toml",
-            "--source",
-            str(source),
-            "execute-template",
-            "-f",
-            "--with-stdin",
-            "--override-data",
-            json.dumps(data),
-            str(source / TEMPLATES[tool].relative_to(ROOT)),
-        ],
-        input=json.dumps(live or {}),
-        capture_output=True,
-        text=True,
-        check=False,
+    result = (
+        ChezmoiCli(config="/dev/null", config_format="toml", source=source)
+        .execute_template(
+            file=source / TEMPLATES[tool].relative_to(ROOT),
+            with_stdin=True,
+            override_data=data,
+        )
+        .run(input=json.dumps(live or {}))
     )
     assert result.returncode == 0, result.stderr
     return json.loads(result.stdout)

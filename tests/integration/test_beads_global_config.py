@@ -1,8 +1,9 @@
 import json
 import shutil
-import subprocess
 
 import pytest
+
+from chezmoi_cli import ChezmoiCli
 
 
 def _beads_config(tmp_path, chezmoi_source_root):
@@ -16,38 +17,32 @@ def _beads_config(tmp_path, chezmoi_source_root):
     target = dest / ".config/bd/config.yaml"
     target.parent.mkdir(parents=True)
     config = tmp_path / "chezmoi.json"
-    command = [
-        "chezmoi",
-        "--source",
-        str(source),
-        "--destination",
-        str(dest),
-        "--config",
-        str(config),
-        "--persistent-state",
-        str(tmp_path / "state.boltdb"),
-        "--cache",
-        str(tmp_path / "cache"),
-        "--no-tty",
-    ]
-    return config, target, command
+    cli = ChezmoiCli(
+        source=source,
+        destination=dest,
+        config=config,
+        persistent_state=tmp_path / "state.boltdb",
+        cache=tmp_path / "cache",
+        no_tty=True,
+    )
+    return config, target, cli
 
 
 @pytest.mark.parametrize("data", [{}, {"beads": {"global": {"config": {}}}}])
 def test_beads_global_config_empty_deletes_existing_file(tmp_path, chezmoi_source_root, data):
-    config, target, command = _beads_config(tmp_path, chezmoi_source_root)
+    config, target, cli = _beads_config(tmp_path, chezmoi_source_root)
     config.write_text(json.dumps({"data": data}))
     target.write_text("unmanaged: stale\n")
 
-    diff = subprocess.run([*command, "diff", str(target)], capture_output=True, text=True, check=True)
+    diff = cli.diff(target).run(check=True)
     assert "-unmanaged: stale" in diff.stdout
-    subprocess.run([*command, "apply", "--force", str(target)], capture_output=True, text=True, check=True)
+    cli.apply(target, force=True).run(check=True)
 
     assert not target.exists()
 
 
 def test_beads_global_config_applies_arbitrary_overlay_keys(tmp_path, chezmoi_source_root):
-    config, target, command = _beads_config(tmp_path, chezmoi_source_root)
+    config, target, cli = _beads_config(tmp_path, chezmoi_source_root)
     config.write_text(
         json.dumps(
             {
@@ -68,14 +63,14 @@ def test_beads_global_config_applies_arbitrary_overlay_keys(tmp_path, chezmoi_so
     )
     target.write_text("stale: true\n")
 
-    diff = subprocess.run([*command, "diff", str(target)], capture_output=True, text=True, check=True)
+    diff = cli.diff(target).run(check=True)
     assert "-stale: true" in diff.stdout
-    subprocess.run([*command, "apply", "--force", str(target)], capture_output=True, text=True, check=True)
+    cli.apply(target, force=True).run(check=True)
 
     assert target.stat().st_mode & 0o777 == 0o600
     assert target.read_text() == (
         'array:\n- a: 1\n  z: 2\n- last\n- first\ndolt:\n  auto-commit: "on"\n  auto-push: true\n'
         "no-git-ops: false\nzebra:\n  a: 1\n  z: 2\n"
     )
-    diff = subprocess.run([*command, "diff", str(target)], capture_output=True, text=True, check=True)
+    diff = cli.diff(target).run(check=True)
     assert diff.stdout == ""

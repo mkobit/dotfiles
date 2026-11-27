@@ -11,8 +11,8 @@ import tomllib
 from pathlib import Path
 
 import pytest
-from integration_support.chezmoi import chezmoi_argv
 
+from chezmoi_cli import ChezmoiCli
 from skill_filter import plugin_bridge
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[2]
@@ -42,20 +42,17 @@ EGM_ARCHIVE_CONTENTS = {
 
 
 def _apply(source: Path, destination: Path, config: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        chezmoi_argv(
-            "--refresh-externals=always",
-            "apply",
+    return (
+        ChezmoiCli(
             source=source,
             destination=destination,
             config=config,
             cache=destination.parent / "cache",
-            state=destination.parent / "state.boltdb",
-        ),
-        capture_output=True,
-        check=False,
-        cwd=destination.parent,
-        text=True,
+            persistent_state=destination.parent / "state.boltdb",
+            refresh_externals="always",
+        )
+        .apply()
+        .run(cwd=destination.parent)
     )
 
 
@@ -138,17 +135,10 @@ def test_egm_gate_controls_complete_package_and_host_registrations(tmp_path, met
             declared_source = marketplace["plugins"][0]["source"]
             path = declared_source["path"] if isinstance(declared_source, dict) else declared_source
             assert path == "./plugins/egm"
-    rendered = subprocess.run(
-        chezmoi_argv(
-            "execute-template",
-            '{{ includeTemplate "ai/plugin-bridge" . }}',
-            source=source,
-            destination=destination,
-            config=config,
-        ),
-        capture_output=True,
-        check=False,
-        text=True,
+    rendered = (
+        ChezmoiCli(source=source, destination=destination, config=config)
+        .execute_template('{{ includeTemplate "ai/plugin-bridge" . }}')
+        .run()
     )
     assert rendered.returncode == 0, rendered.stderr
     bridge = json.loads(rendered.stdout)
@@ -198,18 +188,10 @@ def test_base_init_selects_upstream_plugins(tmp_path):
     destination.mkdir()
     config = tmp_path / "chezmoi.toml"
     shutil.copy2(SOURCE_ROOT / ".chezmoi.toml.tmpl", source / ".chezmoi.toml.tmpl")
-    rendered = subprocess.run(
-        chezmoi_argv(
-            "--no-tty",
-            "init",
-            source=source,
-            destination=destination,
-            config=config,
-        ),
-        env={**os.environ, "CI": "true"},
-        capture_output=True,
-        check=False,
-        text=True,
+    rendered = (
+        ChezmoiCli(source=source, destination=destination, config=config, no_tty=True)
+        .init()
+        .run(env={**os.environ, "CI": "true"})
     )
     assert rendered.returncode == 0, rendered.stderr
     plugins = tomllib.loads(config.read_text())["data"]["ai"]["plugins"]
@@ -234,18 +216,16 @@ hosts = ["claude", "codex"]
 """)
 
     def chezmoi(*args: str) -> str:
-        result = subprocess.run(
-            chezmoi_argv(
-                *args,
+        result = (
+            ChezmoiCli(
                 source=source,
                 destination=destination,
                 config=config,
                 cache=tmp_path / "cache",
-                state=tmp_path / "state.boltdb",
-            ),
-            capture_output=True,
-            check=False,
-            text=True,
+                persistent_state=tmp_path / "state.boltdb",
+            )
+            .raw(*args)
+            .run()
         )
         assert result.returncode == 0, result.stderr
         return result.stdout

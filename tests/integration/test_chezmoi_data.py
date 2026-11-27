@@ -1,5 +1,4 @@
 import os
-import subprocess
 import sys
 import tomllib
 from pathlib import Path
@@ -12,6 +11,8 @@ from chezmoi_test_data import (
     required_installation_method,
 )
 
+from chezmoi_cli import ChezmoiCli
+
 
 @pytest.mark.parametrize("github_actions", ["true", "false", ""])
 def test_ghostty_installation_matches_runner_environment(tmp_path, github_actions):
@@ -21,28 +22,17 @@ def test_ghostty_installation_matches_runner_environment(tmp_path, github_action
     source.mkdir()
     (source / ".chezmoi.toml.tmpl").write_text(template.read_text())
     config = tmp_path / "chezmoi.toml"
-    result = subprocess.run(
-        [
-            "chezmoi",
-            "--config",
-            str(config),
-            "--config-format",
-            "toml",
-            "--source",
-            str(source),
-            "--destination",
-            str(tmp_path / "dest"),
-            "--cache",
-            str(tmp_path / "cache"),
-            "--persistent-state",
-            str(tmp_path / "state.db"),
-            "init",
-            "--no-tty",
-        ],
-        env={**os.environ, "CI": "true", "GITHUB_ACTIONS": github_actions},
-        capture_output=True,
-        text=True,
-        check=False,
+    result = (
+        ChezmoiCli(
+            config=config,
+            config_format="toml",
+            source=source,
+            destination=tmp_path / "dest",
+            cache=tmp_path / "cache",
+            persistent_state=tmp_path / "state.db",
+        )
+        .init(no_tty=True)
+        .run(env={**os.environ, "CI": "true", "GITHUB_ACTIONS": github_actions})
     )
     assert result.returncode == 0, result.stderr
     data = tomllib.loads(config.read_text())["data"]
