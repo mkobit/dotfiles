@@ -16,7 +16,6 @@ workflows:
         - 'jdx/mise-action@8008c3f4db491fde6fd6d72dc97fbdb752dac949'
         - 'mikepenz/action-junit-report@v6.7.0'
     '.github/workflows/openshell-image.yml':
-        - 'actions/cache@v6.1.0'
         - 'actions/checkout@v7.0.1'
         - 'jdx/mise-action@8008c3f4db491fde6fd6d72dc97fbdb752dac949'
     '.github/workflows/verify-lockfile.yml':

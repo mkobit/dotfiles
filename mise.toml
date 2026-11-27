@@ -84,16 +84,7 @@ run = "git archive HEAD | docker build --check --file src/openshell/images/share
 [tasks."openshell:build"]
 description = "Build OpenShell shared sandbox image from tracked files"
 shell = "bash -euo pipefail -c"
-run = """
-args=(buildx build --load --platform linux/amd64 --file src/openshell/images/shared/Dockerfile --tag dotfiles-openshell-sandbox:ci)
-if [[ -n "${OPENSHELL_BUILD_CACHE_FROM:-}" && -d "${OPENSHELL_BUILD_CACHE_FROM}" ]]; then
-  args+=(--cache-from "type=local,src=${OPENSHELL_BUILD_CACHE_FROM}")
-fi
-if [[ -n "${OPENSHELL_BUILD_CACHE_TO:-}" ]]; then
-  args+=(--cache-to "type=local,dest=${OPENSHELL_BUILD_CACHE_TO},mode=max")
-fi
-git archive --format=tar HEAD | docker "${args[@]}" -
-"""
+run = "git archive --format=tar HEAD | docker build --platform linux/amd64 --file src/openshell/images/shared/Dockerfile --tag dotfiles-openshell-sandbox:ci -"
 
 [tasks."openshell:smoke-test"]
 description = "Smoke-test the OpenShell shared sandbox image"

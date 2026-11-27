@@ -12,7 +12,7 @@ def test_mise_cache_key_is_shared_and_tracks_tool_inputs():
     step = workflow.split("      - name: Cache mise data\n", 1)[1].split("\n      - name:", 1)[0]
     expected_key = (
         "key: mise-data-v1-${{ runner.os }}-${{ runner.arch }}-"
-        "${{ hashFiles('mise.toml', 'mise.lock', 'src/chezmoi/.chezmoidata/bin/mise.toml', "
+        "${{ hashFiles('mise.lock', 'src/chezmoi/.chezmoidata/bin/mise.toml', "
         "'src/chezmoi/.chezmoi.toml.tmpl') }}"
     )
     assert expected_key in step
