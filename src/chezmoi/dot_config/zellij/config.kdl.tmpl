@@ -87,8 +87,10 @@ load_plugins {
 {{- end }}
 }
 
+{{- $webClient := dig "web_client" (dict) .zellij }}
 web_client {
-    font "monospace"
+    font {{ includeTemplate "kdl/value" (dig "font" "monospace" $webClient) }}
+    font_size {{ includeTemplate "kdl/value" (dig "font_size" 14 $webClient) }}
 }
 
 // https://zellij.dev/documentation/options#simplified_ui
