@@ -58,3 +58,7 @@ In Termux over SSH, swipe horizontally across the extra keys row above the keybo
 - [Tailscale Serve](https://tailscale.com/docs/reference/tailscale-cli/serve)
 - [Tailscale Funnel](https://tailscale.com/docs/reference/tailscale-cli/funnel)
 - [WSL networking](https://learn.microsoft.com/windows/wsl/networking)
+- [Zellij Android web client typing (#4423)](https://github.com/zellij-org/zellij/issues/4423)
+- [Zellij web client IME repeat (#4974)](https://github.com/zellij-org/zellij/issues/4974)
+- [xterm.js mobile predictive keyboard (#2403)](https://github.com/xtermjs/xterm.js/issues/2403)
+- [xterm.js Android Chrome typing (#3600)](https://github.com/xtermjs/xterm.js/issues/3600)
