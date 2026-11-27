@@ -35,6 +35,7 @@ _KNOWN_BENIGN_ZSH_WARNINGS = (
 
 
 @pytest.mark.integration
+@pytest.mark.xdist_group("zsh_interactive")
 def test_zsh_initialization(host):
     """Verify that zsh initializes without errors."""
 
@@ -61,6 +62,7 @@ def test_zsh_initialization(host):
 
 
 @pytest.mark.integration
+@pytest.mark.xdist_group("zsh_interactive")
 def test_zsh_interactive_login_loads_cleanly(host):
     """Verify that a zsh interactive login shell sources config without errors."""
     result = host.run("zsh -i -l -c 'exit'")

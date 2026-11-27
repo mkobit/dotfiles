@@ -26,6 +26,7 @@ def test_zellij_config_valid(host):
 
 
 @pytest.mark.integration
+@pytest.mark.xdist_group("zsh_interactive")
 def test_zellij_osc7_precmd_registered(host):
     """Verify _zellij_report_cwd is defined and registered in precmd_functions."""
     result = host.run("zsh -i -l -c 'print ${precmd_functions[@]}'")
@@ -34,6 +35,7 @@ def test_zellij_osc7_precmd_registered(host):
 
 
 @pytest.mark.integration
+@pytest.mark.xdist_group("zsh_interactive")
 def test_zellij_osc7_emits_sequence(host):
     """Verify _zellij_report_cwd emits a valid OSC 7 working-directory sequence."""
     result = host.run("zsh -i -l -c '_zellij_report_cwd'")

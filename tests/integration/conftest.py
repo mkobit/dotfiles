@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import tempfile
 from collections.abc import Callable, Iterable, Sequence
 from functools import cache
 from heapq import nlargest
@@ -22,6 +23,31 @@ def pytest_configure(config: pytest.Config) -> None:
         "markers",
         "chezmoi_installation(feature, methods): run only when feature installation_method is in methods.",
     )
+    if not hasattr(config, "workerinput") and config.getoption("numprocesses", default=None):
+        cache_path = Path(tempfile.gettempdir()) / f"dotfiles-shellcheck-candidates-{os.getpid()}.json"
+        _write_shellcheck_cache(cache_path, _compute_shellcheck_candidates())
+        os.environ["_DOTFILES_SHELLCHECK_CACHE"] = str(cache_path)
+
+
+def pytest_unconfigure(config: pytest.Config) -> None:
+    if not hasattr(config, "workerinput"):
+        cache_file = os.environ.pop("_DOTFILES_SHELLCHECK_CACHE", None)
+        if cache_file is not None:
+            Path(cache_file).unlink(missing_ok=True)
+
+
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    if getattr(config, "workerinput", None) is None or not config.getvalue("loadgroup"):
+        return
+    # Work around pytest 9.2 + pytest-xdist 3.8: xdist sets item._nodeid,
+    # whereas pytest 9.2's Item.nodeid property reads str(item._id).
+    from _pytest.nodes import coerce_node_id  # noqa: PLC0415
+
+    for item in items:
+        legacy_nodeid = getattr(item, "_nodeid", None)
+        if isinstance(legacy_nodeid, str) and legacy_nodeid != item.nodeid:
+            item._id = coerce_node_id(legacy_nodeid)
 
 
 def pytest_terminal_summary(terminalreporter: pytest.TerminalReporter) -> None:
@@ -111,7 +137,7 @@ class _ShellcheckCandidate(TypedDict):
     sourceRelative: str
 
 
-def _shellcheck_candidates() -> list[_ShellcheckCandidate]:
+def _compute_shellcheck_candidates() -> list[_ShellcheckCandidate]:
     cli = _deployed_chezmoi()
     entries: dict[str, _ShellcheckCandidate] = json.loads(
         cli.managed(include=("scripts", "files"), exclude="externals", format="json", path_style="all")
@@ -125,6 +151,27 @@ def _shellcheck_candidates() -> list[_ShellcheckCandidate]:
         if _is_shellcheck_candidate_entry(entry["sourceRelative"]) and Path(entry["sourceAbsolute"]).is_file()
     ]
     return sorted(on_disk, key=lambda entry: entry["sourceRelative"])
+
+
+def _write_shellcheck_cache(cache_path: Path, candidates: list[_ShellcheckCandidate]) -> None:
+    fd, tmp_name = tempfile.mkstemp(dir=cache_path.parent, prefix=f".{cache_path.name}.")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as output:
+            json.dump(candidates, output)
+        os.replace(tmp_name, cache_path)
+    except BaseException:
+        Path(tmp_name).unlink(missing_ok=True)
+        raise
+
+
+@cache
+def _shellcheck_candidates() -> list[_ShellcheckCandidate]:
+    cache_file = os.environ.get("_DOTFILES_SHELLCHECK_CACHE")
+    if cache_file is not None:
+        cache_path = Path(cache_file)
+        if cache_path.is_file():
+            return cast(list[_ShellcheckCandidate], json.loads(cache_path.read_text(encoding="utf-8")))
+    return _compute_shellcheck_candidates()
 
 
 @cache
