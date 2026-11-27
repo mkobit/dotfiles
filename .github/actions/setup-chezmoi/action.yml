@@ -19,15 +19,44 @@ runs:
         INSTALL_DIR: ${{ inputs.install-dir }}
       run: |
         set -euo pipefail
+        version="${CHEZMOI_VERSION#v}"
+        case "${RUNNER_OS:-$(uname -s)}" in
+          Linux) os=linux ;;
+          macOS|Darwin) os=darwin ;;
+          *) echo "Unsupported OS: ${RUNNER_OS:-$(uname -s)}" >&2; exit 1 ;;
+        esac
+        case "${RUNNER_ARCH:-$(uname -m)}" in
+          X64|x86_64|amd64) arch=amd64 ;;
+          ARM64|arm64|aarch64) arch=arm64 ;;
+          *) echo "Unsupported arch: ${RUNNER_ARCH:-$(uname -m)}" >&2; exit 1 ;;
+        esac
+
+        tarball="chezmoi_${version}_${os}_${arch}.tar.gz"
+        checksums="chezmoi_${version}_checksums.txt"
+        base_url="https://github.com/twpayne/chezmoi/releases/download/${CHEZMOI_VERSION}"
+
+        tmpdir=$(mktemp -d)
+        trap 'rm -rf -- "$tmpdir"' EXIT
+
+        curl --retry 5 -fsSL -o "$tmpdir/$tarball" "$base_url/$tarball"
+        curl --retry 5 -fsSL -o "$tmpdir/$checksums" "$base_url/$checksums"
+
+        expected_sha=$(awk -v file="$tarball" '$2 == file { print $1 }' "$tmpdir/$checksums")
+        if [[ -z "$expected_sha" ]]; then
+          echo "Checksum entry not found for $tarball" >&2
+          exit 1
+        fi
+        if command -v sha256sum >/dev/null 2>&1; then
+          actual_sha=$(sha256sum "$tmpdir/$tarball" | awk '{ print $1 }')
+        else
+          actual_sha=$(shasum -a 256 "$tmpdir/$tarball" | awk '{ print $1 }')
+        fi
+        if [[ "$actual_sha" != "$expected_sha" ]]; then
+          echo "Checksum mismatch for $tarball: expected $expected_sha, got $actual_sha" >&2
+          exit 1
+        fi
+
         mkdir -p "$INSTALL_DIR"
-        for attempt in 1 2 3 4 5; do
-          if sh -c "$(curl --retry 5 -fsLS "https://raw.githubusercontent.com/twpayne/chezmoi/${CHEZMOI_VERSION}/assets/scripts/install.sh")" -- -b "$INSTALL_DIR" -t "$CHEZMOI_VERSION"; then
-            echo "$INSTALL_DIR" >> "$GITHUB_PATH"
-            exit 0
-          fi
-          echo "::warning::chezmoi install attempt $attempt failed"
-          if [[ "$attempt" -lt 5 ]]; then
-            sleep $((5 * attempt))
-          fi
-        done
-        exit 1
+        tar -xzf "$tmpdir/$tarball" -C "$INSTALL_DIR" chezmoi
+        chmod +x "$INSTALL_DIR/chezmoi"
+        echo "$INSTALL_DIR" >> "$GITHUB_PATH"
