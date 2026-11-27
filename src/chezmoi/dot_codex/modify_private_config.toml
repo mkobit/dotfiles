@@ -45,7 +45,9 @@
 {{- if $matches -}}
 {{-   .chezmoi.stdin -}}
 {{- else -}}
-{{-   warnf "Codex managed settings changed; rewriting config.toml may canonicalize formatting" -}}
+{{-   if .chezmoi.stdin -}}
+{{-     warnf "Codex managed settings changed; rewriting config.toml may canonicalize formatting" -}}
+{{-   end -}}
 {{-   $config = $config | setValueAtPath "tui.vim_mode_default" $vimModeDefault -}}
 {{-   $config = $config | setValueAtPath "tui.status_line" $statusLine -}}
 {{-   $config = $config | setValueAtPath "tui.status_line_use_colors" $statusLineUseColors -}}
