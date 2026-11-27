@@ -101,6 +101,11 @@ def _is_shellcheck_candidate_file(source_relative: str) -> bool:
     return name.startswith("modify_") or bool(_EXECUTABLE_FILE_ATTRS_RE.match(name))
 
 
+def _is_shellcheck_candidate_entry(source_relative: str) -> bool:
+    name = Path(source_relative).name
+    return name.startswith("run_") or _is_shellcheck_candidate_file(source_relative)
+
+
 class _ShellcheckCandidate(TypedDict):
     sourceAbsolute: str
     sourceRelative: str
@@ -108,17 +113,17 @@ class _ShellcheckCandidate(TypedDict):
 
 def _shellcheck_candidates() -> list[_ShellcheckCandidate]:
     cli = _deployed_chezmoi()
-    scripts: dict[str, _ShellcheckCandidate] = json.loads(
-        cli.managed(include="scripts", format="json", path_style="all").run(check=True).stdout
-    )
-    files: dict[str, _ShellcheckCandidate] = json.loads(
-        cli.managed(include="files", format="json", path_style="all").run(check=True).stdout
+    entries: dict[str, _ShellcheckCandidate] = json.loads(
+        cli.managed(include=("scripts", "files"), exclude="externals", format="json", path_style="all")
+        .run(check=True)
+        .stdout
     )
 
-    candidates = list(scripts.values())
-    candidates.extend(entry for entry in files.values() if _is_shellcheck_candidate_file(entry["sourceRelative"]))
-
-    on_disk = [entry for entry in candidates if Path(entry["sourceAbsolute"]).is_file()]
+    on_disk = [
+        entry
+        for entry in entries.values()
+        if _is_shellcheck_candidate_entry(entry["sourceRelative"]) and Path(entry["sourceAbsolute"]).is_file()
+    ]
     return sorted(on_disk, key=lambda entry: entry["sourceRelative"])
 
 
@@ -185,7 +190,7 @@ def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
         layout_dir = source_root / "dot_config" / "zellij" / "layouts"
         layouts = []
         if layout_dir.exists():
-            layouts = [p.name.removesuffix(".kdl.tmpl") for p in layout_dir.glob("*.kdl.tmpl")]
+            layouts = sorted(p.name.removesuffix(".kdl.tmpl") for p in layout_dir.glob("*.kdl.tmpl"))
         metafunc.parametrize("layout_name", layouts)
 
     if "chezmoiscript_path" in metafunc.fixturenames:
