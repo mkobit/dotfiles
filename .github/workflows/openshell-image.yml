@@ -38,19 +38,8 @@ jobs:
       - uses: actions/checkout@v7.0.1
         with:
           persist-credentials: false
+      - uses: $/.github/actions/setup-mise
       - name: Build from tracked files
-        run: |
-          git archive --format=tar HEAD | docker build --platform linux/amd64 \
-            --file src/openshell/images/shared/Dockerfile \
-            --tag dotfiles-openshell-sandbox:ci -
+        run: mise run openshell:build
       - name: Smoke-test the sandbox environment
-        run: |
-          docker run --rm --network none --user 1000:1000 dotfiles-openshell-sandbox:ci sh -ec '
-            test "$HOME" = /sandbox
-            test -w "$HOME"
-            git --version
-            test "$(git config --global --get gpg.format)" = ssh
-            agy --version
-            codex --version
-            claude --version
-          '
+        run: mise run openshell:smoke-test

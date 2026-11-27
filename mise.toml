@@ -65,3 +65,42 @@ run = "uv run --frozen --no-sync pytest src/python --cov --cov-report=term-missi
 description = "Build Python packages"
 wait_for = ["check:skill-metadata"]
 run = "uv build --all-packages"
+
+[tasks."python:test-skill-filter-compat"]
+description = "Test skill_filter on Python 3.8"
+env = { PYTHONPATH = "src/python/skill_filter", UV_PYTHON_DOWNLOADS = "manual" }
+run = "uv run --no-project --python 3.8 --with pytest -- python -m pytest -c src/python/skill_filter/pyproject.toml src/python/skill_filter/tests/ -q"
+
+[tasks."test:integration"]
+description = "Run system integration tests"
+depends = ["python:sync"]
+run = "uv run --frozen --no-sync pytest tests/integration"
+
+[tasks."openshell:check"]
+description = "Check OpenShell Dockerfile"
+shell = "bash -euo pipefail -c"
+run = "git archive HEAD | docker build --check --file src/openshell/images/shared/Dockerfile -"
+
+[tasks."openshell:build"]
+description = "Build OpenShell shared sandbox image from tracked files"
+shell = "bash -euo pipefail -c"
+run = "git archive --format=tar HEAD | docker build --platform linux/amd64 --file src/openshell/images/shared/Dockerfile --tag dotfiles-openshell-sandbox:ci -"
+
+[tasks."openshell:smoke-test"]
+description = "Smoke-test the OpenShell shared sandbox image"
+wait_for = ["openshell:build"]
+run = """
+docker run --rm --network none --user 1000:1000 dotfiles-openshell-sandbox:ci sh -ec '
+  test "$HOME" = /sandbox
+  test -w "$HOME"
+  git --version
+  test "$(git config --global --get gpg.format)" = ssh
+  agy --version
+  codex --version
+  claude --version
+'
+"""
+
+[tasks."openshell:test"]
+description = "Build and smoke-test the OpenShell shared sandbox image"
+depends = ["openshell:build", "openshell:smoke-test"]
