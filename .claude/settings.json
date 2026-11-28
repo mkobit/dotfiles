@@ -76,7 +76,6 @@
         "~/.dotfiles",
         "~/.gemini",
         "~/.codex",
-        "~/.tmux.conf",
         "~/.vimrc",
         "~/.zshrc",
         "~/.gitconfig",

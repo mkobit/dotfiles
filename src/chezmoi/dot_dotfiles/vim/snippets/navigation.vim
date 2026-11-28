@@ -13,7 +13,7 @@ set sidescrolloff=10
 nnoremap j gj
 nnoremap k gk
 
-""" Simple window navigation (won't conflict with tmux if using C-a prefix)
+""" Simple window navigation
 """ Use Alt+hjkl to move between splits
 nnoremap <M-h> <C-w>h
 nnoremap <M-j> <C-w>j

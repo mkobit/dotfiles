@@ -1,5 +1,5 @@
 # =============================================================================
-# HISTORY CONFIGURATION - Large, shared, optimized for tmux
+# HISTORY CONFIGURATION - Large, shared
 # =============================================================================
 {{- if eq .shell "bash" }}
 export HISTFILE=~/.bash_history
@@ -14,10 +14,10 @@ export HISTFILE=~/.zsh_history
 export HISTSIZE=100000
 export SAVEHIST=100000
 
-# History behavior - optimized for cross-session sharing (tmux-friendly)
+# History behavior - optimized for cross-session sharing
 setopt EXTENDED_HISTORY        # Save timestamp and duration with each command
 setopt INC_APPEND_HISTORY      # Write to history immediately, not on shell exit
-setopt SHARE_HISTORY           # Share history between all sessions (important for tmux)
+setopt SHARE_HISTORY           # Share history between all sessions
 setopt HIST_EXPIRE_DUPS_FIRST  # Expire duplicate entries first when trimming
 setopt HIST_IGNORE_DUPS        # Don't record duplicate consecutive entries
 setopt HIST_IGNORE_ALL_DUPS    # Delete old entry if new entry is duplicate
