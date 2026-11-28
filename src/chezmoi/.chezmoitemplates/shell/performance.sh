@@ -4,15 +4,15 @@
 # Settings that oh-my-zsh doesn't handle or that need multiplexer-specific optimization
 
 # =============================================================================
-# TMUX-CRITICAL HISTORY SETTINGS
+# HISTORY SETTINGS
 # =============================================================================
-# Large history with immediate cross-session sharing (essential for tmux)
+# Large history with immediate cross-session sharing
 export HISTSIZE=100000
 export SAVEHIST=100000
 
-# CRITICAL: These ensure history is shared across all tmux panes/windows immediately
+# Ensure history is shared across all sessions immediately
 # INC_APPEND_HISTORY writes to history immediately, not on shell exit
-# SHARE_HISTORY shares history between all sessions (tmux essential)
+# SHARE_HISTORY shares history between all sessions
 # HIST_VERIFY shows command with history expansion before running
 # Advanced history deduplication (oh-my-zsh doesn't set these)
 # HIST_EXPIRE_DUPS_FIRST expires duplicate entries first when trimming
@@ -30,7 +30,7 @@ setopt HIST_SAVE_NO_DUPS
 {{- end }}
 
 # =============================================================================
-# VI MODE - TMUX OPTIMIZED
+# VI MODE
 # =============================================================================
 # Note: vi mode and KEYTIMEOUT are now set in oh-my-zsh.zsh after oh-my-zsh loads
 # This ensures oh-my-zsh doesn't override our vi mode preference
@@ -39,7 +39,7 @@ setopt HIST_SAVE_NO_DUPS
 # TODO: HOLISTIC KEYBINDING STRATEGY
 # =============================================================================
 # Need to design a unified keybinding strategy that works seamlessly across:
-# macOS -> iTerm2 -> tmux -> zsh -> vim workflow
+# macOS -> iTerm2 -> multiplexer -> zsh -> vim workflow
 #
 # CURRENT KEYBINDINGS TO EVALUATE:
 # - bindkey '^P' up-history                    # Ctrl-P: previous command
@@ -52,9 +52,9 @@ setopt HIST_SAVE_NO_DUPS
 # - Alt-C (FZF directory search) - ESTABLISHED
 #
 # ENVIRONMENTS TO SUPPORT:
-# Primary: macOS + iTerm2 + tmux + zsh + vim
-# Secondary: Linux + terminal + tmux + zsh + vim
-# Tertiary: WSL + Windows Terminal + tmux + zsh + vim
+# Primary: macOS + iTerm2 + zellij + zsh + vim
+# Secondary: Linux + terminal + zellij + zsh + vim
+# Tertiary: WSL + Windows Terminal + zellij + zsh + vim
 # Edge case: VS Code integrated terminal
 #
 # KEY BINDING LAYER ANALYSIS:
@@ -70,11 +70,8 @@ setopt HIST_SAVE_NO_DUPS
 #    Terminal.app: Similar Cmd+* patterns
 #    VS Code: Ctrl+` (toggle terminal), Ctrl+Shift+` (new terminal)
 #
-# 3. TMUX LAYER (if running)
-#    Default prefix: Ctrl-B
-#    Common custom: Ctrl-A
-#    Safe area: Anything not using the prefix
-#    Copy mode: Prefix+[ enters vi-style navigation
+# 3. MULTIPLEXER LAYER (if running)
+#    Zellij / terminal multiplexer keybindings
 #
 # 4. SHELL LAYER (zsh vi mode)
 #    ESC: Enter vi command mode
@@ -107,13 +104,13 @@ setopt HIST_SAVE_NO_DUPS
 #
 # TIER 3 - ADVANCED (nice to have):
 # - Vim-style text objects in command line
-# - Integration with tmux copy mode
-# - Context-aware bindings (different in/out of tmux)
+# - Integration with multiplexer copy mode
+# - Context-aware bindings (different in/out of multiplexer)
 #
 # TESTING METHODOLOGY:
 #
 # 1. Map current iTerm2 keybindings (Preferences > Keys)
-# 2. Test each proposed binding in: bare terminal -> tmux -> zsh -> vim
+# 2. Test each proposed binding in: bare terminal -> multiplexer -> zsh -> vim
 # 3. Verify no conflicts with common workflows
 # 4. Test across all supported environments
 # 5. Document any environment-specific configuration needed
@@ -137,18 +134,18 @@ setopt HIST_SAVE_NO_DUPS
 # then gradually add more advanced features with proper testing.
 
 # =============================================================================
-# TMUX PERFORMANCE OPTIMIZATIONS
+# SHELL PERFORMANCE OPTIMIZATIONS
 # =============================================================================
-# Disable flow control (essential for tmux - Ctrl-S/Ctrl-Q conflicts)
+# Disable flow control (avoid Ctrl-S/Ctrl-Q conflicts)
 {{- if eq .shell "zsh" }}
 unsetopt FLOW_CONTROL
 {{- end }}
 [[ -t 0 ]] && stty -ixon
 
-# Speed up job control for tmux environments
+# Speed up job control
 # NO_HUP does not send HUP to background jobs on shell exit
 # NO_CHECK_JOBS does not warn about running jobs on shell exit
-# NO_BEEP disables beeping (annoying in tmux)
+# NO_BEEP disables beeping
 {{- if eq .shell "zsh" }}
 setopt NO_HUP
 setopt NO_CHECK_JOBS
@@ -171,16 +168,8 @@ setopt AUTO_LIST
 # =============================================================================
 # TERMINAL OPTIMIZATIONS FOR NESTED ENVIRONMENTS
 # =============================================================================
-# Detect which multiplexer (if any) we are inside and set TERM appropriately.
-# tmux needs tmux-256color for full feature support (italics, true color, etc.).
 # zellij manages its own TERM (xterm-256color); do not override it.
-if [[ -n "$TMUX" ]]; then
-    export TERM="tmux-256color"
-    DISABLE_AUTO_TITLE="true"
-    {{- if eq .shell "zsh" }}
-    setopt PROMPT_SUBST
-    {{- end }}
-elif [[ -n "$ZELLIJ" ]]; then
+if [[ -n "$ZELLIJ" ]]; then
     # zellij sets xterm-256color; leave TERM alone and just suppress auto-title
     DISABLE_AUTO_TITLE="true"
     {{- if eq .shell "zsh" }}
@@ -188,9 +177,6 @@ elif [[ -n "$ZELLIJ" ]]; then
     {{- end }}
 else
     case "$TERM_PROGRAM" in
-        "iTerm.app")
-            export ITERM_ENABLE_SHELL_INTEGRATION_WITH_TMUX=YES
-            ;;
         "vscode")
             export TERM="xterm-256color"
             ;;
@@ -198,16 +184,12 @@ else
 fi
 
 # =============================================================================
-# CROSS-PLATFORM TMUX CONSIDERATIONS
+# CROSS-PLATFORM MULTIPLEXER CONSIDERATIONS
 # =============================================================================
 case "$(uname -s)" in
     Darwin)
         # macOS + multiplexer optimizations
-        # Fix clipboard integration in multiplexers
-        if [[ -n "$TMUX" ]] && command -v pbcopy >/dev/null 2>&1; then
-            alias pbcopy='tmux save-buffer -'
-            alias pbpaste='tmux show-buffer'
-        elif [[ -n "$ZELLIJ" ]] && command -v pbcopy >/dev/null 2>&1; then
+        if [[ -n "$ZELLIJ" ]] && command -v pbcopy >/dev/null 2>&1; then
             # Zellij handles clipboard natively via OSC52 when configured,
             # or we just use normal pbcopy/pbpaste
             :
@@ -215,7 +197,7 @@ case "$(uname -s)" in
         ;;
     Linux)
         # Linux + multiplexer optimizations (WSL, SteamOS)
-        if [[ -n "$WSL_DISTRO_NAME" && ( -n "$TMUX" || -n "$ZELLIJ" ) ]]; then
+        if [[ -n "$WSL_DISTRO_NAME" && -n "$ZELLIJ" ]]; then
             # WSL + multiplexer: disable problematic features
             {{- if eq .shell "zsh" }}
             unsetopt BG_NICE
@@ -226,7 +208,7 @@ case "$(uname -s)" in
 esac
 
 # =============================================================================
-# ESSENTIAL NAVIGATION (tmux workflow focused)
+# ESSENTIAL NAVIGATION
 # =============================================================================
 # Quick directory navigation (complement to zoxide)
 # AUTO_CD changes directory without typing cd

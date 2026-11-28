@@ -114,7 +114,7 @@ jobs:
         uses: actions/cache/restore@v6.1.0
         with:
           path: ${{ env.CHEZMOI_CACHE_DIR }}
-          key: chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/chezmoi/.chezmoidata/bin/**', 'src/chezmoi/.chezmoidata/ai/agents.toml', 'src/chezmoi/.chezmoidata/ai/plugins/**', 'src/chezmoi/.chezmoidata/ai/plugin-bridge.toml', 'src/chezmoi/.chezmoidata/ai/skills/**', 'src/chezmoi/.chezmoidata/fonts/**', 'src/chezmoi/.chezmoidata/tmux/plugins/**', 'src/chezmoi/.chezmoidata/zellij/plugins/**', 'src/chezmoi/.chezmoidata/fzf_plugins_data.toml', 'src/chezmoi/.chezmoidata/github_releases.toml', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/.chezmoi.toml.tmpl', 'src/chezmoi/**/.chezmoiexternals/**') }}
+          key: chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('src/chezmoi/.chezmoidata/bin/**', 'src/chezmoi/.chezmoidata/ai/agents.toml', 'src/chezmoi/.chezmoidata/ai/plugins/**', 'src/chezmoi/.chezmoidata/ai/plugin-bridge.toml', 'src/chezmoi/.chezmoidata/ai/skills/**', 'src/chezmoi/.chezmoidata/fonts/**', 'src/chezmoi/.chezmoidata/zellij/plugins/**', 'src/chezmoi/.chezmoidata/fzf_plugins_data.toml', 'src/chezmoi/.chezmoidata/github_releases.toml', 'src/chezmoi/.chezmoidata.toml', 'src/chezmoi/.chezmoi.toml.tmpl', 'src/chezmoi/**/.chezmoiexternals/**') }}
           restore-keys: |
             chezmoi-cache-v4-${{ runner.os }}-${{ runner.arch }}-
 
@@ -148,7 +148,7 @@ jobs:
         uses: actions/cache@v6.1.0
         with:
           path: ~/Library/Caches/Homebrew
-          key: ${{ runner.os }}-${{ runner.arch }}-homebrew-v1-${{ hashFiles('src/chezmoi/.chezmoitemplates/brewfile', 'src/chezmoi/.chezmoiscripts/run_once_install-tmux.sh.tmpl', 'src/chezmoi/.chezmoiscripts/run_onchange_after_install-brew-packages.sh.tmpl') }}
+          key: ${{ runner.os }}-${{ runner.arch }}-homebrew-v1-${{ hashFiles('src/chezmoi/.chezmoitemplates/brewfile', 'src/chezmoi/.chezmoiscripts/run_onchange_after_install-brew-packages.sh.tmpl') }}
           restore-keys: |
             ${{ runner.os }}-${{ runner.arch }}-homebrew-v1-
 
